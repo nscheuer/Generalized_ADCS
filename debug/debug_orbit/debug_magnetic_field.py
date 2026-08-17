@@ -16,7 +16,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 if __name__ == "__main__":
     ephem = Ephemeris()
     os0 = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 7.5, 0]))
-    orbit = Orbit(os0, end_time=0.22 + 2000*TimeConstants.sec2cent, dt=10, use_J2=False, fast=False)
+    orbit = Orbit(os0, end_time=0.22 + 2000*TimeConstants.sec2cent, dt=10, zonal_J=0, fast=False)
 
     times = sorted(orbit.states.keys())
 

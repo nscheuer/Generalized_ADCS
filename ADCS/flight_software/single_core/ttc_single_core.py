@@ -2,7 +2,7 @@ __all__ = ["TTC_Single_Core"]
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Sequence
 
 from ADCS.flight_software.tasks.task import Task
 
@@ -122,7 +122,7 @@ class TTC_Single_Core:
 
     """
 
-    def __init__(self, base_rate_hz: float, tasks: List[Task], memory: dict, debug: bool = False):
+    def __init__(self, base_rate_hz: float, tasks: Sequence[Task], memory: dict, debug: bool = False):
         r"""
         Initialize the time-triggered single-core scheduler.
 

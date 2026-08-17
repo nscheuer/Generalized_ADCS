@@ -11,9 +11,9 @@ import ADCS
 sat = ADCS.satellite_factory.create_beavercube2_cubesat()
 
 # ── Initial state: [omega(3), quaternion(4), h_rw(1)] ────────────────
-x_0 = np.array([0.5*np.pi/180, -1.0*np.pi/180, 2.0*np.pi/180,   # tumble rates [rad/s]
+x_0 = ADCS.State.from_array(np.array([0.5*np.pi/180, -1.0*np.pi/180, 2.0*np.pi/180,   # tumble rates [rad/s]
                  0.9624, 0.1451, -0.0960, 0.2101,                  # ~equiv to sigma=[0.3,-0.2,0.1]
-                 0.0])                                              # RW momentum
+                 0.0]))                                             # RW momentum
 
 # ── ISS orbit (408 km, 51.6 deg) ─────────────────────────────────────
 R_iss = np.array([6779.0, 0.0, 0.0])           # km, ECI
@@ -37,4 +37,3 @@ results = ADCS.simulate(
 )
 elapsed = time.perf_counter() - t_start
 print(f"ADCS Framework — elapsed: {elapsed:.2f} s  (sim time: 5400 s)")
-

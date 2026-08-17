@@ -10,6 +10,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import RW
 from ADCS.satellite_hardware.errors import Bias, Noise
+from ADCS.state import State
 
 
 @dataclass(frozen=True)
@@ -20,7 +21,7 @@ class RWCase:
     h: float
     h_max: float
     u: float
-    x: np.ndarray
+    x: State
     orbital_state: Orbital_State
 
     @property
@@ -37,7 +38,7 @@ def _make_case(seed: int = 0) -> RWCase:
     axis_raw = 3.0 * _unit(rng.normal(size=3))
     q = _unit(rng.normal(size=4))
     w = 0.05 * _unit(rng.normal(size=3))
-    x = np.concatenate((w, q))
+    x = State(w=w, q=q)
     orbital_state = Orbital_State(
         ephem=Ephemeris(),
         J2000=0.22,
@@ -129,12 +130,12 @@ def _expected_rw_sequence(
 def _projected_torque_hessian_clean(case: RWCase, direction: np.ndarray) -> np.ndarray:
     def scalarized(values: np.ndarray) -> float:
         u = values[0]
-        x = np.asarray(values[1:8])
+        x = State.from_array(values[1:8])
         h = values[8]
         rw = RW(axis=case.axis_raw, max_torque=case.max_torque, J=case.J, h=h, h_max=case.h_max)
         return float(np.dot(rw.torque(u=u, x=x, os=case.orbital_state), direction))
 
-    point = np.concatenate([[case.u], case.x, [case.h]])
+    point = np.concatenate([[case.u], case.x.as_array(), [case.h]])
     return np.array(nd.Hessian(scalarized)(point.tolist()))
 
 
@@ -142,7 +143,7 @@ def _projected_torque_hessian_biased(case: RWCase, direction: np.ndarray, bias_v
     def scalarized(values: np.ndarray) -> float:
         u = values[0]
         b = values[1]
-        x = np.asarray(values[2:9])
+        x = State.from_array(values[2:9])
         h = values[9]
         rw = RW(
             axis=case.axis_raw,
@@ -154,19 +155,19 @@ def _projected_torque_hessian_biased(case: RWCase, direction: np.ndarray, bias_v
         )
         return float(np.dot(rw.torque(u=u, x=x, os=case.orbital_state), direction))
 
-    point = np.concatenate([[case.u], [bias_value], case.x, [case.h]])
+    point = np.concatenate([[case.u], [bias_value], case.x.as_array(), [case.h]])
     return np.array(nd.Hessian(scalarized)(point.tolist()))
 
 
 def _storage_hessian_clean(case: RWCase) -> np.ndarray:
     def scalarized(values: np.ndarray) -> float:
         u = values[0]
-        x = np.asarray(values[1:8])
+        x = State.from_array(values[1:8])
         h = values[8]
         rw = RW(axis=case.axis_raw, max_torque=case.max_torque, J=case.J, h=h, h_max=case.h_max)
         return float(rw.storage_torque(u=u, x=x, os=case.orbital_state))
 
-    point = np.concatenate([[case.u], case.x, [case.h]])
+    point = np.concatenate([[case.u], case.x.as_array(), [case.h]])
     return np.array(nd.Hessian(scalarized)(point.tolist()))
 
 
@@ -174,7 +175,7 @@ def _storage_hessian_biased(case: RWCase, bias_value: float) -> np.ndarray:
     def scalarized(values: np.ndarray) -> float:
         u = values[0]
         b = values[1]
-        x = np.asarray(values[2:9])
+        x = State.from_array(values[2:9])
         h = values[9]
         rw = RW(
             axis=case.axis_raw,
@@ -186,7 +187,7 @@ def _storage_hessian_biased(case: RWCase, bias_value: float) -> np.ndarray:
         )
         return float(rw.storage_torque(u=u, x=x, os=case.orbital_state))
 
-    point = np.concatenate([[case.u], [bias_value], case.x, [case.h]])
+    point = np.concatenate([[case.u], [bias_value], case.x.as_array(), [case.h]])
     return np.array(nd.Hessian(scalarized)(point.tolist()))
 
 
@@ -249,7 +250,9 @@ def test_rw_clean_torque_jacobians_match_exact_and_numeric() -> None:
 
     numeric_du = np.array(nd.Jacobian(lambda value: rw.torque(u=value, x=case.x, os=case.orbital_state))(case.u)).T
     numeric_dx = np.array(
-        nd.Jacobian(lambda value: rw.torque(u=case.u, x=np.asarray(value), os=case.orbital_state))(case.x.tolist())
+        nd.Jacobian(lambda value: rw.torque(u=case.u, x=State.from_array(value), os=case.orbital_state))(
+            case.x.as_array().tolist()
+        )
     ).T
     numeric_dh = np.array(
         nd.Jacobian(
@@ -289,7 +292,9 @@ def test_rw_biased_torque_jacobians_match_exact_and_numeric() -> None:
         )(bias_value)
     ).T
     numeric_dx = np.array(
-        nd.Jacobian(lambda value: rw.torque(u=case.u, x=np.asarray(value), os=case.orbital_state))(case.x.tolist())
+        nd.Jacobian(lambda value: rw.torque(u=case.u, x=State.from_array(value), os=case.orbital_state))(
+            case.x.as_array().tolist()
+        )
     ).T
     numeric_dh = np.array(
         nd.Jacobian(
@@ -422,7 +427,9 @@ def test_rw_clean_storage_jacobians_match_exact_and_numeric() -> None:
 
     numeric_du = np.array(nd.Jacobian(lambda value: rw.storage_torque(u=value, x=case.x, os=case.orbital_state))(case.u))
     numeric_dx = np.array(
-        nd.Jacobian(lambda value: rw.storage_torque(u=case.u, x=np.asarray(value), os=case.orbital_state))(case.x.tolist())
+        nd.Jacobian(lambda value: rw.storage_torque(u=case.u, x=State.from_array(value), os=case.orbital_state))(
+            case.x.as_array().tolist()
+        )
     ).T
     numeric_dh = np.array(
         nd.Jacobian(
@@ -462,7 +469,9 @@ def test_rw_biased_storage_jacobians_match_exact_and_numeric() -> None:
         )(bias_value)
     )
     numeric_dx = np.array(
-        nd.Jacobian(lambda value: rw.storage_torque(u=case.u, x=np.asarray(value), os=case.orbital_state))(case.x.tolist())
+        nd.Jacobian(lambda value: rw.storage_torque(u=case.u, x=State.from_array(value), os=case.orbital_state))(
+            case.x.as_array().tolist()
+        )
     ).T
     numeric_dh = np.array(
         nd.Jacobian(

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from ADCS.CONOPS.goals import No_Goal
+from ADCS.controller import Controller
 from ADCS.controller import MTQ_w_RW
 from ADCS.estimators.attitude_estimators import UAKF
 from ADCS.helpers.math_constants import MathConstants
@@ -14,8 +15,28 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.sensors import Gyro, MTM
 from ADCS.simulate import simulate
+from ADCS.state import EstimatorState, State
 
 UNIT_VECTORS = MathConstants.unitvecs
+
+
+class CapturingController(Controller):
+    def __init__(self):
+        self.received_state = None
+        self.calls = 0
+
+    def find_u(
+        self,
+        x_hat: State | EstimatorState,
+        sens: np.ndarray,
+        est_sat: EstimatedSatellite,
+        os_hat: Orbital_State,
+        goal: No_Goal | None = None,
+        **kwargs,
+    ) -> np.ndarray:
+        self.received_state = x_hat
+        self.calls += 1
+        return np.zeros(est_sat.control_len)
 
 
 @pytest.fixture(scope="module")
@@ -57,9 +78,9 @@ def gnc_run():
     state_length = real_satellite.state_len
     initial_rate = random_n_unit_vec(3) * np.random.uniform(1.0, 2.0) * np.pi / 180.0
     initial_quaternion = random_n_unit_vec(4)
-    x0 = np.concatenate([initial_rate, initial_quaternion, np.zeros(state_length - 7)])
+    x0 = State(w=initial_rate, q=initial_quaternion, h=np.zeros(state_length - 7))
 
-    x_hat0 = np.concatenate([np.zeros(3), [1.0, 0.0, 0.0, 0.0], np.zeros(state_length - 7)])
+    x_hat0 = EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(state_length - 7))
     reduced_length = state_length - 1
     covariance0 = np.diag(np.concatenate([[1e-3] * 3, [1e-2] * 3, [1e-4] * (reduced_length - 6)]))
     process_noise0 = np.eye(reduced_length) * 1e-8
@@ -96,12 +117,43 @@ def gnc_run():
     return result, x0
 
 
+def test_estimatorless_simulation_passes_state_to_controller():
+    satellite = Satellite()
+    est_satellite = EstimatedSatellite.from_satellite(satellite)
+    controller = CapturingController()
+    orbital_state = Orbital_State(
+        ephem=Ephemeris(),
+        J2000=0.22,
+        R=[7000.0, 0.0, 0.0],
+        V=[0.0, 7.5, 0.0],
+        fast=True,
+    )
+    x0 = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
+
+    result = simulate(
+        x=x0,
+        satellite=satellite,
+        est_satellite=est_satellite,
+        controller=controller,
+        estimator=None,
+        goal=No_Goal(),
+        os0=orbital_state,
+        dt=1.0,
+        tf=1.0,
+    )[0]
+
+    assert controller.calls == 1
+    assert isinstance(controller.received_state, State)
+    assert not isinstance(controller.received_state, EstimatorState)
+    assert result.est_state_hist is None
+
+
 def state_histories(gnc_run):
     result, x0 = gnc_run
     return (
         result,
-        np.asarray(result.state_hist, dtype=float),
-        np.asarray(result.est_state_hist, dtype=float),
+        State.stack(result.state_hist),
+        np.vstack([state.as_estimator_array() for state in result.est_state_hist]),
         np.asarray(result.control_hist, dtype=float),
         x0,
     )
@@ -148,6 +200,6 @@ def test_integrated_gnc_estimate_tracks_truth_in_second_half(gnc_run):
 
 def test_integrated_gnc_detumbles_true_rate_end_to_end(gnc_run):
     _, state_history, _, _, x0 = state_histories(gnc_run)
-    initial_rate_norm = float(np.linalg.norm(x0[0:3]))
+    initial_rate_norm = float(np.linalg.norm(x0.w))
     final_rate_norm = float(np.linalg.norm(np.mean(state_history[-5:, 0:3], axis=0)))
     assert final_rate_norm < initial_rate_norm

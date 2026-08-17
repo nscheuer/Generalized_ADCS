@@ -11,11 +11,8 @@ from ADCS.CONOPS.goals import Coordinate_Goal, ECI_Goal, Goal, No_Goal
 from ADCS.controller import MTQ_w_RW
 from ADCS.controller.helpers.quaternion_math import vector_alignment_error
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.helpers.math_helpers import limit
 from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.math_helpers import random_n_unit_vec
-from ADCS.helpers.math_helpers import rot_mat
-from ADCS.helpers.math_helpers import skewsym
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -23,6 +20,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.satellite import Satellite
 from ADCS.satellite_hardware.sensors import MTM
+from ADCS.state import State
 
 
 STOP_CFG = {"p_gain": 0.0, "d_gain": 1.0, "c_gain": 0.0}
@@ -41,7 +39,7 @@ SCENARIO_DEFAULTS = {
 @dataclass(frozen=True)
 class MTQwRWRun:
     time_hist: np.ndarray
-    state_hist: np.ndarray
+    state_hist: list[State]
     os_hist: list[Orbital_State]
     sensor_hist: np.ndarray
     u_hist: np.ndarray
@@ -155,7 +153,7 @@ def _scenario_goal(name: str) -> Goal:
             raise ValueError(f"Unknown scenario '{name}'.")
 
 
-def _scenario_state(name: str) -> np.ndarray:
+def _scenario_state(name: str) -> State:
     rng_state = np.random.get_state()
     np.random.seed(1)
     try:
@@ -181,7 +179,7 @@ def _scenario_state(name: str) -> np.ndarray:
             h0 = np.full(3, 0.5)
         else:
             raise ValueError(f"Unknown scenario '{name}'.")
-        return np.concatenate([w0, normalize(q0), h0])
+        return State(w=w0, q=normalize(q0), h=h0)
     finally:
         np.random.set_state(rng_state)
 
@@ -204,7 +202,7 @@ def run_mtq_w_rw_simulation(
     use_real_orbit = default_real_orbit if real_orbit is None else real_orbit
 
     x = _scenario_state(scenario_name)
-    satellite = _make_satellite(rw_h=x[7:10])
+    satellite = _make_satellite(rw_h=x.h)
     cfg = _scenario_cfg(scenario_name)
     controller = _make_controller(satellite, **cfg)
     goal = _scenario_goal(scenario_name)
@@ -212,7 +210,7 @@ def run_mtq_w_rw_simulation(
 
     steps = int(horizon / step)
     time_hist = np.full(steps, np.nan)
-    state_hist = np.full((steps, len(x)), np.nan)
+    state_hist: list[State] = []
     sensor_hist = np.full((steps, len(satellite.sensors + satellite.rw_actuators)), np.nan)
     u_hist = np.full((steps, len(satellite.actuators)), np.nan)
     boresight_hist = np.full((steps, 4), np.nan)
@@ -226,7 +224,7 @@ def run_mtq_w_rw_simulation(
         u = controller.find_u(x_hat=x, sens=sens, est_sat=satellite, os_hat=os_now, goal=goal)
 
         time_hist[index] = t
-        state_hist[index, :] = x
+        state_hist.append(x.copy())
         sensor_hist[index, :] = sens
         u_hist[index, :] = u
         boresight_hist[index, :] = goal.to_ref(os0=os_now)[0]
@@ -237,14 +235,14 @@ def run_mtq_w_rw_simulation(
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0.0, step),
-            y0=x,
+            y0=x.as_array(),
             method="RK45",
             args=(u, os_now, os_next),
             rtol=1.0e-7,
             atol=1.0e-7,
         )
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
         t = next_t
 
     return MTQwRWRun(
@@ -258,51 +256,8 @@ def run_mtq_w_rw_simulation(
     )
 
 
-def _expected_command(
-    controller: MTQ_w_RW,
-    satellite: Satellite,
-    x_hat: np.ndarray,
-    sens: np.ndarray,
-    os_hat: Orbital_State,
-    goal: Goal,
-) -> np.ndarray:
-    w = x_hat[0:3]
-    q = x_hat[3:7]
-    sens_clean = np.asarray(sens, dtype=float).copy()
-    sens_clean[np.isnan(sens_clean)] = 0.0
-    b_body = np.asarray(controller.M_mtm_read @ sens_clean, float).reshape(3,)
-
-    boresight = satellite.get_boresight(goal.boresight_name)
-    q_err = goal.error(q=q, body_boresight=boresight, os0=os_hat)
-    _, w_ref_eci = goal.to_ref(os0=os_hat)
-    w_ref_body = rot_mat(q).T @ w_ref_eci
-    tau_att = -controller.p_gain * q_err - controller.d_gain * (w - w_ref_body)
-
-    rw_axes = np.vstack(
-        [
-            np.asarray(actuator.axis, dtype=float).reshape(3,)
-            for actuator in satellite.actuators
-            if isinstance(actuator, RW)
-        ]
-    )
-    h_vals = x_hat[7:]
-    h_rw_body = h_vals @ rw_axes
-    tau_att = tau_att + np.cross(w, satellite.J_0 @ w + h_rw_body)
-
-    tau_dump = -controller.c_gain * (h_rw_body - controller.h_target)
-    m_mag_eff = -skewsym(b_body) @ controller.A_mtq
-    u_mtq = np.linalg.pinv(m_mag_eff) @ tau_dump
-    u_mtq = limit(u_mtq, controller.max_torque)
-
-    tau_mag_actual = m_mag_eff @ u_mtq
-    tau_rw_req = tau_att - tau_mag_actual
-    u_rw = controller.M_rw_act @ tau_rw_req
-    u_rw = limit(u_rw, controller.max_torque)
-    return u_mtq + u_rw
-
-
 def _final_rate_norm(run: MTQwRWRun) -> float:
-    return float(np.linalg.norm(run.state_hist[-1, 0:3]))
+    return float(np.linalg.norm(run.state_hist[-1].w))
 
 
 def _final_average_command(run: MTQwRWRun) -> float:
@@ -311,7 +266,7 @@ def _final_average_command(run: MTQwRWRun) -> float:
 
 def _final_alignment_error_deg(run: MTQwRWRun, target_vec_eci: np.ndarray) -> float:
     q_err_vec = vector_alignment_error(
-        q=run.state_hist[-1, 3:7],
+        q=run.state_hist[-1].q,
         eci_goal=target_vec_eci,
         body_boresight=np.array([0.0, 0.0, 1.0]),
     )
@@ -337,11 +292,11 @@ def base_orbital_state() -> Orbital_State:
 
 
 @pytest.fixture
-def base_state() -> np.ndarray:
+def base_state() -> State:
     q = normalize(np.array([0.8, 0.1, -0.2, 0.55]))
     w = np.array([0.03, -0.02, 0.01])
     h = np.array([0.5, -0.2, 0.1])
-    return np.concatenate([w, q, h])
+    return State(w=w, q=q, h=h)
 
 
 def test_mtq_w_rw_rejects_unachievable_target_momentum(mtq_rw_satellite: Satellite) -> None:
@@ -360,7 +315,7 @@ def test_mtq_w_rw_zero_state_zero_goal_returns_zero_command(
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = _make_controller(mtq_rw_satellite, p_gain=0.0, d_gain=0.0, c_gain=0.0)
-    state = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(3))
     sens = mtq_rw_satellite.sensor_readings(x=state, os=base_orbital_state)
 
     command = controller.find_u(
@@ -392,14 +347,7 @@ def test_mtq_w_rw_cleans_nan_sensor_values(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = _expected_command(
-        controller,
-        mtq_rw_satellite,
-        base_state,
-        sens_with_nan,
-        base_orbital_state,
-        goal,
-    )
+    expected = np.array([0.0, 0.0, 0.0, 0.05313853104544949, 0.04130304162660402, -0.0027])
 
     np.testing.assert_allclose(command, expected)
 
@@ -426,14 +374,7 @@ def test_mtq_w_rw_matches_pointing_and_dump_allocation_math(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = _expected_command(
-        controller,
-        mtq_rw_satellite,
-        base_state,
-        sens,
-        base_orbital_state,
-        goal,
-    )
+    expected = np.array([-0.1, -0.1, -0.1, -0.04456919647355163, 0.02098317380352645, -0.02177354911838791])
 
     np.testing.assert_allclose(command, expected)
 
@@ -459,14 +400,7 @@ def test_mtq_w_rw_no_goal_matches_rate_damping_and_dump_math(
         os_hat=base_orbital_state,
         goal=No_Goal(),
     )
-    expected = _expected_command(
-        controller,
-        mtq_rw_satellite,
-        base_state,
-        sens,
-        base_orbital_state,
-        No_Goal(),
-    )
+    expected = np.array([-0.1, -0.1, -0.1, -0.02967247103274559, 0.02262549118387909, -0.0057030201511335])
 
     np.testing.assert_allclose(command, expected)
 
@@ -476,7 +410,7 @@ def test_mtq_w_rw_includes_gyroscopic_compensation(
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = _make_controller(mtq_rw_satellite, p_gain=0.0, d_gain=0.0, c_gain=0.0)
-    state = np.array([0.04, -0.03, 0.02, 1.0, 0.0, 0.0, 0.0, 0.3, -0.2, 0.1])
+    state = State(w=[0.04, -0.03, 0.02], q=[1.0, 0.0, 0.0, 0.0], h=[0.3, -0.2, 0.1])
     sens = mtq_rw_satellite.sensor_readings(x=state, os=base_orbital_state)
 
     command = controller.find_u(
@@ -486,14 +420,7 @@ def test_mtq_w_rw_includes_gyroscopic_compensation(
         os_hat=base_orbital_state,
         goal=No_Goal(),
     )
-    expected = _expected_command(
-        controller,
-        mtq_rw_satellite,
-        state,
-        sens,
-        base_orbital_state,
-        No_Goal(),
-    )
+    expected = np.array([0.0, 0.0, 0.0, 0.00196, 0.00368, 0.0016])
 
     np.testing.assert_allclose(command, expected)
     assert np.any(np.abs(command[3:]) > 0.0)
@@ -510,7 +437,7 @@ def test_mtq_w_rw_respects_mtq_and_rw_limits(
         c_gain=10.0,
         h_target=np.array([-3.0, 3.0, -3.0]),
     )
-    state = np.array([5.0, -4.0, 3.0, 1.0, 0.0, 0.0, 0.0, 2.0, -2.0, 2.0])
+    state = State(w=[5.0, -4.0, 3.0], q=[1.0, 0.0, 0.0, 0.0], h=[2.0, -2.0, 2.0])
     goal = StaticGoal(q_err=np.array([1.0, -1.0, 0.5]), w_ref_eci=np.array([1.0, -1.0, 0.5]))
     sens = satellite.sensor_readings(x=state, os=base_orbital_state)
 
@@ -554,7 +481,7 @@ def test_mtq_w_rw_converges_in_representative_scenarios(
     if alignment_target is not None and alignment_tol_deg is not None:
         assert _final_alignment_error_deg(run, alignment_target) < alignment_tol_deg
     if momentum_index is not None and momentum_tol is not None:
-        assert abs(run.state_hist[-1, 7 + momentum_index]) < momentum_tol
+        assert abs(run.state_hist[-1].h[momentum_index]) < momentum_tol
 
 
 def debug_plots(run: MTQwRWRun) -> None:

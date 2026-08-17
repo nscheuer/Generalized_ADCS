@@ -2,7 +2,7 @@ __all__ = ["Satellite"]
 
 import numpy as np
 
-from typing import List, Dict, Union, Tuple, Any
+from typing import List, Dict, Union, Tuple, Any, Optional, Sequence
 from scipy.linalg import block_diag
 import time
 
@@ -15,6 +15,7 @@ from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
 from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
+from ADCS.state import State
 
 class Satellite:
     r"""
@@ -130,7 +131,7 @@ class Satellite:
     :raises ValueError:
         If ``COM`` is not shape ``(3,)`` or ``J_0`` is not shape ``(3,3)``.
     """
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
+    def __init__(self, mass: float = 1.0, COM: Optional[np.ndarray] = None, J_0: Optional[np.ndarray] = None, disturbances: Sequence[Disturbance] = [], sensors: Sequence[Sensor] = [], actuators: Sequence[Actuator] = [], boresight: Optional[dict[str, np.ndarray] | np.ndarray] = None) -> None:
         r"""
         Construct a :class:`~ADCS.satellite.Satellite`.
 
@@ -233,7 +234,7 @@ class Satellite:
 
         return self.boresight[name]
 
-    def update_J(self, J_0: np.ndarray = None, COM: np.ndarray = None) -> None:
+    def update_J(self, J_0: Optional[np.ndarray] = None, COM: Optional[np.ndarray] = None) -> None:
         r"""
         Update inertia matrices and cached inverses.
 
@@ -512,7 +513,7 @@ class Satellite:
         :raises ValueError:
             If the inferred wheel momentum vector length does not equal ``self.number_RW``.
         """
-        if np.size(state_or_RWhs) == self.state_len:
+        if isinstance(state_or_RWhs, State):
             RWhs = self.RWhs_from_state(state_or_RWhs)
         else:
             RWhs = state_or_RWhs
@@ -520,7 +521,7 @@ class Satellite:
             raise ValueError("wrong number of RWhs to update")
         [self.actuators[self.momentum_inds[i]].update_momentum(RWhs[i]) for i in range(len(self.momentum_inds))]
 
-    def RWhs_from_state(self,state) -> np.ndarray:
+    def RWhs_from_state(self,state: State) -> np.ndarray:
         r"""
         Extract the reaction wheel momenta subvector from a full state vector.
 
@@ -535,15 +536,17 @@ class Satellite:
 
         this returns :math:`\mathbf{h}_{RW} = \mathbf{x}[7:]`.
 
-        :param state: Full state vector, shape ``(state_len,)``.
-        :type state: numpy.ndarray
+        :param state: Structured spacecraft state.
+        :type state: ADCS.state.State
 
         :return: Reaction wheel momentum vector, shape ``(number_RW,)``.
         :rtype: numpy.ndarray
         """
-        return state[7:]
+        if not isinstance(state, State):
+            raise TypeError(f"state must be a State, got {type(state).__name__}")
+        return state.h
     
-    def dynamics_core(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State, dmode: ErrorMode = None, verbose: bool = False) -> np.ndarray:
+    def dynamics_core(self, x: State, u: np.ndarray, orbital_state: Orbital_State, dmode: Optional[ErrorMode] = None, verbose: bool = False) -> np.ndarray:
         r"""
         Continuous-time attitude dynamics :math:`\dot{\mathbf{x}} = f(\mathbf{x},\mathbf{u},\mathrm{os})`.
 
@@ -609,8 +612,9 @@ class Satellite:
 
         matching the implementation structure.
 
-        :param x: State vector ``[w(3), q(4), h(number_RW)]``, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :param x: Structured state with angular velocity, quaternion, and wheel
+            momentum in ``w``, ``q``, and ``h`` respectively.
+        :type x: ADCS.state.State
 
         :param u: Control vector, one element per actuator, shape ``(control_len,)``.
         :type u: numpy.ndarray
@@ -629,9 +633,11 @@ class Satellite:
         :return: Time derivative vector :math:`\dot{\mathbf{x}}`, shape ``(state_len,)``.
         :rtype: numpy.ndarray
         """
-        w = x[0:3]
-        q = x[3:7]
-        h = x[7:]
+        if not isinstance(x, State):
+            raise TypeError(f"x must be a State, got {type(x).__name__}")
+        w = x.w
+        q = x.q
+        h = x.h
         # Gyroscopic w x (J w) term must use the inertia about the center of
         # mass: that is the body the rotational EOM is written about, and it is
         # what invJ_noRW is derived from (J_noRW = J_COM - sum RW). J_0 is the
@@ -737,12 +743,12 @@ class Satellite:
 
         os = os0.average(os1, time_frac, True)
 
-        x_dot = self.dynamics_core(x=x, u=u, orbital_state=os, dmode=dmode, verbose=False)
+        x_dot = self.dynamics_core(x=State.from_array(x), u=u, orbital_state=os, dmode=dmode, verbose=False)
         
         return x_dot
     
 
-    def dist_torques(self, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+    def dist_torques(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute the total disturbance torque.
 
@@ -757,7 +763,7 @@ class Satellite:
         the current :class:`~ADCS.satellite.Satellite` instance is provided.
 
         :param x: State vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital/environmental state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -780,7 +786,7 @@ class Satellite:
 
         return torque_total
     
-    def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+    def act_torque(self, x: State, u: np.ndarray, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute the total actuator torque.
 
@@ -794,7 +800,7 @@ class Satellite:
         where each actuator is a subclass of :class:`~ADCS.satellite_hardware.actuators.Actuator`.
 
         :param x: State vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param u: Control input vector, shape ``(control_len,)``.
         :type u: numpy.ndarray
@@ -813,7 +819,7 @@ class Satellite:
         return sum(act_list, np.zeros(3))
 
     
-    def dist_torques_jacobian(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Union[np.ndarray, np.ndarray]:
+    def dist_torques_jacobian(self, x: State, vecs: Dict[str, np.ndarray]) -> Union[np.ndarray, np.ndarray]:
         r"""
         Jacobians of total disturbance torque with respect to the state and disturbance parameters.
 
@@ -841,7 +847,7 @@ class Satellite:
         * ``torque_qjac(self, vecs)`` → :math:`\partial \boldsymbol{\tau}/\partial \mathbf{q}`.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param vecs: Dictionary of body-frame environment vectors and their quaternion derivatives, e.g.
             ``{"b","r","s","v","rho","db","dr","ds","dv","os"}``.
@@ -865,7 +871,7 @@ class Satellite:
         ddist_torq__ddmp = np.zeros((0,3))
         return ddist_torq__dx,ddist_torq__ddmp
 
-    def dist_torque_hess(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def dist_torque_hess(self, x: State, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Hessian tensors of total disturbance torque.
 
@@ -885,7 +891,7 @@ class Satellite:
         * ``torque_qqhess(self, vecs)`` → :math:`\partial^2 \boldsymbol{\tau}/\partial \mathbf{q}^2`.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param vecs: Dictionary of body-frame environment vectors and their first/second quaternion derivatives.
         :type vecs: dict[str, numpy.ndarray]
@@ -912,7 +918,7 @@ class Satellite:
         return dddist_torq__dxdx,dddist_torq__dxddmp,dddist_torq__ddmpddmp
 
 
-    def dynJacCore(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State) -> Union[np.ndarray, np.ndarray]:
+    def dynJacCore(self, x: State, u: np.ndarray, orbital_state: Orbital_State) -> Union[np.ndarray, np.ndarray]:
         r"""
         Compute Jacobians of the dynamics with respect to state and input.
 
@@ -945,7 +951,7 @@ class Satellite:
         :meth:`~ADCS.satellite.Satellite.dist_torques_jacobian`.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param u: Current control vector, shape ``(control_len,)``.
         :type u: numpy.ndarray
@@ -972,9 +978,9 @@ class Satellite:
         S = orbital_state.S # Sun Vector in ECI [km]
         rho = orbital_state.rho # Atmospheric density [kg/m^3]
 
-        w = x[0:3]
-        q = x[3:7]
-        RWhs = x[7:]
+        w = x.w
+        q = x.q
+        RWhs = x.h
         # Must match the inertia used in dynamics_core (J_COM, not J_0) so the
         # analytic Jacobian stays the correct linearization of the dynamics for
         # a non-zero COM offset. See dynamics_core for the rationale.
@@ -1025,7 +1031,7 @@ class Satellite:
             dxdot__dx[:,7:] -= dxdot__dx[:,0:3]@RWaxes.T@mRWjs
         return [dxdot__dx,dxdot__du]
     
-    def dynamics_Hessians(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State) -> List[List[np.ndarray]]:
+    def dynamics_Hessians(self, x: State, u: np.ndarray, orbital_state: Orbital_State) -> List[List[np.ndarray]]:
         r"""
         Compute second-order partial derivatives (Hessians) of the dynamics.
 
@@ -1093,7 +1099,7 @@ class Satellite:
         where the final tensor index selects the component of :math:`\dot{\mathbf{x}}`.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param u: Current control vector, shape ``(control_len,)``.
         :type u: numpy.ndarray
@@ -1116,9 +1122,9 @@ class Satellite:
         | ``ddxdot__dudu``  | ``(control_len, control_len, state_len)``|
         +-------------------+------------------------------------------+
         """
-        w = x[0:3]#.reshape((3,1))
-        q = x[3:7]#normalize(x[3:7,:])
-        RWhs = x[7:]
+        w = x.w
+        q = x.q
+        RWhs = x.h
         invJ_noRW = self.invJ_noRW
         J = self.J_COM
 
@@ -1217,7 +1223,7 @@ class Satellite:
         return [[ddxdot__dxdx,ddxdot__dxdu],[ddxdot__dxdu.T,ddxdot__dudu]]
 
 
-    def noiseless_rk4(self, x: np.ndarray, u: np.ndarray, dt: float, orbital_state0: Orbital_State, orbital_state1: Orbital_State, verbose: bool=False,mid_orbital_state: Orbital_State = None, quat_as_vec: bool = True, give_err_est = False) -> np.ndarray:
+    def noiseless_rk4(self, x: State, u: np.ndarray, dt: float, orbital_state0: Orbital_State, orbital_state1: Orbital_State, verbose: bool=False,mid_orbital_state: Optional[Orbital_State] = None, quat_as_vec: bool = True, give_err_est = False) -> State:
         r"""
         Propagate the state forward one step using RK4 (and optional embedded error estimate).
 
@@ -1249,7 +1255,7 @@ class Satellite:
         :class:`~ADCS.satellite_hardware.errors.ErrorMode` with all noise/bias additions disabled.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param u: Control vector, shape ``(control_len,)``.
         :type u: numpy.ndarray
@@ -1282,30 +1288,29 @@ class Satellite:
         :raises ValueError:
             If ``give_err_est=True`` while using the CG5 quaternion propagation variant.
         """
-        # Work on a private copy: the renormalisation below (and the RK stages)
-        # must not mutate the caller's input array.
-        x = np.array(x, dtype=float)
-        x[3:7] = normalize(x[3:7])
+        if not isinstance(x, State):
+            raise TypeError(f"x must be a State, got {type(x).__name__}")
+        x_array = x.normalized().as_array()
         # Use no noise, no bias, no updates to either
         dmode = ErrorMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
         if quat_as_vec:
             if mid_orbital_state is None:
                 mid_orbital_state = orbital_state0.average(orbital_state1)
 
-            k1 = self.dynamics_core(x=x, u=u, orbital_state=orbital_state0, dmode=dmode, verbose=verbose)
-            k2_in = x + 0.5 * dt * k1
+            k1 = self.dynamics_core(x=State.from_array(x_array), u=u, orbital_state=orbital_state0, dmode=dmode, verbose=verbose)
+            k2_in = x_array + 0.5 * dt * k1
             k2_in[3:7] = normalize(k2_in[3:7])
-            k2 = self.dynamics_core(x=k2_in, u=u, orbital_state=mid_orbital_state, dmode=dmode, verbose=verbose)
+            k2 = self.dynamics_core(x=State.from_array(k2_in), u=u, orbital_state=mid_orbital_state, dmode=dmode, verbose=verbose)
 
-            k3_in = x + 0.5 * dt * k2
+            k3_in = x_array + 0.5 * dt * k2
             k3_in[3:7] = normalize(k3_in[3:7])
-            k3 = self.dynamics_core(x=k3_in, u=u, orbital_state=mid_orbital_state, dmode=dmode, verbose=verbose)
+            k3 = self.dynamics_core(x=State.from_array(k3_in), u=u, orbital_state=mid_orbital_state, dmode=dmode, verbose=verbose)
 
-            k4_in = x + dt * k3
+            k4_in = x_array + dt * k3
             k4_in[3:7] = normalize(k4_in[3:7])
-            k4 = self.dynamics_core(x=k4_in, u=u, orbital_state=orbital_state1, dmode=dmode, verbose=verbose,)
+            k4 = self.dynamics_core(x=State.from_array(k4_in), u=u, orbital_state=orbital_state1, dmode=dmode, verbose=verbose,)
 
-            out = x + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+            out = x_array + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
             out[3:7] = normalize(out[3:7])
 
             if verbose:
@@ -1315,26 +1320,26 @@ class Satellite:
                 print("k4:", k4)
 
             if give_err_est:
-                k33_in = x + dt * (2 * k2 - k1)
+                k33_in = x_array + dt * (2 * k2 - k1)
                 k33_in[3:7] = normalize(k33_in[3:7])
-                k33 = self.dynamics(k33_in, u, orbital_state1, dmode=dmode, verbose=verbose)
+                k33 = self.dynamics_core(State.from_array(k33_in), u, orbital_state1, dmode=dmode, verbose=verbose)
 
-                out3 = x + (dt / 6.0) * (k1 + 4 * k2 + k33)
+                out3 = x_array + (dt / 6.0) * (k1 + 4 * k2 + k33)
                 out3[3:7] = normalize(out3[3:7])
 
                 est_err = np.zeros(out.size - 1)
                 est_err[:3] = np.abs(out[:3] - out3[:3])
                 est_err[6:] = np.abs(out[7:] - out3[7:])
                 est_err[3:6] = np.abs(quat_to_vec3(quat_mult(quat_inv(out[3:7]), out3[3:7]), 0))
-                return out, est_err
+                return State.from_array(out), est_err
 
-            return out
+            return State.from_array(out)
 
         else:
             if give_err_est:
                 raise ValueError("Error estimation not implemented for CG5 method.")
 
-            ki = [np.zeros_like(x) for _ in range(5)]
+            ki = [np.zeros_like(x_array) for _ in range(5)]
             F = [np.zeros(3) for _ in range(5)]
 
             if mid_orbital_state is None:
@@ -1343,25 +1348,25 @@ class Satellite:
                 ]
 
             for j in range(5):
-                midstate = x + dt * sum([uc.CG5_a[j, i] * ki[i] for i in range(j)], np.zeros_like(x))
+                midstate = x_array + dt * sum([uc.CG5_a[j, i] * ki[i] for i in range(j)], np.zeros_like(x_array))
                 if j > 0:
                     midstate[3:7] = normalize(
-                        quat_mult(x[3:7], *[rot_exp(uc.CG5_a[j, i] * F[i]) for i in range(j)])
+                        quat_mult(x.q, *[rot_exp(uc.CG5_a[j, i] * F[i]) for i in range(j)])
                     )
-                ki[j] = self.dynamics_core(x=midstate, u=u, orbital_state=mid_orbital_state[j], dmode=dmode, verbose=verbose)
+                ki[j] = self.dynamics_core(x=State.from_array(midstate), u=u, orbital_state=mid_orbital_state[j], dmode=dmode, verbose=verbose)
                 F[j] = dt * midstate[0:3]
 
-            out = x + dt * sum([uc.CG5_b[i] * ki[i] for i in range(5)], np.zeros_like(x))
+            out = x_array + dt * sum([uc.CG5_b[i] * ki[i] for i in range(5)], np.zeros_like(x_array))
             out[3:7] = normalize(
-                quat_mult(x[3:7], *[rot_exp(uc.CG5_b[i] * F[i]) for i in range(5)])
+                quat_mult(x.q, *[rot_exp(uc.CG5_b[i] * F[i]) for i in range(5)])
             )
 
-            return out
+            return State.from_array(out)
         
     
 
         
-    def sensor_readings(self, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+    def sensor_readings(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute concatenated sensor readings (attitude sensors + wheel momentum measurements).
 
@@ -1383,7 +1388,7 @@ class Satellite:
         where each :math:`\mathbf{y}_i` is a sensor-specific output (possibly vector-valued).
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital/environmental state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -1401,7 +1406,7 @@ class Satellite:
             return np.array([])
         return np.concatenate(sensor_readings + rw_readings)
     
-    def noiseless_sensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def noiseless_sensor_readings(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute sensor readings with noise disabled (bias may be included but not updated).
 
@@ -1415,7 +1420,7 @@ class Satellite:
         This is useful for deterministic filtering tests where bias is treated as a fixed offset.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital/environmental state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -1426,14 +1431,14 @@ class Satellite:
         dmode = ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
         return self.sensor_readings(x=x, os=os, dmode=dmode)
     
-    def noiseless_RW_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+    def noiseless_RW_readings(self, x: State, os: Orbital_State) -> List[np.ndarray]:
         r"""
         Return noiseless reaction wheel momentum measurements.
 
         Delegates to each wheel's ``measure_momentum_noiseless()`` (implementation-specific).
 
         :param x: Current state vector (unused by some wheel models but included for interface consistency).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital/environmental state (unused by some wheel models but included for interface consistency).
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -1443,14 +1448,14 @@ class Satellite:
         """
         return [rw.measure_momentum_noiseless() for rw in self.rw_actuators]
     
-    def RW_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+    def RW_readings(self, x: State, os: Orbital_State) -> List[np.ndarray]:
         r"""
         Return reaction wheel momentum measurements (with wheel measurement model behavior).
 
         Delegates to each wheel's ``measure_momentum()``.
 
         :param x: Current state vector (unused by some wheel models but included for interface consistency).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital/environmental state (unused by some wheel models but included for interface consistency).
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -1461,14 +1466,14 @@ class Satellite:
         return [rw.measure_momentum() for rw in self.rw_actuators]
 
 
-    def GPS_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+    def GPS_readings(self, x: State, os: Orbital_State) -> List[np.ndarray]:
         r"""
         Return GPS sensor readings.
 
         GPS sensors are identified as instances of :class:`~ADCS.satellite_hardware.sensors.GPS`.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital/environmental state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -1479,7 +1484,7 @@ class Satellite:
         return [gps.reading(x=x, os=os) for gps in self.GPS_sensors]
 
 
-    def gyro_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+    def gyro_readings(self, x: State, os: Orbital_State) -> List[np.ndarray]:
         r"""
         Return readings from all gyroscopes.
 
@@ -1487,7 +1492,7 @@ class Satellite:
         and returns ``sensor.reading(x, os)`` for each.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital/environmental state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -1502,14 +1507,14 @@ class Satellite:
         ]
 
 
-    def mtm_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+    def mtm_readings(self, x: State, os: Orbital_State) -> List[np.ndarray]:
         r"""
         Return readings from all magnetometers.
 
         Filters ``self.attitude_sensors`` by :class:`~ADCS.satellite_hardware.sensors.MTM`.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital/environmental state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -1524,14 +1529,14 @@ class Satellite:
         ]
 
 
-    def sunpair_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+    def sunpair_readings(self, x: State, os: Orbital_State) -> List[np.ndarray]:
         r"""
         Return readings from all sun-pair sensors.
 
         Filters ``self.attitude_sensors`` by :class:`~ADCS.satellite_hardware.sensors.SunPair`.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital/environmental state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -1546,14 +1551,14 @@ class Satellite:
         ]
 
 
-    def sunsensor_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+    def sunsensor_readings(self, x: State, os: Orbital_State) -> List[np.ndarray]:
         r"""
         Return readings from all sun sensors.
 
         Filters ``self.attitude_sensors`` by :class:`~ADCS.satellite_hardware.sensors.SunSensor`.
 
         :param x: Current state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital/environmental state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`

@@ -1,63 +1,97 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+# >=77 for PEP 639 SPDX license metadata (`license = "MIT"` + license-files).
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "Generalized_ADCS"
-version = "0.1.5"
+# NOTE: this had drifted. docs/source/release_notes/ documents releases through
+# 0.1.7 (remote execution, benchmarks) while pyproject still said 0.1.5, so the
+# first PyPI upload went out as 0.1.5 -- two behind the documented state, and
+# built before the choldate removal. PyPI versions are immutable, so this moves
+# forward past the documented 0.1.7 rather than trying to reuse a number.
+version = "0.1.8"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
-    { name = "Patrick McKeen" },
-    { name = "Niclas Scheuer" },
+    { name = "Patrick McKeen", email = "pmckeen@mit.edu" },
+    { name = "Niclas Scheuer", email = "nscheuer@ethz.ch" },
     { name = "William Goldman" },
 ]
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+# PEP 639 SPDX form. The old `{ text = "MIT" }` table is deprecated and emits
+# no License-Expression, which is why the 0.1.5 listing showed no license facet.
+license = "MIT"
+license-files = ["LICENSE"]
 
-# Runtime dependencies (from your cleaned list)
+keywords = [
+    "ADCS", "attitude control", "attitude determination", "spacecraft",
+    "satellite", "cubesat", "smallsat", "aerospace", "GNC", "magnetorquer",
+    "reaction wheel", "control allocation", "Kalman filter", "orbit",
+]
+
+# Without these the PyPI page carries no facets at all, so the project is
+# invisible to searches filtered by Python version, licence, audience or topic.
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+    # requires-python is >=3.10 and unbounded, but only 3.12 is exercised in
+    # CI; 3.13+ is unlisted rather than claimed, since numba tends to lag new
+    # Python releases.
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Natural Language :: English",
+]
+
+# Runtime dependencies.
+#
+# This list is exactly what ``import ADCS`` needs, with compatible ranges
+# rather than exact pins so the package can be installed into an existing
+# environment. Transitive dependencies (matplotlib's contourpy/pillow/...,
+# skyfield's sgp4/jplephem/certifi, ...) are resolved by pip and are
+# deliberately NOT restated here.
+#
+# For bit-reproducible paper campaigns use the exact pins instead:
+#     pip install -r requirements-repro.txt
 dependencies = [
-    "asciichartpy==1.5.25",
-    "certifi==2025.10.5",
-    "cmake==4.1.2",
-    "colorama==0.4.6",
-    "contourpy==1.3.2",
-    "cycler==0.12.1",
-    "Cython==3.1.5",
-    "dill==0.4.0",
-    "fonttools==4.60.1",
-    "importlib_resources==6.5.2",
-    "iniconfig==2.3.0",
-    "jplephem==2.23",
-    "kiwisolver==1.4.9",
-    "matplotlib==3.10.7",
-    "np==1.0.2",
-    "numpy==2.2.6",
-    "numba==0.65.0",
-    "numdifftools==0.9.41",
-    "packaging==25.0",
-    "pandas==2.3.3",
-    "pillow==12.0.0",
-    "pluggy==1.6.0",
-    "ppigrf==2.1.0",
-    "pybind11==3.0.1",
-    "Pygments==2.19.2",
-    "pyparsing==3.2.5",
-    "pytest==8.4.2",
-    "python-dateutil==2.9.0.post0",
-    "pytz==2025.2",
-    "PyYAML==6.0.3",
-    "scipy==1.15.3",
-    "sgp4==2.25",
-    "six==1.17.0",
-    "skyfield==1.53",
-    "squaternion==2025.3.2",
-    "tqdm==4.67.1",
-    "tzdata==2025.2"
+    "numpy>=1.26",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+    "numba>=0.59",
+    "ppigrf>=2.0",
+    "skyfield>=1.45",
+    "tqdm>=4.60",
+    "rich>=13.0",
 ]
 
 # Optional extras
 [project.optional-dependencies]
+# 3-D orbit animation helpers (ADCS/helpers/plotting/animate_orbit_pyvista.py).
+viz = [
+    "pyvista>=0.44",
+]
+
+# Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
+#
+# SOURCE CHECKOUT ONLY. This installs the compilers/bindings, but the add-ons
+# themselves live in the SALTRO and OldPlanner git submodules, which are NOT
+# part of the distribution -- so `pip install "generalized-adcs[cpp]"` gives a
+# pip user the toolchain and nothing to build with it. Useful only alongside a
+# clone of the repository. Neither add-on is needed for the pure-Python
+# framework; both are guarded optional imports.
+cpp = [
+    "cmake>=3.27",
+    "Cython>=3.0",
+    "pybind11>=2.12",
+]
+
 docs = [
     "sphinx>=7.2",
     "sphinx-autodoc-typehints",
@@ -66,15 +100,25 @@ docs = [
     "furo",
 ]
 
+poster = [
+    "qrcode[pil]",
+]
+
 dev = [
     "pytest",
+    "numdifftools",
     "black",
     "ruff",
 ]
 
 [project.urls]
-Repository = "https://github.com/nscheuer/Generalized_ADCS"
+# PyPI renders these as sidebar links and gives several of them dedicated
+# icons; only Repository and Documentation were present for 0.1.5.
+Homepage = "https://nscheuer.github.io/Generalized_ADCS/"
 Documentation = "https://nscheuer.github.io/Generalized_ADCS/"
+Repository = "https://github.com/nscheuer/Generalized_ADCS"
+Issues = "https://github.com/nscheuer/Generalized_ADCS/issues"
+Changelog = "https://nscheuer.github.io/Generalized_ADCS/release_notes/index.html"
 
 [tool.setuptools]
 # The generalized-control pipeline lives with the paper it belongs to, under
@@ -141,6 +185,21 @@ packages = [
     "ADCS.pipeline.control_law",
     "ADCS.pipeline.goal_formulation",
 ]
+
+# Without this, setuptools ships ONLY .py files: the 0.1.5 wheel contained no
+# data files at all, so the Earth textures were missing and the orbit
+# animation silently lost its texture.
+#
+# de421.bsp (16 MB) is deliberately NOT shipped -- Ephemeris() downloads it on
+# first use, and a 16 MB payload on every install is a poor trade for a file
+# most users never touch. Pass `Ephemeris(filepath=...)` to point at an
+# existing copy.
+# py.typed marks the package as PEP 561 typed, so downstream type checkers use
+# our annotations instead of discarding them. Only safe now that the public
+# signatures are correct -- see the 0.1.9 release note.
+[tool.setuptools.package-data]
+"*" = ["textures/*.jpg"]
+"ADCS" = ["py.typed"]
 
 [tool.pytest.ini_options]
 addopts = [

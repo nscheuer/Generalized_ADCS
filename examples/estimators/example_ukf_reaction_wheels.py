@@ -43,7 +43,7 @@ def main() -> None:
         sensors=real_sensors,
         disturbances=[ADCS.disturbances.GG_Disturbance()],
     )
-    x_0 = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.8, 0.8, 0.8])
+    x_0 = ADCS.State.from_array(np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.8, 0.8, 0.8]))
 
     est_actuators = [ADCS.MTQ(axis=axis, max_torque=0.1, noise=ADCS.Noise(std_noise=1.0e-5)) for axis in np.eye(3)]
     est_actuators += [
@@ -70,7 +70,7 @@ def main() -> None:
         sensors=est_sensors,
         disturbances=[ADCS.disturbances.GG_Disturbance()],
     )
-    x_hat = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    x_hat = ADCS.EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(3))
 
     P_hat = block_diag(
         np.eye(3) * (0.01) ** 2,

@@ -6,3 +6,21 @@
 
 Controllers
 - All current controllers do gyroscopic precession compensation, but no disturbance torque compensation
+Packaging / PyPI (deferred from the 0.1.8 install-hygiene work, 2026-08-05)
+- py.typed shipped in 0.1.8 with the ~150 signature corrections it required.
+  Two residual public-API questions are tracked in issue #122 (README actuator
+  list needs an explicit `list[Actuator]`; and whether controllers really
+  require EstimatedSatellite or should annotate Satellite).
+- requirements.txt is still a hand-maintained pinned environment that can drift
+  from pyproject.toml (the junk `np==1.0.2` is gone and the file now documents
+  its role, but nothing enforces consistency). CI installs it and never runs
+  `pip install .`, so the pyproject dependency set is exercised only by the
+  wheel smoke-test in publish.yml. Consider having CI install `.[dev]` instead.
+- Add a TestPyPI dry-run to the release process. `twine check` only validates
+  metadata rendering; it does not catch a wheel that installs but cannot
+  import (which is how 0.1.5 shipped without cholesky_update.py). The wheel
+  smoke-test job in .github/workflows/publish.yml covers most of this now.
+- 0.1.5 will NOT be yanked (decided 2026-08-05). It installs and imports fine;
+  only the SRUAKF fails, and once 0.1.8 is published pip resolves to that
+  anyway. Yanking would mainly have affected people pinning ==0.1.5, who are
+  exactly the people yanking does not help.

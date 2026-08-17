@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 satellite = ADCS.satellite_factory.create_beavercube2_cubesat()
 
-x_0 = np.array([0, 0, 0] + [1, 0, 0, 0] + [0.0]) # w, q, h
+x_0 = ADCS.State.from_array(np.array([0, 0, 0] + [1, 0, 0, 0] + [0.0])) # w, q, h
 
 planner_settings = ADCS.controller.saltro.PlannerSettings(est_sat=satellite)
 controller = ADCS.controller.SALTRO(est_sat=satellite, planner_settings=planner_settings)

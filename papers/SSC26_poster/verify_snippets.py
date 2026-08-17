@@ -35,6 +35,7 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
+from ADCS.state import State
 
 
 # ---------------------------------------------------------------------------
@@ -63,9 +64,9 @@ def make_orbit():
 sat = make_bus()
 orbit = make_orbit()
 os_now = orbit.get_os(J2000=0.22 + 100.0 * TimeConstants.sec2cent)
-x = np.concatenate([np.array([0.01, -0.005, 0.008]),
-                    normalize(np.array([0.7, 0.3, -0.5, 0.2])),
-                    0.005 * np.ones(3)])
+x = State(w=np.array([0.01, -0.005, 0.008]),
+          q=normalize(np.array([0.7, 0.3, -0.5, 0.2])),
+          h=0.005 * np.ones(3))
 sens = sat.sensor_readings(x=x, os=os_now)
 goal = ECI_Goal(normalize(np.array([-0.139, -0.370, -0.919])))
 

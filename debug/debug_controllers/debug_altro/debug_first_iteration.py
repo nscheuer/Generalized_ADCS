@@ -73,7 +73,7 @@ def setup_and_prepare():
     t_start, t_end = 0.22, 0.22 + tf * TimeConstants.sec2cent
     N = int(np.ceil(tf / dt)) + 1
 
-    sim_orbit = Orbit(os0=os0, end_time=t_end + 10*dt*TimeConstants.sec2cent, dt=dt, use_J2=True, fast=False)
+    sim_orbit = Orbit(os0=os0, end_time=t_end + 10*dt*TimeConstants.sec2cent, dt=dt, zonal_J=2, fast=False)
     tp_orbit = sim_orbit.get_range(t_start, t_end, dt)
     orbit_data = tp_orbit.get_vecs()
     times = np.asarray(tp_orbit.times, dtype=np.float64)[:N]
@@ -96,12 +96,12 @@ def setup_and_prepare():
     # Simplified: ECI_Goal from start, no transition
     goals = GoalList({0.22: ECI_Goal(np.array([1,1,1]))})
 
-    E = np.zeros((3, N), dtype=np.float64, order="F")
+    E = np.zeros((4, N), dtype=np.float64, order="F")
     A = np.zeros((3, N), dtype=np.float64, order="F")
     for i in range(N):
         g, _ = goals.to_ref(float(times[i]), sim_orbit.get_os(float(times[i])))
-        E[:, i] = np.asarray(g).reshape(3)
-        A[:, i] = real_sat.boresight
+        E[:, i] = np.asarray(g, dtype=np.float64).reshape(4)
+        A[:, i] = real_sat.get_boresight()
 
     vecsPy = (np.ascontiguousarray(times), to_mat(R), to_mat(V), to_mat(B), to_mat(S),
               A, E, np.zeros(N, dtype=np.float64), to_vec(Rho))
@@ -204,7 +204,10 @@ def debug_first_iteration():
     print("New u = old u + K * dx + alpha * d")
     print("At initial state with x = x_ref, the update is approximately: new u ≈ old u + d")
 
-    expected_new_u = Uset + dset[:3, :Uset.shape[1]] if dset.shape[0] >= 3 else Uset + dset
+    n_ctrl_steps = min(Uset.shape[1], dset.shape[1])
+    u_base = Uset[:3, :n_ctrl_steps]
+    d_base = dset[:3, :n_ctrl_steps] if dset.shape[0] >= 3 else dset[:, :n_ctrl_steps]
+    expected_new_u = u_base + d_base
     print(f"\nExpected new u[0] (first 10): {expected_new_u[0, :10]}")
     print(f"Expected new u[1] (first 10): {expected_new_u[1, :10]}")
     print(f"Expected new u[2] (first 10): {expected_new_u[2, :10]}")
@@ -248,8 +251,9 @@ def debug_first_iteration():
     # Compare du to d to estimate effective alpha
     print(f"\n--- Effective step size (alpha) ---")
     for ch in range(3):
-        d_ch = dset[ch, :Uset.shape[1]]
-        du_ch = du[ch, :]
+        n_ctrl_steps = min(du.shape[1], dset.shape[1])
+        d_ch = dset[ch, :n_ctrl_steps]
+        du_ch = du[ch, :n_ctrl_steps]
         # Find alpha such that du ≈ alpha * d (ignoring K*dx term)
         alpha_est = np.dot(du_ch, d_ch) / (np.dot(d_ch, d_ch) + 1e-10)
         print(f"  Channel {ch}: estimated alpha ≈ {alpha_est:.4f}")

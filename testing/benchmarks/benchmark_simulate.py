@@ -45,6 +45,7 @@ from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite, Satellite
 from ADCS.satellite_hardware.sensors import Gyro, MTM
 from ADCS.simulate import simulate
+from ADCS.state import EstimatorState, State
 
 
 BASELINE_PATH = REPO_ROOT / "testing" / "benchmarks" / "baselines" / "simulate.json"
@@ -110,9 +111,9 @@ def _build_reference_setup() -> dict[str, object]:
     state_length = satellite.state_len
     initial_rate = random_n_unit_vec(3) * np.random.uniform(1.0, 2.0) * np.pi / 180.0
     initial_quaternion = random_n_unit_vec(4)
-    x0 = np.concatenate([initial_rate, initial_quaternion, np.zeros(state_length - 7)])
+    x0 = State(w=initial_rate, q=initial_quaternion, h=np.zeros(state_length - 7))
 
-    x_hat0 = np.concatenate([np.zeros(3), [1.0, 0.0, 0.0, 0.0], np.zeros(state_length - 7)])
+    x_hat0 = EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(state_length - 7))
     reduced_length = state_length - 1
     covariance0 = np.diag(np.concatenate([[1e-3] * 3, [1e-2] * 3, [1e-4] * (reduced_length - 6)]))
     process_noise0 = np.eye(reduced_length) * 1e-8
@@ -140,7 +141,7 @@ _REFERENCE = _build_reference_setup()
 def _simulate_open_loop_one_step() -> object:
     return _run_quietly(
         lambda: simulate(
-            x=np.array(_REFERENCE["x0"], copy=True),
+            x=_REFERENCE["x0"].copy(),
             satellite=_REFERENCE["satellite"],
             os0=_REFERENCE["orbital_state"],
             dt=1.0,
@@ -153,7 +154,7 @@ def _simulate_bdot_one_step() -> object:
     controller = BDot(est_sat=_REFERENCE["estimated_satellite"], gain=100.0)
     return _run_quietly(
         lambda: simulate(
-            x=np.array(_REFERENCE["x0"], copy=True),
+            x=_REFERENCE["x0"].copy(),
             satellite=_REFERENCE["satellite"],
             est_satellite=_REFERENCE["estimated_satellite"],
             controller=controller,
@@ -169,7 +170,7 @@ def _simulate_uakf_mtq_rw_two_steps() -> object:
     estimator = UAKF(
         est_sat=_REFERENCE["estimated_satellite"],
         J2000=_REFERENCE["orbital_state"].J2000,
-        x_hat=np.array(_REFERENCE["x_hat0"], copy=True),
+        x_hat=_REFERENCE["x_hat0"].copy(),
         P_hat=np.array(_REFERENCE["covariance0"], copy=True),
         Q_hat=np.array(_REFERENCE["process_noise0"], copy=True),
         dt=1.0,
@@ -185,7 +186,7 @@ def _simulate_uakf_mtq_rw_two_steps() -> object:
     )
     return _run_quietly(
         lambda: simulate(
-            x=np.array(_REFERENCE["x0"], copy=True),
+            x=_REFERENCE["x0"].copy(),
             satellite=_REFERENCE["satellite"],
             est_satellite=_REFERENCE["estimated_satellite"],
             controller=controller,

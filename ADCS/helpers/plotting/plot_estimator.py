@@ -10,14 +10,15 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button, RadioButtons
 from numpy.linalg import norm
-from typing import Callable, Tuple, List, Optional
+from typing import Callable, Tuple, List, Optional, Sequence
 from ADCS.helpers.math_helpers import quat_to_euler
+from ADCS.state import State
 
 
 def plot_state_comparison(
     time: np.ndarray,
-    state_hist: np.ndarray,
-    est_state_hist: Optional[np.ndarray] = None
+    state_hist: Sequence[State],
+    est_state_hist: Optional[Sequence[State]] = None
 ) -> None:
     r"""
     Plot angular velocity and Euler angle time histories, with optional estimation overlay.
@@ -82,13 +83,13 @@ def plot_state_comparison(
         True spacecraft state history. Columns ``[0:3]`` contain angular velocity
         and columns ``[3:7]`` contain attitude quaternions.
     :type state_hist:
-        numpy.ndarray
+        list[ADCS.state.State]
 
     :param est_state_hist:
         Optional estimated spacecraft state history with the same layout as
         ``state_hist``.
     :type est_state_hist:
-        numpy.ndarray or None
+        list[ADCS.state.State] or None
 
     :return:
         None. The function generates a Matplotlib figure.
@@ -96,6 +97,9 @@ def plot_state_comparison(
         None
 
     """
+    state_hist = State.stack(state_hist)
+    if est_state_hist is not None:
+        est_state_hist = State.stack(est_state_hist)
     euler_real = np.array([quat_to_euler(q) for q in state_hist[:, 3:7]])
 
     if est_state_hist is not None:
@@ -142,8 +146,8 @@ def plot_state_comparison(
 
 def plot_error_and_sun(
     time: np.ndarray,
-    state_hist: np.ndarray,
-    est_state_hist: np.ndarray,
+    state_hist: Sequence[State],
+    est_state_hist: Sequence[State],
     os_hist: List
 ) -> None:
     r"""
@@ -221,12 +225,12 @@ def plot_error_and_sun(
     :param state_hist:
         True spacecraft state history.
     :type state_hist:
-        numpy.ndarray
+        list[ADCS.state.State]
 
     :param est_state_hist:
         Estimated spacecraft state history.
     :type est_state_hist:
-        numpy.ndarray
+        list[ADCS.state.State]
 
     :param os_hist:
         List of orbital state objects providing sunlight information.
@@ -239,6 +243,9 @@ def plot_error_and_sun(
         None
 
     """
+    state_hist = State.stack(state_hist)
+    est_state_hist = State.stack(est_state_hist)
+
     # Allocate error arrays
     quat_err = np.zeros_like(time, dtype=float)
     omega_err = np.zeros_like(time, dtype=float)

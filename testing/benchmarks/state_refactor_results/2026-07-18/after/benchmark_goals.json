@@ -1,0 +1,83 @@
+{
+  "benchmarks": {
+    "coordinate_goal_error": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.010255808546182636,
+      "seconds": 7.1827332030594e-05
+    },
+    "coordinate_goal_to_ref": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.005355152726687379,
+      "seconds": 3.75052177741253e-05
+    },
+    "eci_goal_error": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.004776304162635908,
+      "seconds": 3.3451208008017375e-05
+    },
+    "eci_goal_to_ref": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00014419055685474858,
+      "seconds": 1.0098494873655994e-06
+    },
+    "environment_vector_goal_group": {
+      "loops": 1,
+      "max_regression": 1.5,
+      "normalized_seconds": 4.583096570341576,
+      "seconds": 0.032098063999910664
+    },
+    "fixed_attitude_goal_error": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0003056271345417206,
+      "seconds": 2.1404827880155963e-06
+    },
+    "fixed_attitude_goal_to_ref": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 4.94215317619201e-05,
+      "seconds": 3.4612744137518803e-07
+    },
+    "goallist_get_active_goal": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 3.525861791931574e-05,
+      "seconds": 2.4693640143791384e-07
+    },
+    "goallist_to_ref": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0056415712894631225,
+      "seconds": 3.9511171874728745e-05
+    },
+    "no_goal_error": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 3.6437790247602657e-05,
+      "seconds": 2.551948241613644e-07
+    },
+    "no_goal_to_ref": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00011462972942017413,
+      "seconds": 8.028179931951485e-07
+    },
+    "orbital_vector_goal_group": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.01878581061348931,
+      "seconds": 0.00013156784765655516
+    }
+  },
+  "calibration_loops": 8,
+  "calibration_seconds": 0.007003575749990887,
+  "description": "Goals fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

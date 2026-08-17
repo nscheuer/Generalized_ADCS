@@ -5,6 +5,8 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 
 from ..subplot import Subplot
+from ADCS.state import State
+from typing import Sequence
 
 
 def _normalize_sources(sources: list[str] | None) -> list[str]:
@@ -25,13 +27,13 @@ def _get_w_series(sim, source: str) -> np.ndarray | None:
     if source == "real":
         if sim.state_hist is None or len(sim.state_hist) == 0:
             return None
-        X = np.vstack(sim.state_hist)
+        X = State.stack(sim.state_hist)
         return X[:, 0:3]
 
     if source == "estimated":
         if getattr(sim, "est_state_hist", None) is None or len(sim.est_state_hist) == 0:
             return None
-        Xh = np.vstack(sim.est_state_hist)
+        Xh = State.stack(sim.est_state_hist)
         return Xh[:, 0:3]
 
     if source == "reference":
@@ -105,7 +107,7 @@ class AngularVelocityPlot(Subplot):
     def __init__(
         self,
         *,
-        sources: list[str] | None = None,  # ["real","reference","estimated"]
+        sources: Sequence[str] | None = None,  # ["real","reference","estimated"]
         time: str = "time_s",
         title: str = "Angular Rates in Body Frame",
         units: str = "rad/s",
@@ -285,7 +287,7 @@ class AngularVelocityPlotSingle(Subplot):
         self,
         *,
         component: str,  # 'x', 'y', 'z', or 'm'
-        sources: list[str] | None = None,
+        sources: Sequence[str] | None = None,
         time: str = "time_s",
         title: str | None = None,
         units: str = "rad/s",
@@ -433,7 +435,7 @@ class AngularVelocityPlotCombined(Subplot):
     def __init__(
         self,
         *,
-        sources: list[str] | None = None,
+        sources: Sequence[str] | None = None,
         time: str = "time_s",
         title: str = "Angular Rates (Body Frame)",
         units: str = "rad/s",
@@ -518,4 +520,3 @@ class AngularVelocityPlotCombined(Subplot):
 
         ax.legend(handles, labs, loc="upper right")
         ax.grid(True, which="both", linestyle="--", alpha=0.7)
-

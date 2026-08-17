@@ -38,6 +38,7 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
+from ADCS.state import State
 
 # --- Palette: slots 1-3 of the validated reference categorical palette,
 # --- used unmodified. Each panel carries a single series, so identity is
@@ -76,7 +77,7 @@ def random_state():
     q = normalize(RNG.normal(size=4))
     w = RNG.normal(scale=0.02, size=3)
     h = RNG.normal(scale=0.004, size=3)
-    return np.concatenate([w, q, h])
+    return State(w=w, q=q, h=h)
 
 
 def main():

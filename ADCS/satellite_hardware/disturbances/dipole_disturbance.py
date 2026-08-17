@@ -1,7 +1,9 @@
 __all__ = ["Dipole_Disturbance"]
 
 import numpy as np
-from typing import TYPE_CHECKING
+
+from ADCS.state import State
+from typing import TYPE_CHECKING, Optional
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.orbits.orbital_state import Orbital_State
@@ -60,7 +62,7 @@ class Dipole_Disturbance(Disturbance):
     :type estimate_dist: bool
     """
 
-    def __init__(self, dipole_torque: np.ndarray, noise: Noise = None, estimate_dist: bool = False):
+    def __init__(self, dipole_torque: np.ndarray, noise: Optional[Noise] = None, estimate_dist: bool = False):
         r"""
         Initialize the magnetic dipole disturbance model.
 
@@ -131,7 +133,7 @@ class Dipole_Disturbance(Disturbance):
         """
         self.current_torque = self.torque_nominal + self.noise.get_noise()
 
-    def torque(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the magnetic dipole disturbance torque.
 
@@ -145,7 +147,7 @@ class Dipole_Disturbance(Disturbance):
         :class:`~ADCS.orbits.orbital_state.Orbital_State`.
 
         :param x: Full spacecraft state vector containing the attitude quaternion.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state object providing the body-frame magnetic field.
         :type os: ADCS.orbits.orbital_state.Orbital_State
         :return: Disturbance torque vector in the body frame [N·m], shape ``(3,)``.
@@ -155,7 +157,7 @@ class Dipole_Disturbance(Disturbance):
         B_B = vecs["b"]
         return np.cross(self.current_torque, B_B)
 
-    def torque_qjac(self, sat=None, x: np.ndarray = None, os: Orbital_State = None) -> np.ndarray:
+    def torque_qjac(self, sat=None, x: Optional[State] = None, os: Optional[Orbital_State] = None) -> np.ndarray:
         r"""
         Jacobian of the disturbance torque with respect to the attitude quaternion.
 
@@ -178,7 +180,7 @@ class Dipole_Disturbance(Disturbance):
         :class:`~ADCS.orbits.orbital_state.Orbital_State`.
 
         :param x: Spacecraft state vector containing the attitude quaternion.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state provider of magnetic field derivatives.
         :type os: ADCS.orbits.orbital_state.Orbital_State
         :return: Quaternion Jacobian of the torque, shape ``(3, 4)``.
@@ -188,7 +190,7 @@ class Dipole_Disturbance(Disturbance):
         db_body__dq = vecs["db"]
         return np.cross(self.current_torque, db_body__dq)
 
-    def torque_qqhess(self, sat=None, x: np.ndarray = None, os: Orbital_State = None) -> np.ndarray:
+    def torque_qqhess(self, sat=None, x: Optional[State] = None, os: Optional[Orbital_State] = None) -> np.ndarray:
         r"""
         Hessian of the disturbance torque with respect to the attitude quaternion.
 
@@ -211,7 +213,7 @@ class Dipole_Disturbance(Disturbance):
         optimization methods.
 
         :param x: Spacecraft state vector containing the attitude quaternion.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state provider of magnetic field Hessians.
         :type os: ADCS.orbits.orbital_state.Orbital_State
         :return: Quaternion Hessian of the torque, shape ``(3, 4, 4)``.
@@ -221,7 +223,7 @@ class Dipole_Disturbance(Disturbance):
         ddb_body__dqdq = vecs["ddb"]
         return np.cross(self.current_torque, ddb_body__dqdq)
 
-    def torque_valjac(self, sat=None, x: np.ndarray = None, os: Orbital_State = None) -> np.ndarray:
+    def torque_valjac(self, sat=None, x: Optional[State] = None, os: Optional[Orbital_State] = None) -> np.ndarray:
         r"""
         Jacobian of the disturbance torque with respect to the dipole vector.
 
@@ -245,7 +247,7 @@ class Dipole_Disturbance(Disturbance):
         This Jacobian is used when estimating the residual magnetic dipole.
 
         :param x: Full spacecraft state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state providing the body-frame magnetic field.
         :type os: ADCS.orbits.orbital_state.Orbital_State
         :return: Dipole Jacobian of the torque, shape ``(3, 3)``.
@@ -255,7 +257,7 @@ class Dipole_Disturbance(Disturbance):
         B_B = vecs["b"]
         return np.cross(np.eye(3), B_B)
 
-    def torque_qvalhess(self, sat=None, x: np.ndarray = None, os: Orbital_State = None) -> np.ndarray:
+    def torque_qvalhess(self, sat=None, x: Optional[State] = None, os: Optional[Orbital_State] = None) -> np.ndarray:
         r"""
         Mixed second derivative of the disturbance torque with respect to quaternion
         and dipole vector.
@@ -278,7 +280,7 @@ class Dipole_Disturbance(Disturbance):
         This term is relevant in joint state–parameter estimation frameworks.
 
         :param x: Spacecraft state vector containing the attitude quaternion.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state providing magnetic field quaternion derivatives.
         :type os: ADCS.orbits.orbital_state.Orbital_State
         :return: Mixed quaternion–dipole Hessian, shape ``(4, 3, 3)``.
@@ -288,7 +290,7 @@ class Dipole_Disturbance(Disturbance):
         db_body__dq = vecs["db"]
         return np.cross(np.expand_dims(np.eye(3), 0), np.expand_dims(db_body__dq, 1))
 
-    def torque_valvalhess(self, sat=None, x: np.ndarray = None, os: Orbital_State = None) -> np.ndarray:
+    def torque_valvalhess(self, sat=None, x: Optional[State] = None, os: Optional[Orbital_State] = None) -> np.ndarray:
         r"""
         Second derivative of the disturbance torque with respect to the
         estimated parameter twice. The dipole torque is linear in the

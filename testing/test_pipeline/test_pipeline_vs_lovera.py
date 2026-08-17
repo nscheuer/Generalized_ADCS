@@ -26,6 +26,7 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
+from ADCS.state import State
 
 
 def make_satellite():
@@ -111,7 +112,7 @@ def main():
 
     # --- Test 1: ECI goal, identity quaternion, zero angular velocity ---
     print("\nTest 1: ECI goal, q=[1,0,0,0], w=[0,0,0]")
-    x0 = np.concatenate([np.zeros(3), np.array([1, 0, 0, 0.0]), 0.005 * np.ones(3)])
+    x0 = State(w=np.zeros(3), q=np.array([1, 0, 0, 0.0]), h=0.005 * np.ones(3))
     goal = ECI_Goal(normalize(np.array([1.0, 0.0, 0.0])))
     all_pass &= _single_step(sat, orbit, goal, x0, t=0.0, gains=gains,
                                   label="identity quat, zero omega")
@@ -120,7 +121,7 @@ def main():
     print("\nTest 2: ECI goal, rotated state")
     q_rot = normalize(np.array([0.7, 0.3, -0.5, 0.2]))
     w_rot = np.array([0.01, -0.005, 0.008])
-    x1 = np.concatenate([w_rot, q_rot, 0.005 * np.ones(3)])
+    x1 = State(w=w_rot, q=q_rot, h=0.005 * np.ones(3))
     goal_eci = ECI_Goal(normalize(np.array([-0.139, -0.370, -0.919])))
     all_pass &= _single_step(sat, orbit, goal_eci, x1, t=100.0, gains=gains,
                                   label="rotated quat, nonzero omega")
@@ -138,7 +139,7 @@ def main():
     # --- Test 5: Large angular velocity (saturation test) ---
     print("\nTest 5: Large omega (saturation)")
     w_large = np.array([0.1, -0.08, 0.05])
-    x2 = np.concatenate([w_large, q_rot, 0.01 * np.ones(3)])
+    x2 = State(w=w_large, q=q_rot, h=0.01 * np.ones(3))
     all_pass &= _single_step(sat, orbit, goal_eci, x2, t=50.0, gains=gains,
                                   label="large omega, saturation")
 

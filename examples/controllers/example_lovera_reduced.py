@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 satellite = ADCS.satellite_factory.create_beavercube1_cubesat()
-x_0 = np.array([0.01, 0.05, 0] + [1, 0, 0, 0]) # w, q
+x_0 = ADCS.State.from_array(np.array([0.01, 0.05, 0] + [1, 0, 0, 0])) # w, q
 
 controller = ADCS.controller.MTQ_Lovera(est_sat=satellite, p_gain=0.001, d_gain=0.005, eps=1.0)
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Sequence
 
 __all__ = ["TargetPlot", "TargetHistogram"]
 
@@ -7,6 +8,7 @@ import matplotlib.gridspec as gridspec
 
 from ..subplot import Subplot
 from ADCS.helpers.math_helpers import rot_mat, normalize, quat_diff
+from ADCS.state import State
 
 
 def _normalize_modes(modes: list[str] | None) -> list[str]:
@@ -129,7 +131,7 @@ class TargetPlot(Subplot):
         time: str = "time_s",
         title: str = "Target Tracking",
         units: str = "deg",
-        modes: list[str] | None = None,
+        modes: Sequence[str] | None = None,
         sample_index: int = -1,
     ):
         self.time = time
@@ -177,7 +179,7 @@ class TargetPlot(Subplot):
         want_3d = can_do_3d and "directions3d" in self.modes
 
         def _prep_run(r):
-            X_real = np.asarray(r.state_hist)
+            X_real = State.stack(r.state_hist)
             Th = np.asarray(r.target_hist)
 
             N = min(len(X_real), len(Th))
@@ -186,7 +188,7 @@ class TargetPlot(Subplot):
 
             X_est = None
             if getattr(r, "est_state_hist", None) is not None and len(r.est_state_hist) > 0:
-                X_est = np.asarray(r.est_state_hist)
+                X_est = State.stack(r.est_state_hist)
                 N = min(N, len(X_est))
 
             # Get boresight vectors for each timestep
@@ -522,7 +524,7 @@ class TargetHistogram(Subplot):
         if state_hist is None or target_hist is None or len(state_hist) == 0:
             return None
 
-        last_state = np.asarray(state_hist[-1])
+        last_state = state_hist[-1].as_array()
         last_target = np.asarray(target_hist[-1]).flatten()
 
         if last_state.size < 7 or last_target.size != 4:

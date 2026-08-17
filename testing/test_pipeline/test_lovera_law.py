@@ -29,6 +29,7 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
+from ADCS.state import State
 
 GAINS = dict(p_gain=2e-5, d_gain=2e-2, eps=1.0)
 
@@ -57,9 +58,9 @@ def orbit():
 def _states():
     q = normalize(np.array([0.7, 0.3, -0.5, 0.2]))
     return [
-        np.concatenate([np.zeros(3), np.array([1.0, 0, 0, 0]), 0.005 * np.ones(3)]),
-        np.concatenate([np.array([0.01, -0.005, 0.008]), q, 0.005 * np.ones(3)]),
-        np.concatenate([np.array([0.1, -0.08, 0.05]), q, 0.01 * np.ones(3)]),
+        State(w=np.zeros(3), q=np.array([1.0, 0, 0, 0]), h=0.005 * np.ones(3)),
+        State(w=np.array([0.01, -0.005, 0.008]), q=q, h=0.005 * np.ones(3)),
+        State(w=np.array([0.1, -0.08, 0.05]), q=q, h=0.01 * np.ones(3)),
     ]
 
 

@@ -16,22 +16,22 @@ Latest Release Notes
 .. raw:: html
 
    <div class="release-grid">
-     <a class="release-card release-card-featured" href="release_notes/0_1_7_benchmark.html">
+     <a class="release-card release-card-featured" href="ssc26/index.html">
+       <img src="_static/release_notes/0_1_8_smallsat_logo.png" alt="SmallSat 2026 logo">
+       <div class="release-card-copy">
+         <div class="release-card-kicker">Update 0.1.8</div>
+         <h3>Generalized ACS Pipeline</h3>
+         <p>Use smart actuator selection, torque compensation, control law transformation and goal selection to maximize the performance of your control law.</p>
+         <span>Explore update 0.1.8</span>
+       </div>
+     </a>
+     <a class="release-card" href="release_notes/0_1_7_benchmark.html">
        <img src="_static/release_notes/0_1_7_benchmark_small.png" alt="Benchmark report preview">
        <div class="release-card-copy">
          <div class="release-card-kicker">Update 0.1.7</div>
          <h3>Benchmark</h3>
          <p>New performance benchmarks run on every pull request into <code>main</code> and compare results to catch regressions early.</p>
          <span>Explore release note 0.1.7</span>
-       </div>
-     </a>
-     <a class="release-card" href="release_notes/0_1_6_remote_execution.html">
-       <img src="_static/release_notes/0_1_6_raspberry_pi.jpeg" alt="Remote execution on Raspberry Pi">
-       <div class="release-card-copy">
-         <div class="release-card-kicker">Update 0.1.6</div>
-         <h3>Remote Execution</h3>
-         <p>Selected ADCS components can run on a Raspberry Pi over XML-RPC while the main PC keeps the truth model and simulation loop local.</p>
-         <span>Explore release note 0.1.6</span>
        </div>
      </a>
    </div>
@@ -44,6 +44,12 @@ What you can do with Generalized ADCS
 - Run closed-loop simulations using orbital states
 - Visualize pointing performance and control effort
 
+Spacecraft states use :class:`ADCS.State`, with named ``w``, ``q``, and ``h``
+arrays. Estimator inputs and outputs use :class:`ADCS.EstimatorState`, which
+adds named bias and disturbance parameters plus covariance matrices. Use
+``from_array`` and ``as_array`` only at numerical-library boundaries; state
+objects intentionally do not support NumPy indexing or implicit conversion.
+
 .. code-block:: python
 
    import ADCS as ADCS
@@ -55,7 +61,7 @@ What you can do with Generalized ADCS
    sens = [ADCS.MTM(axis) for axis in np.eye(3)]
 
    satellite = ADCS.Satellite(mass=10, J_0=np.diag([0.03, 0.03, 0.01]), actuators=acts, sensors=sens, boresight=np.array([0, 0, 1]))
-   x_0 = np.array([0.01, -0.02, 0.01] + [1, 0, 0, 0] + [0.0])  # w, q, h
+   x_0 = ADCS.State.from_array(np.array([0.01, -0.02, 0.01] + [1, 0, 0, 0] + [0.0]))  # w, q, h
 
    controller = ADCS.controller.MTQ_w_RW_LP(est_sat=satellite, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0, 0, 0]))
 

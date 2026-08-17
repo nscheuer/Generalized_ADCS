@@ -1,59 +1,59 @@
 {
   "benchmarks": {
     "average_half_step": {
-      "loops": 4096,
+      "loops": 1024,
       "max_regression": 1.5,
-      "normalized_seconds": 0.002277476221327911,
-      "seconds": 1.161169287122732e-05
+      "normalized_seconds": 0.002302107929685597,
+      "seconds": 3.124408105470433e-05
     },
     "copy": {
-      "loops": 16384,
-      "max_regression": 1.5,
-      "normalized_seconds": 0.00039844429132183566,
-      "seconds": 2.031464782725756e-06
-    },
-    "ecef_to_eci": {
-      "loops": 65536,
-      "max_regression": 1.5,
-      "normalized_seconds": 0.00011188334392921128,
-      "seconds": 5.704362640301941e-07
-    },
-    "get_state_vector_cached": {
-      "loops": 32768,
-      "max_regression": 1.5,
-      "normalized_seconds": 0.00019987004598329494,
-      "seconds": 1.019035705568383e-06
-    },
-    "orbit_dynamics_j2": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0007806964316725394,
-      "seconds": 3.98037402338236e-06
+      "normalized_seconds": 0.0003820493419953396,
+      "seconds": 5.185152465822518e-06
     },
-    "orbit_dynamics_kepler": {
+    "ecef_to_eci": {
+      "loops": 32768,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00011088226447228618,
+      "seconds": 1.5048879394522624e-06
+    },
+    "get_state_vector_cached": {
       "loops": 16384,
       "max_regression": 1.5,
-      "normalized_seconds": 0.00042938765352861045,
-      "seconds": 2.1892292480507614e-06
+      "normalized_seconds": 0.00019630639223797071,
+      "seconds": 2.6642594604490977e-06
+    },
+    "orbit_dynamics_j2": {
+      "loops": 4096,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0007420794732672603,
+      "seconds": 1.0071461425772976e-05
+    },
+    "orbit_dynamics_kepler": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0004248704281906362,
+      "seconds": 5.766317871094828e-06
     },
     "propagate_jacobians_rk4_j2": {
-      "loops": 256,
+      "loops": 128,
       "max_regression": 1.5,
-      "normalized_seconds": 0.026548437589246583,
-      "seconds": 0.00013541725000010274
+      "normalized_seconds": 0.02159643211958271,
+      "seconds": 0.00029310557812500804
     },
     "propagate_orbit_rk4_full_state": {
-      "loops": 8,
+      "loops": 4,
       "max_regression": 1.5,
-      "normalized_seconds": 1.6002250028320482,
-      "seconds": 0.008158733375012162
+      "normalized_seconds": 1.3183544369783509,
+      "seconds": 0.01789263324999979
     }
   },
-  "calibration_loops": 16,
-  "calibration_seconds": 0.005098491375008507,
+  "calibration_loops": 4,
+  "calibration_seconds": 0.013571944500000654,
   "description": "Orbital_State fast benchmark results normalized by calibration_seconds.",
-  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "platform": "Linux-6.17.0-1020-azure-x86_64-with-glibc2.39",
   "processor": "x86_64",
-  "python": "3.12.3",
+  "python": "3.12.13",
   "schema_version": 1
 }

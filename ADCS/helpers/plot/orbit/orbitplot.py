@@ -6,6 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from ..subplot import Subplot
 from ADCS.orbits.universal_constants import EarthConstants
+from typing import Sequence
 
 
 def _normalize_orbit_sources(sources: list[str] | None) -> list[str]:
@@ -110,7 +111,7 @@ class OrbitPlot(Subplot):
     def __init__(
         self,
         *,
-        sources: list[str] | None = None,  # ["real", "estimated"]
+        sources: Sequence[str] | None = None,  # ["real", "estimated"]
         title: str = "Orbit (ECI)",
         orbit_colors: dict[str, str] | None = None,
         earth_color: str = "tab:blue",

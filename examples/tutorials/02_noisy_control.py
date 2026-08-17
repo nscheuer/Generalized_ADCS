@@ -11,7 +11,7 @@ sens_noise = ADCS.Noise(std_noise=1e-7)
 sens = [ADCS.MTM(axis, noise=sens_noise) for axis in np.eye(3)]
 
 satellite = ADCS.Satellite(mass=10, J_0=np.diag([0.003, 0.003, 0.003]), actuators=acts, sensors=sens)
-x_0 = np.array([0.01, 0.05, 0] + [1, 0, 0, 0]) # w, q
+x_0 = ADCS.State.from_array(np.array([0.01, 0.05, 0] + [1, 0, 0, 0])) # w, q
 
 controller = ADCS.controller.BDot(est_sat=satellite, gain=5e4)
 

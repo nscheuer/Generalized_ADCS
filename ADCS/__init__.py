@@ -34,6 +34,7 @@ from .satellite_hardware.satellite import EstimatedSatellite, Satellite
 from .satellite_hardware.sensors import GPS, Gyro, MTM, StarTracker, SunPair, SunSensor, StarTrackerQuaternion, EarthHorizonSensor
 from .simulate import simulate
 from .simulate_remote import simulate_remote
+from .state import EstimatorState, State
 
 __all__ = [
     "Satellite",
@@ -73,4 +74,18 @@ __all__ = [
     "Ephemeris",
     "orbits",
     "satellite_factory",
+    "State",
+    "EstimatorState",
 ]
+
+# Package version, read from the installed distribution metadata so it cannot
+# drift from pyproject.toml. The fallback covers a source checkout that was
+# never installed (e.g. run straight from a git clone via PYTHONPATH).
+from importlib.metadata import PackageNotFoundError as _PkgNotFound, version as _version
+
+try:
+    __version__ = _version("Generalized_ADCS")
+except _PkgNotFound:  # pragma: no cover - source tree, not installed
+    __version__ = "0.0.0.dev0"
+
+del _version, _PkgNotFound

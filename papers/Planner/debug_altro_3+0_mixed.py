@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 satellite = ADCS.satellite_factory.create_beavercube1_cubesat()
 
-x_0 = np.array([0, 0, 0] + [1, 0, 0, 0]) # w, q, h
+x_0 = ADCS.State.from_array(np.array([0, 0, 0] + [1, 0, 0, 0])) # w, q, h
 
 planner_settings = ADCS.controller.plan_and_track.PlannerSettings(est_sat=satellite, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
 

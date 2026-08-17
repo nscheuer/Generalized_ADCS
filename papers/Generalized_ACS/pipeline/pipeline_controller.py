@@ -12,6 +12,7 @@ import numpy as np
 from typing import List, Optional
 
 from ADCS.controller import Controller
+from ADCS.state import EstimatorState, State
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
@@ -83,7 +84,7 @@ class PipelineController(Controller):
 
     def find_u(
         self,
-        x_hat: np.ndarray,
+        x_hat: State | EstimatorState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -94,8 +95,8 @@ class PipelineController(Controller):
 
         Parameters
         ----------
-        x_hat : ndarray
-            Estimated state vector [omega(3), q(4), h_rw(n_rw)].
+        x_hat : State or EstimatorState
+            Estimated spacecraft state.
         sens : ndarray
             Raw sensor measurements.
         est_sat : EstimatedSatellite
@@ -114,14 +115,19 @@ class PipelineController(Controller):
             goal = No_Goal()
 
         # --- Parse state ---
-        omega = x_hat[0:3]
-        q = x_hat[3:7]
+        # State is a structured object, not a sliceable array. Unpack it the
+        # same way the legacy controllers do, including the shared
+        # reaction_wheel_momentum_states helper, so the pipeline and
+        # MTQ_Lovera keep agreeing bit-for-bit (test_pipeline_vs_lovera).
+        omega = x_hat.w
+        q = x_hat.q
 
         n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
-        if len(x_hat) >= 7 + n_rw:
-            h_rw_states = x_hat[7:7 + n_rw]
-        else:
-            h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
+        h_rw_states = self.reaction_wheel_momentum_states(
+            x_hat,
+            n_rw,
+            context=f"{type(self).__name__}.find_u",
+        )
 
         # Compute total RW angular momentum in body frame
         h_rw_body = np.zeros(3)

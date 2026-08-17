@@ -1,6 +1,6 @@
 __all__ = ["AttitudePlot"]
 
-from typing import Optional
+from typing import Optional, Sequence
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,6 +9,7 @@ from matplotlib.widgets import Button, RadioButtons
 
 from ..subplot import Subplot
 from ADCS.helpers.math_helpers import rot_mat
+from ADCS.state import State
 
 
 def _normalize_attitude_sources(sources: Optional[list[str]]) -> list[str]:
@@ -119,7 +120,7 @@ class AttitudePlot(Subplot):
     def __init__(
         self,
         *,
-        sources: Optional[list[str]] = None,  # ["real","estimated","reference"]
+        sources: Optional[Sequence[str]] = None,  # ["real","estimated","reference"]
         time: str = "time_s",
         title: str = "Attitude Animation (ECI)",
         reference_attr: str = "target_hist",  # NEW default (Nx4 mixed goals), Nx3 also supported
@@ -168,7 +169,7 @@ class AttitudePlot(Subplot):
         if X is None or len(X) == 0:
             return None
 
-        X = np.asarray(X)
+        X = State.stack(X)
         if X.ndim != 2 or X.shape[1] < 7:
             return None
 

@@ -1,5 +1,7 @@
 __all__ = ["Ephemeris"]
 
+import os
+import sys
 from pathlib import Path
 from skyfield.api import load, Loader
 from typing import Optional
@@ -94,13 +96,14 @@ class Ephemeris:
             # User-provided file path
             self.planets = load(str(filepath))
         else:
-            # Default: search or download under project_root/ADCS/environment/de421.bsp
-            default_path = self._get_default_ephemeris_path()
-            if default_path.exists():
-                self.planets = load(str(default_path))
-                print(f"✅ Loaded local ephemeris from {default_path}")
+            existing = self._find_existing_ephemeris()
+            if existing is not None:
+                self.planets = load(str(existing))
+                print(f"✅ Loaded local ephemeris from {existing}")
             else:
-                self.planets = self._download_ephemeris(default_path)
+                self.planets = self._download_ephemeris(
+                    self._get_default_ephemeris_path()
+                )
 
         # Extract common bodies
         self.sun = self.planets['sun']
@@ -110,23 +113,74 @@ class Ephemeris:
         self.ts = load.timescale()
 
     # ----------------------------------------------------------------------
-    def _get_default_ephemeris_path(self) -> Path:
-        r"""
-        Determine the default local path for the DE421 ephemeris file.
+    @staticmethod
+    def _packaged_ephemeris_path() -> Path:
+        r"""Location of an ephemeris shipped alongside the package, if any.
 
-        This method constructs the expected filesystem location for storing
-        the ephemeris file relative to the project root. If the parent
-        directory does not exist, it is created automatically.
+        Read only. ``de421.bsp`` is 16 MB and is deliberately not shipped in
+        the wheel, but a source checkout has one here, and so does an
+        installation where a user or sysadmin placed one deliberately.
 
-        :return:
-            Absolute path to ``ADCS/environment/de421.bsp``.
+        :return: Path to ``ADCS/environment/de421.bsp``.
         :rtype: pathlib.Path
-
         """
-        project_root = Path(__file__).resolve().parents[2]  # adjust if needed
-        external_dir = project_root / "ADCS" / "environment"
-        external_dir.mkdir(parents=True, exist_ok=True)
-        return external_dir / "de421.bsp"
+        return Path(__file__).resolve().parents[1] / "environment" / "de421.bsp"
+
+    @staticmethod
+    def _cache_ephemeris_path() -> Path:
+        r"""Per-user cache location for a downloaded ephemeris.
+
+        Honours ``ADCS_EPHEMERIS_PATH`` (a full path to a .bsp file) first,
+        then ``XDG_CACHE_HOME``, then the platform default. Deliberately never
+        inside ``site-packages``: writing there fails outright on read-only or
+        system-managed installs, and any file written survives
+        ``pip uninstall`` as an orphan because it is absent from the wheel's
+        RECORD.
+
+        :return: Path the ephemeris would be cached at.
+        :rtype: pathlib.Path
+        """
+        override = os.environ.get("ADCS_EPHEMERIS_PATH")
+        if override:
+            return Path(override).expanduser()
+
+        xdg = os.environ.get("XDG_CACHE_HOME")
+        if xdg:
+            base = Path(xdg)
+        elif sys.platform == "darwin":
+            base = Path.home() / "Library" / "Caches"
+        elif sys.platform == "win32":
+            base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+        else:
+            base = Path.home() / ".cache"
+        return base / "generalized_adcs" / "de421.bsp"
+
+    @classmethod
+    def _find_existing_ephemeris(cls) -> Path | None:
+        r"""First existing ephemeris across the search order, else ``None``.
+
+        Order: explicit ``ADCS_EPHEMERIS_PATH`` / user cache, then the copy
+        shipped beside the package.
+
+        :return: An existing ephemeris path, or ``None``.
+        :rtype: pathlib.Path | None
+        """
+        for candidate in (cls._cache_ephemeris_path(), cls._packaged_ephemeris_path()):
+            if candidate.exists():
+                return candidate
+        return None
+
+    def _get_default_ephemeris_path(self) -> Path:
+        r"""Where a newly downloaded ephemeris should be written.
+
+        Always the per-user cache, never ``site-packages``.
+
+        :return: Absolute path to the cache location for ``de421.bsp``.
+        :rtype: pathlib.Path
+        """
+        path = self._cache_ephemeris_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
 
     # ----------------------------------------------------------------------
     def _download_ephemeris(self, save_path: Path):

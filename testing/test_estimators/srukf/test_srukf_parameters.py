@@ -20,11 +20,11 @@ def test_default_srukf_parameters_and_square_roots_are_set():
 def test_weight_formulas_change_with_scaling_parameters():
     _, est_sat = make_satellites(sensors=make_baseline_sensors())
     srukf = make_srukf(est_sat)
-    _, _, wts_before, _, _ = srukf.make_pts_and_wts(srukf.x_hat.val.copy(), [True] * len(est_sat.attitude_sensors))
+    _, _, wts_before, _, _ = srukf.make_pts_and_wts(srukf.x_hat.as_estimator_array(), [True] * len(est_sat.attitude_sensors))
     srukf.al = 0.2
     srukf.bet = 1.5
     srukf.kap = 2.0
-    _, _, wts_after, _, _ = srukf.make_pts_and_wts(srukf.x_hat.val.copy(), [True] * len(est_sat.attitude_sensors))
+    _, _, wts_after, _, _ = srukf.make_pts_and_wts(srukf.x_hat.as_estimator_array(), [True] * len(est_sat.attitude_sensors))
     assert not np.allclose(wts_before, wts_after)
 
 
@@ -32,8 +32,8 @@ def test_quat_as_vec_changes_covariance_dimension_expectation():
     _, est_sat = make_satellites(sensors=make_baseline_sensors())
     reduced = make_srukf(est_sat, quat_as_vec=False)
     full = make_srukf(est_sat, quat_as_vec=True)
-    assert reduced.x_hat.cov.shape[0] == reduced.x_hat.val.size - 1
-    assert full.x_hat.cov.shape[0] == full.x_hat.val.size
+    assert reduced.x_hat.cov.shape[0] == reduced.x_hat.augmented_size - 1
+    assert full.x_hat.cov.shape[0] == full.x_hat.augmented_size
 
 
 def test_zero_covariance_initializes_zero_square_root():

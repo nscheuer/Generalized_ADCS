@@ -5,21 +5,31 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button, RadioButtons
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  # needed for 3D projection
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union, Sequence
+
+# Anchor the texture to this file, not to the process working directory. The
+# previous CWD-relative literal meant animate_orbit() raised FileNotFoundError
+# for every installed user, and from a source checkout too unless the CWD
+# happened to be ADCS/helpers/.
+THIS_DIR = Path(__file__).resolve().parent
+DEFAULT_TEXTURE_PATH = THIS_DIR / "textures" / "2k_earth_daymap.jpg"
 
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import EarthConstants
 from ADCS.helpers.math_helpers import rot_mat
+from ADCS.state import State
 
 def animate_orbit(
     time_hist: np.ndarray,
-    state_hist: np.ndarray,
-    os_hist: List[Orbital_State],
-    est_state_hist: Optional[np.ndarray] = None,
-    est_os_hist: Optional[List[Orbital_State]] = None,
+    state_hist: Sequence[State],
+    os_hist: Sequence[Orbital_State],
+    est_state_hist: Optional[Sequence[State]] = None,
+    est_os_hist: Optional[Sequence[Orbital_State]] = None,
     boresight_goal_hist: Optional[np.ndarray] = None,
     coord_goal: Optional[Coordinate_Goal]=None,  # Expected: Coordinate_Goal instance (has .target_ecef)
+    texture_path: Optional[Union[str, Path]] = None,
 ) -> None:
     r"""
     Animate a spacecraft orbit, attitude, environment vectors, and mission goals in 3D.
@@ -248,6 +258,9 @@ def animate_orbit(
 
     """
     time_hist = np.asarray(time_hist)
+    state_hist = State.stack(state_hist)
+    if est_state_hist is not None:
+        est_state_hist = State.stack(est_state_hist)
     N = len(time_hist)
 
     if len(os_hist) != N:
@@ -263,8 +276,16 @@ def animate_orbit(
                 "boresight_goal_hist must have shape (N, 3), where N = len(time_hist)."
             )
 
-    # Earth texture (assumed to exist at this path)
-    earth_img = plt.imread("plotting/textures/2k_earth_daymap.jpg")
+    # Earth texture. Degrade to an untextured sphere rather than raising, the
+    # way the PyVista animators do -- a missing decorative texture should not
+    # take down the whole animation.
+    tex_path = Path(texture_path).expanduser() if texture_path is not None \
+        else DEFAULT_TEXTURE_PATH
+    try:
+        earth_img = plt.imread(tex_path)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        print(f"Earth texture unavailable ({exc}); drawing an untextured globe.")
+        earth_img = None
 
     # ---- Extract positions in ECI ----
     R_true = np.array([os.R for os in os_hist])

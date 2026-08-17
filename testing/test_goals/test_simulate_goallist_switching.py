@@ -11,6 +11,7 @@ from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.sensors import MTM
 from ADCS.simulate import simulate
+from ADCS.state import State
 
 
 UNIT_VECTORS = MathConstants.unitvecs
@@ -44,7 +45,7 @@ def run_goallist_switch_simulation():
         S=np.array([1e5 + 1.0, 0.0, 0.0]),
         rho=5e-12,
     )
-    state = np.concatenate([np.zeros(3), [1.0, 0.0, 0.0, 0.0]])
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
     result = simulate(x=state, satellite=satellite, goal=goals, os0=orbital_state, dt=dt, tf=final_time)[0]
     target_history = np.asarray(result.target_hist, dtype=float)
     directions = target_history[:, 1:4]

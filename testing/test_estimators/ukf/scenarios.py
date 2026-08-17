@@ -44,7 +44,7 @@ def reaction_wheel_scenario() -> SimulationResult:
         estimated_disturbances=[],
     )
     x_hat = make_estimate_guess(est_sat, with_rw=True)
-    x_hat[7:10] = np.zeros(3)
+    x_hat.h[:] = 0.0
     ukf = make_ukf(est_sat, x_hat=x_hat, dt=5.0, cross_term=False)
     x_true = make_state(
         w=np.zeros(3),

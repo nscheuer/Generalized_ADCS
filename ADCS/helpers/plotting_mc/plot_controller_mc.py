@@ -6,7 +6,7 @@ __all__ = [
 
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Sequence
 import matplotlib.cm as cm
 
 def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
@@ -37,7 +37,7 @@ def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
     return R
     
 def plot_h_tracking_mc(
-    full_results: List[Dict[str, Any]],
+    full_results: Sequence[Dict[str, Any]],
     body_boresight: np.ndarray = np.array([0, 0, 1]),
     title: str = "Monte Carlo Target Stored Angular Momentum"
 ) -> None:
@@ -125,7 +125,7 @@ def plot_h_tracking_mc(
 
         if not colors:
             color_num = h_hist.shape[1]
-            cmap = cm.get_cmap('tab10')
+            cmap = plt.get_cmap('tab10')
 
             # Generate a list of M colors (RGBA tuples)
             # We select colors evenly spaced across the colormap
@@ -151,7 +151,7 @@ def plot_h_tracking_mc(
 
 
 def plot_target_tracking_mc(
-    full_results: List[Dict[str, Any]],
+    full_results: Sequence[Dict[str, Any]],
     body_boresight: np.ndarray = np.array([0, 0, 1]),
     title: str = "Monte Carlo Target Tracking Error"
 ) -> None:
@@ -284,7 +284,7 @@ def plot_target_tracking_mc(
 
 
 def plot_convergence_histogram_mc(
-    full_results: List[Dict[str, Any]],
+    full_results: Sequence[Dict[str, Any]],
     body_boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
     title: str = "Monte Carlo Convergence Error (Final Timestep)",
     bin_width_deg: float = 5.0,

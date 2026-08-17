@@ -67,9 +67,9 @@ class CostConfig:
     magic_control_weight: float = 0.0
     rw_AM_weight: float = 0.0
     rw_stic_weight: float = 0.0
-    RWh_max_mult: float = 0.0
     RWh_stiction_mult: float = 0.0
-    RWh_ok_mult: float = 0.0
+    RWh_knee_frac: float = 0.0
+    RWh_desat_mult: float = 0.0
 
     # Terminal costs
     angle_N: float = 0.0
@@ -78,7 +78,7 @@ class CostConfig:
     ang_vel_err_dir_N: float = 0.0
 
     # Flags
-    ang_cost_func_type: int = 2
+    ang_cost_func_type: int = 3
     use_cost_hess: int = 1
 
     def to_cpp(self):
@@ -99,9 +99,9 @@ class CostConfig:
         cpp_cost.magic_control_weight = self.magic_control_weight
         cpp_cost.rw_AM_weight = self.rw_AM_weight
         cpp_cost.rw_stic_weight = self.rw_stic_weight
-        cpp_cost.RWh_max_mult = self.RWh_max_mult
         cpp_cost.RWh_stiction_mult = self.RWh_stiction_mult
-        cpp_cost.RWh_ok_mult = self.RWh_ok_mult
+        cpp_cost.RWh_knee_frac = self.RWh_knee_frac
+        cpp_cost.RWh_desat_mult = self.RWh_desat_mult
         cpp_cost.angle_N = self.angle_N
         cpp_cost.ang_vel_N = self.ang_vel_N
         cpp_cost.ang_vel_mag_N = self.ang_vel_mag_N
@@ -315,5 +315,4 @@ class PassConfig:
         cpp_pass.linesearch = self.linesearch.to_cpp()
         cpp_pass.dt = self.dt
         return cpp_pass
-
 

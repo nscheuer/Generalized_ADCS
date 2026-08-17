@@ -3,17 +3,21 @@ __all__ = ["SRUAKF"]
 import numpy as np
 import scipy.linalg
 import copy
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Sequence
 import time
 
-# The external C-library wrapper for fast Cholesky updates
-from choldate import cholupdate, choldowndate
+# Rank-1 Cholesky update/downdate. Formerly the external `choldate` package,
+# which has no PyPI release and had to be installed from git -- which made the
+# whole package impossible to `pip install` cleanly. Now in-tree, matching
+# choldate to ~1e-15 but raising NaN on a non-positive-definite downdate where
+# choldate silently returned a wrong factor (see ADCS/helpers/cholesky_update).
+from ADCS.helpers.cholesky_update import cholupdate, choldowndate
 
-from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
+from ADCS.state import EstimatorState
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import SunSensor, SunPair
 from ADCS.satellite_hardware.errors import ErrorMode
-from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.orbital_state import Orbital_State, Ephemeris
 from ADCS.orbits.universal_constants import CG5
 from ADCS.helpers.math_helpers import (
     vec3_to_quat,
@@ -65,7 +69,7 @@ class SRUAKF(UAKF):
 
     See also:
     - :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`
-    - :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+    - :class:`~ADCS.state.EstimatorState`
     - :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
 
     """
@@ -79,6 +83,7 @@ class SRUAKF(UAKF):
         dt: float = 1.0,
         cross_term: bool = False,
         quat_as_vec: bool = False,
+        ephem: Optional[Ephemeris] = None,
     ) -> None:
         r"""
         Initialize the SR-UKF and compute initial square-root factors.
@@ -117,7 +122,7 @@ class SRUAKF(UAKF):
         :param J2000: Initial time in seconds since J2000.
         :type J2000: float
         :param x_hat: Initial full augmented state estimate.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.EstimatorState
         :param P_hat: Initial reduced error-state covariance matrix.
         :type P_hat: numpy.ndarray
         :param Q_hat: Initial reduced process-noise covariance matrix.
@@ -141,6 +146,7 @@ class SRUAKF(UAKF):
             dt=dt,
             cross_term=cross_term,
             quat_as_vec=quat_as_vec,
+            ephem=ephem,
         )
 
         try:
@@ -262,7 +268,7 @@ class SRUAKF(UAKF):
                 
         return mat
 
-    def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: List[bool]):
+    def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: Sequence[bool]):
         r"""
         Generate augmented sigma points using the stored square root covariance.
 
@@ -369,16 +375,24 @@ class SRUAKF(UAKF):
 
         # Control/Process Noise Covariance
         control_cov = self.est_sat.control_cov()
-        L_q = control_cov.shape[0] if control_cov.size > 0 else 0
         
         # Sensor & Integration Covariances (Zeroed out in this architecture)
-        # We maintain their shapes for the list structure
-        sens_cov = self.est_sat.sensor_cov(which_sensors=which_sensors)
-        L_r = 0 # Explicitly treating as 0 contribution to L
-        L_int = 0
+        # We maintain their shapes for the list structure.
+        sens_cov = self.est_sat.sensor_cov(which_sensors=which_sensors) * 0.0
+        int_cov = self.x_hat.int_cov * 0.0
 
-        # Total Augmented Dimension
-        L = L_x + L_q + L_r + L_int
+        include_cov = self.determine_covariances_to_use(
+            self.x_hat.cov,
+            sens_cov,
+            control_cov,
+            int_cov,
+        )
+        covs = [self.x_hat.cov, sens_cov, control_cov, int_cov]
+
+        L_q = control_cov.shape[0] if include_cov[2] and control_cov.size > 0 else 0
+
+        # Total Augmented Dimension must match the blocks that actually generate points.
+        L = int(sum(include_cov[j] * covs[j].shape[0] for j in range(4)))
 
         # 2. Weights (Standard UKF)
         # -------------------------
@@ -406,7 +420,7 @@ class SRUAKF(UAKF):
         zeros_state = pt0 # Not used as zero, but as placeholder
         zeros_sens = np.zeros(sens_cov.shape[0], dtype=dtype) if sens_cov.size > 0 else np.zeros(0, dtype=dtype)
         zeros_ctrl = np.zeros(L_q, dtype=dtype) if L_q > 0 else np.zeros(0, dtype=dtype)
-        zeros_int  = np.zeros(self.x_hat.int_cov.shape[0], dtype=dtype) if self.x_hat.int_cov.size > 0 else np.zeros(0, dtype=dtype)
+        zeros_int  = np.zeros(int_cov.shape[0], dtype=dtype) if int_cov.size > 0 else np.zeros(0, dtype=dtype)
 
         # The mean point list [state, sens, ctrl, int]
         # Note: pt0 is the mean state
@@ -436,29 +450,18 @@ class SRUAKF(UAKF):
         # If L_r > 0, we would compute cholesky(sens_cov) here.
 
         # --- BLOCK 3: CONTROL / PROCESS NOISE ---
-        if L_q > 0:
-            # We compute Cholesky for Q on the fly (usually small 6x6)
-            # Ensure it is Upper Triangular for consistency if needed, 
-            # though usually standard Cholesky (Lower) is fine for noise blocks 
-            # as long as we take columns. 
+        if include_cov[2] and L_q > 0:
             try:
-                # np.linalg.cholesky returns Lower.
-                L_mat_q = np.linalg.cholesky(control_cov) 
-                # Scaled offsets (columns of L_mat_q)
-                scaled_L_q = gamma * L_mat_q
-                
-                # Transpose to get rows for iteration if using similar logic to S
-                # or just use columns. Let's use standard: [ +Cols, -Cols ]
-                # We need shape (2*L_q, L_q)
-                q_offsets = np.hstack((scaled_L_q, -scaled_L_q)).T 
-                
-                # Append to pts: [mean_state, 0, modified_ctrl, 0]
-                for k in q_offsets:
-                    pts.append([pt0, zeros_sens, k, zeros_int])
-                    
+                root_q = np.linalg.cholesky(control_cov)
             except np.linalg.LinAlgError:
-                # Fallback if Q is not positive definite (rare for process noise)
-                pass
+                eigvals, eigvecs = np.linalg.eigh(control_cov)
+                root_q = eigvecs @ np.diag(np.sqrt(np.clip(eigvals, 0.0, None)))
+
+            scaled_root_q = gamma * root_q
+            q_offsets = np.hstack((scaled_root_q, -scaled_root_q)).T
+
+            for k in q_offsets:
+                pts.append([pt0, zeros_sens, k, zeros_int])
 
         # --- BLOCK 4: INT NOISE (Skipped - assumed zero) ---
 
@@ -490,7 +493,7 @@ class SRUAKF(UAKF):
         u: np.ndarray,
         sensors: np.ndarray,
         os: Orbital_State,
-    ) -> EstimatedArray:
+    ) -> EstimatorState:
         r"""
         Perform one SR-UKF predict/update cycle using QR factorization and Cholesky downdates.
 
@@ -503,7 +506,7 @@ class SRUAKF(UAKF):
         3. **Square-root covariance update**: apply sequential Cholesky downdates using
            :func:`choldate.choldowndate` via :meth:`weighted_cholupdate`.
 
-        The method returns an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+        The method returns an :class:`~ADCS.state.EstimatorState`
         containing the updated full state and a reconstructed covariance :math:`P^+`.
 
         Notation
@@ -672,7 +675,7 @@ class SRUAKF(UAKF):
             P^+ = S^{+\top} S^+,
 
         symmetrizes it, and returns it in the resulting
-        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`.
+        :class:`~ADCS.state.EstimatorState`.
 
         If ``quat_as_vec=True``, the quaternion is renormalized using
         :func:`~ADCS.helpers.math_helpers.normalize` and covariance is transformed
@@ -695,23 +698,23 @@ class SRUAKF(UAKF):
             during triangular solves.
         :return: Updated estimate container with fields:
 
-            - ``val``: updated full augmented state,
+            - full augmented state,
             - ``cov``: reconstructed reduced covariance :math:`P^+`,
             - ``int_cov``: unchanged (inherited from internal state).
 
-        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+        :rtype: :class:`~ADCS.state.EstimatorState`
 
         """
         u = np.asarray(u, dtype=float).copy()
         os = os.copy()
-        state0 = self.x_hat.val.copy()
+        state0 = self.x_hat.as_estimator_array()
 
         # --- 1. Determine Active Sensors (Eclipse Check) ---
         mid_os = [self.prev_os.average(os, CG5.c[j]) for j in range(5)]
         
         # Nominal propagation
         dyn_state0 = self.est_sat.noiseless_rk4(
-            x=state0[:self.est_sat.state_len],
+            x=self.x_hat,
             u=u,
             dt=self.dt,
             orbital_state0=self.prev_os,
@@ -758,11 +761,12 @@ class SRUAKF(UAKF):
 
         # --- 3. Propagation Loop ---
         for j in range(num_sigma):
-            full_pre_statej, sens_noise_j, control_noise_j, int_noise_extra_j = pts[j]
+            full_pre_array_j, sens_noise_j, control_noise_j, int_noise_extra_j = pts[j]
+            full_pre_statej = self._from_augmented_array(full_pre_array_j)
             self.sat_match(satj, full_pre_statej)
 
             post_dyn_state_j = satj.noiseless_rk4(
-                x=full_pre_statej[:state_len],
+                x=full_pre_statej,
                 u=u + control_noise_j,
                 dt=self.dt,
                 orbital_state0=self.prev_os,
@@ -772,25 +776,29 @@ class SRUAKF(UAKF):
             )
 
             if j == 0:
-                post_quat = post_dyn_state_j[3:7].copy()
+                post_quat = post_dyn_state_j.q.copy()
 
             post_statej, post_full_statej = self.new_post_state(
-                full_pre_statej[state_len:],
-                post_dyn_state_j,
+                full_pre_array_j[state_len:],
+                post_dyn_state_j.as_array(),
                 int_noise_extra_j, 
                 post_quat,
             )
             post_pts[j, :] = post_statej.copy()
 
-            self.sat_match(satj, post_full_statej)
+            post_full_state_obj = self._from_augmented_array(post_full_statej)
+            self.sat_match(satj, post_full_state_obj)
             dmode = ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
-            sensj = satj.sensor_readings(x=post_full_statej[:state_len],os=os, dmode=dmode)
+            sensj = satj.sensor_readings(x=post_full_state_obj,os=os, dmode=dmode)
             post_sens[j, :] = sensj[which_outputs] + sens_noise_j
 
         # --- 4. Time Update (QR Method) ---
         state1 = wts_m @ post_pts
-        dquat1 = vec3_to_quat(state1[3:6], self.vec_mode)
-        quat1 = quat_mult(post_quat, dquat1)
+        if not self.quat_as_vec:
+            dquat1 = vec3_to_quat(state1[3:6], self.vec_mode)
+            quat1 = quat_mult(post_quat, dquat1)
+        else:
+            state1[3:7] = normalize(state1[3:7])
         
         # State deviations
         pts_diff = post_pts - state1
@@ -877,5 +885,10 @@ class SRUAKF(UAKF):
             norm_jac = state_norm_jac(state_final)
             P_plus = norm_jac.T @ P_plus @ norm_jac
 
-        self.sat_match(satj, state_final)
-        return EstimatedArray(val=state_final, cov=P_plus)
+        result = self._from_augmented_array(
+            state_final,
+            cov=P_plus,
+            int_cov=self.x_hat.int_cov,
+        )
+        self.sat_match(satj, result)
+        return result

@@ -12,6 +12,7 @@ from ADCS.orbits.density_model import DensityModel
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
 from ADCS.helpers.math_helpers import normalize, rot_mat, drotmatTvecdq, ddrotmatTvecdqdq
+from ADCS.state import State
 
 _I3 = np.eye(3)
 _I6 = np.eye(6)
@@ -260,10 +261,10 @@ class Orbital_State:
         J2000: float,
         R: np.ndarray,
         V: np.ndarray,
-        S: np.ndarray = None,
-        B: np.ndarray = None,
-        rho: float = None,
-        density_model: DensityModel = None,
+        S: Optional[np.ndarray] = None,
+        B: Optional[np.ndarray] = None,
+        rho: Optional[float] = None,
+        density_model: Optional[DensityModel] = None,
         fast: bool = False,
     ) -> None:
         r"""
@@ -558,7 +559,7 @@ class Orbital_State:
         R_e: float,
         J2coeff: float,
         zonal_J: int = 2,
-        Jcoeffs: np.ndarray = None,
+        Jcoeffs: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Compute raw orbital dynamics.
@@ -632,7 +633,7 @@ class Orbital_State:
         R_e: float,
         J2coeff: float,
         zonal_J: int = 2,
-        Jcoeffs: np.ndarray = None,
+        Jcoeffs: Optional[np.ndarray] = None,
     ):
         r"""
         Compute Jacobians of orbital dynamics.
@@ -1074,20 +1075,22 @@ class Orbital_State:
         sun_icrf = self.ephem.earth.at(t).observe(self.ephem.sun).apparent()
         return np.asarray(sun_icrf.position.km, dtype=float).reshape(3)
 
-    def update_vecs(self, x: np.ndarray) -> None:
+    def update_vecs(self, x: State) -> None:
         r"""
-        Update body-frame vectors and their derivatives from a state vector.
+        Update body-frame vectors and their derivatives from a structured state.
 
         :param x:
-            Full spacecraft state vector including attitude quaternion.
-        :type x: numpy.ndarray
+            Spacecraft state containing the attitude quaternion.
+        :type x: ADCS.state.State
 
         :return:
             ``None``
         :rtype: None
 
         """
-        q0 = np.asarray(x, dtype=float)[3:7]
+        if not isinstance(x, State):
+            raise TypeError(f"x must be a State, got {type(x).__name__}")
+        q0 = x.q
 
         R = self.R
         V = self.V
@@ -1139,23 +1142,32 @@ class Orbital_State:
             "ddv": ddV_B__dqdq,
             "ddr": ddR_B__dqdq,
         }
-        self._last_x = np.asarray(x, dtype=float).copy()
+        # Body-frame environment vectors depend only on attitude. Keeping the
+        # quaternion as the cache key avoids allocating a full state vector on
+        # every sensor and disturbance lookup.
+        self._last_x = x.q.copy()
 
-    def get_state_vector(self, x: Optional[np.ndarray]) -> Dict[str, np.ndarray]:
+    def get_state_vector(self, x: Optional[State]) -> Dict[str, np.ndarray]:
         r"""
         Retrieve cached or updated body-frame vectors.
 
         :param x:
-            Current spacecraft state vector.
-        :type x: numpy.ndarray or None
+            Current spacecraft state, or ``None`` to return initialized cached vectors.
+        :type x: ADCS.state.State or None
 
         :return:
             Dictionary of vectors and derivatives.
         :rtype: dict[str, numpy.ndarray]
 
         """
-        if x is None or self._last_x is None or not np.array_equal(np.asarray(x, dtype=float), self._last_x):
-            self.update_vecs(x=np.asarray(x, dtype=float))
+        if x is None:
+            if self._last_x is None:
+                raise ValueError("x is required before body-frame vectors have been initialized")
+            return self.vecs
+        if not isinstance(x, State):
+            raise TypeError(f"x must be a State, got {type(x).__name__}")
+        if self._last_x is None or not np.array_equal(x.q, self._last_x):
+            self.update_vecs(x=x)
         return self.vecs
 
     def is_sunlit(self) -> bool:

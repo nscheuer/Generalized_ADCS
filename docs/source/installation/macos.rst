@@ -58,11 +58,8 @@ Install Python dependencies using pip::
 
    pip install --upgrade pip wheel setuptools
    pip install -r requirements.txt
-   pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
    pip install -e . --no-deps --no-build-isolation
 
-The ``--no-build-isolation`` flag is required for ``choldate`` because its
-compilation depends on Cython (already installed from ``requirements.txt``).
 The final line registers the ``ADCS`` package in editable mode.
 
 Build trajectory_planner

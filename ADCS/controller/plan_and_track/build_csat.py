@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["build_cpp_satellite", "get_cpp_to_python_control_permutation", "reorder_controls_cpp_to_python"]
 
 import numpy as np
-from typing import List, Tuple, TYPE_CHECKING
+from typing import List, Tuple, TYPE_CHECKING, Sequence
 from numpy.typing import NDArray
 
 if TYPE_CHECKING:
@@ -13,7 +13,7 @@ from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
 from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
 
 
-def get_cpp_to_python_control_permutation(actuators: List[Actuator]) -> Tuple[NDArray[np.intp], NDArray[np.intp]]:
+def get_cpp_to_python_control_permutation(actuators: Sequence[Actuator]) -> Tuple[NDArray[np.intp], NDArray[np.intp]]:
     r"""
     Compute the permutation between C++ planner control ordering and Python actuator ordering.
 
@@ -91,7 +91,7 @@ def get_cpp_to_python_control_permutation(actuators: List[Actuator]) -> Tuple[ND
     return cpp_to_py, py_to_cpp
 
 
-def reorder_controls_cpp_to_python(Uset: NDArray[np.float64], actuators: List[Actuator]) -> NDArray[np.float64]:
+def reorder_controls_cpp_to_python(Uset: NDArray[np.float64], actuators: Sequence[Actuator]) -> NDArray[np.float64]:
     r"""
     Reorder a control matrix from C++ planner ordering to Python actuator ordering.
 
@@ -153,7 +153,7 @@ def reorder_controls_cpp_to_python(Uset: NDArray[np.float64], actuators: List[Ac
         raise ValueError(f"Uset shape {Uset.shape} doesn't match n_controls={n_ctrl}")
 
 
-def reorder_gains_cpp_to_python(Kset: NDArray[np.float64], actuators: List[Actuator]) -> NDArray[np.float64]:
+def reorder_gains_cpp_to_python(Kset: NDArray[np.float64], actuators: Sequence[Actuator]) -> NDArray[np.float64]:
     r"""
     Reorder a feedback gain tensor from C++ planner ordering to Python actuator ordering.
 
@@ -327,17 +327,14 @@ def add_actuator(act: Actuator, csat: pysat.Satellite, planner_settings: Planner
     if isinstance(act, MTQ):
         csat.add_MTQ(act.axis, act.u_max, planner_settings.mtq_control_weight)
     elif isinstance(act, RW):
-        mult = getattr(planner_settings, 'RWh_max_mult', 0.8)
-        cost_threshold = act.h_max * mult
-
         csat.add_RW(
             act.axis, 
             act.J, 
             act.u_max * planner_settings.control_limit_scale, 
-            act.h_max * planner_settings.RWh_max_mult,
+            act.h_max * planner_settings.rw_momentum_limit_scale,
             planner_settings.rw_control_weight, 
             planner_settings.rw_AM_weight, 
-            act.h_max * planner_settings.RWh_ok_mult,
+            act.h_max * planner_settings.RWh_knee_frac,
             planner_settings.rw_stic_weight,
             act.h_max * planner_settings.RWh_stiction_mult
         )

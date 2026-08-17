@@ -1,0 +1,29 @@
+{
+  "benchmarks": {
+    "simulate_bdot_one_step": {
+      "loops": 2,
+      "max_regression": 1.5,
+      "normalized_seconds": 4.267503511564711,
+      "seconds": 0.030187772000090263
+    },
+    "simulate_open_loop_one_step": {
+      "loops": 2,
+      "max_regression": 1.5,
+      "normalized_seconds": 3.721656879789221,
+      "seconds": 0.026326522999966073
+    },
+    "simulate_uakf_mtq_rw_two_steps": {
+      "loops": 1,
+      "max_regression": 1.5,
+      "normalized_seconds": 28.556810571127492,
+      "seconds": 0.20200721199989857
+    }
+  },
+  "calibration_loops": 8,
+  "calibration_seconds": 0.007073871625010497,
+  "description": "simulate() fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

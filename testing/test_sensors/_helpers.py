@@ -2,6 +2,7 @@ import numpy as np
 
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.state import State
 
 
 def make_orbital_state(R=None, V=None, B=None, S=None):
@@ -20,7 +21,4 @@ def make_orbital_state(R=None, V=None, B=None, S=None):
 def make_state(q=None, w=None, h=None):
     q = np.array([1.0, 0.0, 0.0, 0.0]) if q is None else np.asarray(q, dtype=float)
     w = np.zeros(3) if w is None else np.asarray(w, dtype=float)
-    x = np.concatenate([w, q])
-    if h is not None:
-        x = np.concatenate([x, np.asarray(h, dtype=float)])
-    return x
+    return State(w=w, q=q, h=() if h is None else h)

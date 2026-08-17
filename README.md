@@ -1,8 +1,8 @@
 # 🚀 Generalized ADCS
 
 <p>
-  <img src="docs/source/_static/starlab_logo.svg" alt="STARLab Logo" height="100">
-  <img src="docs/source/_static/ssc_logo.png" alt="Small Satellite Collaborative Logo" height="100">
+  <img src="https://raw.githubusercontent.com/nscheuer/Generalized_ADCS/main/docs/source/_static/starlab_logo.svg" alt="STARLab Logo" height="100">
+  <img src="https://raw.githubusercontent.com/nscheuer/Generalized_ADCS/main/docs/source/_static/ssc_logo.png" alt="Small Satellite Collaborative Logo" height="100">
 </p>
 
 <strong>Generalized ADCS</strong> is a Python framework for satellite attitude determination
@@ -18,10 +18,27 @@ control and estimation workflows.
 </p>
 
 
+## 📦 Installation
+
+```bash
+pip install generalized-adcs
+```
+
+Optional extras: `viz` (3-D orbit animation), `dev` (test tooling), `docs`
+(documentation build), `cpp` (toolchain for the optional C++ add-ons).
+
+```bash
+pip install "generalized-adcs[viz]"
+```
+
+Requires Python 3.10 or newer. For deterministic reproduction of published
+campaign results, see `requirements-repro.txt` in the repository.
+
+
 ## ✨ Key Features
 
 <p align="center">
-  <img src="docs/source/_static/ground_tracking.png"
+  <img src="https://raw.githubusercontent.com/nscheuer/Generalized_ADCS/main/docs/source/_static/ground_tracking.png"
        alt="Tracking a ground target"
        height="300">
 </p>
@@ -39,6 +56,12 @@ control and estimation workflows.
 - ✅ Growing catalog of CubeSat-scale sensors and actuators
 - ✅ Designed for underactuated and overactuated systems
 
+Spacecraft attitude states are represented by `ADCS.State` (`w`, `q`, and
+reaction-wheel momentum `h`). Estimators use `ADCS.EstimatorState` for the
+physical state, estimated parameters, and covariance. Explicit `from_array()`
+and `as_array()` conversions preserve the established numerical ordering at
+SciPy and native-planner boundaries.
+
 Optional add-ons:
 - trajectory_planner (tplaunch/pysat) and SALTRO (saltro_py) are optional C++ extensions.
 - Core ADCS functionality works without them.
@@ -54,9 +77,3 @@ This project is based on the PhD research of **Patrick McKeen**:
   *Computational Methods to Improve Satellite Attitude Determination and Control
   with a Focus on Autonomy, Generalizability, and Underactuation*  
   https://dspace.mit.edu/handle/1721.1/158874
-
-See the release paper:
-
-- 📄 *A Modular Open-Source ADCS Framework for Small Satellite Development and Testing*  
-  https://smallsateurope.com/paper/a-modular-open-source-adcs-framework-for-small-satellite-development-and-testing/
-

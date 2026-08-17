@@ -1,6 +1,8 @@
 __all__ = ["MTQ_w_RW"]
 
 import numpy as np
+
+from ADCS.state import EstimatorState, State
 from typing import List
 
 from ADCS.CONOPS.goals import Goal
@@ -100,9 +102,8 @@ class MTQ_w_RW(Controller):
 
     Notes
     -----
-    This controller assumes that reaction wheel momentum states are stored
-    contiguously in the estimated state vector beginning at index 7 and that
-    the ordering matches the internal actuator index ordering.
+    Reaction wheel momentum is read from ``EstimatorState.h``; its ordering
+    matches the internal reaction-wheel actuator ordering.
 
     References
     ----------
@@ -159,8 +160,8 @@ class MTQ_w_RW(Controller):
 
         self.n_actuators = len(est_sat.actuators)
 
-    
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Compute actuator command vector for reaction wheels and magnetic torquers.
 
@@ -201,7 +202,7 @@ class MTQ_w_RW(Controller):
 
         Parameters
         ----------
-        x_hat : numpy.ndarray
+        x_hat : ADCS.state.State or ADCS.state.EstimatorState
             Estimated spacecraft state vector containing angular rates,
             quaternion attitude, and reaction wheel momentum states.
         sens : numpy.ndarray
@@ -222,8 +223,8 @@ class MTQ_w_RW(Controller):
             ``est_sat.actuators``.
 
         """
-        w = x_hat[0:3]
-        q = x_hat[3:7]
+        w = x_hat.w
+        q = x_hat.q
 
         if goal is None:
             goal = Goal()
@@ -245,20 +246,19 @@ class MTQ_w_RW(Controller):
         tau_att = -self.p_gain*q_err_vec - self.d_gain*w_err
 
         # Momentum Management
-        h_vals = x_hat[7:]
         rw_axes   = np.vstack([
             np.asarray(rw.axis, float).reshape(3,)
             for rw in est_sat.actuators
             if isinstance(rw, RW)
         ])
-        h_vals    = x_hat[7:]
+        h_vals    = est_sat.RWhs_from_state(x_hat)
         h_rw_body = h_vals @ rw_axes
 
         # Gyroscopic Compensation
         J = est_sat.J_0
         tau_gyro = np.cross(w, J @ w + h_rw_body)
         tau_att += tau_gyro
-        
+
         # Momentum dumping
         delta_h = h_rw_body - self.h_target
         tau_dump = -self.c_gain * delta_h
@@ -279,9 +279,8 @@ class MTQ_w_RW(Controller):
         u_total = u_mtq+u_rw
 
         return u_total
-    
 
 
 
 
-        
+

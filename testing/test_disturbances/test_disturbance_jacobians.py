@@ -14,12 +14,13 @@ from ADCS.satellite_hardware.disturbances import (
     SRP_Disturbance,
 )
 from ADCS.satellite_hardware.satellite.satellite import Satellite
+from ADCS.state import State
 
 
 EPHEM = Ephemeris()
 Q0 = normalize(np.array([1.0, 0.30, -0.20, 0.10]))
 W0 = np.array([0.004, -0.003, 0.002])
-X0 = np.concatenate([W0, Q0])
+X0 = State(w=W0, q=Q0)
 
 
 def make_orbital_state(**overrides) -> Orbital_State:
@@ -52,8 +53,8 @@ def central_difference_quaternion_jacobian(torque_fn, quaternion, eps: float = 1
     for index in range(4):
         delta = np.zeros(4)
         delta[index] = eps
-        plus = np.asarray(torque_fn(np.concatenate([W0, quaternion + delta])), dtype=float).reshape(3)
-        minus = np.asarray(torque_fn(np.concatenate([W0, quaternion - delta])), dtype=float).reshape(3)
+        plus = np.asarray(torque_fn(State(w=W0, q=quaternion + delta)), dtype=float).reshape(3)
+        minus = np.asarray(torque_fn(State(w=W0, q=quaternion - delta)), dtype=float).reshape(3)
         jacobian[index] = (plus - minus) / (2.0 * eps)
     return jacobian
 

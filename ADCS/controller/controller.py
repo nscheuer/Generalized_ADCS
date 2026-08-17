@@ -1,7 +1,9 @@
 __all__ = ["Controller"]
 
 import numpy as np
-from typing import List, Tuple, Type, Optional
+
+from ADCS.state import EstimatorState, State
+from typing import List, Tuple, Type, Optional, Sequence
 
 from ADCS.CONOPS.goals import Goal
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
@@ -48,8 +50,40 @@ class Controller():
         """
         pass
 
+    @staticmethod
+    def reaction_wheel_momentum_states(x_hat: State | EstimatorState, n_rw: int, *, context: str = "controller") -> np.ndarray:
+        r"""
+        Return reaction-wheel momentum states with strict layout validation.
 
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None, **kwargs) -> np.ndarray:
+        Controllers expect one scalar wheel-momentum state per reaction wheel,
+        ordered consistently with the reaction wheels in the satellite actuator
+        list. A mismatch is ambiguous and can otherwise silently disable
+        momentum management or fail later in matrix products, so it is rejected
+        at the controller boundary.
+
+        :param x_hat: State supplied to the controller.
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
+        :param n_rw: Number of reaction wheels expected by the controller.
+        :type n_rw: int
+        :param context: Name of the calling controller/mode for error messages.
+        :type context: str
+        :return: Wheel momentum state vector of shape ``(n_rw,)``.
+        :rtype: numpy.ndarray
+        :raises ValueError: If ``x_hat.h`` does not contain exactly ``n_rw`` entries.
+
+        """
+        if n_rw < 0:
+            raise ValueError(f"n_rw must be non-negative, got {n_rw}")
+        h = np.asarray(x_hat.h, dtype=float).reshape(-1)
+        if h.size != n_rw:
+            raise ValueError(
+                f"{context} expected x_hat.h to contain exactly {n_rw} "
+                f"reaction-wheel momentum states, got {h.size}"
+            )
+        return h.copy()
+
+
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None, **kwargs) -> np.ndarray:
         r"""
         Computes actuator command inputs that satisfy the control objective.
 
@@ -74,7 +108,7 @@ class Controller():
         where :math:`A^{\dagger}` denotes an actuator allocation pseudoinverse.
 
         :param x_hat: Estimated spacecraft state vector
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Flattened sensor measurement vector
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite model providing hardware properties
@@ -94,7 +128,7 @@ class Controller():
         )
 
 
-    def build_sensor_matrix_pinv(self, sensors: List[Sensor], sensor_type: Type[Sensor]) -> Tuple[np.ndarray, List[int]]:
+    def build_sensor_matrix_pinv(self, sensors: Sequence[Sensor], sensor_type: Type[Sensor]) -> Tuple[np.ndarray, List[int]]:
         r"""
         Constructs a sensor reconstruction matrix using a Moore–Penrose
         pseudoinverse.
@@ -167,7 +201,7 @@ class Controller():
         return M_full, active_indices
     
 
-    def build_torque_to_u_matrix_pinv(self, actuators: List[Actuator], actuator_type: Type[Actuator]) -> Tuple[np.ndarray, List[int]]:
+    def build_torque_to_u_matrix_pinv(self, actuators: Sequence[Actuator], actuator_type: Type[Actuator]) -> Tuple[np.ndarray, List[int]]:
         r"""
         Builds an actuator allocation matrix mapping desired body torque to
         actuator command space.
@@ -229,7 +263,7 @@ class Controller():
         return M_act, active_indices
     
 
-    def build_u_to_torque_matrix_pinv(self, actuators: List[Actuator], actuator_type: Type[Actuator]) -> np.ndarray:
+    def build_u_to_torque_matrix_pinv(self, actuators: Sequence[Actuator], actuator_type: Type[Actuator]) -> np.ndarray:
         r"""
         Builds the forward mapping matrix from actuator commands to body-frame
         torque directions.
@@ -283,7 +317,7 @@ class Controller():
         return np.column_stack(cols)
     
 
-    def find_max_torque(self, actuators: List[Actuator], actuator_type: Optional[Type[Actuator]] = None) -> np.ndarray:
+    def find_max_torque(self, actuators: Sequence[Actuator], actuator_type: Optional[Type[Actuator]] = None) -> np.ndarray:
         r"""
         Extracts maximum allowable actuator command magnitudes.
 

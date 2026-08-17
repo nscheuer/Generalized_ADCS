@@ -1,0 +1,48 @@
+# Exact pins for reproducing published campaign results.
+#
+# pyproject.toml deliberately declares compatible RANGES so that
+# `pip install .` works inside an existing environment. This file preserves
+# the exact versions the paper/poster campaigns were run against, so that
+# regenerating figures stays deterministic.
+#
+# Usage:
+#     pip install -r requirements-repro.txt
+#     pip install -e . --no-deps
+#
+# No choldate: the SRUAKF's rank-1 Cholesky update/downdate is in-tree at
+# ADCS/helpers/cholesky_update.py.
+
+# --- direct runtime dependencies ---
+matplotlib==3.10.7
+numba==0.65.0
+numpy==2.2.6
+ppigrf==2.1.0
+rich==14.2.0
+scipy==1.15.3
+skyfield==1.53
+tqdm==4.67.1
+
+# --- transitive, pinned for determinism ---
+certifi==2025.10.5
+contourpy==1.3.2
+cycler==0.12.1
+fonttools==4.60.1
+importlib_resources==6.5.2
+jplephem==2.23
+kiwisolver==1.4.9
+packaging==25.0
+pillow==12.0.0
+pyparsing==3.2.5
+python-dateutil==2.9.0.post0
+sgp4==2.25
+six==1.17.0
+
+# --- test / analysis tooling used by testing/ and papers/ ---
+iniconfig==2.3.0
+numdifftools==0.9.41
+pluggy==1.6.0
+pytest==8.4.2
+Pygments==2.19.2
+
+# --- optional 3-D visualisation (ADCS/helpers/plotting) ---
+pyvista==0.46.4

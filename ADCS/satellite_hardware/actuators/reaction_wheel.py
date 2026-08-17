@@ -1,12 +1,15 @@
 __all__ = ["RW"]
 
 import numpy as np
+
+from ADCS.state import State
 import warnings
 from ADCS.satellite_hardware.actuators.actuator import Actuator
 from ADCS.satellite_hardware.errors.bias import Bias
 from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
+from typing import Optional
 
 class RW(Actuator):
     r"""
@@ -82,11 +85,15 @@ class RW(Actuator):
         axis: np.ndarray,
         max_torque: float,
         J: float,
-        h: np.ndarray,
-        h_max: np.ndarray,
-        bias: Bias = None,
-        noise: Noise = None,
-        h_meas_noise: Noise = None,
+        # Scalar for a single wheel: every call site in ADCS/, testing/ and
+        # papers/ passes a number (h=5.0, h=0.0, h=h0[i]). The previous
+        # np.ndarray annotation made the README's own example fail type
+        # checking once py.typed was shipped.
+        h: float,
+        h_max: float,
+        bias: Optional[Bias] = None,
+        noise: Optional[Noise] = None,
+        h_meas_noise: Optional[Noise] = None,
         estimate_bias: bool = False,
     ) -> None:
         r"""
@@ -157,7 +164,7 @@ class RW(Actuator):
             self.h_meas_noise = Noise()
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
-    def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> float:
+    def torque(self, u: float, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""
         Compute the reaction-wheel torque vector applied to the spacecraft body.
 
@@ -182,7 +189,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft state vector (passed through for interface compatibility).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state providing time tag (e.g., :attr:`~ADCS.orbits.orbital_state.Orbital_State.J2000`) for bias evolution.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -196,7 +203,7 @@ class RW(Actuator):
         u_eff = self._effective_command(u=u, os=os, dmode=dmode)
         return self.axis * u_eff
 
-    def _effective_command(self, u: float, os: Orbital_State, dmode: ErrorMode = None) -> float:
+    def _effective_command(self, u: float, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""
         Compute the effective scalar motor torque :math:`u_{\mathrm{eff}} = u + b(t) + n(t)`.
 
@@ -273,7 +280,7 @@ class RW(Actuator):
         self._eff_cmd_val = command
         return command
 
-    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> float:
+    def storage_torque(self, u: float, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""
         Compute the internal torque acting on the wheel (equal and opposite to the body torque).
 
@@ -298,7 +305,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft state vector (passed through for interface compatibility).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state providing time tag (e.g., :attr:`~ADCS.orbits.orbital_state.Orbital_State.J2000`) for bias evolution.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -391,7 +398,7 @@ class RW(Actuator):
         else:
             self.h = h_arr
 
-    def dtorq__du(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def dtorq__du(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian :math:`\partial\boldsymbol{\tau}/\partial u`.
 
@@ -414,7 +421,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -424,7 +431,7 @@ class RW(Actuator):
         """
         return self.axis.reshape((1,3))
 
-    def dtorq__dh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def dtorq__dh(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian :math:`\partial\boldsymbol{\tau}/\partial \mathbf{h}`.
 
@@ -440,7 +447,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -450,7 +457,7 @@ class RW(Actuator):
         """
         return np.zeros((1,3))
     
-    def ddtorq__dudh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddtorq__dudh(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial u\,\partial \mathbf{h}`.
 
@@ -464,7 +471,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -474,7 +481,7 @@ class RW(Actuator):
         """
         return np.zeros((1, 1, 3))
     
-    def ddtorq__dbiasdh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddtorq__dbiasdh(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial b\,\partial \mathbf{h}`.
 
@@ -492,7 +499,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -505,7 +512,7 @@ class RW(Actuator):
         else:
             return np.zeros((0, 1, 3))
         
-    def ddtorq__dbasestatedh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddtorq__dbasestatedh(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial \mathbf{x}_{\mathrm{base}}\,\partial \mathbf{h}`.
 
@@ -521,7 +528,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -531,7 +538,7 @@ class RW(Actuator):
         """
         return np.zeros((7, 1, 3))
     
-    def ddtorq__dhdh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddtorq__dhdh(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial \mathbf{h}^2`.
 
@@ -545,7 +552,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -555,7 +562,7 @@ class RW(Actuator):
         """
         return np.zeros((1, 1, 3))
     
-    def dstor_torq__du(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def dstor_torq__du(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u`.
 
@@ -579,7 +586,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -589,7 +596,7 @@ class RW(Actuator):
         """
         return -np.ones((1,1))
     
-    def dstor_torq__dbias(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def dstor_torq__dbias(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b`.
 
@@ -608,7 +615,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -621,7 +628,7 @@ class RW(Actuator):
         else:
             return np.zeros((0, 1))
         
-    def dstor_torq__dbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def dstor_torq__dbasestate(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{x}_{\mathrm{base}}`.
 
@@ -636,7 +643,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -646,7 +653,7 @@ class RW(Actuator):
         """
         return np.zeros((7, 1))
     
-    def dstor_torq__dh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def dstor_torq__dh(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{h}`.
 
@@ -661,7 +668,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -671,7 +678,7 @@ class RW(Actuator):
         """
         return np.zeros((1, 1))
     
-    def ddstor_torq__dudu(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddstor_torq__dudu(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u^2`.
 
@@ -691,7 +698,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -701,7 +708,7 @@ class RW(Actuator):
         """
         return np.zeros((1, 1, 1))
     
-    def ddstor_torq__dudbias(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddstor_torq__dudbias(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u\,\partial b`.
 
@@ -715,7 +722,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -728,7 +735,7 @@ class RW(Actuator):
         else:
             return np.zeros((1, 0, 1))
         
-    def ddstor_torq__dudbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddstor_torq__dudbasestate(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u\,\partial \mathbf{x}_{\mathrm{base}}`.
 
@@ -743,7 +750,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -753,7 +760,7 @@ class RW(Actuator):
         """
         return np.zeros((1, 7, 1))
     
-    def ddstor_torq__dudh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddstor_torq__dudh(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u\,\partial \mathbf{h}`.
 
@@ -767,7 +774,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -777,7 +784,7 @@ class RW(Actuator):
         """
         return np.zeros((1, 1, 1))
     
-    def ddstor_torq__dbiasdbias(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddstor_torq__dbiasdbias(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b^2`.
 
@@ -791,7 +798,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -804,7 +811,7 @@ class RW(Actuator):
         else:
             return np.zeros((0, 0, 1))
         
-    def ddstor_torq__dbiasdbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddstor_torq__dbiasdbasestate(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b\,\partial \mathbf{x}_{\mathrm{base}}`.
 
@@ -818,7 +825,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -831,7 +838,7 @@ class RW(Actuator):
         else:
             return np.zeros((0, 7, 1))
         
-    def ddstor_torq__dbiasdh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddstor_torq__dbiasdh(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b\,\partial \mathbf{h}`.
 
@@ -845,7 +852,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -858,7 +865,7 @@ class RW(Actuator):
         else:
             return np.zeros((0, 1, 1))
 
-    def ddstor_torq__dbasestatedbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddstor_torq__dbasestatedbasestate(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{x}_{\mathrm{base}}^2`.
 
@@ -872,7 +879,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -882,7 +889,7 @@ class RW(Actuator):
         """
         return np.zeros((7, 7, 1))
     
-    def ddstor_torq__dbasestatedh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddstor_torq__dbasestatedh(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{x}_{\mathrm{base}}\,\partial \mathbf{h}`.
 
@@ -896,7 +903,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -906,7 +913,7 @@ class RW(Actuator):
         """
         return np.zeros((7, 1, 1))
     
-    def ddstor_torq__dhdh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddstor_torq__dhdh(self, u: float, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{h}^2`.
 
@@ -920,7 +927,7 @@ class RW(Actuator):
         :type u: float
 
         :param x: Spacecraft base state.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`

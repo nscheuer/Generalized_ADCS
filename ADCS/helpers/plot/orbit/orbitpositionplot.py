@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 
 from ..subplot import Subplot
+from typing import Sequence
 
 
 def _normalize_orbit_sources(sources: list[str] | None) -> list[str]:
@@ -105,7 +106,7 @@ class OrbitPositionPlot(Subplot):
     def __init__(
         self,
         *,
-        sources: list[str] | None = None,  # ["real","estimated"]
+        sources: Sequence[str] | None = None,  # ["real","estimated"]
         time: str = "time_s",
         title: str = "Orbit Position (ECI)",
         units: str = "km",
@@ -284,7 +285,7 @@ class OrbitPositionPlotSingle(Subplot):
         self,
         *,
         component: str,
-        sources: list[str] | None = None,  # ["real","estimated"]
+        sources: Sequence[str] | None = None,  # ["real","estimated"]
         time: str = "time_s",
         title: str | None = None,
         units: str = "km",
@@ -451,13 +452,13 @@ class OrbitPositionPlotCombined(Subplot):
     def __init__(
         self,
         *,
-        sources: list[str] | None = None,  # ["real","estimated"]
+        sources: Sequence[str] | None = None,  # ["real","estimated"]
         time: str = "time_s",
         title: str = "Orbit Position (ECI)",
         units: str = "km",
         colors=("tab:blue", "tab:orange", "tab:green"),
         log_y: bool = False,
-        labels: list[str] | None = None,
+        labels: Sequence[str] | None = None,
     ):
         self.sources = _normalize_orbit_sources(sources)
         self.time = time

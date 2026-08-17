@@ -1,0 +1,83 @@
+{
+  "benchmarks": {
+    "dipole_torque": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0025770252657471055,
+      "seconds": 1.747198583990084e-05
+    },
+    "dipole_torque_qjac": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0023840894540958146,
+      "seconds": 1.6163899414056715e-05
+    },
+    "dipole_torque_valjac": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0026649321053796777,
+      "seconds": 1.806798583947611e-05
+    },
+    "dipole_update": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00016480740972664565,
+      "seconds": 1.1173785400275804e-06
+    },
+    "drag_torque": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0005693400650078265,
+      "seconds": 3.860071411065924e-06
+    },
+    "drag_torque_qjac": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0074422465384496725,
+      "seconds": 5.0457722656105375e-05
+    },
+    "gg_torque": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.000431101398017916,
+      "seconds": 2.922826416118518e-06
+    },
+    "gg_torque_qjac": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.010597292937045658,
+      "seconds": 7.184863672016206e-05
+    },
+    "prop_torque": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 1.30693229370291e-05,
+      "seconds": 8.860876465899281e-08
+    },
+    "prop_update": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0001671804323163276,
+      "seconds": 1.133467407155031e-06
+    },
+    "srp_torque": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.000542668299282931,
+      "seconds": 3.67923937993897e-06
+    },
+    "srp_torque_qjac": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.01260644957359652,
+      "seconds": 8.547052734364513e-05
+    }
+  },
+  "calibration_loops": 8,
+  "calibration_seconds": 0.006779904749919297,
+  "description": "Disturbances fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

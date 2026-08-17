@@ -2,9 +2,12 @@ __all__ = ["Sensor"]
 
 import numpy as np
 
+from ADCS.state import State
+
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.satellite_hardware.errors import ErrorMode
+from typing import Optional
 
 class Sensor:
     r"""
@@ -89,7 +92,7 @@ class Sensor:
     * Bias and noise updates are controlled via
       :class:`~ADCS.satellite_hardware.errors.ErrorMode`.
     """
-    def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
+    def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
         r"""
         Initialize a generic sensor model.
 
@@ -118,7 +121,7 @@ class Sensor:
         self.output_length = output_length
         self.estimate_bias = estimate_bias
 
-    def reading(self, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+    def reading(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute the full sensor measurement including bias and noise.
 
@@ -151,7 +154,7 @@ class Sensor:
         :class:`~ADCS.satellite_hardware.errors.ErrorMode`.
 
         :param x: Full system state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital and environmental state providing the current time ``os.J2000``.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param dmode: Error mode configuration controlling bias and noise behavior.
@@ -182,7 +185,7 @@ class Sensor:
 
         return reading
     
-    def basestate_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def basestate_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the clean sensor measurement with respect to the base states.
 
@@ -202,7 +205,7 @@ class Sensor:
         override this method to provide physically meaningful derivatives.
 
         :param x: Full system state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital and environmental state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Jacobian matrix of shape ``(output_length, N_base_states)``.
@@ -211,7 +214,7 @@ class Sensor:
         """
         return np.zeros((7, self.output_length))
     
-    def bias_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def bias_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the measurement with respect to the sensor bias state.
 
@@ -235,7 +238,7 @@ class Sensor:
         If the sensor does not include a bias model, an empty Jacobian is returned.
 
         :param x: Full system state vector (unused).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state object (unused).
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Identity matrix of shape ``(output_length, output_length)`` if a bias

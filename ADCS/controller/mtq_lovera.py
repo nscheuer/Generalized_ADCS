@@ -2,6 +2,8 @@ __all__ = ["MTQ_Lovera"]
 
 import numpy as np
 
+from ADCS.state import EstimatorState, State
+
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.controller import Controller
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
@@ -182,7 +184,7 @@ class MTQ_Lovera(Controller):
 
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Computes magnetorquer actuator commands using the Lovera–Astolfi control law.
 
@@ -195,7 +197,7 @@ class MTQ_Lovera(Controller):
         actuators; all other actuator commands are set to zero.
 
         :param x_hat: Estimated state vector containing angular velocity and attitude
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Raw sensor measurement vector
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object providing hardware properties
@@ -211,14 +213,15 @@ class MTQ_Lovera(Controller):
         if goal is None:
             goal = No_Goal()
 
-        w = x_hat[0:3]
-        q = x_hat[3:7]
+        w = x_hat.w
+        q = x_hat.q
 
         n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
-        if len(x_hat) >= 7 + n_rw:
-            h_rw_states = x_hat[7 : 7 + n_rw]
-        else:
-            h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
+        h_rw_states = self.reaction_wheel_momentum_states(
+            x_hat,
+            n_rw,
+            context=f"{type(self).__name__}.find_u",
+        )
 
         goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
         R_b2i = rot_mat(q)

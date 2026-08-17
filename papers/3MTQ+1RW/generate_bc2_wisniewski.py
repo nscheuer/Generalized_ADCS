@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy as np
+from ADCS.state import State
 from scipy.integrate import solve_ivp
 from typing import Dict, Any, Tuple, Optional
 
@@ -92,7 +93,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         real_sat = create_beavercube2_cubesat(estimated=False)
 
         # 4. Initial Conditions
-        x = np.concatenate([config["w0"], config["q0"], config["h0"]])
+        x = State(w=config["w0"], q=config["q0"], h=config["h0"])
         for i, rw in enumerate(real_sat.rw_actuators):
             rw.h = config["h0"][i]
 
@@ -133,7 +134,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             u = ctrl_find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state, goal=goal)
 
             time_hist[ind] = t
-            state_hist[ind, :] = x
+            state_hist[ind, :] = x.as_array()
             u_hist[ind, :] = u
             eci_goal_ref, _ = goal_to_ref(os0=os_state)
             boresight_hist[ind, :] = eci_goal_ref
@@ -146,14 +147,14 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             out = solve_ivp(
                 fun=sat_dynamics,
                 t_span=(0, dt),
-                y0=x,
+                y0=x.as_array(),
                 method="RK45",
                 args=(u, prev_os, os_next),
                 rtol=1e-6,
                 atol=1e-6,
             )
-            x = out.y[:, -1]
-            x[3:7] = normalize(x[3:7])
+            x = State.from_array(out.y[:, -1])
+            x = x.normalized()
 
         # Final UI update
         update_worker_progress(slot_id, run_id, steps, steps)

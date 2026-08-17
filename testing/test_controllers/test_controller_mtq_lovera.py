@@ -12,7 +12,6 @@ from ADCS.controller.helpers.quaternion_math import vector_alignment_error
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.math_helpers import random_n_unit_vec
-from ADCS.helpers.math_helpers import rot_mat
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -20,6 +19,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.satellite import Satellite
 from ADCS.satellite_hardware.sensors import MTM
+from ADCS.state import State
 
 
 P_GAIN = 2.0e-5
@@ -46,7 +46,7 @@ SCENARIO_NAMES = [
 @dataclass(frozen=True)
 class LoveraRun:
     time_hist: np.ndarray
-    state_hist: np.ndarray
+    state_hist: list[State]
     os_hist: list[Orbital_State]
     sensor_hist: np.ndarray
     u_hist: np.ndarray
@@ -91,12 +91,6 @@ class StaticGoal(Goal):
 
 def _unit(vec: np.ndarray) -> np.ndarray:
     return vec / np.linalg.norm(vec)
-
-
-def _mtq_indices(satellite: Satellite) -> list[int]:
-    return [
-        index for index, actuator in enumerate(satellite.actuators) if isinstance(actuator, MTQ)
-    ]
 
 
 def _make_satellite(
@@ -175,59 +169,6 @@ def _build_scenario(name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, Goal
     return w0, q0, h0, goal, tf
 
 
-def _expected_command(
-    controller: MTQ_Lovera,
-    satellite: Satellite,
-    x_hat: np.ndarray,
-    sens: np.ndarray,
-    os_hat: Orbital_State,
-    goal: Goal | None,
-) -> np.ndarray:
-    active_goal = No_Goal() if goal is None else goal
-    w = x_hat[0:3]
-    q = x_hat[3:7]
-
-    rw_actuators = [actuator for actuator in satellite.actuators if isinstance(actuator, RW)]
-    if len(x_hat) >= 7 + len(rw_actuators):
-        h_rw_states = x_hat[7 : 7 + len(rw_actuators)]
-    else:
-        h_rw_states = np.array([actuator.h for actuator in rw_actuators], dtype=float)
-
-    _, w_ref_eci = active_goal.to_ref(os0=os_hat)
-    w_ref_body = rot_mat(q).T @ w_ref_eci
-    q_err = active_goal.error(
-        q=q,
-        body_boresight=satellite.get_boresight(active_goal.boresight_name),
-        os0=os_hat,
-    )
-    w_err = w - w_ref_body
-
-    tau_pd = -(controller.eps**2 * controller.p_gain * q_err + controller.eps * controller.d_gain * w_err)
-
-    h_rw_body = np.zeros(3)
-    for h_rw, actuator in zip(h_rw_states, rw_actuators):
-        h_rw_body += np.asarray(actuator.axis, dtype=float).reshape(-1) * h_rw
-
-    tau_des = tau_pd + np.cross(w, satellite.J_0 @ w + h_rw_body)
-
-    sens_clean = np.asarray(sens, dtype=float).reshape(-1).copy()
-    sens_clean[np.isnan(sens_clean)] = 0.0
-    b_body = controller.M_read @ sens_clean
-    b_norm_sq = np.linalg.norm(b_body) ** 2
-
-    if b_norm_sq < 1.0e-11:
-        u_mtq = np.zeros(3)
-    else:
-        u_mtq = np.cross(b_body, tau_des) / b_norm_sq
-
-    ratios = np.where(np.abs(u_mtq) > 0.0, controller.mtq_umax / np.abs(u_mtq), np.inf)
-    u_mtq *= min(1.0, float(np.min(ratios)))
-
-    command = np.zeros(len(satellite.actuators))
-    command[_mtq_indices(satellite)] = u_mtq
-    return command
-
-
 def run_mtq_lovera_simulation(
     scenario_name: str,
     *,
@@ -241,11 +182,11 @@ def run_mtq_lovera_simulation(
     satellite = _make_satellite(include_rw=True, initial_rw_h=h0)
     controller = _make_controller(satellite)
     orbit = _make_real_orbit(horizon, dt)
-    x = np.concatenate([w0, q0, h0])
+    x = State(w=w0, q=q0, h=h0)
 
     steps = int(horizon / dt)
     time_hist = np.full(steps, np.nan)
-    state_hist = np.full((steps, len(x)), np.nan)
+    state_hist: list[State] = []
     sensor_hist = np.full((steps, len(satellite.sensors + satellite.rw_actuators)), np.nan)
     u_hist = np.full((steps, len(satellite.actuators)), np.nan)
     boresight_hist = np.full((steps, 4), np.nan)
@@ -260,7 +201,7 @@ def run_mtq_lovera_simulation(
         u = controller.find_u(x_hat=x, sens=sens, est_sat=satellite, os_hat=os_now, goal=goal)
 
         time_hist[index] = t
-        state_hist[index, :] = x
+        state_hist.append(x.copy())
         sensor_hist[index, :] = sens
         u_hist[index, :] = u
         boresight_hist[index, :] = goal.to_ref(os0=os_now)[0]
@@ -271,14 +212,14 @@ def run_mtq_lovera_simulation(
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0.0, dt),
-            y0=x,
+            y0=x.as_array(),
             method="RK45",
             args=(u, os_now, os_next),
             rtol=1.0e-7,
             atol=1.0e-7,
         )
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
         t = next_t
 
     return LoveraRun(
@@ -293,18 +234,14 @@ def run_mtq_lovera_simulation(
 
 
 def _final_alignment_error_deg(run: LoveraRun) -> float:
-    valid = np.where(np.isfinite(run.state_hist[:, 0]))[0]
-    last = valid[-1]
-    q_final = run.state_hist[last, 3:7]
-    goal_vec = run.boresight_hist[last, 1:4]
+    q_final = run.state_hist[-1].q
+    goal_vec = run.boresight_hist[len(run.state_hist) - 1, 1:4]
     err_vec = vector_alignment_error(q_final, goal_vec, np.array([0.0, 0.0, 1.0]))
     return np.degrees(np.linalg.norm(err_vec))
 
 
 def _final_rate_norm(run: LoveraRun) -> float:
-    valid = np.where(np.isfinite(run.state_hist[:, 0]))[0]
-    last = valid[-1]
-    return np.linalg.norm(run.state_hist[last, 0:3])
+    return np.linalg.norm(run.state_hist[-1].w)
 
 
 @pytest.fixture
@@ -331,18 +268,18 @@ def base_orbital_state() -> Orbital_State:
 
 
 @pytest.fixture
-def no_rw_state() -> np.ndarray:
+def no_rw_state() -> State:
     q = normalize(np.array([0.9, 0.1, -0.2, 0.3]))
     w = np.array([0.03, -0.02, 0.01])
-    return np.concatenate([w, q])
+    return State(w=w, q=q)
 
 
 @pytest.fixture
-def rw_state() -> np.ndarray:
+def rw_state() -> State:
     q = normalize(np.array([0.8, -0.1, 0.2, 0.55]))
     w = np.array([0.025, -0.015, 0.02])
     h = np.array([0.006, -0.004, 0.003])
-    return np.concatenate([w, q, h])
+    return State(w=w, q=q, h=h)
 
 
 def test_mtq_lovera_none_goal_matches_no_goal(
@@ -446,14 +383,7 @@ def test_mtq_lovera_cleans_nan_sensor_values_before_allocation(
         os_hat=base_orbital_state,
         goal=No_Goal(),
     )
-    expected = _expected_command(
-        controller,
-        lovera_satellite,
-        no_rw_state,
-        sens_with_nan,
-        base_orbital_state,
-        No_Goal(),
-    )
+    expected = np.array([-0.2, -0.06255575964313828, 0.08432432432432435])
 
     np.testing.assert_allclose(command, expected)
 
@@ -473,14 +403,7 @@ def test_mtq_lovera_matches_pd_and_gyro_law_without_goal(
         os_hat=base_orbital_state,
         goal=No_Goal(),
     )
-    expected = _expected_command(
-        controller,
-        lovera_satellite,
-        no_rw_state,
-        sens,
-        base_orbital_state,
-        No_Goal(),
-    )
+    expected = np.array([-0.2, -0.05775193798449613, 0.03484496124031009])
 
     np.testing.assert_allclose(command, expected)
 
@@ -490,7 +413,7 @@ def test_mtq_lovera_matches_eci_goal_alignment_law(
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = _make_controller(lovera_satellite)
-    state = np.array([0.01, -0.015, 0.02, 1.0, 0.0, 0.0, 0.0])
+    state = State(w=[0.01, -0.015, 0.02], q=[1.0, 0.0, 0.0, 0.0])
     goal = ECI_Goal(np.array([1.0, 0.0, 0.0]))
     sens = lovera_satellite.sensor_readings(x=state, os=base_orbital_state)
 
@@ -501,14 +424,7 @@ def test_mtq_lovera_matches_eci_goal_alignment_law(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = _expected_command(
-        controller,
-        lovera_satellite,
-        state,
-        sens,
-        base_orbital_state,
-        goal,
-    )
+    expected = np.array([-0.16995900954910007, 0.1533606603006, 0.2])
 
     np.testing.assert_allclose(command, expected)
 
@@ -519,7 +435,7 @@ def test_mtq_lovera_rotates_reference_rate_into_body_frame(
 ) -> None:
     controller = _make_controller(lovera_satellite)
     q = normalize(np.array([np.sqrt(0.5), 0.0, 0.0, np.sqrt(0.5)]))
-    state = np.concatenate([np.array([0.03, 0.02, -0.01]), q])
+    state = State(w=[0.03, 0.02, -0.01], q=q)
     goal = StaticGoal(q_err=np.zeros(3), w_ref_eci=np.array([0.04, 0.0, 0.0]))
     sens = lovera_satellite.sensor_readings(x=state, os=base_orbital_state)
 
@@ -530,21 +446,14 @@ def test_mtq_lovera_rotates_reference_rate_into_body_frame(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = _expected_command(
-        controller,
-        lovera_satellite,
-        state,
-        sens,
-        base_orbital_state,
-        goal,
-    )
+    expected = np.array([0.2, -0.0377659574468085, 0.13111702127659575])
 
     np.testing.assert_allclose(command, expected)
 
 
 def test_mtq_lovera_uses_rw_momentum_from_state_when_available(
     lovera_satellite_with_rw: Satellite,
-    rw_state: np.ndarray,
+    rw_state: State,
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = _make_controller(lovera_satellite_with_rw)
@@ -557,55 +466,51 @@ def test_mtq_lovera_uses_rw_momentum_from_state_when_available(
         os_hat=base_orbital_state,
         goal=No_Goal(),
     )
-    expected_from_state = _expected_command(
-        controller,
-        lovera_satellite_with_rw,
-        rw_state,
-        sens,
-        base_orbital_state,
-        No_Goal(),
-    )
-    expected_from_actuators = _expected_command(
-        controller,
-        lovera_satellite_with_rw,
-        rw_state[:7],
-        sens,
-        base_orbital_state,
-        No_Goal(),
-    )
+    expected = np.array([-0.13453814660596494, -0.03045299483936239, -0.2, 0.0, 0.0, 0.0])
 
-    np.testing.assert_allclose(command, expected_from_state)
-    assert not np.allclose(expected_from_state, expected_from_actuators)
+    np.testing.assert_allclose(command, expected)
 
 
-def test_mtq_lovera_falls_back_to_actuator_rw_momentum_without_rw_state(
+def test_mtq_lovera_rejects_missing_rw_momentum_state(
     lovera_satellite_with_rw: Satellite,
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = _make_controller(lovera_satellite_with_rw)
-    short_state = np.array([0.015, -0.01, 0.025, 1.0, 0.0, 0.0, 0.0])
+    short_state = State(w=[0.015, -0.01, 0.025], q=[1.0, 0.0, 0.0, 0.0])
     sens = lovera_satellite_with_rw.sensor_readings(
-        x=np.concatenate([short_state, np.zeros(3)]),
+        x=State(w=short_state.w, q=short_state.q, h=np.zeros(3)),
         os=base_orbital_state,
     )
 
-    command = controller.find_u(
-        x_hat=short_state,
-        sens=sens,
-        est_sat=lovera_satellite_with_rw,
-        os_hat=base_orbital_state,
-        goal=No_Goal(),
-    )
-    expected = _expected_command(
-        controller,
-        lovera_satellite_with_rw,
-        short_state,
-        sens,
-        base_orbital_state,
-        No_Goal(),
+    with pytest.raises(ValueError, match="exactly 3 reaction-wheel momentum states, got 0"):
+        controller.find_u(
+            x_hat=short_state,
+            sens=sens,
+            est_sat=lovera_satellite_with_rw,
+            os_hat=base_orbital_state,
+            goal=No_Goal(),
+        )
+
+
+def test_mtq_lovera_rejects_extra_rw_momentum_state(
+    lovera_satellite_with_rw: Satellite,
+    base_orbital_state: Orbital_State,
+) -> None:
+    controller = _make_controller(lovera_satellite_with_rw)
+    state = State(w=[0.015, -0.01, 0.025], q=[1.0, 0.0, 0.0, 0.0], h=[0.0, 0.0, 0.0, 0.0])
+    sens = lovera_satellite_with_rw.sensor_readings(
+        x=State(w=state.w, q=state.q, h=np.zeros(3)),
+        os=base_orbital_state,
     )
 
-    np.testing.assert_allclose(command, expected)
+    with pytest.raises(ValueError, match="exactly 3 reaction-wheel momentum states, got 4"):
+        controller.find_u(
+            x_hat=state,
+            sens=sens,
+            est_sat=lovera_satellite_with_rw,
+            os_hat=base_orbital_state,
+            goal=No_Goal(),
+        )
 
 
 def test_mtq_lovera_saturates_with_uniform_scaling(
@@ -613,7 +518,7 @@ def test_mtq_lovera_saturates_with_uniform_scaling(
 ) -> None:
     satellite = _make_satellite(include_rw=False, mtq_max_torque=0.01)
     controller = _make_controller(satellite)
-    state = np.array([4.0, -3.0, 2.0, 1.0, 0.0, 0.0, 0.0])
+    state = State(w=[4.0, -3.0, 2.0], q=[1.0, 0.0, 0.0, 0.0])
     goal = StaticGoal(q_err=np.array([1.0, -0.5, 0.75]))
     sens = np.array([1.5e-5, -1.0e-5, 2.0e-5])
 
@@ -624,14 +529,7 @@ def test_mtq_lovera_saturates_with_uniform_scaling(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = _expected_command(
-        controller,
-        satellite,
-        state,
-        sens,
-        base_orbital_state,
-        goal,
-    )
+    expected = np.array([-0.01, 0.00254535817220789, 0.00877267908610395])
 
     np.testing.assert_allclose(command, expected)
     assert np.isclose(np.max(np.abs(command[:3])), 0.01)

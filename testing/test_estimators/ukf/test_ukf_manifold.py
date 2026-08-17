@@ -6,7 +6,7 @@ from testing.test_estimators.ukf.helpers import make_baseline_sensors, make_sate
 def test_add_to_state_applies_vector_update_in_error_state_mode():
     _, est_sat = make_satellites(sensors=make_baseline_sensors())
     ukf = make_ukf(est_sat, quat_as_vec=False)
-    state = ukf.x_hat.val.copy()
+    state = ukf.x_hat.as_estimator_array()
     add = np.array([1.0e-3, -2.0e-3, 3.0e-3, 5.0e-2, -4.0e-2, 3.0e-2])
 
     out = ukf.add_to_state(state, add)
@@ -19,7 +19,7 @@ def test_add_to_state_applies_vector_update_in_error_state_mode():
 def test_add_to_state_applies_batch_update_in_error_state_mode():
     _, est_sat = make_satellites(sensors=make_baseline_sensors())
     ukf = make_ukf(est_sat, quat_as_vec=False)
-    state = ukf.x_hat.val.copy()
+    state = ukf.x_hat.as_estimator_array()
     adds = np.array(
         [
             [1.0e-3, 0.0, 0.0, 5.0e-2, 0.0, 0.0],
@@ -36,7 +36,7 @@ def test_add_to_state_applies_batch_update_in_error_state_mode():
 def test_add_to_state_renormalizes_full_quaternion_mode():
     _, est_sat = make_satellites(sensors=make_baseline_sensors())
     ukf = make_ukf(est_sat, quat_as_vec=True)
-    state = ukf.x_hat.val.copy()
+    state = ukf.x_hat.as_estimator_array()
     add = np.zeros(state.size)
     add[3:7] = np.array([0.1, -0.05, 0.07, 0.02])
 
@@ -63,10 +63,10 @@ def test_reunite_states_reconstructs_reduced_state():
 def test_reunite_states_is_identity_in_full_quaternion_mode():
     _, est_sat = make_satellites(sensors=make_baseline_sensors())
     ukf = make_ukf(est_sat, quat_as_vec=True)
-    dynstate = ukf.x_hat.val[:7].copy()
+    dynstate = ukf.x_hat.as_array()
     rest = np.array([1.0e-3, -2.0e-3])
 
-    out = ukf.reunite_states(dynstate, rest, ukf.x_hat.val[3:7])
+    out = ukf.reunite_states(dynstate, rest, ukf.x_hat.q)
 
     assert np.allclose(out, np.concatenate([dynstate, rest]))
 

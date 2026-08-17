@@ -3,14 +3,14 @@ __all__ = ["UAKF"]
 import numpy as np
 import copy
 import scipy
-from typing import List
+from typing import List, Optional, Sequence
 import time
 
 from ADCS.estimators.attitude_estimators.attitude_estimator import Attitude_Estimator
-from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
+from ADCS.state import EstimatorState, State
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.errors import ErrorMode
-from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.orbital_state import Orbital_State, Ephemeris
 from ADCS.orbits.universal_constants import CG5
 from ADCS.helpers.math_helpers import (
     quat_to_vec3,
@@ -171,6 +171,7 @@ class UAKF(Attitude_Estimator):
         cross_term: bool = False,
         quat_as_vec: bool = False,
         ut_alpha: float = 1e-3,
+        ephem: Optional[Ephemeris] = None,
     ) -> None:
         r"""
         Initialize the UKF estimator and store UKF scaling parameters.
@@ -193,7 +194,7 @@ class UAKF(Attitude_Estimator):
         :param J2000: Initial time in seconds since J2000.
         :type J2000: float
         :param x_hat: Initial full augmented state estimate.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.EstimatorState
         :param P_hat: Initial covariance matrix (reduced error-state unless ``quat_as_vec=True``).
         :type P_hat: numpy.ndarray
         :param Q_hat: Initial process-noise covariance matrix (same convention as ``P_hat``).
@@ -217,6 +218,7 @@ class UAKF(Attitude_Estimator):
             dt=dt,
             cross_term=cross_term,
             quat_as_vec=quat_as_vec,
+            ephem=ephem,
         )
         # UKF tuning parameters.
         #
@@ -327,7 +329,7 @@ class UAKF(Attitude_Estimator):
         return np.array(mask, dtype=bool)
 
 
-    def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: List[bool]):
+    def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: Sequence[bool]):
         r"""
         Build augmented sigma points and Unscented Transform weights.
 
@@ -462,7 +464,19 @@ class UAKF(Attitude_Estimator):
 
             # Cholesky of scaled covariance
             chol_mat = self.scale * cov_j
-            mat = np.linalg.cholesky(chol_mat)  # (dim, dim)
+            if j == 0:
+                # State covariance must be positive definite; let a failure
+                # propagate rather than masking a diverged filter.
+                mat = np.linalg.cholesky(chol_mat)  # (dim, dim)
+            else:
+                # Noise blocks may be PSD-singular (e.g. rank-deficient
+                # actuator noise); mirror the SRUAKF eigh fallback instead of
+                # aborting the update.
+                try:
+                    mat = np.linalg.cholesky(chol_mat)
+                except np.linalg.LinAlgError:
+                    eigvals, eigvecs = np.linalg.eigh(chol_mat)
+                    mat = eigvecs @ np.diag(np.sqrt(np.clip(eigvals, 0.0, None)))
             # 2*dim sigma offsets: +columns and -columns
             offs = np.hstack((mat, -mat)).T  # (2*dim, dim)
             offsets[j] = offs
@@ -740,29 +754,27 @@ class UAKF(Attitude_Estimator):
         return post_state, full_state
 
 
-    def sat_match(self, est_sat: EstimatedSatellite, state: np.ndarray) -> None:
+    def sat_match(self, est_sat: EstimatedSatellite, state: EstimatorState) -> None:
         r"""
         Synchronize an :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
-        instance with a raw full state vector.
+        instance with an estimator state.
 
         Sigma-point propagation and measurement prediction require the satellite model
         to reflect the sigma point's specific biases/parameters and attitude. This method
-        constructs an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
-        compatible container, inserts the provided raw state entries at indices defined by
-        :attr:`use`, and then updates the satellite model via
+        applies the provided :class:`~ADCS.state.EstimatorState` to the satellite model via
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
 
         :param est_sat: Satellite model instance to be updated for sigma-point propagation.
         :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
-        :param state: Full augmented state vector to apply.
-        :type state: numpy.ndarray
+        :param state: Estimator state to apply.
+        :type state: :class:`~ADCS.state.EstimatorState`
         :return: ``None``.
         :rtype: None
 
         """
-        full_statej = self.x_hat.copy()
-        full_statej.val[self.use] = state
-        est_sat.match_estimate(full_statej, self.dt)
+        if not isinstance(state, EstimatorState):
+            raise TypeError(f"state must be an EstimatorState, got {type(state).__name__}")
+        est_sat.match_estimate(state, self.dt)
 
 
     def update_core(
@@ -770,7 +782,7 @@ class UAKF(Attitude_Estimator):
         u: np.ndarray,
         sensors: np.ndarray,   # was effectively used as a NumPy array already
         os: Orbital_State,
-    ) -> EstimatedArray:
+    ) -> EstimatorState:
         r"""
         Perform one UKF predict/update cycle in reduced error-state coordinates.
 
@@ -882,19 +894,19 @@ class UAKF(Attitude_Estimator):
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :raises numpy.linalg.LinAlgError: If the measurement covariance matrix is singular during gain computation.
         :return: Updated estimate container with updated full state and reduced covariance.
-        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+        :rtype: :class:`~ADCS.state.EstimatorState`
 
         """
         u = np.asarray(u, dtype=float).copy()
         os = os.copy()
-        state0 = self.x_hat.val.copy()
+        state0 = self.x_hat.as_estimator_array()
 
         # Middle orbital states (CG5 coefficients)
         mid_os = [self.prev_os.average(os, CG5.c[j]) for j in range(5)]
 
         # One-step propagation of the nominal dynamics
         dyn_state0 = self.est_sat.noiseless_rk4(
-            x=state0[: self.est_sat.state_len],
+            x=self.x_hat,
             u=u,
             dt=self.dt,
             orbital_state0=self.prev_os,
@@ -946,12 +958,13 @@ class UAKF(Attitude_Estimator):
         # Propagate each sigma point (this part is hard to vectorize because
         # it calls user dynamics; kept as a tight Python loop).
         for j in range(num_sigma):
-            full_pre_statej, sens_noise_j, control_noise_j, int_noise_extra_j = pts[j]
+            full_pre_array_j, sens_noise_j, control_noise_j, int_noise_extra_j = pts[j]
+            full_pre_statej = self._from_augmented_array(full_pre_array_j)
 
             self.sat_match(satj, full_pre_statej)
 
             post_dyn_state_j = satj.noiseless_rk4(
-                x=full_pre_statej[:state_len],
+                x=full_pre_statej,
                 u=u + control_noise_j,
                 dt=self.dt,
                 orbital_state0=self.prev_os,
@@ -963,34 +976,38 @@ class UAKF(Attitude_Estimator):
             if j == 0:
                 # j=0 has zero integration noise, so this reference quaternion
                 # is clean (same as original implementation).
-                post_quat = post_dyn_state_j[3:7].copy()
+                post_quat = post_dyn_state_j.q.copy()
 
             post_statej, post_full_statej = self.new_post_state(
-                full_pre_statej[state_len:],
-                post_dyn_state_j,
+                full_pre_array_j[state_len:],
+                post_dyn_state_j.as_array(),
                 int_noise_extra_j,
                 post_quat,
             )
             post_pts[j, :] = post_statej.copy()
 
-            self.sat_match(satj, post_full_statej)
+            post_full_state_obj = self._from_augmented_array(post_full_statej)
+            self.sat_match(satj, post_full_state_obj)
             dmode = ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
-            sensj = satj.sensor_readings(x=post_full_statej[:state_len],os=os, dmode=dmode)
+            sensj = satj.sensor_readings(x=post_full_state_obj,os=os, dmode=dmode)
             post_sens[j, :] = sensj[which_outputs] + sens_noise_j
 
-        # Predicted reduced error state
+        # Predicted state in the covariance coordinate convention.
         state1 = np.dot(wts_m, post_pts)
-        dquat1 = vec3_to_quat(state1[3:6], self.vec_mode)
-        quat1 = quat_mult(post_quat, dquat1)
-
-        pred_dyn_state = np.concatenate(
-            (
-                state1[0:3],
-                quat1,
-                state1[6 : state_len - 1],
-                state1[state_len - 1 :],
+        if not self.quat_as_vec:
+            dquat1 = vec3_to_quat(state1[3:6], self.vec_mode)
+            quat1 = quat_mult(post_quat, dquat1)
+            pred_dyn_state = np.concatenate(
+                (
+                    state1[0:3],
+                    quat1,
+                    state1[6 : state_len - 1],
+                    state1[state_len - 1 :],
+                )
             )
-        )
+        else:
+            state1[3:7] = normalize(state1[3:7])
+            pred_dyn_state = state1.copy()
 
         # Predicted measurement
         sens1 = wts_m @ post_sens
@@ -1046,6 +1063,11 @@ class UAKF(Attitude_Estimator):
             cov2 = norm_jac.T @ cov2 @ norm_jac
 
         # Update satellite estimate for the new full state
-        self.sat_match(satj, state2)
+        result = self._from_augmented_array(
+            state2,
+            cov=cov2,
+            int_cov=self.x_hat.int_cov,
+        )
+        self.sat_match(satj, result)
 
-        return EstimatedArray(val=state2, cov=cov2)
+        return result

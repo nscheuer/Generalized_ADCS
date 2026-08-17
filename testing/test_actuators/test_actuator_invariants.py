@@ -7,6 +7,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
 from ADCS.satellite_hardware.errors import Bias, ErrorMode, Noise
+from ADCS.state import State
 
 
 def make_orbital_state(j2000: float = 0.22) -> Orbital_State:
@@ -19,8 +20,8 @@ def make_orbital_state(j2000: float = 0.22) -> Orbital_State:
     )
 
 
-def make_state() -> np.ndarray:
-    return np.hstack((np.zeros(3), np.array([1.0, 0.0, 0.0, 0.0])))
+def make_state() -> State:
+    return State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
 
 
 def make_biased_rw(axis: np.ndarray) -> RW:
@@ -168,7 +169,7 @@ def test_rw_body_and_storage_torques_cancel_with_noise_and_bias():
     np.random.seed(98765)
     rw = make_biased_rw(random_n_unit_vec(3))
     orbital_state = make_orbital_state()
-    state = np.hstack((0.01 * np.array([1.0, 0.0, 0.0]), np.array([1.0, 0.0, 0.0, 0.0])))
+    state = State(w=0.01 * np.array([1.0, 0.0, 0.0]), q=[1.0, 0.0, 0.0, 0.0])
 
     residuals = []
     for _ in range(200):

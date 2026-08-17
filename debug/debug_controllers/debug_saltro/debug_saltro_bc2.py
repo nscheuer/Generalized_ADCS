@@ -20,6 +20,7 @@ from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.controller.saltro.SALTRO_planner_settings import PlannerSettings
+from ADCS.state import State
 
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.actuators import MTQ, RW
@@ -138,9 +139,9 @@ def _configure_like_bc2_debug(planner_settings: PlannerSettings, dt: float) -> N
     cost.magic_control_weight = 0.0
     cost.rw_AM_weight = 0.0
     cost.rw_stic_weight = 0.0
-    cost.RWh_max_mult = 0.0
     cost.RWh_stiction_mult = 0.0
-    cost.RWh_ok_mult = 0.0
+    cost.RWh_knee_frac = 0.0
+    cost.RWh_desat_mult = 0.0
     cost.angle_N = 1e2
     cost.ang_vel_N = 1e1
     cost.ang_vel_mag_N = 0.0
@@ -236,7 +237,7 @@ def _build_orbit(os0: Orbital_State, t_start: float, t_end: float, dt: float) ->
     end_time = t_end + 1 * TimeConstants.sec2cent
     orb_os0 = os0.copy()
     orb_os0.J2000 = start_time
-    return Orbit(os0=orb_os0, end_time=end_time, dt=max(1.0, float(dt)), use_J2=True, fast=False)
+    return Orbit(os0=orb_os0, end_time=end_time, dt=max(1.0, float(dt)), zonal_J=2, fast=False)
 
 
 def _goal_hist_from_knots(jtime_req: np.ndarray, vector_goal: np.ndarray, jtime: np.ndarray) -> np.ndarray:
@@ -286,7 +287,7 @@ def debug_saltro(
     for k in tqdm(range(n_out), desc="Simulating SALTRO open-loop (bc2)"):
         os_k = orb.get_os(J2000=float(jtime[k]))
         os_hist.append(os_k)
-        sensor_hist[k, :] = real_sat.sensor_readings(x=state_hist[k, :], os=os_k)
+        sensor_hist[k, :] = real_sat.sensor_readings(x=State.from_array(state_hist[k, :]), os=os_k)
 
     if verbose:
         print("SALTRO trajOpt succeeded (open-loop, bc2)")

@@ -6,7 +6,7 @@ __all__ = [
 
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Sequence
 import matplotlib.cm as cm
 
 def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
@@ -51,8 +51,8 @@ def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
     return R
 
 def plot_h_tracking_mc_compare(
-    full_results_A: List[Dict[str, Any]],
-    full_results_B: List[Dict[str, Any]],
+    full_results_A: Sequence[Dict[str, Any]],
+    full_results_B: Sequence[Dict[str, Any]],
     title: str = "Monte Carlo Stored Angular Momentum (Comparison)",
     label_A: str = "Case A",
     label_B: str = "Case B",
@@ -127,8 +127,8 @@ def plot_h_tracking_mc_compare(
     plt.figure(figsize=(10, 6))
 
     # Color maps
-    cmap_A = cm.get_cmap("tab10")
-    cmap_B = cm.get_cmap("Dark2")
+    cmap_A = plt.get_cmap("tab10")
+    cmap_B = plt.get_cmap("Dark2")
 
     def _plot_set(results, cmap, alpha, label_prefix):
         colors = None
@@ -181,8 +181,8 @@ def plot_h_tracking_mc_compare(
 
 
 def plot_target_tracking_mc_compare(
-    full_results_A: List[Dict[str, Any]],
-    full_results_B: List[Dict[str, Any]],
+    full_results_A: Sequence[Dict[str, Any]],
+    full_results_B: Sequence[Dict[str, Any]],
     body_boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
     title: str = "Monte Carlo Target Tracking Error (Comparison)",
     label_A: str = "Case A",
@@ -321,8 +321,8 @@ def plot_target_tracking_mc_compare(
 
 
 def plot_convergence_histogram_mc_compare(
-    full_results_A: List[Dict[str, Any]],
-    full_results_B: List[Dict[str, Any]],
+    full_results_A: Sequence[Dict[str, Any]],
+    full_results_B: Sequence[Dict[str, Any]],
     body_boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
     title: str = "Final Tracking Error Distribution (Comparison)",
     bin_width_deg: float = 5.0,
