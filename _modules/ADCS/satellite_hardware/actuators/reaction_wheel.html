@@ -551,6 +551,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">Noise</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ErrorMode</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
 <div class="viewcode-block" id="RW">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW">[docs]</a>
@@ -628,11 +629,15 @@
         <span class="n">axis</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">max_torque</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">J</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">h</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-        <span class="n">h_max</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-        <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">h_meas_noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="c1"># Scalar for a single wheel: every call site in ADCS/, testing/ and</span>
+        <span class="c1"># papers/ passes a number (h=5.0, h=0.0, h=h0[i]). The previous</span>
+        <span class="c1"># np.ndarray annotation made the README's own example fail type</span>
+        <span class="c1"># checking once py.typed was shipped.</span>
+        <span class="n">h</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">h_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">bias</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">noise</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">h_meas_noise</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
@@ -705,7 +710,7 @@
 
 <div class="viewcode-block" id="RW.torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.torque">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ErrorMode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the reaction-wheel torque vector applied to the spacecraft body.</span>
 
@@ -745,7 +750,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span> <span class="o">*</span> <span class="n">u_eff</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_effective_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_effective_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ErrorMode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the effective scalar motor torque :math:`u_{\mathrm{eff}} = u + b(t) + n(t)`.</span>
 
@@ -824,7 +829,7 @@
 
 <div class="viewcode-block" id="RW.storage_torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.storage_torque">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">storage_torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">storage_torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ErrorMode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the internal torque acting on the wheel (equal and opposite to the body torque).</span>
 

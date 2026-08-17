@@ -545,7 +545,7 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"build_cpp_satellite"</span><span class="p">,</span> <span class="s2">"get_cpp_to_python_control_permutation"</span><span class="p">,</span> <span class="s2">"reorder_controls_cpp_to_python"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -557,7 +557,7 @@
 
 <div class="viewcode-block" id="get_cpp_to_python_control_permutation">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.get_cpp_to_python_control_permutation">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">get_cpp_to_python_control_permutation</span><span class="p">(</span><span class="n">actuators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">]]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_cpp_to_python_control_permutation</span><span class="p">(</span><span class="n">actuators</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the permutation between C++ planner control ordering and Python actuator ordering.</span>
 
@@ -638,7 +638,7 @@
 
 <div class="viewcode-block" id="reorder_controls_cpp_to_python">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.reorder_controls_cpp_to_python">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">reorder_controls_cpp_to_python</span><span class="p">(</span><span class="n">Uset</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">actuators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">reorder_controls_cpp_to_python</span><span class="p">(</span><span class="n">Uset</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">actuators</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Reorder a control matrix from C++ planner ordering to Python actuator ordering.</span>
 
@@ -701,7 +701,7 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">reorder_gains_cpp_to_python</span><span class="p">(</span><span class="n">Kset</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">actuators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">reorder_gains_cpp_to_python</span><span class="p">(</span><span class="n">Kset</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">actuators</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Reorder a feedback gain tensor from C++ planner ordering to Python actuator ordering.</span>
 

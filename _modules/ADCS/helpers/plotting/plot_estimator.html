@@ -552,7 +552,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.animation</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuncAnimation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.widgets</span><span class="w"> </span><span class="kn">import</span> <span class="n">Button</span><span class="p">,</span> <span class="n">RadioButtons</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">norm</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quat_to_euler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span>
 
@@ -561,8 +561,8 @@
 <a class="viewcode-back" href="../../../../ADCS.helpers.plotting.plot_estimator.html#ADCS.helpers.plotting.plot_estimator.plot_state_comparison">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">plot_state_comparison</span><span class="p">(</span>
     <span class="n">time</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">state_hist</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">State</span><span class="p">],</span>
-    <span class="n">est_state_hist</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">State</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">state_hist</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">State</span><span class="p">],</span>
+    <span class="n">est_state_hist</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">State</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Plot angular velocity and Euler angle time histories, with optional estimation overlay.</span>
@@ -693,8 +693,8 @@
 <a class="viewcode-back" href="../../../../ADCS.helpers.plotting.plot_estimator.html#ADCS.helpers.plotting.plot_estimator.plot_error_and_sun">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">plot_error_and_sun</span><span class="p">(</span>
     <span class="n">time</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">state_hist</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">State</span><span class="p">],</span>
-    <span class="n">est_state_hist</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">State</span><span class="p">],</span>
+    <span class="n">state_hist</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">State</span><span class="p">],</span>
+    <span class="n">est_state_hist</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">State</span><span class="p">],</span>
     <span class="n">os_hist</span><span class="p">:</span> <span class="n">List</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>

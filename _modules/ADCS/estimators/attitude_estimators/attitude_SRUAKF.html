@@ -545,7 +545,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">scipy.linalg</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 
 <span class="c1"># Rank-1 Cholesky update/downdate. Formerly the external `choldate` package,</span>
@@ -817,7 +817,7 @@
 
 <div class="viewcode-block" id="SRUAKF.make_pts_and_wts">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_SRUAKF.html#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.make_pts_and_wts">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">make_pts_and_wts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pt0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">which_sensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_pts_and_wts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pt0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">which_sensors</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">bool</span><span class="p">]):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Generate augmented sigma points using the stored square root covariance.</span>
 

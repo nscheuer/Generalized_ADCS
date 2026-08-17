@@ -722,12 +722,12 @@
             <span class="bp">self</span><span class="p">,</span> 
             <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> 
             <span class="n">dt_control</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-            <span class="n">pass1_config</span><span class="p">:</span> <span class="n">SolverPassConfig</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">pass2_config</span><span class="p">:</span> <span class="n">SolverPassConfig</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">cost_main</span><span class="p">:</span> <span class="n">CostWeights</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">cost_second</span><span class="p">:</span> <span class="n">CostWeights</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">cost_tvlqr</span><span class="p">:</span> <span class="n">CostWeights</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">init_traj</span><span class="p">:</span> <span class="n">InitTrajConfig</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">pass1_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SolverPassConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">pass2_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SolverPassConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">cost_main</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CostWeights</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">cost_second</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CostWeights</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">cost_tvlqr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CostWeights</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">init_traj</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">InitTrajConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">dt_tvlqr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
             <span class="n">tvlqr_len</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">60</span><span class="p">,</span>
             <span class="n">tvlqr_overlap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>

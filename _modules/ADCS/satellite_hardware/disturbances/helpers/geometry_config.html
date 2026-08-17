@@ -543,7 +543,7 @@
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"GeometryFace"</span><span class="p">,</span> <span class="s2">"GeometryConfig"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <div class="viewcode-block" id="GeometryFace">
 <a class="viewcode-back" href="../../../../../ADCS.satellite_hardware.disturbances.helpers.geometry_config.html#ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryFace">[docs]</a>
@@ -648,7 +648,7 @@
 <span class="sd">        Each entry must include the keys listed above.</span>
 <span class="sd">    """</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geometry_faces</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GeometryFace</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geometry_faces</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">GeometryFace</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize a :class:`GeometryConfig` instance.</span>
 

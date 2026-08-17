@@ -546,7 +546,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">ppigrf</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">skyfield</span><span class="w"> </span><span class="kn">import</span> <span class="n">api</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">positionlib</span><span class="p">,</span> <span class="n">framelib</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
@@ -612,9 +612,9 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">os0</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">]],</span>
-        <span class="n">end_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">os0</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">]],</span>
+        <span class="n">end_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
@@ -950,7 +950,7 @@
 
 <div class="viewcode-block" id="Orbit.get_range">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.get_range">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">t_1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">t_1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Extract a sub-orbit over a specified time interval.</span>
 
@@ -1010,7 +1010,7 @@
 
 <div class="viewcode-block" id="Orbit.new_orbit_from_times">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.new_orbit_from_times">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">new_orbit_from_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">new_orbit_from_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time_list</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Construct a new orbit sampled at specific epochs.</span>
 
