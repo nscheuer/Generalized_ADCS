@@ -38,6 +38,7 @@ from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite import Satellite
 from ADCS.satellite_hardware.sensors import Gyro, MTM, SunPair
+from ADCS.state import State
 
 
 BASELINE_PATH = REPO_ROOT / "testing" / "benchmarks" / "baselines" / "satellite.json"
@@ -111,13 +112,7 @@ def _make_reference_case() -> dict[str, object]:
         actuators=_make_mtqs() + _make_rws(),
         sensors=_make_sensors(),
     )
-    x = np.concatenate(
-        [
-            np.array([1.0e-2, -2.0e-2, 1.5e-2]),
-            np.array([1.0, 0.0, 0.0, 0.0]),
-            np.array([0.0, 0.02, 0.04]),
-        ]
-    )
+    x = State(w=[1.0e-2, -2.0e-2, 1.5e-2], q=[1.0, 0.0, 0.0, 0.0], h=[0.0, 0.02, 0.04])
     u = np.array([0.1, -0.2, 0.05, 0.005, -0.01, 0.002], dtype=float)
     return {"os0": os0, "sat": sat, "x": x, "u": u}
 

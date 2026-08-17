@@ -8,6 +8,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.sensors import MTM
+from ADCS.state import State
 
 UNIT_VECTORS = MathConstants.unitvecs
 
@@ -29,7 +30,7 @@ def mc_result():
         S=np.array([1e5 + 1.0, 0.0, 0.0]),
         rho=5e-12,
     )
-    state = np.concatenate([np.zeros(3), [1.0, 0.0, 0.0, 0.0]])
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
     return simulate_mc(x=state, satellite=satellite, os0=orbital_state, dt=1.0, tf=8.0, num_runs=2, max_workers=1, base_seed=0), satellite
 
 
@@ -41,7 +42,7 @@ def test_simulate_mc_returns_expected_number_of_runs(mc_result):
 def test_simulate_mc_each_run_has_finite_state_history(mc_result):
     result, satellite = mc_result
     for run in result.runs:
-        state_history = np.asarray(run.state_hist, dtype=float)
+        state_history = State.stack(run.state_hist)
         assert state_history.ndim == 2
         assert state_history.shape[0] >= 5
         assert state_history.shape[1] == satellite.state_len
@@ -51,7 +52,7 @@ def test_simulate_mc_each_run_has_finite_state_history(mc_result):
 def test_simulate_mc_each_run_keeps_quaternions_normalized(mc_result):
     result, _ = mc_result
     for run in result.runs:
-        quaternion_norms = np.linalg.norm(np.asarray(run.state_hist, dtype=float)[:, 3:7], axis=1)
+        quaternion_norms = np.linalg.norm(State.stack(run.state_hist)[:, 3:7], axis=1)
         np.testing.assert_allclose(quaternion_norms, 1.0, atol=1e-3)
 
 

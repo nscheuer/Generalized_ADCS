@@ -59,6 +59,7 @@ class ConstraintConfig:
     est_sat: InitVar[EstimatedSatellite]
 
     control_limit_scale: float = 0.75
+    rw_momentum_limit_scale: float = 1.0
     u_max: np.ndarray = field(init=False)
     wmax: float = 20*np.pi/180.0
     sun_limit_angle: float = 20*np.pi/180.0
@@ -82,6 +83,7 @@ class ConstraintConfig:
         saltro_py = _get_saltro_py()
         cpp_constraints = saltro_py.ConstraintConfig()
         cpp_constraints.control_limit_scale = self.control_limit_scale
+        cpp_constraints.rw_momentum_limit_scale = self.rw_momentum_limit_scale
         cpp_constraints.u_max = self.u_max
         cpp_constraints.wmax = self.wmax
         cpp_constraints.sun_limit_angle = self.sun_limit_angle

@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 
 from ..subplot import Subplot
+from ADCS.state import State
 
 
 def _normalize_sources_q(sources: list[str] | None) -> list[str]:
@@ -22,13 +23,13 @@ def _get_q_series(sim, source: str) -> np.ndarray | None:
     if source == "real":
         if sim.state_hist is None or len(sim.state_hist) == 0:
             return None
-        X = np.vstack(sim.state_hist)
+        X = State.stack(sim.state_hist)
         return _canonicalize_quaternion(X[:, 3:7])
 
     if source == "estimated":
         if getattr(sim, "est_state_hist", None) is None or len(sim.est_state_hist) == 0:
             return None
-        Xh = np.vstack(sim.est_state_hist)
+        Xh = State.stack(sim.est_state_hist)
         return _canonicalize_quaternion(Xh[:, 3:7])
 
     raise ValueError(f"Unknown source: {source}")
@@ -449,4 +450,3 @@ class QuaternionPlotCombined(Subplot):
 
         ax.legend(handles, labs)
         ax.grid(True, which="both")
-

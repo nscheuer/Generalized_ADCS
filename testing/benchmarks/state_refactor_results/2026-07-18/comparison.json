@@ -1,0 +1,1027 @@
+{
+  "acceptance_passed": true,
+  "affected_regressions": [],
+  "categories": {
+    "actuators": {
+      "after_calibration_seconds": 0.006938055625028028,
+      "before_calibration_seconds": 0.007067024125007038,
+      "benchmarks": {
+        "mtq_hessians": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.007102344460971511,
+          "after_seconds": 4.927646093833005e-05,
+          "before_normalized_seconds": 0.006759950242158839,
+          "before_seconds": 4.777273144518368e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0506504051874983,
+          "state_refactor_affected": true
+        },
+        "mtq_jacobians": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.005741866006161061,
+          "after_seconds": 3.983738574220297e-05,
+          "before_normalized_seconds": 0.005467031645541013,
+          "before_seconds": 3.863564453121526e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0502712218328216,
+          "state_refactor_affected": true
+        },
+        "mtq_storage_torque": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 3.273755962261946e-05,
+          "after_seconds": 2.2713500968940536e-07,
+          "before_normalized_seconds": 3.0450522916803657e-05,
+          "before_seconds": 2.151945800721311e-07,
+          "exceeds_threshold": false,
+          "ratio": 1.0751066479897373,
+          "state_refactor_affected": true
+        },
+        "mtq_torque": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.004885405461652374,
+          "after_seconds": 3.38952148437599e-05,
+          "before_normalized_seconds": 0.00469377753289974,
+          "before_seconds": 3.317103906241847e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0408259504012431,
+          "state_refactor_affected": true
+        },
+        "rw_dtorq__du": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 3.0492525474921455e-05,
+          "after_seconds": 2.1155883789258922e-07,
+          "before_normalized_seconds": 2.9133076615849892e-05,
+          "before_seconds": 2.0588415527988957e-07,
+          "exceeds_threshold": false,
+          "ratio": 1.0466634155052457,
+          "state_refactor_affected": true
+        },
+        "rw_effective_command": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0004875284509833156,
+          "after_seconds": 3.382499511705994e-06,
+          "before_normalized_seconds": 0.0004728394600036779,
+          "before_seconds": 3.341567871101292e-06,
+          "exceeds_threshold": false,
+          "ratio": 1.0310654930946825,
+          "state_refactor_affected": true
+        },
+        "rw_measure_momentum": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 1.6444294598154343e-05,
+          "after_seconds": 1.1409143063634275e-07,
+          "before_normalized_seconds": 1.6025910082496922e-05,
+          "before_seconds": 1.1325549317819927e-07,
+          "exceeds_threshold": false,
+          "ratio": 1.0261067554668468,
+          "state_refactor_affected": true
+        },
+        "rw_measure_momentum_noiseless": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 5.299934486292554e-06,
+          "after_seconds": 3.6771240274902084e-08,
+          "before_normalized_seconds": 5.113600690647243e-06,
+          "before_seconds": 3.613793944645671e-08,
+          "exceeds_threshold": false,
+          "ratio": 1.0364388631255692,
+          "state_refactor_affected": true
+        },
+        "rw_storage_torque": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0005099298276009138,
+          "after_seconds": 3.5379215087560922e-06,
+          "before_normalized_seconds": 0.0005026977185094266,
+          "before_seconds": 3.552576904292115e-06,
+          "exceeds_threshold": false,
+          "ratio": 1.0143865962092118,
+          "state_refactor_affected": true
+        },
+        "rw_torque": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0005919330783725388,
+          "after_seconds": 4.10686462404275e-06,
+          "before_normalized_seconds": 0.0005837248894325767,
+          "before_seconds": 4.1251978759870855e-06,
+          "exceeds_threshold": false,
+          "ratio": 1.0140617422497455,
+          "state_refactor_affected": true
+        }
+      }
+    },
+    "controllers": {
+      "after_calibration_seconds": 0.006670533124975009,
+      "before_calibration_seconds": 0.007291089999995393,
+      "benchmarks": {
+        "bdot_find_u_steady_state": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0009731630860639067,
+          "after_seconds": 6.4915166015921955e-06,
+          "before_normalized_seconds": 0.0009617754823513856,
+          "before_seconds": 7.012391601612933e-06,
+          "exceeds_threshold": false,
+          "ratio": 1.0118401892348932,
+          "state_refactor_affected": true
+        },
+        "mtq_lovera_find_u": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.016859061138538627,
+          "after_seconds": 0.0001124589257806008,
+          "before_normalized_seconds": 0.016589940063014605,
+          "before_seconds": 0.00012095874609396873,
+          "exceeds_threshold": false,
+          "ratio": 1.0162219438106348,
+          "state_refactor_affected": true
+        },
+        "mtq_w_rw_find_u": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.016601779299357702,
+          "after_seconds": 0.00011074271874988995,
+          "before_normalized_seconds": 0.01583636135844873,
+          "before_seconds": 0.00011546433593689898,
+          "exceeds_threshold": false,
+          "ratio": 1.0483329423712993,
+          "state_refactor_affected": true
+        },
+        "mtq_w_rw_lp_desat_find_u": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.01233908297512716,
+          "after_seconds": 8.230826171740091e-05,
+          "before_normalized_seconds": 0.012614731216523213,
+          "before_seconds": 9.197514062542211e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.9781487027614985,
+          "state_refactor_affected": true
+        },
+        "mtq_w_rw_lp_pointing_find_u": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.14044956395219188,
+          "after_seconds": 0.0009368734687313918,
+          "before_normalized_seconds": 0.13258335259198953,
+          "before_seconds": 0.0009666771562493182,
+          "exceeds_threshold": false,
+          "ratio": 1.0593303096234845,
+          "state_refactor_affected": true
+        },
+        "mtq_w_rw_qp_find_u": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0883212178603027,
+          "after_seconds": 0.0005891496093752835,
+          "before_normalized_seconds": 0.08704544262212655,
+          "before_seconds": 0.0006346561562473596,
+          "exceeds_threshold": false,
+          "ratio": 1.0146564277203394,
+          "state_refactor_affected": true
+        },
+        "mtq_w_rw_qpc_find_u": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.719220980556718,
+          "after_seconds": 0.004797587374980594,
+          "before_normalized_seconds": 0.7345622533798031,
+          "before_seconds": 0.005355759499991564,
+          "exceeds_threshold": false,
+          "ratio": 0.9791150814617847,
+          "state_refactor_affected": true
+        },
+        "mtq_w_rw_qpg_find_u": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.20227287867489083,
+          "after_seconds": 0.0013492679374849104,
+          "before_normalized_seconds": 0.20595793975899387,
+          "before_seconds": 0.0015016578749964538,
+          "exceeds_threshold": false,
+          "ratio": 0.9821077007838823,
+          "state_refactor_affected": true
+        },
+        "mtq_w_rw_qpw_find_u": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.22613578112920307,
+          "after_seconds": 0.0015084462187644476,
+          "before_normalized_seconds": 0.21684946112286638,
+          "before_seconds": 0.0015810689374973208,
+          "exceeds_threshold": false,
+          "ratio": 1.0428238094678737,
+          "state_refactor_affected": true
+        },
+        "mtq_wisniewski_find_u": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.021847074886959396,
+          "after_seconds": 0.0001457316367172723,
+          "before_normalized_seconds": 0.022825047099518107,
+          "before_seconds": 0.0001664194726567203,
+          "exceeds_threshold": false,
+          "ratio": 0.9571535511714515,
+          "state_refactor_affected": true
+        }
+      }
+    },
+    "disturbances": {
+      "after_calibration_seconds": 0.006779904749919297,
+      "before_calibration_seconds": 0.006999696874999017,
+      "benchmarks": {
+        "dipole_torque": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0025770252657471055,
+          "after_seconds": 1.747198583990084e-05,
+          "before_normalized_seconds": 0.0026553371535433007,
+          "before_seconds": 1.8586555175725827e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.9705077422308894,
+          "state_refactor_affected": true
+        },
+        "dipole_torque_qjac": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0023840894540958146,
+          "after_seconds": 1.6163899414056715e-05,
+          "before_normalized_seconds": 0.0023646796172597214,
+          "before_seconds": 1.6552040527306744e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0082082311254437,
+          "state_refactor_affected": true
+        },
+        "dipole_torque_valjac": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0026649321053796777,
+          "after_seconds": 1.806798583947611e-05,
+          "before_normalized_seconds": 0.0027997932555529287,
+          "before_seconds": 1.959770410153716e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.9518317468956766,
+          "state_refactor_affected": true
+        },
+        "dipole_update": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.00016480740972664565,
+          "after_seconds": 1.1173785400275804e-06,
+          "before_normalized_seconds": 0.0001633901320157077,
+          "before_seconds": 1.1436813964760262e-06,
+          "exceeds_threshold": false,
+          "ratio": 1.008674194049869,
+          "state_refactor_affected": true
+        },
+        "drag_torque": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0005693400650078265,
+          "after_seconds": 3.860071411065924e-06,
+          "before_normalized_seconds": 0.0005846285356745801,
+          "before_seconds": 4.09222253419661e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9738492568633981,
+          "state_refactor_affected": true
+        },
+        "drag_torque_qjac": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0074422465384496725,
+          "after_seconds": 5.0457722656105375e-05,
+          "before_normalized_seconds": 0.007253293725269956,
+          "before_seconds": 5.077085742222209e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0260506220120962,
+          "state_refactor_affected": true
+        },
+        "gg_torque": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.000431101398017916,
+          "after_seconds": 2.922826416118518e-06,
+          "before_normalized_seconds": 0.00043762380907138887,
+          "before_seconds": 3.0632340087821675e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9850958496355282,
+          "state_refactor_affected": true
+        },
+        "gg_torque_qjac": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.010597292937045658,
+          "after_seconds": 7.184863672016206e-05,
+          "before_normalized_seconds": 0.010447044470231438,
+          "before_seconds": 7.312614453125477e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0143819112900638,
+          "state_refactor_affected": true
+        },
+        "prop_torque": {
+          "acceptance_exemption": "Prop_Disturbance.torque does not read spacecraft state.",
+          "after_normalized_seconds": 1.30693229370291e-05,
+          "after_seconds": 8.860876465899281e-08,
+          "before_normalized_seconds": 1.1854848596900118e-05,
+          "before_seconds": 8.298034667730825e-08,
+          "exceeds_threshold": true,
+          "ratio": 1.1024453690995726,
+          "state_refactor_affected": false
+        },
+        "prop_update": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0001671804323163276,
+          "after_seconds": 1.133467407155031e-06,
+          "before_normalized_seconds": 0.0001639894185723801,
+          "before_seconds": 1.1478762207139948e-06,
+          "exceeds_threshold": false,
+          "ratio": 1.0194586563677528,
+          "state_refactor_affected": true
+        },
+        "srp_torque": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.000542668299282931,
+          "after_seconds": 3.67923937993897e-06,
+          "before_normalized_seconds": 0.0005820606754517502,
+          "before_seconds": 4.074248291019433e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9323225604646012,
+          "state_refactor_affected": true
+        },
+        "srp_torque_qjac": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.01260644957359652,
+          "after_seconds": 8.547052734364513e-05,
+          "before_normalized_seconds": 0.012180890757301735,
+          "before_seconds": 8.526254296858937e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0349365924687968,
+          "state_refactor_affected": true
+        }
+      }
+    },
+    "dynamics": {
+      "after_calibration_seconds": 0.006733896125069805,
+      "before_calibration_seconds": 0.006942927625004813,
+      "benchmarks": {
+        "dynamics_core_mtq": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.01633648823802791,
+          "after_seconds": 0.00011000821484330459,
+          "before_normalized_seconds": 0.016315194534889395,
+          "before_seconds": 0.00011327521484361114,
+          "exceeds_threshold": false,
+          "ratio": 1.0013051455251103,
+          "state_refactor_affected": true
+        },
+        "dynamics_core_plain": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0007482111946972271,
+          "after_seconds": 5.038376464705507e-06,
+          "before_normalized_seconds": 0.0008390958121442294,
+          "before_seconds": 5.825781494162019e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.8916874376779986,
+          "state_refactor_affected": true
+        },
+        "dynamics_core_reaction_wheels": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.005520927245552077,
+          "after_seconds": 3.717735058561544e-05,
+          "before_normalized_seconds": 0.005478642077827022,
+          "before_seconds": 3.8037815429659005e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0077181840179321,
+          "state_refactor_affected": true
+        },
+        "dynamics_for_solver_full_stack": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0756262199356708,
+          "after_seconds": 0.0005092591093784904,
+          "before_normalized_seconds": 0.07033073953100318,
+          "before_seconds": 0.00048830123437682,
+          "exceeds_threshold": false,
+          "ratio": 1.075293967331785,
+          "state_refactor_affected": true
+        },
+        "noiseless_rk4_full_stack": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.21337389671159276,
+          "after_seconds": 0.0014368376562572394,
+          "before_normalized_seconds": 0.20651287395508847,
+          "before_seconds": 0.0014338039375019207,
+          "exceeds_threshold": false,
+          "ratio": 1.0332232205436083,
+          "state_refactor_affected": true
+        }
+      }
+    },
+    "estimators": {
+      "after_calibration_seconds": 0.006778776000032849,
+      "before_calibration_seconds": 0.007094916124998463,
+      "benchmarks": {
+        "orbit_ekf_predict_only": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 2.49198372984593,
+          "after_seconds": 0.016892599500351935,
+          "before_normalized_seconds": 2.7912598473470567,
+          "before_seconds": 0.01980375450000338,
+          "exceeds_threshold": false,
+          "ratio": 0.8927809899943309,
+          "state_refactor_affected": true
+        },
+        "orbit_ekf_update_full": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 5.617151385400445,
+          "after_seconds": 0.038077410999903805,
+          "before_normalized_seconds": 5.560032889060151,
+          "before_seconds": 0.03944796700011466,
+          "exceeds_threshold": false,
+          "ratio": 1.0102730500844121,
+          "state_refactor_affected": true
+        },
+        "orbit_gps_update_full": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 5.275356790097873,
+          "after_seconds": 0.03576046200032579,
+          "before_normalized_seconds": 5.546599326446177,
+          "before_seconds": 0.03935265700010859,
+          "exceeds_threshold": false,
+          "ratio": 0.9510975067091973,
+          "state_refactor_affected": true
+        },
+        "orbit_gps_update_position_only": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 5.002648265655375,
+          "after_seconds": 0.03391183199983061,
+          "before_normalized_seconds": 5.178674610472512,
+          "before_seconds": 0.036742261999961556,
+          "exceeds_threshold": false,
+          "ratio": 0.9660093830840096,
+          "state_refactor_affected": true
+        },
+        "srukf_update_baseline": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 15.749291317406891,
+          "after_seconds": 0.10676091799996357,
+          "before_normalized_seconds": 14.39592747827333,
+          "before_seconds": 0.10213789799990991,
+          "exceeds_threshold": false,
+          "ratio": 1.0940101873377792,
+          "state_refactor_affected": true
+        },
+        "srukf_update_reaction_wheels": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 24.33474332223499,
+          "after_seconds": 0.16495977399972617,
+          "before_normalized_seconds": 22.656247539503504,
+          "before_seconds": 0.16074417599998014,
+          "exceeds_threshold": false,
+          "ratio": 1.074085339145631,
+          "state_refactor_affected": true
+        },
+        "uakf_update_baseline": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 11.71371970393276,
+          "after_seconds": 0.07940468200013129,
+          "before_normalized_seconds": 11.065317703120943,
+          "before_seconds": 0.07850750100010373,
+          "exceeds_threshold": false,
+          "ratio": 1.0585976849656054,
+          "state_refactor_affected": true
+        },
+        "uakf_update_reaction_wheels": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 18.346429650282843,
+          "after_seconds": 0.1243663369996284,
+          "before_normalized_seconds": 18.34060807872358,
+          "before_seconds": 0.130125076000013,
+          "exceeds_threshold": false,
+          "ratio": 1.0003174143155056,
+          "state_refactor_affected": true
+        }
+      }
+    },
+    "goals": {
+      "after_calibration_seconds": 0.007003575749990887,
+      "before_calibration_seconds": 0.006837646750000204,
+      "benchmarks": {
+        "coordinate_goal_error": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.010255808546182636,
+          "after_seconds": 7.1827332030594e-05,
+          "before_normalized_seconds": 0.010836961767049095,
+          "before_seconds": 7.409931640633971e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.9463730487050793,
+          "state_refactor_affected": true
+        },
+        "coordinate_goal_to_ref": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.005355152726687379,
+          "after_seconds": 3.75052177741253e-05,
+          "before_normalized_seconds": 0.00558236619151943,
+          "before_seconds": 3.817024804675384e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.9592980006977638,
+          "state_refactor_affected": true
+        },
+        "eci_goal_error": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.004776304162635908,
+          "after_seconds": 3.3451208008017375e-05,
+          "before_normalized_seconds": 0.004889821783116693,
+          "before_seconds": 3.3434874023408057e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.9767849166051956,
+          "state_refactor_affected": true
+        },
+        "eci_goal_to_ref": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.00014419055685474858,
+          "after_seconds": 1.0098494873655994e-06,
+          "before_normalized_seconds": 0.00014690019781331737,
+          "before_seconds": 1.0044516601526166e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9815545452020954,
+          "state_refactor_affected": true
+        },
+        "environment_vector_goal_group": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 4.583096570341576,
+          "after_seconds": 0.032098063999910664,
+          "before_normalized_seconds": 4.9569048006144465,
+          "before_seconds": 0.03389356399998178,
+          "exceeds_threshold": false,
+          "ratio": 0.9245883781696728,
+          "state_refactor_affected": true
+        },
+        "fixed_attitude_goal_error": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0003056271345417206,
+          "after_seconds": 2.1404827880155963e-06,
+          "before_normalized_seconds": 0.000313196099518001,
+          "before_seconds": 2.141524291982e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9758331441932744,
+          "state_refactor_affected": true
+        },
+        "fixed_attitude_goal_to_ref": {
+          "acceptance_exemption": "Fixed_Attitude_Goal.to_ref is state-independent.",
+          "after_normalized_seconds": 4.94215317619201e-05,
+          "after_seconds": 3.4612744137518803e-07,
+          "before_normalized_seconds": 3.715653085242764e-05,
+          "before_seconds": 2.540632324243841e-07,
+          "exceeds_threshold": true,
+          "ratio": 1.3300900441487562,
+          "state_refactor_affected": false
+        },
+        "goallist_get_active_goal": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 3.525861791931574e-05,
+          "after_seconds": 2.4693640143791384e-07,
+          "before_normalized_seconds": 3.495177855467009e-05,
+          "before_seconds": 2.3898791504106676e-07,
+          "exceeds_threshold": false,
+          "ratio": 1.008778934215485,
+          "state_refactor_affected": true
+        },
+        "goallist_to_ref": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0056415712894631225,
+          "after_seconds": 3.9511171874728745e-05,
+          "before_normalized_seconds": 0.00595194678203383,
+          "before_seconds": 4.0697309570347784e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.9478531136219855,
+          "state_refactor_affected": true
+        },
+        "no_goal_error": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 3.6437790247602657e-05,
+          "after_seconds": 2.551948241613644e-07,
+          "before_normalized_seconds": 3.681218838042833e-05,
+          "before_seconds": 2.5170874023983103e-07,
+          "exceeds_threshold": false,
+          "ratio": 0.9898295062234136,
+          "state_refactor_affected": true
+        },
+        "no_goal_to_ref": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.00011462972942017413,
+          "after_seconds": 8.028179931951485e-07,
+          "before_normalized_seconds": 0.00012134096361821228,
+          "before_seconds": 8.296866455259622e-07,
+          "exceeds_threshold": false,
+          "ratio": 0.944691108444182,
+          "state_refactor_affected": true
+        },
+        "orbital_vector_goal_group": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.01878581061348931,
+          "after_seconds": 0.00013156784765655516,
+          "before_normalized_seconds": 0.01893724209642422,
+          "before_seconds": 0.0001294861718745821,
+          "exceeds_threshold": false,
+          "ratio": 0.9920035091612679,
+          "state_refactor_affected": true
+        }
+      }
+    },
+    "orbit": {
+      "after_calibration_seconds": 0.0069293343750587155,
+      "before_calibration_seconds": 0.007331222625026612,
+      "benchmarks": {
+        "construct_from_existing_states": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.004239918708357856,
+          "after_seconds": 2.937981445327864e-05,
+          "before_normalized_seconds": 0.004067368927999672,
+          "before_seconds": 2.981878710928143e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0424229479579183,
+          "state_refactor_affected": true
+        },
+        "construct_propagated_orbit_small": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 2.5387016339396324,
+          "after_seconds": 0.017591512500075623,
+          "before_normalized_seconds": 2.9541032386775985,
+          "before_seconds": 0.0216571885000576,
+          "exceeds_threshold": false,
+          "ratio": 0.8593814869774422,
+          "state_refactor_affected": true
+        },
+        "ecef_to_eci_orbit": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.001538354603884504,
+          "after_seconds": 1.0659773437726727e-05,
+          "before_normalized_seconds": 0.0015375936569863842,
+          "before_seconds": 1.1272441406195988e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0004948946652208,
+          "state_refactor_affected": true
+        },
+        "geocentric_to_ecef_orbit": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.009013950316291533,
+          "after_seconds": 6.24606757817503e-05,
+          "before_normalized_seconds": 0.009090758049874316,
+          "before_seconds": 6.664637109388138e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.9915510089300149,
+          "state_refactor_affected": true
+        },
+        "get_b_eci_orbit": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0005986502919780502,
+          "after_seconds": 4.14824804684244e-06,
+          "before_normalized_seconds": 0.0005950732538242887,
+          "before_seconds": 4.3626145019848295e-06,
+          "exceeds_threshold": false,
+          "ratio": 1.0060110887706233,
+          "state_refactor_affected": true
+        },
+        "get_os_exact_node": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.003135505185801969,
+          "after_seconds": 2.172696386715245e-05,
+          "before_normalized_seconds": 0.0036902753950516297,
+          "before_seconds": 2.7054230468781526e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.8496669896253369,
+          "state_refactor_affected": true
+        },
+        "get_os_interpolated": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 2.2066944922001714,
+          "after_seconds": 0.015290924000055384,
+          "before_normalized_seconds": 3.2642159055862807,
+          "before_seconds": 0.023930693500005873,
+          "exceeds_threshold": false,
+          "ratio": 0.6760258990294425,
+          "state_refactor_affected": true
+        },
+        "get_range_precreated_states": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.005117166906383925,
+          "after_seconds": 3.5458560547318996e-05,
+          "before_normalized_seconds": 0.005034013095884695,
+          "before_seconds": 3.6905470703230137e-05,
+          "exceeds_threshold": false,
+          "ratio": 1.0165183937576976,
+          "state_refactor_affected": true
+        },
+        "get_range_sampled_dt": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.029240917349054478,
+          "after_seconds": 0.00020262009374505396,
+          "before_normalized_seconds": 0.030080404306935676,
+          "before_seconds": 0.0002205261406249548,
+          "exceeds_threshold": false,
+          "ratio": 0.9720918991209292,
+          "state_refactor_affected": true
+        },
+        "get_vecs": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0006870618928397838,
+          "after_seconds": 4.760881591847621e-06,
+          "before_normalized_seconds": 0.000708029504665047,
+          "before_seconds": 5.1907219237867785e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9703859631736921,
+          "state_refactor_affected": true
+        },
+        "new_orbit_from_times_small": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 2.2596953982304546,
+          "after_seconds": 0.015658185000120284,
+          "before_normalized_seconds": 2.429608799385304,
+          "before_seconds": 0.017812003000017285,
+          "exceeds_threshold": false,
+          "ratio": 0.930065531044406,
+          "state_refactor_affected": true
+        },
+        "next_state_exact_node": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0009313075339376577,
+          "after_seconds": 6.453341308665372e-06,
+          "before_normalized_seconds": 0.0009624806159778444,
+          "before_seconds": 7.056159668006323e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9676117300206446,
+          "state_refactor_affected": true
+        }
+      }
+    },
+    "orbital_state": {
+      "after_calibration_seconds": 0.010403106750004554,
+      "before_calibration_seconds": 0.010591670500019745,
+      "benchmarks": {
+        "average_half_step": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0021704503568265223,
+          "after_seconds": 2.2579426757651788e-05,
+          "before_normalized_seconds": 0.002331109456402057,
+          "before_seconds": 2.4690343261690728e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.9310804136055013,
+          "state_refactor_affected": true
+        },
+        "copy": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.00035374990479914104,
+          "after_seconds": 3.680098022429412e-06,
+          "before_normalized_seconds": 0.0003713121935038586,
+          "before_seconds": 3.932816406232442e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9527020954011975,
+          "state_refactor_affected": true
+        },
+        "ecef_to_eci": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.00010434779882210746,
+          "after_seconds": 1.0855412902743833e-06,
+          "before_normalized_seconds": 0.00010571628877283164,
+          "before_seconds": 1.1197120971667696e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9870550700690518,
+          "state_refactor_affected": true
+        },
+        "get_state_vector_cached": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.00017706401687824484,
+          "after_seconds": 1.8420158691689892e-06,
+          "before_normalized_seconds": 0.00020670547315419964,
+          "before_seconds": 2.1893562621999596e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.8566005252611639,
+          "state_refactor_affected": true
+        },
+        "orbit_dynamics_j2": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0007154257209176547,
+          "after_seconds": 7.442650146405327e-06,
+          "before_normalized_seconds": 0.000717182607335441,
+          "before_seconds": 7.596161865242035e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9975502941652284,
+          "state_refactor_affected": true
+        },
+        "orbit_dynamics_kepler": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0003974416165087246,
+          "after_seconds": 4.134627563434634e-06,
+          "before_normalized_seconds": 0.00039974809658712324,
+          "before_seconds": 4.234000122060877e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9942301662019398,
+          "state_refactor_affected": true
+        },
+        "propagate_jacobians_rk4_j2": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.02676955657349174,
+          "after_seconds": 0.0002784865546843207,
+          "before_normalized_seconds": 0.02708971801829398,
+          "before_seconds": 0.0002869253671882177,
+          "exceeds_threshold": false,
+          "ratio": 0.9881814404791504,
+          "state_refactor_affected": true
+        },
+        "propagate_orbit_rk4_full_state": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 1.499711660643098,
+          "after_seconds": 0.015601660499896752,
+          "before_normalized_seconds": 1.7612172225313356,
+          "before_seconds": 0.018654232500011858,
+          "exceeds_threshold": false,
+          "ratio": 0.8515199837119553,
+          "state_refactor_affected": true
+        }
+      }
+    },
+    "satellite": {
+      "after_calibration_seconds": 0.00690164324998932,
+      "before_calibration_seconds": 0.006838649249999662,
+      "benchmarks": {
+        "act_torque_full_stack": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.017940231571163343,
+          "after_seconds": 0.00012381707812636478,
+          "before_normalized_seconds": 0.017807561056336407,
+          "before_seconds": 0.00012177966406223817,
+          "exceeds_threshold": false,
+          "ratio": 1.0074502350101295,
+          "state_refactor_affected": true
+        },
+        "dist_torques_no_disturbances": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 3.951425001085994e-05,
+          "after_seconds": 2.727132568658419e-07,
+          "before_normalized_seconds": 3.9497528139059624e-05,
+          "before_seconds": 2.701097411850206e-07,
+          "exceeds_threshold": false,
+          "ratio": 1.0004233650202474,
+          "state_refactor_affected": true
+        },
+        "gps_like_accessor_group": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.03278718486705535,
+          "after_seconds": 0.0002262854531238645,
+          "before_normalized_seconds": 0.033143154146954464,
+          "before_seconds": 0.00022665440624969335,
+          "exceeds_threshold": false,
+          "ratio": 0.9892596438371324,
+          "state_refactor_affected": true
+        },
+        "noiseless_sensor_readings_full_stack": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.017793856783461348,
+          "after_seconds": 0.0001228068515608527,
+          "before_normalized_seconds": 0.017759896535838746,
+          "before_seconds": 0.00012145370312488524,
+          "exceeds_threshold": false,
+          "ratio": 1.0019121872446763,
+          "state_refactor_affected": true
+        },
+        "sensor_readings_full_stack": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.03682009557102202,
+          "after_seconds": 0.00025411916406170576,
+          "before_normalized_seconds": 0.03698966027555012,
+          "before_seconds": 0.0002529593125011331,
+          "exceeds_threshold": false,
+          "ratio": 0.9954158891088767,
+          "state_refactor_affected": true
+        }
+      }
+    },
+    "sensors": {
+      "after_calibration_seconds": 0.0071071228750270166,
+      "before_calibration_seconds": 0.00686628224997321,
+      "benchmarks": {
+        "earth_horizon_reading": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.006942148326434034,
+          "after_seconds": 4.933870117262984e-05,
+          "before_normalized_seconds": 0.007434120769579508,
+          "before_seconds": 5.104477148432096e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.933822376795568,
+          "state_refactor_affected": true
+        },
+        "gps_reading": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0032861159837175294,
+          "after_seconds": 2.335483007787076e-05,
+          "before_normalized_seconds": 0.0034325824689406437,
+          "before_seconds": 2.356908007805636e-05,
+          "exceeds_threshold": false,
+          "ratio": 0.9573305269288063,
+          "state_refactor_affected": true
+        },
+        "gyro_clean_reading": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 9.476934132147948e-05,
+          "after_seconds": 6.735373535571298e-07,
+          "before_normalized_seconds": 0.00011482619683156412,
+          "before_seconds": 7.884290771364988e-07,
+          "exceeds_threshold": false,
+          "ratio": 0.8253285742842673,
+          "state_refactor_affected": true
+        },
+        "mtm_clean_reading": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.00040991829927767036,
+          "after_seconds": 2.9133397216885015e-06,
+          "before_normalized_seconds": 0.0004373417278567105,
+          "before_seconds": 3.0029117431551455e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9372951931355037,
+          "state_refactor_affected": true
+        },
+        "star_tracker_quaternion_reading": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.2671604822885687,
+          "after_seconds": 0.0018987423749763366,
+          "before_normalized_seconds": 0.29812591632405205,
+          "before_seconds": 0.002047016687512837,
+          "exceeds_threshold": false,
+          "ratio": 0.8961330352714957,
+          "state_refactor_affected": true
+        },
+        "star_tracker_reading": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.27515278994122666,
+          "after_seconds": 0.0019555446875187954,
+          "before_normalized_seconds": 0.27498733029890166,
+          "before_seconds": 0.0018881406249988686,
+          "exceeds_threshold": false,
+          "ratio": 1.0006016991479032,
+          "state_refactor_affected": true
+        },
+        "sunpair_clean_reading": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 0.0006031170699305709,
+          "after_seconds": 4.286427124022829e-06,
+          "before_normalized_seconds": 0.0006271662035032738,
+          "before_seconds": 4.3063001708976145e-06,
+          "exceeds_threshold": false,
+          "ratio": 0.9616542896629835,
+          "state_refactor_affected": true
+        }
+      }
+    },
+    "simulate": {
+      "after_calibration_seconds": 0.006908767374966374,
+      "before_calibration_seconds": 0.007073871625010497,
+      "benchmarks": {
+        "simulate_bdot_one_step": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 3.7214157902334555,
+          "after_seconds": 0.025710396000249602,
+          "before_normalized_seconds": 4.267503511564711,
+          "before_seconds": 0.030187772000090263,
+          "exceeds_threshold": false,
+          "ratio": 0.8720357886405046,
+          "state_refactor_affected": true
+        },
+        "simulate_open_loop_one_step": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 3.9025173430618554,
+          "after_seconds": 0.026961584499986202,
+          "before_normalized_seconds": 3.721656879789221,
+          "before_seconds": 0.026326522999966073,
+          "exceeds_threshold": false,
+          "ratio": 1.0485967592162546,
+          "state_refactor_affected": true
+        },
+        "simulate_uakf_mtq_rw_two_steps": {
+          "acceptance_exemption": null,
+          "after_normalized_seconds": 28.94469652060479,
+          "after_seconds": 0.1999721749998571,
+          "before_normalized_seconds": 28.556810571127492,
+          "before_seconds": 0.20200721199989857,
+          "exceeds_threshold": false,
+          "ratio": 1.0135829576804867,
+          "state_refactor_affected": true
+        }
+      }
+    }
+  },
+  "comparison": "Same machine, seven-sample normalized medians",
+  "schema_version": 1,
+  "state_microbenchmarks": {
+    "benchmarks": {
+      "augmented_conversion": {
+        "seconds": 1.1270669250662557e-06
+      },
+      "construct": {
+        "seconds": 1.6584320678969533e-06
+      },
+      "copy": {
+        "seconds": 1.6424949340620998e-06
+      },
+      "estimator_manifold_update": {
+        "seconds": 4.478719970668621e-06
+      },
+      "field_access": {
+        "seconds": 6.23309783925885e-08
+      },
+      "physical_conversion": {
+        "seconds": 8.133861999493064e-07
+      },
+      "rk4_propagation": {
+        "seconds": 5.630811132739666e-05
+      },
+      "stack_128": {
+        "seconds": 0.0001667143124990389
+      }
+    },
+    "description": "Structured State and EstimatorState microbenchmarks.",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "schema_version": 1
+  },
+  "threshold": 1.1
+}

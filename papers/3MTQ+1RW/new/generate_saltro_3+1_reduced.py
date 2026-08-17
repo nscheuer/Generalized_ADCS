@@ -9,7 +9,7 @@ from ADCS.controller.saltro.SALTRO_planner_settings import PlannerSettings
 
 np.random.seed(43)
 real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
-x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0]) # w, q, h
+x_0 = ADCS.State.from_array(np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0])) # w, q, h
 
 planner_settings = PlannerSettings(est_sat=real_sat)
 planner_settings.passes[0].dt = 10.0

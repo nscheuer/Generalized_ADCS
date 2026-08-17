@@ -20,7 +20,7 @@ real_sat = ADCS.Satellite(
     boresight=np.array([0, 0, 1])
 )
 
-x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [5.4e-3, 5.4e-3, 5.4e-3]) # w, q, h
+x_0 = ADCS.State.from_array(np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [5.4e-3, 5.4e-3, 5.4e-3])) # w, q, h
 
 controller = ADCS.controller.MTQ_w_RW_QPW(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.array([0.004, 0.0, 0.0]))
 

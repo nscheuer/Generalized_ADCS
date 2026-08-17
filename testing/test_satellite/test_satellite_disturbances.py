@@ -10,6 +10,7 @@ from ADCS.satellite_hardware.disturbances import (
 )
 from ADCS.satellite_hardware.errors import Noise
 from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.state import State
 
 from testing.test_satellite._helpers import make_orbital_state
 
@@ -73,7 +74,7 @@ def test_drag_disturbance_loads_geometry_configuration():
 def test_prop_disturbance_returns_nominal_torque():
     disturbance = Prop_Disturbance(np.array([1.0, 2.0, 4.0]), Noise())
     sat = Satellite(disturbances=[disturbance])
-    x = np.concatenate([np.array([0.2, -0.1, 0.3]), np.array([1.0, 0.0, 0.0, 0.0])])
+    x = State(w=[0.2, -0.1, 0.3], q=[1.0, 0.0, 0.0, 0.0])
 
     assert np.allclose(sat.disturbances[0].torque(x=x, os=make_orbital_state()), np.array([1.0, 2.0, 4.0]))
 

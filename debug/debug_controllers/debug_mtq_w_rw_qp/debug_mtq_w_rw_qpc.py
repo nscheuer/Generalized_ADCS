@@ -6,7 +6,7 @@ from typing import List, Union
 from tqdm import tqdm
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
 from ADCS.controller.mtq_w_rw_QPC import MTQ_w_RW_QPC
 from ADCS.orbits.ephemeris import Ephemeris
@@ -18,6 +18,7 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.state import State
 
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
@@ -53,7 +54,7 @@ def test_MTQ_w_RW_QP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     q0 = random_n_unit_vec(4)
     q0 = normalize(np.array([1, 0, 0, 0]))
     h0 = np.array([rw_h0]*len(rws))
-    x = np.concatenate([w0, q0, h0])
+    x = State(w=w0, q=q0, h=h0)
 
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
@@ -63,7 +64,7 @@ def test_MTQ_w_RW_QP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     if real_orbit:
         # Real Orbit Generation
         os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
-        orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+        orb = Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False)
     else:
         os0 = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=R, V=V, B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=5e-12)
         dur = int((tf-t0)/dt)+10
@@ -77,7 +78,7 @@ def test_MTQ_w_RW_QP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     controller = MTQ_w_RW_QPC(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.zeros(3))
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, len(x)))
+    state_hist: List[State] = []
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(acts)))
@@ -95,13 +96,13 @@ def test_MTQ_w_RW_QP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         os = orb.get_os(J2000=J2000)
 
         sens = real_sat.sensor_readings(x=x, os=os)
-        u,_ = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os, goal=goal)
+        u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os, goal=goal)
 
         if verbose:
             print("u: ", u)
 
         time_hist[ind] = t
-        state_hist[ind,:] = x
+        state_hist.append(x.copy())
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u
@@ -113,9 +114,9 @@ def test_MTQ_w_RW_QP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         prev_os = os.copy()
         os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
 
-        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x, method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x.as_array(), method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
 
     return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
 

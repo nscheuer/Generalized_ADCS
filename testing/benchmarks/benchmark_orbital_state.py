@@ -34,6 +34,7 @@ if str(REPO_ROOT) not in sys.path:
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import EarthConstants
+from ADCS.state import State
 
 
 BASELINE_PATH = REPO_ROOT / "testing" / "benchmarks" / "baselines" / "orbital_state.json"
@@ -115,7 +116,7 @@ def _median_time(func: Callable[[], object], min_seconds: float, max_loops: int,
 
 def _make_benchmarks(state: Orbital_State) -> list[Benchmark]:
     paired_state = state.propagate_orbit_rk4(dt=5.0, zonal_J=2, fast=True)
-    body_state = np.array([1.0e-3, -2.0e-3, 3.0e-3, 1.0, 0.0, 0.0, 0.0], dtype=float)
+    body_state = State(w=[1.0e-3, -2.0e-3, 3.0e-3], q=[1.0, 0.0, 0.0, 0.0])
 
     return [
         Benchmark(

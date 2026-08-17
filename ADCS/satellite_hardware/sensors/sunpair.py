@@ -6,7 +6,8 @@ import numpy as np
 from typing import Tuple
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Noise, Bias
-from ADCS.helpers.math_helpers import normalize, rot_mat
+from ADCS.helpers.math_helpers import normalize, normed_vec_jac
+from ADCS.state import State
 
 
 class SunPair(Sensor):
@@ -140,7 +141,7 @@ class SunPair(Sensor):
             estimate_bias=estimate_bias,
         )
 
-    def clean_reading(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the clean (noise- and bias-free) Sun sensor measurement.
 
@@ -150,7 +151,7 @@ class SunPair(Sensor):
         ``NaN`` is returned.
 
         :param x: Full system state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state providing spacecraft position, Sun position,
             and lighting conditions.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -171,7 +172,7 @@ class SunPair(Sensor):
         eff = self.efficiency[0] if proj > 0.0 else self.efficiency[1]
         return proj * eff
 
-    def bias_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def bias_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the measurement with respect to the Sun-sensor bias.
 
@@ -190,7 +191,7 @@ class SunPair(Sensor):
         If no bias model exists, an empty Jacobian is returned.
 
         :param x: Full system state vector (unused).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state (unused).
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
@@ -203,7 +204,7 @@ class SunPair(Sensor):
         else:
             return np.zeros((0, 1))
 
-    def basestate_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def basestate_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the clean Sun-sensor measurement with respect to the base
         ADCS state.
@@ -219,25 +220,33 @@ class SunPair(Sensor):
         where :math:`\boldsymbol{\omega}` is the body angular rate and
         :math:`\mathbf{q}` is the attitude quaternion.
 
-        Because the Sun direction in the body frame depends on spacecraft
-        attitude, this Jacobian is computed numerically using **central finite
-        differences**:
+        The measurement is :math:`y = \eta\,(\hat{\mathbf{a}}^\top
+        \hat{\mathbf{s}})` with the hemisphere efficiency :math:`\eta` selected
+        by the sign of the projection, so with
+        :func:`~ADCS.helpers.math_helpers.normed_vec_jac` providing
+        :math:`\partial\hat{\mathbf{s}}/\partial\mathbf{q}`,
 
         .. math::
 
-            \frac{\partial y}{\partial x_i}
-            \approx
-            \frac{f(x_i + \varepsilon) - f(x_i - \varepsilon)}{2\varepsilon},
+            \frac{\partial y}{\partial \mathbf{q}}
+            =
+            \eta\,
+            \frac{\partial \hat{\mathbf{s}}}{\partial \mathbf{q}}\,
+            \hat{\mathbf{a}},
+            \qquad
+            \frac{\partial y}{\partial \boldsymbol{\omega}} = \mathbf{0}.
 
-        with :math:`\varepsilon = 10^{-6}` and :math:`f(\cdot)` defined by
-        :meth:`_clean_scalar`.
+        The efficiency of the active hemisphere is held constant in the
+        derivative; the measurement has a slope discontinuity at
+        :math:`\hat{\mathbf{a}}^\top\hat{\mathbf{s}} = 0` when the two
+        efficiencies differ.
 
         If the spacecraft is not sunlit, the clean measurement is treated as
         invalid and this method returns a ``NaN`` sentinel rather than a finite
         Jacobian.
 
-        :param x: Full 7-element ADCS state vector.
-        :type x: numpy.ndarray
+        :param x: Full system state.
+        :type x: ADCS.state.State
         :param os: Orbital state providing lighting conditions and Sun/spacecraft
             geometry.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -253,49 +262,13 @@ class SunPair(Sensor):
         if not os.is_sunlit():
             return np.full((7, 1), np.nan)
 
-        eps = 1e-6
-        grad = np.zeros(7)
-
-        f0 = self._clean_scalar(x, os)
-
-        for i in range(7):
-            xp = x.copy()
-            xm = x.copy()
-            xp[i] += eps
-            xm[i] -= eps
-            fp = self._clean_scalar(xp, os)
-            fm = self._clean_scalar(xm, os)
-            grad[i] = (fp - fm) / (2.0 * eps)
-
-        return grad.reshape(7, 1)
-    
-    def _clean_scalar(self, x: np.ndarray, os: Orbital_State) -> float:
-        r"""
-        Compute the clean Sun-sensor measurement as a scalar.
-
-        This helper method implements the same clean measurement model as
-        :meth:`clean_reading`, but returns a scalar value. It is primarily used
-        internally for numerical differentiation when computing Jacobians.
-
-        If the spacecraft is not sunlit, the returned value is defined to be
-        zero.
-
-        :param x: Full system state vector.
-        :type x: numpy.ndarray
-        :param os: Orbital state providing spacecraft position, Sun position,
-            and lighting conditions.
-        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
-
-        :return: Clean scalar Sun-sensor measurement.
-        :rtype: float
-        """
-        if not os.is_sunlit():
-            return 0.0
-
         vecs = os.get_state_vector(x=x)
+        sunvec = vecs["s"] - vecs["r"]
+        sun_dir = normalize(sunvec)
 
-        sun_dir = normalize(vecs["s"] - vecs["r"])
-
+        dsun_dir__dq = normed_vec_jac(sunvec, vecs["ds"] - vecs["dr"])
         proj = float(np.dot(self.axis, sun_dir))
         eff = self.efficiency[0] if proj > 0.0 else self.efficiency[1]
-        return proj * eff
+        return np.vstack(
+            [np.zeros((3, 1)), eff * np.expand_dims(dsun_dir__dq @ self.axis, 1)]
+        )

@@ -8,6 +8,7 @@ from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, GG_Disturba
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import Gyro
+from ADCS.state import EstimatorState, State
 
 
 UNIT_VECTORS = MathConstants.unitvecs
@@ -31,7 +32,7 @@ def make_estimated_satellite() -> EstimatedSatellite:
     )
 
 
-def build_filter(filter_type, estimated_satellite: EstimatedSatellite, x_hat: np.ndarray):
+def build_filter(filter_type, estimated_satellite: EstimatedSatellite, x_hat: EstimatorState):
     reduced_length = (
         estimated_satellite.state_len
         - 1
@@ -64,7 +65,7 @@ def test_dipole_main_param_changes_torque_output():
         def get_state_vector(self, x):
             return {"b": np.array([1e-5, -2e-5, 3e-5])}
 
-    state = np.concatenate([np.zeros(3), [1.0, 0.0, 0.0, 0.0]])
+    state = State(w=np.zeros(3), q=np.array([1.0, 0.0, 0.0, 0.0]))
     zero_torque = np.asarray(disturbance.torque(state, StubOrbitalState()), dtype=float)
     disturbance.main_param = np.array([2.0e-4, -1.0e-4, 5.0e-5])
     driven_torque = np.asarray(disturbance.torque(state, StubOrbitalState()), dtype=float)
@@ -82,15 +83,12 @@ def test_estimated_satellite_tracks_disturbance_parameter_length():
 @pytest.mark.parametrize("filter_type", [UAKF, SRUAKF])
 def test_filter_builds_with_disturbance_parameter_augmented_state(filter_type):
     estimated_satellite = make_estimated_satellite()
-    augmented_length = (
-        estimated_satellite.state_len
-        + estimated_satellite.act_bias_len
-        + estimated_satellite.att_sens_bias_len
-        + estimated_satellite.dist_param_len
+    x_hat = EstimatorState(
+        w=np.zeros(3),
+        q=np.array([1.0, 0.0, 0.0, 0.0]),
+        sens_bias=np.zeros(3),
+        dist_param=np.array([1.0e-6, -2.0e-6, 3.0e-6]),
     )
-    x_hat = np.zeros(augmented_length)
-    x_hat[3] = 1.0
-    x_hat[-3:] = np.array([1.0e-6, -2.0e-6, 3.0e-6])
     filter_instance = build_filter(filter_type, estimated_satellite, x_hat)
     assert filter_instance is not None
 
@@ -98,13 +96,13 @@ def test_filter_builds_with_disturbance_parameter_augmented_state(filter_type):
 @pytest.mark.parametrize("filter_type", [UAKF, SRUAKF])
 def test_match_estimate_writes_disturbance_parameters(filter_type):
     estimated_satellite = make_estimated_satellite()
-    state_length = estimated_satellite.state_len
-    bias_length = estimated_satellite.act_bias_len + estimated_satellite.att_sens_bias_len
-    augmented_length = state_length + bias_length + estimated_satellite.dist_param_len
-    x_hat = np.zeros(augmented_length)
-    x_hat[3] = 1.0
     expected = np.array([1.0e-6, -2.0e-6, 3.0e-6])
-    x_hat[state_length + bias_length : state_length + bias_length + 3] = expected
+    x_hat = EstimatorState(
+        w=np.zeros(3),
+        q=np.array([1.0, 0.0, 0.0, 0.0]),
+        sens_bias=np.zeros(3),
+        dist_param=expected,
+    )
 
     build_filter(filter_type, estimated_satellite, x_hat)
     actual = np.asarray(estimated_satellite.disturbances[0].main_param, dtype=float).reshape(3)

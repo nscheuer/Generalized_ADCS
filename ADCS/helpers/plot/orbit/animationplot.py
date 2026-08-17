@@ -8,6 +8,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from ..subplot import Subplot
+from ADCS.state import State
 
 # Keep PyVista happy in headless / CI
 os.environ.setdefault("MESA_LOADER_DRIVER_OVERRIDE", "llvmpipe")
@@ -393,7 +394,7 @@ class AnimationPlot(Subplot):
             if state_hist is None or len(state_hist) == 0:
                 raise ValueError("sim.state_hist missing/empty (required for animation)")
 
-            state_hist = np.asarray(state_hist, dtype=float)
+            state_hist = State.stack(state_hist)
             if state_hist.ndim != 2 or state_hist.shape[1] < 7:
                 raise ValueError("sim.state_hist must be (N, >=7) with quaternion in columns [3:7]")
 

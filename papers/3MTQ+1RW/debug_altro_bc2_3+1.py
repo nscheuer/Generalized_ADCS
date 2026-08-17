@@ -1,6 +1,7 @@
 import sys
 import os as os_pack
 import numpy as np
+from ADCS.state import State
 from scipy.integrate import solve_ivp
 from typing import List, Union
 from tqdm import tqdm
@@ -45,7 +46,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     w0 = normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0)
     q0 = normalize(rng.standard_normal(4))
     h0 = np.array([rw_h0])
-    x = np.concatenate([w0, q0, h0])
+    x = State(w=w0, q=q0, h=h0)
 
     start_time = 0.22
     orb = create_random_circular_orbit(7000, dt=1, tf=1000, use_J2=True, fast=False)
@@ -162,7 +163,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os)
 
         time_hist[ind] = t
-        state_hist[ind,:] = x
+        state_hist[ind,:] = x.as_array()
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u
@@ -178,9 +179,9 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         prev_os = os.copy()
         os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
 
-        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x, method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x.as_array(), method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
 
     return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
 

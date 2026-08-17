@@ -3,6 +3,8 @@ __all__ = ["MTM"]
 from .sensor import Sensor
 
 import numpy as np
+
+from ADCS.state import State
 from scipy.linalg import block_diag
 
 from ADCS.orbits.orbital_state import Orbital_State
@@ -106,7 +108,7 @@ class MTM(Sensor):
         self.attitude_sensor = False
         super().__init__(sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
-    def clean_reading(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the clean (bias– and noise–free) magnetometer measurement.
 
@@ -135,7 +137,7 @@ class MTM(Sensor):
 
         :param x: Full system state vector. This includes attitude and any additional
                   states required by the magnetic field model.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital and environmental model providing the geomagnetic field
                    in the body frame.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
@@ -145,7 +147,7 @@ class MTM(Sensor):
         vecs = os.get_state_vector(x=x)
         return np.dot(vecs["b"], self.axis)
     
-    def bias_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def bias_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the magnetometer measurement with respect to the bias state.
 
@@ -172,7 +174,7 @@ class MTM(Sensor):
         If no bias model is included, an empty Jacobian is returned.
 
         :param x: Full system state vector (unused).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state object (unused).
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: ``(1, 1)`` Jacobian matrix if a bias model exists;
@@ -184,7 +186,7 @@ class MTM(Sensor):
         else:
             return np.zeros((0,1))
         
-    def basestate_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def basestate_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the magnetometer measurement with respect to the base
         (non-bias) system states.
@@ -231,7 +233,7 @@ class MTM(Sensor):
             \end{bmatrix}.
 
         :param x: Full system state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital and environmental model providing both the geomagnetic
                    field and its Jacobian with respect to the base states.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`

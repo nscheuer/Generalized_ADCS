@@ -41,7 +41,7 @@ def test_sensor_family_builds_and_matches_covariance_dimensions(monkeypatch, fam
     srukf.update(u=np.zeros(len(real_sat.actuators)), sensors=sensors, os=os)
     assert sensors.size == expected_dim
     assert cov.shape == (expected_dim, expected_dim)
-    assert np.isfinite(srukf.x_hat.val).all()
+    assert np.isfinite(srukf.x_hat.as_estimator_array()).all()
 
 
 def test_rw_measurements_append_to_sensor_configuration_dimension():

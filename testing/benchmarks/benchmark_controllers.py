@@ -36,6 +36,7 @@ from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.controller import BDot, MTQ_Lovera, MTQ_Wisniewski, MTQ_w_RW, MTQ_w_RW_LP, MTQ_w_RW_QP, MTQ_w_RW_QPC, MTQ_w_RW_QPG, MTQ_w_RW_QPW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.orbits.universal_constants import TimeConstants
+from ADCS.state import State
 from testing.test_controllers._mtq_rw_qp_test_helpers import make_controller as make_qp_controller
 from testing.test_controllers._mtq_rw_qp_test_helpers import make_orbital_state, make_satellite
 from testing.test_controllers.test_controller_mtq_w_rw import StaticGoal as RWStaticGoal
@@ -69,8 +70,8 @@ def _reference_case() -> dict[str, object]:
     q = np.array([0.985, 0.12, -0.08, 0.09], dtype=float)
     q = q / np.linalg.norm(q)
 
-    x_mtq = np.concatenate([np.array([0.012, -0.017, 0.009]), q])
-    x_mixed = np.concatenate([np.array([0.012, -0.017, 0.009]), q, np.array([5.0e-3])])
+    x_mtq = State(w=[0.012, -0.017, 0.009], q=q)
+    x_mixed = State(w=[0.012, -0.017, 0.009], q=q, h=[5.0e-3])
 
     sens_mtq0 = sat_mtq.sensor_readings(x_mtq, os0)
     sens_mtq1 = sat_mtq.sensor_readings(x_mtq, os1)
@@ -97,7 +98,7 @@ def _reference_case() -> dict[str, object]:
         )
 
     qp_sat = make_satellite(include_rw=True, mtq_max_torque=0.4, rw_axes=[MathConstants.unitvecs[0]], rw_max_torque=7.0e-3, rw_h=5.0e-3)
-    qp_x = np.concatenate([np.array([0.01, -0.015, 0.008]), q, np.array([5.0e-3])])
+    qp_x = State(w=[0.01, -0.015, 0.008], q=q, h=[5.0e-3])
     qp_sens = qp_sat.sensor_readings(qp_x, os0)
     mtq_rw_qp = make_qp_controller(MTQ_w_RW_QP, qp_sat, 5.0e-5, 1.0e-3, 0.0, np.array([0.004, 0.0, 0.0]))
     mtq_rw_qpc = make_qp_controller(MTQ_w_RW_QPC, qp_sat, 5.0e-5, 1.0e-3, 0.0, np.array([0.004, 0.0, 0.0]))

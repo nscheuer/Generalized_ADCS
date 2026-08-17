@@ -18,10 +18,10 @@ def test_one_step_update_reduces_attitude_error():
     x_true = make_state(q=np.array([0.99, 0.08, -0.03, 0.09]))
     os = make_orbital_state()
     sensors = real_sat.noiseless_sensor_readings(x_true, os)
-    initial_error = quat_error_deg(x_true[3:7], ukf.x_hat.val[3:7])
+    initial_error = quat_error_deg(x_true.q, ukf.x_hat.q)
 
     x_hat = ukf.update(u=np.zeros(len(real_sat.actuators)), sensors=sensors, os=os)
-    final_error = quat_error_deg(x_true[3:7], x_hat[3:7])
+    final_error = quat_error_deg(x_true.q, x_hat.q)
 
     assert final_error < initial_error
 
@@ -33,9 +33,9 @@ def test_update_with_finite_measurements_keeps_state_and_covariance_finite():
 
     ukf.update(u=np.zeros(len(real_sat.actuators)), sensors=sensors, os=make_orbital_state())
 
-    assert np.isfinite(ukf.x_hat.val).all()
+    assert np.isfinite(ukf.x_hat.as_estimator_array()).all()
     assert np.isfinite(ukf.x_hat.cov).all()
-    assert np.isclose(np.linalg.norm(ukf.x_hat.val[3:7]), 1.0)
+    assert np.isclose(np.linalg.norm(ukf.x_hat.q), 1.0)
 
 
 def test_update_handles_mixed_active_and_inactive_sensors():
@@ -47,7 +47,7 @@ def test_update_handles_mixed_active_and_inactive_sensors():
 
     ukf.update(u=np.zeros(len(real_sat.actuators)), sensors=sensors, os=os)
 
-    assert np.isfinite(ukf.x_hat.val).all()
+    assert np.isfinite(ukf.x_hat.as_estimator_array()).all()
 
 
 def test_update_raises_linalgerror_when_solver_fails(monkeypatch):

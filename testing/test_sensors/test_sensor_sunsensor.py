@@ -33,10 +33,10 @@ def test_sunsensor_basestate_jacobian_matches_finite_difference():
     eps = 1e-6
     jac_fd = np.zeros((7, 1))
     for i in range(7):
-        xp = x.copy()
-        xm = x.copy()
-        xp[i] += eps
-        xm[i] -= eps
+        delta = np.zeros(7)
+        delta[i] = eps
+        xp = type(x).from_array(x.as_array() + delta)
+        xm = type(x).from_array(x.as_array() - delta)
         jac_fd[i, 0] = (sensor.clean_reading(xp, os) - sensor.clean_reading(xm, os)) / (2.0 * eps)
     jac = sensor.basestate_jac(x, os)
 

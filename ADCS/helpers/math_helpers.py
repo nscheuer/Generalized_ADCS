@@ -648,6 +648,34 @@ def quat_mult(p: np.ndarray, q: np.ndarray, *extra) -> np.ndarray:
     return result
 
 
+def interpolate_quat(
+    q0: np.ndarray,
+    q1: np.ndarray,
+    alpha: float,
+    method: str = "slerp",
+) -> np.ndarray:
+    """Interpolate between two quaternion representations using the shortest arc."""
+    q0 = np.asarray(q0, dtype=float)
+    q1 = np.asarray(q1, dtype=float)
+    dot = float(q0 @ q1)
+    if dot < 0.0:
+        q1 = -q1
+        dot = -dot
+    if method == "nlerp" or dot > 1.0 - 1e-9:
+        blended = (1.0 - alpha) * q0 + alpha * q1
+    elif method == "slerp":
+        theta = np.arccos(min(dot, 1.0))
+        blended = (
+            np.sin((1.0 - alpha) * theta) * q0 + np.sin(alpha * theta) * q1
+        ) / np.sin(theta)
+    else:
+        raise ValueError(f"method must be 'slerp' or 'nlerp', got {method!r}")
+    norm = float(np.linalg.norm(blended))
+    if not np.isfinite(norm) or norm == 0.0:
+        raise ValueError("interpolated quaternion has zero or non-finite norm")
+    return blended / norm
+
+
 @njit(cache=True)
 def rot_exp(v: np.ndarray) -> np.ndarray:
     r"""

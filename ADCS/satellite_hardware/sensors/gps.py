@@ -3,6 +3,8 @@ __all__ = ["GPS"]
 from .sensor import Sensor
 
 import numpy as np
+
+from ADCS.state import State
 from scipy.linalg import block_diag
 
 from ADCS.orbits.orbital_state import Orbital_State
@@ -105,7 +107,7 @@ class GPS(Sensor):
             self.noise = Noise(noise=np.zeros(6), std_noise=np.zeros(6))
         super().__init__(sample_time=sample_time, output_length=6, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
-    def clean_reading(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the clean GPS measurement (position and velocity in ECEF).
 
@@ -130,7 +132,7 @@ class GPS(Sensor):
         transformation matrix from the inertial to Earth-fixed frame.
 
         :param x: Full system state vector. This argument is unused by the GPS model.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state providing position, velocity, and frame transforms.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Clean GPS measurement vector ``[r_ECEF, v_ECEF]``.
@@ -141,7 +143,7 @@ class GPS(Sensor):
         v = os.V
         return np.concatenate([ecef, os.eci_to_ecef(v)])
     
-    def bias_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def bias_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the GPS measurement with respect to the GPS bias state.
 
@@ -166,7 +168,7 @@ class GPS(Sensor):
             I_6.
 
         :param x: Full system state vector (unused).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state object (unused).
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: ``6 × 6`` identity matrix if a bias model exists;
@@ -179,7 +181,7 @@ class GPS(Sensor):
         else:
             return np.zeros((0, 6))
         
-    def orbitRV_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def orbitRV_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the GPS measurement with respect to orbital position and
         velocity states in the ECI frame.
@@ -217,7 +219,7 @@ class GPS(Sensor):
         :class:`~ADCS.helpers.math_constants.MathConstants`.
 
         :param x: Full system state vector (unused).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state providing the ECI→ECEF transformation.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Block-diagonal Jacobian matrix of shape ``6 × 6``.

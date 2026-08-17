@@ -9,7 +9,7 @@ acts = [ADCS.MTQ(axis, max_torque=0.1) for axis in np.eye(3)]
 sens = [ADCS.MTM(axis) for axis in np.eye(3)]
 
 satellite = ADCS.Satellite(mass=4, J_0=np.diag([0.003, 0.003, 0.003]), actuators=acts, sensors=sens)
-x_0 = np.array([0.01, 0.05, 0] + [1, 0, 0, 0]) # w, q
+x_0 = ADCS.State.from_array(np.array([0.01, 0.05, 0] + [1, 0, 0, 0])) # w, q
 
 controller = ADCS.controller.BDot(est_sat=satellite, gain=5e4)
 

@@ -9,6 +9,13 @@ from typing import Any, Dict, List, Optional, Iterator, Union
 
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.state import EstimatorState, State
+
+__all__ = ["RunResults", "SimulationResults"]
+
+
+def _has_items(value: Any) -> bool:
+    return value is not None and len(value) > 0
 
 @dataclass
 class RunResults:
@@ -19,8 +26,8 @@ class RunResults:
     os_hist: Optional[List[Orbital_State]] = None
     est_os_hist: Optional[List[Orbital_State]] = None
     os_cov_hist: Optional[List[np.ndarray]] = None
-    state_hist: Optional[np.ndarray] = None
-    est_state_hist: Optional[np.ndarray] = None
+    state_hist: Optional[List[State]] = None
+    est_state_hist: Optional[List[EstimatorState]] = None
     state_cov_hist: Optional[List[np.ndarray]] = None
     sensor_bias: Optional[np.ndarray] = None
     est_sensor_bias: Optional[np.ndarray] = None
@@ -54,25 +61,60 @@ class RunResults:
                 attr = mapping[key]
                 if getattr(self, attr) is None:
                     setattr(self, attr, [])
-                if key in ["state", "est_state", "target", "w_target", "boresight", "clean_sensor", "sensor", "control"]:
+                if key in ["state", "est_state"]:
+                    getattr(self, attr).append(val.copy())
+                elif key in ["target", "w_target", "boresight", "clean_sensor", "sensor", "control"]:
                     getattr(self, attr).append(np.asarray(val).copy())
                 else:
                     getattr(self, attr).append(val)
 
     def flatten(self) -> Dict[str, Any]:
         data = self.__dict__.copy()
-        if data.get("os_hist"):
+        if _has_items(data.get("os_hist")):
             data["os_hist"] = [os.to_dict() if hasattr(os, "to_dict") else os for os in data["os_hist"]]
-        if data.get("est_os_hist"):
+        if _has_items(data.get("est_os_hist")):
             data["est_os_hist"] = [os.to_dict() if hasattr(os, "to_dict") else os for os in data["est_os_hist"]]
+        if _has_items(data.get("state_hist")):
+            data["state_hist"] = [state.to_dict() for state in data["state_hist"]]
+        if _has_items(data.get("est_state_hist")):
+            data["est_state_hist"] = [state.to_dict() for state in data["est_state_hist"]]
         return data
 
     @classmethod
     def inflate(cls, data: Dict[str, Any], ephem: Any = None) -> RunResults:
+        if _has_items(data.get("state_hist")):
+            data["state_hist"] = [
+                item if isinstance(item, State) else (
+                    State.from_dict(item) if isinstance(item, dict) else State.from_array(item)
+                )
+                for item in data["state_hist"]
+            ]
+        if _has_items(data.get("est_state_hist")):
+            est_sat = data.get("est_satellite")
+            covariances = data.get("state_cov_hist")
+            if covariances is None:
+                covariances = []
+            converted = []
+            for index, item in enumerate(data["est_state_hist"]):
+                if isinstance(item, EstimatorState):
+                    converted.append(item)
+                elif isinstance(item, dict):
+                    converted.append(EstimatorState.from_dict(item))
+                else:
+                    cov = covariances[index] if index < len(covariances) else None
+                    converted.append(EstimatorState.from_estimator_array(
+                        item,
+                        n_rw=getattr(est_sat, "number_RW", 0),
+                        n_act_bias=getattr(est_sat, "act_bias_len", 0),
+                        n_sens_bias=getattr(est_sat, "att_sens_bias_len", 0),
+                        n_dist_param=getattr(est_sat, "dist_param_len", 0),
+                        cov=cov,
+                    ))
+            data["est_state_hist"] = converted
         if ephem is not None:
-            if data.get("os_hist"):
+            if _has_items(data.get("os_hist")):
                 data["os_hist"] = [Orbital_State.from_dict(d, ephem=ephem) for d in data["os_hist"]]
-            if data.get("est_os_hist"):
+            if _has_items(data.get("est_os_hist")):
                 data["est_os_hist"] = [Orbital_State.from_dict(d, ephem=ephem) for d in data["est_os_hist"]]
         return cls(**data)
 
@@ -92,6 +134,7 @@ class SimulationResults:
         file_path = out_path / f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sim"
         
         serializable_data = {
+            "schema_version": 2,
             "runs": [r.flatten() for r in self.runs],
             "configs": self.configs,
             "run_ids": self.run_ids
@@ -137,7 +180,13 @@ class SimulationResults:
         return self.runs[0]
 
     def stack_state(self) -> np.ndarray:
-        return np.stack([np.asarray(r.state_hist) for r in self.runs], axis=0)
+        return np.stack([State.stack(r.state_hist) for r in self.runs], axis=0)
+
+    def stack_estimated_state(self) -> np.ndarray:
+        return np.stack(
+            [np.vstack([state.as_estimator_array() for state in r.est_state_hist]) for r in self.runs],
+            axis=0,
+        )
 
     def stack_control(self) -> np.ndarray:
         return np.stack([np.vstack(r.control_hist) for r in self.runs], axis=0)

@@ -8,6 +8,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_factory.sensors import create_bct_nst, create_generic_star_tracker, create_terma_t1
 from ADCS.satellite_hardware.errors import AnisotropicNoise
 from ADCS.satellite_hardware.sensors import StarTracker
+from ADCS.state import State
 
 
 def make_tracker(
@@ -35,16 +36,17 @@ def make_orbital_state() -> Orbital_State:
     )
 
 
-def central_difference_jacobian(tracker: StarTracker, state: np.ndarray, orbital_state: Orbital_State, star_vector: np.ndarray, eps: float = 1e-7):
+def central_difference_jacobian(tracker: StarTracker, state: State, orbital_state: Orbital_State, star_vector: np.ndarray, eps: float = 1e-7):
     def measurement(candidate):
         quaternion = candidate[3:7]
         return rot_mat(quaternion).T @ star_vector
 
-    numeric = np.zeros((state.size, 3))
-    for index in range(state.size):
-        delta = np.zeros(state.size)
+    state_array = state.as_array()
+    numeric = np.zeros((state_array.size, 3))
+    for index in range(state_array.size):
+        delta = np.zeros(state_array.size)
         delta[index] = eps
-        numeric[index] = (measurement(state + delta) - measurement(state - delta)) / (2.0 * eps)
+        numeric[index] = (measurement(state_array + delta) - measurement(state_array - delta)) / (2.0 * eps)
     return numeric
 
 
@@ -133,7 +135,7 @@ def test_visible_star_count_grows_with_wider_fov():
 
 def test_star_tracker_clean_reading_is_unit_vector_when_visible():
     tracker = make_tracker()
-    reading = tracker.clean_reading(np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]), make_orbital_state())
+    reading = tracker.clean_reading(State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0]), make_orbital_state())
     if not np.any(np.isnan(reading)):
         assert abs(np.linalg.norm(reading) - 1.0) < 1e-10
 
@@ -142,7 +144,7 @@ def test_star_tracker_clean_reading_matches_attitude_transform():
     tracker = make_tracker()
     orbital_state = make_orbital_state()
     quaternion = random_n_unit_vec(4)
-    state = np.concatenate([np.zeros(3), quaternion])
+    state = State(w=np.zeros(3), q=quaternion)
     reading = tracker.clean_reading(state, orbital_state)
     if not np.any(np.isnan(reading)) and tracker.current_star is not None:
         expected = rot_mat(quaternion).T @ tracker.current_star.s_eci
@@ -151,7 +153,7 @@ def test_star_tracker_clean_reading_matches_attitude_transform():
 
 def test_star_tracker_returns_nan_when_no_star_is_visible():
     tracker = make_tracker(boresight=np.array([1.0, 0.0, 0.0]), fov_deg=0.001, sun_exclusion_deg=25.0)
-    reading = tracker.clean_reading(np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]), make_orbital_state())
+    reading = tracker.clean_reading(State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0]), make_orbital_state())
     assert np.all(np.isnan(reading))
 
 
@@ -160,7 +162,7 @@ def test_star_tracker_jacobian_matches_finite_difference():
     orbital_state = make_orbital_state()
     quaternion = np.array([0.9, 0.2, 0.3, 0.1])
     quaternion = quaternion / np.linalg.norm(quaternion)
-    state = np.concatenate([np.zeros(3), quaternion])
+    state = State(w=np.zeros(3), q=quaternion)
     reading = tracker.clean_reading(state, orbital_state)
     if not np.any(np.isnan(reading)) and tracker.current_star is not None:
         analytic = tracker.basestate_jac(state, orbital_state)
@@ -170,12 +172,12 @@ def test_star_tracker_jacobian_matches_finite_difference():
 
 def test_star_tracker_jacobian_has_zero_omega_block():
     tracker = make_tracker()
-    jacobian = tracker.basestate_jac(np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]), make_orbital_state())
+    jacobian = tracker.basestate_jac(State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0]), make_orbital_state())
     np.testing.assert_allclose(jacobian[0:3, :], np.zeros((3, 3)), atol=1e-15)
 
 
 def test_star_tracker_bias_jacobian_is_empty():
-    jacobian = make_tracker().bias_jac(np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]), make_orbital_state())
+    jacobian = make_tracker().bias_jac(State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0]), make_orbital_state())
     assert jacobian.shape == (0, 3)
 
 

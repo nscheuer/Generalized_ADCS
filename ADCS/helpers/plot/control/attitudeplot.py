@@ -9,6 +9,7 @@ from matplotlib.widgets import Button, RadioButtons
 
 from ..subplot import Subplot
 from ADCS.helpers.math_helpers import rot_mat
+from ADCS.state import State
 
 
 def _normalize_attitude_sources(sources: Optional[list[str]]) -> list[str]:
@@ -168,7 +169,7 @@ class AttitudePlot(Subplot):
         if X is None or len(X) == 0:
             return None
 
-        X = np.asarray(X)
+        X = State.stack(X)
         if X.ndim != 2 or X.shape[1] < 7:
             return None
 

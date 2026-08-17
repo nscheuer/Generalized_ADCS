@@ -6,6 +6,7 @@ from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.helpers.math_constants import MathConstants
+from ADCS.state import State
 
 _UV = MathConstants.unitvecs
 
@@ -33,7 +34,7 @@ def test_dynamics_Hessians_actuator_block_now_dispatches_correctly():
     sat = _sat_no_disturbances()
     os = _os()
     q = np.array([0.7, 0.3, -0.4, 0.5]); q /= np.linalg.norm(q)
-    x = np.concatenate([[0.02, -0.01, 0.015], q, [1.0, 0.8, -0.6]])
+    x = State(w=[0.02, -0.01, 0.015], q=q, h=[1.0, 0.8, -0.6])
     u = np.zeros(len(sat.actuators))
 
     H = sat.dynamics_Hessians(x, u, os)

@@ -3,6 +3,7 @@ import pytest
 
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.state import State
 
 from testing.test_satellite._helpers import make_rws
 
@@ -40,7 +41,7 @@ def test_update_rwhs_accepts_full_state_or_direct_momenta():
     sat.update_RWhs(new_h)
     assert np.allclose(sat.RWhs(), new_h)
 
-    x = np.concatenate([0.01 * MathConstants.unitvecs[0], MathConstants.zeroquat, new_h])
+    x = State(w=0.01 * MathConstants.unitvecs[0], q=MathConstants.zeroquat, h=new_h)
     sat.update_RWhs(x)
     assert np.allclose(sat.RWhs(), new_h)
 

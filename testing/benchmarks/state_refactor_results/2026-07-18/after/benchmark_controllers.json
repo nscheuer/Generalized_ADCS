@@ -1,0 +1,71 @@
+{
+  "benchmarks": {
+    "bdot_find_u_steady_state": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0009731630860639067,
+      "seconds": 6.4915166015921955e-06
+    },
+    "mtq_lovera_find_u": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.016859061138538627,
+      "seconds": 0.0001124589257806008
+    },
+    "mtq_w_rw_find_u": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.016601779299357702,
+      "seconds": 0.00011074271874988995
+    },
+    "mtq_w_rw_lp_desat_find_u": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.01233908297512716,
+      "seconds": 8.230826171740091e-05
+    },
+    "mtq_w_rw_lp_pointing_find_u": {
+      "loops": 32,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.14044956395219188,
+      "seconds": 0.0009368734687313918
+    },
+    "mtq_w_rw_qp_find_u": {
+      "loops": 128,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0883212178603027,
+      "seconds": 0.0005891496093752835
+    },
+    "mtq_w_rw_qpc_find_u": {
+      "loops": 16,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.719220980556718,
+      "seconds": 0.004797587374980594
+    },
+    "mtq_w_rw_qpg_find_u": {
+      "loops": 32,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.20227287867489083,
+      "seconds": 0.0013492679374849104
+    },
+    "mtq_w_rw_qpw_find_u": {
+      "loops": 32,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.22613578112920307,
+      "seconds": 0.0015084462187644476
+    },
+    "mtq_wisniewski_find_u": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.021847074886959396,
+      "seconds": 0.0001457316367172723
+    }
+  },
+  "calibration_loops": 8,
+  "calibration_seconds": 0.006670533124975009,
+  "description": "Controllers fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

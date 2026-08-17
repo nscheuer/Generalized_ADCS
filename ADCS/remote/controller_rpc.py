@@ -28,6 +28,7 @@ from ADCS.estimators.attitude_estimators import Attitude_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbital_state import Ephemeris, Orbital_State
+from ADCS.state import EstimatorState, State
 
 
 class ComponentLocation(str, Enum):
@@ -114,6 +115,8 @@ def _xmlrpc_safe(value: Any) -> Any:
 
     if isinstance(value, EstimatedOrbital_State):
         return _estimated_orbital_state_to_payload(value)
+    if isinstance(value, State):
+        return _state_to_payload(value)
     if isinstance(value, np.ndarray):
         return value.tolist()
     if isinstance(value, np.generic):
@@ -123,6 +126,24 @@ def _xmlrpc_safe(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_xmlrpc_safe(item) for item in value]
     return value
+
+
+def _state_to_payload(state: State) -> dict[str, Any]:
+    return _xmlrpc_safe({
+        "schema_version": 1,
+        "kind": "estimated" if isinstance(state, EstimatorState) else "physical",
+        **state.to_dict(),
+    })
+
+
+def _state_from_payload(payload: dict[str, Any]) -> State:
+    if payload.get("schema_version") != 1:
+        raise ValueError(f"Unsupported state payload schema {payload.get('schema_version')!r}")
+    if payload.get("kind") == "estimated":
+        return EstimatorState.from_dict(payload)
+    if payload.get("kind") == "physical":
+        return State.from_dict(payload)
+    raise ValueError(f"Unsupported state payload kind {payload.get('kind')!r}")
 
 
 def _goal_from_payload(payload: dict[str, Any]) -> Goal:
@@ -299,7 +320,7 @@ class RemoteControllerService:
         """
         _print_remote_marker("C")
         start = time.perf_counter()
-        x_hat = np.asarray(payload["x_hat"], dtype=float)
+        x_hat = _state_from_payload(payload["x_hat"])
         sens = np.asarray(payload["sens"], dtype=float)
         os_hat = _os_from_payload(payload.get("os_hat"))
         goal = _goal_from_payload(payload.get("goal", {"kind": "No_Goal"}))
@@ -358,7 +379,7 @@ class RemoteAttitudeEstimatorService:
         x_hat = self.estimator.update(u=u, sensors=sensors, os=os_hat)
         end = time.perf_counter()
         return {
-            "x_hat": np.asarray(x_hat, dtype=float).reshape(-1).tolist(),
+            "x_hat": _state_to_payload(x_hat),
             "server_compute_s": end - start,
         }
 
@@ -451,7 +472,7 @@ class RemoteCompositeService:
 
         _print_remote_marker("C")
         start = time.perf_counter()
-        x_hat = np.asarray(payload["x_hat"], dtype=float)
+        x_hat = _state_from_payload(payload["x_hat"])
         sens = np.asarray(payload["sens"], dtype=float)
         os_hat = _os_from_payload(payload.get("os_hat"))
         goal = _goal_from_payload(payload.get("goal", {"kind": "No_Goal"}))
@@ -520,7 +541,7 @@ class RemoteCompositeService:
             x_hat = self.estimator.update(u=u, sensors=sensors, os=os_hat)
             end = time.perf_counter()
             return {
-                "x_hat": np.asarray(x_hat, dtype=float).reshape(-1).tolist(),
+                "x_hat": _state_to_payload(x_hat),
                 "server_compute_s": end - start,
             }
 
@@ -639,13 +660,13 @@ class RemoteControllerProxy:
         """
         return self._base.ping()
 
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: Any, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: Any, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         """Execute remote controller command synthesis.
 
         :param x_hat:
-            Estimated state vector for controller input.
+            State estimate for controller input.
         :type x_hat:
-            numpy.ndarray
+            ADCS.state.State or ADCS.state.EstimatorState
 
         :param sens:
             Sensor measurement vector for controller input.
@@ -673,7 +694,7 @@ class RemoteControllerProxy:
             numpy.ndarray
         """
         payload = {
-            "x_hat": np.asarray(x_hat, dtype=float).reshape(-1).tolist(),
+            "x_hat": _state_to_payload(x_hat),
             "sens": np.asarray(sens, dtype=float).reshape(-1).tolist(),
             "os_hat": _os_to_payload(os_hat),
             "goal": _goal_to_payload(goal),
@@ -722,7 +743,7 @@ class RemoteAttitudeEstimatorProxy:
         """
         return self._base.ping()
 
-    def update(self, u: np.ndarray, sensors: list[np.ndarray], os: Orbital_State) -> np.ndarray:
+    def update(self, u: np.ndarray, sensors: list[np.ndarray], os: Orbital_State) -> EstimatorState:
         """Execute one remote attitude-estimator update.
 
         :param u:
@@ -741,9 +762,9 @@ class RemoteAttitudeEstimatorProxy:
             :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return:
-            Updated attitude-state estimate vector.
+            Updated attitude estimator state.
         :rtype:
-            numpy.ndarray
+            :class:`~ADCS.state.EstimatorState`
         """
         payload = {
             "component": "attitude_estimator",
@@ -752,7 +773,7 @@ class RemoteAttitudeEstimatorProxy:
             "os": _os_to_payload(os),
         }
         response = self._base._call("update", payload)
-        return np.asarray(response["x_hat"], dtype=float).reshape(-1)
+        return _state_from_payload(response["x_hat"])
 
 
 class RemoteOrbitEstimatorProxy:

@@ -1,12 +1,15 @@
 import numpy as np
 import pytest
 
+from ADCS.CONOPS.goals import No_Goal
 from ADCS.controller import MTQ_w_RW_QPC
+from ADCS.state import State
 
 from testing.test_controllers._mtq_rw_qp_test_helpers import assert_command_bounds
 from testing.test_controllers._mtq_rw_qp_test_helpers import combined_actuation_matrix
 from testing.test_controllers._mtq_rw_qp_test_helpers import achieved_torque
 from testing.test_controllers._mtq_rw_qp_test_helpers import make_controller
+from testing.test_controllers._mtq_rw_qp_test_helpers import make_orbital_state
 from testing.test_controllers._mtq_rw_qp_test_helpers import make_satellite
 from testing.test_controllers._mtq_rw_qp_test_helpers import plain_bounded_lsq
 
@@ -33,6 +36,20 @@ def test_qpc_zero_torque_request_returns_zero_command(qpc_satellite, qpc_control
     np.testing.assert_allclose(u_rw, np.zeros(1))
     np.testing.assert_allclose(u_mtq, np.zeros(3))
     assert alpha == 1.0
+
+
+@pytest.mark.parametrize("h", [[], [0.0, 0.1]])
+def test_qpc_find_u_rejects_rw_momentum_size_mismatch(qpc_satellite, qpc_controller, h) -> None:
+    state = State(w=[0.01, -0.02, 0.03], q=[1.0, 0.0, 0.0, 0.0], h=h)
+
+    with pytest.raises(ValueError, match="exactly 1 reaction-wheel momentum states"):
+        qpc_controller.find_u(
+            x_hat=state,
+            sens=np.array([2.0e-5, -1.0e-5, 3.0e-5]),
+            est_sat=qpc_satellite,
+            os_hat=make_orbital_state(),
+            goal=No_Goal(),
+        )
 
 
 def test_qpc_tracks_exact_feasible_request(qpc_satellite, qpc_controller) -> None:

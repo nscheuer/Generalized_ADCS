@@ -1,41 +1,41 @@
 {
   "benchmarks": {
     "dynamics_core_mtq": {
-      "loops": 512,
+      "loops": 256,
       "max_regression": 1.5,
-      "normalized_seconds": 0.014484079017696425,
-      "seconds": 4.925258203059002e-05
+      "normalized_seconds": 0.013547910445917574,
+      "seconds": 0.00012021538671858067
     },
     "dynamics_core_plain": {
-      "loops": 8192,
+      "loops": 4096,
       "max_regression": 1.5,
-      "normalized_seconds": 0.000849627576776542,
-      "seconds": 2.8891275634101987e-06
+      "normalized_seconds": 0.0008007431539648108,
+      "seconds": 7.105276367186386e-06
     },
     "dynamics_core_reaction_wheels": {
-      "loops": 2048,
+      "loops": 512,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0055339912497631896,
-      "seconds": 1.881813525406173e-05
+      "normalized_seconds": 0.005287774428920967,
+      "seconds": 4.692028710928664e-05
     },
     "dynamics_for_solver_full_stack": {
-      "loops": 128,
-      "max_regression": 1.5,
-      "normalized_seconds": 0.06149162184066688,
-      "seconds": 0.00020910001562413072
-    },
-    "noiseless_rk4_full_stack": {
       "loops": 64,
       "max_regression": 1.5,
-      "normalized_seconds": 0.19153159194374733,
-      "seconds": 0.0006512961874989287
+      "normalized_seconds": 0.057366815665633925,
+      "seconds": 0.0005090359843746839
+    },
+    "noiseless_rk4_full_stack": {
+      "loops": 32,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.17973029810703472,
+      "seconds": 0.0015948103125005275
     }
   },
-  "calibration_loops": 16,
-  "calibration_seconds": 0.0034004634999860173,
-  "description": "Satellite dynamics fast benchmark results normalized by calibration_seconds.",
-  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "calibration_loops": 8,
+  "calibration_seconds": 0.00887335262500244,
+  "description": "Dynamics fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.17.0-1020-azure-x86_64-with-glibc2.39",
   "processor": "x86_64",
-  "python": "3.12.3",
+  "python": "3.12.13",
   "schema_version": 1
 }
