@@ -402,6 +402,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.helpers.save_and_load.save_and_load.html">ADCS.helpers.save_and_load.save_and_load module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.helpers.cholesky_update.html">ADCS.helpers.cholesky_update module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.helpers.math_constants.html">ADCS.helpers.math_constants module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.helpers.math_helpers.html">ADCS.helpers.math_helpers module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.helpers.simresults.html">ADCS.helpers.simresults module</a></li>
@@ -546,8 +547,12 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 
-<span class="c1"># The external C-library wrapper for fast Cholesky updates</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">choldate</span><span class="w"> </span><span class="kn">import</span> <span class="n">cholupdate</span><span class="p">,</span> <span class="n">choldowndate</span>
+<span class="c1"># Rank-1 Cholesky update/downdate. Formerly the external `choldate` package,</span>
+<span class="c1"># which has no PyPI release and had to be installed from git -- which made the</span>
+<span class="c1"># whole package impossible to `pip install` cleanly. Now in-tree, matching</span>
+<span class="c1"># choldate to ~1e-15 but raising NaN on a non-positive-definite downdate where</span>
+<span class="c1"># choldate silently returned a wrong factor (see ADCS/helpers/cholesky_update).</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.cholesky_update</span><span class="w"> </span><span class="kn">import</span> <span class="n">cholupdate</span><span class="p">,</span> <span class="n">choldowndate</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>

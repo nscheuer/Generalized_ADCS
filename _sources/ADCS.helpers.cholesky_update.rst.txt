@@ -1,0 +1,7 @@
+ADCS.helpers.cholesky\_update module
+====================================
+
+.. automodule:: ADCS.helpers.cholesky_update
+   :members:
+   :show-inheritance:
+   :undoc-members:

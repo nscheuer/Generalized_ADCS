@@ -18,6 +18,7 @@ Submodules
 .. toctree::
    :maxdepth: 1
 
+   ADCS.helpers.cholesky_update
    ADCS.helpers.math_constants
    ADCS.helpers.math_helpers
    ADCS.helpers.simresults
