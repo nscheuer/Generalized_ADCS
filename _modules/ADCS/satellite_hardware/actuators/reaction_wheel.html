@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -540,6 +541,8 @@
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;RW&quot;</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.actuators.actuator</span><span class="w"> </span><span class="kn">import</span> <span class="n">Actuator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors.bias</span><span class="w"> </span><span class="kn">import</span> <span class="n">Bias</span>
@@ -700,7 +703,7 @@
 
 <div class="viewcode-block" id="RW.torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.torque">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the reaction-wheel torque vector applied to the spacecraft body.</span>
 
@@ -725,7 +728,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft state vector (passed through for interface compatibility).</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state providing time tag (e.g., :attr:`~ADCS.orbits.orbital_state.Orbital_State.J2000`) for bias evolution.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -819,7 +822,7 @@
 
 <div class="viewcode-block" id="RW.storage_torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.storage_torque">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">storage_torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">storage_torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the internal torque acting on the wheel (equal and opposite to the body torque).</span>
 
@@ -844,7 +847,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft state vector (passed through for interface compatibility).</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state providing time tag (e.g., :attr:`~ADCS.orbits.orbital_state.Orbital_State.J2000`) for bias evolution.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -949,7 +952,7 @@
 
 <div class="viewcode-block" id="RW.dtorq__du">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__du">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__du</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__du</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}/\partial u`.</span>
 
@@ -972,7 +975,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -985,7 +988,7 @@
 
 <div class="viewcode-block" id="RW.dtorq__dh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__dh">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__dh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__dh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}/\partial \mathbf{h}`.</span>
 
@@ -1001,7 +1004,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1014,7 +1017,7 @@
     
 <div class="viewcode-block" id="RW.ddtorq__dudh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dudh">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dudh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dudh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial u\,\partial \mathbf{h}`.</span>
 
@@ -1028,7 +1031,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1041,7 +1044,7 @@
     
 <div class="viewcode-block" id="RW.ddtorq__dbiasdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dbiasdh">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbiasdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbiasdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial b\,\partial \mathbf{h}`.</span>
 
@@ -1059,7 +1062,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1075,7 +1078,7 @@
         
 <div class="viewcode-block" id="RW.ddtorq__dbasestatedh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dbasestatedh">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbasestatedh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbasestatedh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial \mathbf{x}_{\mathrm{base}}\,\partial \mathbf{h}`.</span>
 
@@ -1091,7 +1094,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1104,7 +1107,7 @@
     
 <div class="viewcode-block" id="RW.ddtorq__dhdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dhdh">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dhdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dhdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial \mathbf{h}^2`.</span>
 
@@ -1118,7 +1121,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1131,7 +1134,7 @@
     
 <div class="viewcode-block" id="RW.dstor_torq__du">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__du">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__du</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__du</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u`.</span>
 
@@ -1155,7 +1158,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1168,7 +1171,7 @@
     
 <div class="viewcode-block" id="RW.dstor_torq__dbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dbias">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b`.</span>
 
@@ -1187,7 +1190,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1203,7 +1206,7 @@
         
 <div class="viewcode-block" id="RW.dstor_torq__dbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dbasestate">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{x}_{\mathrm{base}}`.</span>
 
@@ -1218,7 +1221,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1231,7 +1234,7 @@
     
 <div class="viewcode-block" id="RW.dstor_torq__dh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dh">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{h}`.</span>
 
@@ -1246,7 +1249,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1259,7 +1262,7 @@
     
 <div class="viewcode-block" id="RW.ddstor_torq__dudu">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudu">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u^2`.</span>
 
@@ -1279,7 +1282,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1292,7 +1295,7 @@
     
 <div class="viewcode-block" id="RW.ddstor_torq__dudbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbias">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u\,\partial b`.</span>
 
@@ -1306,7 +1309,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1322,7 +1325,7 @@
         
 <div class="viewcode-block" id="RW.ddstor_torq__dudbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbasestate">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u\,\partial \mathbf{x}_{\mathrm{base}}`.</span>
 
@@ -1337,7 +1340,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1350,7 +1353,7 @@
     
 <div class="viewcode-block" id="RW.ddstor_torq__dudh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudh">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u\,\partial \mathbf{h}`.</span>
 
@@ -1364,7 +1367,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1377,7 +1380,7 @@
     
 <div class="viewcode-block" id="RW.ddstor_torq__dbiasdbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdbias">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b^2`.</span>
 
@@ -1391,7 +1394,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1407,7 +1410,7 @@
         
 <div class="viewcode-block" id="RW.ddstor_torq__dbiasdbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdbasestate">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b\,\partial \mathbf{x}_{\mathrm{base}}`.</span>
 
@@ -1421,7 +1424,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1437,7 +1440,7 @@
         
 <div class="viewcode-block" id="RW.ddstor_torq__dbiasdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdh">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b\,\partial \mathbf{h}`.</span>
 
@@ -1451,7 +1454,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1467,7 +1470,7 @@
 
 <div class="viewcode-block" id="RW.ddstor_torq__dbasestatedbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbasestatedbasestate">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbasestatedbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbasestatedbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{x}_{\mathrm{base}}^2`.</span>
 
@@ -1481,7 +1484,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1494,7 +1497,7 @@
     
 <div class="viewcode-block" id="RW.ddstor_torq__dbasestatedh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbasestatedh">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbasestatedh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbasestatedh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{x}_{\mathrm{base}}\,\partial \mathbf{h}`.</span>
 
@@ -1508,7 +1511,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1521,7 +1524,7 @@
     
 <div class="viewcode-block" id="RW.ddstor_torq__dhdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dhdh">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dhdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dhdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{h}^2`.</span>
 
@@ -1535,7 +1538,7 @@
 <span class="sd">        :type u: float</span>
 
 <span class="sd">        :param x: Spacecraft base state.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>

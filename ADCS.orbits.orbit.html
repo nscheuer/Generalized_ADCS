@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -667,7 +668,7 @@ directly.</p>
 <dd class="field-even"><p>Orbital state at the specified time.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State">Orbital_State</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State">Orbital_State</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>ValueError</strong> – If the requested time lies outside the orbit span.</p>
@@ -691,7 +692,7 @@ directly.</p>
 <dd class="field-even"><p>New orbit or orbital state(s) within the given time range.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit">Orbit</a> or <a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State">Orbital_State</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit">Orbit</a> or <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State">Orbital_State</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>ValueError</strong> – If the time bounds are invalid or outside the orbit span.</p>
@@ -767,13 +768,13 @@ directly.</p>
 <dd><p>Return the next available orbital state after a given time.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>input</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State"><em>Orbital_State</em></a><em> or </em><em>float</em>) – Reference time or orbital state.</p>
+<dd class="field-odd"><p><strong>input</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a><em> or </em><em>float</em>) – Reference time or orbital state.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Next orbital state in chronological order.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State">Orbital_State</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State">Orbital_State</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>ValueError</strong> – If the input time lies outside the orbit span.</p>

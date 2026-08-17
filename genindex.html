@@ -497,6 +497,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -546,14 +547,10 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.plot.subplot.html#ADCS.helpers.plot.subplot.ABC">ABC (class in ADCS.helpers.plot.subplot)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.absolute">absolute() (ADCS.helpers.simresults.Path method)</a>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.act_bias">act_bias (ADCS.state.EstimatorState attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.act_torque">act_torque() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.act_torque">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.act_torque">act_torque() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase.active_trajectory">active_trajectory (ADCS.controller.plan_and_track_base.PlanAndTrackBase attribute)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator">Actuator (class in ADCS.satellite_hardware.actuators.actuator)</a>
@@ -1218,8 +1215,6 @@
           <li><a href="ADCS.helpers.plot.states.html#module-ADCS.helpers.plot.states">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     ADCS.helpers.plot.states.angularvelocityplot
 
@@ -1234,6 +1229,8 @@
           <li><a href="ADCS.helpers.plot.states.quaternionplot.html#module-ADCS.helpers.plot.states.quaternionplot">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     ADCS.helpers.plot.subplot
 
@@ -1766,8 +1763,23 @@
           <li><a href="ADCS.simulate_remote.html#module-ADCS.simulate_remote">module</a>
 </li>
         </ul></li>
+        <li>
+    ADCS.state
+
+        <ul>
+          <li><a href="ADCS.state.html#module-ADCS.state">module</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.satellite_hardware.errors.helpers.error_mode.html#ADCS.satellite_hardware.errors.helpers.error_mode.ErrorMode.add_bias">add_bias (ADCS.satellite_hardware.errors.helpers.error_mode.ErrorMode attribute)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.add_error">add_error() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.add_error">(ADCS.state.EstimatorState method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.add_error">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.CONOPS.goallist.goallist.html#ADCS.CONOPS.goallist.goallist.GoalList.add_goal">add_goal() (ADCS.CONOPS.goallist.goallist.GoalList method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.errors.helpers.error_mode.html#ADCS.satellite_hardware.errors.helpers.error_mode.ErrorMode.add_noise">add_noise (ADCS.satellite_hardware.errors.helpers.error_mode.ErrorMode attribute)</a>
@@ -1828,9 +1840,15 @@
 </li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.antivelocity_goal.html#ADCS.CONOPS.goals.vector_goals.antivelocity_goal.AntiVelocity_Goal">AntiVelocity_Goal (class in ADCS.CONOPS.goals.vector_goals.antivelocity_goal)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Any">Any (class in ADCS.helpers.simresults)</a>
+        <li><a href="ADCS.state.html#ADCS.state.Any">Any (class in ADCS.state)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.astimezone">astimezone() (ADCS.helpers.simresults.datetime method)</a>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.as_array">as_array() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.as_array">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.as_estimator_array">as_estimator_array() (ADCS.state.EstimatorState method)</a>
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator">Attitude_Estimator (class in ADCS.estimators.attitude_estimators.attitude_estimator)</a>
 </li>
@@ -1846,12 +1864,10 @@
         </ul></li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig">AugLagConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.average">average() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.average">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.augmented_size">augmented_size (ADCS.state.EstimatorState property)</a>
 </li>
-        </ul></li>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.average">average() (ADCS.orbits.orbital_state.Orbital_State method)</a>
+</li>
     </ul></td>
   </tr></table>
 </section>
@@ -1954,8 +1970,6 @@
         </ul></li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.cayley_to_quat">cayley_to_quat() (in module ADCS.helpers.math_helpers)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.chmod">chmod() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li><a href="ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.claim_worker_slot">claim_worker_slot() (in module ADCS.mc.monte_carlo_runner)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor.clean_reading">clean_reading() (ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor method)</a>
@@ -1980,8 +1994,6 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.cleanUpAfterAlilqr">cleanUpAfterAlilqr() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.combine">combine() (ADCS.helpers.simresults.datetime class method)</a>
-</li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.ComponentLocation">ComponentLocation (class in ADCS.remote.controller_rpc)</a>
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.compute_tracking_control">compute_tracking_control() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
@@ -1994,12 +2006,8 @@
 </li>
         <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.constraints">constraints (ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.control_cov">control_cov() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov">control_cov() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.control_hist">control_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
         <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.control_limit_scale">control_limit_scale (ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig attribute)</a>
@@ -2010,12 +2018,8 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.control_rpc_time_hist">control_rpc_time_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.control_srcov">control_srcov() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_srcov">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_srcov">control_srcov() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig.controller">controller (ADCS.remote.controller_rpc.RemoteSimulationConfig attribute)</a>
 </li>
         <li><a href="ADCS.controller.controller.html#ADCS.controller.controller.Controller">Controller (class in ADCS.controller.controller)</a>
@@ -2028,20 +2032,18 @@
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.controls">controls (ADCS.controller.helpers.trajectory.Trajectory attribute)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig.convergence">convergence (ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig attribute)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig">ConvergenceConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.coordinate_goal.html#ADCS.CONOPS.goals.vector_goals.coordinate_goal.Coordinate_Goal">Coordinate_Goal (class in ADCS.CONOPS.goals.vector_goals.coordinate_goal)</a>
 </li>
-        <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.copy">copy() (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray method)</a>
+        <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.copy">copy() (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State method)</a>
 
         <ul>
-          <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.copy">(ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State method)</a>
-</li>
-          <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.copy">(ADCS.helpers.simresults.Orbital_State method)</a>
+          <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.copy">(ADCS.helpers.plot.states.quaternionplot.State method)</a>
 </li>
           <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.copy">(ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
@@ -2050,6 +2052,10 @@
           <li><a href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias.copy">(ADCS.satellite_hardware.errors.bias.Bias method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise.copy">(ADCS.satellite_hardware.errors.noise.Noise method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.copy">(ADCS.state.EstimatorState method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.copy">(ADCS.state.State method)</a>
 </li>
         </ul></li>
         <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.cost">cost (ADCS.controller.saltro.SALTRO_pass_settings.PassConfig attribute)</a>
@@ -2060,7 +2066,7 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights">CostWeights (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
-        <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.cov">cov (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray attribute)</a>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.cov">cov (ADCS.state.EstimatorState attribute)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.errors.anisotropicnoise.html#ADCS.satellite_hardware.errors.anisotropicnoise.AnisotropicNoise.cov">cov() (ADCS.satellite_hardware.errors.anisotropicnoise.AnisotropicNoise method)</a>
 
@@ -2106,16 +2112,12 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase.csat">csat (ADCS.controller.plan_and_track_base.PlanAndTrackBase attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.ctime">ctime() (ADCS.helpers.simresults.datetime method)</a>
-</li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.ctrl_dim">ctrl_dim (ADCS.controller.helpers.trajectory.Trajectory attribute)</a>
 
         <ul>
           <li><a href="ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase.ctrl_dim">(ADCS.controller.plan_and_track_base.PlanAndTrackBase attribute)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.cwd">cwd() (ADCS.helpers.simresults.Path class method)</a>
-</li>
     </ul></td>
   </tr></table>
 </section>
@@ -2124,16 +2126,12 @@
   <h2>D</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.dataclass">dataclass() (in module ADCS.helpers.simresults)</a>
+        <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.dataclass">dataclass() (in module ADCS.mc.mcconfig)</a>
 
         <ul>
-          <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.dataclass">(in module ADCS.mc.mcconfig)</a>
+          <li><a href="ADCS.state.html#ADCS.state.dataclass">(in module ADCS.state)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.date">date() (ADCS.helpers.simresults.datetime method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime">datetime (class in ADCS.helpers.simresults)</a>
-</li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.dcm_to_quat">dcm_to_quat() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.ddrotmatTvecdqdq">ddrotmatTvecdqdq() (in module ADCS.helpers.math_helpers)</a>
@@ -2252,6 +2250,8 @@
         </ul></li>
         <li><a href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dudu">ddtorq__dudu() (ADCS.satellite_hardware.actuators.actuator.Actuator method)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner">DebugPlanner (class in ADCS.controller.plan_and_track.debug_planner)</a>
 </li>
         <li><a href="ADCS.environment.star_catalog.html#ADCS.environment.star_catalog.NavigationStar.dec_rad">dec_rad (ADCS.environment.star_catalog.NavigationStar attribute)</a>
@@ -2260,37 +2260,25 @@
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.determine_covariances_to_use">determine_covariances_to_use() (ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF method)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.satellite_hardware.disturbances.dipole_disturbance.html#ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance">Dipole_Disturbance (class in ADCS.satellite_hardware.disturbances.dipole_disturbance)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track_lqr_disturbed.html#ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed.dist_estimate">dist_estimate (ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed attribute)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track_lqr_disturbed.html#ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed.dist_gain">dist_gain (ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.dist_torque_hess">dist_torque_hess() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.dist_param">dist_param (ADCS.state.EstimatorState attribute)</a>
+</li>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torque_hess">dist_torque_hess() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
 
         <ul>
-          <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.dist_torque_hess">(ADCS.helpers.simresults.Satellite method)</a>
-</li>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torque_hess">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
-</li>
           <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torque_hess">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.dist_torques">dist_torques() (ADCS.helpers.simresults.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques">dist_torques() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+</li>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torques_jacobian">dist_torques_jacobian() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
 
         <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
-</li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.dist_torques_jacobian">dist_torques_jacobian() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.dist_torques_jacobian">(ADCS.helpers.simresults.Satellite method)</a>
-</li>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torques_jacobian">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
-</li>
           <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques_jacobian">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
         </ul></li>
@@ -2301,8 +2289,6 @@
         <li><a href="ADCS.satellite_hardware.disturbances.drag_disturbance.html#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance">Drag_Disturbance (class in ADCS.satellite_hardware.disturbances.drag_disturbance)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.drotmatTvecdq">drotmatTvecdq() (in module ADCS.helpers.math_helpers)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.dst">dst() (ADCS.helpers.simresults.datetime method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.dstor_torq__dbasestate">dstor_torq__dbasestate() (ADCS.satellite_hardware.actuators.actuator.Actuator method)</a>
 
@@ -2358,37 +2344,21 @@
         </ul></li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.dynamics">dynamics() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.dynamics_core">dynamics_core() (ADCS.helpers.simresults.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_core">dynamics_core() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+</li>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_for_solver">dynamics_for_solver() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+</li>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynamics_Hessians">dynamics_Hessians() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
 
         <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_core">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
-</li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.dynamics_for_solver">dynamics_for_solver() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_for_solver">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
-</li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.dynamics_Hessians">dynamics_Hessians() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.dynamics_Hessians">(ADCS.helpers.simresults.Satellite method)</a>
-</li>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynamics_Hessians">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
-</li>
           <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_Hessians">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
         </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.dynamics_time_hist">dynamics_time_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.dynJacCore">dynJacCore() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynJacCore">dynJacCore() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
 
         <ul>
-          <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.dynJacCore">(ADCS.helpers.simresults.Satellite method)</a>
-</li>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynJacCore">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
-</li>
           <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dynJacCore">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
         </ul></li>
@@ -2404,52 +2374,32 @@
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor">EarthHorizonSensor (class in ADCS.satellite_hardware.sensors.earth_horizon)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.ecef_to_eci">ecef_to_eci() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_eci">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_eci">ecef_to_eci() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.Orbit.ecef_to_eci_orbit">ecef_to_eci_orbit() (ADCS.mc.mcconfig.Orbit method)</a>
 
         <ul>
           <li><a href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.ecef_to_eci_orbit">(ADCS.orbits.orbit.Orbit method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.ecef_to_geocentric">ecef_to_geocentric() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_geocentric">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_geocentric">ecef_to_geocentric() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.echo_int">echo_int() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.eci_goal.html#ADCS.CONOPS.goals.vector_goals.eci_goal.ECI_Goal">ECI_Goal (class in ADCS.CONOPS.goals.vector_goals.eci_goal)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.eci_to_ecef">eci_to_ecef() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.eci_to_ecef">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.eci_to_ecef">eci_to_ecef() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.eci_to_enu">eci_to_enu() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.eci_to_enu">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.eci_to_enu">eci_to_enu() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.eci_goal.html#ADCS.CONOPS.goals.vector_goals.eci_goal.ECI_Goal.eci_vector">eci_vector (ADCS.CONOPS.goals.vector_goals.eci_goal.ECI_Goal attribute)</a>
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.end_time">end_time (ADCS.controller.helpers.trajectory.Trajectory attribute)</a>
 </li>
         <li><a href="ADCS.helpers.plot.close_all.html#ADCS.helpers.plot.close_all.ensure_close_all_button">ensure_close_all_button() (in module ADCS.helpers.plot.close_all)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.enu_to_eci">enu_to_eci() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.enu_to_eci">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.enu_to_eci">enu_to_eci() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.env_local_time_hist">env_local_time_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
         <li><a href="ADCS.orbits.ephemeris.html#ADCS.orbits.ephemeris.Ephemeris">Ephemeris (class in ADCS.orbits.ephemeris)</a>
@@ -2494,21 +2444,13 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.est_state_hist">est_state_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-        <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray">EstimatedArray (class in ADCS.estimators.estimator_helpers.estimator_helpers)</a>
-</li>
         <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State">EstimatedOrbital_State (class in ADCS.estimators.estimator_helpers.estimator_helpers)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite">EstimatedSatellite (class in ADCS.helpers.simresults)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite">(class in ADCS.satellite_hardware.satellite.estimated_satellite)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite">EstimatedSatellite (class in ADCS.satellite_hardware.satellite.estimated_satellite)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig.estimator">estimator (ADCS.remote.controller_rpc.RemoteSimulationConfig attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.exists">exists() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.expanduser">expanduser() (ADCS.helpers.simresults.Path method)</a>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState">EstimatorState (class in ADCS.state)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -2519,6 +2461,8 @@
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig.fallback">fallback (ADCS.remote.controller_rpc.RemoteSimulationConfig attribute)</a>
+</li>
+        <li><a href="ADCS.state.html#ADCS.state.field">field() (in module ADCS.state)</a>
 </li>
         <li><a href="ADCS.controller.controller.html#ADCS.controller.controller.Controller.find_max_torque">find_max_torque() (ADCS.controller.controller.Controller method)</a>
 </li>
@@ -2562,29 +2506,33 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.flatten">flatten() (ADCS.helpers.simresults.RunResults method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.fold">fold (ADCS.helpers.simresults.datetime attribute)</a>
-</li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.forwardPass">forwardPass() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.frame_budget_feasible_wcet">frame_budget_feasible_wcet() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.from_dict">from_dict() (ADCS.helpers.simresults.Orbital_State class method)</a>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.from_array">from_array() (ADCS.helpers.plot.states.quaternionplot.State class method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.from_array">(ADCS.state.State class method)</a>
+</li>
+        </ul></li>
+        <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.from_arrays">from_arrays() (ADCS.controller.helpers.trajectory.Trajectory class method)</a>
+</li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.from_dict">from_dict() (ADCS.helpers.plot.states.quaternionplot.State class method)</a>
 
         <ul>
           <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.from_dict">(ADCS.orbits.orbital_state.Orbital_State class method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.disturbances.helpers.geometry_config.html#ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryFace.from_dict">(ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryFace class method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.from_satellite">from_satellite() (ADCS.helpers.simresults.EstimatedSatellite class method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.from_satellite">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite class method)</a>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.from_dict">(ADCS.state.EstimatorState class method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.from_dict">(ADCS.state.State class method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.fromisoformat">fromisoformat() (ADCS.helpers.simresults.datetime class method)</a>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.from_estimator_array">from_estimator_array() (ADCS.state.EstimatorState class method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.fromtimestamp">fromtimestamp() (ADCS.helpers.simresults.datetime class method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.from_satellite">from_satellite() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite class method)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -2598,28 +2546,16 @@
 </li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.gantt_ascii">gantt_ascii() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.gen_dist_off">gen_dist_off() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_off">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_off">gen_dist_off() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.gen_dist_on">gen_dist_on() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_on">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_on">gen_dist_on() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.satellite_hardware.disturbances.general_disturbance.html#ADCS.satellite_hardware.disturbances.general_disturbance.General_Disturbance">General_Disturbance (class in ADCS.satellite_hardware.disturbances.general_disturbance)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.generateInitialTrajectory">generateInitialTrajectory() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.geocentric_to_ecef">geocentric_to_ecef() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.geocentric_to_ecef">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.geocentric_to_ecef">geocentric_to_ecef() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.Orbit.geocentric_to_ecef_orbit">geocentric_to_ecef_orbit() (ADCS.mc.mcconfig.Orbit method)</a>
 
         <ul>
@@ -2632,12 +2568,8 @@
 </li>
         <li><a href="ADCS.CONOPS.goallist.goallist.html#ADCS.CONOPS.goallist.goallist.GoalList.get_active_goal">get_active_goal() (ADCS.CONOPS.goallist.goallist.GoalList method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.get_b_eci">get_b_eci() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_b_eci">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_b_eci">get_b_eci() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.Orbit.get_b_eci_orbit">get_b_eci_orbit() (ADCS.mc.mcconfig.Orbit method)</a>
 
         <ul>
@@ -2646,12 +2578,8 @@
         </ul></li>
         <li><a href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias.get_bias">get_bias() (ADCS.satellite_hardware.errors.bias.Bias method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.get_boresight">get_boresight() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.get_boresight">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.get_boresight">get_boresight() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.get_control_at">get_control_at() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.get_cpp_to_python_control_permutation">get_cpp_to_python_control_permutation() (in module ADCS.controller.plan_and_track.build_csat)</a>
@@ -2682,18 +2610,10 @@
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.get_state_input_gain">get_state_input_gain() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.get_state_vector">get_state_vector() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_state_vector">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_state_vector">get_state_vector() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.get_sun_eci">get_sun_eci() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_sun_eci">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_sun_eci">get_sun_eci() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.get_trajectory_planner_modules">get_trajectory_planner_modules() (in module ADCS.controller.helpers.optional_dependencies)</a>
 </li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.Orbit.get_vecs">get_vecs() (ADCS.mc.mcconfig.Orbit method)</a>
@@ -2708,8 +2628,6 @@
 </li>
         <li><a href="ADCS.satellite_hardware.disturbances.gg_disturbance.html#ADCS.satellite_hardware.disturbances.gg_disturbance.GG_Disturbance">GG_Disturbance (class in ADCS.satellite_hardware.disturbances.gg_disturbance)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.glob">glob() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig.goal">goal (ADCS.mc.mcconfig.MCConfig attribute)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.goal.html#ADCS.CONOPS.goals.goal.Goal">Goal (class in ADCS.CONOPS.goals.goal)</a>
@@ -2722,24 +2640,14 @@
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.gps.html#ADCS.satellite_hardware.sensors.gps.GPS">GPS (class in ADCS.satellite_hardware.sensors.gps)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.GPS_readings">GPS_readings() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.GPS_readings">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.GPS_readings">GPS_readings() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.grad_tol">grad_tol (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.group">group() (ADCS.helpers.simresults.Path method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.gyro.html#ADCS.satellite_hardware.sensors.gyro.Gyro">Gyro (class in ADCS.satellite_hardware.sensors.gyro)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.gyro_readings">gyro_readings() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.gyro_readings">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.gyro_readings">gyro_readings() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
     </ul></td>
   </tr></table>
 </section>
@@ -2748,21 +2656,23 @@
   <h2>H</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig.h">h (ADCS.mc.mcconfig.MCConfig attribute)</a>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.h">h (ADCS.helpers.plot.states.quaternionplot.State attribute)</a>
+
+        <ul>
+          <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig.h">(ADCS.mc.mcconfig.MCConfig attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.hardlink_to">hardlink_to() (ADCS.helpers.simresults.Path method)</a>
+          <li><a href="ADCS.state.html#ADCS.state.State.h">(ADCS.state.State attribute)</a>
 </li>
+        </ul></li>
         <li><a href="ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.hessians">hessians() (ADCS.satellite_hardware.actuators.magnetotorquer.MTQ method)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig.high_settings">high_settings (ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig attribute)</a>
 </li>
         <li><a href="ADCS.environment.star_catalog.html#ADCS.environment.star_catalog.NavigationStar.hip_id">hip_id (ADCS.environment.star_catalog.NavigationStar attribute)</a>
 </li>
-        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig.hl_angle_limit">hl_angle_limit (ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig attribute)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.home">home() (ADCS.helpers.simresults.Path class method)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig.hl_angle_limit">hl_angle_limit (ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig attribute)</a>
 </li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteAttitudeEstimatorProxy.host">host (ADCS.remote.controller_rpc.RemoteAttitudeEstimatorProxy property)</a>
 
@@ -2774,8 +2684,6 @@
           <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig.host">(ADCS.remote.controller_rpc.RemoteSimulationConfig attribute)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.hour">hour (ADCS.helpers.simresults.datetime attribute)</a>
-</li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.hyperperiod_s">hyperperiod_s() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 </li>
     </ul></td>
@@ -2806,45 +2714,29 @@
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.initialize_estimate">initialize_estimate() (ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator method)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig">InitTrajConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.initTrajSettings">initTrajSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
-        <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.int_cov">int_cov (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray attribute)</a>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.int_cov">int_cov (ADCS.state.EstimatorState attribute)</a>
 </li>
-        <li><a href="ADCS.orbits.density_model.html#ADCS.orbits.density_model.DensityModel.interpolate">interpolate() (ADCS.orbits.density_model.DensityModel method)</a>
-</li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.is_block_device">is_block_device() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.is_char_device">is_char_device() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.is_dir">is_dir() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.is_fifo">is_fifo() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.is_file">is_file() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.is_junction">is_junction() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.is_mount">is_mount() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.is_socket">is_socket() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.is_sunlit">is_sunlit() (ADCS.helpers.simresults.Orbital_State method)</a>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.interpolate">interpolate() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
 
         <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.is_sunlit">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+          <li><a href="ADCS.orbits.density_model.html#ADCS.orbits.density_model.DensityModel.interpolate">(ADCS.orbits.density_model.DensityModel method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.interpolate">(ADCS.state.EstimatorState method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.interpolate">(ADCS.state.State method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.is_symlink">is_symlink() (ADCS.helpers.simresults.Path method)</a>
+        <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.interpolate_quat">interpolate_quat() (in module ADCS.helpers.math_helpers)</a>
+</li>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.is_sunlit">is_sunlit() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.is_valid_time">is_valid_time() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.isoformat">isoformat() (ADCS.helpers.simresults.datetime method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.iterdir">iterdir() (ADCS.helpers.simresults.Path method)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -2854,12 +2746,8 @@
   <h2>J</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.j2000_to_tai">j2000_to_tai() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.j2000_to_tai">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.j2000_to_tai">j2000_to_tai() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.jacobians">jacobians() (ADCS.satellite_hardware.actuators.magnetotorquer.MTQ method)</a>
@@ -2892,8 +2780,6 @@
           <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteOrbitEstimatorProxy.last_server_s">(ADCS.remote.controller_rpc.RemoteOrbitEstimatorProxy property)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.lchmod">lchmod() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.limit">limit() (in module ADCS.helpers.math_helpers)</a>
 </li>
     </ul></td>
@@ -2913,8 +2799,6 @@
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.ComponentLocation.LOCAL">LOCAL (ADCS.remote.controller_rpc.ComponentLocation attribute)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig.low_settings">low_settings (ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig attribute)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.lstat">lstat() (ADCS.helpers.simresults.Path method)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.lvlh_tangential_goal.html#ADCS.CONOPS.goals.vector_goals.lvlh_tangential_goal.LVLH_Tangential_Goal">LVLH_Tangential_Goal (class in ADCS.CONOPS.goals.vector_goals.lvlh_tangential_goal)</a>
 </li>
@@ -2942,19 +2826,13 @@
         </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults.map">map() (ADCS.helpers.simresults.SimulationResults method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.match_estimate">match_estimate() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate">match_estimate() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.helpers.math_constants.html#ADCS.helpers.math_constants.MathConstants">MathConstants (class in ADCS.helpers.math_constants)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.matrix_row_norm">matrix_row_norm() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.matrix_row_normalize">matrix_row_normalize() (in module ADCS.helpers.math_helpers)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.max">max (ADCS.helpers.simresults.datetime attribute)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.max_cost">max_cost (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
@@ -2980,20 +2858,12 @@
 </li>
         <li><a href="ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum_noiseless">measure_momentum_noiseless() (ADCS.satellite_hardware.actuators.reaction_wheel.RW method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.microsecond">microsecond (ADCS.helpers.simresults.datetime attribute)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.min">min (ADCS.helpers.simresults.datetime attribute)</a>
-</li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.Orbit.min_time">min_time() (ADCS.mc.mcconfig.Orbit method)</a>
 
         <ul>
           <li><a href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.min_time">(ADCS.orbits.orbit.Orbit method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.minute">minute (ADCS.helpers.simresults.datetime attribute)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.mkdir">mkdir() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li>
     module
 
@@ -3342,6 +3212,8 @@
 </li>
           <li><a href="ADCS.simulate_remote.html#module-ADCS.simulate_remote">ADCS.simulate_remote</a>
 </li>
+          <li><a href="ADCS.state.html#module-ADCS.state">ADCS.state</a>
+</li>
         </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
@@ -3353,12 +3225,8 @@
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.magnetometer.html#ADCS.satellite_hardware.sensors.magnetometer.MTM">MTM (class in ADCS.satellite_hardware.sensors.magnetometer)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.mtm_readings">mtm_readings() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.mtm_readings">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.mtm_readings">mtm_readings() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ">MTQ (class in ADCS.satellite_hardware.actuators.magnetotorquer)</a>
 </li>
         <li><a href="ADCS.controller.mtq_lovera.html#ADCS.controller.mtq_lovera.MTQ_Lovera">MTQ_Lovera (class in ADCS.controller.mtq_lovera)</a>
@@ -3413,28 +3281,16 @@
 </li>
         <li><a href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise">Noise (class in ADCS.satellite_hardware.errors.noise)</a>
 </li>
-        <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.noise_covariance">noise_covariance (ADCS.satellite_hardware.sensors.star_tracker.StarTracker property)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.noiseless_rk4">noiseless_rk4() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_rk4">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.noise_covariance">noise_covariance (ADCS.satellite_hardware.sensors.star_tracker.StarTracker property)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.noiseless_RW_readings">noiseless_RW_readings() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_RW_readings">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_rk4">noiseless_rk4() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.noiseless_sensor_readings">noiseless_sensor_readings() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_sensor_readings">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_RW_readings">noiseless_RW_readings() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_sensor_readings">noiseless_sensor_readings() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+</li>
         <li><a href="ADCS.controller.helpers.quaternion_math.html#ADCS.controller.helpers.quaternion_math.norm">norm() (in module ADCS.controller.helpers.quaternion_math)</a>
 
         <ul>
@@ -3447,11 +3303,17 @@
           <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.normalize">(in module ADCS.helpers.math_helpers)</a>
 </li>
         </ul></li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.normalized">normalized() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.normalized">(ADCS.state.EstimatorState method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.normalized">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.normed_vec_hess">normed_vec_hess() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.normed_vec_jac">normed_vec_jac() (in module ADCS.helpers.math_helpers)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.now">now() (ADCS.helpers.simresults.datetime class method)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -3461,8 +3323,6 @@
   <h2>O</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.open">open() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.optMainCostSettings">optMainCostSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.optSecondCostSettings">optSecondCostSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
@@ -3477,18 +3337,10 @@
           <li><a href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit">(class in ADCS.orbits.orbit)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.orbit_dynamics">orbit_dynamics() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.orbit_dynamics">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.orbit_dynamics">orbit_dynamics() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.orbit_dynamics_jacobians">orbit_dynamics_jacobians() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.orbit_dynamics_jacobians">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.orbit_dynamics_jacobians">orbit_dynamics_jacobians() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.estimators.orbit_estimators.orbit_EKF.html#ADCS.estimators.orbit_estimators.orbit_EKF.Orbit_EKF">Orbit_EKF (class in ADCS.estimators.orbit_estimators.orbit_EKF)</a>
 </li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig.orbit_estimator">orbit_estimator (ADCS.remote.controller_rpc.RemoteSimulationConfig attribute)</a>
@@ -3497,18 +3349,14 @@
 </li>
         <li><a href="ADCS.estimators.orbit_estimators.orbit_GPS.html#ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS">Orbit_GPS (class in ADCS.estimators.orbit_estimators.orbit_GPS)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State">Orbital_State (class in ADCS.helpers.simresults)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State">(class in ADCS.orbits.orbital_state)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State">Orbital_State (class in ADCS.orbits.orbital_state)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.helpers.plot.orbit.orbitdensityplot.html#ADCS.helpers.plot.orbit.orbitdensityplot.OrbitDensityModelPlot">OrbitDensityModelPlot (class in ADCS.helpers.plot.orbit.orbitdensityplot)</a>
+</li>
+        <li><a href="ADCS.helpers.plot.orbit.orbitdensityplot.html#ADCS.helpers.plot.orbit.orbitdensityplot.OrbitDensityPlot">OrbitDensityPlot (class in ADCS.helpers.plot.orbit.orbitdensityplot)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.helpers.plot.orbit.orbitdensityplot.html#ADCS.helpers.plot.orbit.orbitdensityplot.OrbitDensityPlot">OrbitDensityPlot (class in ADCS.helpers.plot.orbit.orbitdensityplot)</a>
-</li>
         <li><a href="ADCS.helpers.plot.orbit.orbitmagneticplot.html#ADCS.helpers.plot.orbit.orbitmagneticplot.OrbitMagneticPlot">OrbitMagneticPlot (class in ADCS.helpers.plot.orbit.orbitmagneticplot)</a>
 </li>
         <li><a href="ADCS.helpers.plot.orbit.orbitmagneticplot.html#ADCS.helpers.plot.orbit.orbitmagneticplot.OrbitMagneticPlotSingle">OrbitMagneticPlotSingle (class in ADCS.helpers.plot.orbit.orbitmagneticplot)</a>
@@ -3543,8 +3391,6 @@
           <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion.output_length">(ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion attribute)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.owner">owner() (ADCS.helpers.simresults.Path method)</a>
-</li>
     </ul></td>
   </tr></table>
 </section>
@@ -3558,8 +3404,6 @@
         <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig">PassConfig (class in ADCS.controller.saltro.SALTRO_pass_settings)</a>
 </li>
         <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.passes">passes (ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings attribute)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path">Path (class in ADCS.helpers.simresults)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig.penalty_init">penalty_init (ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig attribute)</a>
 </li>
@@ -3709,50 +3553,22 @@
         </ul></li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.prepareForAlilqr">prepareForAlilqr() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.prop_dist_off">prop_dist_off() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_off">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_off">prop_dist_off() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.prop_dist_on">prop_dist_on() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_on">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_on">prop_dist_on() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.satellite_hardware.disturbances.prop_disturbance.html#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance">Prop_Disturbance (class in ADCS.satellite_hardware.disturbances.prop_disturbance)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.propagate_jacobians">propagate_jacobians() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_jacobians">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_jacobians">propagate_jacobians() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.propagate_jacobians_rk4">propagate_jacobians_rk4() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_jacobians_rk4">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_jacobians_rk4">propagate_jacobians_rk4() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.propagate_orbit">propagate_orbit() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_orbit">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_orbit">propagate_orbit() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.propagate_orbit_rk4">propagate_orbit_rk4() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_orbit_rk4">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_orbit_rk4">propagate_orbit_rk4() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.pull_indices">pull_indices() (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray method)</a>
-
-        <ul>
-          <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.pull_indices">(ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State method)</a>
+        <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.pull_indices">pull_indices() (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State method)</a>
 </li>
-        </ul></li>
     </ul></td>
   </tr></table>
 </section>
@@ -3763,18 +3579,24 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.Q">Q (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State attribute)</a>
 </li>
-        <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig.q">q (ADCS.mc.mcconfig.MCConfig attribute)</a>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.q">q (ADCS.helpers.plot.states.quaternionplot.State attribute)</a>
+
+        <ul>
+          <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig.q">(ADCS.mc.mcconfig.MCConfig attribute)</a>
 </li>
+          <li><a href="ADCS.state.html#ADCS.state.State.q">(ADCS.state.State attribute)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_diff">quat_diff() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_inv">quat_inv() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_mult">quat_mult() (in module ADCS.helpers.math_helpers)</a>
 </li>
-        <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_to_cayley">quat_to_cayley() (in module ADCS.helpers.math_helpers)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_to_cayley">quat_to_cayley() (in module ADCS.helpers.math_helpers)</a>
+</li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_to_euler">quat_to_euler() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_to_mrp">quat_to_mrp() (in module ADCS.helpers.math_helpers)</a>
@@ -3807,9 +3629,7 @@
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.random_n_unit_vec">random_n_unit_vec() (in module ADCS.helpers.math_helpers)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.read_bytes">read_bytes() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.read_text">read_text() (ADCS.helpers.simresults.Path method)</a>
+        <li><a href="ADCS.controller.controller.html#ADCS.controller.controller.Controller.reaction_wheel_momentum_states">reaction_wheel_momentum_states() (ADCS.controller.controller.Controller static method)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.readDebug">readDebug() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
@@ -3823,8 +3643,6 @@
           <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion.reading">(ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.readlink">readlink() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.readParameters">readParameters() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.record">record() (ADCS.helpers.simresults.RunResults method)</a>
@@ -3855,22 +3673,14 @@
 </li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteControllerProxy">RemoteControllerProxy (class in ADCS.remote.controller_rpc)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteOrbitEstimatorProxy">RemoteOrbitEstimatorProxy (class in ADCS.remote.controller_rpc)</a>
 </li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig">RemoteSimulationConfig (class in ADCS.remote.controller_rpc)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.rename">rename() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li><a href="ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.reorder_controls_cpp_to_python">reorder_controls_cpp_to_python() (in module ADCS.controller.plan_and_track.build_csat)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.replace">replace() (ADCS.helpers.simresults.datetime method)</a>
-
-        <ul>
-          <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.replace">(ADCS.helpers.simresults.Path method)</a>
-</li>
-        </ul></li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.report">report() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.reset">reset() (ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator method)</a>
@@ -3887,19 +3697,11 @@
 </li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.reset_trace">reset_trace() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.resolution">resolution (ADCS.helpers.simresults.datetime attribute)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.resolve">resolve() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig.retries">retries (ADCS.remote.controller_rpc.RemoteSimulationConfig attribute)</a>
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.reunite_states">reunite_states() (ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.rglob">rglob() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.rk4z">rk4z() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.rmdir">rmdir() (ADCS.helpers.simresults.Path method)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.rot_exp">rot_exp() (in module ADCS.helpers.math_helpers)</a>
 </li>
@@ -3907,8 +3709,6 @@
 
         <ul>
           <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.rot_mat">(in module ADCS.helpers.math_helpers)</a>
-</li>
-          <li><a href="ADCS.helpers.plotting.animate_estimator.html#ADCS.helpers.plotting.animate_estimator.rot_mat">(in module ADCS.helpers.plotting.animate_estimator)</a>
 </li>
         </ul></li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteAttitudeEstimatorProxy.roundtrip_hist">roundtrip_hist (ADCS.remote.controller_rpc.RemoteAttitudeEstimatorProxy property)</a>
@@ -3929,24 +3729,14 @@
 </li>
         <li><a href="ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW">RW (class in ADCS.satellite_hardware.actuators.reaction_wheel)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.RW_readings">RW_readings() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.RW_readings">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.rw_momentum_limit_scale">rw_momentum_limit_scale (ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig attribute)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.RWhs">RWhs() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.RW_readings">RW_readings() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.RWhs_from_state">RWhs_from_state() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs_from_state">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs">RWhs() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs_from_state">RWhs_from_state() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+</li>
     </ul></td>
   </tr></table>
 </section>
@@ -3965,8 +3755,6 @@
 </li>
         <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.saltro_missing_reason">saltro_missing_reason() (in module ADCS.controller.helpers.optional_dependencies)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.samefile">samefile() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.sat_match">sat_match() (ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.satellite">satellite (ADCS.helpers.simresults.RunResults attribute)</a>
@@ -3975,50 +3763,30 @@
           <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults.satellite">(ADCS.helpers.simresults.SimulationResults property)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite">Satellite (class in ADCS.helpers.simresults)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite">(class in ADCS.satellite_hardware.satellite.satellite)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite">Satellite (class in ADCS.satellite_hardware.satellite.satellite)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults.save">save() (ADCS.helpers.simresults.SimulationResults method)</a>
 </li>
         <li><a href="ADCS.helpers.save_and_load.save_and_load.html#ADCS.helpers.save_and_load.save_and_load.save_data">save_data() (in module ADCS.helpers.save_and_load.save_and_load)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.second">second (ADCS.helpers.simresults.datetime attribute)</a>
-</li>
         <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.secondAlilqrSettings">secondAlilqrSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
+</li>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.sens_bias">sens_bias (ADCS.state.EstimatorState attribute)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor">Sensor (class in ADCS.satellite_hardware.sensors.sensor)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.sensor_bias">sensor_bias (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.sensor_bias_slice">sensor_bias_slice() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_bias_slice">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_bias_slice">sensor_bias_slice() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.sensor_cov">sensor_cov() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_cov">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_cov">sensor_cov() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.sensor_hist">sensor_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.sensor_readings">sensor_readings() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.sensor_readings">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.sensor_readings">sensor_readings() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.sensor_srcov">sensor_srcov() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_srcov">(ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_srcov">sensor_srcov() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.helpers.plot.sensors.sensorsplot.html#ADCS.helpers.plot.sensors.sensorsplot.SensorsPlot">SensorsPlot (class in ADCS.helpers.plot.sensors.sensorsplot)</a>
 </li>
         <li><a href="ADCS.helpers.plot.sensors.sensorsplot.html#ADCS.helpers.plot.sensors.sensorsplot.SensorsPlotCombined">SensorsPlotCombined (class in ADCS.helpers.plot.sensors.sensorsplot)</a>
@@ -4045,12 +3813,8 @@
           <li><a href="ADCS.controller.saltro.saltro_controller.html#ADCS.controller.saltro.saltro_controller.SALTRO.set_active_trajectory">(ADCS.controller.saltro.saltro_controller.SALTRO method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.set_indices">set_indices() (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray method)</a>
-
-        <ul>
-          <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.set_indices">(ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State method)</a>
+        <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.set_indices">set_indices() (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.setquaternionTo3VecMode">setquaternionTo3VecMode() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.setVerbosity">setVerbosity() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
@@ -4069,47 +3833,39 @@
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.skewsym">skewsym() (in module ADCS.helpers.math_helpers)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.slack_stats">slack_stats() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 </li>
         <li><a href="ADCS.controller.mtq_w_rw_QPC.html#ADCS.controller.mtq_w_rw_QPC.MTQ_w_RW_QPC.solve_lp_scaling">solve_lp_scaling() (ADCS.controller.mtq_w_rw_QPC.MTQ_w_RW_QPC method)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig">SolverPassConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.specific_dist_off">specific_dist_off() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_off">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_off">specific_dist_off() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.specific_dist_on">specific_dist_on() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_on">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_on">specific_dist_on() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.square_mat_sections">square_mat_sections() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise.srcov">srcov() (ADCS.satellite_hardware.errors.noise.Noise method)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.srp_dist_off">srp_dist_off() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_off">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_off">srp_dist_off() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.srp_dist_on">srp_dist_on() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_on">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_on">srp_dist_on() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.satellite_hardware.disturbances.srp_disturbance.html#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance">SRP_Disturbance (class in ADCS.satellite_hardware.disturbances.srp_disturbance)</a>
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_SRUAKF.html#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF">SRUAKF (class in ADCS.estimators.attitude_estimators.attitude_SRUAKF)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.stack">stack() (ADCS.helpers.plot.states.quaternionplot.State static method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.stack">(ADCS.state.State static method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults.stack_control">stack_control() (ADCS.helpers.simresults.SimulationResults method)</a>
+</li>
+        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults.stack_estimated_state">stack_estimated_state() (ADCS.helpers.simresults.SimulationResults method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults.stack_state">stack_state() (ADCS.helpers.simresults.SimulationResults method)</a>
 </li>
@@ -4125,8 +3881,12 @@
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion">StarTrackerQuaternion (class in ADCS.satellite_hardware.sensors.star_tracker_quaternion)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.stat">stat() (ADCS.helpers.simresults.Path method)</a>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State">State (class in ADCS.helpers.plot.states.quaternionplot)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State">(class in ADCS.state)</a>
 </li>
+        </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.state_cov_hist">state_cov_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.state_dim">state_dim (ADCS.controller.helpers.trajectory.Trajectory attribute)</a>
@@ -4153,12 +3913,18 @@
           <li><a href="ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.storage_torque">(ADCS.satellite_hardware.actuators.reaction_wheel.RW method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.strptime">strptime() (ADCS.helpers.simresults.datetime class method)</a>
-</li>
         <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.Subplot">Subplot (class in ADCS.helpers.plot.states.quaternionplot)</a>
 
         <ul>
           <li><a href="ADCS.helpers.plot.subplot.html#ADCS.helpers.plot.subplot.Subplot">(class in ADCS.helpers.plot.subplot)</a>
+</li>
+        </ul></li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.subtract">subtract() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.subtract">(ADCS.state.EstimatorState method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.subtract">(ADCS.state.State method)</a>
 </li>
         </ul></li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.sun_goal.html#ADCS.CONOPS.goals.vector_goals.sun_goal.Sun_Goal">Sun_Goal (class in ADCS.CONOPS.goals.vector_goals.sun_goal)</a>
@@ -4167,21 +3933,11 @@
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.sunpair.html#ADCS.satellite_hardware.sensors.sunpair.SunPair">SunPair (class in ADCS.satellite_hardware.sensors.sunpair)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.sunpair_readings">sunpair_readings() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.sunpair_readings">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.sunpair_readings">sunpair_readings() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.satellite_hardware.sensors.sunsensor.html#ADCS.satellite_hardware.sensors.sunsensor.SunSensor">SunSensor (class in ADCS.satellite_hardware.sensors.sunsensor)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.sunsensor_readings">sunsensor_readings() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.sunsensor_readings">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
-</li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.symlink_to">symlink_to() (ADCS.helpers.simresults.Path method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.sunsensor_readings">sunsensor_readings() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.systemSettings">systemSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
@@ -4205,8 +3961,6 @@
 </li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig.tf">tf (ADCS.mc.mcconfig.MCConfig attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.time">time() (ADCS.helpers.simresults.datetime method)</a>
-</li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.Orbit.time_in_span">time_in_span() (ADCS.mc.mcconfig.Orbit method)</a>
 
         <ul>
@@ -4223,12 +3977,6 @@
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.times">times (ADCS.controller.helpers.trajectory.Trajectory attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.timestamp">timestamp() (ADCS.helpers.simresults.datetime method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.timetuple">timetuple() (ADCS.helpers.simresults.datetime method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.timetz">timetz() (ADCS.helpers.simresults.datetime method)</a>
-</li>
         <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.to_cpp">to_cpp() (ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig method)</a>
 
         <ul>
@@ -4237,12 +3985,16 @@
           <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.to_cpp">(ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.to_dict">to_dict() (ADCS.helpers.simresults.Orbital_State method)</a>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.to_dict">to_dict() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
 
         <ul>
           <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.to_dict">(ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.disturbances.helpers.geometry_config.html#ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryFace.to_dict">(ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryFace method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.to_dict">(ADCS.state.EstimatorState method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.to_dict">(ADCS.state.State method)</a>
 </li>
         </ul></li>
         <li><a href="ADCS.CONOPS.goallist.goallist.html#ADCS.CONOPS.goallist.goallist.GoalList.to_ref">to_ref() (ADCS.CONOPS.goallist.goallist.GoalList method)</a>
@@ -4361,8 +4113,6 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.total_cost_tol">total_cost_tol (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.touch">touch() (ADCS.helpers.simresults.Path method)</a>
-</li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory">Trajectory (class in ADCS.controller.helpers.trajectory)</a>
 </li>
         <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.trajectory_planner_available">trajectory_planner_available() (in module ADCS.controller.helpers.optional_dependencies)</a>
@@ -4377,10 +4127,6 @@
 </li>
         <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.tvlqr">tvlqr (ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.tzinfo">tzinfo (ADCS.helpers.simresults.datetime attribute)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.tzname">tzname() (ADCS.helpers.simresults.datetime method)</a>
-</li>
     </ul></td>
   </tr></table>
 </section>
@@ -4394,8 +4140,6 @@
         <li><a href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF">UAKF (class in ADCS.estimators.attitude_estimators.attitude_UAKF)</a>
 </li>
         <li><a href="ADCS.helpers.math_constants.html#ADCS.helpers.math_constants.MathConstants.unitvecs">unitvecs (ADCS.helpers.math_constants.MathConstants attribute)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.unlink">unlink() (ADCS.helpers.simresults.Path method)</a>
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update">update() (ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator method)</a>
 
@@ -4423,32 +4167,20 @@
           <li><a href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.update_core">(ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.update_disturbance_estimate">update_disturbance_estimate() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.update_J">update_J() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_J">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
-</li>
-        </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.update_disturbance_estimate">update_disturbance_estimate() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
+</li>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_J">update_J() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+</li>
         <li><a href="ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.update_momentum">update_momentum() (ADCS.satellite_hardware.actuators.reaction_wheel.RW method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.errors.helpers.error_mode.html#ADCS.satellite_hardware.errors.helpers.error_mode.ErrorMode.update_noise">update_noise (ADCS.satellite_hardware.errors.helpers.error_mode.ErrorMode attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.update_RWhs">update_RWhs() (ADCS.helpers.simresults.Satellite method)</a>
-
-        <ul>
-          <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+        <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs">update_RWhs() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
-        </ul></li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.update_vecs">update_vecs() (ADCS.helpers.simresults.Orbital_State method)</a>
-
-        <ul>
-          <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.update_vecs">(ADCS.orbits.orbital_state.Orbital_State method)</a>
+        <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.update_vecs">update_vecs() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.update_worker_progress">update_worker_progress() (in module ADCS.mc.monte_carlo_runner)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.updateParameters">updateParameters() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
@@ -4461,13 +4193,7 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.use_raw_control_cost">use_raw_control_cost (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.utcfromtimestamp">utcfromtimestamp() (ADCS.helpers.simresults.datetime class method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.utcnow">utcnow() (ADCS.helpers.simresults.datetime class method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.utcoffset">utcoffset() (ADCS.helpers.simresults.datetime method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.utctimetuple">utctimetuple() (ADCS.helpers.simresults.datetime method)</a>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.uses_reduced_quaternion_covariance">uses_reduced_quaternion_covariance (ADCS.state.EstimatorState property)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -4477,8 +4203,6 @@
   <h2>V</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.val">val (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray attribute)</a>
-</li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.vec3_to_quat">vec3_to_quat() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.vec_norm_hess">vec_norm_hess() (in module ADCS.helpers.math_helpers)</a>
@@ -4503,25 +4227,25 @@
   <h2>W</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig.w">w (ADCS.mc.mcconfig.MCConfig attribute)</a>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.w">w (ADCS.helpers.plot.states.quaternionplot.State attribute)</a>
+
+        <ul>
+          <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig.w">(ADCS.mc.mcconfig.MCConfig attribute)</a>
 </li>
+          <li><a href="ADCS.state.html#ADCS.state.State.w">(ADCS.state.State attribute)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.w_target_hist">w_target_hist (ADCS.helpers.simresults.RunResults attribute)</a>
-</li>
-        <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.wahbas_svd">wahbas_svd() (in module ADCS.helpers.math_helpers)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.walk">walk() (ADCS.helpers.simresults.Path method)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.wahbas_svd">wahbas_svd() (in module ADCS.helpers.math_helpers)</a>
+</li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_SRUAKF.html#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate">weighted_cholupdate() (ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF method)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.Wmat">Wmat() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.wmax">wmax (ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig attribute)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.write_bytes">write_bytes() (ADCS.helpers.simresults.Path method)</a>
-</li>
-        <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.write_text">write_text() (ADCS.helpers.simresults.Path method)</a>
 </li>
     </ul></td>
   </tr></table>

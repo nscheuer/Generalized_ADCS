@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -656,7 +657,7 @@ for closed-loop tracking.</p>
 <dd class="field-odd"><p>Initial state vector used to seed the optimizer.</p>
 </dd>
 <dt class="field-even">type x_0<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
+<dd class="field-even"><p>ADCS.state.State</p>
 </dd>
 <dt class="field-odd">param os_0<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Initial orbital state used to seed environment propagation.</p>
@@ -689,7 +690,7 @@ for closed-loop tracking.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>t_start</strong> (<em>float</em>)</p></li>
 <li><p><strong>duration</strong> (<em>float</em>)</p></li>
-<li><p><strong>x_0</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>x_0</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a>)</p></li>
 <li><p><strong>os_0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
 <li><p><strong>goals</strong> (<a class="reference internal" href="ADCS.CONOPS.goallist.goallist.html#ADCS.CONOPS.goallist.goallist.GoalList" title="ADCS.CONOPS.goallist.goallist.GoalList"><em>GoalList</em></a>)</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em>)</p></li>
@@ -742,10 +743,10 @@ the control computation, since all references are taken from the active
 trajectory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">param x_hat<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Estimated state vector.</p>
+<dd class="field-odd"><p>Current spacecraft state.</p>
 </dd>
 <dt class="field-even">type x_hat<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.typing.NDArray[numpy.float64]</p>
+<dd class="field-even"><p>ADCS.state.State | ADCS.state.EstimatorState</p>
 </dd>
 <dt class="field-odd">param sens<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Sensor measurement vector. Not directly used.</p>
@@ -788,7 +789,7 @@ trajectory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x_hat</strong> (<em>ndarray</em><em>[</em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em><em>, </em><em>dtype</em><em>[</em><em>float64</em><em>]</em><em>]</em>)</p></li>
+<li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em> | </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a>)</p></li>
 <li><p><strong>sens</strong> (<em>ndarray</em><em>[</em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em><em>, </em><em>dtype</em><em>[</em><em>float64</em><em>]</em><em>]</em>)</p></li>
 <li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
@@ -805,7 +806,7 @@ trajectory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite" title="ADCS.helpers.simresults.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
 <li><p><strong>planner_settings</strong> (<a class="reference internal" href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings" title="ADCS.controller.plan_and_track.planner_settings.PlannerSettings"><em>PlannerSettings</em></a>)</p></li>
 </ul>
 </dd>

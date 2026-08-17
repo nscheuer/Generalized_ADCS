@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -600,6 +601,7 @@
     <span class="n">est_sat</span><span class="p">:</span> <span class="n">InitVar</span><span class="p">[</span><span class="n">EstimatedSatellite</span><span class="p">]</span>
 
     <span class="n">control_limit_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.75</span>
+    <span class="n">rw_momentum_limit_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="n">u_max</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">wmax</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">20</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.0</span>
     <span class="n">sun_limit_angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">20</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.0</span>
@@ -625,6 +627,7 @@
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_constraints</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">ConstraintConfig</span><span class="p">()</span>
         <span class="n">cpp_constraints</span><span class="o">.</span><span class="n">control_limit_scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_limit_scale</span>
+        <span class="n">cpp_constraints</span><span class="o">.</span><span class="n">rw_momentum_limit_scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rw_momentum_limit_scale</span>
         <span class="n">cpp_constraints</span><span class="o">.</span><span class="n">u_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span>
         <span class="n">cpp_constraints</span><span class="o">.</span><span class="n">wmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wmax</span>
         <span class="n">cpp_constraints</span><span class="o">.</span><span class="n">sun_limit_angle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sun_limit_angle</span>

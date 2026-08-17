@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -559,6 +560,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goallist</span><span class="w"> </span><span class="kn">import</span> <span class="n">GoalList</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Goal</span>
@@ -664,7 +667,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">t_start</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">duration</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">x_0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">x_0</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span>
         <span class="n">os_0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">goals</span><span class="p">:</span> <span class="n">GoalList</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -695,7 +698,7 @@
 <span class="sd">        :param duration: Planning horizon duration in seconds.</span>
 <span class="sd">        :type duration: float</span>
 <span class="sd">        :param x_0: Initial state vector.</span>
-<span class="sd">        :type x_0: numpy.ndarray</span>
+<span class="sd">        :type x_0: ADCS.state.State</span>
 <span class="sd">        :param os_0: Initial orbital state.</span>
 <span class="sd">        :type os_0: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :param goals: Goal timeline used for target generation.</span>
@@ -783,7 +786,7 @@
 
         <span class="n">r0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">os_0</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.0e3</span>
         <span class="n">v0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">os_0</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.0e3</span>
-        <span class="n">x0_clean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">x0_clean</span> <span class="o">=</span> <span class="n">x_0</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="n">ok</span><span class="p">,</span> <span class="n">Xset</span><span class="p">,</span> <span class="n">Uset_cpp</span><span class="p">,</span> <span class="n">K_flat</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">trajOpt</span><span class="p">(</span>
             <span class="n">cpp_settings</span><span class="p">,</span>
@@ -830,7 +833,7 @@
             <span class="n">K_cpp_time</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">K_flat</span><span class="p">[:,</span> <span class="n">c0</span><span class="p">:</span><span class="n">c1</span><span class="p">]</span>
         <span class="n">Kset</span> <span class="o">=</span> <span class="o">-</span><span class="n">K_cpp_time</span><span class="p">[:,</span> <span class="n">cpp_to_py</span><span class="p">,</span> <span class="p">:]</span>
 
-        <span class="n">traj</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">Xset</span><span class="p">,</span> <span class="n">Uset</span><span class="p">,</span> <span class="n">Kset</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_out</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+        <span class="n">traj</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">Xset</span><span class="p">,</span> <span class="n">Uset</span><span class="p">,</span> <span class="n">Kset</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_out</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span> <span class="o">=</span> <span class="n">traj</span>
         <span class="k">return</span> <span class="n">traj</span></div>
 
@@ -839,7 +842,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.saltro.saltro_controller.html#ADCS.controller.saltro.saltro_controller.SALTRO.find_u">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">x_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span>
         <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
@@ -855,8 +858,8 @@
 
 <span class="sd">           u(t) = u_\mathrm{traj}(t, x_{\hat{}}).</span>
 
-<span class="sd">        :param x_hat: Estimated state vector.</span>
-<span class="sd">        :type x_hat: numpy.ndarray</span>
+<span class="sd">        :param x_hat: Current spacecraft state.</span>
+<span class="sd">        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState</span>
 <span class="sd">        :param sens: Sensor vector (accepted for interface compatibility).</span>
 <span class="sd">        :type sens: numpy.ndarray</span>
 <span class="sd">        :param est_sat: Estimated satellite (accepted for interface compatibility).</span>

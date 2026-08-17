@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -541,6 +542,8 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">block_diag</span>
 
@@ -552,10 +555,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sensor</span><span class="p">,</span> <span class="n">GPS</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.actuators</span><span class="w"> </span><span class="kn">import</span> <span class="n">Actuator</span><span class="p">,</span> <span class="n">RW</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.estimator_helpers.estimator_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span>
 
 <div class="viewcode-block" id="EstimatedSatellite">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EstimatedSatellite</span><span class="p">(</span><span class="n">Satellite</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Satellite model with estimator-synchronized biases and disturbance parameters.</span>
@@ -672,7 +675,7 @@
 
 
 <div class="viewcode-block" id="EstimatedSatellite.from_satellite">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.from_satellite">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.from_satellite">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_satellite</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;EstimatedSatellite&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -707,8 +710,8 @@
 
 
 <div class="viewcode-block" id="EstimatedSatellite.match_estimate">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.match_estimate">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">match_estimate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_state</span><span class="p">:</span> <span class="n">EstimatedArray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">match_estimate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_state</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Synchronize the satellite instance with the estimator output.</span>
 
@@ -775,9 +778,9 @@
 <span class="sd">        be dimension-shifted by one element in some configurations (e.g., quaternion handling). The method</span>
 <span class="sd">        applies an index adjustment ``adj`` when ``int_cov`` is off-by-one.</span>
 
-<span class="sd">        :param est_state: Estimator output container providing</span>
-<span class="sd">            ``val`` (state vector), ``cov`` (covariance), and ``int_cov`` (integrated covariance).</span>
-<span class="sd">        :type est_state: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`</span>
+<span class="sd">        :param est_state: Estimator output container providing the attitude state,</span>
+<span class="sd">            bias/parameter blocks, covariance, and integrated covariance.</span>
+<span class="sd">        :type est_state: :class:`~ADCS.state.EstimatorState`</span>
 
 <span class="sd">        :param dt: Estimator propagation step (s). Used by some pipelines to normalize integrated covariance.</span>
 <span class="sd">            (The current implementation partitions ``int_cov`` directly.)</span>
@@ -787,46 +790,53 @@
 <span class="sd">        :rtype: None</span>
 
 <span class="sd">        :raises ValueError:</span>
-<span class="sd">            If ``est_state.val`` does not have length</span>
+<span class="sd">            If ``est_state.as_estimator_array()`` does not have length</span>
 <span class="sd">            ``self.state_len + self.act_bias_len + self.att_sens_bias_len + self.dist_param_len``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Extract state</span>
-        <span class="n">full_state</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">val</span>
-        <span class="n">cov</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">cov</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">est_state</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;est_state must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">est_state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">int_cov</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">int_cov</span>
 
         <span class="c1"># Dimension checks</span>
         <span class="n">expected_len</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">full_state</span><span class="p">)</span> <span class="o">!=</span> <span class="n">expected_len</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Estimator state has wrong size (expected </span><span class="si">{</span><span class="n">expected_len</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">full_state</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">!=</span> <span class="n">expected_len</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Estimator state has wrong size (expected </span><span class="si">{</span><span class="n">expected_len</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">est_state</span><span class="o">.</span><span class="n">augmented_size</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_RW</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Estimator state has </span><span class="si">{</span><span class="n">est_state</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> wheel states, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">number_RW</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Estimator state has </span><span class="si">{</span><span class="n">est_state</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> actuator biases, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Estimator state has </span><span class="si">{</span><span class="n">est_state</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> sensor biases, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">dist_param</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Estimator state has </span><span class="si">{</span><span class="n">est_state</span><span class="o">.</span><span class="n">dist_param</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> disturbance parameters, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         
         <span class="c1"># Adjustment if integrated covariance is off by one (e.g. quaternion handling)</span>
         <span class="n">adj</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">int_cov</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">expected_len</span> <span class="k">else</span> <span class="mi">0</span>
 
         <span class="c1"># --- Partition the full state vector ---</span>
         <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_len</span>
-        <span class="n">act_bias</span> <span class="o">=</span> <span class="n">full_state</span><span class="p">[</span><span class="n">idx</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span><span class="p">]</span>
+        <span class="n">act_bias</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">act_bias</span>
         <span class="n">act_bias_ic</span> <span class="o">=</span> <span class="n">int_cov</span><span class="p">[</span>
             <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
             <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
         <span class="p">]</span>
 
         <span class="n">idx</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span>
-        <span class="n">sens_bias</span> <span class="o">=</span> <span class="n">full_state</span><span class="p">[</span><span class="n">idx</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="p">]</span>
+        <span class="n">sens_bias</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">sens_bias</span>
         <span class="n">sens_bias_ic</span> <span class="o">=</span> <span class="n">int_cov</span><span class="p">[</span>
             <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
             <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
         <span class="p">]</span>
 
         <span class="n">idx</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span>
-        <span class="n">dist_param</span> <span class="o">=</span> <span class="n">full_state</span><span class="p">[</span><span class="n">idx</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span><span class="p">]</span>
+        <span class="n">dist_param</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">dist_param</span>
         <span class="n">dist_param_ic</span> <span class="o">=</span> <span class="n">int_cov</span><span class="p">[</span>
             <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
             <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
         <span class="p">]</span>
 
         <span class="c1"># --- Update satellite dynamic state ---</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">update_RWhs</span><span class="p">(</span><span class="n">full_state</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_len</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_RWhs</span><span class="p">(</span><span class="n">est_state</span><span class="p">)</span>
 
         <span class="c1"># --- Disable noise sources for deterministic matching ---</span>
         <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">actuators</span><span class="p">:</span>
@@ -880,8 +890,8 @@
 
 
 <div class="viewcode-block" id="EstimatedSatellite.dist_torques_jacobian">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.dist_torques_jacobian">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dist_torques_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">vecs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torques_jacobian">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dist_torques_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">vecs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobians of total disturbance torque w.r.t. state and disturbance parameters.</span>
 
@@ -936,7 +946,7 @@
 <span class="sd">        * ``torque_valjac(self, vecs)`` → :math:`\partial \boldsymbol{\tau}/\partial\boldsymbol{\theta}`.</span>
 
 <span class="sd">        :param x: Current base spacecraft state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param vecs: Dictionary containing body-frame environment vectors and their quaternion derivatives,</span>
 <span class="sd">            typically including keys like ``&quot;b&quot;``, ``&quot;r&quot;``, ``&quot;s&quot;``, ``&quot;v&quot;``, ``&quot;rho&quot;``, and derivative keys</span>
@@ -965,8 +975,8 @@
 
 
 <div class="viewcode-block" id="EstimatedSatellite.dist_torque_hess">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.dist_torque_hess">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dist_torque_hess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">vecs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torque_hess">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dist_torque_hess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">vecs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Hessians of total disturbance torque w.r.t. state and disturbance parameters.</span>
 
@@ -1020,7 +1030,7 @@
 <span class="sd">        * ``torque_valvalhess(self, vecs)`` → :math:`\partial^2 \boldsymbol{\tau}/\partial\boldsymbol{\theta}^2`.</span>
 
 <span class="sd">        :param x: Current base spacecraft state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param vecs: Dictionary containing body-frame environment vectors and their derivatives.</span>
 <span class="sd">        :type vecs: dict[str, numpy.ndarray]</span>
@@ -1054,8 +1064,8 @@
 
     
 <div class="viewcode-block" id="EstimatedSatellite.dynJacCore">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.dynJacCore">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dynJacCore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynJacCore">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dynJacCore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobians of augmented dynamics w.r.t. state, inputs, and estimated parameters.</span>
 
@@ -1104,7 +1114,7 @@
 <span class="sd">            measurements, not rotational dynamics; therefore ``dxdot__dsb`` is returned as zeros.</span>
 
 <span class="sd">        :param x: Current base state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param u: Current control vector, shape ``(control_len,)``.</span>
 <span class="sd">        :type u: numpy.ndarray</span>
@@ -1137,9 +1147,9 @@
         <span class="n">S</span> <span class="o">=</span> <span class="n">orbital_state</span><span class="o">.</span><span class="n">S</span> <span class="c1"># Sun Vector in ECI [km]</span>
         <span class="n">rho</span> <span class="o">=</span> <span class="n">orbital_state</span><span class="o">.</span><span class="n">rho</span> <span class="c1"># Atmospheric density [kg/m^3]</span>
 
-        <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>   <span class="c1"># PR #47&#39;s q-slice fix folded into Stage B revival</span>
-        <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">w</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
+        <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">h</span>
         <span class="c1"># Must match the inertia used in dynamics_core (J_COM, not J_0) so the</span>
         <span class="c1"># estimated-model Jacobian remains the correct linearization when COM</span>
         <span class="c1"># is offset from the reference origin.</span>
@@ -1211,8 +1221,8 @@
     
 
 <div class="viewcode-block" id="EstimatedSatellite.dynamics_Hessians">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.dynamics_Hessians">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dynamics_Hessians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynamics_Hessians">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dynamics_Hessians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second-order derivatives (Hessians) of augmented dynamics.</span>
 
@@ -1270,7 +1280,7 @@
 <span class="sd">        * Actuator torque curvature terms from actuator-provided second derivatives, including bias couplings.</span>
 
 <span class="sd">        :param x: Current base state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param u: Current control vector, shape ``(control_len,)``.</span>
 <span class="sd">        :type u: numpy.ndarray</span>
@@ -1305,9 +1315,9 @@
 <span class="sd">        |``ddxdot__ddmpddmp``| ``(dist_param_len, dist_param_len, state_len)``      |</span>
 <span class="sd">        +--------------------+------------------------------------------------------+</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span><span class="c1">#.reshape((3,1))</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span><span class="c1">#normalize(x[3:7,:])</span>
-        <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">w</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
+        <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">h</span>
         <span class="n">invJ_noRW</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invJ_noRW</span>
         <span class="c1"># Match the COM-based rotational dynamics and avoid relying on the</span>
         <span class="c1"># undefined self.J attribute.</span>
@@ -1472,7 +1482,7 @@
 
 
 <div class="viewcode-block" id="EstimatedSatellite.sensor_bias_slice">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.sensor_bias_slice">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_bias_slice">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sensor_bias_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_sensor_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">slice</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Slice for an attitude sensor&#39;s bias block in the full estimator state vector.</span>
@@ -1533,7 +1543,7 @@
 
     
 <div class="viewcode-block" id="EstimatedSatellite.control_cov">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.control_cov">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">control_cov</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Block-diagonal covariance of actuator input noise.</span>
@@ -1557,7 +1567,7 @@
 
 
 <div class="viewcode-block" id="EstimatedSatellite.control_srcov">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.control_srcov">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_srcov">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">control_srcov</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Block-diagonal square-root covariance of actuator input noise.</span>
@@ -1583,7 +1593,7 @@
 
 
 <div class="viewcode-block" id="EstimatedSatellite.sensor_cov">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.sensor_cov">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_cov">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sensor_cov</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">which_sensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Block-diagonal covariance of attitude sensor noise (and wheel momentum measurement noise).</span>
@@ -1622,7 +1632,7 @@
 
 
 <div class="viewcode-block" id="EstimatedSatellite.sensor_srcov">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.helpers.simresults.EstimatedSatellite.sensor_srcov">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_srcov">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sensor_srcov</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">which_sensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Block-diagonal square-root covariance of attitude sensor noise (and wheel momentum measurement noise).</span>

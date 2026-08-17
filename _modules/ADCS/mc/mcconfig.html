@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -562,20 +563,17 @@
 <span class="sd">    passed directly to the Monte Carlo simulation function.</span>
 
 <span class="sd">    :param w:</span>
-<span class="sd">        Initial angular velocity override. If provided, replaces the first three</span>
-<span class="sd">        elements of the state vector.</span>
+<span class="sd">        Initial angular velocity override. If provided, replaces ``State.w``.</span>
 <span class="sd">    :type w:</span>
 <span class="sd">        numpy.ndarray or None</span>
 
 <span class="sd">    :param q:</span>
-<span class="sd">        Initial attitude quaternion override. If provided, replaces elements</span>
-<span class="sd">        3 through 6 of the state vector.</span>
+<span class="sd">        Initial attitude quaternion override. If provided, replaces ``State.q``.</span>
 <span class="sd">    :type q:</span>
 <span class="sd">        numpy.ndarray or None</span>
 
 <span class="sd">    :param h:</span>
-<span class="sd">        Initial reaction wheel momentum override. If provided, replaces the</span>
-<span class="sd">        reaction wheel portion of the state vector.</span>
+<span class="sd">        Initial reaction wheel momentum override. If provided, replaces ``State.h``.</span>
 <span class="sd">    :type h:</span>
 <span class="sd">        numpy.ndarray or None</span>
 

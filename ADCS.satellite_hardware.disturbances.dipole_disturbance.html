@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -619,7 +620,7 @@ coordinates [A·m²].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full spacecraft state vector containing the attitude quaternion.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Full spacecraft state vector containing the attitude quaternion.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>ADCS.orbits.orbital_state.Orbital_State</em></a>) – Orbital state object providing the body-frame magnetic field.</p></li>
 </ul>
 </dd>
@@ -654,7 +655,7 @@ coordinates [A·m²].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Spacecraft state vector containing the attitude quaternion.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft state vector containing the attitude quaternion.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>ADCS.orbits.orbital_state.Orbital_State</em></a>) – Orbital state provider of magnetic field derivatives.</p></li>
 </ul>
 </dd>
@@ -689,7 +690,7 @@ optimization methods.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Spacecraft state vector containing the attitude quaternion.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft state vector containing the attitude quaternion.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>ADCS.orbits.orbital_state.Orbital_State</em></a>) – Orbital state provider of magnetic field Hessians.</p></li>
 </ul>
 </dd>
@@ -724,7 +725,7 @@ and dipole vector.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Spacecraft state vector containing the attitude quaternion.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft state vector containing the attitude quaternion.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>ADCS.orbits.orbital_state.Orbital_State</em></a>) – Orbital state providing magnetic field quaternion derivatives.</p></li>
 </ul>
 </dd>
@@ -759,7 +760,7 @@ matrix.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full spacecraft state vector.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Full spacecraft state vector.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>ADCS.orbits.orbital_state.Orbital_State</em></a>) – Orbital state providing the body-frame magnetic field.</p></li>
 </ul>
 </dd>
@@ -788,7 +789,7 @@ residual-dipole parameter <span class="math notranslate nohighlight">\(\mathbf{m
 </dd>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a>)</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
 </ul>
 </dd>

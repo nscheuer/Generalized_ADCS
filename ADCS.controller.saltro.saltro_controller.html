@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -645,7 +646,7 @@ definitions.</p>
 <dd class="field-odd"><p>Initial state vector.</p>
 </dd>
 <dt class="field-even">type x_0<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
+<dd class="field-even"><p>ADCS.state.State</p>
 </dd>
 <dt class="field-odd">param os_0<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Initial orbital state.</p>
@@ -687,7 +688,7 @@ definitions.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>t_start</strong> (<em>float</em>)</p></li>
 <li><p><strong>duration</strong> (<em>float</em>)</p></li>
-<li><p><strong>x_0</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>x_0</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a>)</p></li>
 <li><p><strong>os_0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
 <li><p><strong>goals</strong> (<a class="reference internal" href="ADCS.CONOPS.goallist.goallist.html#ADCS.CONOPS.goallist.goallist.GoalList" title="ADCS.CONOPS.goallist.goallist.GoalList"><em>GoalList</em></a>)</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em>)</p></li>
@@ -712,7 +713,7 @@ definitions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x_hat</strong> (<em>numpy.ndarray</em>) – Estimated state vector.</p></li>
+<li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a><em> | </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>ADCS.state.EstimatorState</em></a>) – Current spacecraft state.</p></li>
 <li><p><strong>sens</strong> (<em>numpy.ndarray</em>) – Sensor vector (accepted for interface compatibility).</p></li>
 <li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite (accepted for interface compatibility).</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state carrying the current J2000 time.</p></li>

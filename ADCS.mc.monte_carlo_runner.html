@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -570,8 +571,8 @@ multiprocessing queues, ensuring minimal synchronization overhead.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sim_func</strong> (<em>Callable</em><em>[</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Any" title="ADCS.helpers.simresults.Any"><em>Any</em></a><em>]</em><em>]</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Any" title="ADCS.helpers.simresults.Any"><em>Any</em></a><em>]</em><em>]</em>) – Callable implementing a single Monte Carlo simulation.</p></li>
-<li><p><strong>config_generator</strong> (<em>Callable</em><em>[</em><em>[</em><em>int</em><em>]</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Any" title="ADCS.helpers.simresults.Any"><em>Any</em></a><em>]</em><em>]</em>) – Function mapping run indices to configuration dictionaries.</p></li>
+<li><p><strong>sim_func</strong> (<em>Callable</em><em>[</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="ADCS.state.html#ADCS.state.Any" title="ADCS.state.Any"><em>Any</em></a><em>]</em><em>]</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="ADCS.state.html#ADCS.state.Any" title="ADCS.state.Any"><em>Any</em></a><em>]</em><em>]</em>) – Callable implementing a single Monte Carlo simulation.</p></li>
+<li><p><strong>config_generator</strong> (<em>Callable</em><em>[</em><em>[</em><em>int</em><em>]</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="ADCS.state.html#ADCS.state.Any" title="ADCS.state.Any"><em>Any</em></a><em>]</em><em>]</em>) – Function mapping run indices to configuration dictionaries.</p></li>
 <li><p><strong>num_runs</strong> (<em>int</em>) – Total number of Monte Carlo runs.</p></li>
 <li><p><strong>max_workers</strong> (<em>int</em>) – Maximum number of worker processes.</p></li>
 </ul>
@@ -608,7 +609,7 @@ Failed runs yield <code class="docutils literal notranslate"><span class="pre">N
 <dd class="field-odd"><p>List of simulation results in submission order.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>List[Dict[str, <a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Any" title="ADCS.helpers.simresults.Any">Any</a>]]</p>
+<dd class="field-even"><p>List[Dict[str, <a class="reference internal" href="ADCS.state.html#ADCS.state.Any" title="ADCS.state.Any">Any</a>]]</p>
 </dd>
 </dl>
 </dd></dl>

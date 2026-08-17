@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -679,7 +680,7 @@ bias/noise injection for Monte-Carlo simulation vs. deterministic propagation.</
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 </ul>
 </dd>
@@ -700,7 +701,7 @@ bias/noise injection for Monte-Carlo simulation vs. deterministic propagation.</
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector (unused by some wheel models but included for interface consistency).</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector (unused by some wheel models but included for interface consistency).</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state (unused by some wheel models but included for interface consistency).</p></li>
 </ul>
 </dd>
@@ -744,7 +745,7 @@ bias/noise injection for Monte-Carlo simulation vs. deterministic propagation.</
 <p>this returns <span class="math notranslate nohighlight">\(\mathbf{h}_{RW} = \mathbf{x}[7:]\)</span>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>state</strong> (<em>numpy.ndarray</em>) – Full state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p>
+<dd class="field-odd"><p><strong>state</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Structured spacecraft state.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Reaction wheel momentum vector, shape <code class="docutils literal notranslate"><span class="pre">(number_RW,)</span></code>.</p>
@@ -769,7 +770,7 @@ bias/noise injection for Monte-Carlo simulation vs. deterministic propagation.</
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – State vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – State vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Control input vector, shape <code class="docutils literal notranslate"><span class="pre">(control_len,)</span></code>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 <li><p><strong>dmode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ErrorMode</span></code> | None) – Error/noise mode passed to actuator torque models.</p></li>
@@ -805,7 +806,7 @@ contribute in the current formulation, and each disturbance must implement:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>vecs</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Dictionary of body-frame environment vectors and their first/second quaternion derivatives.</p></li>
 </ul>
 </dd>
@@ -854,7 +855,7 @@ the current <code class="xref py py-class docutils literal notranslate"><span cl
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – State vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – State vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 <li><p><strong>dmode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ErrorMode</span></code> | None) – Optional error/noise mode (typically used inside disturbances if supported).</p></li>
 </ul>
@@ -896,7 +897,7 @@ Jacobian, because environment vectors are rotated by attitude. Thus, the nonzero
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>vecs</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Dictionary of body-frame environment vectors and their quaternion derivatives, e.g.
 <code class="docutils literal notranslate"><span class="pre">{&quot;b&quot;,&quot;r&quot;,&quot;s&quot;,&quot;v&quot;,&quot;rho&quot;,&quot;db&quot;,&quot;dr&quot;,&quot;ds&quot;,&quot;dv&quot;,&quot;os&quot;}</span></code>.</p></li>
 </ul>
@@ -958,7 +959,7 @@ Jacobian, because environment vectors are rotated by attitude. Thus, the nonzero
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Current control vector, shape <code class="docutils literal notranslate"><span class="pre">(control_len,)</span></code>.</p></li>
 <li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 </ul>
@@ -1053,7 +1054,7 @@ with respect to the quaternion are computed:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Current control vector, shape <code class="docutils literal notranslate"><span class="pre">(control_len,)</span></code>.</p></li>
 <li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 </ul>
@@ -1145,7 +1146,8 @@ coupling term from body acceleration:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – State vector <code class="docutils literal notranslate"><span class="pre">[w(3),</span> <span class="pre">q(4),</span> <span class="pre">h(number_RW)]</span></code>, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Structured state with angular velocity, quaternion, and wheel
+momentum in <code class="docutils literal notranslate"><span class="pre">w</span></code>, <code class="docutils literal notranslate"><span class="pre">q</span></code>, and <code class="docutils literal notranslate"><span class="pre">h</span></code> respectively.</p></li>
 <li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Control vector, one element per actuator, shape <code class="docutils literal notranslate"><span class="pre">(control_len,)</span></code>.</p></li>
 <li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state providing vectors (e.g. magnetic field),
 used by torques.</p></li>
@@ -1254,7 +1256,7 @@ and returns <code class="docutils literal notranslate"><span class="pre">sensor.
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 </ul>
 </dd>
@@ -1275,7 +1277,7 @@ and returns <code class="docutils literal notranslate"><span class="pre">sensor.
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 </ul>
 </dd>
@@ -1296,7 +1298,7 @@ and returns <code class="docutils literal notranslate"><span class="pre">sensor.
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector (unused by some wheel models but included for interface consistency).</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector (unused by some wheel models but included for interface consistency).</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state (unused by some wheel models but included for interface consistency).</p></li>
 </ul>
 </dd>
@@ -1336,7 +1338,7 @@ and the elementwise difference is returned as a local truncation error proxy.</p
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Control vector, shape <code class="docutils literal notranslate"><span class="pre">(control_len,)</span></code>.</p></li>
 <li><p><strong>dt</strong> (<em>float</em>) – Integration time step (s).</p></li>
 <li><p><strong>orbital_state0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state at the start of the step.</p></li>
@@ -1375,7 +1377,7 @@ If <code class="docutils literal notranslate"><span class="pre">False</span></co
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 </ul>
 </dd>
@@ -1445,7 +1447,7 @@ reaction wheel momentum measurements from each <code class="xref py py-class doc
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 <li><p><strong>dmode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ErrorMode</span></code> | None) – Error/noise mode controlling sensor noise/bias injection.</p></li>
 </ul>
@@ -1543,7 +1545,7 @@ reaction wheel momentum measurements from each <code class="xref py py-class doc
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 </ul>
 </dd>
@@ -1564,7 +1566,7 @@ reaction wheel momentum measurements from each <code class="xref py py-class doc
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state.</p></li>
 </ul>
 </dd>

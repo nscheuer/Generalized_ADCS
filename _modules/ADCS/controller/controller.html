@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -540,6 +541,8 @@
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Controller&quot;</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Goal</span>
@@ -589,10 +592,45 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span>
 
+<div class="viewcode-block" id="Controller.reaction_wheel_momentum_states">
+<a class="viewcode-back" href="../../../ADCS.controller.controller.html#ADCS.controller.controller.Controller.reaction_wheel_momentum_states">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reaction_wheel_momentum_states</span><span class="p">(</span><span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">n_rw</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;controller&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return reaction-wheel momentum states with strict layout validation.</span>
+
+<span class="sd">        Controllers expect one scalar wheel-momentum state per reaction wheel,</span>
+<span class="sd">        ordered consistently with the reaction wheels in the satellite actuator</span>
+<span class="sd">        list. A mismatch is ambiguous and can otherwise silently disable</span>
+<span class="sd">        momentum management or fail later in matrix products, so it is rejected</span>
+<span class="sd">        at the controller boundary.</span>
+
+<span class="sd">        :param x_hat: State supplied to the controller.</span>
+<span class="sd">        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState</span>
+<span class="sd">        :param n_rw: Number of reaction wheels expected by the controller.</span>
+<span class="sd">        :type n_rw: int</span>
+<span class="sd">        :param context: Name of the calling controller/mode for error messages.</span>
+<span class="sd">        :type context: str</span>
+<span class="sd">        :return: Wheel momentum state vector of shape ``(n_rw,)``.</span>
+<span class="sd">        :rtype: numpy.ndarray</span>
+<span class="sd">        :raises ValueError: If ``x_hat.h`` does not contain exactly ``n_rw`` entries.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">n_rw</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;n_rw must be non-negative, got </span><span class="si">{</span><span class="n">n_rw</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_hat</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">h</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">n_rw</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2"> expected x_hat.h to contain exactly </span><span class="si">{</span><span class="n">n_rw</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;reaction-wheel momentum states, got </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+
+
 
 <div class="viewcode-block" id="Controller.find_u">
 <a class="viewcode-back" href="../../../ADCS.controller.controller.html#ADCS.controller.controller.Controller.find_u">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Computes actuator command inputs that satisfy the control objective.</span>
 
@@ -617,7 +655,7 @@
 <span class="sd">        where :math:`A^{\dagger}` denotes an actuator allocation pseudoinverse.</span>
 
 <span class="sd">        :param x_hat: Estimated spacecraft state vector</span>
-<span class="sd">        :type x_hat: numpy.ndarray</span>
+<span class="sd">        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState</span>
 <span class="sd">        :param sens: Flattened sensor measurement vector</span>
 <span class="sd">        :type sens: numpy.ndarray</span>
 <span class="sd">        :param est_sat: Estimated satellite model providing hardware properties</span>

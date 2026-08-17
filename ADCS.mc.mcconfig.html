@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -601,7 +602,7 @@ subclasses.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>q</strong> (<em>numpy.ndarray</em>) – Current spacecraft attitude representation.</p></li>
 <li><p><strong>body_boresight</strong> (<em>numpy.ndarray</em>) – Boresight direction expressed in the spacecraft body frame.</p></li>
-<li><p><strong>os0</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State"><em>Orbital_State</em></a>) – Current orbital state.</p></li>
+<li><p><strong>os0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>) – Current orbital state.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -631,7 +632,7 @@ on the specific subclass implementation.</p>
 <p>This base method is abstract and must be overridden.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>os0</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State"><em>Orbital_State</em></a>) – Current orbital state.</p>
+<dd class="field-odd"><p><strong>os0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>) – Current orbital state.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Inertial reference direction and reference angular velocity.</p>
@@ -659,12 +660,9 @@ passed directly to the Monte Carlo simulation function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>w</strong> (<em>numpy.ndarray</em><em> or </em><em>None</em>) – Initial angular velocity override. If provided, replaces the first three
-elements of the state vector.</p></li>
-<li><p><strong>q</strong> (<em>numpy.ndarray</em><em> or </em><em>None</em>) – Initial attitude quaternion override. If provided, replaces elements
-3 through 6 of the state vector.</p></li>
-<li><p><strong>h</strong> (<em>numpy.ndarray</em><em> or </em><em>None</em>) – Initial reaction wheel momentum override. If provided, replaces the
-reaction wheel portion of the state vector.</p></li>
+<li><p><strong>w</strong> (<em>numpy.ndarray</em><em> or </em><em>None</em>) – Initial angular velocity override. If provided, replaces <code class="docutils literal notranslate"><span class="pre">State.w</span></code>.</p></li>
+<li><p><strong>q</strong> (<em>numpy.ndarray</em><em> or </em><em>None</em>) – Initial attitude quaternion override. If provided, replaces <code class="docutils literal notranslate"><span class="pre">State.q</span></code>.</p></li>
+<li><p><strong>h</strong> (<em>numpy.ndarray</em><em> or </em><em>None</em>) – Initial reaction wheel momentum override. If provided, replaces <code class="docutils literal notranslate"><span class="pre">State.h</span></code>.</p></li>
 <li><p><strong>orbit</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbit</span></code></a> or None) – Orbit override for the run. This may be an
 <a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbit</span></code></a> instance, an
 <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>, or an equivalent
@@ -835,7 +833,7 @@ directly.</p>
 <dd class="field-even"><p>Orbital state at the specified time.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State">Orbital_State</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State">Orbital_State</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>ValueError</strong> – If the requested time lies outside the orbit span.</p>
@@ -859,7 +857,7 @@ directly.</p>
 <dd class="field-even"><p>New orbit or orbital state(s) within the given time range.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#ADCS.mc.mcconfig.Orbit" title="ADCS.mc.mcconfig.Orbit">Orbit</a> or <a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State">Orbital_State</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#ADCS.mc.mcconfig.Orbit" title="ADCS.mc.mcconfig.Orbit">Orbit</a> or <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State">Orbital_State</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>ValueError</strong> – If the time bounds are invalid or outside the orbit span.</p>
@@ -935,13 +933,13 @@ directly.</p>
 <dd><p>Return the next available orbital state after a given time.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>input</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State"><em>Orbital_State</em></a><em> or </em><em>float</em>) – Reference time or orbital state.</p>
+<dd class="field-odd"><p><strong>input</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a><em> or </em><em>float</em>) – Reference time or orbital state.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Next orbital state in chronological order.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State">Orbital_State</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State">Orbital_State</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>ValueError</strong> – If the input time lies outside the orbit span.</p>

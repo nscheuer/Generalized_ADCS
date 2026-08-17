@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -546,7 +547,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.attitude_estimators.attitude_estimator</span><span class="w"> </span><span class="kn">import</span> <span class="n">Attitude_Estimator</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.estimator_helpers.estimator_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ErrorMode</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
@@ -734,7 +735,7 @@
 <span class="sd">        :param J2000: Initial time in seconds since J2000.</span>
 <span class="sd">        :type J2000: float</span>
 <span class="sd">        :param x_hat: Initial full augmented state estimate.</span>
-<span class="sd">        :type x_hat: numpy.ndarray</span>
+<span class="sd">        :type x_hat: ADCS.state.EstimatorState</span>
 <span class="sd">        :param P_hat: Initial covariance matrix (reduced error-state unless ``quat_as_vec=True``).</span>
 <span class="sd">        :type P_hat: numpy.ndarray</span>
 <span class="sd">        :param Q_hat: Initial process-noise covariance matrix (same convention as ``P_hat``).</span>
@@ -1008,7 +1009,19 @@
 
             <span class="c1"># Cholesky of scaled covariance</span>
             <span class="n">chol_mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="n">cov_j</span>
-            <span class="n">mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">chol_mat</span><span class="p">)</span>  <span class="c1"># (dim, dim)</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># State covariance must be positive definite; let a failure</span>
+                <span class="c1"># propagate rather than masking a diverged filter.</span>
+                <span class="n">mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">chol_mat</span><span class="p">)</span>  <span class="c1"># (dim, dim)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Noise blocks may be PSD-singular (e.g. rank-deficient</span>
+                <span class="c1"># actuator noise); mirror the SRUAKF eigh fallback instead of</span>
+                <span class="c1"># aborting the update.</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">chol_mat</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">:</span>
+                    <span class="n">eigvals</span><span class="p">,</span> <span class="n">eigvecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">chol_mat</span><span class="p">)</span>
+                    <span class="n">mat</span> <span class="o">=</span> <span class="n">eigvecs</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">eigvals</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)))</span>
             <span class="c1"># 2*dim sigma offsets: +columns and -columns</span>
             <span class="n">offs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">mat</span><span class="p">,</span> <span class="o">-</span><span class="n">mat</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># (2*dim, dim)</span>
             <span class="n">offsets</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">offs</span>
@@ -1298,29 +1311,27 @@
 
 <div class="viewcode-block" id="UAKF.sat_match">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.sat_match">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">sat_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sat_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Synchronize an :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
-<span class="sd">        instance with a raw full state vector.</span>
+<span class="sd">        instance with an estimator state.</span>
 
 <span class="sd">        Sigma-point propagation and measurement prediction require the satellite model</span>
 <span class="sd">        to reflect the sigma point&#39;s specific biases/parameters and attitude. This method</span>
-<span class="sd">        constructs an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`</span>
-<span class="sd">        compatible container, inserts the provided raw state entries at indices defined by</span>
-<span class="sd">        :attr:`use`, and then updates the satellite model via</span>
+<span class="sd">        applies the provided :class:`~ADCS.state.EstimatorState` to the satellite model via</span>
 <span class="sd">        :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.</span>
 
 <span class="sd">        :param est_sat: Satellite model instance to be updated for sigma-point propagation.</span>
 <span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
-<span class="sd">        :param state: Full augmented state vector to apply.</span>
-<span class="sd">        :type state: numpy.ndarray</span>
+<span class="sd">        :param state: Estimator state to apply.</span>
+<span class="sd">        :type state: :class:`~ADCS.state.EstimatorState`</span>
 <span class="sd">        :return: ``None``.</span>
 <span class="sd">        :rtype: None</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">full_statej</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">full_statej</span><span class="o">.</span><span class="n">val</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span>
-        <span class="n">est_sat</span><span class="o">.</span><span class="n">match_estimate</span><span class="p">(</span><span class="n">full_statej</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;state must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">est_sat</span><span class="o">.</span><span class="n">match_estimate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span></div>
 
 
 
@@ -1331,7 +1342,7 @@
         <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">sensors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>   <span class="c1"># was effectively used as a NumPy array already</span>
         <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatedArray</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Perform one UKF predict/update cycle in reduced error-state coordinates.</span>
 
@@ -1443,19 +1454,19 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :raises numpy.linalg.LinAlgError: If the measurement covariance matrix is singular during gain computation.</span>
 <span class="sd">        :return: Updated estimate container with updated full state and reduced covariance.</span>
-<span class="sd">        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`</span>
+<span class="sd">        :rtype: :class:`~ADCS.state.EstimatorState`</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">os</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">val</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">as_estimator_array</span><span class="p">()</span>
 
         <span class="c1"># Middle orbital states (CG5 coefficients)</span>
         <span class="n">mid_os</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="n">CG5</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
 
         <span class="c1"># One-step propagation of the nominal dynamics</span>
         <span class="n">dyn_state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">noiseless_rk4</span><span class="p">(</span>
-            <span class="n">x</span><span class="o">=</span><span class="n">state0</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">state_len</span><span class="p">],</span>
+            <span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="p">,</span>
             <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
             <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
             <span class="n">orbital_state0</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span><span class="p">,</span>
@@ -1507,12 +1518,13 @@
         <span class="c1"># Propagate each sigma point (this part is hard to vectorize because</span>
         <span class="c1"># it calls user dynamics; kept as a tight Python loop).</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_sigma</span><span class="p">):</span>
-            <span class="n">full_pre_statej</span><span class="p">,</span> <span class="n">sens_noise_j</span><span class="p">,</span> <span class="n">control_noise_j</span><span class="p">,</span> <span class="n">int_noise_extra_j</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">full_pre_array_j</span><span class="p">,</span> <span class="n">sens_noise_j</span><span class="p">,</span> <span class="n">control_noise_j</span><span class="p">,</span> <span class="n">int_noise_extra_j</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">full_pre_statej</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_augmented_array</span><span class="p">(</span><span class="n">full_pre_array_j</span><span class="p">)</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">sat_match</span><span class="p">(</span><span class="n">satj</span><span class="p">,</span> <span class="n">full_pre_statej</span><span class="p">)</span>
 
             <span class="n">post_dyn_state_j</span> <span class="o">=</span> <span class="n">satj</span><span class="o">.</span><span class="n">noiseless_rk4</span><span class="p">(</span>
-                <span class="n">x</span><span class="o">=</span><span class="n">full_pre_statej</span><span class="p">[:</span><span class="n">state_len</span><span class="p">],</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">full_pre_statej</span><span class="p">,</span>
                 <span class="n">u</span><span class="o">=</span><span class="n">u</span> <span class="o">+</span> <span class="n">control_noise_j</span><span class="p">,</span>
                 <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
                 <span class="n">orbital_state0</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span><span class="p">,</span>
@@ -1524,34 +1536,38 @@
             <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="c1"># j=0 has zero integration noise, so this reference quaternion</span>
                 <span class="c1"># is clean (same as original implementation).</span>
-                <span class="n">post_quat</span> <span class="o">=</span> <span class="n">post_dyn_state_j</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">post_quat</span> <span class="o">=</span> <span class="n">post_dyn_state_j</span><span class="o">.</span><span class="n">q</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
             <span class="n">post_statej</span><span class="p">,</span> <span class="n">post_full_statej</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_post_state</span><span class="p">(</span>
-                <span class="n">full_pre_statej</span><span class="p">[</span><span class="n">state_len</span><span class="p">:],</span>
-                <span class="n">post_dyn_state_j</span><span class="p">,</span>
+                <span class="n">full_pre_array_j</span><span class="p">[</span><span class="n">state_len</span><span class="p">:],</span>
+                <span class="n">post_dyn_state_j</span><span class="o">.</span><span class="n">as_array</span><span class="p">(),</span>
                 <span class="n">int_noise_extra_j</span><span class="p">,</span>
                 <span class="n">post_quat</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">post_pts</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">post_statej</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">sat_match</span><span class="p">(</span><span class="n">satj</span><span class="p">,</span> <span class="n">post_full_statej</span><span class="p">)</span>
+            <span class="n">post_full_state_obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_augmented_array</span><span class="p">(</span><span class="n">post_full_statej</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sat_match</span><span class="p">(</span><span class="n">satj</span><span class="p">,</span> <span class="n">post_full_state_obj</span><span class="p">)</span>
             <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-            <span class="n">sensj</span> <span class="o">=</span> <span class="n">satj</span><span class="o">.</span><span class="n">sensor_readings</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">post_full_statej</span><span class="p">[:</span><span class="n">state_len</span><span class="p">],</span><span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">)</span>
+            <span class="n">sensj</span> <span class="o">=</span> <span class="n">satj</span><span class="o">.</span><span class="n">sensor_readings</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">post_full_state_obj</span><span class="p">,</span><span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">)</span>
             <span class="n">post_sens</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">sensj</span><span class="p">[</span><span class="n">which_outputs</span><span class="p">]</span> <span class="o">+</span> <span class="n">sens_noise_j</span>
 
-        <span class="c1"># Predicted reduced error state</span>
+        <span class="c1"># Predicted state in the covariance coordinate convention.</span>
         <span class="n">state1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">wts_m</span><span class="p">,</span> <span class="n">post_pts</span><span class="p">)</span>
-        <span class="n">dquat1</span> <span class="o">=</span> <span class="n">vec3_to_quat</span><span class="p">(</span><span class="n">state1</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">vec_mode</span><span class="p">)</span>
-        <span class="n">quat1</span> <span class="o">=</span> <span class="n">quat_mult</span><span class="p">(</span><span class="n">post_quat</span><span class="p">,</span> <span class="n">dquat1</span><span class="p">)</span>
-
-        <span class="n">pred_dyn_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
-            <span class="p">(</span>
-                <span class="n">state1</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span>
-                <span class="n">quat1</span><span class="p">,</span>
-                <span class="n">state1</span><span class="p">[</span><span class="mi">6</span> <span class="p">:</span> <span class="n">state_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
-                <span class="n">state1</span><span class="p">[</span><span class="n">state_len</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:],</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span><span class="p">:</span>
+            <span class="n">dquat1</span> <span class="o">=</span> <span class="n">vec3_to_quat</span><span class="p">(</span><span class="n">state1</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">vec_mode</span><span class="p">)</span>
+            <span class="n">quat1</span> <span class="o">=</span> <span class="n">quat_mult</span><span class="p">(</span><span class="n">post_quat</span><span class="p">,</span> <span class="n">dquat1</span><span class="p">)</span>
+            <span class="n">pred_dyn_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">state1</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span>
+                    <span class="n">quat1</span><span class="p">,</span>
+                    <span class="n">state1</span><span class="p">[</span><span class="mi">6</span> <span class="p">:</span> <span class="n">state_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+                    <span class="n">state1</span><span class="p">[</span><span class="n">state_len</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:],</span>
+                <span class="p">)</span>
             <span class="p">)</span>
-        <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">state1</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">state1</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">])</span>
+            <span class="n">pred_dyn_state</span> <span class="o">=</span> <span class="n">state1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
         <span class="c1"># Predicted measurement</span>
         <span class="n">sens1</span> <span class="o">=</span> <span class="n">wts_m</span> <span class="o">@</span> <span class="n">post_sens</span>
@@ -1607,9 +1623,14 @@
             <span class="n">cov2</span> <span class="o">=</span> <span class="n">norm_jac</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">cov2</span> <span class="o">@</span> <span class="n">norm_jac</span>
 
         <span class="c1"># Update satellite estimate for the new full state</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sat_match</span><span class="p">(</span><span class="n">satj</span><span class="p">,</span> <span class="n">state2</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_augmented_array</span><span class="p">(</span>
+            <span class="n">state2</span><span class="p">,</span>
+            <span class="n">cov</span><span class="o">=</span><span class="n">cov2</span><span class="p">,</span>
+            <span class="n">int_cov</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">int_cov</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sat_match</span><span class="p">(</span><span class="n">satj</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">EstimatedArray</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="n">state2</span><span class="p">,</span> <span class="n">cov</span><span class="o">=</span><span class="n">cov2</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">result</span></div>
 </div>
 
 </pre></div>

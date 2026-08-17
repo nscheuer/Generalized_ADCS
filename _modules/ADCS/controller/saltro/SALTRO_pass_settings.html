@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -606,9 +607,9 @@
     <span class="n">magic_control_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">rw_AM_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">rw_stic_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">RWh_max_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">RWh_stiction_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">RWh_ok_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">RWh_knee_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">RWh_desat_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="c1"># Terminal costs</span>
     <span class="n">angle_N</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -617,7 +618,7 @@
     <span class="n">ang_vel_err_dir_N</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="c1"># Flags</span>
-    <span class="n">ang_cost_func_type</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">ang_cost_func_type</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>
     <span class="n">use_cost_hess</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -638,9 +639,9 @@
         <span class="n">cpp_cost</span><span class="o">.</span><span class="n">magic_control_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">magic_control_weight</span>
         <span class="n">cpp_cost</span><span class="o">.</span><span class="n">rw_AM_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rw_AM_weight</span>
         <span class="n">cpp_cost</span><span class="o">.</span><span class="n">rw_stic_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rw_stic_weight</span>
-        <span class="n">cpp_cost</span><span class="o">.</span><span class="n">RWh_max_mult</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RWh_max_mult</span>
         <span class="n">cpp_cost</span><span class="o">.</span><span class="n">RWh_stiction_mult</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RWh_stiction_mult</span>
-        <span class="n">cpp_cost</span><span class="o">.</span><span class="n">RWh_ok_mult</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RWh_ok_mult</span>
+        <span class="n">cpp_cost</span><span class="o">.</span><span class="n">RWh_knee_frac</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RWh_knee_frac</span>
+        <span class="n">cpp_cost</span><span class="o">.</span><span class="n">RWh_desat_mult</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RWh_desat_mult</span>
         <span class="n">cpp_cost</span><span class="o">.</span><span class="n">angle_N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle_N</span>
         <span class="n">cpp_cost</span><span class="o">.</span><span class="n">ang_vel_N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang_vel_N</span>
         <span class="n">cpp_cost</span><span class="o">.</span><span class="n">ang_vel_mag_N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang_vel_mag_N</span>
@@ -859,7 +860,6 @@
         <span class="n">cpp_pass</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
         <span class="k">return</span> <span class="n">cpp_pass</span></div>
 </div>
-
 
 
 </pre></div>

@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -737,7 +738,7 @@ This method returns:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current base spacecraft state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current base spacecraft state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>vecs</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Dictionary containing body-frame environment vectors and their derivatives.</p></li>
 </ul>
 </dd>
@@ -821,7 +822,7 @@ estimated disturbance’s parameter Jacobian:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current base spacecraft state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current base spacecraft state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>vecs</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Dictionary containing body-frame environment vectors and their quaternion derivatives,
 typically including keys like <code class="docutils literal notranslate"><span class="pre">&quot;b&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;r&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;s&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;v&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;rho&quot;</span></code>, and derivative keys
 like <code class="docutils literal notranslate"><span class="pre">&quot;db&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;dr&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;ds&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;dv&quot;</span></code>.</p></li>
@@ -902,7 +903,7 @@ measurements, not rotational dynamics; therefore <code class="docutils literal n
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current base state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current base state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Current control vector, shape <code class="docutils literal notranslate"><span class="pre">(control_len,)</span></code>.</p></li>
 <li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state supplying ECI vectors and scalars used by torque models.</p></li>
 </ul>
@@ -996,7 +997,7 @@ organized as a block matrix over the stacked variable vector</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current base state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Current base state vector, shape <code class="docutils literal notranslate"><span class="pre">(state_len,)</span></code>.</p></li>
 <li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Current control vector, shape <code class="docutils literal notranslate"><span class="pre">(control_len,)</span></code>.</p></li>
 <li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital/environmental state providing ECI vectors and scalars for torque models.</p></li>
 </ul>
@@ -1112,8 +1113,8 @@ applies an index adjustment <code class="docutils literal notranslate"><span cla
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>est_state</strong> (<a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedArray</span></code></a>) – Estimator output container providing
-<code class="docutils literal notranslate"><span class="pre">val</span></code> (state vector), <code class="docutils literal notranslate"><span class="pre">cov</span></code> (covariance), and <code class="docutils literal notranslate"><span class="pre">int_cov</span></code> (integrated covariance).</p></li>
+<li><p><strong>est_state</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>) – Estimator output container providing the attitude state,
+bias/parameter blocks, covariance, and integrated covariance.</p></li>
 <li><p><strong>dt</strong> (<em>float</em>) – Estimator propagation step (s). Used by some pipelines to normalize integrated covariance.
 (The current implementation partitions <code class="docutils literal notranslate"><span class="pre">int_cov</span></code> directly.)</p></li>
 </ul>
@@ -1125,7 +1126,7 @@ applies an index adjustment <code class="docutils literal notranslate"><span cla
 <dd class="field-odd"><p>None</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">est_state.val</span></code> does not have length
+<dd class="field-even"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">est_state.as_estimator_array()</span></code> does not have length
 <code class="docutils literal notranslate"><span class="pre">self.state_len</span> <span class="pre">+</span> <span class="pre">self.act_bias_len</span> <span class="pre">+</span> <span class="pre">self.att_sens_bias_len</span> <span class="pre">+</span> <span class="pre">self.dist_param_len</span></code>.</p>
 </dd>
 </dl>

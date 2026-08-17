@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -728,14 +729,14 @@
 <span class="sd">        sensor field of view.</span>
 
 <span class="sd">        :param x: Full spacecraft state vector.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state providing spacecraft position.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Nadir unit vector in body frame, or ``NaN`` if Earth is</span>
 <span class="sd">                 outside the sensor FOV.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
         <span class="n">r_sat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">R</span>  <span class="c1"># ECI position [km]</span>
         <span class="n">r_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">r_sat</span><span class="p">)</span>
 
@@ -777,7 +778,7 @@
 <span class="sd">        renormalized to enforce the unit-vector constraint.</span>
 
 <span class="sd">        :param x: Full spacecraft state vector.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :param dmode: Error mode controlling bias and noise.</span>
@@ -821,7 +822,7 @@
 <span class="sd">        :func:`~ADCS.helpers.math_helpers.drotmatTvecdq`.</span>
 
 <span class="sd">        :param x: Full spacecraft state vector.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Base-state Jacobian of shape ``(7, 3)``.</span>
@@ -830,7 +831,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nadir_eci</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span>
 
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
         <span class="n">db_dq</span> <span class="o">=</span> <span class="n">drotmatTvecdq</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nadir_eci</span><span class="p">)</span>
 
         <span class="n">J</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span>
@@ -850,7 +851,7 @@
 <span class="sd">        Otherwise, an empty Jacobian is returned.</span>
 
 <span class="sd">        :param x: Full spacecraft state vector (unused).</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state (unused).</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Bias Jacobian.</span>

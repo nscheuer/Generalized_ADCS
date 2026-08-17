@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -662,7 +663,7 @@ execution, while leaving environmental effects and propagation local.</p>
 
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 <span class="n">real_sat</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">satellite_factory</span><span class="o">.</span><span class="n">create_beavercube2_cubesat</span><span class="p">(</span><span class="n">estimated</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="n">x_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">])</span>
+<span class="n">x_0</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]))</span>
 
 <span class="n">controller</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">MTQ_w_RW_LP</span><span class="p">(</span>
     <span class="n">est_sat</span><span class="o">=</span><span class="n">real_sat</span><span class="p">,</span>

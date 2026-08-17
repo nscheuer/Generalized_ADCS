@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -598,7 +599,7 @@ SALTRO planner settings.</p></td>
 
 <span class="n">satellite</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">satellite_factory</span><span class="o">.</span><span class="n">create_beavercube2_cubesat</span><span class="p">()</span>
 
-<span class="n">x_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">])</span> <span class="c1"># w, q, h</span>
+<span class="n">x_0</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]))</span> <span class="c1"># w, q, h</span>
 
 <span class="n">planner_settings</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">saltro</span><span class="o">.</span><span class="n">PlannerSettings</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">satellite</span><span class="p">)</span>
 <span class="n">controller</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">SALTRO</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">satellite</span><span class="p">,</span> <span class="n">planner_settings</span><span class="o">=</span><span class="n">planner_settings</span><span class="p">)</span>

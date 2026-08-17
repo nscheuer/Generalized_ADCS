@@ -27,6 +27,7 @@ Submodules
 
    ADCS.simulate
    ADCS.simulate_remote
+   ADCS.state
 
 Module contents
 ---------------

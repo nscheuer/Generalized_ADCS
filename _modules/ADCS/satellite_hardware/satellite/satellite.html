@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -554,9 +555,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ErrorMode</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span>
 
 <div class="viewcode-block" id="Satellite">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Satellite</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Rigid-body spacecraft model with sensors, actuators, and environmental disturbances.</span>
@@ -764,7 +766,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">update_J</span><span class="p">(</span><span class="n">J_0</span><span class="o">=</span><span class="n">J_0</span><span class="p">,</span> <span class="n">COM</span><span class="o">=</span><span class="n">COM</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Satellite.get_boresight">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.get_boresight">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.get_boresight">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_boresight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boresight</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
@@ -778,7 +780,7 @@
 
 
 <div class="viewcode-block" id="Satellite.update_J">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.update_J">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_J">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_J</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J_0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">COM</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Update inertia matrices and cached inverses.</span>
@@ -913,7 +915,7 @@
                 <span class="nb">getattr</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s2">&quot;turn_on&quot;</span> <span class="k">if</span> <span class="n">on</span> <span class="k">else</span> <span class="s2">&quot;turn_off&quot;</span><span class="p">)()</span>
 
 <div class="viewcode-block" id="Satellite.srp_dist_on">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.srp_dist_on">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_on">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">srp_dist_on</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Turn on all Solar Radiation Pressure disturbances.</span>
@@ -931,7 +933,7 @@
 
 
 <div class="viewcode-block" id="Satellite.srp_dist_off">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.srp_dist_off">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_off">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">srp_dist_off</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Turn off all Solar Radiation Pressure disturbances.</span>
@@ -949,7 +951,7 @@
 
 
 <div class="viewcode-block" id="Satellite.gen_dist_on">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.gen_dist_on">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_on">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">gen_dist_on</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Turn on general disturbances.</span>
@@ -966,7 +968,7 @@
 
 
 <div class="viewcode-block" id="Satellite.gen_dist_off">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.gen_dist_off">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_off">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">gen_dist_off</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Turn off general disturbances.</span>
@@ -983,7 +985,7 @@
 
 
 <div class="viewcode-block" id="Satellite.prop_dist_on">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.prop_dist_on">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_on">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">prop_dist_on</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Turn on propulsion disturbances.</span>
@@ -1000,7 +1002,7 @@
 
 
 <div class="viewcode-block" id="Satellite.prop_dist_off">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.prop_dist_off">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_off">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">prop_dist_off</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Turn off propulsion disturbances.</span>
@@ -1017,7 +1019,7 @@
 
 
 <div class="viewcode-block" id="Satellite.specific_dist_on">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.specific_dist_on">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_on">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">specific_dist_on</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Turn on a specific disturbance model by index.</span>
@@ -1035,7 +1037,7 @@
 
 
 <div class="viewcode-block" id="Satellite.specific_dist_off">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.specific_dist_off">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_off">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">specific_dist_off</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Turn off a specific disturbance model by index.</span>
@@ -1053,7 +1055,7 @@
 
 
 <div class="viewcode-block" id="Satellite.RWhs">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.RWhs">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">RWhs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return the current reaction wheel momenta as a vector.</span>
@@ -1068,7 +1070,7 @@
 
 
 <div class="viewcode-block" id="Satellite.update_RWhs">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.update_RWhs">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_RWhs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">state_or_RWhs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Update stored wheel momentum values in each :class:`~ADCS.satellite_hardware.actuators.RW`.</span>
@@ -1088,7 +1090,7 @@
 <span class="sd">        :raises ValueError:</span>
 <span class="sd">            If the inferred wheel momentum vector length does not equal ``self.number_RW``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">state_or_RWhs</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_len</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state_or_RWhs</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
             <span class="n">RWhs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RWhs_from_state</span><span class="p">(</span><span class="n">state_or_RWhs</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">RWhs</span> <span class="o">=</span> <span class="n">state_or_RWhs</span>
@@ -1098,8 +1100,8 @@
 
 
 <div class="viewcode-block" id="Satellite.RWhs_from_state">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.RWhs_from_state">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">RWhs_from_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">state</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs_from_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">RWhs_from_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Extract the reaction wheel momenta subvector from a full state vector.</span>
 
@@ -1114,18 +1116,20 @@
 
 <span class="sd">        this returns :math:`\mathbf{h}_{RW} = \mathbf{x}[7:]`.</span>
 
-<span class="sd">        :param state: Full state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type state: numpy.ndarray</span>
+<span class="sd">        :param state: Structured spacecraft state.</span>
+<span class="sd">        :type state: ADCS.state.State</span>
 
 <span class="sd">        :return: Reaction wheel momentum vector, shape ``(number_RW,)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">state</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span></div>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;state must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">h</span></div>
 
     
 <div class="viewcode-block" id="Satellite.dynamics_core">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.dynamics_core">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dynamics_core</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_core">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dynamics_core</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Continuous-time attitude dynamics :math:`\dot{\mathbf{x}} = f(\mathbf{x},\mathbf{u},\mathrm{os})`.</span>
 
@@ -1191,8 +1195,9 @@
 
 <span class="sd">        matching the implementation structure.</span>
 
-<span class="sd">        :param x: State vector ``[w(3), q(4), h(number_RW)]``, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :param x: Structured state with angular velocity, quaternion, and wheel</span>
+<span class="sd">            momentum in ``w``, ``q``, and ``h`` respectively.</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param u: Control vector, one element per actuator, shape ``(control_len,)``.</span>
 <span class="sd">        :type u: numpy.ndarray</span>
@@ -1211,9 +1216,11 @@
 <span class="sd">        :return: Time derivative vector :math:`\dot{\mathbf{x}}`, shape ``(state_len,)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
-        <span class="n">h</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">w</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">h</span>
         <span class="c1"># Gyroscopic w x (J w) term must use the inertia about the center of</span>
         <span class="c1"># mass: that is the body the rotational EOM is written about, and it is</span>
         <span class="c1"># what invJ_noRW is derived from (J_noRW = J_COM - sum RW). J_0 is the</span>
@@ -1281,7 +1288,7 @@
 
         
 <div class="viewcode-block" id="Satellite.dynamics_for_solver">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.dynamics_for_solver">[docs]</a>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_for_solver">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dynamics_for_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">os1</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Wrapper for ODE solvers expecting signature ``f(t, x)``.</span>
@@ -1322,15 +1329,15 @@
 
         <span class="n">os</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">os1</span><span class="p">,</span> <span class="n">time_frac</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
-        <span class="n">x_dot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">x_dot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         
         <span class="k">return</span> <span class="n">x_dot</span></div>
 
     
 
 <div class="viewcode-block" id="Satellite.dist_torques">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.dist_torques">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dist_torques</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dist_torques</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the total disturbance torque.</span>
 
@@ -1345,7 +1352,7 @@
 <span class="sd">        the current :class:`~ADCS.satellite.Satellite` instance is provided.</span>
 
 <span class="sd">        :param x: State vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital/environmental state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -1370,8 +1377,8 @@
 
     
 <div class="viewcode-block" id="Satellite.act_torque">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.act_torque">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">act_torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.act_torque">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">act_torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the total actuator torque.</span>
 
@@ -1385,7 +1392,7 @@
 <span class="sd">        where each actuator is a subclass of :class:`~ADCS.satellite_hardware.actuators.Actuator`.</span>
 
 <span class="sd">        :param x: State vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param u: Control input vector, shape ``(control_len,)``.</span>
 <span class="sd">        :type u: numpy.ndarray</span>
@@ -1406,8 +1413,8 @@
 
     
 <div class="viewcode-block" id="Satellite.dist_torques_jacobian">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.dist_torques_jacobian">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dist_torques_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">vecs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques_jacobian">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dist_torques_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">vecs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobians of total disturbance torque with respect to the state and disturbance parameters.</span>
 
@@ -1435,7 +1442,7 @@
 <span class="sd">        * ``torque_qjac(self, vecs)`` → :math:`\partial \boldsymbol{\tau}/\partial \mathbf{q}`.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param vecs: Dictionary of body-frame environment vectors and their quaternion derivatives, e.g.</span>
 <span class="sd">            ``{&quot;b&quot;,&quot;r&quot;,&quot;s&quot;,&quot;v&quot;,&quot;rho&quot;,&quot;db&quot;,&quot;dr&quot;,&quot;ds&quot;,&quot;dv&quot;,&quot;os&quot;}``.</span>
@@ -1461,8 +1468,8 @@
 
 
 <div class="viewcode-block" id="Satellite.dist_torque_hess">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.dist_torque_hess">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dist_torque_hess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">vecs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torque_hess">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dist_torque_hess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">vecs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Hessian tensors of total disturbance torque.</span>
 
@@ -1482,7 +1489,7 @@
 <span class="sd">        * ``torque_qqhess(self, vecs)`` → :math:`\partial^2 \boldsymbol{\tau}/\partial \mathbf{q}^2`.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param vecs: Dictionary of body-frame environment vectors and their first/second quaternion derivatives.</span>
 <span class="sd">        :type vecs: dict[str, numpy.ndarray]</span>
@@ -1511,8 +1518,8 @@
 
 
 <div class="viewcode-block" id="Satellite.dynJacCore">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.dynJacCore">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dynJacCore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dynJacCore">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dynJacCore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute Jacobians of the dynamics with respect to state and input.</span>
 
@@ -1545,7 +1552,7 @@
 <span class="sd">        :meth:`~ADCS.satellite.Satellite.dist_torques_jacobian`.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param u: Current control vector, shape ``(control_len,)``.</span>
 <span class="sd">        :type u: numpy.ndarray</span>
@@ -1572,9 +1579,9 @@
         <span class="n">S</span> <span class="o">=</span> <span class="n">orbital_state</span><span class="o">.</span><span class="n">S</span> <span class="c1"># Sun Vector in ECI [km]</span>
         <span class="n">rho</span> <span class="o">=</span> <span class="n">orbital_state</span><span class="o">.</span><span class="n">rho</span> <span class="c1"># Atmospheric density [kg/m^3]</span>
 
-        <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
-        <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">w</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
+        <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">h</span>
         <span class="c1"># Must match the inertia used in dynamics_core (J_COM, not J_0) so the</span>
         <span class="c1"># analytic Jacobian stays the correct linearization of the dynamics for</span>
         <span class="c1"># a non-zero COM offset. See dynamics_core for the rationale.</span>
@@ -1627,8 +1634,8 @@
 
     
 <div class="viewcode-block" id="Satellite.dynamics_Hessians">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.dynamics_Hessians">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dynamics_Hessians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_Hessians">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dynamics_Hessians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute second-order partial derivatives (Hessians) of the dynamics.</span>
 
@@ -1696,7 +1703,7 @@
 <span class="sd">        where the final tensor index selects the component of :math:`\dot{\mathbf{x}}`.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param u: Current control vector, shape ``(control_len,)``.</span>
 <span class="sd">        :type u: numpy.ndarray</span>
@@ -1719,9 +1726,9 @@
 <span class="sd">        | ``ddxdot__dudu``  | ``(control_len, control_len, state_len)``|</span>
 <span class="sd">        +-------------------+------------------------------------------+</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span><span class="c1">#.reshape((3,1))</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span><span class="c1">#normalize(x[3:7,:])</span>
-        <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">w</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
+        <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">h</span>
         <span class="n">invJ_noRW</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invJ_noRW</span>
         <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_COM</span>
 
@@ -1822,8 +1829,8 @@
 
 
 <div class="viewcode-block" id="Satellite.noiseless_rk4">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.noiseless_rk4">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">noiseless_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">orbital_state0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">orbital_state1</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">mid_orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">give_err_est</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_rk4">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">noiseless_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">orbital_state0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">orbital_state1</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">mid_orbital_state</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">give_err_est</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Propagate the state forward one step using RK4 (and optional embedded error estimate).</span>
 
@@ -1855,7 +1862,7 @@
 <span class="sd">        :class:`~ADCS.satellite_hardware.errors.ErrorMode` with all noise/bias additions disabled.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param u: Control vector, shape ``(control_len,)``.</span>
 <span class="sd">        :type u: numpy.ndarray</span>
@@ -1888,30 +1895,29 @@
 <span class="sd">        :raises ValueError:</span>
 <span class="sd">            If ``give_err_est=True`` while using the CG5 quaternion propagation variant.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Work on a private copy: the renormalisation below (and the RK stages)</span>
-        <span class="c1"># must not mutate the caller&#39;s input array.</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">x_array</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">normalized</span><span class="p">()</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
         <span class="c1"># Use no noise, no bias, no updates to either</span>
         <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">quat_as_vec</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">mid_orbital_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">mid_orbital_state</span> <span class="o">=</span> <span class="n">orbital_state0</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">orbital_state1</span><span class="p">)</span>
 
-            <span class="n">k1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">orbital_state0</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
-            <span class="n">k2_in</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k1</span>
+            <span class="n">k1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">x_array</span><span class="p">),</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">orbital_state0</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+            <span class="n">k2_in</span> <span class="o">=</span> <span class="n">x_array</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k1</span>
             <span class="n">k2_in</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">k2_in</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">])</span>
-            <span class="n">k2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">k2_in</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">mid_orbital_state</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+            <span class="n">k2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">k2_in</span><span class="p">),</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">mid_orbital_state</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
 
-            <span class="n">k3_in</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k2</span>
+            <span class="n">k3_in</span> <span class="o">=</span> <span class="n">x_array</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k2</span>
             <span class="n">k3_in</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">k3_in</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">])</span>
-            <span class="n">k3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">k3_in</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">mid_orbital_state</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+            <span class="n">k3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">k3_in</span><span class="p">),</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">mid_orbital_state</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
 
-            <span class="n">k4_in</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k3</span>
+            <span class="n">k4_in</span> <span class="o">=</span> <span class="n">x_array</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k3</span>
             <span class="n">k4_in</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">k4_in</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">])</span>
-            <span class="n">k4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">k4_in</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">orbital_state1</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,)</span>
+            <span class="n">k4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">k4_in</span><span class="p">),</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">orbital_state1</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,)</span>
 
-            <span class="n">out</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">k2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">k3</span> <span class="o">+</span> <span class="n">k4</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">x_array</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">k2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">k3</span> <span class="o">+</span> <span class="n">k4</span><span class="p">)</span>
             <span class="n">out</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">])</span>
 
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
@@ -1921,26 +1927,26 @@
                 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;k4:&quot;</span><span class="p">,</span> <span class="n">k4</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">give_err_est</span><span class="p">:</span>
-                <span class="n">k33_in</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">k2</span> <span class="o">-</span> <span class="n">k1</span><span class="p">)</span>
+                <span class="n">k33_in</span> <span class="o">=</span> <span class="n">x_array</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">k2</span> <span class="o">-</span> <span class="n">k1</span><span class="p">)</span>
                 <span class="n">k33_in</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">k33_in</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">])</span>
-                <span class="n">k33</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics</span><span class="p">(</span><span class="n">k33_in</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">orbital_state1</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+                <span class="n">k33</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">k33_in</span><span class="p">),</span> <span class="n">u</span><span class="p">,</span> <span class="n">orbital_state1</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
 
-                <span class="n">out3</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">k2</span> <span class="o">+</span> <span class="n">k33</span><span class="p">)</span>
+                <span class="n">out3</span> <span class="o">=</span> <span class="n">x_array</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">k2</span> <span class="o">+</span> <span class="n">k33</span><span class="p">)</span>
                 <span class="n">out3</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">out3</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">])</span>
 
                 <span class="n">est_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
                 <span class="n">est_err</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">out</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">out3</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span>
                 <span class="n">est_err</span><span class="p">[</span><span class="mi">6</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span> <span class="o">-</span> <span class="n">out3</span><span class="p">[</span><span class="mi">7</span><span class="p">:])</span>
                 <span class="n">est_err</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">quat_to_vec3</span><span class="p">(</span><span class="n">quat_mult</span><span class="p">(</span><span class="n">quat_inv</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]),</span> <span class="n">out3</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]),</span> <span class="mi">0</span><span class="p">))</span>
-                <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">est_err</span>
+                <span class="k">return</span> <span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">out</span><span class="p">),</span> <span class="n">est_err</span>
 
-            <span class="k">return</span> <span class="n">out</span>
+            <span class="k">return</span> <span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">give_err_est</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Error estimation not implemented for CG5 method.&quot;</span><span class="p">)</span>
 
-            <span class="n">ki</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
+            <span class="n">ki</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x_array</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
             <span class="n">F</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
 
             <span class="k">if</span> <span class="n">mid_orbital_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1949,28 +1955,28 @@
                 <span class="p">]</span>
 
             <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
-                <span class="n">midstate</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">([</span><span class="n">uc</span><span class="o">.</span><span class="n">CG5_a</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">ki</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span><span class="p">)],</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+                <span class="n">midstate</span> <span class="o">=</span> <span class="n">x_array</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">([</span><span class="n">uc</span><span class="o">.</span><span class="n">CG5_a</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">ki</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span><span class="p">)],</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x_array</span><span class="p">))</span>
                 <span class="k">if</span> <span class="n">j</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">midstate</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span>
-                        <span class="n">quat_mult</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">],</span> <span class="o">*</span><span class="p">[</span><span class="n">rot_exp</span><span class="p">(</span><span class="n">uc</span><span class="o">.</span><span class="n">CG5_a</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span><span class="p">)])</span>
+                        <span class="n">quat_mult</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="n">rot_exp</span><span class="p">(</span><span class="n">uc</span><span class="o">.</span><span class="n">CG5_a</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span><span class="p">)])</span>
                     <span class="p">)</span>
-                <span class="n">ki</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">midstate</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">mid_orbital_state</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+                <span class="n">ki</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamics_core</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">midstate</span><span class="p">),</span> <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state</span><span class="o">=</span><span class="n">mid_orbital_state</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
                 <span class="n">F</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">midstate</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
 
-            <span class="n">out</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">([</span><span class="n">uc</span><span class="o">.</span><span class="n">CG5_b</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">ki</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)],</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">x_array</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">([</span><span class="n">uc</span><span class="o">.</span><span class="n">CG5_b</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">ki</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)],</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x_array</span><span class="p">))</span>
             <span class="n">out</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span>
-                <span class="n">quat_mult</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">],</span> <span class="o">*</span><span class="p">[</span><span class="n">rot_exp</span><span class="p">(</span><span class="n">uc</span><span class="o">.</span><span class="n">CG5_b</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)])</span>
+                <span class="n">quat_mult</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="n">rot_exp</span><span class="p">(</span><span class="n">uc</span><span class="o">.</span><span class="n">CG5_b</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)])</span>
             <span class="p">)</span>
 
-            <span class="k">return</span> <span class="n">out</span></div>
+            <span class="k">return</span> <span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
 
         
     
 
         
 <div class="viewcode-block" id="Satellite.sensor_readings">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.sensor_readings">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">sensor_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.sensor_readings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sensor_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute concatenated sensor readings (attitude sensors + wheel momentum measurements).</span>
 
@@ -1992,7 +1998,7 @@
 <span class="sd">        where each :math:`\mathbf{y}_i` is a sensor-specific output (possibly vector-valued).</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital/environmental state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -2012,8 +2018,8 @@
 
     
 <div class="viewcode-block" id="Satellite.noiseless_sensor_readings">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.noiseless_sensor_readings">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">noiseless_sensor_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_sensor_readings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">noiseless_sensor_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute sensor readings with noise disabled (bias may be included but not updated).</span>
 
@@ -2027,7 +2033,7 @@
 <span class="sd">        This is useful for deterministic filtering tests where bias is treated as a fixed offset.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital/environmental state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -2040,15 +2046,15 @@
 
     
 <div class="viewcode-block" id="Satellite.noiseless_RW_readings">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.noiseless_RW_readings">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">noiseless_RW_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_RW_readings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">noiseless_RW_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return noiseless reaction wheel momentum measurements.</span>
 
 <span class="sd">        Delegates to each wheel&#39;s ``measure_momentum_noiseless()`` (implementation-specific).</span>
 
 <span class="sd">        :param x: Current state vector (unused by some wheel models but included for interface consistency).</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital/environmental state (unused by some wheel models but included for interface consistency).</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -2060,15 +2066,15 @@
 
     
 <div class="viewcode-block" id="Satellite.RW_readings">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.RW_readings">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">RW_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.RW_readings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">RW_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return reaction wheel momentum measurements (with wheel measurement model behavior).</span>
 
 <span class="sd">        Delegates to each wheel&#39;s ``measure_momentum()``.</span>
 
 <span class="sd">        :param x: Current state vector (unused by some wheel models but included for interface consistency).</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital/environmental state (unused by some wheel models but included for interface consistency).</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -2081,15 +2087,15 @@
 
 
 <div class="viewcode-block" id="Satellite.GPS_readings">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.GPS_readings">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">GPS_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.GPS_readings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">GPS_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return GPS sensor readings.</span>
 
 <span class="sd">        GPS sensors are identified as instances of :class:`~ADCS.satellite_hardware.sensors.GPS`.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital/environmental state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -2102,8 +2108,8 @@
 
 
 <div class="viewcode-block" id="Satellite.gyro_readings">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.gyro_readings">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">gyro_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.gyro_readings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gyro_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return readings from all gyroscopes.</span>
 
@@ -2111,7 +2117,7 @@
 <span class="sd">        and returns ``sensor.reading(x, os)`` for each.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital/environmental state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -2128,15 +2134,15 @@
 
 
 <div class="viewcode-block" id="Satellite.mtm_readings">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.mtm_readings">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">mtm_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.mtm_readings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mtm_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return readings from all magnetometers.</span>
 
 <span class="sd">        Filters ``self.attitude_sensors`` by :class:`~ADCS.satellite_hardware.sensors.MTM`.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital/environmental state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -2153,15 +2159,15 @@
 
 
 <div class="viewcode-block" id="Satellite.sunpair_readings">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.sunpair_readings">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">sunpair_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.sunpair_readings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sunpair_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return readings from all sun-pair sensors.</span>
 
 <span class="sd">        Filters ``self.attitude_sensors`` by :class:`~ADCS.satellite_hardware.sensors.SunPair`.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital/environmental state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -2178,15 +2184,15 @@
 
 
 <div class="viewcode-block" id="Satellite.sunsensor_readings">
-<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.helpers.simresults.Satellite.sunsensor_readings">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">sunsensor_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.sunsensor_readings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sunsensor_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return readings from all sun sensors.</span>
 
 <span class="sd">        Filters ``self.attitude_sensors`` by :class:`~ADCS.satellite_hardware.sensors.SunSensor`.</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :param os: Orbital/environmental state.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>

@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -540,6 +541,8 @@
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MTQ_w_RW_LP&quot;</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConvexHull</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">linprog</span>
@@ -831,7 +834,7 @@
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.find_u">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">x_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span>
         <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
@@ -848,10 +851,9 @@
 <span class="sd">        ``est_sat.actuators`` and contains MTQ and RW command signals consistent with each</span>
 <span class="sd">        actuator&#39;s ``u_max`` bounds.</span>
 
-<span class="sd">        :param x_hat: Estimated state vector. The first 3 elements are body rates</span>
-<span class="sd">            :math:`\boldsymbol{\omega}` and elements 3:7 are the attitude quaternion.</span>
-<span class="sd">            If present, elements 7:7+N_rw store RW scalar momentum states.</span>
-<span class="sd">        :type x_hat: numpy.ndarray</span>
+<span class="sd">        :param x_hat: Estimated state containing body rates in ``w``, the attitude</span>
+<span class="sd">            quaternion in ``q``, and reaction-wheel momentum in ``h``.</span>
+<span class="sd">        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState</span>
 <span class="sd">        :param sens: Raw sensor vector used to estimate the body magnetic field via the MTM model.</span>
 <span class="sd">        :type sens: numpy.ndarray</span>
 <span class="sd">        :param est_sat: Estimated satellite object providing hardware configuration and inertia.</span>
@@ -890,7 +892,7 @@
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.find_u_pointing">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u_pointing</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">x_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span>
         <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
@@ -983,7 +985,7 @@
 <span class="sd">        clipping of RW and MTQ channels.</span>
 
 <span class="sd">        :param x_hat: Estimated state vector containing body rates, quaternion, and optionally RW momentum states.</span>
-<span class="sd">        :type x_hat: numpy.ndarray</span>
+<span class="sd">        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState</span>
 <span class="sd">        :param sens: Sensor vector used to estimate the body magnetic field from MTM measurements.</span>
 <span class="sd">        :type sens: numpy.ndarray</span>
 <span class="sd">        :param est_sat: Estimated satellite object containing actuators, inertia, and boresight configuration.</span>
@@ -997,8 +999,8 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">w</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">q</span>
 
         <span class="n">rws</span>  <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">RW</span><span class="p">)]</span>
         <span class="n">mtqs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">MTQ</span><span class="p">)]</span>
@@ -1007,13 +1009,11 @@
         <span class="n">rw_indices</span>  <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">RW</span><span class="p">)]</span>
         <span class="n">mtq_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">MTQ</span><span class="p">)]</span>
 
-        <span class="c1"># Wheel scalar momentum states (N_rw,)</span>
-        <span class="k">if</span> <span class="n">n_rw</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">7</span> <span class="o">+</span> <span class="n">n_rw</span><span class="p">:</span>
-            <span class="n">h_rw_states</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_hat</span><span class="p">[</span><span class="mi">7</span> <span class="p">:</span> <span class="mi">7</span> <span class="o">+</span> <span class="n">n_rw</span><span class="p">],</span> <span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_rw</span><span class="p">,)</span>
-        <span class="k">elif</span> <span class="n">n_rw</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">h_rw_states</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">rw</span><span class="o">.</span><span class="n">h</span> <span class="k">for</span> <span class="n">rw</span> <span class="ow">in</span> <span class="n">rws</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_rw</span><span class="p">,)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">h_rw_states</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">h_rw_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction_wheel_momentum_states</span><span class="p">(</span>
+            <span class="n">x_hat</span><span class="p">,</span>
+            <span class="n">n_rw</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="c1"># -------------------------</span>
         <span class="c1"># 1) Pointing torque request (PD + gyro)</span>
@@ -1154,7 +1154,7 @@
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.find_u_desaturate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u_desaturate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">x_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span>
         <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
@@ -1243,7 +1243,7 @@
 <span class="sd">        the RW torque-to-command mapping built in the constructor and then saturated to bounds.</span>
 
 <span class="sd">        :param x_hat: Estimated state vector containing body rates, quaternion, and optionally RW momentum states.</span>
-<span class="sd">        :type x_hat: numpy.ndarray</span>
+<span class="sd">        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState</span>
 <span class="sd">        :param sens: Sensor vector used to estimate the body magnetic field from MTM measurements.</span>
 <span class="sd">        :type sens: numpy.ndarray</span>
 <span class="sd">        :param est_sat: Estimated satellite object providing actuators and inertia.</span>
@@ -1256,8 +1256,8 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">w</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">q</span>
 
         <span class="n">k_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_gain</span>
         <span class="n">k_h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_gain</span>
@@ -1273,11 +1273,12 @@
 
         <span class="c1"># --- 2. System Momentum Vector (Generic N-RW) ---</span>
         <span class="c1"># Calculate total vector momentum stored in all wheels</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">7</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span><span class="p">:</span>
-            <span class="n">h_rw_scalars</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">7</span> <span class="p">:</span> <span class="mi">7</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span><span class="p">]</span>
-            <span class="n">h_sys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rw_axes</span> <span class="o">@</span> <span class="n">h_rw_scalars</span> <span class="c1"># Matrix (3, N) @ Vec (N,) -&gt; (3,)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">h_sys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">h_rw_scalars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction_wheel_momentum_states</span><span class="p">(</span>
+            <span class="n">x_hat</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u_desaturate&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">h_sys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rw_axes</span> <span class="o">@</span> <span class="n">h_rw_scalars</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
         <span class="c1"># --- 3. Rate Damping (Perpendicular to B) ---</span>
         <span class="c1"># &quot;Magnetic B-dot&quot; logic: dampen rates only in the plane where MTQs can act</span>

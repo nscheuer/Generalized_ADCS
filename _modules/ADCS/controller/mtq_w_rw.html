@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -540,6 +541,8 @@
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MTQ_w_RW&quot;</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Goal</span>
@@ -641,9 +644,8 @@
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
-<span class="sd">    This controller assumes that reaction wheel momentum states are stored</span>
-<span class="sd">    contiguously in the estimated state vector beginning at index 7 and that</span>
-<span class="sd">    the ordering matches the internal actuator index ordering.</span>
+<span class="sd">    Reaction wheel momentum is read from ``EstimatorState.h``; its ordering</span>
+<span class="sd">    matches the internal reaction-wheel actuator ordering.</span>
 
 <span class="sd">    References</span>
 <span class="sd">    ----------</span>
@@ -700,10 +702,10 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">n_actuators</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span><span class="p">)</span>
 
-    
+
 <div class="viewcode-block" id="MTQ_w_RW.find_u">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw.html#ADCS.controller.mtq_w_rw.MTQ_w_RW.find_u">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute actuator command vector for reaction wheels and magnetic torquers.</span>
 
@@ -744,7 +746,7 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        x_hat : numpy.ndarray</span>
+<span class="sd">        x_hat : ADCS.state.State or ADCS.state.EstimatorState</span>
 <span class="sd">            Estimated spacecraft state vector containing angular rates,</span>
 <span class="sd">            quaternion attitude, and reaction wheel momentum states.</span>
 <span class="sd">        sens : numpy.ndarray</span>
@@ -765,8 +767,8 @@
 <span class="sd">            ``est_sat.actuators``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">w</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">q</span>
 
         <span class="k">if</span> <span class="n">goal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">goal</span> <span class="o">=</span> <span class="n">Goal</span><span class="p">()</span>
@@ -788,20 +790,19 @@
         <span class="n">tau_att</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">p_gain</span><span class="o">*</span><span class="n">q_err_vec</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_gain</span><span class="o">*</span><span class="n">w_err</span>
 
         <span class="c1"># Momentum Management</span>
-        <span class="n">h_vals</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
         <span class="n">rw_axes</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span>
             <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rw</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,)</span>
             <span class="k">for</span> <span class="n">rw</span> <span class="ow">in</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rw</span><span class="p">,</span> <span class="n">RW</span><span class="p">)</span>
         <span class="p">])</span>
-        <span class="n">h_vals</span>    <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
+        <span class="n">h_vals</span>    <span class="o">=</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">RWhs_from_state</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span>
         <span class="n">h_rw_body</span> <span class="o">=</span> <span class="n">h_vals</span> <span class="o">@</span> <span class="n">rw_axes</span>
 
         <span class="c1"># Gyroscopic Compensation</span>
         <span class="n">J</span> <span class="o">=</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">J_0</span>
         <span class="n">tau_gyro</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">J</span> <span class="o">@</span> <span class="n">w</span> <span class="o">+</span> <span class="n">h_rw_body</span><span class="p">)</span>
         <span class="n">tau_att</span> <span class="o">+=</span> <span class="n">tau_gyro</span>
-        
+
         <span class="c1"># Momentum dumping</span>
         <span class="n">delta_h</span> <span class="o">=</span> <span class="n">h_rw_body</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_target</span>
         <span class="n">tau_dump</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">c_gain</span> <span class="o">*</span> <span class="n">delta_h</span>
@@ -824,12 +825,11 @@
         <span class="k">return</span> <span class="n">u_total</span></div>
 </div>
 
-    
 
 
 
 
-        
+
 </pre></div>
         </article>
       </div>

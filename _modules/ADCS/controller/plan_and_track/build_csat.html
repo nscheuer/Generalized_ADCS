@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -875,17 +876,14 @@
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">MTQ</span><span class="p">):</span>
         <span class="n">csat</span><span class="o">.</span><span class="n">add_MTQ</span><span class="p">(</span><span class="n">act</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">act</span><span class="o">.</span><span class="n">u_max</span><span class="p">,</span> <span class="n">planner_settings</span><span class="o">.</span><span class="n">mtq_control_weight</span><span class="p">)</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">RW</span><span class="p">):</span>
-        <span class="n">mult</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">planner_settings</span><span class="p">,</span> <span class="s1">&#39;RWh_max_mult&#39;</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
-        <span class="n">cost_threshold</span> <span class="o">=</span> <span class="n">act</span><span class="o">.</span><span class="n">h_max</span> <span class="o">*</span> <span class="n">mult</span>
-
         <span class="n">csat</span><span class="o">.</span><span class="n">add_RW</span><span class="p">(</span>
             <span class="n">act</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> 
             <span class="n">act</span><span class="o">.</span><span class="n">J</span><span class="p">,</span> 
             <span class="n">act</span><span class="o">.</span><span class="n">u_max</span> <span class="o">*</span> <span class="n">planner_settings</span><span class="o">.</span><span class="n">control_limit_scale</span><span class="p">,</span> 
-            <span class="n">act</span><span class="o">.</span><span class="n">h_max</span> <span class="o">*</span> <span class="n">planner_settings</span><span class="o">.</span><span class="n">RWh_max_mult</span><span class="p">,</span>
+            <span class="n">act</span><span class="o">.</span><span class="n">h_max</span> <span class="o">*</span> <span class="n">planner_settings</span><span class="o">.</span><span class="n">rw_momentum_limit_scale</span><span class="p">,</span>
             <span class="n">planner_settings</span><span class="o">.</span><span class="n">rw_control_weight</span><span class="p">,</span> 
             <span class="n">planner_settings</span><span class="o">.</span><span class="n">rw_AM_weight</span><span class="p">,</span> 
-            <span class="n">act</span><span class="o">.</span><span class="n">h_max</span> <span class="o">*</span> <span class="n">planner_settings</span><span class="o">.</span><span class="n">RWh_ok_mult</span><span class="p">,</span>
+            <span class="n">act</span><span class="o">.</span><span class="n">h_max</span> <span class="o">*</span> <span class="n">planner_settings</span><span class="o">.</span><span class="n">RWh_knee_frac</span><span class="p">,</span>
             <span class="n">planner_settings</span><span class="o">.</span><span class="n">rw_stic_weight</span><span class="p">,</span>
             <span class="n">act</span><span class="o">.</span><span class="n">h_max</span> <span class="o">*</span> <span class="n">planner_settings</span><span class="o">.</span><span class="n">RWh_stiction_mult</span>
         <span class="p">)</span>

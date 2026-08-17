@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -784,9 +785,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">magic_control_weight</span> <span class="o">=</span> <span class="mf">0.0001</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rw_AM_weight</span> <span class="o">=</span> <span class="mf">1e4</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rw_stic_weight</span> <span class="o">=</span> <span class="mf">1e0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">RWh_max_mult</span> <span class="o">=</span> <span class="mf">0.8</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rw_momentum_limit_scale</span> <span class="o">=</span> <span class="mf">0.8</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">RWh_stiction_mult</span> <span class="o">=</span> <span class="mf">0.01</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">RWh_ok_mult</span> <span class="o">=</span> <span class="mf">0.5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RWh_knee_frac</span> <span class="o">=</span> <span class="mf">0.5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RWh_desat_mult</span> <span class="o">=</span> <span class="mf">0.05</span>
 
         <span class="c1"># Cost Configuration</span>
         <span class="c1"># Terminal costs 10x higher than running costs to prioritize goal reaching</span>
@@ -798,7 +800,7 @@
             <span class="n">ang_vel_mag</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
             <span class="n">ang_vel_mag_N</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
             <span class="n">control_mult</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-            <span class="n">ang_cost_func_type</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">ang_cost_func_type</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cost_second</span> <span class="o">=</span> <span class="n">cost_second</span> <span class="k">if</span> <span class="n">cost_second</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost_main</span><span class="c1">#CostWeights(</span>
         <span class="c1">#     angle=1e3,</span>
@@ -808,7 +810,7 @@
         <span class="c1">#     ang_vel_mag=0.0,</span>
         <span class="c1">#     ang_vel_mag_N=0.0,</span>
         <span class="c1">#     control_mult=100.0,</span>
-        <span class="c1">#     ang_cost_func_type=2,</span>
+        <span class="c1">#     ang_cost_func_type=3,</span>
         <span class="c1"># )</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cost_tvlqr</span> <span class="o">=</span> <span class="n">cost_tvlqr</span> <span class="k">if</span> <span class="n">cost_tvlqr</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost_main</span><span class="c1">#CostWeights(</span>
         <span class="c1">#     angle=1e2,</span>
@@ -818,7 +820,7 @@
         <span class="c1">#     ang_vel_mag=0.0,</span>
         <span class="c1">#     ang_vel_mag_N=0.0,</span>
         <span class="c1">#     control_mult=1.0,</span>
-        <span class="c1">#     ang_cost_func_type=2,</span>
+        <span class="c1">#     ang_cost_func_type=3,</span>
         <span class="c1"># )</span>
 
         <span class="c1"># Disturbance Settings</span>

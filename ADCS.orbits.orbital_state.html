@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -761,7 +762,7 @@ transforms.</p>
 <dd><p>Retrieve cached or updated body-frame vectors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>x</strong> (<em>numpy.ndarray</em><em> or </em><em>None</em>) – Current spacecraft state vector.</p>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a><em> or </em><em>None</em>) – Current spacecraft state, or <code class="docutils literal notranslate"><span class="pre">None</span></code> to return initialized cached vectors.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Dictionary of vectors and derivatives.</p>
@@ -959,10 +960,10 @@ up to that degree.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.orbits.orbital_state.Orbital_State.update_vecs">
 <span class="sig-name descname"><span class="pre">update_vecs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbital_state.html#Orbital_State.update_vecs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.orbital_state.Orbital_State.update_vecs" title="Link to this definition">¶</a></dt>
-<dd><p>Update body-frame vectors and their derivatives from a state vector.</p>
+<dd><p>Update body-frame vectors and their derivatives from a structured state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full spacecraft state vector including attitude quaternion.</p>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft state containing the attitude quaternion.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p>

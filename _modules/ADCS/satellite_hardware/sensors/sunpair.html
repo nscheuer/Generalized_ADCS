@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -545,7 +546,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">Noise</span><span class="p">,</span> <span class="n">Bias</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize</span><span class="p">,</span> <span class="n">rot_mat</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize</span><span class="p">,</span> <span class="n">normed_vec_jac</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span>
 
 
 <div class="viewcode-block" id="SunPair">
@@ -683,7 +685,7 @@
 
 <div class="viewcode-block" id="SunPair.clean_reading">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sunpair.html#ADCS.satellite_hardware.sensors.sunpair.SunPair.clean_reading">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">clean_reading</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clean_reading</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the clean (noise- and bias-free) Sun sensor measurement.</span>
 
@@ -693,7 +695,7 @@
 <span class="sd">        ``NaN`` is returned.</span>
 
 <span class="sd">        :param x: Full system state vector.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state providing spacecraft position, Sun position,</span>
 <span class="sd">            and lighting conditions.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -717,7 +719,7 @@
 
 <div class="viewcode-block" id="SunPair.bias_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sunpair.html#ADCS.satellite_hardware.sensors.sunpair.SunPair.bias_jac">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">bias_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bias_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobian of the measurement with respect to the Sun-sensor bias.</span>
 
@@ -736,7 +738,7 @@
 <span class="sd">        If no bias model exists, an empty Jacobian is returned.</span>
 
 <span class="sd">        :param x: Full system state vector (unused).</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state (unused).</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 
@@ -752,7 +754,7 @@
 
 <div class="viewcode-block" id="SunPair.basestate_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sunpair.html#ADCS.satellite_hardware.sensors.sunpair.SunPair.basestate_jac">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">basestate_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">basestate_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobian of the clean Sun-sensor measurement with respect to the base</span>
 <span class="sd">        ADCS state.</span>
@@ -768,25 +770,33 @@
 <span class="sd">        where :math:`\boldsymbol{\omega}` is the body angular rate and</span>
 <span class="sd">        :math:`\mathbf{q}` is the attitude quaternion.</span>
 
-<span class="sd">        Because the Sun direction in the body frame depends on spacecraft</span>
-<span class="sd">        attitude, this Jacobian is computed numerically using **central finite</span>
-<span class="sd">        differences**:</span>
+<span class="sd">        The measurement is :math:`y = \eta\,(\hat{\mathbf{a}}^\top</span>
+<span class="sd">        \hat{\mathbf{s}})` with the hemisphere efficiency :math:`\eta` selected</span>
+<span class="sd">        by the sign of the projection, so with</span>
+<span class="sd">        :func:`~ADCS.helpers.math_helpers.normed_vec_jac` providing</span>
+<span class="sd">        :math:`\partial\hat{\mathbf{s}}/\partial\mathbf{q}`,</span>
 
 <span class="sd">        .. math::</span>
 
-<span class="sd">            \frac{\partial y}{\partial x_i}</span>
-<span class="sd">            \approx</span>
-<span class="sd">            \frac{f(x_i + \varepsilon) - f(x_i - \varepsilon)}{2\varepsilon},</span>
+<span class="sd">            \frac{\partial y}{\partial \mathbf{q}}</span>
+<span class="sd">            =</span>
+<span class="sd">            \eta\,</span>
+<span class="sd">            \frac{\partial \hat{\mathbf{s}}}{\partial \mathbf{q}}\,</span>
+<span class="sd">            \hat{\mathbf{a}},</span>
+<span class="sd">            \qquad</span>
+<span class="sd">            \frac{\partial y}{\partial \boldsymbol{\omega}} = \mathbf{0}.</span>
 
-<span class="sd">        with :math:`\varepsilon = 10^{-6}` and :math:`f(\cdot)` defined by</span>
-<span class="sd">        :meth:`_clean_scalar`.</span>
+<span class="sd">        The efficiency of the active hemisphere is held constant in the</span>
+<span class="sd">        derivative; the measurement has a slope discontinuity at</span>
+<span class="sd">        :math:`\hat{\mathbf{a}}^\top\hat{\mathbf{s}} = 0` when the two</span>
+<span class="sd">        efficiencies differ.</span>
 
 <span class="sd">        If the spacecraft is not sunlit, the clean measurement is treated as</span>
 <span class="sd">        invalid and this method returns a ``NaN`` sentinel rather than a finite</span>
 <span class="sd">        Jacobian.</span>
 
-<span class="sd">        :param x: Full 7-element ADCS state vector.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :param x: Full system state.</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state providing lighting conditions and Sun/spacecraft</span>
 <span class="sd">            geometry.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
@@ -802,53 +812,17 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">is_sunlit</span><span class="p">():</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
 
-        <span class="n">eps</span> <span class="o">=</span> <span class="mf">1e-6</span>
-        <span class="n">grad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
-
-        <span class="n">f0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean_scalar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">):</span>
-            <span class="n">xp</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">xm</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">xp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">eps</span>
-            <span class="n">xm</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">eps</span>
-            <span class="n">fp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean_scalar</span><span class="p">(</span><span class="n">xp</span><span class="p">,</span> <span class="n">os</span><span class="p">)</span>
-            <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean_scalar</span><span class="p">(</span><span class="n">xm</span><span class="p">,</span> <span class="n">os</span><span class="p">)</span>
-            <span class="n">grad</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">fp</span> <span class="o">-</span> <span class="n">fm</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">eps</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">grad</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
-
-    
-    <span class="k">def</span><span class="w"> </span><span class="nf">_clean_scalar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Compute the clean Sun-sensor measurement as a scalar.</span>
-
-<span class="sd">        This helper method implements the same clean measurement model as</span>
-<span class="sd">        :meth:`clean_reading`, but returns a scalar value. It is primarily used</span>
-<span class="sd">        internally for numerical differentiation when computing Jacobians.</span>
-
-<span class="sd">        If the spacecraft is not sunlit, the returned value is defined to be</span>
-<span class="sd">        zero.</span>
-
-<span class="sd">        :param x: Full system state vector.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
-<span class="sd">        :param os: Orbital state providing spacecraft position, Sun position,</span>
-<span class="sd">            and lighting conditions.</span>
-<span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
-
-<span class="sd">        :return: Clean scalar Sun-sensor measurement.</span>
-<span class="sd">        :rtype: float</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">is_sunlit</span><span class="p">():</span>
-            <span class="k">return</span> <span class="mf">0.0</span>
-
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">sunvec</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">]</span>
+        <span class="n">sun_dir</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">sunvec</span><span class="p">)</span>
 
-        <span class="n">sun_dir</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">])</span>
-
+        <span class="n">dsun_dir__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">sunvec</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ds&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">])</span>
         <span class="n">proj</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">sun_dir</span><span class="p">))</span>
         <span class="n">eff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">efficiency</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">proj</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">efficiency</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">proj</span> <span class="o">*</span> <span class="n">eff</span></div>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">eff</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">dsun_dir__dq</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="p">)</span></div>
+</div>
 
 </pre></div>
         </article>

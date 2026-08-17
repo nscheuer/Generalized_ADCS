@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -621,9 +622,8 @@ geometry, and sensor configuration.</p></li>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
-<p>This controller assumes that reaction wheel momentum states are stored
-contiguously in the estimated state vector beginning at index 7 and that
-the ordering matches the internal actuator index ordering.</p>
+<p>Reaction wheel momentum is read from <code class="docutils literal notranslate"><span class="pre">EstimatorState.h</span></code>; its ordering
+matches the internal reaction-wheel actuator ordering.</p>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
 <aside class="footnote brackets" id="id2" role="doc-footnote">
@@ -672,7 +672,7 @@ M_{\text{rw}} \boldsymbol{\tau}_{\text{rw}}.\]</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x_hat</strong> (<em>numpy.ndarray</em>) – Estimated spacecraft state vector containing angular rates,
+<li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a><em> or </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>ADCS.state.EstimatorState</em></a>) – Estimated spacecraft state vector containing angular rates,
 quaternion attitude, and reaction wheel momentum states.</p></li>
 <li><p><strong>sens</strong> (<em>numpy.ndarray</em>) – Raw sensor measurement vector used to reconstruct the magnetic
 field via MTM pseudo-inverse mapping.</p></li>

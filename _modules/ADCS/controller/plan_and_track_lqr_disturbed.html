@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -542,6 +543,8 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Plan_and_Track_LQR_Disturbed&quot;</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
 
@@ -751,7 +754,7 @@
 <a class="viewcode-back" href="../../../ADCS.controller.plan_and_track_lqr_disturbed.html#ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed.find_u">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">x_hat</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span>
+        <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span>
         <span class="n">sens</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span>
         <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
@@ -799,8 +802,8 @@
 <span class="sd">        time lies outside the trajectory’s valid time window, as determined by</span>
 <span class="sd">        :meth:`~ADCS.controller.helpers.Trajectory.is_valid_time`.</span>
 
-<span class="sd">        :param x_hat: Estimated state vector.</span>
-<span class="sd">        :type x_hat: numpy.typing.NDArray[numpy.float64]</span>
+<span class="sd">        :param x_hat: Current spacecraft state.</span>
+<span class="sd">        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState</span>
 <span class="sd">        :param sens: Sensor measurement vector. Not directly used.</span>
 <span class="sd">        :type sens: numpy.typing.NDArray[numpy.float64]</span>
 <span class="sd">        :param est_sat: Estimated satellite model.</span>
@@ -836,7 +839,7 @@
         <span class="c1"># Simple integrator: dist += gain * (w_actual - w_expected)</span>
         <span class="c1"># This assumes the disturbance manifests as angular velocity error</span>
         <span class="n">x_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">get_state_at</span><span class="p">(</span><span class="n">current_time</span><span class="p">)</span>
-        <span class="n">w_error</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">w_error</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">w</span> <span class="o">-</span> <span class="n">x_ref</span><span class="o">.</span><span class="n">w</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dist_estimate</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_gain</span> <span class="o">*</span> <span class="n">w_error</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">planner_settings</span><span class="o">.</span><span class="n">dt_tvlqr</span>
 
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">planner_settings</span><span class="o">.</span><span class="n">umax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">planner_settings</span><span class="o">.</span><span class="n">umax</span><span class="p">)</span></div>
@@ -870,7 +873,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">t_start</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">duration</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">x_0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">x_0</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span>
         <span class="n">os_0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">goals</span><span class="p">:</span> <span class="n">GoalList</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
@@ -898,7 +901,7 @@
 <span class="sd">        :param duration: Planning horizon length in seconds.</span>
 <span class="sd">        :type duration: float</span>
 <span class="sd">        :param x_0: Initial state vector used to seed the optimizer.</span>
-<span class="sd">        :type x_0: numpy.ndarray</span>
+<span class="sd">        :type x_0: ADCS.state.State</span>
 <span class="sd">        :param os_0: Initial orbital state used to seed environment propagation.</span>
 <span class="sd">        :type os_0: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :param goals: Goal list defining the pointing objectives.</span>
@@ -917,7 +920,7 @@
         <span class="p">)</span>
 
         <span class="c1"># Create trajectory with disturbance estimation enabled</span>
-        <span class="k">return</span> <span class="n">Trajectory</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">Trajectory</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span>
             <span class="n">lqr_times</span><span class="p">,</span> <span class="n">Xset</span><span class="p">,</span> <span class="n">Uset</span><span class="p">,</span> <span class="n">Kset</span><span class="p">,</span> <span class="n">Sset</span><span class="p">,</span>
             <span class="n">use_disturbance_estimation</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span></div>

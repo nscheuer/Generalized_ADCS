@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -580,9 +581,8 @@ estimators, goal objects) must be picklable.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Base initial true satellite state vector. The length must match
-<code class="docutils literal notranslate"><span class="pre">satellite.state_len</span></code> and is expected to follow the satellite state
-convention (angular velocity, quaternion, reaction wheel states, etc.).
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Base initial true satellite state. Its <code class="docutils literal notranslate"><span class="pre">h</span></code> length must match the
+satellite’s reaction-wheel count.
 Per-run overrides may be applied by <code class="docutils literal notranslate"><span class="pre">mc_config</span></code>.</p></li>
 <li><p><strong>satellite</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code>) – The true satellite model, including dynamics, sensors, and actuators.
 This object must be picklable for parallel execution.</p></li>

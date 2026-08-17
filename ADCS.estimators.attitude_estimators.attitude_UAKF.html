@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -1055,18 +1056,16 @@ into a 3-vector attitude error relative to a reference quaternion
 <dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.sat_match">
 <span class="sig-name descname"><span class="pre">sat_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_UAKF.html#UAKF.sat_match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.sat_match" title="Link to this definition">¶</a></dt>
 <dd><p>Synchronize an <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>
-instance with a raw full state vector.</p>
+instance with an estimator state.</p>
 <p>Sigma-point propagation and measurement prediction require the satellite model
 to reflect the sigma point’s specific biases/parameters and attitude. This method
-constructs an <a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedArray</span></code></a>
-compatible container, inserts the provided raw state entries at indices defined by
-<code class="xref py py-attr docutils literal notranslate"><span class="pre">use</span></code>, and then updates the satellite model via
+applies the provided <a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a> to the satellite model via
 <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">match_estimate()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Satellite model instance to be updated for sigma-point propagation.</p></li>
-<li><p><strong>state</strong> (<em>numpy.ndarray</em>) – Full augmented state vector to apply.</p></li>
+<li><p><strong>state</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>) – Estimator state to apply.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1200,7 +1199,7 @@ transformed by the normalization Jacobian from
 <dd class="field-even"><p>Updated estimate container with updated full state and reduced covariance.</p>
 </dd>
 <dt class="field-odd">rtype<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedArray</span></code></a></p>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a></p>
 </dd>
 </dl>
 </section>
@@ -1213,7 +1212,7 @@ transformed by the normalization Jacobian from
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><em>EstimatedArray</em></a></p>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a></p>
 </dd>
 </dl>
 </dd></dl>

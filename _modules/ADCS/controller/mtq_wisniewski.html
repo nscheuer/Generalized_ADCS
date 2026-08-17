@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -540,6 +541,8 @@
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MTQ_Wisniewski&quot;</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Goal</span><span class="p">,</span> <span class="n">No_Goal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller</span><span class="w"> </span><span class="kn">import</span> <span class="n">Controller</span>
@@ -668,7 +671,7 @@
         
 <div class="viewcode-block" id="MTQ_Wisniewski.find_u">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_wisniewski.html#ADCS.controller.mtq_wisniewski.MTQ_Wisniewski.find_u">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute magnetic torquer command vector using sliding mode control.</span>
 
@@ -709,7 +712,7 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        x_hat : numpy.ndarray</span>
+<span class="sd">        x_hat : ADCS.state.State or ADCS.state.EstimatorState</span>
 <span class="sd">            Estimated spacecraft state vector containing angular rates,</span>
 <span class="sd">            attitude quaternion, and optional reaction wheel momentum states.</span>
 <span class="sd">        sens : numpy.ndarray</span>
@@ -732,14 +735,15 @@
         <span class="k">if</span> <span class="n">goal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">goal</span> <span class="o">=</span> <span class="n">No_Goal</span><span class="p">()</span>
 
-        <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">w</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">q</span>
 
         <span class="n">n_rw</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">RW</span><span class="p">)])</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">7</span> <span class="o">+</span> <span class="n">n_rw</span><span class="p">:</span>
-            <span class="n">h_rw_states</span> <span class="o">=</span> <span class="n">x_hat</span><span class="p">[</span><span class="mi">7</span> <span class="p">:</span> <span class="mi">7</span> <span class="o">+</span> <span class="n">n_rw</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">h_rw_states</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">rw</span><span class="o">.</span><span class="n">h</span> <span class="k">for</span> <span class="n">rw</span> <span class="ow">in</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rw</span><span class="p">,</span> <span class="n">RW</span><span class="p">)])</span>
+        <span class="n">h_rw_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction_wheel_momentum_states</span><span class="p">(</span>
+            <span class="n">x_hat</span><span class="p">,</span>
+            <span class="n">n_rw</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">goal_vec_eci</span><span class="p">,</span> <span class="n">w_ref_eci</span> <span class="o">=</span> <span class="n">goal</span><span class="o">.</span><span class="n">to_ref</span><span class="p">(</span><span class="n">os0</span><span class="o">=</span><span class="n">os_hat</span><span class="p">)</span>
         <span class="n">R_b2i</span> <span class="o">=</span> <span class="n">rot_mat</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>

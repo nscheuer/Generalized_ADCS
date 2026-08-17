@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -548,7 +549,7 @@
 <span class="c1"># The external C-library wrapper for fast Cholesky updates</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">choldate</span><span class="w"> </span><span class="kn">import</span> <span class="n">cholupdate</span><span class="p">,</span> <span class="n">choldowndate</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.estimator_helpers.estimator_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">SunSensor</span><span class="p">,</span> <span class="n">SunPair</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ErrorMode</span>
@@ -606,7 +607,7 @@
 
 <span class="sd">    See also:</span>
 <span class="sd">    - :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`</span>
-<span class="sd">    - :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`</span>
+<span class="sd">    - :class:`~ADCS.state.EstimatorState`</span>
 <span class="sd">    - :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -658,7 +659,7 @@
 <span class="sd">        :param J2000: Initial time in seconds since J2000.</span>
 <span class="sd">        :type J2000: float</span>
 <span class="sd">        :param x_hat: Initial full augmented state estimate.</span>
-<span class="sd">        :type x_hat: numpy.ndarray</span>
+<span class="sd">        :type x_hat: ADCS.state.EstimatorState</span>
 <span class="sd">        :param P_hat: Initial reduced error-state covariance matrix.</span>
 <span class="sd">        :type P_hat: numpy.ndarray</span>
 <span class="sd">        :param Q_hat: Initial reduced process-noise covariance matrix.</span>
@@ -915,16 +916,24 @@
 
         <span class="c1"># Control/Process Noise Covariance</span>
         <span class="n">control_cov</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">control_cov</span><span class="p">()</span>
-        <span class="n">L_q</span> <span class="o">=</span> <span class="n">control_cov</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">control_cov</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
         
         <span class="c1"># Sensor &amp; Integration Covariances (Zeroed out in this architecture)</span>
-        <span class="c1"># We maintain their shapes for the list structure</span>
-        <span class="n">sens_cov</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">sensor_cov</span><span class="p">(</span><span class="n">which_sensors</span><span class="o">=</span><span class="n">which_sensors</span><span class="p">)</span>
-        <span class="n">L_r</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># Explicitly treating as 0 contribution to L</span>
-        <span class="n">L_int</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># We maintain their shapes for the list structure.</span>
+        <span class="n">sens_cov</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">sensor_cov</span><span class="p">(</span><span class="n">which_sensors</span><span class="o">=</span><span class="n">which_sensors</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0</span>
+        <span class="n">int_cov</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">int_cov</span> <span class="o">*</span> <span class="mf">0.0</span>
 
-        <span class="c1"># Total Augmented Dimension</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="n">L_x</span> <span class="o">+</span> <span class="n">L_q</span> <span class="o">+</span> <span class="n">L_r</span> <span class="o">+</span> <span class="n">L_int</span>
+        <span class="n">include_cov</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">determine_covariances_to_use</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">cov</span><span class="p">,</span>
+            <span class="n">sens_cov</span><span class="p">,</span>
+            <span class="n">control_cov</span><span class="p">,</span>
+            <span class="n">int_cov</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">covs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">cov</span><span class="p">,</span> <span class="n">sens_cov</span><span class="p">,</span> <span class="n">control_cov</span><span class="p">,</span> <span class="n">int_cov</span><span class="p">]</span>
+
+        <span class="n">L_q</span> <span class="o">=</span> <span class="n">control_cov</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">include_cov</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="ow">and</span> <span class="n">control_cov</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+
+        <span class="c1"># Total Augmented Dimension must match the blocks that actually generate points.</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">include_cov</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">covs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)))</span>
 
         <span class="c1"># 2. Weights (Standard UKF)</span>
         <span class="c1"># -------------------------</span>
@@ -952,7 +961,7 @@
         <span class="n">zeros_state</span> <span class="o">=</span> <span class="n">pt0</span> <span class="c1"># Not used as zero, but as placeholder</span>
         <span class="n">zeros_sens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sens_cov</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="k">if</span> <span class="n">sens_cov</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">zeros_ctrl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">L_q</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="k">if</span> <span class="n">L_q</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">zeros_int</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">int_cov</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">int_cov</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">zeros_int</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">int_cov</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="k">if</span> <span class="n">int_cov</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 
         <span class="c1"># The mean point list [state, sens, ctrl, int]</span>
         <span class="c1"># Note: pt0 is the mean state</span>
@@ -982,29 +991,18 @@
         <span class="c1"># If L_r &gt; 0, we would compute cholesky(sens_cov) here.</span>
 
         <span class="c1"># --- BLOCK 3: CONTROL / PROCESS NOISE ---</span>
-        <span class="k">if</span> <span class="n">L_q</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c1"># We compute Cholesky for Q on the fly (usually small 6x6)</span>
-            <span class="c1"># Ensure it is Upper Triangular for consistency if needed, </span>
-            <span class="c1"># though usually standard Cholesky (Lower) is fine for noise blocks </span>
-            <span class="c1"># as long as we take columns. </span>
+        <span class="k">if</span> <span class="n">include_cov</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="ow">and</span> <span class="n">L_q</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="c1"># np.linalg.cholesky returns Lower.</span>
-                <span class="n">L_mat_q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">control_cov</span><span class="p">)</span> 
-                <span class="c1"># Scaled offsets (columns of L_mat_q)</span>
-                <span class="n">scaled_L_q</span> <span class="o">=</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">L_mat_q</span>
-                
-                <span class="c1"># Transpose to get rows for iteration if using similar logic to S</span>
-                <span class="c1"># or just use columns. Let&#39;s use standard: [ +Cols, -Cols ]</span>
-                <span class="c1"># We need shape (2*L_q, L_q)</span>
-                <span class="n">q_offsets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">scaled_L_q</span><span class="p">,</span> <span class="o">-</span><span class="n">scaled_L_q</span><span class="p">))</span><span class="o">.</span><span class="n">T</span> 
-                
-                <span class="c1"># Append to pts: [mean_state, 0, modified_ctrl, 0]</span>
-                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">q_offsets</span><span class="p">:</span>
-                    <span class="n">pts</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">pt0</span><span class="p">,</span> <span class="n">zeros_sens</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">zeros_int</span><span class="p">])</span>
-                    
+                <span class="n">root_q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">control_cov</span><span class="p">)</span>
             <span class="k">except</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">:</span>
-                <span class="c1"># Fallback if Q is not positive definite (rare for process noise)</span>
-                <span class="k">pass</span>
+                <span class="n">eigvals</span><span class="p">,</span> <span class="n">eigvecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">control_cov</span><span class="p">)</span>
+                <span class="n">root_q</span> <span class="o">=</span> <span class="n">eigvecs</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">eigvals</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)))</span>
+
+            <span class="n">scaled_root_q</span> <span class="o">=</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">root_q</span>
+            <span class="n">q_offsets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">scaled_root_q</span><span class="p">,</span> <span class="o">-</span><span class="n">scaled_root_q</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">q_offsets</span><span class="p">:</span>
+                <span class="n">pts</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">pt0</span><span class="p">,</span> <span class="n">zeros_sens</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">zeros_int</span><span class="p">])</span>
 
         <span class="c1"># --- BLOCK 4: INT NOISE (Skipped - assumed zero) ---</span>
 
@@ -1039,7 +1037,7 @@
         <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">sensors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatedArray</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Perform one SR-UKF predict/update cycle using QR factorization and Cholesky downdates.</span>
 
@@ -1052,7 +1050,7 @@
 <span class="sd">        3. **Square-root covariance update**: apply sequential Cholesky downdates using</span>
 <span class="sd">           :func:`choldate.choldowndate` via :meth:`weighted_cholupdate`.</span>
 
-<span class="sd">        The method returns an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`</span>
+<span class="sd">        The method returns an :class:`~ADCS.state.EstimatorState`</span>
 <span class="sd">        containing the updated full state and a reconstructed covariance :math:`P^+`.</span>
 
 <span class="sd">        Notation</span>
@@ -1221,7 +1219,7 @@
 <span class="sd">            P^+ = S^{+\top} S^+,</span>
 
 <span class="sd">        symmetrizes it, and returns it in the resulting</span>
-<span class="sd">        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`.</span>
+<span class="sd">        :class:`~ADCS.state.EstimatorState`.</span>
 
 <span class="sd">        If ``quat_as_vec=True``, the quaternion is renormalized using</span>
 <span class="sd">        :func:`~ADCS.helpers.math_helpers.normalize` and covariance is transformed</span>
@@ -1244,23 +1242,23 @@
 <span class="sd">            during triangular solves.</span>
 <span class="sd">        :return: Updated estimate container with fields:</span>
 
-<span class="sd">            - ``val``: updated full augmented state,</span>
+<span class="sd">            - full augmented state,</span>
 <span class="sd">            - ``cov``: reconstructed reduced covariance :math:`P^+`,</span>
 <span class="sd">            - ``int_cov``: unchanged (inherited from internal state).</span>
 
-<span class="sd">        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`</span>
+<span class="sd">        :rtype: :class:`~ADCS.state.EstimatorState`</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">os</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">val</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">as_estimator_array</span><span class="p">()</span>
 
         <span class="c1"># --- 1. Determine Active Sensors (Eclipse Check) ---</span>
         <span class="n">mid_os</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="n">CG5</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
         
         <span class="c1"># Nominal propagation</span>
         <span class="n">dyn_state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">noiseless_rk4</span><span class="p">(</span>
-            <span class="n">x</span><span class="o">=</span><span class="n">state0</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">state_len</span><span class="p">],</span>
+            <span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="p">,</span>
             <span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
             <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
             <span class="n">orbital_state0</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span><span class="p">,</span>
@@ -1307,11 +1305,12 @@
 
         <span class="c1"># --- 3. Propagation Loop ---</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_sigma</span><span class="p">):</span>
-            <span class="n">full_pre_statej</span><span class="p">,</span> <span class="n">sens_noise_j</span><span class="p">,</span> <span class="n">control_noise_j</span><span class="p">,</span> <span class="n">int_noise_extra_j</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">full_pre_array_j</span><span class="p">,</span> <span class="n">sens_noise_j</span><span class="p">,</span> <span class="n">control_noise_j</span><span class="p">,</span> <span class="n">int_noise_extra_j</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">full_pre_statej</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_augmented_array</span><span class="p">(</span><span class="n">full_pre_array_j</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sat_match</span><span class="p">(</span><span class="n">satj</span><span class="p">,</span> <span class="n">full_pre_statej</span><span class="p">)</span>
 
             <span class="n">post_dyn_state_j</span> <span class="o">=</span> <span class="n">satj</span><span class="o">.</span><span class="n">noiseless_rk4</span><span class="p">(</span>
-                <span class="n">x</span><span class="o">=</span><span class="n">full_pre_statej</span><span class="p">[:</span><span class="n">state_len</span><span class="p">],</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">full_pre_statej</span><span class="p">,</span>
                 <span class="n">u</span><span class="o">=</span><span class="n">u</span> <span class="o">+</span> <span class="n">control_noise_j</span><span class="p">,</span>
                 <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
                 <span class="n">orbital_state0</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span><span class="p">,</span>
@@ -1321,25 +1320,29 @@
             <span class="p">)</span>
 
             <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">post_quat</span> <span class="o">=</span> <span class="n">post_dyn_state_j</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">post_quat</span> <span class="o">=</span> <span class="n">post_dyn_state_j</span><span class="o">.</span><span class="n">q</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
             <span class="n">post_statej</span><span class="p">,</span> <span class="n">post_full_statej</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_post_state</span><span class="p">(</span>
-                <span class="n">full_pre_statej</span><span class="p">[</span><span class="n">state_len</span><span class="p">:],</span>
-                <span class="n">post_dyn_state_j</span><span class="p">,</span>
+                <span class="n">full_pre_array_j</span><span class="p">[</span><span class="n">state_len</span><span class="p">:],</span>
+                <span class="n">post_dyn_state_j</span><span class="o">.</span><span class="n">as_array</span><span class="p">(),</span>
                 <span class="n">int_noise_extra_j</span><span class="p">,</span> 
                 <span class="n">post_quat</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">post_pts</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">post_statej</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">sat_match</span><span class="p">(</span><span class="n">satj</span><span class="p">,</span> <span class="n">post_full_statej</span><span class="p">)</span>
+            <span class="n">post_full_state_obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_augmented_array</span><span class="p">(</span><span class="n">post_full_statej</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sat_match</span><span class="p">(</span><span class="n">satj</span><span class="p">,</span> <span class="n">post_full_state_obj</span><span class="p">)</span>
             <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-            <span class="n">sensj</span> <span class="o">=</span> <span class="n">satj</span><span class="o">.</span><span class="n">sensor_readings</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">post_full_statej</span><span class="p">[:</span><span class="n">state_len</span><span class="p">],</span><span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">)</span>
+            <span class="n">sensj</span> <span class="o">=</span> <span class="n">satj</span><span class="o">.</span><span class="n">sensor_readings</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">post_full_state_obj</span><span class="p">,</span><span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">)</span>
             <span class="n">post_sens</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">sensj</span><span class="p">[</span><span class="n">which_outputs</span><span class="p">]</span> <span class="o">+</span> <span class="n">sens_noise_j</span>
 
         <span class="c1"># --- 4. Time Update (QR Method) ---</span>
         <span class="n">state1</span> <span class="o">=</span> <span class="n">wts_m</span> <span class="o">@</span> <span class="n">post_pts</span>
-        <span class="n">dquat1</span> <span class="o">=</span> <span class="n">vec3_to_quat</span><span class="p">(</span><span class="n">state1</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">vec_mode</span><span class="p">)</span>
-        <span class="n">quat1</span> <span class="o">=</span> <span class="n">quat_mult</span><span class="p">(</span><span class="n">post_quat</span><span class="p">,</span> <span class="n">dquat1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span><span class="p">:</span>
+            <span class="n">dquat1</span> <span class="o">=</span> <span class="n">vec3_to_quat</span><span class="p">(</span><span class="n">state1</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">vec_mode</span><span class="p">)</span>
+            <span class="n">quat1</span> <span class="o">=</span> <span class="n">quat_mult</span><span class="p">(</span><span class="n">post_quat</span><span class="p">,</span> <span class="n">dquat1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">state1</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">state1</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">])</span>
         
         <span class="c1"># State deviations</span>
         <span class="n">pts_diff</span> <span class="o">=</span> <span class="n">post_pts</span> <span class="o">-</span> <span class="n">state1</span>
@@ -1426,8 +1429,13 @@
             <span class="n">norm_jac</span> <span class="o">=</span> <span class="n">state_norm_jac</span><span class="p">(</span><span class="n">state_final</span><span class="p">)</span>
             <span class="n">P_plus</span> <span class="o">=</span> <span class="n">norm_jac</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">P_plus</span> <span class="o">@</span> <span class="n">norm_jac</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">sat_match</span><span class="p">(</span><span class="n">satj</span><span class="p">,</span> <span class="n">state_final</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">EstimatedArray</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="n">state_final</span><span class="p">,</span> <span class="n">cov</span><span class="o">=</span><span class="n">P_plus</span><span class="p">)</span></div>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_augmented_array</span><span class="p">(</span>
+            <span class="n">state_final</span><span class="p">,</span>
+            <span class="n">cov</span><span class="o">=</span><span class="n">P_plus</span><span class="p">,</span>
+            <span class="n">int_cov</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">int_cov</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sat_match</span><span class="p">(</span><span class="n">satj</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 </div>
 
 </pre></div>

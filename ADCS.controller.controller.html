@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -566,6 +567,35 @@ pseudoinverses.</p>
 <dd class="field-odd"><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.controller.Controller.reaction_wheel_momentum_states">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">reaction_wheel_momentum_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_rw</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'controller'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.reaction_wheel_momentum_states"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.controller.Controller.reaction_wheel_momentum_states" title="Link to this definition">¶</a></dt>
+<dd><p>Return reaction-wheel momentum states with strict layout validation.</p>
+<p>Controllers expect one scalar wheel-momentum state per reaction wheel,
+ordered consistently with the reaction wheels in the satellite actuator
+list. A mismatch is ambiguous and can otherwise silently disable
+momentum management or fail later in matrix products, so it is rejected
+at the controller boundary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a><em> | </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>ADCS.state.EstimatorState</em></a>) – State supplied to the controller.</p></li>
+<li><p><strong>n_rw</strong> (<em>int</em>) – Number of reaction wheels expected by the controller.</p></li>
+<li><p><strong>context</strong> (<em>str</em>) – Name of the calling controller/mode for error messages.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Wheel momentum state vector of shape <code class="docutils literal notranslate"><span class="pre">(n_rw,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">x_hat.h</span></code> does not contain exactly <code class="docutils literal notranslate"><span class="pre">n_rw</span></code> entries.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.controller.controller.Controller.build_sensor_matrix_pinv">
 <span class="sig-name descname"><span class="pre">build_sensor_matrix_pinv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensor_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.build_sensor_matrix_pinv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.controller.Controller.build_sensor_matrix_pinv" title="Link to this definition">¶</a></dt>
@@ -711,7 +741,7 @@ measurements, and mission goal. Actuator commands are then computed as</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x_hat</strong> (<em>numpy.ndarray</em>) – Estimated spacecraft state vector</p></li>
+<li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a><em> | </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>ADCS.state.EstimatorState</em></a>) – Estimated spacecraft state vector</p></li>
 <li><p><strong>sens</strong> (<em>numpy.ndarray</em>) – Flattened sensor measurement vector</p></li>
 <li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>) – Estimated satellite model providing hardware properties</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>) – Estimated orbital state</p></li>

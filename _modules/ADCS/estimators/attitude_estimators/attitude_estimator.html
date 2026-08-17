@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -544,7 +545,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">Ephemeris</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.estimator_helpers.estimator_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">square_mat_sections</span><span class="p">,</span> <span class="n">wahbas_svd</span>
 
 <div class="viewcode-block" id="Attitude_Estimator">
@@ -623,13 +624,13 @@
 <span class="sd">      :func:`~ADCS.helpers.math_helpers.square_mat_sections`.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">P_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Q_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cross_term</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">P_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Q_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cross_term</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Construct an attitude estimator and initialize its internal bookkeeping.</span>
 
 <span class="sd">        This initializer stores the satellite model reference, prepares a</span>
 <span class="sd">        placeholder previous orbital state, and delegates all estimate/covariance</span>
-<span class="sd">        initialization and validation to :meth:`~ADCS.estimators.attitude_estimator.Attitude_Estimator.reset`.</span>
+<span class="sd">        initialization and validation to :meth:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.reset`.</span>
 
 <span class="sd">        Internally, a previous orbital state is created using</span>
 <span class="sd">        :class:`~ADCS.orbits.orbital_state.Ephemeris` and</span>
@@ -643,7 +644,7 @@
 <span class="sd">        :type J2000: float</span>
 <span class="sd">        :param x_hat: Initial augmented state estimate :math:`\mathbf{x}_0` of length</span>
 <span class="sd">            :math:`N = 7 + n_{RW} + n_{ab} + n_{sb} + n_{dp}`.</span>
-<span class="sd">        :type x_hat: numpy.ndarray</span>
+<span class="sd">        :type x_hat: ADCS.state.EstimatorState</span>
 <span class="sd">        :param P_hat: Initial covariance matrix, reduced to :math:`(N-1)\times(N-1)`</span>
 <span class="sd">            unless ``quat_as_vec=True`` (then :math:`N\times N`).</span>
 <span class="sd">        :type P_hat: numpy.ndarray</span>
@@ -652,7 +653,7 @@
 <span class="sd">        :param dt: Estimator propagation time step :math:`\Delta t` in seconds.</span>
 <span class="sd">        :type dt: float</span>
 <span class="sd">        :param cross_term: If ``False``, certain cross-covariance blocks are zeroed</span>
-<span class="sd">            in :meth:`~ADCS.estimators.attitude_estimator.Attitude_Estimator.update`.</span>
+<span class="sd">            in :meth:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update`.</span>
 <span class="sd">        :type cross_term: bool</span>
 <span class="sd">        :param quat_as_vec: If ``True``, store covariance and process noise in the full</span>
 <span class="sd">            quaternion space (no reduction).</span>
@@ -674,13 +675,13 @@
 
 <div class="viewcode-block" id="Attitude_Estimator.reset">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.reset">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">P_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Q_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cross_term</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">P_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Q_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cross_term</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the estimator state, covariance, and process noise.</span>
 
 <span class="sd">        This method validates dimensional consistency between the full augmented</span>
 <span class="sd">        state vector :math:`\mathbf{x}\in\mathbb{R}^N` and the covariance/process-noise</span>
-<span class="sd">        matrices, stores the result into :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`</span>
+<span class="sd">        matrices, stores the result into :class:`~ADCS.state.EstimatorState`</span>
 <span class="sd">        containers, and synchronizes the internal satellite model via</span>
 <span class="sd">        :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.</span>
 
@@ -711,7 +712,7 @@
 
 <span class="sd">        After validation, the reset procedure:</span>
 
-<span class="sd">        - creates :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray` instances</span>
+<span class="sd">        - creates :class:`~ADCS.state.EstimatorState` instances</span>
 <span class="sd">          for :attr:`x0_hat` and :attr:`x_hat`,</span>
 <span class="sd">        - sets :attr:`use` to all ``True`` (all states active),</span>
 <span class="sd">        - calls :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`</span>
@@ -720,7 +721,7 @@
 <span class="sd">        :param J2000: Time in seconds since J2000 corresponding to the new reset.</span>
 <span class="sd">        :type J2000: float</span>
 <span class="sd">        :param x_hat: New augmented state estimate :math:`\mathbf{x}` of length :math:`N`.</span>
-<span class="sd">        :type x_hat: numpy.ndarray</span>
+<span class="sd">        :type x_hat: ADCS.state.EstimatorState</span>
 <span class="sd">        :param P_hat: Covariance matrix, reduced or full depending on ``quat_as_vec``.</span>
 <span class="sd">        :type P_hat: numpy.ndarray</span>
 <span class="sd">        :param Q_hat: Process-noise covariance matrix, same shape convention as ``P_hat``.</span>
@@ -728,7 +729,7 @@
 <span class="sd">        :param dt: Propagation time step :math:`\Delta t` in seconds used for satellite model synchronization.</span>
 <span class="sd">        :type dt: float</span>
 <span class="sd">        :param cross_term: Whether the estimator should preserve cross-covariance blocks</span>
-<span class="sd">            between bias/parameter groups in :meth:`~ADCS.estimators.attitude_estimator.Attitude_Estimator.update`.</span>
+<span class="sd">            between bias/parameter groups in :meth:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update`.</span>
 <span class="sd">        :type cross_term: bool</span>
 <span class="sd">        :raises ValueError: If ``x_hat`` length is inconsistent with the satellite model.</span>
 <span class="sd">        :raises ValueError: If ``P_hat`` or ``Q_hat`` shapes do not match the required convention.</span>
@@ -736,32 +737,58 @@
 <span class="sd">        :rtype: None</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Verify x_hat vector</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_hat</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x_hat must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">expected_x_hat_length</span> <span class="o">=</span> <span class="mi">7</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">number_RW</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">act_bias_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">att_sens_bias_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">dist_param_len</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span> <span class="o">!=</span> <span class="n">expected_x_hat_length</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">!=</span> <span class="n">expected_x_hat_length</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x_hat length does not match estimate length in EstimatedSatellite&quot;</span><span class="p">)</span>
         
         <span class="c1"># Verify P_hat matrix. It should be one shorter than x_hat, since x_hat uses quaternions, which are 3 DOF</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">P_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">P_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span><span class="p">,</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;P_hat shape does not match MEKF x_hat&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span><span class="p">,</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Q_hat shape does not match MEKF x_hat&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">P_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">P_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;P_hat shape does not match MEKF x_hat&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Q_hat shape does not match MEKF x_hat&quot;</span><span class="p">)</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">x0_hat</span> <span class="o">=</span> <span class="n">EstimatedArray</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="n">x_hat</span><span class="p">,</span> <span class="n">cov</span><span class="o">=</span><span class="n">P_hat</span><span class="p">,</span> <span class="n">int_cov</span><span class="o">=</span><span class="n">Q_hat</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x0_hat</span> <span class="o">=</span> <span class="n">EstimatorState</span><span class="o">.</span><span class="n">from_estimator_array</span><span class="p">(</span>
+            <span class="n">x_hat</span><span class="o">.</span><span class="n">as_estimator_array</span><span class="p">(),</span>
+            <span class="n">n_rw</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">number_RW</span><span class="p">,</span>
+            <span class="n">n_act_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">act_bias_len</span><span class="p">,</span>
+            <span class="n">n_sens_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="p">,</span>
+            <span class="n">n_dist_param</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">dist_param_len</span><span class="p">,</span>
+            <span class="n">cov</span><span class="o">=</span><span class="n">P_hat</span><span class="p">,</span>
+            <span class="n">int_cov</span><span class="o">=</span><span class="n">Q_hat</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="c1"># Full estimated state</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x0_hat</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">use</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">val</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">state_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="p">)</span>
         <span class="c1"># Update estimated satellite</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">match_estimate</span><span class="p">(</span><span class="n">est_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_from_augmented_array</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">cov</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">int_cov</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">EstimatorState</span><span class="o">.</span><span class="n">from_estimator_array</span><span class="p">(</span>
+            <span class="n">value</span><span class="p">,</span>
+            <span class="n">n_rw</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">number_RW</span><span class="p">,</span>
+            <span class="n">n_act_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">act_bias_len</span><span class="p">,</span>
+            <span class="n">n_sens_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="p">,</span>
+            <span class="n">n_dist_param</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">dist_param_len</span><span class="p">,</span>
+            <span class="n">cov</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">cov</span> <span class="k">if</span> <span class="n">cov</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">cov</span><span class="p">,</span>
+            <span class="n">int_cov</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">int_cov</span> <span class="k">if</span> <span class="n">int_cov</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">int_cov</span><span class="p">,</span>
+        <span class="p">)</span>
 
 
 <div class="viewcode-block" id="Attitude_Estimator.initialize_estimate">
@@ -841,7 +868,7 @@
 
 <span class="sd">        Satellite synchronization</span>
 <span class="sd">        -------------------------</span>
-<span class="sd">        The updated augmented state is committed into :attr:`x_hat.val` and then</span>
+<span class="sd">        The updated augmented state is committed into :attr:`x_hat.as_estimator_array()` and then</span>
 <span class="sd">        pushed to the internal satellite model via</span>
 <span class="sd">        :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.</span>
 
@@ -863,7 +890,7 @@
 <span class="sd">        :param q: Optional initial quaternion, shape ``(4,)``. If provided, Wahba&#39;s problem is skipped.</span>
 <span class="sd">        :type q: numpy.ndarray or None</span>
 <span class="sd">        :raises RuntimeError: If no valid vector measurements are available for Wahba initialization.</span>
-<span class="sd">        :return: Updated full augmented state vector (same length as :attr:`x_hat.val`).</span>
+<span class="sd">        :return: Updated full augmented state vector (same length as :attr:`x_hat.as_estimator_array()`).</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -920,7 +947,7 @@
         <span class="c1"># ----------------------------------------------------------</span>
         <span class="c1"># Insert quaternion into full state</span>
         <span class="c1"># ----------------------------------------------------------</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">val</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">as_estimator_array</span><span class="p">()</span>
         <span class="n">state</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span>
 
         <span class="c1"># ----------------------------------------------------------</span>
@@ -947,7 +974,7 @@
         <span class="c1"># ----------------------------------------------------------</span>
         <span class="c1"># Commit state back</span>
         <span class="c1"># ----------------------------------------------------------</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">val</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_augmented_array</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">match_estimate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">state</span></div>
@@ -956,7 +983,7 @@
 
 <div class="viewcode-block" id="Attitude_Estimator.update">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        High-level estimator update wrapper.</span>
 
@@ -968,10 +995,10 @@
 <span class="sd">        Delegation to subclass filter</span>
 <span class="sd">        -----------------------------</span>
 <span class="sd">        Subclasses must implement ``update_core`` and return an</span>
-<span class="sd">        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`</span>
+<span class="sd">        :class:`~ADCS.state.EstimatorState`</span>
 <span class="sd">        containing:</span>
 
-<span class="sd">        - ``val``: full augmented state :math:`\hat{\mathbf{x}}`,</span>
+<span class="sd">        - full augmented state :math:`\hat{\mathbf{x}}`,</span>
 <span class="sd">        - ``cov``: covariance in reduced coordinates (unless ``quat_as_vec=True``),</span>
 <span class="sd">        - ``int_cov``: process-noise covariance (often unchanged).</span>
 
@@ -1022,7 +1049,7 @@
 <span class="sd">        -----------------------</span>
 <span class="sd">        The new estimate is written back into :attr:`x_hat` using a mask over the</span>
 <span class="sd">        reduced covariance space returned by</span>
-<span class="sd">        :meth:`~ADCS.estimators.attitude_estimator.Attitude_Estimator.cov_use`.</span>
+<span class="sd">        :meth:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.cov_use`.</span>
 <span class="sd">        Subselection and reinsertion of covariance/process-noise blocks relies on</span>
 <span class="sd">        :func:`~ADCS.helpers.math_helpers.square_mat_sections`.</span>
 
@@ -1033,14 +1060,14 @@
 <span class="sd">        :type sensors: list[numpy.ndarray]</span>
 <span class="sd">        :param os: Current orbital/environmental state used for propagation and prediction.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
-<span class="sd">        :return: Updated full augmented state estimate :math:`\hat{\mathbf{x}}` (stored in :attr:`x_hat.val`).</span>
-<span class="sd">        :rtype: numpy.ndarray</span>
+<span class="sd">        :return: Updated estimator state container.</span>
+<span class="sd">        :rtype: :class:`~ADCS.state.EstimatorState`</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span><span class="o">.</span><span class="n">J2000</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span> <span class="o">=</span> <span class="n">os</span>
 
-        <span class="n">x_hat</span><span class="p">:</span> <span class="n">EstimatedArray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_core</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">sensors</span><span class="o">=</span><span class="n">sensors</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
+        <span class="n">x_hat</span><span class="p">:</span> <span class="n">EstimatorState</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_core</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">sensors</span><span class="o">=</span><span class="n">sensors</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span> <span class="o">=</span> <span class="n">os</span>
         <span class="n">oc</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">cov</span>
@@ -1059,10 +1086,20 @@
             <span class="n">oc</span><span class="p">[</span><span class="n">sb0</span><span class="p">:</span><span class="n">sb1</span><span class="p">,</span><span class="n">d0</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">oc</span><span class="p">[</span><span class="n">d0</span><span class="p">:,</span><span class="n">sb0</span><span class="p">:</span><span class="n">sb1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">set_indices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="p">,</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">val</span><span class="p">,</span> <span class="n">oc</span><span class="p">,</span> <span class="n">square_mat_sections</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">int_cov</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cov_use</span><span class="p">()),[</span><span class="mi">3</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span><span class="p">))</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">as_estimator_array</span><span class="p">()</span>
+        <span class="n">updated</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">as_estimator_array</span><span class="p">()</span>
+        <span class="n">current</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="p">]</span> <span class="o">=</span> <span class="n">updated</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="p">]</span>
+        <span class="n">cov_current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">cov</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">cov_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cov_use</span><span class="p">()</span>
+        <span class="n">cov_current</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">cov_mask</span><span class="p">,</span> <span class="n">cov_mask</span><span class="p">)]</span> <span class="o">=</span> <span class="n">oc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_augmented_array</span><span class="p">(</span>
+            <span class="n">current</span><span class="p">,</span>
+            <span class="n">cov</span><span class="o">=</span><span class="n">cov_current</span><span class="p">,</span>
+            <span class="n">int_cov</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">int_cov</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">match_estimate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">val</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
 
 
 
@@ -1104,9 +1141,9 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">res</span></div>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span></div>
 </div>
 
 </pre></div>

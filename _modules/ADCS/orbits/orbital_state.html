@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -551,6 +552,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.ephemeris</span><span class="w"> </span><span class="kn">import</span> <span class="n">Ephemeris</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">EarthConstants</span><span class="p">,</span> <span class="n">TimeConstants</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize</span><span class="p">,</span> <span class="n">rot_mat</span><span class="p">,</span> <span class="n">drotmatTvecdq</span><span class="p">,</span> <span class="n">ddrotmatTvecdqdq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span>
 
 <span class="n">_I3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 <span class="n">_I6</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
@@ -736,7 +738,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Orbital_State</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Complete dynamical and environmental representation of a spacecraft orbital state.</span>
@@ -950,7 +952,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="Orbital_State.copy">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.copy">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.copy">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a deep copy of the orbital state.</span>
@@ -1012,7 +1014,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.average">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.average">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.average">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">average</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orbital_state_2</span><span class="p">,</span> <span class="n">ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Linearly interpolate between two orbital states.</span>
@@ -1250,7 +1252,7 @@
         <span class="k">return</span> <span class="n">drd_dr</span><span class="p">,</span> <span class="n">drd_dv</span><span class="p">,</span> <span class="n">dvd_dr</span><span class="p">,</span> <span class="n">dvd_dv</span>
 
 <div class="viewcode-block" id="Orbital_State.orbit_dynamics">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.orbit_dynamics">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.orbit_dynamics">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">orbit_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute translational orbital dynamics at the current state.</span>
@@ -1273,7 +1275,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.orbit_dynamics_jacobians">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.orbit_dynamics_jacobians">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.orbit_dynamics_jacobians">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">orbit_dynamics_jacobians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute Jacobians of the translational dynamics.</span>
@@ -1296,7 +1298,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.propagate_orbit">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_orbit">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_orbit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">propagate_orbit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Propagate the orbital state forward using first-order integration.</span>
@@ -1336,7 +1338,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.propagate_orbit_rk4">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_orbit_rk4">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_orbit_rk4">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">propagate_orbit_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Propagate the orbital state using fourth-order Runge–Kutta integration.</span>
@@ -1380,7 +1382,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.propagate_jacobians">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_jacobians">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_jacobians">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">propagate_jacobians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Propagate state transition Jacobians using first-order integration.</span>
@@ -1414,7 +1416,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.propagate_jacobians_rk4">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_jacobians_rk4">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_jacobians_rk4">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">propagate_jacobians_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Propagate state transition Jacobians using RK4 integration.</span>
@@ -1489,7 +1491,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.eci_to_ecef">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.eci_to_ecef">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.eci_to_ecef">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">eci_to_ecef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform a vector from ECI to ECEF coordinates.</span>
@@ -1507,7 +1509,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.ecef_to_eci">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.ecef_to_eci">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_eci">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ecef_to_eci</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform a vector from ECEF to ECI coordinates.</span>
@@ -1525,7 +1527,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.ecef_to_geocentric">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.ecef_to_geocentric">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_geocentric">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ecef_to_geocentric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform an ECEF vector to local geocentric coordinates.</span>
@@ -1547,7 +1549,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.geocentric_to_ecef">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.geocentric_to_ecef">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.geocentric_to_ecef">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">geocentric_to_ecef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform a geocentric vector to ECEF coordinates.</span>
@@ -1566,7 +1568,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.eci_to_enu">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.eci_to_enu">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.eci_to_enu">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">eci_to_enu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform a vector from ECI to local ENU frame.</span>
@@ -1584,7 +1586,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.enu_to_eci">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.enu_to_eci">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.enu_to_eci">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">enu_to_eci</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform a vector from ENU to ECI frame.</span>
@@ -1602,7 +1604,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.get_b_eci">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.get_b_eci">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_b_eci">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_b_eci</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the geomagnetic field vector in the ECI frame.</span>
@@ -1637,7 +1639,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.j2000_to_tai">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.j2000_to_tai">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.j2000_to_tai">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">j2000_to_tai</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convert J2000 centuries to TAI Julian date.</span>
@@ -1651,7 +1653,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.get_sun_eci">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.get_sun_eci">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_sun_eci">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_sun_eci</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the Sun position vector in the ECI frame.</span>
@@ -1667,21 +1669,23 @@
 
 
 <div class="viewcode-block" id="Orbital_State.update_vecs">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.update_vecs">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">update_vecs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.update_vecs">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_vecs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Update body-frame vectors and their derivatives from a state vector.</span>
+<span class="sd">        Update body-frame vectors and their derivatives from a structured state.</span>
 
 <span class="sd">        :param x:</span>
-<span class="sd">            Full spacecraft state vector including attitude quaternion.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">            Spacecraft state containing the attitude quaternion.</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            ``None``</span>
 <span class="sd">        :rtype: None</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">q0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">q0</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
 
         <span class="n">R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
         <span class="n">V</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span>
@@ -1733,31 +1737,40 @@
             <span class="s2">&quot;ddv&quot;</span><span class="p">:</span> <span class="n">ddV_B__dqdq</span><span class="p">,</span>
             <span class="s2">&quot;ddr&quot;</span><span class="p">:</span> <span class="n">ddR_B__dqdq</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+        <span class="c1"># Body-frame environment vectors depend only on attitude. Keeping the</span>
+        <span class="c1"># quaternion as the cache key avoids allocating a full state vector on</span>
+        <span class="c1"># every sensor and disturbance lookup.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.get_state_vector">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.get_state_vector">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_state_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_state_vector">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_state_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">State</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieve cached or updated body-frame vectors.</span>
 
 <span class="sd">        :param x:</span>
-<span class="sd">            Current spacecraft state vector.</span>
-<span class="sd">        :type x: numpy.ndarray or None</span>
+<span class="sd">            Current spacecraft state, or ``None`` to return initialized cached vectors.</span>
+<span class="sd">        :type x: ADCS.state.State or None</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Dictionary of vectors and derivatives.</span>
 <span class="sd">        :rtype: dict[str, numpy.ndarray]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">update_vecs</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x is required before body-frame vectors have been initialized&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vecs</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_vecs</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vecs</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.is_sunlit">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.is_sunlit">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.is_sunlit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_sunlit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Determine whether the spacecraft is illuminated by the Sun.</span>
@@ -1775,7 +1788,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.to_dict">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.to_dict">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.to_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Serialize the orbital state to a dictionary.</span>
@@ -1789,7 +1802,7 @@
 
 
 <div class="viewcode-block" id="Orbital_State.from_dict">
-<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.from_dict">[docs]</a>
+<a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.from_dict">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">ephem</span><span class="p">:</span> <span class="n">Ephemeris</span><span class="p">,</span> <span class="n">density_model</span><span class="p">:</span> <span class="n">DensityModel</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>

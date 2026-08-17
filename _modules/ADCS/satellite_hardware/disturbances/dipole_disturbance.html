@@ -498,6 +498,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -540,6 +541,8 @@
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Dipole_Disturbance&quot;</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.disturbances.disturbance</span><span class="w"> </span><span class="kn">import</span> <span class="n">Disturbance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">Noise</span>
@@ -677,7 +680,7 @@
 
 <div class="viewcode-block" id="Dipole_Disturbance.torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.dipole_disturbance.html#ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.torque">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the magnetic dipole disturbance torque.</span>
 
@@ -691,7 +694,7 @@
 <span class="sd">        :class:`~ADCS.orbits.orbital_state.Orbital_State`.</span>
 
 <span class="sd">        :param x: Full spacecraft state vector containing the attitude quaternion.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state object providing the body-frame magnetic field.</span>
 <span class="sd">        :type os: ADCS.orbits.orbital_state.Orbital_State</span>
 <span class="sd">        :return: Disturbance torque vector in the body frame [N·m], shape ``(3,)``.</span>
@@ -704,7 +707,7 @@
 
 <div class="viewcode-block" id="Dipole_Disturbance.torque_qjac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.dipole_disturbance.html#ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.torque_qjac">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobian of the disturbance torque with respect to the attitude quaternion.</span>
 
@@ -727,7 +730,7 @@
 <span class="sd">        :class:`~ADCS.orbits.orbital_state.Orbital_State`.</span>
 
 <span class="sd">        :param x: Spacecraft state vector containing the attitude quaternion.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state provider of magnetic field derivatives.</span>
 <span class="sd">        :type os: ADCS.orbits.orbital_state.Orbital_State</span>
 <span class="sd">        :return: Quaternion Jacobian of the torque, shape ``(3, 4)``.</span>
@@ -740,7 +743,7 @@
 
 <div class="viewcode-block" id="Dipole_Disturbance.torque_qqhess">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.dipole_disturbance.html#ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.torque_qqhess">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qqhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qqhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Hessian of the disturbance torque with respect to the attitude quaternion.</span>
 
@@ -763,7 +766,7 @@
 <span class="sd">        optimization methods.</span>
 
 <span class="sd">        :param x: Spacecraft state vector containing the attitude quaternion.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state provider of magnetic field Hessians.</span>
 <span class="sd">        :type os: ADCS.orbits.orbital_state.Orbital_State</span>
 <span class="sd">        :return: Quaternion Hessian of the torque, shape ``(3, 4, 4)``.</span>
@@ -776,7 +779,7 @@
 
 <div class="viewcode-block" id="Dipole_Disturbance.torque_valjac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.dipole_disturbance.html#ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.torque_valjac">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">torque_valjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque_valjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Jacobian of the disturbance torque with respect to the dipole vector.</span>
 
@@ -800,7 +803,7 @@
 <span class="sd">        This Jacobian is used when estimating the residual magnetic dipole.</span>
 
 <span class="sd">        :param x: Full spacecraft state vector.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state providing the body-frame magnetic field.</span>
 <span class="sd">        :type os: ADCS.orbits.orbital_state.Orbital_State</span>
 <span class="sd">        :return: Dipole Jacobian of the torque, shape ``(3, 3)``.</span>
@@ -813,7 +816,7 @@
 
 <div class="viewcode-block" id="Dipole_Disturbance.torque_qvalhess">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.dipole_disturbance.html#ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.torque_qvalhess">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qvalhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qvalhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Mixed second derivative of the disturbance torque with respect to quaternion</span>
 <span class="sd">        and dipole vector.</span>
@@ -836,7 +839,7 @@
 <span class="sd">        This term is relevant in joint state–parameter estimation frameworks.</span>
 
 <span class="sd">        :param x: Spacecraft state vector containing the attitude quaternion.</span>
-<span class="sd">        :type x: numpy.ndarray</span>
+<span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state providing magnetic field quaternion derivatives.</span>
 <span class="sd">        :type os: ADCS.orbits.orbital_state.Orbital_State</span>
 <span class="sd">        :return: Mixed quaternion–dipole Hessian, shape ``(4, 3, 3)``.</span>
@@ -849,7 +852,7 @@
 
 <div class="viewcode-block" id="Dipole_Disturbance.torque_valvalhess">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.dipole_disturbance.html#ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.torque_valvalhess">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">torque_valvalhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque_valvalhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Second derivative of the disturbance torque with respect to the</span>
 <span class="sd">        estimated parameter twice. The dipole torque is linear in the</span>

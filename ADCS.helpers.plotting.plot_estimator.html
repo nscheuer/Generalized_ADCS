@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -700,13 +701,13 @@ difference between estimated and true angular velocity vectors:</p>
 <dd class="field-odd"><p>True spacecraft state history.</p>
 </dd>
 <dt class="field-even">type state_hist<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
+<dd class="field-even"><p>list[ADCS.state.State]</p>
 </dd>
 <dt class="field-odd">param est_state_hist<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Estimated spacecraft state history.</p>
 </dd>
 <dt class="field-even">type est_state_hist<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
+<dd class="field-even"><p>list[ADCS.state.State]</p>
 </dd>
 <dt class="field-odd">param os_hist<span class="colon">:</span></dt>
 <dd class="field-odd"><p>List of orbital state objects providing sunlight information.</p>
@@ -726,8 +727,8 @@ difference between estimated and true angular velocity vectors:</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>time</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>state_hist</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>est_state_hist</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>state_hist</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em>]</em>)</p></li>
+<li><p><strong>est_state_hist</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em>]</em>)</p></li>
 <li><p><strong>os_hist</strong> (<em>List</em>)</p></li>
 </ul>
 </dd>
@@ -871,14 +872,14 @@ components are assumed to be stored directly in the state vector as</p>
 and columns <code class="docutils literal notranslate"><span class="pre">[3:7]</span></code> contain attitude quaternions.</p>
 </dd>
 <dt class="field-even">type state_hist<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
+<dd class="field-even"><p>list[ADCS.state.State]</p>
 </dd>
 <dt class="field-odd">param est_state_hist<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Optional estimated spacecraft state history with the same layout as
 <code class="docutils literal notranslate"><span class="pre">state_hist</span></code>.</p>
 </dd>
 <dt class="field-even">type est_state_hist<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray or None</p>
+<dd class="field-even"><p>list[ADCS.state.State] or None</p>
 </dd>
 <dt class="field-odd">return<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None. The function generates a Matplotlib figure.</p>
@@ -892,8 +893,8 @@ and columns <code class="docutils literal notranslate"><span class="pre">[3:7]</
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>time</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>state_hist</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>est_state_hist</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>state_hist</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em>]</em>)</p></li>
+<li><p><strong>est_state_hist</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>

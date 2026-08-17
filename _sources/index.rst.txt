@@ -44,6 +44,12 @@ What you can do with Generalized ADCS
 - Run closed-loop simulations using orbital states
 - Visualize pointing performance and control effort
 
+Spacecraft states use :class:`ADCS.State`, with named ``w``, ``q``, and ``h``
+arrays. Estimator inputs and outputs use :class:`ADCS.EstimatorState`, which
+adds named bias and disturbance parameters plus covariance matrices. Use
+``from_array`` and ``as_array`` only at numerical-library boundaries; state
+objects intentionally do not support NumPy indexing or implicit conversion.
+
 .. code-block:: python
 
    import ADCS as ADCS
@@ -55,7 +61,7 @@ What you can do with Generalized ADCS
    sens = [ADCS.MTM(axis) for axis in np.eye(3)]
 
    satellite = ADCS.Satellite(mass=10, J_0=np.diag([0.03, 0.03, 0.01]), actuators=acts, sensors=sens, boresight=np.array([0, 0, 1]))
-   x_0 = np.array([0.01, -0.02, 0.01] + [1, 0, 0, 0] + [0.0])  # w, q, h
+   x_0 = ADCS.State.from_array(np.array([0.01, -0.02, 0.01] + [1, 0, 0, 0] + [0.0]))  # w, q, h
 
    controller = ADCS.controller.MTQ_w_RW_LP(est_sat=satellite, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0, 0, 0]))
 

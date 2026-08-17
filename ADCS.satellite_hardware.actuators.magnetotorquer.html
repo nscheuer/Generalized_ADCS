@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -680,7 +681,7 @@ quaternion–quaternion block, using <span class="math notranslate nohighlight">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic dipole magnitude.</p></li>
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Spacecraft base state.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft base state.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state providing <code class="docutils literal notranslate"><span class="pre">&quot;ddb&quot;</span></code> via <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_state_vector" title="ADCS.orbits.orbital_state.Orbital_State.get_state_vector"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_state_vector()</span></code></a>.</p></li>
 </ul>
 </dd>
@@ -713,7 +714,7 @@ control–state mixed derivative:</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic dipole magnitude.</p></li>
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Spacecraft base state.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft base state.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state.</p></li>
 </ul>
 </dd>
@@ -739,7 +740,7 @@ control–state mixed derivative:</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic dipole magnitude.</p></li>
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Spacecraft base state.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft base state.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state.</p></li>
 </ul>
 </dd>
@@ -774,7 +775,7 @@ control–state mixed derivative:</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic dipole magnitude.</p></li>
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Spacecraft base state.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft base state.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state providing <code class="docutils literal notranslate"><span class="pre">&quot;db&quot;</span></code> via <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_state_vector" title="ADCS.orbits.orbital_state.Orbital_State.get_state_vector"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_state_vector()</span></code></a>.</p></li>
 </ul>
 </dd>
@@ -804,7 +805,7 @@ w.r.t. <span class="math notranslate nohighlight">\(\mathbf{h}\)</span> are empt
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic dipole magnitude.</p></li>
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Spacecraft base state.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft base state.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state.</p></li>
 </ul>
 </dd>
@@ -827,7 +828,7 @@ through the magnetic field transformation.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic dipole magnitude.</p></li>
-<li><p><strong>x</strong> (numpy.ndarray, shape <code class="docutils literal notranslate"><span class="pre">(7,)</span></code>) – Spacecraft state vector
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft state vector
 <span class="math notranslate nohighlight">\([\boldsymbol{\omega};\mathbf{q}]\)</span>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state providing magnetic field Jacobians.</p></li>
 </ul>
@@ -855,7 +856,7 @@ through the magnetic field transformation.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic dipole magnitude.</p></li>
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Spacecraft state vector.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft state vector.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state providing the body-frame magnetic field.</p></li>
 </ul>
 </dd>
@@ -929,7 +930,7 @@ the quaternion–quaternion block:</p>
 <dd class="field-odd"><p>Spacecraft base state.</p>
 </dd>
 <dt class="field-even">type x<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
+<dd class="field-even"><p>ADCS.state.State</p>
 </dd>
 <dt class="field-odd">param os<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Orbital state providing <span class="math notranslate nohighlight">\(D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}\)</span> and
@@ -955,7 +956,7 @@ the quaternion–quaternion block:</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>)</p></li>
-<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a>)</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
 </ul>
 </dd>
@@ -1024,7 +1025,7 @@ the quaternion Jacobian is</p>
 <dd class="field-odd"><p>Spacecraft base state <span class="math notranslate nohighlight">\([\boldsymbol{\omega};\mathbf{q}]\)</span>.</p>
 </dd>
 <dt class="field-even">type x<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
+<dd class="field-even"><p>ADCS.state.State</p>
 </dd>
 <dt class="field-odd">param os<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Orbital state providing <span class="math notranslate nohighlight">\(\mathbf{B}_{\mathcal{B}}\)</span> and <span class="math notranslate nohighlight">\(D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}\)</span>
@@ -1049,7 +1050,7 @@ via <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbi
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>)</p></li>
-<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a>)</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
 </ul>
 </dd>
@@ -1069,7 +1070,7 @@ always returns an empty vector.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>) – Commanded dipole magnitude.</p></li>
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Spacecraft state vector.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Spacecraft state vector.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state.</p></li>
 <li><p><strong>dmode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ErrorMode</span></code> | None) – Disturbance mode (unused).</p></li>
 </ul>
@@ -1101,7 +1102,7 @@ always returns an empty vector.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic dipole magnitude.</p></li>
-<li><p><strong>x</strong> (numpy.ndarray, shape <code class="docutils literal notranslate"><span class="pre">(7,)</span></code>) – Full spacecraft state vector
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Full spacecraft state vector
 <span class="math notranslate nohighlight">\([\boldsymbol{\omega};\mathbf{q}]\)</span>.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a> | dict[str, numpy.ndarray]) – Orbital state providing geomagnetic field vectors and derivatives.</p></li>
 <li><p><strong>dmode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ErrorMode</span></code> | None) – Disturbance mode specifying whether bias and noise are applied

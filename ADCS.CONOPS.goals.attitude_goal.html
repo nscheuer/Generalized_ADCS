@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -619,7 +620,7 @@ compatibility but is not used in this computation.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>q</strong> (<em>numpy.ndarray</em>) – Current spacecraft attitude quaternion.</p></li>
 <li><p><strong>body_boresight</strong> (<em>numpy.ndarray</em>) – Boresight direction expressed in the spacecraft body frame.</p></li>
-<li><p><strong>os0</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State"><em>Orbital_State</em></a>) – Current orbital state.</p></li>
+<li><p><strong>os0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>) – Current orbital state.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -647,7 +648,7 @@ orbital state.</p>
 <p>with <span class="math notranslate nohighlight">\(\lVert \mathbf{q}_{\mathrm{ref}} \rVert = 1\)</span>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>os0</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State"><em>Orbital_State</em></a>) – Current orbital state.</p>
+<dd class="field-odd"><p><strong>os0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>) – Current orbital state.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Reference attitude quaternion and reference angular velocity.</p>

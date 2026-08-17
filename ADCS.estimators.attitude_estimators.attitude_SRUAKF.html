@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -580,7 +581,7 @@ covariance dimension is <span class="math notranslate nohighlight">\(L_x = N-1\)
 </div>
 <p>See also:
 - <a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF" title="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF"><code class="xref py py-class docutils literal notranslate"><span class="pre">UAKF</span></code></a>
-- <a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedArray</span></code></a>
+- <a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>
 - <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.make_pts_and_wts">
@@ -711,7 +712,7 @@ square root <span class="math notranslate nohighlight">\(S_{yy}\)</span>, comput
 <li><p><strong>Square-root covariance update</strong>: apply sequential Cholesky downdates using
 <code class="xref py py-func docutils literal notranslate"><span class="pre">choldate.choldowndate()</span></code> via <a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate" title="ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">weighted_cholupdate()</span></code></a>.</p></li>
 </ol>
-<p>The method returns an <a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedArray</span></code></a>
+<p>The method returns an <a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>
 containing the updated full state and a reconstructed covariance <span class="math notranslate nohighlight">\(P^+\)</span>.</p>
 <section id="notation">
 <h3>Notation<a class="headerlink" href="#notation" title="Link to this heading">¶</a></h3>
@@ -864,7 +865,7 @@ reconstructs a covariance matrix</p>
 \[P^+ = S^{+\top} S^+,\]</div>
 </div>
 <p>symmetrizes it, and returns it in the resulting
-<a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedArray</span></code></a>.</p>
+<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">quat_as_vec=True</span></code>, the quaternion is renormalized using
 <a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.normalize" title="ADCS.helpers.math_helpers.normalize"><code class="xref py py-func docutils literal notranslate"><span class="pre">normalize()</span></code></a> and covariance is transformed
 with the normalization Jacobian from <a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.state_norm_jac" title="ADCS.helpers.math_helpers.state_norm_jac"><code class="xref py py-func docutils literal notranslate"><span class="pre">state_norm_jac()</span></code></a>.</p>
@@ -901,13 +902,13 @@ during triangular solves.</p>
 <dt class="field-even">return<span class="colon">:</span></dt>
 <dd class="field-even"><p>Updated estimate container with fields:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">val</span></code>: updated full augmented state,</p></li>
+<li><p>full augmented state,</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cov</span></code>: reconstructed reduced covariance <span class="math notranslate nohighlight">\(P^+\)</span>,</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">int_cov</span></code>: unchanged (inherited from internal state).</p></li>
 </ul>
 </dd>
 <dt class="field-odd">rtype<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedArray</span></code></a></p>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a></p>
 </dd>
 </dl>
 </section>
@@ -920,7 +921,7 @@ during triangular solves.</p>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><em>EstimatedArray</em></a></p>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a></p>
 </dd>
 </dl>
 </dd></dl>

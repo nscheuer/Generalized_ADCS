@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -599,7 +600,7 @@ can track while satisfying actuator limits and pointing objectives.</p>
 
 <span class="n">satellite</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">satellite_factory</span><span class="o">.</span><span class="n">create_beavercube1_cubesat</span><span class="p">()</span>
 
-<span class="n">x_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span> <span class="c1"># w, q, h</span>
+<span class="n">x_0</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span> <span class="c1"># w, q, h</span>
 
 <span class="n">planner_settings</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">plan_and_track</span><span class="o">.</span><span class="n">PlannerSettings</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">satellite</span><span class="p">,</span> <span class="n">bdot_on</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">dt_tp</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">dt_tvlqr</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
 

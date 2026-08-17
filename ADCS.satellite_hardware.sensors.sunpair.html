@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -650,24 +651,32 @@ ADCS state.</p>
 </div>
 <p>where <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> is the body angular rate and
 <span class="math notranslate nohighlight">\(\mathbf{q}\)</span> is the attitude quaternion.</p>
-<p>Because the Sun direction in the body frame depends on spacecraft
-attitude, this Jacobian is computed numerically using <strong>central finite
-differences</strong>:</p>
+<p>The measurement is <span class="math notranslate nohighlight">\(y = \eta\,(\hat{\mathbf{a}}^\top
+\hat{\mathbf{s}})\)</span> with the hemisphere efficiency <span class="math notranslate nohighlight">\(\eta\)</span> selected
+by the sign of the projection, so with
+<a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.normed_vec_jac" title="ADCS.helpers.math_helpers.normed_vec_jac"><code class="xref py py-func docutils literal notranslate"><span class="pre">normed_vec_jac()</span></code></a> providing
+<span class="math notranslate nohighlight">\(\partial\hat{\mathbf{s}}/\partial\mathbf{q}\)</span>,</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[\frac{\partial y}{\partial x_i}
-\approx
-\frac{f(x_i + \varepsilon) - f(x_i - \varepsilon)}{2\varepsilon},\]</div>
+\[\frac{\partial y}{\partial \mathbf{q}}
+=
+\eta\,
+\frac{\partial \hat{\mathbf{s}}}{\partial \mathbf{q}}\,
+\hat{\mathbf{a}},
+\qquad
+\frac{\partial y}{\partial \boldsymbol{\omega}} = \mathbf{0}.\]</div>
 </div>
-<p>with <span class="math notranslate nohighlight">\(\varepsilon = 10^{-6}\)</span> and <span class="math notranslate nohighlight">\(f(\cdot)\)</span> defined by
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">_clean_scalar()</span></code>.</p>
+<p>The efficiency of the active hemisphere is held constant in the
+derivative; the measurement has a slope discontinuity at
+<span class="math notranslate nohighlight">\(\hat{\mathbf{a}}^\top\hat{\mathbf{s}} = 0\)</span> when the two
+efficiencies differ.</p>
 <p>If the spacecraft is not sunlit, the clean measurement is treated as
 invalid and this method returns a <code class="docutils literal notranslate"><span class="pre">NaN</span></code> sentinel rather than a finite
 Jacobian.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full 7-element ADCS state vector.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Full system state.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state providing lighting conditions and Sun/spacecraft
 geometry.</p></li>
 </ul>
@@ -700,7 +709,7 @@ state, with shape <code class="docutils literal notranslate"><span class="pre">(
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector (unused).</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Full system state vector (unused).</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state (unused).</p></li>
 </ul>
 </dd>
@@ -725,7 +734,7 @@ described in the class documentation. If the spacecraft is in eclipse
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector.</p></li>
+<li><p><strong>x</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a>) – Full system state vector.</p></li>
 <li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state providing spacecraft position, Sun position,
 and lighting conditions.</p></li>
 </ul>

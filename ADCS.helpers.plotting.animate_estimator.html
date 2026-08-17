@@ -499,6 +499,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate.html">ADCS.simulate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ADCS.simulate_remote.html">ADCS.simulate_remote module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
 </ul>
@@ -567,54 +568,14 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>time</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>state_hist</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>est_state_hist</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>state_hist</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>est_state_hist</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
 <li><p><strong>os_hist</strong> (<em>List</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>boresight_goal_hist</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="ADCS.helpers.plotting.animate_estimator.rot_mat">
-<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.plotting.animate_estimator.</span></span><span class="sig-name descname"><span class="pre">rot_mat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#rot_mat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plotting.animate_estimator.rot_mat" title="Link to this definition">¶</a></dt>
-<dd><p>Construct the direction cosine matrix (DCM) corresponding to a quaternion
-using the <strong>Hamilton quaternion convention</strong>.</p>
-<p>The returned matrix performs a rotation from the <strong>body frame</strong> to the
-<strong>inertial (ECI) frame</strong>, such that</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathbf{v}_{\mathrm{ECI}} = \mathbf{R}(\mathbf{q})\,\mathbf{v}_{\mathrm{body}}\]</div>
-</div>
-<p>where the quaternion is defined as</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathbf{q} = \begin{bmatrix} q_0 &amp; q_1 &amp; q_2 &amp; q_3 \end{bmatrix}^\mathsf{T}\]</div>
-</div>
-<p>with scalar-first ordering.</p>
-<p>The rotation matrix is explicitly given by</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\begin{split}\mathbf{R}(\mathbf{q}) =
-\begin{bmatrix}
-q_0^2+q_1^2-q_2^2-q_3^2 &amp; 2(q_1q_2-q_0q_3) &amp; 2(q_1q_3+q_0q_2) \\
-2(q_1q_2+q_0q_3) &amp; q_0^2-q_1^2+q_2^2-q_3^2 &amp; 2(q_2q_3-q_0q_1) \\
-2(q_1q_3-q_0q_2) &amp; 2(q_2q_3+q_0q_1) &amp; q_0^2-q_1^2-q_2^2+q_3^2
-\end{bmatrix}\end{split}\]</div>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>q</strong> (<em>numpy.ndarray</em>) – Unit quaternion in Hamilton form <code class="docutils literal notranslate"><span class="pre">[q0,</span> <span class="pre">q1,</span> <span class="pre">q2,</span> <span class="pre">q3]</span></code>.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Direction cosine matrix mapping body-frame vectors to inertial frame.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -674,6 +635,5 @@ q_0^2+q_1^2-q_2^2-q_3^2 &amp; 2(q_1q_2-q_0q_3) &amp; 2(q_1q_3+q_0q_2) \\
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     </body>
 </html>
