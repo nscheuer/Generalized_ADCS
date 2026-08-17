@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites name="pytest tests">
+  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="27" time="155.041" timestamp="2026-05-30T01:09:05.002878+02:00" hostname="NicsPC">
+    <testcase classname="testing.test_estimators.test_srukf_attitude_consistency" name="test_srukf_rate_block_consistency_regression_guard" time="0.610" />
+    <testcase classname="testing.test_estimators.test_srukf_attitude_consistency" name="test_srukf_attitude_block_consistency" time="0.000" />
+    <testcase classname="testing.test_estimators.test_srukf_nees_consistency" name="test_srukf_rate_block_consistency_regression_guard" time="0.499" />
+    <testcase classname="testing.test_estimators.test_srukf_nees_consistency" name="test_srukf_attitude_nees_sigma_spread_fix_enforced" time="0.000" />
+    <testcase classname="testing.test_estimators.test_srukf_nees_consistency" name="test_srukf_attitude_fully_consistent" time="0.000" />
+    <testcase classname="testing.test_flight_software.test_integrated_gnc_simulate" name="test_integrated_gnc_produces_finite_state_history" time="3.441" />
+    <testcase classname="testing.test_flight_software.test_integrated_gnc_simulate" name="test_integrated_gnc_keeps_true_quaternions_normalized" time="0.000" />
+    <testcase classname="testing.test_flight_software.test_integrated_gnc_simulate" name="test_integrated_gnc_respects_mtq_command_limits" time="0.000" />
+    <testcase classname="testing.test_flight_software.test_integrated_gnc_simulate" name="test_integrated_gnc_logs_finite_positive_semidefinite_covariances" time="0.001" />
+    <testcase classname="testing.test_flight_software.test_integrated_gnc_simulate" name="test_integrated_gnc_estimate_tracks_truth_in_second_half" time="0.000" />
+    <testcase classname="testing.test_flight_software.test_integrated_gnc_simulate" name="test_integrated_gnc_detumbles_true_rate_end_to_end" time="0.000" />
+    <testcase classname="testing.test_flight_software.test_simulate_mc_smoke" name="test_simulate_mc_returns_expected_number_of_runs" time="0.290" />
+    <testcase classname="testing.test_flight_software.test_simulate_mc_smoke" name="test_simulate_mc_each_run_has_finite_state_history" time="0.000" />
+    <testcase classname="testing.test_flight_software.test_simulate_mc_smoke" name="test_simulate_mc_each_run_keeps_quaternions_normalized" time="0.000" />
+    <testcase classname="testing.test_flight_software.test_simulate_mc_smoke" name="test_simulate_mc_aggregate_indexing_and_iteration_work" time="0.000" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_two_body_specific_energy_is_conserved[R0-V0-circular]" time="12.463" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_two_body_specific_energy_is_conserved[R1-V1-eccentric_inclined]" time="11.966" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_two_body_angular_momentum_is_conserved[R0-V0-circular]" time="11.658" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_two_body_angular_momentum_is_conserved[R1-V1-eccentric_inclined]" time="12.188" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_two_body_eccentricity_vector_is_conserved[R0-V0-circular]" time="11.458" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_two_body_eccentricity_vector_is_conserved[R1-V1-eccentric_inclined]" time="12.144" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_orbit_closes_in_position_after_kepler_period[R0-V0]" time="9.696" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_orbit_closes_in_position_after_kepler_period[R1-V1]" time="9.539" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_orbit_closes_in_velocity_after_kepler_period[R0-V0]" time="9.832" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_orbit_closes_in_velocity_after_kepler_period[R1-V1]" time="10.090" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_j2_nodal_regression_matches_first_order_analytic_rate" time="19.207" />
+    <testcase classname="testing.test_orbits.test_physics_validation" name="test_j2_apsidal_precession_matches_first_order_analytic_rate" time="19.278" />
+  </testsuite>
+</testsuites>
