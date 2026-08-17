@@ -102,3 +102,11 @@ pins instead:
 
    pip install -r requirements-repro.txt
    pip install -e . --no-deps
+
+Also on the poster
+==================
+
+- :doc:`index` — what the adapter is, and the code
+- :doc:`run` — run it in your browser, no install
+- :doc:`paper` — the paper and how to cite it
+- :doc:`contact` — questions, collaboration, bug reports

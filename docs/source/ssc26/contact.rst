@@ -64,6 +64,15 @@ Other ways to reach us
 - **Discussions** —
   https://github.com/nscheuer/Generalized_ADCS/discussions
 
+
+Also on the poster
+==================
+
+- :doc:`index` — what the adapter is, and the code
+- :doc:`run` — run it in your browser, no install
+- :doc:`paper` — the paper and how to cite it
+- :doc:`code` — the repository
+
 Contributing
 ============
 
