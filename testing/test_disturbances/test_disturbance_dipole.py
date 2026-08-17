@@ -3,6 +3,7 @@ import numpy as np
 from ADCS.helpers.math_helpers import normalize
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance
 from ADCS.satellite_hardware.errors import Noise
+from ADCS.state import State
 from testing.test_disturbances._helpers import (
     fd_quat_hess,
     fd_quat_jac,
@@ -13,16 +14,16 @@ from testing.test_disturbances._helpers import (
 )
 
 
-def fd_quat_matrix_jac(fun, x: np.ndarray, eps: float = 1.0e-6) -> np.ndarray:
+def fd_quat_matrix_jac(fun, x: State, eps: float = 1.0e-6) -> np.ndarray:
     sample = fun(x)
     jac = np.zeros((4,) + sample.shape)
     for index in range(4):
         x_plus = x.copy()
         x_minus = x.copy()
-        x_plus[3 + index] += eps
-        x_minus[3 + index] -= eps
-        x_plus[3:7] = normalize(x_plus[3:7])
-        x_minus[3:7] = normalize(x_minus[3:7])
+        x_plus.q[index] += eps
+        x_minus.q[index] -= eps
+        x_plus.q[:] = normalize(x_plus.q)
+        x_minus.q[:] = normalize(x_minus.q)
         jac[index] = (fun(x_plus) - fun(x_minus)) / (2.0 * eps)
     return jac
 

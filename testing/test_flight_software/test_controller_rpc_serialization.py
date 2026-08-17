@@ -14,6 +14,7 @@ from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
+from ADCS.state import EstimatorState, State
 
 
 @pytest.fixture(scope="module")
@@ -75,3 +76,34 @@ def test_estimated_orbital_state_payload_roundtrip_and_safe(os0):
     np.testing.assert_allclose(np.asarray(eos2.P), np.asarray(eos.P), atol=1e-12)
     np.testing.assert_allclose(np.asarray(eos2.Q), np.asarray(eos.Q), atol=1e-12)
     assert rpc._estimated_orbital_state_to_payload(None) is None
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        State(w=[0.1, -0.2, 0.3], q=[1.0, 0.0, 0.0, 0.0], h=[0.4]),
+        EstimatorState(
+            w=[0.1, -0.2, 0.3],
+            q=[1.0, 0.0, 0.0, 0.0],
+            h=[0.4],
+            act_bias=[0.01],
+            sens_bias=[0.02, 0.03],
+            dist_param=[0.04],
+            cov=np.diag(np.arange(1.0, 12.0)),
+            int_cov=np.diag(np.arange(21.0, 32.0)),
+        ),
+    ],
+)
+def test_state_payload_roundtrip_is_versioned_and_safe(state):
+    payload = rpc._state_to_payload(state)
+    _assert_xmlrpc_safe(payload, "state")
+    assert payload["schema_version"] == 1
+    restored = rpc._state_from_payload(payload)
+    assert type(restored) is type(state)
+    np.testing.assert_allclose(restored.as_array(), state.as_array())
+    if isinstance(state, EstimatorState):
+        assert "cov" in payload
+        assert "int_cov" in payload
+        np.testing.assert_allclose(restored.as_estimator_array(), state.as_estimator_array())
+        np.testing.assert_allclose(restored.cov, state.cov)
+        np.testing.assert_allclose(restored.int_cov, state.int_cov)

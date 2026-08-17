@@ -243,9 +243,10 @@ class PlannerSettings:
         self.magic_control_weight = 0.0001
         self.rw_AM_weight = 1e4
         self.rw_stic_weight = 1e0
-        self.RWh_max_mult = 0.8
+        self.rw_momentum_limit_scale = 0.8
         self.RWh_stiction_mult = 0.01
-        self.RWh_ok_mult = 0.5
+        self.RWh_knee_frac = 0.5
+        self.RWh_desat_mult = 0.05
 
         # Cost Configuration
         # Terminal costs 10x higher than running costs to prioritize goal reaching
@@ -257,7 +258,7 @@ class PlannerSettings:
             ang_vel_mag=0.0,
             ang_vel_mag_N=0.0,
             control_mult=1.0,
-            ang_cost_func_type=2,
+            ang_cost_func_type=3,
         )
         self.cost_second = cost_second if cost_second else self.cost_main#CostWeights(
         #     angle=1e3,
@@ -267,7 +268,7 @@ class PlannerSettings:
         #     ang_vel_mag=0.0,
         #     ang_vel_mag_N=0.0,
         #     control_mult=100.0,
-        #     ang_cost_func_type=2,
+        #     ang_cost_func_type=3,
         # )
         self.cost_tvlqr = cost_tvlqr if cost_tvlqr else self.cost_main#CostWeights(
         #     angle=1e2,
@@ -277,7 +278,7 @@ class PlannerSettings:
         #     ang_vel_mag=0.0,
         #     ang_vel_mag_N=0.0,
         #     control_mult=1.0,
-        #     ang_cost_func_type=2,
+        #     ang_cost_func_type=3,
         # )
 
         # Disturbance Settings

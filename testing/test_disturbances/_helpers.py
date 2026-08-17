@@ -7,6 +7,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.disturbances import GeometryConfig, GeometryFace
 from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.state import State
 
 
 def make_satellite(
@@ -26,10 +27,10 @@ def make_state(
     *,
     w: np.ndarray | None = None,
     q: np.ndarray | None = None,
-) -> np.ndarray:
+) -> State:
     omega = np.zeros(3) if w is None else np.asarray(w, dtype=float)
     quat = np.array([1.0, 0.0, 0.0, 0.0]) if q is None else normalize(np.asarray(q, dtype=float))
-    return np.concatenate([omega, quat])
+    return State(w=omega, q=quat)
 
 
 def make_orbital_state(
@@ -59,28 +60,28 @@ def make_geometry_config(*faces: GeometryFace) -> GeometryConfig:
     return GeometryConfig(list(faces))
 
 
-def fd_quat_jac(fun, x: np.ndarray, eps: float = 1.0e-6) -> np.ndarray:
+def fd_quat_jac(fun, x: State, eps: float = 1.0e-6) -> np.ndarray:
     jac = np.zeros((4, 3))
     for index in range(4):
         x_plus = x.copy()
         x_minus = x.copy()
-        x_plus[3 + index] += eps
-        x_minus[3 + index] -= eps
-        x_plus[3:7] = normalize(x_plus[3:7])
-        x_minus[3:7] = normalize(x_minus[3:7])
+        x_plus.q[index] += eps
+        x_minus.q[index] -= eps
+        x_plus.q = normalize(x_plus.q)
+        x_minus.q = normalize(x_minus.q)
         jac[index, :] = (fun(x_plus) - fun(x_minus)) / (2.0 * eps)
     return jac
 
 
-def fd_quat_hess(fun, x: np.ndarray, eps: float = 5.0e-6) -> np.ndarray:
+def fd_quat_hess(fun, x: State, eps: float = 5.0e-6) -> np.ndarray:
     hess = np.zeros((4, 4, 3))
     for index in range(4):
         x_plus = x.copy()
         x_minus = x.copy()
-        x_plus[3 + index] += eps
-        x_minus[3 + index] -= eps
-        x_plus[3:7] = normalize(x_plus[3:7])
-        x_minus[3:7] = normalize(x_minus[3:7])
+        x_plus.q[index] += eps
+        x_minus.q[index] -= eps
+        x_plus.q = normalize(x_plus.q)
+        x_minus.q = normalize(x_minus.q)
         hess[index, :, :] = (fd_quat_jac(fun, x_plus, eps) - fd_quat_jac(fun, x_minus, eps)) / (2.0 * eps)
     return hess
 

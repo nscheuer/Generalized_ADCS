@@ -10,7 +10,7 @@ real_sat = ADCS.satellite_factory.create_beavercube1_cubesat(estimated=False)
 rng = np.random.default_rng(322)
 w = ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0)
 q = ADCS.helpers.normalize(rng.standard_normal(4))
-x_0 = np.concatenate((w, q)) # w, q, h
+x_0 = ADCS.State.from_array(np.concatenate((w, q))) # w, q, h
 
 planner_settings = ADCS.controller.plan_and_track.PlannerSettings(est_sat=real_sat, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
 

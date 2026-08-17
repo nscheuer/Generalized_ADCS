@@ -1,11 +1,14 @@
 import numpy as np
 import pytest
 
+from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.controller import MTQ_w_RW_QPG
+from ADCS.state import State
 
 from testing.test_controllers._mtq_rw_qp_test_helpers import assert_command_bounds
 from testing.test_controllers._mtq_rw_qp_test_helpers import achieved_torque
 from testing.test_controllers._mtq_rw_qp_test_helpers import make_controller
+from testing.test_controllers._mtq_rw_qp_test_helpers import make_orbital_state
 from testing.test_controllers._mtq_rw_qp_test_helpers import make_satellite
 from testing.test_controllers._mtq_rw_qp_test_helpers import plain_bounded_lsq
 
@@ -36,6 +39,30 @@ def test_qpg_zero_torque_request_returns_zero_command(qpg_satellite, qpg_control
     np.testing.assert_allclose(u_rw, np.zeros(1))
     np.testing.assert_allclose(u_mtq, np.zeros(3))
     assert alpha == 1.0
+
+
+@pytest.mark.parametrize(
+    ("goal", "h"),
+    [
+        (No_Goal(), []),
+        (ECI_Goal(np.array([0.0, 0.0, 1.0])), [0.0, 0.1]),
+    ],
+)
+def test_qpg_find_u_rejects_rw_momentum_size_mismatch(qpg_satellite, qpg_controller_zero, goal, h) -> None:
+    state = State(w=[0.01, -0.02, 0.03], q=[1.0, 0.0, 0.0, 0.0], h=h)
+    sens = qpg_satellite.sensor_readings(
+        x=State(w=state.w, q=state.q, h=[0.0]),
+        os=make_orbital_state(),
+    )
+
+    with pytest.raises(ValueError, match="exactly 1 reaction-wheel momentum states"):
+        qpg_controller_zero.find_u(
+            x_hat=state,
+            sens=sens,
+            est_sat=qpg_satellite,
+            os_hat=make_orbital_state(),
+            goal=goal,
+        )
 
 
 def test_qpg_gamma_zero_matches_plain_bounded_lsq(qpg_satellite, qpg_controller_zero) -> None:

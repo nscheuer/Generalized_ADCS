@@ -7,10 +7,11 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Bias, ErrorMode, Noise
 from ADCS.satellite_hardware.sensors import MTM, SunSensor
 from ADCS.satellite_hardware.sensors.sunpair import SunPair
+from ADCS.state import State
 
 
 EPHEM = Ephemeris()
-STATE = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+STATE = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
 
 
 def make_orbital_state(*, sunlit: bool) -> Orbital_State:

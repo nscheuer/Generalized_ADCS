@@ -76,7 +76,7 @@ def build_attitude_estimator():
         disturbances=est_gg_dist,
     )
 
-    x_hat = np.array([0, 0, 0] + [1, 0, 0, 0])
+    x_hat = ADCS.EstimatorState(w=np.zeros(3), q=[1, 0, 0, 0])
     P_hat = block_diag(
         np.eye(3) * (0.01) ** 2,
         np.eye(3),

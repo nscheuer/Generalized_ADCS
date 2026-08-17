@@ -10,7 +10,7 @@ acts += [ADCS.MTQ(axis, max_torque=0.2) for axis in np.eye(3)]
 sens = [ADCS.MTM(axis) for axis in np.eye(3)]
 
 satellite = ADCS.Satellite(mass=4, J_0=np.diag([0.03, 0.03, 0.01]), actuators=acts, sensors=sens, boresight=np.array([0, 0, 1]))
-x_0 = np.array([0.01, -0.02, 0.01] + [1, 0, 0, 0] + [0.0])  # w, q, h
+x_0 = ADCS.State.from_array(np.array([0.01, -0.02, 0.01] + [1, 0, 0, 0] + [0.0]))  # w, q, h
 
 controller = ADCS.controller.MTQ_w_RW_LP(est_sat=satellite, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0, 0, 0]))
 

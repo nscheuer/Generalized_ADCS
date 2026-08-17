@@ -5,12 +5,15 @@ from matplotlib.widgets import Button, RadioButtons
 from typing import Optional, List
 
 from ADCS.helpers.math_helpers import rot_mat
+from ADCS.state import State
+
+__all__ = ["animate_attitude"]
 
 
 def animate_attitude(
     time: np.ndarray,
-    state_hist: Optional[np.ndarray] = None,
-    est_state_hist: Optional[np.ndarray] = None,
+    state_hist: Optional[List[State]] = None,
+    est_state_hist: Optional[List[State]] = None,
     os_hist: Optional[List] = None,
     boresight_goal_hist: Optional[np.ndarray] = None,
 ) -> None:
@@ -23,6 +26,10 @@ def animate_attitude(
           * [nan, gx, gy, gz] -> draw vector
           * [q0, q1, q2, q3]  -> draw target body axes (Body->ECI)
     """
+    if state_hist is not None:
+        state_hist = State.stack(state_hist)
+    if est_state_hist is not None:
+        est_state_hist = State.stack(est_state_hist)
     fig = plt.figure(figsize=(9, 9))
     ax = fig.add_subplot(111, projection="3d")
 

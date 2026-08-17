@@ -275,14 +275,14 @@ class StarTracker(Sensor):
             \mathbf{C}(\mathbf{q})^\top \mathbf{s}_{\mathrm{ECI}}.
 
         :param x: Full spacecraft state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state used for star visibility determination.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Unit vector pointing toward the selected navigation star in the
                  body frame, or ``NaN`` if no star is visible.
         :rtype: numpy.ndarray
         """
-        q = x[3:7]
+        q = x.q
         star = self._select_star(q, os)
         
         if star is None:
@@ -303,7 +303,7 @@ class StarTracker(Sensor):
         constraint.
 
         :param x: Full spacecraft state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param dmode: Controls whether bias and noise are applied and propagated.
@@ -343,7 +343,7 @@ class StarTracker(Sensor):
         :func:`~ADCS.helpers.math_helpers.drotmatTvecdq`.
 
         :param x: Full spacecraft state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Base-state Jacobian stacked as ``[ω; q]``, shape ``(7, 3)``.
@@ -352,7 +352,7 @@ class StarTracker(Sensor):
         if self.current_star is None:
             return np.zeros((7, self.output_length))
 
-        q = x[3:7]
+        q = x.q
         s_eci = self.current_star.s_eci
         db_dq = drotmatTvecdq(q, s_eci)
 
@@ -368,7 +368,7 @@ class StarTracker(Sensor):
         model, so the bias Jacobian is empty.
 
         :param x: Full spacecraft state vector (unused).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state object (unused).
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Empty bias Jacobian of shape ``(0, 3)``.

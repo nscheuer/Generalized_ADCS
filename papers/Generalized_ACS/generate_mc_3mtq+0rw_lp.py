@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy as np
+from ADCS.state import State
 from scipy.integrate import solve_ivp
 from typing import Dict, Any, Tuple, Optional
 
@@ -25,9 +26,9 @@ from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 
 # --- MC Runner Imports ---
 from ADCS.mc.monte_carlo_runner import (
-    MonteCarloRunner, 
-    claim_worker_slot, 
-    release_worker_slot, 
+    MonteCarloRunner,
+    claim_worker_slot,
+    release_worker_slot,
     update_worker_progress
 )
 
@@ -56,21 +57,21 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
         # 3. Hardware Setup
         mtq_max = 0.4
-        
+
         acts = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
 
         mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
-        
+
         real_sat = Satellite(
-            mass=1.2, 
-            J_0=np.diagflat([0.022, 0.022, 0.004]), 
-            actuators=acts, 
-            sensors=mtms, 
+            mass=1.2,
+            J_0=np.diagflat([0.022, 0.022, 0.004]),
+            actuators=acts,
+            sensors=mtms,
             boresight=np.array([0, 0, 1])
         )
 
         # 4. Initial Conditions
-        x = np.concatenate([config["w0"], config["q0"]])
+        x = State(w=config["w0"], q=config["q0"])
 
         # 5. Orbit Retrieval (Cached)
         orbit_key = (tuple(config["orbit_R"]), tuple(config["orbit_V"]), tf, dt)
@@ -116,7 +117,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             u = ctrl_find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state, goal=goal)
 
             time_hist[ind] = t
-            state_hist[ind, :] = x
+            state_hist[ind, :] = x.as_array()
             u_hist[ind, :] = u
             eci_goal_ref, _ = goal_to_ref(os0=os_state)
             boresight_hist[ind, :] = eci_goal_ref
@@ -125,13 +126,13 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             t += dt
             prev_os = os_state
             os_next = orb_get_os(0.22 + (t - t0) * sec2cent)
-            
+
             out = solve_ivp(
-                fun=sat_dynamics, t_span=(0, dt), y0=x, method="RK45", 
+                fun=sat_dynamics, t_span=(0, dt), y0=x.as_array(), method="RK45",
                 args=(u, prev_os, os_next), rtol=1e-6, atol=1e-6
             )
-            x = out.y[:, -1]
-            x[3:7] = normalize(x[3:7])
+            x = State.from_array(out.y[:, -1])
+            x = x.normalized()
 
         # Final UI update
         update_worker_progress(slot_id, run_id, steps, steps)
@@ -176,10 +177,10 @@ if __name__ == "__main__":
             num_runs=16
         )
         full_results = runner.run()
-        
+
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
         save_data("3MTQ+0RW_LP_mc_16", full_results, out_dir=OUTPUT_DIR)
-        
+
         plot_target_tracking_mc(full_results=full_results, title="3 MTQ + 0 RW LP MC:100")
         plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 0 RW LP MC:100")
         create_close_all_button_window()

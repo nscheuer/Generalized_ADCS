@@ -1,6 +1,8 @@
 __all__ = ["MTQ_w_RW_QPG"]
 
 import numpy as np
+
+from ADCS.state import EstimatorState, State
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 from scipy.optimize import lsq_linear
@@ -197,7 +199,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
 
     def find_u(
         self,
-        x_hat: np.ndarray,
+        x_hat: State | EstimatorState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -231,7 +233,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
 
         :param x_hat: Estimated state vector containing angular rate, attitude quaternion, and
                       optionally wheel momentum states.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Sensor measurement vector used to estimate body magnetic field through the
                      MTM readout model.
         :type sens: numpy.ndarray
@@ -248,8 +250,8 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
         if goal is None:
             goal = No_Goal()
 
-        w = x_hat[0:3]
-        q = x_hat[3:7]
+        w = x_hat.w
+        q = x_hat.q
 
         if isinstance(goal, No_Goal):
             k_w = self.d_gain
@@ -264,11 +266,12 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
 
             # --- 2. System Momentum Vector (Generic N-RW) ---
             # Calculate total vector momentum stored in all wheels
-            if self.n_rw > 0 and len(x_hat) >= 7 + self.n_rw:
-                h_rw_scalars = x_hat[7 : 7 + self.n_rw]
-                h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
-            else:
-                h_sys = np.zeros(3)
+            h_rw_scalars = self.reaction_wheel_momentum_states(
+                x_hat,
+                self.n_rw,
+                context=f"{type(self).__name__}.find_u",
+            )
+            h_sys = self.rw_axes @ h_rw_scalars if self.n_rw > 0 else np.zeros(3)
 
             # --- 3. Rate Damping (Perpendicular to B) ---
             # "Magnetic B-dot" logic: dampen rates only in the plane where MTQs can act
@@ -327,10 +330,11 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
         else:
         
             n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
-            if len(x_hat) >= 7 + n_rw:
-                h_rw_states = x_hat[7 : 7 + n_rw]
-            else:
-                h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
+            h_rw_states = self.reaction_wheel_momentum_states(
+                x_hat,
+                n_rw,
+                context=f"{type(self).__name__}.find_u",
+            )
 
             goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
             R_b2i = rot_mat(q)

@@ -2,6 +2,8 @@ __all__ = ["EstimatedSatellite"]
 import copy
 import numpy as np
 
+from ADCS.state import State
+
 from typing import List, Dict, Union, Tuple, Any, Optional
 from scipy.linalg import block_diag
 
@@ -13,7 +15,7 @@ from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, G
 from ADCS.satellite_hardware.sensors import Sensor, GPS
 from ADCS.satellite_hardware.actuators import Actuator, RW
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
+from ADCS.state import EstimatorState
 
 class EstimatedSatellite(Satellite):
     r"""
@@ -162,7 +164,7 @@ class EstimatedSatellite(Satellite):
         return est
 
 
-    def match_estimate(self, est_state: EstimatedArray, dt: float) -> None:
+    def match_estimate(self, est_state: EstimatorState, dt: float) -> None:
         r"""
         Synchronize the satellite instance with the estimator output.
 
@@ -229,9 +231,9 @@ class EstimatedSatellite(Satellite):
         be dimension-shifted by one element in some configurations (e.g., quaternion handling). The method
         applies an index adjustment ``adj`` when ``int_cov`` is off-by-one.
 
-        :param est_state: Estimator output container providing
-            ``val`` (state vector), ``cov`` (covariance), and ``int_cov`` (integrated covariance).
-        :type est_state: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+        :param est_state: Estimator output container providing the attitude state,
+            bias/parameter blocks, covariance, and integrated covariance.
+        :type est_state: :class:`~ADCS.state.EstimatorState`
 
         :param dt: Estimator propagation step (s). Used by some pipelines to normalize integrated covariance.
             (The current implementation partitions ``int_cov`` directly.)
@@ -241,46 +243,53 @@ class EstimatedSatellite(Satellite):
         :rtype: None
 
         :raises ValueError:
-            If ``est_state.val`` does not have length
+            If ``est_state.as_estimator_array()`` does not have length
             ``self.state_len + self.act_bias_len + self.att_sens_bias_len + self.dist_param_len``.
         """
-        # Extract state
-        full_state = est_state.val
-        cov = est_state.cov
+        if not isinstance(est_state, EstimatorState):
+            raise TypeError(f"est_state must be an EstimatorState, got {type(est_state).__name__}")
         int_cov = est_state.int_cov
 
         # Dimension checks
         expected_len = (self.state_len + self.act_bias_len + self.att_sens_bias_len + self.dist_param_len)
-        if np.size(full_state) != expected_len:
-            raise ValueError(f"Estimator state has wrong size (expected {expected_len}, got {np.size(full_state)})")
+        if est_state.augmented_size != expected_len:
+            raise ValueError(f"Estimator state has wrong size (expected {expected_len}, got {est_state.augmented_size})")
+        if est_state.h.size != self.number_RW:
+            raise ValueError(f"Estimator state has {est_state.h.size} wheel states, expected {self.number_RW}")
+        if est_state.act_bias.size != self.act_bias_len:
+            raise ValueError(f"Estimator state has {est_state.act_bias.size} actuator biases, expected {self.act_bias_len}")
+        if est_state.sens_bias.size != self.att_sens_bias_len:
+            raise ValueError(f"Estimator state has {est_state.sens_bias.size} sensor biases, expected {self.att_sens_bias_len}")
+        if est_state.dist_param.size != self.dist_param_len:
+            raise ValueError(f"Estimator state has {est_state.dist_param.size} disturbance parameters, expected {self.dist_param_len}")
         
         # Adjustment if integrated covariance is off by one (e.g. quaternion handling)
         adj = -1 if int_cov.shape[0] + 1 == expected_len else 0
 
         # --- Partition the full state vector ---
         idx = self.state_len
-        act_bias = full_state[idx : idx + self.act_bias_len]
+        act_bias = est_state.act_bias
         act_bias_ic = int_cov[
             idx + adj : idx + self.act_bias_len + adj,
             idx + adj : idx + self.act_bias_len + adj,
         ]
 
         idx += self.act_bias_len
-        sens_bias = full_state[idx : idx + self.att_sens_bias_len]
+        sens_bias = est_state.sens_bias
         sens_bias_ic = int_cov[
             idx + adj : idx + self.att_sens_bias_len + adj,
             idx + adj : idx + self.att_sens_bias_len + adj,
         ]
 
         idx += self.att_sens_bias_len
-        dist_param = full_state[idx : idx + self.dist_param_len]
+        dist_param = est_state.dist_param
         dist_param_ic = int_cov[
             idx + adj : idx + self.dist_param_len + adj,
             idx + adj : idx + self.dist_param_len + adj,
         ]
 
         # --- Update satellite dynamic state ---
-        self.update_RWhs(full_state[: self.state_len])
+        self.update_RWhs(est_state)
 
         # --- Disable noise sources for deterministic matching ---
         for a in self.actuators:
@@ -332,7 +341,7 @@ class EstimatedSatellite(Satellite):
                 dist.std = np.sqrt(dist_param_ic[ind : ind + l, ind : ind + l])
                 ind += l
 
-    def dist_torques_jacobian(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
+    def dist_torques_jacobian(self, x: State, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Jacobians of total disturbance torque w.r.t. state and disturbance parameters.
 
@@ -387,7 +396,7 @@ class EstimatedSatellite(Satellite):
         * ``torque_valjac(self, vecs)`` → :math:`\partial \boldsymbol{\tau}/\partial\boldsymbol{\theta}`.
 
         :param x: Current base spacecraft state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param vecs: Dictionary containing body-frame environment vectors and their quaternion derivatives,
             typically including keys like ``"b"``, ``"r"``, ``"s"``, ``"v"``, ``"rho"``, and derivative keys
@@ -414,7 +423,7 @@ class EstimatedSatellite(Satellite):
             ddist_torq__ddmp = np.vstack([self.disturbances[j].torque_valjac(self,x,vecs["os"]) for j in self.dist_param_inds])
         return ddist_torq__dx,ddist_torq__ddmp
 
-    def dist_torque_hess(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def dist_torque_hess(self, x: State, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Hessians of total disturbance torque w.r.t. state and disturbance parameters.
 
@@ -468,7 +477,7 @@ class EstimatedSatellite(Satellite):
         * ``torque_valvalhess(self, vecs)`` → :math:`\partial^2 \boldsymbol{\tau}/\partial\boldsymbol{\theta}^2`.
 
         :param x: Current base spacecraft state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param vecs: Dictionary containing body-frame environment vectors and their derivatives.
         :type vecs: dict[str, numpy.ndarray]
@@ -500,7 +509,7 @@ class EstimatedSatellite(Satellite):
             ind += l
         return dddist_torq__dxdx,dddist_torq__dxddmp,dddist_torq__ddmpddmp
     
-    def dynJacCore(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State) -> Union[np.ndarray, np.ndarray]:
+    def dynJacCore(self, x: State, u: np.ndarray, orbital_state: Orbital_State) -> Union[np.ndarray, np.ndarray]:
         r"""
         Jacobians of augmented dynamics w.r.t. state, inputs, and estimated parameters.
 
@@ -549,7 +558,7 @@ class EstimatedSatellite(Satellite):
             measurements, not rotational dynamics; therefore ``dxdot__dsb`` is returned as zeros.
 
         :param x: Current base state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param u: Current control vector, shape ``(control_len,)``.
         :type u: numpy.ndarray
@@ -582,9 +591,9 @@ class EstimatedSatellite(Satellite):
         S = orbital_state.S # Sun Vector in ECI [km]
         rho = orbital_state.rho # Atmospheric density [kg/m^3]
 
-        w = x[0:3]
-        q = x[3:7]   # PR #47's q-slice fix folded into Stage B revival
-        RWhs = x[7:]
+        w = x.w
+        q = x.q
+        RWhs = x.h
         # Must match the inertia used in dynamics_core (J_COM, not J_0) so the
         # estimated-model Jacobian remains the correct linearization when COM
         # is offset from the reference origin.
@@ -654,7 +663,7 @@ class EstimatedSatellite(Satellite):
         return [dxdot__dx,dxdot__du,dxdot__dab,dxdot__dsb,dxdot__ddmp]
     
 
-    def dynamics_Hessians(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State) -> List[List[np.ndarray]]:
+    def dynamics_Hessians(self, x: State, u: np.ndarray, orbital_state: Orbital_State) -> List[List[np.ndarray]]:
         r"""
         Second-order derivatives (Hessians) of augmented dynamics.
 
@@ -712,7 +721,7 @@ class EstimatedSatellite(Satellite):
         * Actuator torque curvature terms from actuator-provided second derivatives, including bias couplings.
 
         :param x: Current base state vector, shape ``(state_len,)``.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
 
         :param u: Current control vector, shape ``(control_len,)``.
         :type u: numpy.ndarray
@@ -747,9 +756,9 @@ class EstimatedSatellite(Satellite):
         |``ddxdot__ddmpddmp``| ``(dist_param_len, dist_param_len, state_len)``      |
         +--------------------+------------------------------------------------------+
         """
-        w = x[0:3]#.reshape((3,1))
-        q = x[3:7]#normalize(x[3:7,:])
-        RWhs = x[7:]
+        w = x.w
+        q = x.q
+        RWhs = x.h
         invJ_noRW = self.invJ_noRW
         # Match the COM-based rotational dynamics and avoid relying on the
         # undefined self.J attribute.

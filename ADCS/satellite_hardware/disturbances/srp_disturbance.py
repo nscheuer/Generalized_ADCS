@@ -2,6 +2,8 @@ from __future__ import annotations
 __all__ = ["SRP_Disturbance"]
 
 import numpy as np
+
+from ADCS.state import State
 from numba import njit
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
@@ -229,7 +231,7 @@ class SRP_Disturbance(Disturbance):
 
         super().__init__()
 
-    def torque(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **SRP torque** in the body frame.
 
@@ -310,7 +312,7 @@ class SRP_Disturbance(Disturbance):
             EarthConstants.solar_constant, EarthConstants.c,
         )
 
-    def torque_qjav(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qjav(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Jacobian of SRP torque** with respect to the attitude quaternion.
 
@@ -459,7 +461,7 @@ class SRP_Disturbance(Disturbance):
             # the eclipse return must match (was (3,1)).
             return np.zeros((4, 3))
 
-    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qjac(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Alias of :meth:`torque_qjav` so SRP exposes the same ``torque_qjac``
         quaternion-Jacobian entry point as every other disturbance (the
@@ -470,7 +472,7 @@ class SRP_Disturbance(Disturbance):
         """
         return self.torque_qjav(sat=sat, x=x, os=os)
 
-    def torque_qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qqhess(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Hessian of SRP torque** with respect to the attitude quaternion.
 

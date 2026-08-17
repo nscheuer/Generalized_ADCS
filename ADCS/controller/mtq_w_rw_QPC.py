@@ -1,6 +1,8 @@
 __all__ = ["MTQ_w_RW_QPC"]
 
 import numpy as np
+
+from ADCS.state import EstimatorState, State
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 from scipy.special import logsumexp
@@ -176,12 +178,12 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
 
     def find_u(
         self,
-        x_hat: np.ndarray,
+        x_hat: State | EstimatorState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
         goal: Goal | None = None,
-    ) -> tuple[np.ndarray, np.ndarray | None]:
+    ) -> np.ndarray:
         r"""
         Compute actuator commands for either detumble or goal-tracking operation.
 
@@ -190,7 +192,7 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
 
         When ``goal`` is :class:`~ADCS.CONOPS.goals.No_Goal`, the controller performs a detumble
         and momentum-management style behavior:
-        
+
         - The body angular rate is damped in the MTQ-achievable plane perpendicular to the
           geomagnetic field.
         - A momentum dumping torque is computed from the error between current wheel momentum
@@ -208,12 +210,9 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         :meth:`~ADCS.controller.MTQ_w_RW_QPC.allocate_max_torque_in_direction` to allocate the
         requested torque under actuator bounds and the energy gate constraint.
 
-        Returned torque is the internally formed desired body torque for the goal-tracking branch
-        and is not defined for the detumble branch in this implementation.
-
         :param x_hat: Estimated state vector containing angular rate, attitude quaternion, and
                       optionally wheel momentum states.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Sensor measurement vector used to estimate body magnetic field through the
                      MTM readout model.
         :type sens: numpy.ndarray
@@ -223,23 +222,23 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goal: Optional goal object providing desired pointing and reference rates.
         :type goal: :class:`~ADCS.CONOPS.goals.Goal` | None
-        :return: Tuple of commanded actuator vector and the desired torque used for allocation in
-                 the goal-tracking branch.
-        :rtype: tuple[numpy.ndarray, numpy.ndarray | None]
+        :return: Actuator command vector in ``est_sat.actuators`` ordering.
+        :rtype: numpy.ndarray
 
         """
         if goal is None:
             goal = No_Goal()
 
-        w = x_hat[0:3]
-        q = x_hat[3:7]
-        
+        w = x_hat.w
+        q = x_hat.q
+
         # Calculate total vector momentum stored in all wheels
-        if self.n_rw > 0 and len(x_hat) >= 7 + self.n_rw:
-            h_rw_scalars = x_hat[7 : 7 + self.n_rw]
-            h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
-        else:
-            h_sys = np.zeros(3)
+        h_rw_scalars = self.reaction_wheel_momentum_states(
+            x_hat,
+            self.n_rw,
+            context=f"{type(self).__name__}.find_u",
+        )
+        h_sys = self.rw_axes @ h_rw_scalars if self.n_rw > 0 else np.zeros(3)
 
         if isinstance(goal, No_Goal):
             k_w = self.d_gain
@@ -280,7 +279,7 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
 
             # --- 5. MTQ Allocation & Saturation Check ---
             tau_mtq_des = tau_bdot_perp - tau_dump_perp
-            
+
             alpha_mtq = 0.0 # Default to 0: If no MTQs, we cannot dump.
             u_mtq_scaled = np.zeros(self.n_mtq) # Default empty/zero
 
@@ -295,11 +294,11 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
                 alpha_mtq = 1.0
                 if np.any(np.abs(mtq_cmds) > self.mtq_umax):
                     alpha_mtq = np.min(self.mtq_umax / (np.abs(mtq_cmds) + 1e-12))
-                
+
                 u_mtq_scaled = alpha_mtq * u_mtq_raw
 
             # --- 6. RW Command (Scaled) ---
-            # If alpha_mtq is 0 (due to saturation or 0 MTQs), RW torque is reduced 
+            # If alpha_mtq is 0 (due to saturation or 0 MTQs), RW torque is reduced
             # to 0 to prevent spinning up the body.
             tau_rw_req = alpha_mtq * (tau_dump_cmd + tau_bdot_perp)
 
@@ -307,15 +306,16 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
             u_rw = np.clip(u_rw, -self.rw_umax, self.rw_umax)
 
             # --- Final Output ---
-            u_out = u_mtq_scaled + u_rw 
+            u_out = u_mtq_scaled + u_rw
             w_err = w
         else:
-        
+
             n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
-            if len(x_hat) >= 7 + n_rw:
-                h_rw_states = x_hat[7 : 7 + n_rw]
-            else:
-                h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
+            h_rw_states = self.reaction_wheel_momentum_states(
+                x_hat,
+                n_rw,
+                context=f"{type(self).__name__}.find_u",
+            )
 
             goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
             R_b2i = rot_mat(q)
@@ -337,12 +337,12 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
                 if isinstance(actuator, RW):
                     h_rw_body += np.asarray(actuator.axis).flatten() * h_rw_states[rw_counter]
                     rw_counter += 1
-            
+
             J = est_sat.J_0
             tau_gyro = np.cross(w, J @ w + h_rw_body)
 
             tau_des = tau_pd + tau_gyro
-            
+
             b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
 
             u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(
@@ -350,10 +350,10 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
             )
 
             u_out = np.zeros(len(est_sat.actuators))
-            
+
             rw_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, RW)]
             u_out[rw_indices] = u_rw_cmd
-            
+
             mtq_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, MTQ)]
             u_out[mtq_indices] = u_mtq_cmd
 
@@ -483,9 +483,9 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         omega = np.asarray(omega, float).reshape(3,)
         om2 = float(np.dot(omega, omega))
         taudes_dot_omega = np.dot(omega,tau_des)
-        
+
         SCALE = 1e9
-            
+
         def fun(u):
             r = A_total @ u - tau_des*SCALE
             return 0.5 * np.dot(r,r)#/np.linalg.norm(tau_des)
@@ -493,33 +493,33 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         def jac(u):
             r = A_total @ u - tau_des*SCALE
             return A_total.T @ r#/np.linalg.norm(tau_des)
-            
+
         threshold = 0.00001
-        
+
         Irw = np.hstack([np.eye(n_rw),np.zeros((n_rw,n_mtq)),np.zeros((n_rw,n_act-n_mtq-n_rw))])
-        
+
         Irw = Irw.reshape((n_rw,n_act))
         h = h.reshape((n_rw,1))
         J_rw_inv = J_rw_inv.reshape((n_rw,n_rw))
         C = omega @ A_total - (A_rw.T @ omega + J_rw_inv @ h).T @ Irw
-        
+
         if False:#taudes_dot_omega > 0 :
 
-        
+
             ub_constraint = taudes_dot_omega # logsumexp([0,taudes_dot_omega])#max(0,np.dot(omega,tau_des))
-            
-        
+
+
             lb_constraint = 0.0  # Don't brake
             # lin_ineq = LinearConstraint(omega@A_total, lb=lb_constraint*SCALE,ub=ub_constraint*SCALE)  # a @ u <= s
 
             # Reasonable starting point
             u0 = 0.5*(lb+ub)*SCALE
             # u0 = np.sign((np.linalg.pinv(A_total) @ tau_des*SCALE - 0.5*(lb+ub)*SCALE)/(0.5*(ub-lb)*SCALE))*(0.5*(ub-lb)*SCALE) + 0.5*(lb+ub)*SCALE
-            
+
             bounds = Bounds(lb*SCALE, ub*SCALE)
             # C = omega @ A_total - (J_rw_inv @ h).T @ Irw
             # res = lsq_linear(A_c, b_c, bounds=(lb, ub), method="trf")
-            
+
             # print(J_rw_inv,h)
             res = minimize(
                 fun, u0, jac=jac,
@@ -545,7 +545,7 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
                 bounds=bounds,
                 options={}
             )
-        
+
 
             u_sol = res.x/SCALE
             tau_qp = A_total @ u_sol
@@ -556,14 +556,14 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
             # print(f"energy_qp={energy_qp:.6e}, energy_des={taudes_dot_omega:.6e},||tau_qp||={np.linalg.norm(tau_qp):.6e}, ||tau_des||={np.linalg.norm(tau_des):.6e}")
             # print(f"QP better on energy: {energy_qp <= energy_lp + 1e-9}")
             # print(f"QP better on tracking: {np.linalg.norm(tau_qp - tau_des) <= np.linalg.norm(tau_lp/SCALE - tau_des) + 1e-9}")
-        
+
         else:
-            
+
             ub_constraint = max(0,taudes_dot_omega)#0.0 #don't accelerate
-        
+
             lb_constraint = min(taudes_dot_omega, 0)#taudes_dot_omega # Don't brake more than expected
             # lin_ineq = LinearConstraint(omega@A_total,ub=ub_constraint)  # a @ u <= s
-            
+
             # def fun(u):
                 # r = A_total @ u - tau_des
                 # return 0.5 * np.dot(r,r)#/np.linalg.norm(tau_des)
@@ -574,10 +574,10 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
 
             # # Reasonable starting point
             # u0 = 0.5*(lb+ub)
-            
+
             bounds = Bounds(lb*SCALE, ub*SCALE)
             Irw = np.hstack([np.eye(n_rw),np.zeros((n_rw,n_mtq)),np.zeros((n_rw,n_act-n_mtq-n_rw))])
-            
+
             Irw = Irw.reshape((n_rw,n_act))
             h = h.reshape((n_rw,1))
             J_rw_inv = J_rw_inv.reshape((n_rw,n_rw))
@@ -585,9 +585,9 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
             # C = omega @ A_total - (J_rw_inv @ h).T @ Irw
 
 
-            
+
             u0 = 0.5*(lb+ub)*SCALE
-            
+
             res = minimize(
                 fun, u0, jac=jac,
                 method="SLSQP",
@@ -599,9 +599,9 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
                 bounds=bounds,
                 options={}
             )
-        
+
             # res = lsq_linear(A_total, tau_des*SCALE, bounds=(lb*SCALE, ub*SCALE), method="trf")
-            
+
             u_sol = res.x/SCALE
             tau_qp = A_total @ u_sol
             energy_qp = np.dot(omega, tau_qp)
@@ -609,13 +609,13 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
             # print(f"energy_qp={energy_qp:.6e}, energy_des={taudes_dot_omega:.6e},||tau_qp||={np.linalg.norm(tau_qp):.6e}, ||tau_des||={np.linalg.norm(tau_des):.6e}")
             # print(f"QP better on energy: {energy_qp <= energy_lp + 1e-9}")
             # print(f"QP better on tracking: {np.linalg.norm(tau_qp - tau_des) <= np.linalg.norm(tau_lp - tau_des) + 1e-9}")
-        
-            
+
+
         u_sol = res.x/SCALE
-        
-        
+
+
         res_uncon = lsq_linear(A_total, tau_des*SCALE, bounds=(lb*SCALE, ub*SCALE), method="trf")
-            
+
         u_sol_uncon = res_uncon.x/SCALE
         tau_uncon = A_total @ u_sol_uncon
         unconstrained_energy = np.dot(omega, tau_uncon)
@@ -623,15 +623,15 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
 
         if unconstrained_energy > 1e-9 and constrained_energy < unconstrained_energy - 1e-9:
             print(f"Constraint active: wanted {unconstrained_energy:.2e}, got {constrained_energy:.2e}")
-                    
+
         if not res.success:
             print(f"QP failed: {res.message}")
             _, alpha, u_sol_SCALED = self.solve_lp_scaling(tau_des*SCALE, A_total, lb*SCALE, ub*SCALE)
             u_sol = u_sol_SCALED/SCALE
-            
+
         # 4) Compute alpha as before
-        
-      
+
+
         tau_ach = A_total @ u_sol
         tau_hat = tau_des / (t_mag + 1e-12)
         T_along = float(np.dot(tau_ach, tau_hat))
@@ -639,8 +639,8 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         u_rw_cmd = u_sol[:n_rw]
         u_mtq_cmd = u_sol[n_rw:n_rw + n_mtq]
         return u_rw_cmd, u_mtq_cmd, alpha
-        
-        
+
+
     def solve_lp_scaling(self, tau_des, A_total, lb, ub):
         r"""
         Compute the maximum feasible scaling of a desired torque direction under box bounds.
@@ -699,28 +699,28 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         t_mag = np.linalg.norm(tau_des)
         if t_mag < 1e-12:
             return np.zeros(3), 1.0, np.zeros(len(lb))
-        
+
         tau_hat = tau_des / t_mag
         n_act = len(lb)
-        
+
         # Variables: [u, T_available]
         # Maximize T_available (minimize -T_available)
         c = np.zeros(n_act + 1)
         c[-1] = -1.0
-        
+
         # Constraint: A_total @ u = T_available * tau_hat
         A_eq = np.hstack([A_total, -tau_hat.reshape(3, 1)])
         b_eq = np.zeros(3)
-        
+
         # Bounds: lb ≤ u ≤ ub, 0 ≤ T_available
         bounds = [(lb[i], ub[i]) for i in range(n_act)] + [(0, None)]
-        
+
         res = linprog(c, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
-        
+
         if res.success:
             u_lp = res.x[:n_act]
             T_available = res.x[-1]
-            
+
             # Scale down if we have more capacity than needed
             if T_available > t_mag:
                 scale = t_mag / T_available
@@ -728,11 +728,10 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
                 lambda_star = 1.0
             else:
                 lambda_star = T_available / t_mag
-            
+
             tau_lp = A_total @ u_lp
             return tau_lp, lambda_star, u_lp
         else:
-            
+
             print(f"LP failed: {res.message}")
             return np.zeros(3), 0.0, np.zeros(n_act)
-   

@@ -22,6 +22,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.controller.helpers.trajectory import Trajectory
 from ADCS.helpers.math_helpers import normalize
+from ADCS.state import State
 
 # Path-based import so this script works regardless of current working directory.
 debug_module_path = os.path.join(current_dir, "debug_saltro_bc2.py")
@@ -80,7 +81,7 @@ def _debug_saltro_closed_loop_bc2(
     K_time *= -1.0
 
     S_dummy = np.zeros(n_ref, dtype=np.float64)
-    traj = Trajectory(
+    traj = Trajectory.from_arrays(
         t=np.asarray(np.linspace(t_start, t_start + tf * TimeConstants.sec2cent, n_ref), dtype=np.float64),
         x=np.asarray(X_ref, dtype=np.float64),
         u=np.asarray(U_ref, dtype=np.float64),
@@ -104,9 +105,9 @@ def _debug_saltro_closed_loop_bc2(
     for k in tqdm(range(n_out), desc="Simulating SALTRO closed-loop (bc2)"):
         os_k = orb.get_os(J2000=float(jtime[k]))
         os_hist.append(os_k)
-        sensor_hist[k, :] = real_sat.sensor_readings(x=state_hist[k, :], os=os_k)
+        sensor_hist[k, :] = real_sat.sensor_readings(x=State.from_array(state_hist[k, :]), os=os_k)
 
-        u_cmd = traj.compute_tracking_control(float(jtime[k]), state_hist[k, :])
+        u_cmd = traj.compute_tracking_control(float(jtime[k]), State.from_array(state_hist[k, :]))
         u_hist[k, :] = u_cmd
 
         if k < n_out - 1:

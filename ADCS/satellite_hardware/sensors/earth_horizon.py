@@ -185,14 +185,14 @@ class EarthHorizonSensor(Sensor):
         sensor field of view.
 
         :param x: Full spacecraft state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state providing spacecraft position.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Nadir unit vector in body frame, or ``NaN`` if Earth is
                  outside the sensor FOV.
         :rtype: numpy.ndarray
         """
-        q = x[3:7]
+        q = x.q
         r_sat = os.R  # ECI position [km]
         r_norm = np.linalg.norm(r_sat)
 
@@ -231,7 +231,7 @@ class EarthHorizonSensor(Sensor):
         renormalized to enforce the unit-vector constraint.
 
         :param x: Full spacecraft state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param dmode: Error mode controlling bias and noise.
@@ -272,7 +272,7 @@ class EarthHorizonSensor(Sensor):
         :func:`~ADCS.helpers.math_helpers.drotmatTvecdq`.
 
         :param x: Full spacecraft state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Base-state Jacobian of shape ``(7, 3)``.
@@ -281,7 +281,7 @@ class EarthHorizonSensor(Sensor):
         if self._nadir_eci is None:
             return np.zeros((7, self.output_length))
 
-        q = x[3:7]
+        q = x.q
         db_dq = drotmatTvecdq(q, self._nadir_eci)
 
         J = np.zeros((7, self.output_length))
@@ -298,7 +298,7 @@ class EarthHorizonSensor(Sensor):
         Otherwise, an empty Jacobian is returned.
 
         :param x: Full spacecraft state vector (unused).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state (unused).
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Bias Jacobian.

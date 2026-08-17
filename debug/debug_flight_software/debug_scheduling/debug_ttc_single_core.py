@@ -7,6 +7,7 @@ from scipy.integrate import solve_ivp
 from tqdm import tqdm
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
+from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.controller import MTQ_w_RW, BDot
 from ADCS.estimators.attitude_estimators.attitude_SRUAKF import SRUAKF
 from ADCS.orbits.orbit import Orbit
@@ -15,12 +16,13 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.errors import Noise, Bias
+from ADCS.satellite_hardware.errors import Noise, Bias, ErrorMode
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
 from ADCS.satellite_hardware.disturbances import GeometryFace, GG_Disturbance, Drag_Disturbance, GeometryConfig
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.state import EstimatorState, State
 from ADCS.flight_software.single_core.ttc_single_core import TTC_Single_Core
 from ADCS.flight_software.tasks.task import Task
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
@@ -128,7 +130,7 @@ def create_orbit(t0: float, tf: float, dt: float) -> Orbit:
     V = np.array([8, 0, 0])
     if True:
         os = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
-        orb = Orbit(os0=os, end_time=end_time, dt=dt, use_J2=True, fast=False)
+        orb = Orbit(os0=os, end_time=end_time, dt=dt, zonal_J=2, fast=False)
     else:
         os = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=R, V=V, B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=5e-12)
         dur = int((tf-t0)/dt)+10
@@ -144,6 +146,7 @@ def create_matrices(est_sat: EstimatedSatellite, dt: float) -> Tuple[np.ndarray,
     mtm_bsr = 1e-9
     gyro_bsr = 0.0004*np.pi/180.0
     sun_bsr = 0.00001
+    n_rw = est_sat.number_RW
     
     invJ = np.linalg.inv(est_sat.J_0)
     # Dynamics
@@ -160,12 +163,21 @@ def create_matrices(est_sat: EstimatedSatellite, dt: float) -> Tuple[np.ndarray,
     # Biases
     mult_mtm = 1
     mult_sun = 10.0
+    sigma_rw_momentum = 1e-4
+    Q_rw = np.eye(n_rw) * sigma_rw_momentum**2 * dt
     Q_mtm  = np.eye(3) * (mtm_bsr * mult_mtm)**2.0 * dt
     Q_gyro = np.eye(3) * (gyro_bsr)**2.0 * dt
     Q_sun  = np.eye(3) * (sun_bsr * mult_sun)**2.0 * dt
-    Q_est = block_diag(Q_dyn_block, Q_mtm, Q_gyro, Q_sun)
+    Q_est = block_diag(Q_dyn_block, Q_rw, Q_mtm, Q_gyro, Q_sun)
 
-    P_est = block_diag(np.eye(3)*(0.01)**2.0, np.eye(3)*3, 0.001*np.eye(3)*mtm_bsr**2.0, np.eye(3)*1000*gyro_bsr**2.0, np.eye(3)*100*sun_bsr**2.0)
+    P_est = block_diag(
+        np.eye(3) * (0.01)**2.0,
+        np.eye(3) * 3.0,
+        np.eye(n_rw) * (0.1)**2.0,
+        0.001 * np.eye(3) * mtm_bsr**2.0,
+        np.eye(3) * 1000 * gyro_bsr**2.0,
+        np.eye(3) * 100 * sun_bsr**2.0,
+    )
 
     return P_est, Q_est
 
@@ -208,9 +220,9 @@ def controller_task(t, memory):
     if memory["MODE_control"] == "MODE_BDOT":
         memory["control_u"] = memory["CONTROL_BDOT"].find_u(x_hat, sens, est_sat, os_hat)
     elif memory["MODE_control"] == "MODE_MTQ_W_RW":
-        memory["control_u"] = memory["CONTROL_MTQ_W_RW"].find_u(x_hat, sens, est_sat, os_hat)
+        memory["control_u"] = memory["CONTROL_MTQ_W_RW"].find_u(x_hat, sens, est_sat, os_hat, goal=memory["GOAL"])
     else:
-        memory["control_u"] = np.zeros(6)
+        memory["control_u"] = np.zeros(est_sat.control_len)
 
 def sensor_task(t, memory):
     memory["log"].append(f"{t:.2f}: SENS")
@@ -228,23 +240,25 @@ def main():
     est_sat = create_estimated_satellite()
     P_est, Q_est = create_matrices(est_sat, dt=10)
 
-    x = np.array([0,0,0,1,0,0,0, 1, 1, 1], dtype=float)
-    x_hat = np.zeros(19); x_hat[3] = 1
+    x = State(w=np.zeros(3), q=[1, 0, 0, 0], h=np.ones(3))
+    x_hat = EstimatorState(w=np.zeros(3), q=[1, 0, 0, 0], h=np.zeros(3), sens_bias=np.zeros(9))
     J2000 = 0.22 + t0*TimeConstants.sec2cent
     ukf = SRUAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=10, cross_term=True, quat_as_vec=False)
 
     bdot = BDot(est_sat=est_sat, gain=100)
     mtq_w_rw = MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=0.7, c_gain=0.1, h_target=np.array([0, 0, 0]))
+    sensor_dim = len(real_sat.sensors + real_sat.rw_actuators)
 
     memory = {
         "log": [],
-        "sensor_readings": np.zeros(9),
-        "control_u": np.zeros(3),
+        "sensor_readings": np.zeros(sensor_dim),
+        "control_u": np.zeros(est_sat.control_len),
         "orbital_state": [],
         "x_hat": [],
         "ESTIMATOR": ukf,
         "CONTROL_BDOT": bdot,
         "CONTROL_MTQ_W_RW": mtq_w_rw,
+        "GOAL": ECI_Goal(np.array([1, 0, 0])),
         "MODE_control": "MODE_BDOT",
     }
 
@@ -258,12 +272,18 @@ def main():
     core = TTC_Single_Core(base_rate_hz=10.0, tasks=tasks, memory=memory, debug=False)
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, ukf.state_len))
-    est_state_hist = np.nan*np.zeros((N, ukf.state_len))
+    state_hist: List[State] = []
+    est_state_hist: List[EstimatorState] = []
     os_hist: List[Orbital_State] = list()
-    sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
-    clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
+    sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, sensor_dim))
+    clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, sensor_dim))
     u_hist = np.nan*np.zeros((N, 6))
+    real_mtm_bias_hist = np.nan*np.zeros((N, 3))
+    est_mtm_bias_hist = np.nan*np.zeros((N, 3))
+    real_gyro_bias_hist = np.nan*np.zeros((N, 3))
+    est_gyro_bias_hist = np.nan*np.zeros((N, 3))
+    real_sun_bias_hist = np.nan*np.zeros((N, 3))
+    est_sun_bias_hist = np.nan*np.zeros((N, 3))
     cov_hist: List[np.ndarray] = list()
 
     t = t0
@@ -289,8 +309,14 @@ def main():
         real_gyro_biases = np.concatenate([gyro.bias.bias for gyro in real_sat.sensors if isinstance(gyro, Gyro)])
         real_mtm_biases = np.concatenate([mtm.bias.bias for mtm in real_sat.sensors if isinstance(mtm, MTM)])
         real_sun_biases = np.concatenate([sun.bias.bias for sun in real_sat.sensors if isinstance(sun, SunPair)])
-        state_hist[ind,:] = np.concatenate([x, real_mtm_biases, real_gyro_biases, real_sun_biases])
-        est_state_hist[ind,:] = core.memory["x_hat"]
+        state_hist.append(x.copy())
+        est_state_hist.append(memory["ESTIMATOR"].x_hat.copy())
+        real_mtm_bias_hist[ind,:] = real_mtm_biases
+        est_mtm_bias_hist[ind,:] = memory["ESTIMATOR"].x_hat.sens_bias[0:3]
+        real_gyro_bias_hist[ind,:] = real_gyro_biases
+        est_gyro_bias_hist[ind,:] = memory["ESTIMATOR"].x_hat.sens_bias[3:6]
+        real_sun_bias_hist[ind,:] = real_sun_biases
+        est_sun_bias_hist[ind,:] = memory["ESTIMATOR"].x_hat.sens_bias[6:9]
         os_hist += [core.memory["orbital_state"]]
         sensor_hist[ind,:] = core.memory["sensor_readings"]
         clean_sensor_hist[ind,:] = clean_sensor_readings
@@ -301,20 +327,20 @@ def main():
         t += dt
         prev_os = os.copy()
         os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
-        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x, method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
+        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x.as_array(), method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
 
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
 
     
     plot_state_comparison(time_hist, state_hist, est_state_hist)
     plot_error_and_sun(time_hist, state_hist, est_state_hist, os_hist)
     plot_sensor_data(time_hist, sensor_hist, clean_sensor_hist)
-    plot_bias_comparison(time_hist, state_hist[:,10:13], est_state_hist[:,10:13], 
+    plot_bias_comparison(time_hist, real_gyro_bias_hist, est_gyro_bias_hist,
                         "Real vs Estimated Gyroscope Bias", "rad/s")
-    plot_bias_comparison(time_hist, state_hist[:,7:10], est_state_hist[:,7:10], 
+    plot_bias_comparison(time_hist, real_mtm_bias_hist, est_mtm_bias_hist,
                         "Real vs Estimated MTM Bias", "T/s")
-    plot_bias_comparison(time_hist, state_hist[:,13:16], est_state_hist[:,13:16], 
+    plot_bias_comparison(time_hist, real_sun_bias_hist, est_sun_bias_hist,
                         "Real vs Estimated Sun Bias", "W/s")
     animate_attitude(time_hist, state_hist, est_state_hist, os_hist)
     animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist)

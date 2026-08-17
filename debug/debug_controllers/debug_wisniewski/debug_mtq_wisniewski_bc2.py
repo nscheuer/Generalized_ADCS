@@ -20,6 +20,7 @@ from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.state import State
 
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
@@ -41,15 +42,15 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     w0 = np.array([-0.00874868,  0.00209214,  0.00593677])
     q0 = np.array([0.86698928, 0.29417644, 0.34385383, 0.20869681])
     h0 = np.array([rw_h0])
-    x = np.concatenate([w0, q0, h0])
+    x = State(w=w0, q=q0, h=h0)
 
-    orb = create_random_circular_orbit(radius_km=7000, dt=dt, tf=tf, use_J2=True, fast=False)
+    orb = create_random_circular_orbit(radius_km=7000, dt=dt, tf=tf, zonal_J=2, fast=False)
 
     # Controller
     controller = MTQ_Wisniewski(est_sat=real_sat, lambda_s=np.diag([0.01, 0.01, 0.01]), lambda_q=np.diag([0.002, 0.002, 0.002]))
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, len(x)))
+    state_hist: List[State] = []
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(real_sat.actuators)))
@@ -73,7 +74,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
             print("u: ", u)
 
         time_hist[ind] = t
-        state_hist[ind,:] = x
+        state_hist.append(x.copy())
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u
@@ -85,9 +86,9 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         prev_os = os.copy()
         os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
 
-        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x, method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x.as_array(), method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
 
     return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
 

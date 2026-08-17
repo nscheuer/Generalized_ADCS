@@ -15,7 +15,7 @@ def test_reaction_wheel_states_extend_estimator_state_layout():
     )
     srukf = make_srukf(est_sat)
     assert est_sat.number_RW == 3
-    assert srukf.x_hat.val.size == 10
+    assert srukf.x_hat.augmented_size == 10
 
 
 def test_reaction_wheel_measurements_are_included_in_sensor_covariance():
@@ -44,7 +44,7 @@ def test_one_step_update_uses_rw_measurements_and_keeps_state_finite():
     x_true = make_state(h=np.array([0.8, 0.8, 0.8]))
     sensors_vec = real_sat.noiseless_sensor_readings(x_true, make_orbital_state())
     srukf.update(u=np.zeros(len(real_sat.actuators)), sensors=sensors_vec, os=make_orbital_state())
-    assert np.isfinite(srukf.x_hat.val).all()
+    assert np.isfinite(srukf.x_hat.as_estimator_array()).all()
 
 
 def test_estimated_satellite_syncs_rw_momentum_from_estimate():
@@ -56,7 +56,7 @@ def test_estimated_satellite_syncs_rw_momentum_from_estimate():
         estimated_actuators=make_mtqs() + make_rws(),
     )
     srukf = make_srukf(est_sat)
-    srukf.x_hat.val[7:10] = np.array([0.7, 0.8, 0.9])
+    srukf.x_hat.h[:] = np.array([0.7, 0.8, 0.9])
     est_sat.match_estimate(srukf.x_hat, srukf.dt)
     assert np.allclose(est_sat.RWhs(), np.array([0.7, 0.8, 0.9]))
 

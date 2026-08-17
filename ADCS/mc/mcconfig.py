@@ -21,20 +21,17 @@ class MCConfig:
     passed directly to the Monte Carlo simulation function.
 
     :param w:
-        Initial angular velocity override. If provided, replaces the first three
-        elements of the state vector.
+        Initial angular velocity override. If provided, replaces ``State.w``.
     :type w:
         numpy.ndarray or None
 
     :param q:
-        Initial attitude quaternion override. If provided, replaces elements
-        3 through 6 of the state vector.
+        Initial attitude quaternion override. If provided, replaces ``State.q``.
     :type q:
         numpy.ndarray or None
 
     :param h:
-        Initial reaction wheel momentum override. If provided, replaces the
-        reaction wheel portion of the state vector.
+        Initial reaction wheel momentum override. If provided, replaces ``State.h``.
     :type h:
         numpy.ndarray or None
 

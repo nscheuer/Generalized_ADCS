@@ -1,41 +1,41 @@
 {
   "benchmarks": {
     "act_torque_full_stack": {
-      "loops": 512,
+      "loops": 256,
       "max_regression": 1.5,
-      "normalized_seconds": 0.01574305547164836,
-      "seconds": 5.383139062509201e-05
+      "normalized_seconds": 0.01457474267698108,
+      "seconds": 0.0001326792460938364
     },
     "dist_torques_no_disturbances": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 4.109385783302841e-05,
-      "seconds": 1.405152587619085e-07
+      "normalized_seconds": 4.191384209737264e-05,
+      "seconds": 3.8155712890619586e-07
     },
     "gps_like_accessor_group": {
-      "loops": 256,
+      "loops": 128,
       "max_regression": 1.5,
-      "normalized_seconds": 0.029852885158670496,
-      "seconds": 0.00010207817187435353
+      "normalized_seconds": 0.027551070246773116,
+      "seconds": 0.0002508075312501745
     },
     "noiseless_sensor_readings_full_stack": {
-      "loops": 512,
-      "max_regression": 1.5,
-      "normalized_seconds": 0.01735997995679314,
-      "seconds": 5.936025976538417e-05
-    },
-    "sensor_readings_full_stack": {
       "loops": 256,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0321206980879436,
-      "seconds": 0.00010983267187469892
+      "normalized_seconds": 0.01598276379342767,
+      "seconds": 0.00014549698046861792
+    },
+    "sensor_readings_full_stack": {
+      "loops": 128,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.029646599615645513,
+      "seconds": 0.0002698839062498237
     }
   },
-  "calibration_loops": 16,
-  "calibration_seconds": 0.003419373750034538,
+  "calibration_loops": 8,
+  "calibration_seconds": 0.009103367999998113,
   "description": "Satellite fast benchmark results normalized by calibration_seconds.",
-  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "platform": "Linux-6.17.0-1020-azure-x86_64-with-glibc2.39",
   "processor": "x86_64",
-  "python": "3.12.3",
+  "python": "3.12.13",
   "schema_version": 1
 }

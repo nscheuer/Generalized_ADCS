@@ -158,7 +158,7 @@ def _uakf_update_baseline() -> np.ndarray:
 
 def _uakf_update_reaction_wheels() -> np.ndarray:
     x_hat = make_estimate_guess(_REFERENCE["est_sat_rw"], with_rw=True)
-    x_hat[7:10] = np.zeros(3)
+    x_hat.h[:] = 0.0
     ukf = make_ukf(_REFERENCE["est_sat_rw"], x_hat=x_hat, dt=5.0, cross_term=False)
     return ukf.update(u=_REFERENCE["u_rw"], sensors=np.array(_REFERENCE["sensors_rw"], copy=True), os=_REFERENCE["os0"])
 
@@ -170,7 +170,7 @@ def _srukf_update_baseline() -> np.ndarray:
 
 def _srukf_update_reaction_wheels() -> np.ndarray:
     x_hat = make_estimate_guess(_REFERENCE["est_sat_rw"], with_rw=True)
-    x_hat[7:10] = np.zeros(3)
+    x_hat.h[:] = 0.0
     srukf = make_srukf(_REFERENCE["est_sat_rw"], x_hat=x_hat, dt=5.0, cross_term=False)
     return srukf.update(u=_REFERENCE["u_rw"], sensors=np.array(_REFERENCE["sensors_rw"], copy=True), os=_REFERENCE["os0"])
 

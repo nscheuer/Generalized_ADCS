@@ -3,6 +3,8 @@ __all__ = ["SunSensor"]
 from .sensor import Sensor
 
 import numpy as np
+
+from ADCS.state import State
 from scipy.linalg import block_diag
 
 from ADCS.orbits.orbital_state import Orbital_State
@@ -118,7 +120,7 @@ class SunSensor(Sensor):
         self.attitude_sensor = False
         super().__init__(sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
-    def clean_reading(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the clean (noise- and bias-free) Sun sensor measurement.
 
@@ -155,7 +157,7 @@ class SunSensor(Sensor):
             \end{cases}
 
         :param x: Full system state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state providing spacecraft position, Sun position,
             and lighting conditions via
             :meth:`~ADCS.orbits.orbital_state.Orbital_State.is_sunlit`.
@@ -178,7 +180,7 @@ class SunSensor(Sensor):
         else:
             return np.nan
     
-    def bias_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def bias_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the measurement with respect to the Sun sensor bias.
 
@@ -197,7 +199,7 @@ class SunSensor(Sensor):
         If no bias model exists, an empty Jacobian is returned.
 
         :param x: Full system state vector (unused).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state object (unused).
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
@@ -211,7 +213,7 @@ class SunSensor(Sensor):
         else:
             return np.zeros((0,1))
         
-    def basestate_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def basestate_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the clean Sun sensor measurement with respect to the base
         ADCS state.
@@ -267,7 +269,7 @@ class SunSensor(Sensor):
         than a finite derivative.
 
         :param x: Full 7-element ADCS state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state providing Sun/spacecraft geometry and lighting
             information.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`

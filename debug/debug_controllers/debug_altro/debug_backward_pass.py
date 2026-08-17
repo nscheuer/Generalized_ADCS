@@ -71,7 +71,7 @@ def setup_and_prepare():
     t_start, t_end = 0.22, 0.22 + tf * TimeConstants.sec2cent
     N = int(np.ceil(tf / dt)) + 1
 
-    sim_orbit = Orbit(os0=os0, end_time=t_end + 10*dt*TimeConstants.sec2cent, dt=dt, use_J2=True, fast=False)
+    sim_orbit = Orbit(os0=os0, end_time=t_end + 10*dt*TimeConstants.sec2cent, dt=dt, zonal_J=2, fast=False)
     tp_orbit = sim_orbit.get_range(t_start, t_end, dt)
     orbit_data = tp_orbit.get_vecs()
     times = np.asarray(tp_orbit.times, dtype=np.float64)[:N]
@@ -103,12 +103,12 @@ def run_with_goals(planner, planner_settings, real_sat, sim_orbit, times, to_mat
     print(f"TESTING: {label}")
     print("=" * 70)
 
-    E = np.zeros((3, N), dtype=np.float64, order="F")
+    E = np.zeros((4, N), dtype=np.float64, order="F")
     A = np.zeros((3, N), dtype=np.float64, order="F")
     for i in range(N):
         g, _ = goals.to_ref(float(times[i]), sim_orbit.get_os(float(times[i])))
-        E[:, i] = np.asarray(g).reshape(3)
-        A[:, i] = real_sat.boresight
+        E[:, i] = np.asarray(g, dtype=np.float64).reshape(4)
+        A[:, i] = real_sat.get_boresight()
 
     vecsPy = (np.ascontiguousarray(times), to_mat(R), to_mat(V), to_mat(B), to_mat(S),
               A, E, np.zeros(N, dtype=np.float64), to_vec(Rho))
@@ -121,6 +121,7 @@ def run_with_goals(planner, planner_settings, real_sat, sim_orbit, times, to_mat
     print(f"  E[0,:15] = {E[0,:15]}")
     print(f"  E[1,:15] = {E[1,:15]}")
     print(f"  E[2,:15] = {E[2,:15]}")
+    print(f"  E[3,:15] = {E[3,:15]}")
 
     # Check for transitions
     e_norm = np.linalg.norm(E, axis=0)

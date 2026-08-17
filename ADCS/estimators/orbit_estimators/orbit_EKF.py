@@ -6,7 +6,7 @@ from scipy.linalg import block_diag
 
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray, EstimatedOrbital_State
+from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedOrbital_State
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 
 class Orbit_EKF(Orbit_Estimator):

@@ -47,7 +47,7 @@ def test_startracker_visible_measurement_update_runs(monkeypatch):
 
     ukf.update(u=np.zeros(len(real_sat.actuators)), sensors=sensors, os=make_orbital_state())
 
-    assert np.isfinite(ukf.x_hat.val).all()
+    assert np.isfinite(ukf.x_hat.as_estimator_array()).all()
 
 
 def test_startracker_hidden_measurement_update_masks_dropouts(monkeypatch):
@@ -59,7 +59,7 @@ def test_startracker_hidden_measurement_update_masks_dropouts(monkeypatch):
 
     ukf.update(u=np.zeros(len(real_sat.actuators)), sensors=sensors, os=make_orbital_state())
 
-    assert np.isfinite(ukf.x_hat.val).all()
+    assert np.isfinite(ukf.x_hat.as_estimator_array()).all()
 
 
 

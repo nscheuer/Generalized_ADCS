@@ -10,6 +10,7 @@ from ADCS.satellite_hardware.disturbances import Dipole_Disturbance
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import Gyro, MTM
+from ADCS.state import State
 
 _UV = MathConstants.unitvecs
 
@@ -18,7 +19,7 @@ _UV = MathConstants.unitvecs
 class HessianFDCase:
     satellite: EstimatedSatellite
     orbital_state: Orbital_State
-    state: np.ndarray
+    state: State
     control: np.ndarray
 
 
@@ -63,7 +64,7 @@ def _make_case() -> HessianFDCase:
     orbital_state = _make_orbital_state()
     quaternion = np.array([0.7, 0.3, -0.4, 0.5], dtype=float)
     quaternion /= np.linalg.norm(quaternion)
-    state = np.concatenate([[0.02, -0.01, 0.015], quaternion, [1.0, 0.8, -0.6]])
+    state = State(w=[0.02, -0.01, 0.015], q=quaternion, h=[1.0, 0.8, -0.6])
     control = np.zeros(len(satellite.actuators))
     return HessianFDCase(
         satellite=satellite,
@@ -98,11 +99,11 @@ def _finite_difference_state_hessian(case: HessianFDCase, *, step: float = 1.0e-
         delta = np.zeros(state_len)
         delta[index] = step
         jacobian_plus = np.asarray(
-            case.satellite.dynJacCore(case.state + delta, case.control, case.orbital_state)[0],
+            case.satellite.dynJacCore(State.from_array(case.state.as_array() + delta), case.control, case.orbital_state)[0],
             dtype=float,
         )
         jacobian_minus = np.asarray(
-            case.satellite.dynJacCore(case.state - delta, case.control, case.orbital_state)[0],
+            case.satellite.dynJacCore(State.from_array(case.state.as_array() - delta), case.control, case.orbital_state)[0],
             dtype=float,
         )
         hessian[index] = (jacobian_plus - jacobian_minus) / (2.0 * step)

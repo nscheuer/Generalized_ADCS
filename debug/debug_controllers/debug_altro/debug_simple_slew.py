@@ -138,7 +138,7 @@ def main():
     rho = np.zeros(N, dtype=np.float64)
 
     # Goal: point boresight at target_dir (constant)
-    A = np.tile(real_sat.boresight.reshape(3,1), (1, N)).astype(np.float64, order='F')
+    A = np.tile(real_sat.get_boresight().reshape(3, 1), (1, N)).astype(np.float64, order='F')
     E = np.tile(target_dir.reshape(3,1), (1, N)).astype(np.float64, order='F')
     p = np.zeros(N, dtype=np.float64)
 

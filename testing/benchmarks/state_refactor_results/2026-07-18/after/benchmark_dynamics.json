@@ -1,0 +1,41 @@
+{
+  "benchmarks": {
+    "dynamics_core_mtq": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.01633648823802791,
+      "seconds": 0.00011000821484330459
+    },
+    "dynamics_core_plain": {
+      "loops": 4096,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0007482111946972271,
+      "seconds": 5.038376464705507e-06
+    },
+    "dynamics_core_reaction_wheels": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.005520927245552077,
+      "seconds": 3.717735058561544e-05
+    },
+    "dynamics_for_solver_full_stack": {
+      "loops": 64,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0756262199356708,
+      "seconds": 0.0005092591093784904
+    },
+    "noiseless_rk4_full_stack": {
+      "loops": 32,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.21337389671159276,
+      "seconds": 0.0014368376562572394
+    }
+  },
+  "calibration_loops": 8,
+  "calibration_seconds": 0.006733896125069805,
+  "description": "Dynamics fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

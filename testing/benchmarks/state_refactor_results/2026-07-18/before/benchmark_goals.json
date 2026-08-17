@@ -1,0 +1,83 @@
+{
+  "benchmarks": {
+    "coordinate_goal_error": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.010836961767049095,
+      "seconds": 7.409931640633971e-05
+    },
+    "coordinate_goal_to_ref": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00558236619151943,
+      "seconds": 3.817024804675384e-05
+    },
+    "eci_goal_error": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.004889821783116693,
+      "seconds": 3.3434874023408057e-05
+    },
+    "eci_goal_to_ref": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00014690019781331737,
+      "seconds": 1.0044516601526166e-06
+    },
+    "environment_vector_goal_group": {
+      "loops": 1,
+      "max_regression": 1.5,
+      "normalized_seconds": 4.9569048006144465,
+      "seconds": 0.03389356399998178
+    },
+    "fixed_attitude_goal_error": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.000313196099518001,
+      "seconds": 2.141524291982e-06
+    },
+    "fixed_attitude_goal_to_ref": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 3.715653085242764e-05,
+      "seconds": 2.540632324243841e-07
+    },
+    "goallist_get_active_goal": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 3.495177855467009e-05,
+      "seconds": 2.3898791504106676e-07
+    },
+    "goallist_to_ref": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00595194678203383,
+      "seconds": 4.0697309570347784e-05
+    },
+    "no_goal_error": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 3.681218838042833e-05,
+      "seconds": 2.5170874023983103e-07
+    },
+    "no_goal_to_ref": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00012134096361821228,
+      "seconds": 8.296866455259622e-07
+    },
+    "orbital_vector_goal_group": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.01893724209642422,
+      "seconds": 0.0001294861718745821
+    }
+  },
+  "calibration_loops": 8,
+  "calibration_seconds": 0.006837646750000204,
+  "description": "Goals fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}
