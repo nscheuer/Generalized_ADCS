@@ -11,10 +11,10 @@
 .. site is deliberately left untracked.
 ..
 .. SETUP: create a site at https://www.goatcounter.com/ and replace
-.. GOATCOUNTER_CODE below with your site code (both occurrences are in this
+.. pmckeen below with your site code (both occurrences are in this
 .. one file). Until then the beacon 404s harmlessly and the page is fine.
 
 .. raw:: html
 
-   <script data-goatcounter="https://GOATCOUNTER_CODE.goatcounter.com/count"
+   <script data-goatcounter="https://pmckeen.goatcounter.com/count"
            async src="//gc.zgo.at/count.js"></script>

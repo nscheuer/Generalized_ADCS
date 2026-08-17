@@ -22,7 +22,9 @@ Install
 
 .. code-block:: console
 
-   pip install git+https://github.com/nscheuer/Generalized_ADCS.git
+   pip install generalized-adcs
+
+Same line as the poster. Python 3.10+.
 
 A published magnetic law gets a wheel
 =====================================
@@ -112,9 +114,9 @@ skips that term rather than adding it twice:
        # Stage 4 must not add it again:
        interface = LawInterface(includes_gyroscopic=True)
 
-This is not just a configuration flag: hand-forcing gyroscopic compensation
-around such a law demonstrably changes the output, and the guard is what
-prevents it (``testing/test_pipeline/test_lovera_law.py``).
+Hand-forcing gyroscopic compensation around such a law demonstrably changes
+the output; the declaration is what prevents it
+(``testing/test_pipeline/test_lovera_law.py``).
 
 Goal type as a design lever
 ---------------------------
@@ -130,17 +132,14 @@ concrete goal such as ``Fixed_Attitude_Goal`` or ``ECI_Goal``:
    u_vec  = ctrl.find_u(x, sens, sat, os_now, vec)
    # same law, same bus - Stage 1 converts each goal
 
-Same law, same hardware — relaxing an over-specified full-attitude goal to the
-pointing the mission actually needs is often worth more than more actuators
-(paper Table 7).
-
 Swap the allocator
 ------------------
 
 .. code-block:: python
 
-   AllocationConfig(method='lp')   # direction kept
-   AllocationConfig(method='qp')   # size kept, tilts
+   AllocationConfig(method='lp')        # direction kept
+   AllocationConfig(method='qp')        # size kept, tilts
+   AllocationConfig(method='clipping')  # pinv, then clip
    AllocationConfig(method='magnetic_cross')  # MTQ only
 
 Inside the achievable torque polytope every allocator returns the request, so
@@ -151,8 +150,7 @@ LP wins (**42% vs 39%**); on a magnetorquer-only bus the QP does (paper
 Table 6, §IV-F).
 
 Every block on this page is executed verbatim by
-``papers/SSC26_poster/verify_snippets.py`` in CI, so what is printed is what
-runs.
+``papers/SSC26_poster/verify_snippets.py``, so what is printed is what runs.
 
 Paper and citation
 ==================
@@ -177,6 +175,8 @@ August 2026.
 Where to go next
 ================
 
+- :doc:`run` — run it in your browser, no install
+- :doc:`paper` — the paper and how to cite it
 - :doc:`code` — the repository, and where each stage lives
 - :doc:`contact` — questions, collaboration, bug reports
 - :doc:`../installation/index` — full installation guide

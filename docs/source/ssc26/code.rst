@@ -19,7 +19,8 @@ Repository: https://github.com/nscheuer/Generalized_ADCS
 Run the poster's code
 =====================
 
-Every snippet printed on the poster is executed verbatim by this script:
+Every snippet printed on the poster is executed verbatim by a verification
+script:
 
 .. code-block:: console
 
@@ -33,10 +34,13 @@ Where each stage lives
 
 .. note::
 
-   The source lives under ``papers/Generalized_ACS/`` because it is the
-   artifact of that paper, but it installs and imports as ``ADCS.pipeline`` --
-   so ``pip install generalized-adcs`` gives you the adapter, and the code on
-   the poster runs unchanged.
+   The adapter's source sits under ``papers/Generalized_ACS/pipeline/`` because
+   it is that paper's artifact, while installing and importing as
+   ``ADCS.pipeline`` — so ``pip install generalized-adcs`` gives you the
+   adapter either way. The legacy controllers
+   (``ADCS/controller/mtq_w_rw_LP.py`` and friends) remain as the validated
+   baselines it is checked against.
+
 
 .. list-table::
    :header-rows: 1
@@ -95,3 +99,11 @@ pins instead:
 
    pip install -r requirements-repro.txt
    pip install -e . --no-deps
+
+Also on the poster
+==================
+
+- :doc:`index` — what the adapter is, and the code
+- :doc:`run` — run it in your browser, no install
+- :doc:`paper` — the paper and how to cite it
+- :doc:`contact` — questions, collaboration, bug reports

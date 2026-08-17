@@ -14,15 +14,10 @@ want to drop in — tell us and we will help you port it.
 Tell us about your law
 ======================
 
-.. TODO(ssc26): create a form at https://formspree.io/ (free tier is ample for
-   a poster) with pmckeen@mit.edu as the destination, then replace
-   FORMSPREE_ID below with the form's ID. Until then the form renders but
-   submitting it 404s, so either set the ID or delete this block before print.
-
 .. raw:: html
 
    <form class="ssc26-form" method="POST"
-         action="https://formspree.io/f/FORMSPREE_ID">
+         action="https://formspree.io/f/mkjwqeqy">
      <input type="hidden" name="_subject"
             value="SSC26 poster — control law porting request">
      <p style="display:none">
@@ -68,6 +63,15 @@ Other ways to reach us
   https://github.com/nscheuer/Generalized_ADCS/issues
 - **Discussions** —
   https://github.com/nscheuer/Generalized_ADCS/discussions
+
+
+Also on the poster
+==================
+
+- :doc:`index` — what the adapter is, and the code
+- :doc:`run` — run it in your browser, no install
+- :doc:`paper` — the paper and how to cite it
+- :doc:`code` — the repository
 
 Contributing
 ============
