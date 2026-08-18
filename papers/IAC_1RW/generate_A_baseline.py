@@ -48,8 +48,15 @@ N_RW = (0, 1, 3)
 TASKS = ("reduced", "full")
 CONTROLLERS = ("pd", "planner")
 
-# Canonical PD gains, shared across every PD cell so the comparison is law-invariant.
-KP, KD, KC = 5e-5, 1e-3, 1e-3
+# Gains: inertia-scaled per genACS's own kp ~ ||J|| rule (trace ratio 5.8 from the 3U bus),
+# critically damped on the largest transverse inertia. NOT swept-for: the alpha-based
+# selection rule was tried and withdrawn (mean alpha does not discriminate on this bus), and
+# the sweep showed divergence rising with kp while the median falls -- 2.9e-4 is the largest
+# gain with 0% divergence on the reduced task at n=8, and it is the principled value.
+J_TRANS = 0.13
+KP = 2.9e-4
+KD = 2.0 * np.sqrt(KP * J_TRANS / 2.0)
+KC = 1e-3
 
 SCALES = {
     "fast":  {"num_runs": 4,   "tf": 1100.0},   # > 1000 s so the metrics path is exercised
@@ -82,8 +89,11 @@ def trials_for(cell: Dict[str, Any], default: int) -> int:
 
 
 def make_pd(sat, config):
-    return MTQ_w_RW_LP(est_sat=sat, p_gain=KP, d_gain=KD, c_gain=KC,
-                       h_target=np.zeros(3))
+    from papers.IAC_1RW._feedforward import FeedforwardLP
+    h0 = np.asarray(config["h0"], float)
+    h_t = (h0[0] * np.array([0.0, 0.0, 1.0])) if h0.size else np.zeros(3)
+    return FeedforwardLP(est_sat=sat, p_gain=KP, d_gain=KD, c_gain=KC,
+                         h_target=h_t, mode="dipole")
 
 
 def make_planner(sat, config):
@@ -127,7 +137,9 @@ MAKERS = {"pd": make_pd, "planner": make_planner}
 
 
 def _worker(config):
-    return simulate(config, MAKERS[config["controller"]])
+    return simulate(config, MAKERS[config["controller"]],
+                    disturbances=("gg", "drag", "srp", "dipole", "general"),
+                    bus_kwargs={"tau_w": 2.0e-3, "h_max": 15.0e-3})
 
 
 def cells_to_run() -> List[Dict[str, Any]]:

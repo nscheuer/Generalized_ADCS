@@ -349,6 +349,8 @@ def simulate(config: Dict[str, Any],
         sigma_hist = np.zeros(steps)      # |a_hat . B_hat|: rank restoration needs sigma > 0
         alpha_hist = np.full(steps, np.nan)   # LP scale: how much of the request was deliverable
         hfrac_hist = np.zeros(steps)      # wheel momentum as a fraction of h_max
+        Bmag_hist = np.zeros(steps)       # |B| -- gives transverse authority tau_perp
+        omega_hist = np.zeros(steps)      # |omega| -- the damping-saturation covariate
 
         h_max_eff = (float(np.ravel(sat.rw_actuators[0].h_max)[0])
                      if n_rw else IAC_6U.h_max)
@@ -376,11 +378,14 @@ def simulate(config: Dict[str, Any],
             bn = float(np.linalg.norm(B_b))
             if i == 0:
                 B_body0 = B_b.copy()
+            Bmag_hist[i] = bn
+            omega_hist[i] = float(np.linalg.norm(x[0:3]))
             if bn > 0 and n_rw:
                 a_hat = np.ravel(sat.rw_actuators[0].axis)[:3]
                 sigma_hist[i] = abs(float(a_hat @ B_b / bn))
             if n_rw:
-                hfrac_hist[i] = float(np.abs(x[7:7 + n_rw]).max() / h_max_eff); Sk = np.asarray(getattr(os_k, "S", None), float)
+                hfrac_hist[i] = float(np.abs(x[7:7 + n_rw]).max() / h_max_eff)
+            Sk = np.asarray(getattr(os_k, "S", None), float)
             if Sk is not None and Sk.size == 3 and np.linalg.norm(Sk) > 0:
                 s_hat = Sk / np.linalg.norm(Sk)
                 proj = float(Rk @ s_hat)
@@ -426,6 +431,9 @@ def simulate(config: Dict[str, Any],
             "est": est_hist, "dipole_est": dip_hist, "tracker_available": avail_hist,
             "eclipse": eclipse_hist, "nadir_eci": nadir_hist,
             "sigma": sigma_hist, "alpha": alpha_hist, "h_frac": hfrac_hist,
+            "B_mag": Bmag_hist, "omega": omega_hist,
+            "kd": float(getattr(controller, "d_gain", np.nan)),
+            "m_max": m_max, "h_max": h_max_eff,
             "B_body0": B_body0,
             "n_mtq": n_mtq, "m_max": m_max,
         }
@@ -524,6 +532,20 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     sig_med, sig_min, sig_dwell = [], [], []
     alp_med, alp_min, alp_lowfrac = [], [], []
     h_max_t, h_end_t, ang_eB, along_a = [], [], [], []
+    # --- the DISCRIMINATING covariates: damping saturation vs frontier geometry ---------
+    # Damping saturation predicts failure correlated with PEAK rate (which high kp generates
+    # regardless of the initial draw), independent of goal geometry. The frontier predicts
+    # failure correlated with along-field goal geometry, independent of rate. One run, both
+    # hypotheses.
+    #
+    # The unifying inequality both ceilings obey: gyroscopic omega x h is perpendicular to
+    # omega and damping kd*omega opposes it, so they add in quadrature and only the
+    # transverse magnetorquers can serve either:
+    #
+    #     sqrt(h^2 + kd^2) * omega  <~  tau_perp
+    #
+    # One design rule covering Campaign C's variable and this sweep's failure mode.
+    pk_omega, damp_ratio, quad_ratio, alpha_lag = [], [], [], []
     est_bore_med, est_bore_p95 = [], []
 
     for r in runs:
@@ -567,6 +589,36 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
             if al.size:
                 alp_med.append(float(np.median(al))); alp_min.append(float(al.min()))
                 alp_lowfrac.append(float(np.mean(al < 0.5)))
+        om = r.get("omega"); Bm = r.get("B_mag")
+        if om is not None and Bm is not None and om[:k].size:
+            w = om[:k]
+            pk = float(np.max(w))
+            pk_omega.append(pk)
+            tau_perp = float(np.sqrt(2.0) * r.get("m_max", 0.2) * np.median(Bm[:k]))
+            kd = float(r.get("kd", np.nan))
+            h_store = float(r.get("h_max", IAC_6U.h_max)) * (
+                float(np.median(r["h_frac"][:k])) if r.get("h_frac") is not None else 0.0)
+            if tau_perp > 0 and np.isfinite(kd):
+                damp_ratio.append(kd * pk / tau_perp)
+                quad_ratio.append(float(np.hypot(h_store, kd)) * pk / tau_perp)
+            # alpha lead-lag: does alpha collapse PRECEDE rate growth (mechanism) or follow
+            # it (detector)? Positive lag = alpha leads.
+            al = r.get("alpha")
+            if al is not None and al[:k].size > 200:
+                a = np.nan_to_num(al[:k], nan=1.0)
+                x1 = -(a - np.mean(a)); x2 = w - np.mean(w)
+                if x1.std() > 0 and x2.std() > 0:
+                    # corr( x1[t - d], x2[t] ) over the overlap; d > 0 means alpha LEADS.
+                    L, n_ = 120, len(x1)
+                    cc = []
+                    for d in range(-L, L + 1):
+                        i0, i1 = max(0, d), min(n_, n_ + d)     # x1 indices shifted by d
+                        a1 = x1[i0 - d: i1 - d] if d <= 0 else x1[: n_ - d]
+                        a2 = x2[i0: i1] if d <= 0 else x2[d:]
+                        m_ = min(len(a1), len(a2))
+                        cc.append(np.corrcoef(a1[:m_], a2[:m_])[0, 1] if m_ > 50 else np.nan)
+                    alpha_lag.append(float(np.arange(-L, L + 1)[int(np.nanargmax(cc))]))
+
         hf = r.get("h_frac")
         if hf is not None and hf[:k].size:
             h_max_t.append(float(np.max(hf[:k]))); h_end_t.append(float(hf[:k][-1]))
@@ -727,4 +779,9 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         # margin, AND puts the wheel's torque axis where the pointing objective cannot use it.
         "per_trial_along_a_share": along_a,
         "per_trial_err_axis_to_B_deg": ang_eB,
+        # --- damping-vs-geometry discriminators ---
+        "per_trial_peak_omega_dps": [float(np.degrees(v)) for v in pk_omega],
+        "per_trial_damping_ratio": damp_ratio,      # kd*|w|_peak / tau_perp ; >1 = saturated
+        "per_trial_quadrature_ratio": quad_ratio,   # sqrt(h^2+kd^2)*|w|_peak / tau_perp
+        "per_trial_alpha_lead_lag_s": alpha_lag,    # >0 = alpha collapse LEADS rate growth
     }
