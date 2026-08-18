@@ -34,7 +34,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from ADCS.controller import MTQ_w_RW_LP
+from papers.IAC_1RW._feedforward import FeedforwardLP
 from ADCS.helpers.math_helpers import normalize, quat_mult
 from ADCS.mc.monte_carlo_runner import MonteCarloRunner
 from ADCS.satellite_factory import IAC_6U
@@ -63,7 +63,13 @@ OUT = os.path.join(os.path.dirname(__file__), "output_data")
 # and this sweep is cut to bracket it rather than sit above it.
 BIAS_LEVELS = (0.0, 0.02, 0.05, 0.10, 0.15, 0.30)
 
-KP, KD, KC = 5e-5, 1e-3, 1e-3
+# Settled gains: inertia-scaled kp per genACS kp ~ ||J||, critically damped on the largest
+# transverse inertia. Same controller as Campaign A so C's bias sweep is not confounded with
+# a controller change.
+J_TRANS = 0.13
+KP = 2.9e-4
+KD = 2.0 * np.sqrt(KP * J_TRANS / 2.0)
+KC = 1e-3
 
 SCALES = {"fast": {"n": 4, "tf": 900.0}, "paper": {"n": 30, "tf": T_ORBIT}}
 
@@ -81,7 +87,12 @@ def make_ctrl(sat, config):
     """
     h = np.zeros(3)
     h[:] = np.asarray(config["h_target_vec"], float)
-    return MTQ_w_RW_LP(est_sat=sat, p_gain=KP, d_gain=KD, c_gain=KC, h_target=h)
+    # Feedforward stays ON even though C runs truth-state: with use_estimator=False the
+    # "estimate" is the true dipole, so cancellation is exact and the dipole confound is
+    # removed from the bias sweep entirely. What remains vs stored momentum is then the
+    # stiffness mechanism C exists to isolate.
+    return FeedforwardLP(est_sat=sat, p_gain=KP, d_gain=KD, c_gain=KC, h_target=h,
+                         mode="dipole")
 
 
 def _worker(config):
