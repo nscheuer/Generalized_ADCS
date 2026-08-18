@@ -505,6 +505,12 @@ class MTQ_w_RW_LP(Controller):
         # 3) Primary allocation: max feasible torque in tau_des direction (your LP)
         # -------------------------
         u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(tau_des, b_body, est_sat)
+        # Fraction of the requested torque the hardware can actually deliver in that
+        # direction. alpha < 1 means the LP scaled the request; alpha ~ 0 means the request
+        # lay (almost) along B, where a direction-preserving allocator returns nothing.
+        # Exposed for diagnostics only -- behaviour is unchanged.
+        self.last_alpha = float(alpha)
+        self.last_tau_des = np.asarray(tau_des, float).copy()
 
         # Assemble baseline command vector in *actuator ordering*
         u_out = np.zeros(len(est_sat.actuators), dtype=float)

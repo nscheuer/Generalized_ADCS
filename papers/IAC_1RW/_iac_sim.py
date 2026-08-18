@@ -33,7 +33,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 from ADCS.CONOPS.goals import ECI_Goal, Fixed_Attitude_Goal, Nadir_Goal
 from ADCS.estimators.attitude_estimators import UAKF
-from ADCS.helpers.math_helpers import normalize, quat_mult
+from ADCS.helpers.math_helpers import (normalize, quat_mult, quat_inv,
+                                       rot_mat as quat_to_rot)
 from ADCS.mc.monte_carlo_runner import (
     claim_worker_slot,
     release_worker_slot,
@@ -343,11 +344,19 @@ def simulate(config: Dict[str, Any],
         # Nadir direction per step. The pointing metric for a nadir-staring task needs the
         # target direction at each instant, and it is not recoverable from the state alone.
         nadir_hist = np.zeros((steps, 3))
+        # --- geometry covariates, logged so the divergence correlation falls out of the
+        # --- dataset instead of needing its own campaign afterwards.
+        sigma_hist = np.zeros(steps)      # |a_hat . B_hat|: rank restoration needs sigma > 0
+        alpha_hist = np.full(steps, np.nan)   # LP scale: how much of the request was deliverable
+        hfrac_hist = np.zeros(steps)      # wheel momentum as a fraction of h_max
 
+        h_max_eff = (float(np.ravel(sat.rw_actuators[0].h_max)[0])
+                     if n_rw else IAC_6U.h_max)
         trackers = [s for s in sat.sensors if hasattr(s, "available")]
         n_mtq = len(sat.mtq_actuators)
         m_max = sat.mtq_actuators[0].u_max if n_mtq else 1.0
 
+        B_body0 = np.zeros(3)
         t = 0.0
         sec2cent = TimeConstants.sec2cent
         for i in range(steps):
@@ -362,7 +371,16 @@ def simulate(config: Dict[str, Any],
             avail_hist[i] = any(bool(tr.available) for tr in trackers) if trackers else True
             R_e = EarthConstants.R_e
             Rk = np.asarray(os_k.R, float)
-            nadir_hist[i] = -Rk / np.linalg.norm(Rk); Sk = np.asarray(getattr(os_k, "S", None), float)
+            nadir_hist[i] = -Rk / np.linalg.norm(Rk)
+            B_b = np.ravel(os_k.get_state_vector(x=x)["b"])[:3]
+            bn = float(np.linalg.norm(B_b))
+            if i == 0:
+                B_body0 = B_b.copy()
+            if bn > 0 and n_rw:
+                a_hat = np.ravel(sat.rw_actuators[0].axis)[:3]
+                sigma_hist[i] = abs(float(a_hat @ B_b / bn))
+            if n_rw:
+                hfrac_hist[i] = float(np.abs(x[7:7 + n_rw]).max() / h_max_eff); Sk = np.asarray(getattr(os_k, "S", None), float)
             if Sk is not None and Sk.size == 3 and np.linalg.norm(Sk) > 0:
                 s_hat = Sk / np.linalg.norm(Sk)
                 proj = float(Rk @ s_hat)
@@ -386,6 +404,10 @@ def simulate(config: Dict[str, Any],
                                   os_hat=os_gnc, goal=goal)
             u = np.asarray(u, float)
 
+            a_ = getattr(controller, "last_alpha", None)
+            if a_ is not None:
+                alpha_hist[i] = float(a_)
+
             t_hist[i] = t
             state_hist[i] = x
             u_hist[i] = u
@@ -403,6 +425,8 @@ def simulate(config: Dict[str, Any],
             "time": t_hist, "state": state_hist, "u": u_hist,
             "est": est_hist, "dipole_est": dip_hist, "tracker_available": avail_hist,
             "eclipse": eclipse_hist, "nadir_eci": nadir_hist,
+            "sigma": sigma_hist, "alpha": alpha_hist, "h_frac": hfrac_hist,
+            "B_body0": B_body0,
             "n_mtq": n_mtq, "m_max": m_max,
         }
     finally:
@@ -495,6 +519,11 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     h_peak, h_final, duty, avail = [], [], [], []
     dip_frac, dip_sec_frac = [], []
     est_med, est_p95, ecl = [], [], []
+    # Geometry covariates, per trial. Logged so the divergence correlation is answerable
+    # from this dataset rather than from a second campaign.
+    sig_med, sig_min, sig_dwell = [], [], []
+    alp_med, alp_min, alp_lowfrac = [], [], []
+    h_max_t, h_end_t, ang_eB, along_a = [], [], [], []
     est_bore_med, est_bore_p95 = [], []
 
     for r in runs:
@@ -525,6 +554,43 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
             m = np.linalg.norm(r["u"][:k, :n_mtq], axis=1) / (r["m_max"] * np.sqrt(n_mtq))
             duty.append(float(np.mean(m)))
         avail.append(float(np.mean(r["tracker_available"][:k])))
+
+        sg = r.get("sigma")
+        if sg is not None:
+            sg = sg[:k][np.isfinite(sg[:k])]
+            if sg.size:
+                sig_med.append(float(np.median(sg))); sig_min.append(float(sg.min()))
+                sig_dwell.append(float(np.mean(sg < 0.2)))
+        al = r.get("alpha")
+        if al is not None:
+            al = al[:k][np.isfinite(al[:k])]
+            if al.size:
+                alp_med.append(float(np.median(al))); alp_min.append(float(al.min()))
+                alp_lowfrac.append(float(np.mean(al < 0.5)))
+        hf = r.get("h_frac")
+        if hf is not None and hf[:k].size:
+            h_max_t.append(float(np.max(hf[:k]))); h_end_t.append(float(hf[:k][-1]))
+
+        # Initial geometry: where the required correction sits relative to B and the wheel.
+        try:
+            cfg0 = r["config"]
+            C0 = quat_to_rot(np.asarray(cfg0["q0"], float))
+            a_hat = np.asarray(IAC_6U.boresight, float)
+            if cfg0["task"] == "full":
+                qg = normalize(np.asarray(cfg0["goal_quat"], float))
+                dq = quat_mult(quat_inv(np.asarray(cfg0["q0"], float)), qg)
+                ax = normalize(dq[1:]) if np.linalg.norm(dq[1:]) > 1e-9 else a_hat
+            else:
+                tgt = normalize(np.asarray(cfg0["goal_vec"], float))
+                v = np.cross(C0 @ a_hat, tgt)
+                ax = normalize(C0.T @ v) if np.linalg.norm(v) > 1e-9 else a_hat
+            along_a.append(float(abs(ax @ a_hat)))
+            B0 = np.ravel(r.get("B_body0", np.zeros(3)))[:3]
+            if np.linalg.norm(B0) > 0:
+                ang_eB.append(float(np.degrees(np.arccos(np.clip(
+                    abs(ax @ B0 / np.linalg.norm(B0)), 0.0, 1.0)))))
+        except Exception:
+            pass
         e_hist = r.get("eclipse")
         ecl.append(float(np.mean(e_hist[:k])) if e_hist is not None else float("nan"))
 
@@ -638,4 +704,27 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         "per_trial_tracker_avail": avail,
         "per_trial_eclipse_frac": ecl,
         "per_trial_est_att_err_deg": est_med,
+        # --- geometry covariates for the divergence correlation ---
+        "per_trial_sigma_median": sig_med,
+        "per_trial_sigma_min": sig_min,
+        "per_trial_sigma_dwell_below_0p2": sig_dwell,
+        "per_trial_alpha_median": alp_med,
+        "per_trial_alpha_min": alp_min,
+        "per_trial_alpha_frac_below_0p5": alp_lowfrac,
+        "per_trial_h_frac_max": h_max_t,
+        "per_trial_h_frac_end": h_end_t,
+        # NOTE: for reduced-attitude / nadir goals this is identically ZERO, and that is a
+        # structural fact rather than a logging bug. A boresight-pointing correction is a
+        # rotation about an axis perpendicular to the boresight (v = b_hat x t_hat), and the
+        # wheel is mounted ALONG the boresight -- so the wheel's single torque axis is
+        # orthogonal to every correction the task ever requires. It contributes nothing
+        # directly to boresight pointing; all of it comes from the rank-2 magnetorquers, and
+        # the wheel helps only indirectly (roll damping, momentum management, gyroscopic
+        # coupling). Informative for FULL-attitude goals, where roll is part of the objective.
+        #
+        # This makes Campaign D's mounting question three-way rather than two-way:
+        # boresight mounting maximises sigma (restoration duty) and has the worst dump
+        # margin, AND puts the wheel's torque axis where the pointing objective cannot use it.
+        "per_trial_along_a_share": along_a,
+        "per_trial_err_axis_to_B_deg": ang_eB,
     }
