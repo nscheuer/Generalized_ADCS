@@ -582,6 +582,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     finals = np.asarray(finals)
     if finals.size == 0:
         return {"n": 0}
+    _task = runs[0]["config"]["task"] if runs and runs[0] else "reduced"
 
     def _nanmed(v):
         v = np.asarray(v, float)
@@ -606,10 +607,26 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         # Knowledge floor. Compare against the convergence thresholds before trusting them.
         "median_est_att_err_deg": _nanmed(est_med) if est_med else None,
         "p95_est_att_err_deg": _nanmed(est_p95) if est_p95 else None,
-        # Commensurable with the pointing metric -- use THESE for any knowledge-vs-control
-        # decomposition. The 3-axis numbers above include roll, which pointing cannot see.
+        # Knowledge matched to the GOAL TYPE -- this is the figure to use in any
+        # knowledge-vs-control decomposition, and which one is correct depends on the cell:
+        #
+        #   reduced-attitude goals: roll is unconstrained and invisible to the pointing
+        #       metric, so boresight-projected knowledge is the commensurable one.
+        #   full-attitude goals:    roll is part of the objective, so 3-axis knowledge is
+        #       correct. Using the projected figure here would understate knowledge error in
+        #       exactly the axis where the star tracker is ~6x worse.
+        #
+        # `matched_knowledge_deg` below selects automatically; state which in the caption.
         "median_bore_knowledge_deg": _nanmed(est_bore_med) if est_bore_med else None,
         "p95_bore_knowledge_deg": _nanmed(est_bore_p95) if est_bore_p95 else None,
+        "matched_knowledge_deg": (
+            (_nanmed(est_med) if est_med else None) if _task == "full"
+            else (_nanmed(est_bore_med) if est_bore_med else None)),
+        "matched_knowledge_p95_deg": (
+            (_nanmed(est_p95) if est_p95 else None) if _task == "full"
+            else (_nanmed(est_bore_p95) if est_bore_p95 else None)),
+        "knowledge_basis": ("3-axis (full-attitude goal)" if _task == "full"
+                            else "boresight-projected (reduced/nadir goal)"),
         # Fraction of the original residual dipole still standing after cancellation, and
         # how much of that leftover is secular (the part a body-fixed wheel integrates)
         # rather than cyclic.

@@ -244,14 +244,21 @@ def create_iac_6u_bus(
         # The pair is what makes the estimate good enough that the campaign measures actuation
         # rather than estimation, and using one bus everywhere keeps the cells comparable.
         #
-        # Measured, and worth stating in the paper: a mission staring at a PRESCRIBED
-        # direction needs only one. With the payload on nadir and a single tracker mounted
-        # anti-parallel (staring at zenith), the Earth keep-out can never fire -- availability
-        # 0.994 and knowledge 0.0046 deg on ONE tracker, matching the pair. Availability there
-        # comes from the mission profile, not from hardware, and involves no coupling between
-        # control and estimation. The campaign still flies two so that the inertial-pointing
-        # cells -- where a single tracker is blind 55% of the orbit -- are not measuring their
-        # own sensor suite.
+        # Measured, and worth stating in the paper: the condition that buys a SINGLE tracker
+        # is an **Earth-referenced attitude**, not merely a predictable one.
+        #
+        # An inertial stare has perfectly consistent geometry and still cannot use one unit:
+        # the boresight is fixed in inertial space while nadir sweeps a great circle past it
+        # once per orbit, so it is occulted at *any* mounting -- which is why no single axis
+        # exceeds 0.455 availability. What an Earth-referenced attitude provides is a fixed
+        # anti-nadir direction to mount toward. With the payload on nadir and one tracker
+        # anti-parallel (staring at zenith) the Earth keep-out can never fire: availability
+        # 0.994 and knowledge 0.0046 deg on ONE tracker, matching the pair. That comes from
+        # the mission profile rather than hardware, with no coupling between control and
+        # estimation.
+        #
+        # The campaign still flies two so the inertial-pointing cells -- blind 55% of the
+        # orbit on one unit -- are not measuring their own sensor suite.
         st_axes = [np.array([1.0, 0.0, 0.0]), np.array([-1.0, 0.0, 0.0])]
 
     if authority_scale <= 0.0:
