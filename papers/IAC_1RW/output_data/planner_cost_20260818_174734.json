@@ -1,0 +1,24 @@
+{
+  "task": "planner_cost_probe",
+  "timestamp": "20260818_174734",
+  "rows": [
+    {
+      "rid": 0,
+      "wall_s": 3.3380651473999023,
+      "ok": false,
+      "error": "RuntimeError"
+    },
+    {
+      "rid": 1,
+      "wall_s": 3.2086751461029053,
+      "ok": false,
+      "error": "RuntimeError"
+    },
+    {
+      "rid": 2,
+      "wall_s": 2.7986881732940674,
+      "ok": false,
+      "error": "RuntimeError"
+    }
+  ]
+}

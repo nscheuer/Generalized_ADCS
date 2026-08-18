@@ -16,6 +16,13 @@ What is always on here, unlike the companion papers:
 
 Campaigns B, C and D run on truth states by design; pass ``use_estimator=False``.
 
+Planner controllers (``Plan_and_Track_LQR``) are driven with the proven windowed-replanning
+recipe rather than bare ``find_u``: plan ``window + overlap`` and execute only the window
+(executing to a plan's endpoint produces joint spikes as the TVLQR gains shrink), wall-clock
+timeout per plan, and a reactive PD fallback because ``trajOpt`` raises on non-convergence.
+Plans are computed from the ESTIMATED state on the GNC-side field -- the planner is flight
+software and sees what the filter sees, not the truth.
+
 Both reporting horizons come from **one** trajectory: metrics are evaluated at 1000 s and at
 one full orbit from the same run, which halves the cost and makes the two exactly paired.
 """
@@ -48,6 +55,32 @@ from ADCS.satellite_factory import create_iac_6u_bus, IAC_6U
 from ADCS.satellite_factory.sensors import IAC_SENSOR_SPEC
 
 from papers.IAC_1RW._field_error import FieldErrorModel, wrap_os_for_gnc
+
+#: Windowed-replanning parameters (validated in the planner paper: 500 s + 500 s overlap,
+#: execute the first 500 only).
+PLAN_WINDOW_S = 500.0
+PLAN_OVERLAP_S = 500.0
+PLAN_TIMEOUT_S = 90.0
+
+
+class _PlanTimeout(Exception):
+    pass
+
+
+def _with_timeout(seconds, fn, *a, **kw):
+    """SIGALRM backstop -- rare drifted states make the planner grind for minutes."""
+    import signal
+
+    def _handler(signum, frame):
+        raise _PlanTimeout()
+
+    old = signal.signal(signal.SIGALRM, _handler)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        return fn(*a, **kw)
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0.0)
+        signal.signal(signal.SIGALRM, old)
 
 ALT_KM = 400.0
 A_KM = EarthConstants.R_e + ALT_KM
@@ -326,6 +359,22 @@ def simulate(config: Dict[str, Any],
         goal = build_goal(config)
         controller = make_controller(est_sat, config)
 
+        # Planner detection + reactive fallback. The fallback exists because trajOpt RAISES
+        # on non-convergence; a trial must degrade to feedback, not die.
+        is_planner = hasattr(controller, "calculate_trajectory")
+        fallback = None
+        n_plans = n_fallbacks = 0
+        next_replan = 0.0
+        active = controller
+        if is_planner:
+            from papers.IAC_1RW._feedforward import FeedforwardLP
+            _h0 = np.asarray(config["h0"], float)
+            fallback = FeedforwardLP(
+                est_sat=est_sat, p_gain=2.9e-4,
+                d_gain=2.0 * np.sqrt(2.9e-4 * 0.13 / 2.0), c_gain=1e-3,
+                h_target=(_h0[0] * np.array([0.0, 0.0, 1.0])) if _h0.size
+                else np.zeros(3), mode="dipole")
+
         x = np.concatenate([config["w0"], config["q0"], config["h0"]])
         for i, rw in enumerate(sat.rw_actuators):
             rw.h = config["h0"][i]
@@ -405,8 +454,31 @@ def simulate(config: Dict[str, Any],
             else:
                 x_hat = x
 
-            u = controller.find_u(x_hat=x_hat, sens=sens, est_sat=est_sat,
+            if is_planner and t >= next_replan:
+                from ADCS.CONOPS.goallist import GoalList
+                try:
+                    traj = _with_timeout(
+                        PLAN_TIMEOUT_S, controller.calculate_trajectory,
+                        os_gnc.J2000, PLAN_WINDOW_S + PLAN_OVERLAP_S,
+                        np.asarray(x_hat, float).copy()[:len(x)], os_gnc,
+                        GoalList({os_gnc.J2000: goal}))
+                    controller.set_active_trajectory(traj)
+                    active, n_plans = controller, n_plans + 1
+                except Exception:
+                    active, n_fallbacks = fallback, n_fallbacks + 1
+                next_replan = t + PLAN_WINDOW_S
+
+            try:
+                u = active.find_u(x_hat=x_hat, sens=sens, est_sat=est_sat,
                                   os_hat=os_gnc, goal=goal)
+            except Exception:
+                if is_planner and active is not fallback:
+                    n_fallbacks += 1
+                    active = fallback
+                    u = active.find_u(x_hat=x_hat, sens=sens, est_sat=est_sat,
+                                      os_hat=os_gnc, goal=goal)
+                else:
+                    raise
             u = np.asarray(u, float)
 
             a_ = getattr(controller, "last_alpha", None)
@@ -435,6 +507,7 @@ def simulate(config: Dict[str, Any],
             "kd": float(getattr(controller, "d_gain", np.nan)),
             "m_max": m_max, "h_max": h_max_eff,
             "B_body0": B_body0,
+            "n_plans": n_plans, "n_fallbacks": n_fallbacks,
             "n_mtq": n_mtq, "m_max": m_max,
         }
     finally:

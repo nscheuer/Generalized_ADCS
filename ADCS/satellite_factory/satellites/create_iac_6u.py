@@ -14,7 +14,7 @@ Mass                    12 kg
 Inertia (about COM)     ``diag(0.13, 0.10, 0.05)`` kg m^2 -- uniform-box estimate
 Boresight               body ``+z`` -- the *minor* axis
 Magnetorquers           3, principal body axes, ``m_max = 0.2`` A m^2
-Reaction wheel (1RW)    axis ``+z`` (boresight-aligned), 7.0 mN m, 50 mN m s
+Reaction wheel (1RW)    axis ``+z`` (boresight-aligned), 2.0 mN m, 15 mN m s
 Residual dipole         0.05 A m^2 along ``[1,1,1]/sqrt(3)`` (0.1 = sensitivity case)
 cp-cg offset            2 cm on ``+x``
 ======================  ===========================================================
@@ -93,14 +93,17 @@ class _IAC6U:
     #: transverse authority -- less than the gyroscopic torque from a modest momentum bias,
     #: and only ~3x the residual-dipole disturbance it has to cancel.
     m_max: float = 0.6
-    #: reaction-wheel torque limit [N m] -- Blue Canyon RWP050 / Rocket Lab RW-0.06 class.
-    #: Was 2.0 mN m / 15 mN m s, a CubeWheel-Small-Plus-class part appropriate to an academic
-    #: 3U. A 6U flying a real imaging payload with a sub-degree budget carries this instead.
-    tau_w: float = 7.0e-3
+    #: reaction-wheel torque limit [N m] -- the ORIGINAL CubeWheel-Small-Plus-class part.
+    #: A larger 7 mN m / 50 mN m s wheel was tried during the estimator-fix wave and then
+    #: ablated: 3RW was identical either way, and on 3+1 the larger wheel was WORSE (its
+    #: h_max/3 bias put omega x h beyond magnetorquer authority). The upgrade was not
+    #: load-bearing, so the smaller, cheaper, more conservative part is the reference -- and
+    #: reverting it keeps D's and F's momentum results comparable across the campaign.
+    tau_w: float = 2.0e-3
     #: reaction-wheel momentum limit [N m s]
-    h_max: float = 50.0e-3
-    #: rotor inertia [kg m^2] -- h_max at roughly 6000 rpm
-    J_rw: float = 8.0e-5
+    h_max: float = 15.0e-3
+    #: rotor inertia [kg m^2]
+    J_rw: float = 1.0e-5
 
     #: residual dipole magnitude [A m^2] (0.1 is the labelled sensitivity case)
     m_res: float = 0.05
