@@ -309,6 +309,8 @@ def make_figure(traces, caps, tau_grid, path_png, path_pdf):
 # ---------------------------------------------------------------------------------------
 
 def main() -> int:
+    from papers.IAC_1RW._iac_sim import assert_settled_bus
+    assert_settled_bus()
     ts = time.strftime("%Y%m%d_%H%M%S")
     os.makedirs(OUT, exist_ok=True)
     m_max, tau_w = IAC_6U.m_max, IAC_6U.tau_w

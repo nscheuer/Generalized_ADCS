@@ -77,6 +77,8 @@ def _job(a):
 
 
 def main() -> int:
+    from papers.IAC_1RW._iac_sim import assert_settled_bus
+    assert_settled_bus()
     ts = time.strftime("%Y%m%d_%H%M%S")
     os.makedirs(OUT, exist_ok=True)
     print("=" * 104)

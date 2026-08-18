@@ -150,6 +150,8 @@ def cells_to_run() -> List[Dict[str, Any]]:
 
 
 def main() -> int:
+    from papers.IAC_1RW._iac_sim import assert_settled_bus
+    assert_settled_bus()
     s = scale()
     n, tf = s["num_runs"], s["tf"]
     ts = time.strftime("%Y%m%d_%H%M%S")

@@ -32,6 +32,8 @@ N_PROBE = int(os.environ.get("PROBE_N", "3"))
 
 
 def main() -> int:
+    from papers.IAC_1RW._iac_sim import assert_settled_bus
+    assert_settled_bus()
     ts = time.strftime("%Y%m%d_%H%M%S")
     rows = []
     print(f"planner cost probe: {N_PROBE} trials, 3+1 reduced, one orbit, settled bus")

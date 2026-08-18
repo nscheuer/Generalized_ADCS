@@ -116,6 +116,32 @@ ST_AXES_NADIR = [np.array([0.0, 0.0, -1.0])]
 #: campaign now starts here rather than at rest.
 BASELINE_H_FRAC = 1.0 / 3.0
 
+#: The settled bus, asserted rather than assumed. Defaults have silently drifted twice
+#: (the big wheel surviving in the factory; the pre-fix sensor grades), and each time the
+#: cost was a campaign's worth of numbers on rejected hardware. Every campaign entry point
+#: calls this before launching anything.
+SETTLED_BUS = {"tau_w": 2.0e-3, "h_max": 15.0e-3, "m_max": 0.6, "m_res": 0.05,
+               "com_offset_m": 0.02, "n_trackers": 2}
+
+
+def assert_settled_bus() -> None:
+    """Fail fast if the factory defaults are not the settled configuration."""
+    errs = []
+    for attr in ("tau_w", "h_max", "m_max", "m_res", "com_offset_m"):
+        got, want = getattr(IAC_6U, attr), SETTLED_BUS[attr]
+        if not np.isclose(got, want, rtol=1e-9):
+            errs.append(f"{attr}: factory {got!r} != settled {want!r}")
+    sat = create_iac_6u_bus(n_rw=1)
+    n_st = sum(1 for x in sat.sensors
+               if type(x).__name__ == "StarTrackerQuaternion")
+    if n_st != SETTLED_BUS["n_trackers"]:
+        errs.append(f"n_trackers: factory {n_st} != settled {SETTLED_BUS['n_trackers']}")
+    if errs:
+        raise AssertionError(
+            "Factory defaults have drifted from the settled bus -- refusing to launch a "
+            "campaign on unreviewed hardware:\n  " + "\n  ".join(errs))
+
+
 _CACHED_ORBIT = None
 _CACHED_KEY = None
 
@@ -619,6 +645,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     #
     # One design rule covering Campaign C's variable and this sweep's failure mode.
     pk_omega, damp_ratio, quad_ratio, alpha_lag = [], [], [], []
+    fb_frac = []
     est_bore_med, est_bore_p95 = [], []
 
     for r in runs:
@@ -662,6 +689,10 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
             if al.size:
                 alp_med.append(float(np.median(al))); alp_min.append(float(al.min()))
                 alp_lowfrac.append(float(np.mean(al < 0.5)))
+        npl, nfb = r.get("n_plans", 0), r.get("n_fallbacks", 0)
+        if npl + nfb > 0:
+            fb_frac.append(float(nfb / (npl + nfb)))
+
         om = r.get("omega"); Bm = r.get("B_mag")
         if om is not None and Bm is not None and om[:k].size:
             w = om[:k]
@@ -857,4 +888,11 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         "per_trial_damping_ratio": damp_ratio,      # kd*|w|_peak / tau_perp ; >1 = saturated
         "per_trial_quadrature_ratio": quad_ratio,   # sqrt(h^2+kd^2)*|w|_peak / tau_perp
         "per_trial_alpha_lead_lag_s": alpha_lag,    # >0 = alpha collapse LEADS rate growth
+        # Planner cells only: fraction of replanning windows that fell back to reactive PD.
+        # A planner cell executing PD through its hard windows inherits PD's behaviour in
+        # exactly the trials where the two differ -- biasing the comparison toward "no
+        # difference" where it matters most. A cell at high fallback fraction is not a
+        # planner measurement and must be reported as such.
+        "per_trial_fallback_frac": fb_frac,
+        "mean_fallback_frac": float(np.mean(fb_frac)) if fb_frac else None,
     }
