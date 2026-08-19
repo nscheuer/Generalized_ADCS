@@ -53,3 +53,9 @@ Sources: Wiley 10.1155/2013/657182 (paywalled), Semantic Scholar, York nanosatel
 publications page.
 
 ## Dual-spin MPC (resolved by Patrick): Halverson & Caverly, arXiv:2506.07858, preprint to JGCD.
+
+## Wheel-failure statistic: CUT (Patrick, 2026-08-19)
+
+FUSE carries the failure narrative concretely (four wheels, successive failures, years of
+one-wheel operations); an aggregate reliability figure adds nothing a B4 audience needs and
+would itself require a defensible source. No further chase.
