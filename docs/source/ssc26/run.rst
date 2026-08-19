@@ -49,7 +49,7 @@ What it does
    res = ADCS.simulate(x=x0, satellite=sat, controller=ctrl,
                        goal=goal, os0=os0, dt=1.0, tf=3000.0)
 
-Measured result: **90.2° → 0.056°** in 3000 s.
+Measured result: **90.2° → 0.057°** in 3000 s.
 
 A note on Colab
 ===============
