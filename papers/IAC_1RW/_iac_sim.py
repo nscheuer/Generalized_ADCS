@@ -110,11 +110,12 @@ INIT_RATE_DPS_RANGE = (0.05, 0.3)
 ST_AXES_NADIR = [np.array([0.0, 0.0, -1.0])]
 
 #: Baseline stored wheel momentum as a fraction of h_max. A real momentum-biased bus does not
-#: fly its wheel at zero -- it sits at a working point so the wheel can accept momentum in
-#: either direction and so the stored momentum provides gyroscopic stiffness about the two
-#: axes the single wheel cannot actuate. Campaign C varies this deliberately; every other
-#: campaign now starts here rather than at rest.
-BASELINE_H_FRAC = 1.0 / 3.0
+#: fly its wheel at zero -- but the working point must sit BELOW the transverse ceiling
+#: h <= tau_perp / omega_slew (~6 mN m s at 0.3 deg/s on the settled bus). The original 1/3
+#: (5 mN m s) predates the ceiling derivation and sits essentially AT it, over it during
+#: acquisition transients; every verified-good configuration used 5%. Campaign C sweeps the
+#: fraction deliberately; everything else starts here.
+BASELINE_H_FRAC = 0.05
 
 #: The settled bus, asserted rather than assumed. Defaults have silently drifted twice
 #: (the big wheel surviving in the factory; the pre-fix sensor grades), and each time the
@@ -400,6 +401,18 @@ def simulate(config: Dict[str, Any],
                 d_gain=2.0 * np.sqrt(2.9e-4 * 0.13 / 2.0), c_gain=1e-3,
                 h_target=(_h0[0] * np.array([0.0, 0.0, 1.0])) if _h0.size
                 else np.zeros(3), mode="dipole")
+
+        # A stored momentum exceeding the wheel's limit is a config bug, not a scenario -- it
+        # happened once (h0 computed against a stale factory h_max while bus_kwargs said
+        # otherwise) and produced a 100-trial cell of 68-degree medians before anything
+        # complained. Physical impossibility is rejected here, where the wheel is loaded.
+        _h0_chk = np.asarray(config["h0"], float)
+        if n_rw:
+            _hmax_chk = float(np.ravel(sat.rw_actuators[0].h_max)[0])
+            if _h0_chk.size and np.any(np.abs(_h0_chk) > _hmax_chk * (1.0 + 1e-9)):
+                raise ValueError(
+                    f"h0 {_h0_chk} exceeds the bus h_max {_hmax_chk} -- stored momentum "
+                    f"computed against a different wheel than the one being flown")
 
         x = np.concatenate([config["w0"], config["q0"], config["h0"]])
         for i, rw in enumerate(sat.rw_actuators):
