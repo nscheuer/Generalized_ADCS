@@ -1,3 +1,8 @@
+# Without __all__, autodoc treats the imported Orbit / Orbital_State below as
+# members of this module and documents them a second time, which Sphinx reports
+# as a duplicate object description -- fatal under the docs build's -W.
+__all__ = ["create_random_circular_os", "create_random_circular_orbit"]
+
 import numpy as np
 from typing import Optional
 

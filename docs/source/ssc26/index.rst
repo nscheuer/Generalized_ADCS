@@ -40,12 +40,6 @@ onto the plane perpendicular to **B** and never commands a wheel. Change the
    with_wheel = PipelineController(sat, law,      # + the wheel
        alloc_config=AllocationConfig(method='lp'))
 
-.. note::
-
-   This is the ``ADCS.pipeline`` adapter, which is on its way into ``main``.
-   The results below are measured; the code lands with it. Everything under
-   "What is available today" works in the released package right now.
-
 ``mtq_only`` reproduces the published ``MTQ_Lovera`` controller to machine
 precision — max :math:`|\Delta u|` = 2.2e-16 over 200 random states, 122 of
 them bit-identical. ``with_wheel`` is the same law on the same bus, now
@@ -90,42 +84,73 @@ around it adapts the law to the hardware you actually have.
      - LP / QP / weighted-QP / pseudoinverse / cross-product, plus momentum
        management, onto the actual actuator set.
 
-Working code
-------------
+Bring your own law
+------------------
 
-Every code block printed on the poster is executed verbatim by a checked-in
-verification script, so what is printed is what runs. That script ships
-alongside the adapter (see the note below); until then the numbers on this
-page come from the paper's Monte Carlo campaigns.
-
-.. note::
-
-   The five-stage adapter shown above ships in the ``ADCS.pipeline`` package,
-   which is on its way into ``main``. Until it lands, this page describes the
-   architecture and the paper reports the results; the runnable examples are in
-   the repository. See :doc:`code` for where each stage lives.
-
-What is available today
------------------------
-
-The released package already carries the control laws, the LP/QP allocators,
-magnetorquer and reaction-wheel models, UKF-family estimators, and IGRF-13 with
-Skyfield frames:
+Implement one method. Declare what error signals you want, and the rest of the
+pipeline reconfigures around you:
 
 .. code-block:: python
 
-   import numpy as np
-   import ADCS
+   class MyLaw(ControlLaw):
+       interface = LawInterface()   # full attitude + rate
+       kp, kd = 2e-5, 2e-2
 
-   acts: list[ADCS.Actuator] = [
-       ADCS.RW(axis=np.array([0, 0, 1.0]), max_torque=0.0023,
-               J=5.7e-6, h=0.0, h_max=0.0036)
-   ]
-   acts += [ADCS.MTQ(axis, max_torque=0.2) for axis in np.eye(3)]
-   sens = [ADCS.MTM(axis) for axis in np.eye(3)]
-   sat = ADCS.Satellite(mass=4.0, J_0=np.diag([0.03, 0.03, 0.01]),
-                        actuators=acts, sensors=sens,
-                        boresight=np.array([0, 0, 1.0]))
+       def compute(self, q_err, w_err=None, **kw):
+           return -(self.kp * q_err + self.kd * w_err)
+   ctrl = PipelineController(sat, MyLaw(),      # steps 2-3
+       alloc_config=AllocationConfig(method='lp'))
+
+No double-counting
+------------------
+
+A law that already performs its own gyroscopic term declares it, and Stage 4
+skips that term rather than adding it twice:
+
+.. code-block:: python
+
+   class Lovera(ControlLaw):
+       # law does its own w x (Jw + h), so
+       # Stage 4 must not add it again:
+       interface = LawInterface(includes_gyroscopic=True)
+
+Hand-forcing gyroscopic compensation around such a law demonstrably changes
+the output; the declaration is what prevents it
+(``testing/test_pipeline/test_lovera_law.py``).
+
+Goal type as a design lever
+---------------------------
+
+``Attitude_Goal`` and ``Vector_Goal`` are the abstract interfaces; use a
+concrete goal such as ``Fixed_Attitude_Goal`` or ``ECI_Goal``:
+
+.. code-block:: python
+
+   full = Fixed_Attitude_Goal(q_tgt)   # 49% converge
+   vec  = ECI_Goal(u_tgt)              # 83% converge
+   u_full = ctrl.find_u(x, sens, sat, os_now, full)
+   u_vec  = ctrl.find_u(x, sens, sat, os_now, vec)
+   # same law, same bus - Stage 1 converts each goal
+
+Swap the allocator
+------------------
+
+.. code-block:: python
+
+   AllocationConfig(method='lp')        # direction kept
+   AllocationConfig(method='qp')        # size kept, tilts
+   AllocationConfig(method='clipping')  # pinv, then clip
+   AllocationConfig(method='magnetic_cross')  # MTQ only
+
+Inside the achievable torque polytope every allocator returns the request, so
+LP and QP differ only under saturation. There LP holds direction to
+:math:`0.00^\circ` and gives up magnitude; QP recovers roughly 50% more
+magnitude at up to :math:`26.9^\circ` of tilt. On 3MTQ+1RW full attitude the
+LP wins (**42% vs 39%**); on a magnetorquer-only bus the QP does (paper
+Table 6, §IV-F).
+
+Every block on this page is executed verbatim by
+``papers/SSC26_poster/verify_snippets.py``, so what is printed is what runs.
 
 Paper and citation
 ==================

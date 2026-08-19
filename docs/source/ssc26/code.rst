@@ -20,29 +20,26 @@ Run the poster's code
 =====================
 
 Every snippet printed on the poster is executed verbatim by a verification
-script, ``papers/SSC26_poster/verify_snippets.py``. It exits non-zero if any
-printed block stops working, so the poster and the library cannot drift apart.
+script:
 
-.. note::
+.. code-block:: console
 
-   That script arrives with the adapter PR, since it exercises
-   ``ADCS.pipeline``. What is in the repository today is
-   ``papers/SSC26_poster/generate_qr_codes.py``, which produces this poster's
-   QR codes.
+   python papers/SSC26_poster/verify_snippets.py
+
+It exits non-zero if any printed block stops working, so the poster and the
+library cannot drift apart.
 
 Where each stage lives
 ======================
 
 .. note::
 
-   The paths below are **not in ``main`` yet** — they arrive with the adapter
-   PR. Its source sits under ``papers/Generalized_ACS/pipeline/`` because it is
-   that paper's artifact, while installing and importing as ``ADCS.pipeline``,
-   so ``pip install generalized-adcs`` gives you the adapter either way.
-
-   What is in the released package today: the legacy controllers
-   (``ADCS/controller/mtq_w_rw_LP.py`` and friends), which stay as the
-   validated baselines the adapter is checked against.
+   The adapter's source sits under ``papers/Generalized_ACS/pipeline/`` because
+   it is that paper's artifact, while installing and importing as
+   ``ADCS.pipeline`` — so ``pip install generalized-adcs`` gives you the
+   adapter either way. The legacy controllers
+   (``ADCS/controller/mtq_w_rw_LP.py`` and friends) remain as the validated
+   baselines it is checked against.
 
 
 .. list-table::
