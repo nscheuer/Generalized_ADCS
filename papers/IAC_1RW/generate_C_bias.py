@@ -57,11 +57,19 @@ OUT = os.path.join(os.path.dirname(__file__), "output_data")
 #
 # Dumping and slewing both need the magnetorquers to absorb the gyroscopic torque
 # omega x h during a manoeuvre. At m_max = 0.6 A m^2 and 37 uT the transverse authority is
-# ~31 uN m, so at a 0.005 rad/s slew the ceiling is ~6.3 mN m s -- 42% of the original
-# wheel's h_max, 13% of the big one's. It is RATE-DEPENDENT: a bus that slews faster can
-# carry less bias. That ceiling is a design rule a three-wheel bus simply does not have,
-# and this sweep is cut to bracket it rather than sit above it.
-BIAS_LEVELS = (0.0, 0.02, 0.05, 0.10, 0.15, 0.30)
+# ~31 uN m, so at a 0.3 deg/s (0.005 rad/s) slew the ceiling is ~6.3 mN m s = 0.42 h_max of
+# the settled wheel. It is RATE-DEPENDENT: a bus that slews faster carries less bias. The
+# quadrature form sqrt(h^2 + kd^2) * omega <= tau_perp folds the damping term in; at the
+# settled kd = 8.68e-3 the kd contribution is comparable to mid-sweep h values, so the
+# quadrature ratio covariate (already logged) is the per-trial version of this rule.
+# SECOND re-cut (2026-08-18): the first re-cut was itself a post-derivation orphan. It was
+# computed against 0.2 A m^2 magnetorquers (tau_perp ~ 7 uN m, ceiling ~ 0.09 h_max), and
+# the 0.6 upgrade TRIPLED the ceiling to ~0.40 h_max at the 0.3 deg/s acquisition rate --
+# so the previous top level (0.30) never crossed the boundary the sweep exists to locate.
+# Every analytical result reclassifies some default somewhere; this one is now bracketed:
+# levels straddle 0.40, with 0.60 well over (and still below the h_max the load guard
+# enforces).
+BIAS_LEVELS = (0.0, 0.05, 0.15, 0.30, 0.45, 0.60)
 
 # Settled gains: inertia-scaled kp per genACS kp ~ ||J||, critically damped on the largest
 # transverse inertia. Same controller as Campaign A so C's bias sweep is not confounded with
