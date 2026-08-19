@@ -432,6 +432,12 @@ def simulate(config: Dict[str, Any],
         # a loose-TVLQR pathology in the diverged trials would masquerade as a planning limit
         # and muddy the frontier comparison.
         plan_dev_hist = np.full(steps, np.nan)
+        # Decomposition of the deviation along/perpendicular to B (body frame). Along-field
+        # concentration = the tracker fighting exactly the direction the magnetorquers cannot
+        # serve (TVLQR underweighting the wheel's tracking authority); isotropic = globally
+        # soft weights. Different retune in each case.
+        plan_dev_alongB_hist = np.full(steps, np.nan)
+        plan_dev_perpB_hist = np.full(steps, np.nan)
 
         h_max_eff = (float(np.ravel(sat.rw_actuators[0].h_max)[0])
                      if n_rw else IAC_6U.h_max)
@@ -521,8 +527,18 @@ def simulate(config: Dict[str, Any],
                         q_ref = x_ref[3:7]
                         nrm = float(np.linalg.norm(q_ref))
                         if nrm > 1e-9:
-                            dot = abs(float(x[3:7] @ (q_ref / nrm)))
-                            plan_dev_hist[i] = 2.0 * np.arccos(min(1.0, dot))
+                            q_r = q_ref / nrm
+                            dq = quat_mult(quat_inv(q_r), x[3:7])
+                            if dq[0] < 0:
+                                dq = -dq
+                            e_vec = 2.0 * dq[1:]          # small-angle error, body frame
+                            plan_dev_hist[i] = 2.0 * np.arccos(min(1.0, abs(float(dq[0]))))
+                            if bn > 0:
+                                b_hat = B_b / bn
+                                e_B = float(e_vec @ b_hat)
+                                plan_dev_alongB_hist[i] = abs(e_B)
+                                plan_dev_perpB_hist[i] = float(
+                                    np.linalg.norm(e_vec - e_B * b_hat))
 
             a_ = getattr(controller, "last_alpha", None)
             if a_ is not None:
@@ -552,6 +568,8 @@ def simulate(config: Dict[str, Any],
             "B_body0": B_body0,
             "n_plans": n_plans, "n_fallbacks": n_fallbacks,
             "plan_deviation": plan_dev_hist,
+            "plan_dev_alongB": plan_dev_alongB_hist,
+            "plan_dev_perpB": plan_dev_perpB_hist,
             "n_mtq": n_mtq, "m_max": m_max,
         }
     finally:
@@ -665,6 +683,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     pk_omega, damp_ratio, quad_ratio, alpha_lag = [], [], [], []
     fb_frac = []
     plan_dev_med, plan_dev_max = [], []
+    plan_dev_alongB_energy = []
     est_bore_med, est_bore_p95 = [], []
 
     for r in runs:
@@ -714,6 +733,14 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
             if pd_f.size:
                 plan_dev_med.append(float(np.degrees(np.median(pd_f))))
                 plan_dev_max.append(float(np.degrees(np.max(pd_f))))
+                eB = r.get("plan_dev_alongB"); eP = r.get("plan_dev_perpB")
+                if eB is not None and eP is not None:
+                    b2 = np.nansum(eB[:k] ** 2); p2 = np.nansum(eP[:k] ** 2)
+                    if b2 + p2 > 0:
+                        # Energy fraction along B. Isotropy baseline ~1/3 (one axis of
+                        # three); >>1/3 = deviation concentrated where the magnetorquers
+                        # cannot act.
+                        plan_dev_alongB_energy.append(float(b2 / (b2 + p2)))
 
         npl, nfb = r.get("n_plans", 0), r.get("n_fallbacks", 0)
         if npl + nfb > 0:
@@ -925,4 +952,5 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         # large max = the TRACKER lost it. The discriminator for planner-cell failures.
         "per_trial_plan_dev_median_deg": plan_dev_med,
         "per_trial_plan_dev_max_deg": plan_dev_max,
+        "per_trial_plan_dev_alongB_energy_frac": plan_dev_alongB_energy,
     }

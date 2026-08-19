@@ -126,10 +126,21 @@ def make_planner(sat, config):
         ang_vel_err_dir=1e2, ang_vel_err_dir_N=0.0, ang_vel_mag=0.0,
         ang_vel_mag_N=0.0, control_mult=1.0, ang_cost_func_type=2)
     ps.cost_second = ps.cost_main
+    # TRACKER WEIGHTS FROZEN FOR CAMPAIGN A. The plan-vs-executed covariate already
+    # suggests these track ~1 deg loose, and the temptation once A's planner cells confirm
+    # it will be to retune immediately. Do not: a mid-campaign retune makes early and late
+    # planner cells disagree with each other and with the PD half they are compared against.
+    # Policy: run the half frozen; if the loose-tracking read confirms, retune and rerun the
+    # TWO 3+1 PLANNER CELLS ONLY (~5 h at the measured 16 min/trial). The paper then has
+    # both numbers -- planner-as-configured and planner-with-tracking-fixed -- and "the gap
+    # was tracking, not planning" is demonstrable rather than asserted.
     ps.cost_tvlqr = CostWeights(
         angle=1e5, angle_N=1e6, ang_vel=1e6, ang_vel_N=1e8,
         ang_vel_mag=0.0, ang_vel_mag_N=0.0, control_mult=1.0,
         ang_cost_func_type=2)
+    assert (ps.cost_tvlqr.angle, ps.cost_tvlqr.ang_vel) == (1e5, 1e6), (
+        "TVLQR weights drifted mid-campaign -- frozen for A; retune only as the "
+        "post-A rerun of the two 3+1 planner cells")
     # The planner's authority margin is RELATIVE (umax = control_limit_scale * act.u_max,
     # read from est_sat at construction), so it cannot go stale when the bus changes -- but
     # the reserve constant itself is bus policy, so pin it the same way the bus is pinned.
