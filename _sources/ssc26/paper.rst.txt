@@ -15,7 +15,7 @@ Patrick McKeen\ :sup:`1`, Niclas Scheuer\ :sup:`2`, Kerri Cahoy\ :sup:`1`
 :sup:`1` MIT Department of Aeronautics and Astronautics ·
 :sup:`2` ETH Zürich Department of Mechanical and Process Engineering
 
-Paper **SSC26-P2-54**, 40th Annual Small Satellite Conference, Logan UT,
+Paper **SSC26-P2-54**, 40th Annual Small Satellite Conference, Salt Lake City UT,
 August 2026.
 
 Read it
@@ -64,7 +64,7 @@ Cite it
      booktitle = {Proceedings of the 40th Annual Small Satellite Conference},
      number    = {SSC26-P2-54},
      year      = {2026},
-     address   = {Logan, UT},
+     address   = {Salt Lake City, UT},
    }
 
 Also on the poster
