@@ -1,0 +1,7 @@
+ADCS.orbits.helpers.orbit\_factory module
+=========================================
+
+.. automodule:: ADCS.orbits.helpers.orbit_factory
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,6 +1,14 @@
 ADCS.orbits package
 ===================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.orbits.helpers
+
 Submodules
 ----------
 
