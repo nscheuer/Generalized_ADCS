@@ -67,6 +67,35 @@ class _PlanTimeout(Exception):
     pass
 
 
+def enforce_wheel_envelope(u, h, h_max, n_mtq, n_rw, dt=1.0):
+    """The wheel driver: a wheel at its momentum limit cannot accelerate further.
+
+    One-sided torque box at the limit -- at h >= +h_max only despin (u <= 0) is physically
+    available, and symmetrically at -h_max. This is hardware truth, not a numerical clamp:
+    the integrator previously ran a 15 mN m s wheel to 184% of its limit, and everything a
+    trajectory does after that point is dynamics no hardware can produce (h-dot = u_rw -
+    (wdot . a) J_rw, so positive u raises h). Applied in the harness with TRUE h and in the
+    controller with ESTIMATED h, so the flight software cannot wind up against the driver.
+    """
+    u = np.asarray(u, float)
+    for i in range(n_rw):
+        hi = float(h[i])
+        # Step-aware bound, not a boundary check: one dt at full torque moves h by
+        # tau_w*dt = 13% of h_max, so gating only on the step-START h overshoots the limit
+        # mid-step (caught at 1.012 h_max by the negative test). Bounding u to the torque
+        # that just reaches the limit within the step is torque-then-coast physics, and it
+        # collapses to the one-sided box exactly at the limit.
+        # SIGN, determined empirically (3-step probe, u=+tau_w -> h=-6e-3): hdot = -u.
+        # The command is torque ON THE BODY; the wheel stores the reaction. The kernel's
+        # docstring u_rw is the wheel-internal torque, which misled the first version of
+        # this bound into ACTIVELY PUMPING the wheel at the limit (h ran to 83 h_max under
+        # the inverted clamp -- caught by the negative test, again).
+        # Delta-h = -u*dt  =>  u in [(hi - h_max)/dt, (hi + h_max)/dt].
+        u[n_mtq + i] = float(np.clip(u[n_mtq + i],
+                                     (hi - h_max) / dt, (hi + h_max) / dt))
+    return u
+
+
 def _with_timeout(seconds, fn, *a, **kw):
     """SIGALRM backstop -- rare drifted states make the planner grind for minutes."""
     import signal
@@ -531,6 +560,9 @@ def simulate(config: Dict[str, Any],
                 else:
                     raise
             u = np.asarray(u, float)
+            # Hardware envelope, true state, every controller including the planner.
+            if n_rw:
+                u = enforce_wheel_envelope(u, x[7:7 + n_rw], _hmax_chk, n_mtq, n_rw, dt)
 
             if is_planner and active is controller:
                 atraj = getattr(controller, "active_trajectory", None)
@@ -695,6 +727,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     # One design rule covering Campaign C's variable and this sweep's failure mode.
     pk_omega, damp_ratio, quad_ratio, alpha_lag = [], [], [], []
     fb_frac = []
+    despin = []
     plan_dev_med, plan_dev_max = [], []
     plan_dev_alongB_energy = []
     est_bore_med, est_bore_p95 = [], []
@@ -754,6 +787,18 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
                         # three); >>1/3 = deviation concentrated where the magnetorquers
                         # cannot act.
                         plan_dev_alongB_energy.append(float(b2 / (b2 + p2)))
+
+        # Desat sign trace: does the loop ever try to despin? hdot = -u, so despin means
+        # u and h share a sign. A low fraction with h climbing = the desat channel starved
+        # (the alpha-collapse pathway); a high fraction with h climbing anyway = despin
+        # commanded but priced out of the LP box by the dump-blind geometry.
+        uh = r.get("u"); st = r.get("state")
+        if uh is not None and st is not None and r["config"]["n_rw"]:
+            nm_, nr_ = r.get("n_mtq", 3), r["config"]["n_rw"]
+            uw = uh[:k, nm_:nm_ + nr_]; hw = st[:k, 7:7 + nr_]
+            act = np.abs(uw) > 1e-9
+            if act.any():
+                despin.append(float(np.mean((uw * hw > 0)[act])))
 
         npl, nfb = r.get("n_plans", 0), r.get("n_fallbacks", 0)
         if npl + nfb > 0:
@@ -923,6 +968,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         "finals_deg": finals.tolist(),
         # Per-trial, so error-vs-availability and error-vs-eclipse correlations can be done
         # from disk without re-running anything.
+        "per_trial_seed": [int(r["config"]["seed"]) for r in runs if r is not None],
         "per_trial_tracker_avail": avail,
         "per_trial_eclipse_frac": ecl,
         "per_trial_est_att_err_deg": est_med,
@@ -966,4 +1012,5 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         "per_trial_plan_dev_median_deg": plan_dev_med,
         "per_trial_plan_dev_max_deg": plan_dev_max,
         "per_trial_plan_dev_alongB_energy_frac": plan_dev_alongB_energy,
+        "per_trial_despin_frac": despin,
     }

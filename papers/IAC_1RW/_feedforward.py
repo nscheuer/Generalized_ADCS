@@ -135,4 +135,18 @@ class FeedforwardLP(MTQ_w_RW_LP):
             lim = float(np.ravel(est_sat.actuators[i].u_max)[0])
             u[mtq_idx[j]] = float(np.clip(u[mtq_idx[j]], -lim, lim))
         self.last_ff_dipole = m_ff
+        # Controller-side wheel envelope on the ESTIMATED momentum: do not command torque a
+        # saturated wheel cannot produce (mirrors the harness driver; prevents windup).
+        from ADCS.satellite_hardware.actuators import RW as _RW
+        rw_idx = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, _RW)]
+        xh = np.ravel(np.asarray(x_hat, float))
+        for j, i in enumerate(rw_idx):
+            if xh.size >= 8 + j:
+                h_j = float(xh[7 + j])
+                hmx = float(np.ravel(est_sat.actuators[i].h_max)[0])
+                # hdot = -u (empirical; see enforce_wheel_envelope): at +h_max forbid
+                # NEGATIVE u, which is what raises h.
+                if (h_j >= hmx * (1 - 1e-12) and u[i] < 0) or \
+                   (h_j <= -hmx * (1 - 1e-12) and u[i] > 0):
+                    u[i] = 0.0
         return u
