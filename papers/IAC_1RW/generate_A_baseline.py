@@ -130,6 +130,13 @@ def make_planner(sat, config):
         angle=1e5, angle_N=1e6, ang_vel=1e6, ang_vel_N=1e8,
         ang_vel_mag=0.0, ang_vel_mag_N=0.0, control_mult=1.0,
         ang_cost_func_type=2)
+    # The planner's authority margin is RELATIVE (umax = control_limit_scale * act.u_max,
+    # read from est_sat at construction), so it cannot go stale when the bus changes -- but
+    # the reserve constant itself is bus policy, so pin it the same way the bus is pinned.
+    assert np.isclose(ps.control_limit_scale, 0.75), (
+        f"planner authority reserve drifted: {ps.control_limit_scale} != 0.75")
+    assert np.isclose(ps.umax[0], 0.75 * sat.actuators[0].u_max), (
+        "planner umax no longer derives from the est_sat actuators")
     return Plan_and_Track_LQR(est_sat=sat, planner_settings=ps)
 
 

@@ -426,6 +426,12 @@ def simulate(config: Dict[str, Any],
         hfrac_hist = np.zeros(steps)      # wheel momentum as a fraction of h_max
         Bmag_hist = np.zeros(steps)       # |B| -- gives transverse authority tau_perp
         omega_hist = np.zeros(steps)      # |omega| -- the damping-saturation covariate
+        # Plan-vs-executed divergence [rad], planner cells only: the planner-side alpha.
+        # Separates "the plan failed" (executed follows the plan, plan misses the goal) from
+        # "the plan was fine and the tracker lost it" (executed departs the plan). Without it
+        # a loose-TVLQR pathology in the diverged trials would masquerade as a planning limit
+        # and muddy the frontier comparison.
+        plan_dev_hist = np.full(steps, np.nan)
 
         h_max_eff = (float(np.ravel(sat.rw_actuators[0].h_max)[0])
                      if n_rw else IAC_6U.h_max)
@@ -507,6 +513,17 @@ def simulate(config: Dict[str, Any],
                     raise
             u = np.asarray(u, float)
 
+            if is_planner and active is controller:
+                atraj = getattr(controller, "active_trajectory", None)
+                if atraj is not None and atraj.is_valid_time(os_gnc.J2000):
+                    x_ref = np.ravel(atraj.get_state_at(os_gnc.J2000))
+                    if x_ref.size >= 7:
+                        q_ref = x_ref[3:7]
+                        nrm = float(np.linalg.norm(q_ref))
+                        if nrm > 1e-9:
+                            dot = abs(float(x[3:7] @ (q_ref / nrm)))
+                            plan_dev_hist[i] = 2.0 * np.arccos(min(1.0, dot))
+
             a_ = getattr(controller, "last_alpha", None)
             if a_ is not None:
                 alpha_hist[i] = float(a_)
@@ -534,6 +551,7 @@ def simulate(config: Dict[str, Any],
             "m_max": m_max, "h_max": h_max_eff,
             "B_body0": B_body0,
             "n_plans": n_plans, "n_fallbacks": n_fallbacks,
+            "plan_deviation": plan_dev_hist,
             "n_mtq": n_mtq, "m_max": m_max,
         }
     finally:
@@ -646,6 +664,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     # One design rule covering Campaign C's variable and this sweep's failure mode.
     pk_omega, damp_ratio, quad_ratio, alpha_lag = [], [], [], []
     fb_frac = []
+    plan_dev_med, plan_dev_max = [], []
     est_bore_med, est_bore_p95 = [], []
 
     for r in runs:
@@ -689,6 +708,13 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
             if al.size:
                 alp_med.append(float(np.median(al))); alp_min.append(float(al.min()))
                 alp_lowfrac.append(float(np.mean(al < 0.5)))
+        pd_ = r.get("plan_deviation")
+        if pd_ is not None:
+            pd_f = pd_[:k][np.isfinite(pd_[:k])]
+            if pd_f.size:
+                plan_dev_med.append(float(np.degrees(np.median(pd_f))))
+                plan_dev_max.append(float(np.degrees(np.max(pd_f))))
+
         npl, nfb = r.get("n_plans", 0), r.get("n_fallbacks", 0)
         if npl + nfb > 0:
             fb_frac.append(float(nfb / (npl + nfb)))
@@ -895,4 +921,8 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         # planner measurement and must be reported as such.
         "per_trial_fallback_frac": fb_frac,
         "mean_fallback_frac": float(np.mean(fb_frac)) if fb_frac else None,
+        # Plan-vs-executed attitude divergence [deg]: small max + bad final = the PLAN missed;
+        # large max = the TRACKER lost it. The discriminator for planner-cell failures.
+        "per_trial_plan_dev_median_deg": plan_dev_med,
+        "per_trial_plan_dev_max_deg": plan_dev_max,
     }
