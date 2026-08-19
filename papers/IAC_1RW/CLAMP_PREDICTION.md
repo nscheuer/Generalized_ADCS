@@ -73,3 +73,19 @@ body/wheel-internal convention is unmissable at the call site. The framework the
 laws port across the interface; a sign ambiguity *at* the interface is the one bug class that
 thesis cannot survive. Method note for the ledger: when documentation and physics can
 disagree, ask the integrator — settled empirically (3-step probe), not textually.
+
+## Addendum 2 (pre-commitment): the reserved-desaturation rerun of the 11
+
+The desat trace says despin is commanded and priced out of the LP box. If that is the whole
+story, then an allocator that RESERVES desat authority -- pays the despin channel first and
+lets pointing have the remainder -- should convert most of the 11. If the geometry starves
+even a reserved channel (at high sigma the despin direction costs enormous dipole no matter
+who budgets it), the reservation converts few, and the ~11% is architecture, not allocation.
+
+| clamped outcome (11 seeds, reserved-desat allocator) | reading |
+|---|---|
+| >= 6 of 11 converge | the number is ALLOCATOR-priced; architecture frontier lies below 11% and VI-C's bound language stands as written |
+| <= 3 converge | the LP box was not binding; frontier is architecture at ~11%, and genACS's open question answers "priority allocation does not rescue this regime" |
+| 4-5 converge | split verdict; report the split |
+
+Committed before the rerun. Either outcome answers the question genACS left open.
