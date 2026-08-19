@@ -2,7 +2,8 @@
 
 **Why this replaces the PD version.** The exponent claim is a statement about minimum-time
 optimal control: it says a bracket manoeuvre *exists* reaching the along-field direction in
-``Theta^(1/3)``. Direction-preserving LP allocation cannot execute one. When the requested
+``Theta^(1/4)`` (IV-B derivation; the spec's 1/3 is superseded). Direction-preserving LP
+allocation cannot execute one. When the requested
 torque lies along **B** the LP scales it to zero by construction -- the same all-or-nothing
 property genACS documents, and the reason LP beats QP on 3+1. So on a magnetorquer-only bus the
 along-field error component receives no command at all, at any gain and at any dipole; the
@@ -20,7 +21,7 @@ perform.
 
 * **Bracket.** The rotating field supplies the bracket, third-order authority goes as
   ``tau_max * omega_B``, and completion time falls as torque rises -- scaling as
-  ``Theta^(1/3)``.
+  ``Theta^(1/4)`` (IV-B derivation).
 * **Floor.** The along-field direction is gated by the field rotating in the body frame, so
   there is a floor at some fraction of an orbit that no amount of torque removes.
 
@@ -29,7 +30,7 @@ They are distinguished by sweeping ``Theta`` **and** ``m_max`` together:
 ===========================================  ==========================================
 observation                                  conclusion
 ===========================================  ==========================================
-t_f falls with m_max, scales as Theta^(1/3)  bracket; the exponent claim stands
+t_f falls with m_max, scales as Theta^(1/4)  bracket; the exponent claim stands
 t_f pinned near a fixed fraction of an orbit floor; no torque removes it
   regardless of Theta and m_max
 ===========================================  ==========================================

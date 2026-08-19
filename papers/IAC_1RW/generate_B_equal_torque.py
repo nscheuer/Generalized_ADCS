@@ -26,8 +26,9 @@ fast cross-field slews and the fitted slope flattens toward 1/2 regardless of me
 slew axis is therefore classified by ``|e_slew . B_hat|`` at slew start and the two families are
 fitted **separately**. The along-field family is the headline; cross-field is the control.
 
-**3. The spec's Theta range sits outside the regime the theory describes.** The 1/3 exponent is
-a small-time (ball-box) statement about a weight-3 growth vector; at 3 rad on a magnetic-only
+**3. The spec's Theta range sits outside the regime the theory describes.** The exponent
+(1/4 per the IV-B derivation; the spec's 1/3 is superseded) is a small-time statement about
+the weight-3 growth structure; at 3 rad on a magnetic-only
 bus the slew time approaches the field-rotation timescale and the power law must break. Theta
 = 0.05 and 0.1 rad are added to buy small-Theta leverage, and curvature at the top end is
 expected rather than surprising.
