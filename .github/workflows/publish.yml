@@ -100,7 +100,47 @@ jobs:
           # PEP 561 marker must travel with the wheel, or downstream type
           # checkers silently discard every annotation we ship
           assert os.path.exists(os.path.join(root, "py.typed")), "py.typed missing"
+
+          # ADCS.pipeline is mapped in from papers/Generalized_ACS via
+          # package-dir, which setuptools' package discovery cannot see. A
+          # mistake there ships a wheel with ZERO pipeline files and no build
+          # error -- it has happened once already. Fail here, with a clear
+          # message, before the snippet run below fails obscurely.
+          n_pipeline = sum(len([f for f in fs if f.endswith(".py")])
+                           for _, _, fs in os.walk(os.path.join(root, "pipeline")))
+          assert n_pipeline > 0, (
+              "the wheel contains no ADCS/pipeline modules -- check "
+              "[tool.setuptools] package-dir and the explicit packages list")
+          print(f"pipeline modules in wheel: {n_pipeline}")
           print("wheel smoke test: OK")
+          PY
+
+      # The poster prints code, and a printed poster cannot be revised.
+      # verify_snippets.py holds every printed block verbatim and executes it,
+      # so it is the contract between the poster and the package. Run it
+      # against the WHEEL -- testing/test_poster_snippets.py already runs it
+      # against the source tree on every PR, but only this exercises what a
+      # user who types the poster's `pip install` line actually receives.
+      - uses: actions/checkout@v4
+        with:
+          path: _src
+          sparse-checkout: papers/SSC26_poster
+
+      - name: Poster snippets must run against the wheel
+        run: |
+          mkdir -p "$RUNNER_TEMP/snippets"
+          cp _src/papers/SSC26_poster/verify_snippets.py "$RUNNER_TEMP/snippets/"
+          cd "$RUNNER_TEMP/snippets"
+          python - <<'PY'
+          # The script prepends its own parent-of-parent to sys.path so it can
+          # run from a checkout. Copied here that resolves to a scratch
+          # directory containing no ADCS, so the wheel wins -- but assert it
+          # rather than trust it, or this silently degrades into testing the
+          # source tree again.
+          import runpy, ADCS
+          assert "site-packages" in ADCS.__file__, f"not the wheel: {ADCS.__file__}"
+          print(f"exercising {ADCS.__file__} (version {ADCS.__version__})")
+          runpy.run_path("verify_snippets.py", run_name="__main__")
           PY
 
       # Our annotations become authoritative for users the moment py.typed
