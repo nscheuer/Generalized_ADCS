@@ -32,7 +32,7 @@ bus the slew time approaches the field-rotation timescale and the power law must
 = 0.05 and 0.1 rad are added to buy small-Theta leverage, and curvature at the top end is
 expected rather than surprising.
 
-Predicted: slope ~1/2 for 3MTQ+1RW (double integrator, full authority) and ~1/3 for 3MTQ+0RW
+Predicted: slope ~1/2 for 3MTQ+1RW (double integrator, full authority) and ~1/4 for 3MTQ+0RW (IV-B derivation, superseding the spec's 1/3)
 in the along-field-limited directions.
 
 Disturbances off, truth state -- this is a clean kinematic test.
@@ -285,7 +285,7 @@ def main() -> int:
                         "points": [{"theta": float(a), "t": float(b), "align": float(c)}
                                    for a, b, c in zip(th, tt, [r["alignment"] for r in sel])]}
             pred = ("~1/2 (double integrator)" if bus == "3+1"
-                    else ("~1/3 (weight-3 bracket)" if fam == "along-field" else "~1/2"))
+                    else ("~1/4 (IV-B derivation; supersedes the spec's 1/3)" if fam == "along-field" else "~1/2"))
             print(f"{bus:<6}{fam:<14}{f['n']:>5}{f['slope']:>9.3f}{f['r2']:>8.3f}   {pred}")
 
     payload = {"task": "B_equal_torque", "timestamp": ts,

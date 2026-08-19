@@ -320,7 +320,7 @@ def main() -> int:
                           np.array([r["t_done_s"] for r in sel]))
             fams[f"{bus}|{fam}"] = {"fit": f, "n_total": len(sel)}
             pred = ("~1/2" if bus == "3+1" else
-                    ("~1/3 (weight-3 bracket)" if fam == "along-field" else "~1/2"))
+                    ("~1/4 (IV-B derivation; supersedes the spec's 1/3)" if fam == "along-field" else "~1/2"))
             print(f"{bus:<6}{fam:<14}{f['n']:>5}{f['slope']:>9.3f}{f['r2']:>8.3f}   {pred}")
 
     nfb = sum(r.get("n_fallback", 0) for r in res)
