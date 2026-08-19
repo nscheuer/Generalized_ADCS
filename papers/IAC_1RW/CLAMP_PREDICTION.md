@@ -50,3 +50,26 @@ bimodality (1 trial in 100 between 5° and 30°), the dead damping branch, and t
 Also affected and rerunning clamped: C's top two levels (0.45, 0.60 h_max), whose severity
 numbers (7.9°, 24.8° RMS) carry the same artifact above the ceiling; the breakpoint's
 *location* is trusted, the severity above it is not until re-measured.
+
+## Addendum (pre-commitment, before the substitution test is read)
+
+**What the substitution test must show to claim substitution.** The claim is the
+*interaction* term, not either main effect: FF-off at h = 0.15 must show a materially lower
+relative penalty versus its own h = 0 FF-off baseline than the FF-on pair shows. If only main
+effects separate — feedforward better everywhere, bias worse everywhere, no interaction — the
+claim retreats to "feedforward dominates bias" **without** the substitution structure, and the
+Stickler & Alfriend framing softens from "obsoletes the reason for bias" to "outperforms it."
+
+Committed before any cell of the 2×2 is read. (The test as first launched ran only the
+h = 0.15 pair; the h = 0 arms were added when this criterion made clear the interaction needs
+all four cells — itself an argument for writing the criterion first.)
+
+## Interface note for PR season (the sign inversion's real lesson)
+
+`_rw_hdot_kernel` documents the wheel-internal torque; the command is body torque; the clamp
+was specified from the documented convention and inverted the physical one. The upstream fix
+worth pushing is not the clamp — it is renaming or double-documenting that kernel so the
+body/wheel-internal convention is unmissable at the call site. The framework thesis is that
+laws port across the interface; a sign ambiguity *at* the interface is the one bug class that
+thesis cannot survive. Method note for the ledger: when documentation and physics can
+disagree, ask the integrator — settled empirically (3-step probe), not textually.

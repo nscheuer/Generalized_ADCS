@@ -163,8 +163,15 @@ def _worker(config):
 def cells_to_run() -> List[Dict[str, Any]]:
     want = os.environ.get("A_CELLS", "all")
     ctrls = CONTROLLERS if want == "all" else (want,)
-    return [{"n_rw": n, "task": t, "controller": c}
-            for c in ctrls for n in N_RW for t in TASKS]
+    cells = [{"n_rw": n, "task": t, "controller": c}
+             for c in ctrls for n in N_RW for t in TASKS]
+    # A_ONLY_NRW: restrict to one complement (e.g. "1" for the clamped 1rw rerun --
+    # the 0rw cells have no wheel and the 3rw cells peaked at 0.13 h_max, so only the
+    # 1rw cells carry the saturation artifact).
+    only = os.environ.get("A_ONLY_NRW")
+    if only is not None:
+        cells = [c for c in cells if c["n_rw"] == int(only)]
+    return cells
 
 
 def main() -> int:
