@@ -96,9 +96,11 @@ The screen (flag if dwell(sigma<0.2) <= 0.1035, the LOO-stable zero-false-alarm 
 LOO: 9/11 caught, 1 FP, 2% residual) was fit entirely on the PD money cell. The planner half
 draws IDENTICAL geometry (paired seeds), so its flagged set is known in advance:
 
-    flagged seeds = [8, 12, 15, 16, 23, 29, 49, 53, 55, 78, 85] minus the two
-    high-dwell outliers, plus the one false-alarm seed -- computed and frozen here
-    BEFORE any planner-cell outcome is read.
+    flagged seeds = [8, 12, 16, 23, 29, 49, 55, 78, 85]
+    (computed as dwell <= 0.1035 over the money cell and frozen here BEFORE any
+    planner-cell outcome is read; the diverged outliers 15 and 53 sit outside the
+    screen by construction and are predicted NOT to be rescued by geometry-based
+    scheduling, since their divergence is not dump-starvation)
 
 Two independent tests when the planner half lands:
 1. SCREEN VALIDATION: planner divergences, if any, fall inside the flagged set.
