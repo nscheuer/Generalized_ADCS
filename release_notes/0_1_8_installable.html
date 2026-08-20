@@ -9,7 +9,7 @@
         <link rel="prefetch" href="../_static/starlab_logo.svg" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>0.1.8 Installable from PyPI (2026-08-05) - Generalized ADCS 2026 documentation</title>
+        <title>0.1.8 Available on PyPI (2026-08-19) - Generalized ADCS 2026 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -176,7 +176,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -230,7 +230,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">0.1.8 Installable from PyPI (2026-08-05)</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">0.1.8 Available on PyPI (2026-08-19)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -546,90 +546,29 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="installable-from-pypi-2026-08-05">
-<h1>0.1.8 Installable from PyPI (2026-08-05)<a class="headerlink" href="#installable-from-pypi-2026-08-05" title="Link to this heading">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">generalized-adcs</span></code> now works, and the package it installs can
-actually be imported.</p>
-<section id="two-undeclared-hard-dependencies">
-<h2>Two undeclared hard dependencies<a class="headerlink" href="#two-undeclared-hard-dependencies" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> declared neither <code class="docutils literal notranslate"><span class="pre">rich</span></code> (imported by
-<code class="docutils literal notranslate"><span class="pre">ADCS.mc.monte_carlo_runner</span></code>, which <code class="docutils literal notranslate"><span class="pre">ADCS/__init__.py</span></code> reaches) nor
-<code class="docutils literal notranslate"><span class="pre">choldate</span></code> (imported by the square-root UKF). Both were hard, top-level
-imports, so a normal install produced a package that raised <code class="docutils literal notranslate"><span class="pre">ImportError</span></code> on
-<code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">ADCS</span></code>. Continuous integration never caught it because CI installs
-from <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code>, which <em>did</em> list them — the two files had drifted
-apart.</p>
-</section>
-<section id="the-cholesky-update-is-now-in-tree">
-<h2>The Cholesky update is now in-tree<a class="headerlink" href="#the-cholesky-update-is-now-in-tree" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">choldate</span></code> has no PyPI release at all. It installs only from git, needs
-<code class="docutils literal notranslate"><span class="pre">--no-build-isolation</span></code>, and — being a direct URL reference — made this
-distribution impossible to publish, since PyPI rejects such metadata outright.</p>
-<p><a class="reference internal" href="../ADCS.helpers.cholesky_update.html#module-ADCS.helpers.cholesky_update" title="ADCS.helpers.cholesky_update"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ADCS.helpers.cholesky_update</span></code></a> now implements the rank-1 Cholesky update
-and downdate directly, as the standard LINPACK sequence of Givens rotations,
-<code class="docutils literal notranslate"><span class="pre">njit</span></code>-compiled. It matches <code class="docutils literal notranslate"><span class="pre">choldate</span></code> to roughly <code class="docutils literal notranslate"><span class="pre">1e-15</span></code> and is covered
-by 51 tests.</p>
-<p>Two deliberate improvements over the package it replaces:</p>
-<ul class="simple">
-<li><p>The caller’s update vector is no longer destroyed. <code class="docutils literal notranslate"><span class="pre">choldate</span></code> used it as
-scratch space.</p></li>
-<li><p>A downdate whose result is not positive definite now yields <code class="docutils literal notranslate"><span class="pre">NaN</span></code>.
-<code class="docutils literal notranslate"><span class="pre">choldate</span></code> neither raised nor returned <code class="docutils literal notranslate"><span class="pre">NaN</span></code> — it computed
-<span class="math notranslate nohighlight">\(\sqrt{|r^2|}\)</span> and returned a plausible-looking but incorrect factor.
-The SRUAKF has always guarded on <code class="docutils literal notranslate"><span class="pre">np.any(np.isnan(...))</span></code>; that guard could
-never fire before, and now does.</p></li>
-</ul>
-</section>
-<section id="typed-for-downstream-users">
-<h2>Typed for downstream users<a class="headerlink" href="#typed-for-downstream-users" title="Link to this heading">¶</a></h2>
-<p>The package now ships a <code class="docutils literal notranslate"><span class="pre">py.typed</span></code> marker (PEP 561), so type checkers use its
-annotations instead of discarding them.</p>
-<p>Making that safe required correcting the public signatures first, because with
-the marker present a wrong annotation becomes a false error in <em>user</em> code
-rather than a harmless internal inaccuracy:</p>
-<ul class="simple">
-<li><p>77 implicit-Optional parameters (<code class="docutils literal notranslate"><span class="pre">x:</span> <span class="pre">np.ndarray</span> <span class="pre">=</span> <span class="pre">None</span></code>) are now
-<code class="docutils literal notranslate"><span class="pre">Optional[...]</span></code>. Modern type checkers read the declared type literally, so
-passing <code class="docutils literal notranslate"><span class="pre">None</span></code> was reported as an error.</p></li>
-<li><p>75 read-only <code class="docutils literal notranslate"><span class="pre">List[X]</span></code> parameters are now <code class="docutils literal notranslate"><span class="pre">Sequence[X]</span></code>. <code class="docutils literal notranslate"><span class="pre">list</span></code> is
-invariant, so <code class="docutils literal notranslate"><span class="pre">Satellite(actuators=[MTQ(...),</span> <span class="pre">...])</span></code> — the example in the
-README — was reported as a type error. Each site was checked for mutation
-first; <code class="docutils literal notranslate"><span class="pre">Sequence</span></code> has no <code class="docutils literal notranslate"><span class="pre">append</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">RW(h=...,</span> <span class="pre">h_max=...)</span></code> were annotated <code class="docutils literal notranslate"><span class="pre">np.ndarray</span></code> but are scalars for a
-single wheel, as every call site in the project passes.</p></li>
-</ul>
-<p>None of these change behaviour at runtime; they are widenings that describe
-what the code already accepted. A CI step now type-checks a representative user
-program against the built wheel, so a future signature regression is caught
-before release.</p>
-</section>
-<section id="dependencies-are-ranges-not-pins">
-<h2>Dependencies are ranges, not pins<a class="headerlink" href="#dependencies-are-ranges-not-pins" title="Link to this heading">¶</a></h2>
-<p>Runtime dependencies are declared as compatible ranges rather than exact
-patch pins, so the package installs into an existing environment instead of
-fighting it. Transitive dependencies are left to pip. Build- and test-only
-packages moved to extras: <code class="docutils literal notranslate"><span class="pre">[cpp]</span></code> for the C++ add-on toolchain, <code class="docutils literal notranslate"><span class="pre">[dev]</span></code>
-for the test tooling, <code class="docutils literal notranslate"><span class="pre">[viz]</span></code> for the 3-D orbit animation helpers.</p>
-<p>The junk placeholder <code class="docutils literal notranslate"><span class="pre">np==1.0.2</span></code> — a squatter package on PyPI, not NumPy,
-which itself fails under NumPy 2.x — has been removed.</p>
-<p>For deterministic reproduction of published campaign results, the exact
-versions are preserved in <code class="docutils literal notranslate"><span class="pre">requirements-repro.txt</span></code>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">-</span><span class="n">repro</span><span class="o">.</span><span class="n">txt</span>
-<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">deps</span>
+          <section id="available-on-pypi-2026-08-19">
+<h1>0.1.8 Available on PyPI (2026-08-19)<a class="headerlink" href="#available-on-pypi-2026-08-19" title="Link to this heading">¶</a></h1>
+<p>Generalized ADCS is now available on PyPI:</p>
+<p><a class="reference external" href="https://pypi.org/project/Generalized-ADCS/">https://pypi.org/project/Generalized-ADCS/</a></p>
+<p>Install it with pip:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">generalized</span><span class="o">-</span><span class="n">adcs</span>
 </pre></div>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The version jumps from the previously released 0.1.5 to 0.1.8 because
-<code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> had not been bumped alongside the 0.1.6 and 0.1.7
-release notes.</p>
-</div>
-</section>
+<p>Bug-fixes:</p>
+<ul class="simple">
+<li><p>Added missing runtime dependencies to the package metadata.</p></li>
+<li><p>Replaced a non-PyPI dependency with an in-tree Cholesky update helper.</p></li>
+<li><p>Corrected public type annotations for downstream type checkers.</p></li>
+<li><p>Relaxed runtime dependency pins to improve compatibility with existing
+environments.</p></li>
+</ul>
+<p>This release also ships package metadata for Python type checkers and keeps
+runtime dependencies installable from standard PyPI packages.</p>
 </section>
 
         </article>
@@ -675,30 +614,8 @@ release notes.</p>
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">0.1.8 Installable from PyPI (2026-08-05)</a><ul>
-<li><a class="reference internal" href="#two-undeclared-hard-dependencies">Two undeclared hard dependencies</a></li>
-<li><a class="reference internal" href="#the-cholesky-update-is-now-in-tree">The Cholesky update is now in-tree</a></li>
-<li><a class="reference internal" href="#typed-for-downstream-users">Typed for downstream users</a></li>
-<li><a class="reference internal" href="#dependencies-are-ranges-not-pins">Dependencies are ranges, not pins</a></li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>
@@ -707,6 +624,5 @@ release notes.</p>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     </body>
 </html>
