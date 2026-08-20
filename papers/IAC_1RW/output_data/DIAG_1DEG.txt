@@ -1,0 +1,33 @@
+== (1) finals histogram, converged trials ==
+  [0.00,0.25): ########  8
+  [0.25,0.50): #######  7
+  [0.50,0.75): ############# 13
+  [0.75,1.00): ######################### 25
+  [1.00,1.25): ################### 19
+  [1.25,1.50): ####  4
+  [1.50,1.75): ###  3
+  [1.75,2.00): ######  6
+  [2.00,2.25): #  1
+  [2.25,2.50):   0
+  [2.50,2.75):   0
+  [2.75,3.00): ###  3
+  >=3.00: 10
+  median 0.989  IQR [0.699, 1.283]  in [0.8,1.2): 37/99
+
+== (2) kinematic identity: plan sits where execution sits ==
+  deviation at orbit end: median 0.0068 deg, p95 0.0132 deg
+  => plan-frame terminal error = executed final +/- dev_end; with median final 0.99 deg vs dev 0.0068 deg, the PLAN ITSELF sits ~0.99 deg from goal. Twin bias (b) excluded.
+
+== (3) late-orbit profile: creep vs flat ==
+  t(s):       3500    4000    4500    5000    5400    5553
+  med(deg):  0.669   0.693   0.767   0.661   0.712   0.989
+  drop over last ~2000 s: -0.320 deg (FLAT -> equilibrium/(a-terminal))
+
+== (4) window-joint sawtooth (median profile in replan-relative time) ==
+  window t0=4000:  0.69  0.95  0.95  0.86  0.74  0.69  0.68  0.68  0.69  0.71
+  window t0=4500:  0.77  1.04  1.10  1.00  0.86  0.81  0.77  0.67  0.64  0.68
+  window t0=5000:  0.66  1.06  1.07  0.88  0.80  0.71  0.69  0.70  0.71  0.70
+  (monotone within-window decay + reset at joints would look sawtooth; smooth monotone across joints = plain slow convergence)
+
+== (5) deviation flat ~0.01 through the jolt: the PLAN commands the swing ==
+== (6) snapshot timing: t=5400 conv@1 much higher than t=5553 (see log) ==
