@@ -79,6 +79,49 @@ the validation set spans the sigma range and must show the split.
   the more interesting branch; then the angle arms must shrink it if cost-ratio is the
   cause.
 
+## Per-task tuning (DECISION, Patrick 2026-08-20; registered before any full-task sweep)
+
+The planner gets SEPARATE weight sets for full-attitude and reduced (boresight) modes.
+Justification is stronger than realism: the planner paper frames cost weights as WHAT
+THE MISSION VALUES, distinct from gains that specify how; a full-attitude mode and a
+boresight mode genuinely value different things, so per-mode weights are the intended
+use of the interface -- what distinguishes this from per-test tuning is the freeze.
+
+Conditions (all three binding):
+1. **PD symmetry.** PD keeps ONE gain set across both tasks -- kp = 2.9e-4 follows the
+   BUS-scaling rule (kp ~ ||J||, zeta = 1), a principled task-independent choice.
+   To foreclose the objection, a small PD-full gain check runs: kp x {0.5, 1, 2} x
+   3 full-task seeds (5, 11, 17), kd scaled as sqrt(kp) from the frozen pair.
+   REGISTERED EXPECTATION: 2.9e-4 best-or-tied on full; if a factor-2 variant
+   materially beats it, report and reconsider the single-gain claim.
+2. **Both planner configs FROZEN before the campaign rerun**, assertion-pinned, both
+   reported in the paper (pre-mission tuning, not per-test).
+3. **Scope acknowledged**: second sweep (full task) + validation on both tasks.
+
+**Full-task sweep candidate, deterministic rule:** converged pure-planner cell-2
+trials, no kills, final in [3, 6] deg; pick the median-final member => **seed 35**
+(final 4.23 deg, sigma_med 0.26 -- low-sigma, so the corridor component stays in view).
+Same 12 CONFIGS as the reduced sweep.
+
+**Registered prediction (price-inflation proportionality):** if the full-attitude gap
+is effective-price inflation at unchanged cost ratio, raising cost_main.angle closes
+it ROUGHLY PROPORTIONALLY on seed 35, as it does on seed 49. If the full case RESISTS
+tuning while the reduced case responds, that is the registered transfer-failure branch
+and the adjudication says so.
+
+**ORDER DECISION (explicit, per Patrick's ask):** current chain (crossover + reduced
+sweep) -> full sweep + PD-full check -> interaction tables -> per-task freeze +
+validation (both tasks) -> registered n=100 rerun of BOTH money cells under the frozen
+per-task configs -> **Campaign B runs AFTER, on the adopted frozen config.** Rationale:
+B carries the 1/4-exponent theory test and must be generated under the same
+configuration the paper reports everywhere else -- one source of truth beats two weeks
+of earlier-but-inconsistent B data; the Sept 14 runway (~25 days) accommodates it.
+
+**Framing readiness (registered):** if per-task tuning closes the full-attitude gap,
+Section V's crossover becomes a statement about TUNING EFFORT rather than capability
+-- planner matches feedback on both tasks given per-mode weights -- and the
+demonstration itself proves the price-inflation reading was elective.
+
 ## Adoption protocol (frozen before any sweep result)
 
 1. Sweep names a winner on seed 49 (read `angle_N` terminal-emphasis arms AGAINST

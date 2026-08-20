@@ -228,6 +228,29 @@ def metrics_row(cfg, r):
         solve_max=float(np.max(pw)) if pw else None)
 
 
+FULL_SEED = 35        # deterministic rule: median-final of cell-2 [3,6]-deg no-kill band
+PD_KP_BASE, PD_KD_BASE = 2.9e-4, 8.68e-3
+
+
+def run_one_pd(kp_mult, seed, task="full"):
+    """PD-full gain check (per-task-tuning condition 1). kd scales as sqrt(kp)."""
+    from papers.IAC_1RW._feedforward import FeedforwardLP
+    kp = PD_KP_BASE * kp_mult
+    kd = PD_KD_BASE * np.sqrt(kp_mult)
+
+    def maker(sat, config):
+        h0 = np.asarray(config["h0"], float)
+        h_t = (h0[0] * np.array([0.0, 0.0, 1.0])) if h0.size else np.zeros(3)
+        return FeedforwardLP(est_sat=sat, p_gain=kp, d_gain=kd, c_gain=1e-3,
+                             h_target=h_t, mode="dipole")
+    config = dict(make_config(seed, n_rw=1, task=task, tf=T_ORBIT, dt=1.0, seed=seed),
+                  controller="pd")
+    r = simulate(config, maker,
+                 disturbances=("gg", "drag", "srp", "dipole", "general"),
+                 bus_kwargs={"tau_w": 2.0e-3, "h_max": 15.0e-3})
+    return metrics_row(dict(name=f"pd_kp{kp_mult:g}_s{seed}"), r)
+
+
 def campaign_running():
     return subprocess.run(["pgrep", "-f", "generate_A_baseline"],
                           capture_output=True).returncode == 0
@@ -319,7 +342,41 @@ def main():
         with open(os.path.join(OUT, f"TUNE_SWEEP_seed{SEED}.txt"), "w") as f:
             f.write(txt + "\n")
         return 0
-    print("usage: tune_planner.py --check | --sweep")
+    if mode == "--sweepfull":
+        if campaign_running():
+            print("REFUSING: campaign A generator still running.")
+            return 2
+        import multiprocessing as mp
+        with mp.get_context("fork").Pool(min(12, os.cpu_count() - 4)) as p:
+            rows = p.starmap(run_one, [(c, T_ORBIT, FULL_SEED, "full")
+                                       for c in CONFIGS])
+        hdr = ["name", "final", "standing", "jolt", "conv1_5400", "h_peak",
+               "n_plans", "n_fb", "kills", "solve_med", "solve_max"]
+        lines = ["  ".join(hdr)]
+        for r in rows:
+            lines.append("  ".join(
+                f"{r[k]:.3f}" if isinstance(r[k], float) else str(r[k]) for k in hdr))
+        txt = "\n".join(lines)
+        print(txt)
+        with open(os.path.join(OUT, f"TUNE_SWEEP_FULL_seed{FULL_SEED}.txt"), "w") as f:
+            f.write(txt + "\n")
+        return 0
+    if mode == "--pdcheck":
+        if campaign_running():
+            print("REFUSING: campaign A generator still running.")
+            return 2
+        import multiprocessing as mp
+        jobs = [(m, s) for m in (0.5, 1.0, 2.0) for s in (5, 11, 17)]
+        with mp.get_context("fork").Pool(min(9, os.cpu_count() - 4)) as p:
+            rows = p.starmap(run_one_pd, jobs)
+        lines = [f"{r['name']}: final {r['final']:8.3f}  standing {r['standing']:8.3f}"
+                 for r in rows]
+        txt = "\n".join(lines)
+        print(txt)
+        with open(os.path.join(OUT, "TUNE_PDCHECK_FULL.txt"), "w") as f:
+            f.write(txt + "\n")
+        return 0
+    print("usage: tune_planner.py --check | --sweep | --sweepfull | --pdcheck | --spread")
     return 2
 
 
