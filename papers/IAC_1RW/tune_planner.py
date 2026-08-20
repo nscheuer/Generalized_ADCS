@@ -237,18 +237,57 @@ def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "--check"
     if mode == "--check":
         # Equivalence smoke: decomposed-cold vs stock trajOpt, short horizon.
+        # The solver is NONDETERMINISTIC (the 14.5 h wedge did not reproduce on identical
+        # draws), so equivalence is judged against the measured stock-vs-stock noise
+        # floor, not an asserted tolerance.
         rows = []
-        for cfg in (dict(name="chk_stock", angle=1e1, angle_N=1e1, warm="off", stock=True),
-                    dict(name="chk_decomp", angle=1e1, angle_N=1e1, warm="off"),
+        for cfg in (dict(name="chk_stockA", angle=1e1, angle_N=1e1, warm="off", stock=True),
+                    dict(name="chk_stockB", angle=1e1, angle_N=1e1, warm="off", stock=True),
+                    dict(name="chk_decompA", angle=1e1, angle_N=1e1, warm="off"),
+                    dict(name="chk_decompB", angle=1e1, angle_N=1e1, warm="off"),
                     dict(name="chk_warm", angle=1e1, angle_N=1e1, warm="hold")):
             rows.append(run_one(cfg, tf=1600.0))
             print(rows[-1], flush=True)
-        a, b = rows[0], rows[1]
-        ok = (abs(a["final"] - b["final"]) < 0.25 and a["n_plans"] == b["n_plans"]
-              and (a["n_fb"] or 0) == 0 and (b["n_fb"] or 0) == 0)
-        print(f"EQUIVALENCE {'PASS' if ok else 'FAIL'}: stock final {a['final']:.3f} "
-              f"vs decomposed {b['final']:.3f}; warm ran with n_fb={rows[2]['n_fb']}")
+        sA, sB, dA, dB, wm = (r["final"] for r in rows)
+        noise = abs(sA - sB)
+        cross = abs(0.5 * (sA + sB) - 0.5 * (dA + dB))
+        ok = (cross <= max(2.0 * noise, 0.3)
+              and all((r["n_fb"] or 0) == 0 for r in rows))
+        verdict = (f"EQUIVALENCE {'PASS' if ok else 'FAIL'}: stock {sA:.3f}/{sB:.3f} "
+                   f"(noise {noise:.3f}), decomposed {dA:.3f}/{dB:.3f} "
+                   f"(cross-gap {cross:.3f}, limit {max(2.0*noise, 0.3):.3f}); "
+                   f"warm final {wm:.3f}, n_fb={rows[4]['n_fb']}")
+        print(verdict)
+        with open(os.path.join(OUT, "TUNE_EQUIV.txt"), "w") as f:
+            f.write(verdict + "\n")
         return 0 if ok else 1
+    if mode == "--spread":
+        # Nondeterminism spread on INDIVIDUAL seeds (the solver is stochastic; per-seed
+        # claims inherit it). Two fresh runs each, baseline frozen config: seed 68 (the
+        # planner's lone divergence -- if it converges on a rerun, 'lone divergence'
+        # becomes 'stochastic tail'), rescued frontier seeds 49 and 55, easy seed 3.
+        if campaign_running():
+            print("REFUSING: campaign A generator still running.")
+            return 2
+        import multiprocessing as mp
+        jobs = []
+        for sd in (68, 49, 55, 3):
+            for rep in ("A", "B"):
+                jobs.append((dict(name=f"spread_s{sd}{rep}", angle=1e1, angle_N=1e1,
+                                  warm="off", stock=True), sd))
+        with mp.get_context("fork").Pool(min(8, os.cpu_count() - 4)) as p:
+            rows = p.starmap(run_one, [(c, T_ORBIT, s) for c, s in jobs])
+        lines = []
+        for (cfg, sd), r in zip(jobs, rows):
+            lines.append(f"{cfg['name']}: final {r['final']:8.3f} deg  "
+                         f"n_plans {r['n_plans']}  n_fb {r['n_fb']}")
+        money = {68: 41.9, 49: 2.80, 55: 3.44, 3: None}
+        lines.append("(money-cell finals for reference: 68=41.9, 49=2.80, 55=3.44)")
+        txt = "\n".join(lines)
+        print(txt)
+        with open(os.path.join(OUT, "TUNE_SPREAD.txt"), "w") as f:
+            f.write(txt + "\n")
+        return 0
     if mode == "--sweep":
         if campaign_running():
             print("REFUSING: campaign A generator still running (machine contention). "

@@ -28,6 +28,48 @@ Falsifier: standing error tracks the weight toward ~0.1 deg or below at angle=1e
 no asymmetry -- then the pooling was elective after all and the corridor-floor reading is
 WRONG for this regime; the paper keeps "elective floor" unqualified.
 
+## Prediction 1a -- CONTROL for the corridor reading (Patrick, 2026-08-20, pre-run)
+
+The corridor theorem is MAGNETIC-ONLY; this is a 3+1 bus with the wheel boresight-mounted
+at median sigma ~ 0.9, so the along-field direction is DIRECTLY actuated (authority
+tau_w * sigma) and no corridor floor is available to the planner the way it would be on
+3+0. Competing explanation for the 0.494 pooling: the momentum-cost terms (saturation /
+stiction pricing of wheel excursion) make fine along-field corrections expensive --
+elective, but a different weight than cost_main.angle.
+
+Discriminating test, registered before running: correlate the along-field residual
+fraction against sigma over the held window.
+- CORRIDOR-LIMITED: worse at low sigma (wheel's along-field authority vanishes there;
+  only the delta^(-3/2)-priced magnetic route remains). Strong NEGATIVE correlation.
+- MOMENTUM-COST-LIMITED: FLAT in sigma (wheel available throughout, simply not spent).
+  Then the honest sentence is "the optimizer declines to spend wheel momentum on it,"
+  the corridor theorem stays in Section IV (magnetic-only), and the sweep ADDS a
+  momentum-weight arm. Prediction 1's falsifier still works either way -- it then
+  discriminates two ELECTIVE floors rather than elective vs physical.
+
+### Prediction 1a ADJUDICATED (2026-08-20, same day, run after registration)
+
+**CORRIDOR-LIMITED branch fires, strongly.** Per-trial corr(along_frac, sigma_med)
+= -0.491 Pearson / -0.499 Spearman (n=99); per-sample -0.605 / -0.594 (n=9405).
+Binned per-sample along-share vs sigma(t): 0.297 / 0.232 / 0.129 / **0.030** for sigma
+[0,0.2) / [0.2,0.5) / [0.5,0.8) / [0.8,1). Terciles per-trial: 0.625 / 0.516 / 0.342.
+(Level differs between views by theta^2 weighting; the TREND is the registered
+discriminator and it is unambiguous.)
+
+Reading: on 3+1 the corridor floor is SIGMA-GATED -- it exists exactly where the wheel
+loses along-field authority. Where sigma is high the wheel scrubs along-field residual
+nearly to zero (0.030); where sigma is low the residual pools along-field at the
+corridor price. This is the sigma-complementarity appearing in the optimizer's residual
+structure -- the FIFTH appearance of the single dial (restoration authority, corridor
+escape, dump floor, dwell screen, residual anisotropy). Not momentum-cost (that branch
+predicted flat); no momentum-weight arm required per the registered contingency.
+
+REFINED sweep prediction (registered before any sweep result): the angle-weight
+asymptote is SIGMA-CONDITIONAL -- high-sigma trials' standing error can fall toward the
+transverse-elective level; low-sigma trials asymptote at their along-field remainder.
+Seed 49 is a low-dwell (low-sigma) draw, so the single-seed sweep sees the floor case;
+the validation set spans the sigma range and must show the split.
+
 ## Prediction 2 -- the jolt discriminator (warm arms)
 
 - Jolt VANISHES under warm-hold seeding (previous plan contains no excursion) =>
