@@ -237,6 +237,37 @@ Decisive test, wired into the spread run before the cell is read: rerun seeds 88
 - Kills reproduce on fresh workers => draw/task hardness stands; 4b discriminators
   adjudicate as registered.
 
+**AMENDED to a CROSSOVER (Patrick, 2026-08-20, pre-read) -- fresh-worker reruns alone
+conflate fresh worker with unloaded machine.** Two arms, same run: (1) kill-seeds
+88/94/97 dispatched FIRST (fresh workers); (2) early-cohort clean probes (seeds 5, 11,
+17, full task -- ran clean in positions 1-20) dispatched LAST into the by-then-aged
+pool (workers have each run 2-3 full trials; weaker aging than cell 2's 5-6 but
+nonzero, and load is matched within the run -- the residual conflation is aging DEPTH,
+noted). Probes killing => state/load indicted directly, not by absence. All clean
+everywhere => unreplicated event; honest answer is stochastic.
+
+**Trial-phase row (registered):** window 4 three times across three INDEPENDENT orbits
+does not fit worker aging (which accumulates across trials, predicting arbitrary window
+indices). Candidate: accumulated within-trial state (stored momentum, drifted attitude,
+converged estimator model) making the ~fourth plan harder regardless of worker or
+geometry. Seed 88's window-1 kill argues against purely-phase. Read: median solve time
+vs window index across ALL trials (plan_wall_s, kills censored) -- a rise across the
+board = phase effect real and independent of kills. Possibly two effects: cohort-level
+sets WHETHER vulnerable, phase sets WHERE.
+
+**STOP RULE (adopted): the crossover is the last word.** No further replicates, no
+Addendum 4d. Only one branch earns Section VI text beyond one sentence: kills reproduce
+on fresh workers AND stay confined to full attitude => task class, rank-3 argument.
+State/load => one clause ("traced to test-harness resource pressure rather than the
+problem instances"), no mechanism discussion. Ambiguous => reported ambiguous. The
+paper's sentence is fixed either way: overruns occur, counted separately from
+non-convergence, converted to fallbacks by the guard, budget belongs inside the solver.
+
+**Cell-2 read protection (data integrity, regardless of cause):** kill-affected trials
+are partly flying PD (each killed window degrades to fallback). The cell read reports
+the headline BOTH ways -- all trials, and pure-planner with kill-affected trials
+excluded and listed separately. No blended cell numbers.
+
 - **RETUNE_PREDICTION preconditions: NOT MET -- the 2-cell retune is NOT invoked** and
   the frozen-half numbers stand, per the registration. Held-window (t >= 1000 s, n=100):
   along-B energy fraction 0.452 (smoke read 0.451; isotropy 1/3) -- the fingerprint

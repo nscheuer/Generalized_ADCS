@@ -270,16 +270,21 @@ def main():
             print("REFUSING: campaign A generator still running.")
             return 2
         import multiprocessing as mp
+        # CROSSOVER (Addendum 4c amended): kill-seeds FIRST (fresh workers), spread
+        # pairs as aging filler, early-cohort clean probes LAST (aged workers, matched
+        # load). Pool of 6 => ~2-3 trials per worker before the probes land.
         jobs = []
+        for sd in (88, 94, 97):
+            jobs.append((dict(name=f"kills_s{sd}F", angle=1e1, angle_N=1e1,
+                              warm="off", stock=True), sd, "full"))
         for sd in (68, 49, 55, 3):
             for rep in ("A", "B"):
                 jobs.append((dict(name=f"spread_s{sd}{rep}", angle=1e1, angle_N=1e1,
                                   warm="off", stock=True), sd, "reduced"))
-        # Addendum 4c decisive test: cell 2's killing seeds, FRESH workers, full task.
-        for sd in (88, 94, 97):
-            jobs.append((dict(name=f"kills_s{sd}F", angle=1e1, angle_N=1e1,
+        for sd in (5, 11, 17):
+            jobs.append((dict(name=f"probe_s{sd}F", angle=1e1, angle_N=1e1,
                               warm="off", stock=True), sd, "full"))
-        with mp.get_context("fork").Pool(min(8, os.cpu_count() - 4)) as p:
+        with mp.get_context("fork").Pool(6) as p:
             rows = p.starmap(run_one, [(c, T_ORBIT, s, tk) for c, s, tk in jobs])
         lines = []
         for (cfg, sd, tk), r in zip(jobs, rows):
