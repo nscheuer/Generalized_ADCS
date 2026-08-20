@@ -107,3 +107,33 @@ Two independent tests when the planner half lands:
 2. SCHEDULING RESCUE: if flagged seeds CONVERGE under the planner, dump-scheduling rescues
    exactly the draws the geometry predicts -- the D -> Section V link, measured on paired
    seeds rather than argued.
+
+## Addendum 4 (pre-commitment, Patrick 2026-08-20): solver-hostile seeds vs the dwell screen
+
+Committed BEFORE the hardened rerun finishes; the budget-kill log will name the wedging
+seeds, and this is adjudicated exactly as written when it does.
+
+Define W = seeds with >= 1 budget-killed window in `1rw_reduced_planner` (the cell the
+flagged set F = [8,12,16,23,29,49,55,78,85] was frozen on). `1rw_full` is reported
+descriptively only. Note W is a broader class than the two 14.5 h wedgers -- it includes
+any solve the 300 s budget kills. Fallback events split into budget-kills vs solve-failures
+vs track-fallbacks by construction (opposite implications; never one column).
+
+| outcome | reading |
+|---|---|
+| W subset of F (overlap) | the geometry that starves desaturation also ill-conditions the trajectory optimization -- same underlying cause, two symptoms, and the screen predicts BOTH. A substantially stronger claim for the screen than pointing failure alone. |
+| W disjoint from F | solver difficulty is an independent axis; the screen does not cover it; the paper says the two failure modes are unrelated. |
+| partial overlap | report as partial. Do not reach. |
+
+**Prior, stated now so it cannot be over-read later:** with \|W\| ~ 2 against 9 flagged of
+100, chance gives P(both in F) = (9*8)/(100*99) = 0.73% and P(>= 1 in F) = 17.3%
+(hypergeometric). So a full hit is strong but a single-seed overlap is weak evidence at
+this n -- suggestive, not conclusive -- and is to be reported with these numbers beside it.
+If \|W\| > 6, the overlap question is diluted past usefulness (chance >= 1-overlap becomes
+likely and "solver-hostile" stops being a distinguished class): report W descriptively and
+adjudicate nothing.
+
+Mechanism asymmetry, registered: F was fit on PD dump-starvation dynamics; W is about
+solver conditioning. An overlap is therefore a MECHANISM claim (the sigma geometry is the
+proposed common cause), not a statistical artifact of refitting -- F was frozen before any
+planner or wedge data existed.

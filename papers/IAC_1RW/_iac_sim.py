@@ -71,7 +71,14 @@ PLAN_TIMEOUT_S = 300.0
 
 
 class _PlanTimeout(Exception):
-    pass
+    """Solve did not produce a usable trajectory (non-convergence / solver failure)."""
+
+
+class _PlanBudgetKill(_PlanTimeout):
+    """Solve was KILLED at the wall budget -- the solver hung, which is a different
+    event from non-convergence: the problem might well have been solvable with more
+    time. The two must never share a column (they have opposite implications for the
+    planner measurement), so the call site counts them separately."""
 
 
 def enforce_wheel_envelope(u, h, h_max, n_mtq, n_rw, dt=1.0):
@@ -151,7 +158,7 @@ def _plan_in_child(seconds, fn, *a, **kw):
         while True:
             remaining = deadline - _time.monotonic()
             if remaining <= 0.0:
-                raise _PlanTimeout(f"solve exceeded {seconds:.0f} s wall budget")
+                raise _PlanBudgetKill(f"solve exceeded {seconds:.0f} s wall budget")
             ready, _, _ = _select.select([r], [], [], min(remaining, 1.0))
             if not ready:
                 continue
@@ -485,6 +492,11 @@ def simulate(config: Dict[str, Any],
         is_planner = hasattr(controller, "calculate_trajectory")
         fallback = None
         n_plans = n_fallbacks = 0
+        # Fallbacks are NOT one population. Budget-kill = the solver HUNG (problem
+        # possibly solvable, wall budget enforced); solve-failure = non-convergence
+        # (problem hard); track-fallback = find_u failed mid-window. Opposite
+        # implications for whether a cell is "a planner measurement" -- separate columns.
+        n_budget_kills = n_solve_failures = n_track_fallbacks = 0
         next_replan = 0.0
         active = controller
         if is_planner:
@@ -609,8 +621,16 @@ def simulate(config: Dict[str, Any],
                         GoalList({os_gnc.J2000: goal}))
                     controller.set_active_trajectory(traj)
                     active, n_plans = controller, n_plans + 1
-                except Exception:
+                except _PlanBudgetKill as e:
                     active, n_fallbacks = fallback, n_fallbacks + 1
+                    n_budget_kills += 1
+                    print(f"[seed {config.get('seed', '?')}] PLAN BUDGET-KILL at "
+                          f"t={t:.0f}s: {e}", flush=True)
+                except Exception as e:
+                    active, n_fallbacks = fallback, n_fallbacks + 1
+                    n_solve_failures += 1
+                    print(f"[seed {config.get('seed', '?')}] PLAN SOLVE-FAILURE at "
+                          f"t={t:.0f}s: {type(e).__name__}: {str(e)[:200]}", flush=True)
                 next_replan = t + PLAN_WINDOW_S
 
             try:
@@ -619,6 +639,7 @@ def simulate(config: Dict[str, Any],
             except Exception:
                 if is_planner and active is not fallback:
                     n_fallbacks += 1
+                    n_track_fallbacks += 1
                     active = fallback
                     u = active.find_u(x_hat=x_hat, sens=sens, est_sat=est_sat,
                                       os_hat=os_gnc, goal=goal)
@@ -677,6 +698,8 @@ def simulate(config: Dict[str, Any],
             "m_max": m_max, "h_max": h_max_eff,
             "B_body0": B_body0,
             "n_plans": n_plans, "n_fallbacks": n_fallbacks,
+            "n_budget_kills": n_budget_kills, "n_solve_failures": n_solve_failures,
+            "n_track_fallbacks": n_track_fallbacks,
             "plan_deviation": plan_dev_hist,
             "plan_dev_alongB": plan_dev_alongB_hist,
             "plan_dev_perpB": plan_dev_perpB_hist,
@@ -792,6 +815,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     # One design rule covering Campaign C's variable and this sweep's failure mode.
     pk_omega, damp_ratio, quad_ratio, alpha_lag = [], [], [], []
     fb_frac = []
+    fb_split = []
     despin = []
     plan_dev_med, plan_dev_max = [], []
     plan_dev_alongB_energy = []
@@ -868,6 +892,12 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         npl, nfb = r.get("n_plans", 0), r.get("n_fallbacks", 0)
         if npl + nfb > 0:
             fb_frac.append(float(nfb / (npl + nfb)))
+            # Separate columns by construction (see _PlanBudgetKill): a budget-kill
+            # and a non-convergence read in OPPOSITE directions.
+            fb_split.append({"seed": int(r["config"]["seed"]),
+                             "budget_kills": int(r.get("n_budget_kills", 0)),
+                             "solve_failures": int(r.get("n_solve_failures", 0)),
+                             "track_fallbacks": int(r.get("n_track_fallbacks", 0))})
 
         om = r.get("omega"); Bm = r.get("B_mag")
         if om is not None and Bm is not None and om[:k].size:
@@ -1072,6 +1102,12 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         # planner measurement and must be reported as such.
         "per_trial_fallback_frac": fb_frac,
         "mean_fallback_frac": float(np.mean(fb_frac)) if fb_frac else None,
+        "per_trial_fallback_split": fb_split,
+        "budget_kill_seeds": sorted(d["seed"] for d in fb_split if d["budget_kills"]),
+        "solve_failure_seeds": sorted(d["seed"] for d in fb_split if d["solve_failures"]),
+        "total_budget_kills": int(sum(d["budget_kills"] for d in fb_split)),
+        "total_solve_failures": int(sum(d["solve_failures"] for d in fb_split)),
+        "total_track_fallbacks": int(sum(d["track_fallbacks"] for d in fb_split)),
         # Plan-vs-executed attitude divergence [deg]: small max + bad final = the PLAN missed;
         # large max = the TRACKER lost it. The discriminator for planner-cell failures.
         "per_trial_plan_dev_median_deg": plan_dev_med,

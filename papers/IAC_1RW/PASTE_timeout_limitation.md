@@ -1,5 +1,11 @@
 # PASTE: limitations line for the replanning-timeout claim
 
+**STATUS 2026-08-20: SUPERSEDED by Patrick's applied Section VI edit**, which corrects the
+then-false "both 3+1 cells plan within budget" (the money cells wedged at ~2% of draws):
+timeout affected every draw on 3+0 and ~2% on 3+1, and reported results use a hard wall
+budget converting overruns into planned fallbacks -- what a flight implementation must do.
+Kept for provenance; numbers below predate the money-cell wedge.
+
 For the limitations paragraph (wherever "the fallback catches non-convergence" is cited —
 likely near \ssec{planner-results}). Two-to-three sentences, drop-in:
 
