@@ -86,6 +86,46 @@ the validation set spans the sigma range and must show the split.
 2. Validate on: one easy converger, frontier draws 55 and 78, **seed 68** (the planner's
    lone divergence), and one 3+3 planner trial (fully-actuated sanity).
    GATES: no easy-seed break; 68 conversion is an aspiration, not a gate.
+   **AMENDED (Patrick, 2026-08-20, post-cell-2, pre-sweep-result): add one FULL-ATTITUDE
+   case** -- highest-value slot now that cell 2 shows the planner-PD crossover is TASK
+   CLASS (planner-full 2.23 deg pure vs PD-full 0.23), not precision. If tuned weights
+   close the full gap, Section V's framing rewrites before print. TRANSFER CAVEAT,
+   registered: the winner is tuned on a REDUCED cell; full attitude constrains one more
+   DOF and may want a different balance. Full-case underperformance = TRANSFER FAILURE
+   (flag for a full-task weight check), NOT evidence the gap is physical -- the
+   adjudication must say which. Reporting rule (standing): every cell table carries
+   all-trials AND pure-planner numbers with fallback fraction beside them -- the
+   exclusion is defensible because both are in print and barely differ.
+
+### Registered before running (2026-08-20): full-cell residual decomposition
+
+One number from disk decides the corridor story's scope. Decompose the full-attitude
+residual rotation vector along B (held window, theta^2-weighted, same machinery):
+- pools HARDER than reduced's 0.494 => sigma story intact; full attitude demands the
+  priced DOF explicitly; PD-full's 0.23 reflects horizon (an orbit vs 1000 s), and the
+  causal claim stays narrow: corridor-priced WITHIN the plan horizon.
+- ISOTROPIC (~1/3) => the full gap is elective equilibrium; the corridor connection was
+  reduced-attitude-specific and Section V says so.
+
+### ADJUDICATED same day (n=94 converged pure-planner): NEITHER branch clean; a third
+### structure, and it names the mechanism
+
+- Along-B fraction median **0.355** (IQR 0.223-0.503) -- at isotropy, NOT 0.494+. The
+  extra full-cell error is not corridor-concentrated. BUT the sigma-gradient PERSISTS
+  (corr -0.36/-0.39; terciles 0.455 -> 0.365 -> 0.235): the wheel still scrubs the
+  along-field COMPONENT where sigma allows. Corridor mechanism present, not the driver.
+- Boresight/roll split (the decisive number): total standing **3.023 deg = boresight
+  3.023 / roll 0.030** (92/94 trials boresight-dominated). The full-attitude planner
+  points the SAME boresight objective 4x worse than the reduced cell while nailing the
+  newly constrained roll DOF to zero.
+- READING: constraining roll removes GEOMETRY-CHOICE FREEDOM -- on the reduced task the
+  optimizer picks the roll that makes MTQ transverse corrections cheapest relative to
+  B; with roll pinned, the effective price of boresight correction rises and the same
+  cost ratio settles at a higher equilibrium. Roll is wheel-direct (cheap) so it is
+  driven to ~0; the MTQ-priced DOFs carry all the residual (marginal-cost
+  equalization). ELECTIVE at bottom, but through effective-price inflation, not a new
+  floor. Sweep implication unchanged (angle arms should move it); the full-task
+  validation case adjudicates transfer. Diagnostics STOP here per the time-box.
 3. Freeze the tuned config (assertion-pinned) and rerun BOTH 1rw planner cells n=100.
    GATES on the rerun: scheduling-rescue count >= 10/11 preserved; no new divergences
    beyond seed-68-class at base rate; fallback fraction stays ~0.
