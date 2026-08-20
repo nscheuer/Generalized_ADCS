@@ -1,0 +1,49 @@
+loaded 100 planner trials (1rw_reduced)
+
+== headline (t = 5554 s) ==
+conv@5deg 96.0%  conv@1deg 53.0%  median 0.99 deg  held-p95 2.42 deg  KNOWLEDGE 0.005 deg
+
+== READ 1: fallback fraction / split ==
+mean_fallback_frac = 0.0
+total plans = 1200, total fallbacks = 0 (budget-kills 0, solve-failures 0, track 0)
+VERDICT: cell IS a planner measurement
+
+== READ 2: RETUNE_PREDICTION preconditions (held window t >= 1000 s) ==
+trials with held-window plan data: 100
+held-window deviation median (across-trial median): 0.011 deg
+held-window along-B energy fraction (median): 0.452 (isotropy 1/3 = 0.333; smoke read 0.451)
+preconditions: along-B > 0.40: True; deviation ~1 deg [0.5, 2.0]: False; low fallback: True
+VERDICT: retune rerun NOT justified -- frozen-half numbers stand
+
+== READ 3: Addendum 3.1 screen validation ==
+planner diverged seeds (> 30 deg): [68]
+frozen flagged set F: [8, 12, 16, 23, 29, 49, 55, 78, 85]
+inside F: []  (0/1)
+
+== READ 4: Addendum 3.2 scheduling rescue (paired seeds) ==
+PD diverged set (documented): [8, 12, 15, 16, 23, 29, 49, 53, 55, 78, 85]
+planner finals on those seeds:
+  seed   8: planner final     0.50 deg  <- RESCUED (PD diverged -> planner converged)
+  seed  12: planner final     1.73 deg  <- RESCUED (PD diverged -> planner converged)
+  seed  15: planner final     0.17 deg  <- RESCUED (PD diverged -> planner converged)
+  seed  16: planner final     0.90 deg  <- RESCUED (PD diverged -> planner converged)
+  seed  23: planner final     0.56 deg  <- RESCUED (PD diverged -> planner converged)
+  seed  29: planner final     0.97 deg  <- RESCUED (PD diverged -> planner converged)
+  seed  49: planner final     2.80 deg  <- RESCUED (PD diverged -> planner converged)
+  seed  53: planner final     0.94 deg  <- RESCUED (PD diverged -> planner converged)
+  seed  55: planner final     3.44 deg  <- RESCUED (PD diverged -> planner converged)
+  seed  78: planner final     8.69 deg
+  seed  85: planner final     2.05 deg  <- RESCUED (PD diverged -> planner converged)
+rescued: 10/11 -> [8, 12, 15, 16, 23, 29, 49, 53, 55, 85]
+outliers 15/53 (registered as second mechanism, predicted NOT rescued by scheduling): 15 -> 0.17, 53 -> 0.94
+NOVEL planner-only divergences (converged under PD): [68]
+  seed 68: final 41.9 deg, h_frac end 0.322 (max 0.856), sigma median 0.565, n_plans 12, dwell(sigma<0.2) 0.1223 (screen flags <= 0.1035)
+
+== READ 5: Addendum 4 (solver-hostile seeds vs F) ==
+W (budget-killed seeds, primary cell) = []
+W is EMPTY: zero budget kills in 100/100 trials under the 300 s hard budget.
+The two 14.5 h wedges of the pre-hardening run DID NOT REPRODUCE on the same
+seeds/configs => the hang is a STOCHASTIC SOLVER EVENT, not a draw property.
+No registered branch fires (table assumed |W| >= 1); adjudication: the overlap
+question is MOOT; report the non-reproduction. Timing histogram (discriminator
+2) comes from cell 2, which runs fully instrumented.

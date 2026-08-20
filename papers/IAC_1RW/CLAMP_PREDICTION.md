@@ -137,3 +137,66 @@ Mechanism asymmetry, registered: F was fit on PD dump-starvation dynamics; W is 
 solver conditioning. An overlap is therefore a MECHANISM claim (the sigma geometry is the
 proposed common cause), not a statistical artifact of refitting -- F was frozen before any
 planner or wedge data existed.
+
+### Registered discriminators (Patrick, 2026-08-20 -- still pre-data), descending weight:
+
+1. **WHICH WINDOW wedges, not just which seed.** A window-0/1 wedge means the hard solve
+   is a property of the INITIAL geometry -- overlap with F is then a direct mechanism
+   claim. A late-window wedge means the solver was handed a state the trajectory had
+   already drifted into -- any overlap with F is then MEDIATED by the trial having gone
+   badly first, and F "predicting" it is nearly circular. Registered: a late-window wedge
+   weakens the overlap claim substantially REGARDLESS of the seed-set arithmetic. (Kill
+   sim-times + window indices logged per event and stored per trial: `budget_kill_t`.)
+2. **W is threshold-dependent in a way F is not.** F is a property of the draw (orbit +
+   goal, computable before flight); W is defined by a 300 s budget against a 500 s window
+   -- at 600 s some wedgers might complete, at 150 s more would appear. Sensitivity check
+   from the solve wall-time distribution (`plan_wall_s_all`, instrumented for every solve
+   attempt; kills are right-censored at the budget): a clean bimodality (wedge class vs
+   everything else) => W robust, threshold incidental; a smooth tail => W is an artifact
+   of where the budget cuts and the overlap question is less well-posed than it looks.
+   Coverage note: ~15 resumed trials predate the timing instrument and lack
+   `plan_wall_s`; the histogram reads from the remainder (~185/200).
+3. **Paper placement if it hits: ONE SENTENCE in the predictability paragraph, not a
+   subsection** -- "the same screen also flags the draws on which the optimizer failed to
+   converge within budget, on n = 2." At that n it is an observation inviting future
+   work; inflating it past a sentence would undercut the discipline that earned it.
+
+## ADJUDICATIONS 2026-08-20 -- planner money cell (1rw_reduced_planner, n=100)
+
+Cell landed with **1200 plans, ZERO fallbacks of any kind** (no budget-kills, no
+solve-failures, no track-fallbacks). Headline: 96%@5deg / 53%@1deg, median 0.99 deg,
+held-p95 2.42 deg, knowledge 0.005 deg. Reads in registered order:
+
+- **Addendum 3.1 (screen validation): FAILS AS WRITTEN, on a novel mode.** Planner
+  divergences = {68} only; 68 is not in F (0/1 inside). Seed 68 is a NOVEL planner-only
+  failure: converged under PD, h never pinned (end 0.32, max 0.86), sigma median 0.565,
+  dwell 0.1223 (above the 0.1035 flag line, beyond the +/-0.0024 LOO band) -- not the
+  dump-starvation mechanism F screens for. 12 plans, 0 fallbacks: every plan "succeeded";
+  the failure is plan quality, n=1, mechanism unassigned. Report as: the screen validated
+  against nothing it was built for (zero dump-starvation divergences occurred to catch)
+  and missed the one novel-mode failure. No credit claimed.
+- **Addendum 3.2 (scheduling rescue): 10 of 11 PD-diverged seeds CONVERGE under the
+  planner** (78 improves >30 -> 8.69 deg, not converged). This includes BOTH outliers 15
+  (0.17 deg) and 53 (0.94 deg), which Addendum 3 PREDICTED would NOT be rescued -- that
+  sub-prediction is WRONG, and the honest reading strengthens Section V: planning rescues
+  more than the geometry mechanism predicts, i.e., rescue is not screen-specific.
+  Combined with ReservedDesatLP (converted 12 and 78): every one of the 11 is reachable
+  by some strategy, and planning dominates reservation 10-vs-2 on paired seeds. The
+  CONOPS-beats-allocation claim is now MEASURED, not argued.
+- **Addendum 4: MOOT -- W is empty.** Zero budget kills in 100/100. The two 14.5 h wedges
+  of the pre-hardening run did not reproduce on identical seeds/configs => the hang is a
+  STOCHASTIC solver event, not a draw property. No registered branch fires. Coverage
+  correction (supersedes the estimate in discriminator 2): ALL 100 cell-1 trials predate
+  the timing instrument (the cell completed faster than estimated); the wall-time
+  histogram comes from cell 2, fully instrumented. Operational note for VI: a
+  nondeterministic hang cannot be screened out pre-flight, which if anything sharpens the
+  case for the process-boundary budget.
+- **RETUNE_PREDICTION preconditions: NOT MET -- the 2-cell retune is NOT invoked** and
+  the frozen-half numbers stand, per the registration. Held-window (t >= 1000 s, n=100):
+  along-B energy fraction 0.452 (smoke read 0.451; isotropy 1/3) -- the fingerprint
+  CONFIRMS in direction. But deviation median is 0.011 deg, not ~1 deg: the smoke's ~1
+  deg was acquisition transient. Tracking is TIGHT; the ~1 deg median final error lives
+  in the PLANS (the optimizer settles ~1 deg from goal), so the corridor-at-tracking
+  story is: even when tracking succeeds to 0.01 deg, the residual still pools along-field
+  at 0.45 -- direction confirmed, magnitude de-fanged. The IV-B fingerprint sentence
+  survives with that caveat attached.

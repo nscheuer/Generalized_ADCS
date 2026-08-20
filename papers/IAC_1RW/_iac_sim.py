@@ -32,6 +32,7 @@ from __future__ import annotations
 import os
 import pickle
 import sys
+import time
 from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
@@ -497,6 +498,15 @@ def simulate(config: Dict[str, Any],
         # (problem hard); track-fallback = find_u failed mid-window. Opposite
         # implications for whether a cell is "a planner measurement" -- separate columns.
         n_budget_kills = n_solve_failures = n_track_fallbacks = 0
+        # Per-solve wall clock, every attempt (killed ones read ~PLAN_TIMEOUT_S,
+        # censored). Addendum 4's threshold-sensitivity check needs the DISTRIBUTION:
+        # bimodal => W robust and the budget incidental; smooth tail => W is an
+        # artifact of where the budget cuts. Kill/failure SIM times localize the
+        # window: an early-window wedge is a property of the initial geometry, a
+        # late-window wedge of a state the trial had already drifted into.
+        plan_wall_s: List[float] = []
+        budget_kill_t: List[float] = []
+        solve_failure_t: List[float] = []
         next_replan = 0.0
         active = controller
         if is_planner:
@@ -613,24 +623,32 @@ def simulate(config: Dict[str, Any],
 
             if is_planner and t >= next_replan:
                 from ADCS.CONOPS.goallist import GoalList
+                _t_solve = time.monotonic()
                 try:
                     traj = _plan_in_child(
                         PLAN_TIMEOUT_S, controller.calculate_trajectory,
                         os_gnc.J2000, PLAN_WINDOW_S + PLAN_OVERLAP_S,
                         np.asarray(x_hat, float).copy()[:len(x)], os_gnc,
                         GoalList({os_gnc.J2000: goal}))
+                    plan_wall_s.append(time.monotonic() - _t_solve)
                     controller.set_active_trajectory(traj)
                     active, n_plans = controller, n_plans + 1
                 except _PlanBudgetKill as e:
+                    plan_wall_s.append(time.monotonic() - _t_solve)
+                    budget_kill_t.append(float(t))
                     active, n_fallbacks = fallback, n_fallbacks + 1
                     n_budget_kills += 1
                     print(f"[seed {config.get('seed', '?')}] PLAN BUDGET-KILL at "
-                          f"t={t:.0f}s: {e}", flush=True)
+                          f"t={t:.0f}s (window {int(t // PLAN_WINDOW_S)}): {e}",
+                          flush=True)
                 except Exception as e:
+                    plan_wall_s.append(time.monotonic() - _t_solve)
+                    solve_failure_t.append(float(t))
                     active, n_fallbacks = fallback, n_fallbacks + 1
                     n_solve_failures += 1
                     print(f"[seed {config.get('seed', '?')}] PLAN SOLVE-FAILURE at "
-                          f"t={t:.0f}s: {type(e).__name__}: {str(e)[:200]}", flush=True)
+                          f"t={t:.0f}s (window {int(t // PLAN_WINDOW_S)}): "
+                          f"{type(e).__name__}: {str(e)[:200]}", flush=True)
                 next_replan = t + PLAN_WINDOW_S
 
             try:
@@ -700,6 +718,8 @@ def simulate(config: Dict[str, Any],
             "n_plans": n_plans, "n_fallbacks": n_fallbacks,
             "n_budget_kills": n_budget_kills, "n_solve_failures": n_solve_failures,
             "n_track_fallbacks": n_track_fallbacks,
+            "plan_wall_s": plan_wall_s, "budget_kill_t": budget_kill_t,
+            "solve_failure_t": solve_failure_t,
             "plan_deviation": plan_dev_hist,
             "plan_dev_alongB": plan_dev_alongB_hist,
             "plan_dev_perpB": plan_dev_perpB_hist,
@@ -816,6 +836,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     pk_omega, damp_ratio, quad_ratio, alpha_lag = [], [], [], []
     fb_frac = []
     fb_split = []
+    plan_wall_all = []
     despin = []
     plan_dev_med, plan_dev_max = [], []
     plan_dev_alongB_energy = []
@@ -897,7 +918,12 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
             fb_split.append({"seed": int(r["config"]["seed"]),
                              "budget_kills": int(r.get("n_budget_kills", 0)),
                              "solve_failures": int(r.get("n_solve_failures", 0)),
-                             "track_fallbacks": int(r.get("n_track_fallbacks", 0))})
+                             "track_fallbacks": int(r.get("n_track_fallbacks", 0)),
+                             "kill_t_s": [float(v) for v in r.get("budget_kill_t", [])],
+                             "failure_t_s": [float(v) for v in r.get("solve_failure_t", [])]})
+        pw = r.get("plan_wall_s")
+        if pw:
+            plan_wall_all.extend(float(v) for v in pw)
 
         om = r.get("omega"); Bm = r.get("B_mag")
         if om is not None and Bm is not None and om[:k].size:
@@ -1108,6 +1134,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         "total_budget_kills": int(sum(d["budget_kills"] for d in fb_split)),
         "total_solve_failures": int(sum(d["solve_failures"] for d in fb_split)),
         "total_track_fallbacks": int(sum(d["track_fallbacks"] for d in fb_split)),
+        "plan_wall_s_all": sorted(plan_wall_all),
         # Plan-vs-executed attitude divergence [deg]: small max + bad final = the PLAN missed;
         # large max = the TRACKER lost it. The discriminator for planner-cell failures.
         "per_trial_plan_dev_median_deg": plan_dev_med,
