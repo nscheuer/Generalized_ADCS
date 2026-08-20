@@ -1,0 +1,1 @@
+EQUIVALENCE FAIL: stock 1.250/1.402 (noise 0.153), decomposed 1.925/1.491 (cross-gap 0.382, limit 0.305); warm final 1.417, n_fb=0

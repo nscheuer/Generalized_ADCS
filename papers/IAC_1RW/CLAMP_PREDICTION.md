@@ -191,6 +191,34 @@ held-p95 2.42 deg, knowledge 0.005 deg. Reads in registered order:
   histogram comes from cell 2, fully instrumented. Operational note for VI: a
   nondeterministic hang cannot be screened out pre-flight, which if anything sharpens the
   case for the process-boundary budget.
+### Addendum 4b (pre-commitment, Patrick, 2026-08-20 -- registered MID-RUN, before cell 2 is read)
+
+Cell 2 (1rw_full_planner) has produced live budget-kills: seed 88 at window 1 (t=500)
+AND window 4 (t=2000) -- the guard's first production firings, trial degrading through
+counted fallbacks as designed. Registered before the cell lands:
+
+1. **Clustering discriminator (cascade vs draw property).** Two kills in one trial's ~12
+   windows is a different claim than two kills at the cell-1-suggested ~2% independent
+   rate. Separator = the INTERMEDIATE windows' solve times (2 and 3 solved -- no kill
+   events -- so the question is their wall time, on disk in plan_wall_s):
+   - windows 2-3 at normal ~50 s => cascade WEAKENED; the draw carries the hardness
+     (screenable in principle; connects the wedge class to the frontier story).
+   - windows 2-3 elevated-but-under-budget => CASCADE signature: a budget overrun
+     begets others through the degraded fallback state. Operationally important --
+     one overrun is not one overrun.
+   Chance baseline computed at read: with k kills over the cell's ~1200 windows,
+   P(>= 2 in one trial | independence) by binomial; report beside the verdict.
+2. **Task-class thread.** Cell 1 (reduced) closed with ZERO kills; the wedged 0rw cells
+   were full-attitude; cell 2 is full-attitude and is producing kills. If cell 2's kill
+   set stays confined to full attitude, Section VI extends the existing sentence from
+   configuration to TASK CLASS: the tasks hardest to compute are the tasks the
+   controllability analysis marks as marginal. Mechanism on hand: full attitude demands
+   rank 3 on a bus that is rank-3 only where sigma > 0, and near-infeasible problems are
+   where AL iteration counts blow up -- solver hostility as another appearance of the
+   same underactuation, not an implementation quirk.
+3. Solve-time histogram (discriminator 2 of Addendum 4) reads from cell 2's full
+   instrumentation; kills are right-censored at 300 s.
+
 - **RETUNE_PREDICTION preconditions: NOT MET -- the 2-cell retune is NOT invoked** and
   the frozen-half numbers stand, per the registration. Held-window (t >= 1000 s, n=100):
   along-B energy fraction 0.452 (smoke read 0.451; isotropy 1/3) -- the fingerprint
