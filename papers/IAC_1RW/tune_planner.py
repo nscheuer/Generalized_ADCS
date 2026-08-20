@@ -193,8 +193,8 @@ CONFIGS = [
 ]
 
 
-def run_one(cfg, tf=T_ORBIT, seed=SEED):
-    config = dict(make_config(seed, n_rw=1, task="reduced", tf=tf, dt=1.0, seed=seed),
+def run_one(cfg, tf=T_ORBIT, seed=SEED, task="reduced"):
+    config = dict(make_config(seed, n_rw=1, task=task, tf=tf, dt=1.0, seed=seed),
                   controller="planner")
     r = simulate(config, make_maker(cfg),
                  disturbances=("gg", "drag", "srp", "dipole", "general"),
@@ -274,15 +274,22 @@ def main():
         for sd in (68, 49, 55, 3):
             for rep in ("A", "B"):
                 jobs.append((dict(name=f"spread_s{sd}{rep}", angle=1e1, angle_N=1e1,
-                                  warm="off", stock=True), sd))
+                                  warm="off", stock=True), sd, "reduced"))
+        # Addendum 4c decisive test: cell 2's killing seeds, FRESH workers, full task.
+        for sd in (88, 94, 97):
+            jobs.append((dict(name=f"kills_s{sd}F", angle=1e1, angle_N=1e1,
+                              warm="off", stock=True), sd, "full"))
         with mp.get_context("fork").Pool(min(8, os.cpu_count() - 4)) as p:
-            rows = p.starmap(run_one, [(c, T_ORBIT, s) for c, s in jobs])
+            rows = p.starmap(run_one, [(c, T_ORBIT, s, tk) for c, s, tk in jobs])
         lines = []
-        for (cfg, sd), r in zip(jobs, rows):
+        for (cfg, sd, tk), r in zip(jobs, rows):
             lines.append(f"{cfg['name']}: final {r['final']:8.3f} deg  "
-                         f"n_plans {r['n_plans']}  n_fb {r['n_fb']}")
-        money = {68: 41.9, 49: 2.80, 55: 3.44, 3: None}
-        lines.append("(money-cell finals for reference: 68=41.9, 49=2.80, 55=3.44)")
+                         f"n_plans {r['n_plans']}  n_fb {r['n_fb']}  "
+                         f"kills {r['kills']}  solve_med {r['solve_med']}  "
+                         f"solve_max {r['solve_max']}")
+        lines.append("(money-cell finals for reference: 68=41.9, 49=2.80, 55=3.44; "
+                     "cell-2 kill seeds 88/94/97 -- clean fresh runs => state/load, "
+                     "reproduced kills => draw/task hardness)")
         txt = "\n".join(lines)
         print(txt)
         with open(os.path.join(OUT, "TUNE_SPREAD.txt"), "w") as f:

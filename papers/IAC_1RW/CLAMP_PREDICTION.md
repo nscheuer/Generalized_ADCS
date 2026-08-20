@@ -219,6 +219,24 @@ counted fallbacks as designed. Registered before the cell lands:
 3. Solve-time histogram (discriminator 2 of Addendum 4) reads from cell 2's full
    instrumentation; kills are right-censored at 300 s.
 
+### Addendum 4c (registered mid-run, after the THIRD killing seed appeared)
+
+Kill set now {88 x3, 97, 94} -- ALL in the last-dispatched cohort (~seeds 75+), ZERO
+kills across the first ~85 trials, and window 4 (t=2000) recurs across three DIFFERENT
+orbits (independent RAAN/phase draws cannot synchronize; shared process state can).
+This raises a RIVAL to both 4b branches: **temporal/state clustering** -- worker-process
+degradation across reused C++ planner objects (the cached-state bug family) or late-run
+machine pressure -- rather than draw geometry or task hardness alone.
+
+Decisive test, wired into the spread run before the cell is read: rerun seeds 88, 94,
+97 FRESH (fresh workers, quiet machine, full-attitude task, frozen config).
+- All three solve cleanly at normal wall times => hostility was STATE/LOAD, not the
+  draw; the task-class thread must weaken to an interaction claim at most (cell 1's
+  late cohort had zero kills, so pure load does not explain cell-2-only -- the honest
+  residual is full-attitude x degraded-state).
+- Kills reproduce on fresh workers => draw/task hardness stands; 4b discriminators
+  adjudicate as registered.
+
 - **RETUNE_PREDICTION preconditions: NOT MET -- the 2-cell retune is NOT invoked** and
   the frozen-half numbers stand, per the registration. Held-window (t >= 1000 s, n=100):
   along-B energy fraction 0.452 (smoke read 0.451; isotropy 1/3) -- the fingerprint
