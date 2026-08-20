@@ -30,6 +30,7 @@ one full orbit from the same run, which halves the cost and makes the two exactl
 from __future__ import annotations
 
 import os
+import pickle
 import sys
 from typing import Any, Callable, Dict, List, Optional
 
@@ -60,7 +61,13 @@ from papers.IAC_1RW._field_error import FieldErrorModel, wrap_os_for_gnc
 #: execute the first 500 only).
 PLAN_WINDOW_S = 500.0
 PLAN_OVERLAP_S = 500.0
-PLAN_TIMEOUT_S = 90.0
+# Hard wall budget per solve, enforced at a PROCESS boundary (see _plan_in_child).
+# 300 s is >5x a typical money-cell solve (~50 s) and 170x under the observed pathology
+# (14.5 h CPU, 2026-08-20): a solve needing more than 5x typical is operationally
+# non-convergent and the designed answer is the fallback controller, counted per trial.
+# (The old value, 90 s, was calibrated under SIGALRM -- which never actually fired inside
+# the C++ solve, so it was never a real budget and never clipped anything.)
+PLAN_TIMEOUT_S = 300.0
 
 
 class _PlanTimeout(Exception):
@@ -96,20 +103,78 @@ def enforce_wheel_envelope(u, h, h_max, n_mtq, n_rw, dt=1.0):
     return u
 
 
-def _with_timeout(seconds, fn, *a, **kw):
-    """SIGALRM backstop -- rare drifted states make the planner grind for minutes."""
-    import signal
+def _plan_in_child(seconds, fn, *a, **kw):
+    """Run a solve in a forked child with a kill-on-overrun wall budget.
 
-    def _handler(signum, frame):
-        raise _PlanTimeout()
+    SIGALRM cannot do this job: Python signals fire only between bytecodes, so a
+    handler never runs while the C++ solver grinds -- the 90 s "timeout" this replaces
+    was inert exactly when it was needed (observed 2026-08-20: 2 of 100 money-cell
+    solves at 14.5 h CPU each, every alarm armed, none fired, pool wedged forever).
+    A process boundary is the only budget the solver cannot ignore: the child solves
+    and ships the picklable result through a pipe; on overrun the parent SIGKILLs it
+    and raises _PlanTimeout, which the call site already converts into a fallback
+    window -- the designed non-convergence path, counted in n_fallbacks.
 
-    old = signal.signal(signal.SIGALRM, _handler)
-    signal.setitimer(signal.ITIMER_REAL, seconds)
+    os.fork (not multiprocessing.Process) because MC workers are daemonic and may not
+    have multiprocessing children; the OS does not care. Child exits via os._exit so
+    it never runs the parent's atexit/finalizers.
+    """
+    import os as _os
+    import select as _select
+    import signal as _signal
+    import struct as _struct
+    import time as _time
+
+    r, w = _os.pipe()
+    pid = _os.fork()
+    if pid == 0:
+        _os.close(r)
+        code = 0
+        try:
+            try:
+                payload = pickle.dumps((True, fn(*a, **kw)),
+                                       protocol=pickle.HIGHEST_PROTOCOL)
+            except BaseException as e:  # noqa: BLE001 -- child must never propagate
+                payload = pickle.dumps((False, f"{type(e).__name__}: {e}"[:2000]))
+            _os.write(w, _struct.pack("!Q", len(payload)))
+            mv = memoryview(payload)
+            while len(mv):
+                mv = mv[_os.write(w, mv[:1 << 16]):]
+        except BaseException:
+            code = 1
+        _os._exit(code)
+
+    _os.close(w)
+    deadline = _time.monotonic() + seconds
+    chunks: list = []
     try:
-        return fn(*a, **kw)
+        while True:
+            remaining = deadline - _time.monotonic()
+            if remaining <= 0.0:
+                raise _PlanTimeout(f"solve exceeded {seconds:.0f} s wall budget")
+            ready, _, _ = _select.select([r], [], [], min(remaining, 1.0))
+            if not ready:
+                continue
+            buf = _os.read(r, 1 << 16)
+            if not buf:
+                break
+            chunks.append(buf)
     finally:
-        signal.setitimer(signal.ITIMER_REAL, 0.0)
-        signal.signal(signal.SIGALRM, old)
+        _os.close(r)
+        if _os.waitpid(pid, _os.WNOHANG)[0] == 0:
+            _os.kill(pid, _signal.SIGKILL)
+            _os.waitpid(pid, 0)
+
+    blob = b"".join(chunks)
+    if len(blob) < 8:
+        raise _PlanTimeout("solve child died without a result")
+    (nbytes,) = _struct.unpack("!Q", blob[:8])
+    if len(blob) - 8 != nbytes:
+        raise _PlanTimeout("solve child sent a truncated result")
+    ok, val = pickle.loads(blob[8:])
+    if not ok:
+        raise _PlanTimeout(f"solve failed in child: {val}")
+    return val
 
 ALT_KM = 400.0
 A_KM = EarthConstants.R_e + ALT_KM
@@ -537,7 +602,7 @@ def simulate(config: Dict[str, Any],
             if is_planner and t >= next_replan:
                 from ADCS.CONOPS.goallist import GoalList
                 try:
-                    traj = _with_timeout(
+                    traj = _plan_in_child(
                         PLAN_TIMEOUT_S, controller.calculate_trajectory,
                         os_gnc.J2000, PLAN_WINDOW_S + PLAN_OVERLAP_S,
                         np.asarray(x_hat, float).copy()[:len(x)], os_gnc,

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import pickle
 import sys
 import time
 from typing import Any, Dict, List
@@ -154,10 +155,29 @@ def make_planner(sat, config):
 MAKERS = {"pd": make_pd, "planner": make_planner}
 
 
+TRIAL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "output_data", "A_trials")
+
+
+def _trial_path(config) -> str:
+    key = f"{config['n_rw']}rw_{config['task']}_{config['controller']}"
+    return os.path.join(TRIAL_DIR, f"{key}_seed{config['seed']:04d}.pkl")
+
+
 def _worker(config):
-    return simulate(config, MAKERS[config["controller"]],
-                    disturbances=("gg", "drag", "srp", "dipole", "general"),
-                    bus_kwargs={"tau_w": 2.0e-3, "h_max": 15.0e-3})
+    r = simulate(config, MAKERS[config["controller"]],
+                 disturbances=("gg", "drag", "srp", "dipole", "general"),
+                 bus_kwargs={"tau_w": 2.0e-3, "h_max": 15.0e-3})
+    # Persist from the WORKER, atomically: a hung or killed pool then costs only the
+    # trials in flight, not the cell. (The wedged 2026-08-20 planner run held 98
+    # finished trials in the parent's memory, unreachable behind 2 stuck solves.)
+    path = _trial_path(config)
+    os.makedirs(TRIAL_DIR, exist_ok=True)
+    tmp = f"{path}.tmp.{os.getpid()}"
+    with open(tmp, "wb") as f:
+        pickle.dump(r, f, protocol=pickle.HIGHEST_PROTOCOL)
+    os.replace(tmp, path)
+    return r
 
 
 def cells_to_run() -> List[Dict[str, Any]]:
@@ -200,10 +220,22 @@ def main() -> int:
                 for rid in range(n_cell)]
         print(f"\n[{key}] running {n_cell} trials...")
         t0 = time.time()
-        runner = MonteCarloRunner(sim_func=_worker,
-                                  config_generator=lambda i, _c=cfgs: _c[i],
-                                  num_runs=len(cfgs))
-        runs = [r for r in runner.run() if r is not None]
+        os.makedirs(TRIAL_DIR, exist_ok=True)
+        todo = [c for c in cfgs if not os.path.exists(_trial_path(c))]
+        if len(todo) < len(cfgs):
+            print(f"  (resume: {len(cfgs) - len(todo)}/{len(cfgs)} trials already on disk)")
+        if todo:
+            runner = MonteCarloRunner(sim_func=_worker,
+                                      config_generator=lambda i, _c=todo: _c[i],
+                                      num_runs=len(todo))
+            list(runner.run())
+        # Disk is the single source of truth: fresh workers just wrote there too.
+        runs = []
+        for c in cfgs:
+            p = _trial_path(c)
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    runs.append(pickle.load(f))
         el = time.time() - t0
 
         per_h = {}
