@@ -1,0 +1,28 @@
+loaded 100 trials (1rw_full_planner)
+
+== headline, both ways (read protection: no blended cell numbers) ==
+ALL TRIALS      : n=100  conv5 70.0%  conv1 15.0%  median 2.32 deg  fallback_frac 0.008333333333333333  kills 10 solve-failures 0
+PURE-PLANNER    : n=97  conv5 72.2%  conv1 15.5%  median 2.23 deg  fallback_frac 0.0  kills 0 solve-failures 0
+kill-affected trials, separately: [88, 94, 97]
+  seed  88: final    7.12 deg, kills 6, plans 6, fb_frac 0.50
+  seed  94: final    5.75 deg, kills 1, plans 11, fb_frac 0.08
+  seed  97: final   36.81 deg, kills 3, plans 9, fb_frac 0.25
+
+== 4b: kill-trial window profiles (walls in s; K = killed ~300) ==
+  seed  88: walls    21   300    17    17   300   300   300   300   300     1     1     2  killed windows [1, 4, 5, 6, 7, 8]
+  seed  94: walls    18    17    19    18   300    10    16     8     4     5     1     4  killed windows [4]
+  seed  97: walls    17    15     8    16   300   300   300     4     4     6     5     5  killed windows [4, 5, 6]
+  (4b separator: killed-trial windows 2-3 normal ~50 s => draw property; elevated => cascade)
+
+== 4c phase row + Addendum 4 discriminator 2: solve-time structure ==
+  median wall by window index (ALL trials):
+  idx:     0     1     2     3     4     5     6     7     8     9    10    11
+  med:  18.7  16.0  13.2  12.0   6.8   6.0   5.0   3.9   4.0   5.1   3.5   3.3
+  histogram (n=1200): p50 6.7  p90 20.8  p99 34.6  >=290s (censored kills) 10
+  bimodality read: fraction in [2x median, 290s] = 0.2883 (near-zero + a censored spike = bimodal wedge class; smooth tail = threshold artifact)
+
+== clustering baseline: 10 kills across ~1200 windows, in 3 trials ==
+  (independence would spread kills ~1/trial; compute exact binomial in the writeup only if the crossover leaves the draw branch alive)
+
+== task-class tally ==
+  reduced cell: 0 kills / 1200 windows. full cell: 10 kills, 3 trials, all in the late-dispatched cohort: True
