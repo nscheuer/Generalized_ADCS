@@ -117,6 +117,31 @@ B carries the 1/4-exponent theory test and must be generated under the same
 configuration the paper reports everywhere else -- one source of truth beats two weeks
 of earlier-but-inconsistent B data; the Sept 14 runway (~25 days) accommodates it.
 
+**Campaign B dependency check (Patrick's catch, verified in code 2026-08-20):**
+B runs on the equalized-torque MTQ-only bus (~32 A m^2), NOT the reference bus, so
+"same config everywhere" applies only to the planner weights. Verified in
+generate_B_equal_torque_planner.py: (a) slew goals are **task="full" /
+Fixed_Attitude_Goal** -- the exact class that wedged the 0rw cells and killed in cell
+2; (b) the file carries its OWN copy of the retired SIGALRM `_with_timeout` (line
+115) -- inert against C++ grinds, so B as written can wedge exactly as the campaign
+did. B-launch requirements, registered now so none is a surprise:
+1. Port B's guard to `_plan_in_child` (hard process-boundary budget; overruns become
+   counted fallback windows).
+2. **Redesign slews to REDUCED attitude**: the 1/4 exponent is rest-to-rest rotation
+   about the field axis and does not require a full-attitude goal. Construction: draw
+   slew axis e PERPENDICULAR to the boresight (project the random axis onto the plane
+   perp b), target = ECI_Goal(b0 rotated by Theta about e) => boresight traversal =
+   Theta exactly; the |e.B| classification is unchanged. Avoids the hostile class and
+   grants the optimizer the roll geometry-freedom the decomposition just quantified.
+3. B's planner weights = the FROZEN REDUCED config at launch (not the stale 1e1/1e5
+   block B currently carries).
+4. **SMOKE GATE before the sweep**: one Theta = 0.5 rad slew on the equalized 3+0 bus,
+   wall-bounded. Completes in reasonable time => campaign safe. Wedges => **flip the
+   order immediately regardless of calendar** -- B then needs design work, not machine
+   time, and the fallback observable is the excursion scaling measured from
+   trajectories rather than converged completion times.
+Reversal triggers now two: tuning pipeline slips > ~5 days, OR the B smoke wedges.
+
 **Framing readiness (registered):** if per-task tuning closes the full-attitude gap,
 Section V's crossover becomes a statement about TUNING EFFORT rather than capability
 -- planner matches feedback on both tasks given per-mode weights -- and the
