@@ -251,13 +251,53 @@ def run_one_pd(kp_mult, seed, task="full"):
     return metrics_row(dict(name=f"pd_kp{kp_mult:g}_s{seed}"), r)
 
 
+_LOCK = os.path.join(OUT, ".tune_lock")
+
+
 def campaign_running():
-    return subprocess.run(["pgrep", "-f", "generate_A_baseline"],
-                          capture_output=True).returncode == 0
+    """One job at a time on this box -- STANDING RULE. Stacked launches caused both
+    incidents (worker-aging artifacts, and a silent memory-pressure kill of the PD
+    check); each cost about half a day. Refuse if the campaign generator is active OR
+    another tune_planner run holds the lockfile (pid-checked; stale locks cleared)."""
+    if subprocess.run(["pgrep", "-f", "generate_A_baseline"],
+                      capture_output=True).returncode == 0:
+        return True
+    if os.path.exists(_LOCK):
+        try:
+            pid = int(open(_LOCK).read().strip())
+            os.kill(pid, 0)
+            return pid != os.getpid()
+        except (ValueError, OSError):
+            os.remove(_LOCK)
+    return False
+
+
+def _acquire_lock():
+    with open(_LOCK, "w") as f:
+        f.write(str(os.getpid()))
+
+
+def _release_lock():
+    try:
+        if int(open(_LOCK).read().strip()) == os.getpid():
+            os.remove(_LOCK)
+    except (ValueError, OSError):
+        pass
 
 
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "--check"
+    if campaign_running():
+        print("REFUSING (one-job rule): another campaign/tuning run is active.")
+        return 2
+    _acquire_lock()
+    try:
+        return _run_mode(mode)
+    finally:
+        _release_lock()
+
+
+def _run_mode(mode):
     if mode == "--check":
         # Equivalence smoke: decomposed-cold vs stock trajOpt, short horizon.
         # The solver is NONDETERMINISTIC (the 14.5 h wedge did not reproduce on identical
@@ -379,31 +419,57 @@ def main():
             f.write(txt + "\n")
         return 0
     if mode == "--validate":
-        # Registered validation of the per-task candidates (TUNE_PREDICTION protocol):
-        # REDUCED candidate (angle 1e2 / angle_N 1e4 / warm-hold) on easy 3, frontier
-        # 55 & 78, ex-divergence 68; FULL candidate (angle 1e3 flat / warm-hold) on
-        # held-out seed 40 (deterministic rule: median-final of the [3,6] band
-        # excluding tuning seed 35); 3+3 sanity deferred to the rerun bus (n_rw=3
-        # needs a different bus build than this helper wires).
+        # Registered validation of the per-task candidates (TUNE_PREDICTION protocol,
+        # amended 2026-08-21):
+        # - REDUCED candidate (angle 1e2 / angle_N 1e4) on easy 3, frontier 55 & 78,
+        #   ex-divergence 68 -- WITH COLD TWINS (warm earn-or-drop needs the contrast:
+        #   one warm sample at 0.58 vs colds 1.20/2.35 is 'not refuted', not 'earned').
+        # - FULL task on held-out seed 40 (median-final rule, band minus tuning seed)
+        #   PLUS the max-sigma member of the same band (sigma-conditional check:
+        #   high-sigma should keep improving at 1e3, low-sigma flatten) -- each at BOTH
+        #   angle 1e2 flat (candidate; h comfortable) and angle 1e3 flat (aggressive
+        #   point: standing h 0.34, 4.4% of orbit above the 0.42 ceiling -- demoted).
+        # - 3+3 sanity deferred to the rerun bus.
         if campaign_running():
             print("REFUSING: campaign A generator still running.")
             return 2
+        import glob as _glob
         import multiprocessing as mp
-        RED = dict(angle=1e2, angle_N=1e4, warm="hold")
-        FUL = dict(angle=1e3, angle_N=1e3, warm="hold")
-        jobs = [(dict(RED, name=f"val_red_s{s}"), T_ORBIT, s, "reduced")
+        band = [8, 44, 25, 92, 48, 3, 91, 40, 79, 70, 67, 34, 89, 85, 28]
+        sig = {}
+        for pth in _glob.glob(os.path.join(OUT, "A_trials",
+                                           "1rw_full_planner_seed*.pkl")):
+            with open(pth, "rb") as f:
+                r = pickle.load(f)
+            sd = int(r["config"]["seed"])
+            if sd in band:
+                sig[sd] = float(np.nanmedian(np.asarray(r["sigma"], float)))
+        s_hi = max(sig, key=sig.get)
+        print(f"sigma-conditional full seeds: 40 (sigma {sig.get(40, float('nan')):.2f}), "
+              f"{s_hi} (max sigma {sig[s_hi]:.2f})")
+        RED = dict(angle=1e2, angle_N=1e4)
+        jobs = [(dict(RED, warm="hold", name=f"val_red_s{s}"), T_ORBIT, s, "reduced")
                 for s in (3, 55, 78, 68)]
-        jobs += [(dict(FUL, name="val_full_s40"), T_ORBIT, 40, "full")]
-        with mp.get_context("fork").Pool(5, maxtasksperchild=1) as p:
+        jobs += [(dict(RED, warm="off", name=f"val_redcold_s{s}"), T_ORBIT, s, "reduced")
+                 for s in (3, 55, 78, 68)]
+        for s in (40, s_hi):
+            jobs += [(dict(angle=1e2, angle_N=1e2, warm="hold",
+                           name=f"val_full2_s{s}"), T_ORBIT, s, "full"),
+                     (dict(angle=1e3, angle_N=1e3, warm="hold",
+                           name=f"val_full3_s{s}"), T_ORBIT, s, "full")]
+        with mp.get_context("fork").Pool(8, maxtasksperchild=1) as p:
             rows = p.starmap(run_one, jobs)
-        lines = []
+        lines = [f"sigma: s40 {sig.get(40, float('nan')):.2f}, s{s_hi} {sig[s_hi]:.2f}"]
         for r in rows:
+            st = r["standing"]
             lines.append(f"{r['name']}: final {r['final']:8.3f}  standing "
-                         f"{r['standing'] if r['standing'] is None else round(r['standing'],3)}  "
+                         f"{st if st is None else round(st, 3)}  "
                          f"h_peak {r['h_peak']:.3f}  kills {r['kills']}  n_fb {r['n_fb']}")
         lines.append("(baselines: s3 0.74 | s55 1.56-2.34 | s78 8.69 | s68 2.90 | "
-                     "s40 cell-2 4.11. Gates: no easy-seed break; 78 improvement; "
-                     "68 stays converged; full case beats 4.11 materially.)")
+                     "s40 cell-2 4.11. Gates: no easy-seed break; 78 improvement; 68 "
+                     "stays converged; full cases beat their cell-2 finals materially; "
+                     "warm earns via warm-vs-cold across the 4 reduced pairs or drops; "
+                     "h_peak watch on full3 arms.)")
         txt = "\n".join(lines)
         print(txt)
         with open(os.path.join(OUT, "TUNE_VALIDATE.txt"), "w") as f:
