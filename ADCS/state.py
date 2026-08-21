@@ -3,9 +3,110 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Mapping
+from typing import Any, ClassVar, Iterable, Literal, Mapping
 
 import numpy as np
+
+
+QuaternionMode = Literal[
+    "quaternion_vector",
+    "rotation_vector",
+    "mrp",
+    "two_mrp",
+    "cayley",
+    "full_quaternion",
+]
+QuaternionOrder = Literal["right", "left"]
+
+
+def _quaternion_mode(value: str) -> QuaternionMode:
+    aliases = {
+        "quat_vec": "quaternion_vector",
+        "rotvec": "rotation_vector",
+        "2mrp": "two_mrp",
+    }
+    value = aliases.get(value, value)
+    allowed = {
+        "quaternion_vector",
+        "rotation_vector",
+        "mrp",
+        "two_mrp",
+        "cayley",
+        "full_quaternion",
+    }
+    if value not in allowed:
+        raise ValueError(
+            f"unsupported quaternion mode {value!r}; expected one of {sorted(allowed)}"
+        )
+    return value  # type: ignore[return-value]
+
+
+def _quaternion_order(value: str) -> QuaternionOrder:
+    if value not in ("right", "left"):
+        raise ValueError(f"quaternion order must be 'right' or 'left', got {value!r}")
+    return value  # type: ignore[return-value]
+
+
+def _unit_quaternion(value: Any, *, name: str = "q") -> np.ndarray:
+    q = _vector(value, name=name, size=4)
+    norm = float(np.linalg.norm(q))
+    if not np.isfinite(norm) or norm == 0.0:
+        raise ValueError(f"{name} must have a finite, non-zero norm")
+    return q / norm
+
+
+def _quat_delta_from_vector(value: Any, mode: str) -> np.ndarray:
+    vector = _vector(value, name="attitude delta", size=3)
+    mode = _quaternion_mode(mode)
+    if mode == "full_quaternion":
+        raise ValueError("full_quaternion uses a four-element additive attitude block")
+    if mode == "quaternion_vector":
+        qv = vector / 2.0
+        qv_norm_sq = float(qv @ qv)
+        if qv_norm_sq > 1.0:
+            raise ValueError("attitude delta exceeds quaternion-vector range (norm > 2)")
+        return np.concatenate(([np.sqrt(max(0.0, 1.0 - qv_norm_sq))], qv))
+
+    from ADCS.helpers.math_helpers import rot_exp, vec3_to_quat
+
+    if mode == "rotation_vector":
+        return rot_exp(vector)
+    helper_mode = {"mrp": 1, "two_mrp": 6, "cayley": 2}[mode]
+    return vec3_to_quat(vector, helper_mode)
+
+
+def _quat_delta_to_vector(value: Any, mode: str, *, shortest: bool) -> np.ndarray:
+    q = _unit_quaternion(value, name="quaternion delta")
+    mode = _quaternion_mode(mode)
+    if mode == "full_quaternion":
+        raise ValueError("full_quaternion does not convert to a three-element attitude vector")
+    if shortest and q[0] < 0.0:
+        q = -q
+    if mode == "quaternion_vector":
+        return 2.0 * q[1:]
+    if mode == "rotation_vector":
+        vector_norm = float(np.linalg.norm(q[1:]))
+        if vector_norm < 1e-15:
+            return 2.0 * q[1:]
+        return (2.0 * np.arctan2(vector_norm, q[0]) / vector_norm) * q[1:]
+
+    from ADCS.helpers.math_helpers import quat_to_vec3
+
+    helper_mode = {"mrp": 1, "two_mrp": 5, "cayley": 2}[mode]
+    return quat_to_vec3(q, helper_mode)
+
+
+def _quaternion_tangent_scale(mode: str) -> float:
+    mode = _quaternion_mode(mode)
+    if mode == "full_quaternion":
+        raise ValueError("full_quaternion has no reduced quaternion tangent scale")
+    return {
+        "quaternion_vector": 0.5,
+        "rotation_vector": 0.5,
+        "mrp": 2.0,
+        "two_mrp": 1.0,
+        "cayley": 1.0,
+    }[mode]
 
 
 def _vector(value: Any, *, name: str, size: int | None = None) -> np.ndarray:
@@ -38,6 +139,9 @@ class State:
     q: np.ndarray
     h: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
 
+    DEFAULT_QUATERNION_MODE: ClassVar[QuaternionMode] = "quaternion_vector"
+    DEFAULT_QUATERNION_ORDER: ClassVar[QuaternionOrder] = "right"
+
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "w":
             value = _vector(value, name=name, size=3)
@@ -67,6 +171,21 @@ class State:
     def as_array(self) -> np.ndarray:
         """Return an owned physical-state vector in ``[w, q, h]`` ordering."""
         return np.concatenate((self.w, self.q, self.h))
+
+    @property
+    def full_size(self) -> int:
+        """Number of stored scalar state elements, including all four quaternion elements."""
+        return 7 + self.h.size
+
+    @property
+    def tangent_size(self) -> int:
+        """Dimension of the local state coordinates, with three attitude elements."""
+        return self.full_size - 1
+
+    @property
+    def error_size(self) -> int:
+        """Alias for :attr:`tangent_size` used by error-state estimators."""
+        return self.tangent_size
 
     def copy(self) -> State:
         result = object.__new__(State)
@@ -102,44 +221,256 @@ class State:
             h=(1.0 - alpha) * self.h + alpha * other.h,
         )
 
-    def subtract(self, ref: State) -> np.ndarray:
-        """Manifold difference ``self ⊖ ref`` as a reduced error vector.
+    @staticmethod
+    def quaternion_delta_from_vector(
+        value: Any,
+        *,
+        mode: str = DEFAULT_QUATERNION_MODE,
+    ) -> np.ndarray:
+        """Convert three local attitude coordinates into a unit quaternion delta."""
+        return _quat_delta_from_vector(value, mode)
 
-        Returns ``[w - w_ref, 2·vec(q_ref⁻¹ ⊗ q), h - h_ref]`` (length
-        ``6 + n_rw``), with the error quaternion sign-corrected to the shortest
-        rotation so the attitude block is exactly inverted by
-        :meth:`add_error`. Note this is the plain quaternion-vector convention,
-        not the 2×MRP convention used by the TVLQR tracker.
+    @staticmethod
+    def quaternion_delta_to_vector(
+        value: Any,
+        *,
+        mode: str = DEFAULT_QUATERNION_MODE,
+        shortest: bool = True,
+    ) -> np.ndarray:
+        """Convert a quaternion delta into three local attitude coordinates."""
+        return _quat_delta_to_vector(value, mode, shortest=shortest)
+
+    def aligned_quaternion(self, reference: Any) -> np.ndarray:
+        """Return this state's unit quaternion with the sign nearest ``reference``."""
+        q = _unit_quaternion(self.q)
+        ref = _unit_quaternion(reference, name="reference quaternion")
+        return -q if float(q @ ref) < 0.0 else q
+
+    def with_quaternion_delta(
+        self,
+        delta_q: Any,
+        *,
+        order: str = DEFAULT_QUATERNION_ORDER,
+        normalize: bool = True,
+    ) -> State:
+        """Return a copy with a quaternion delta composed on the right or left."""
+        order = _quaternion_order(order)
+        delta_q = _unit_quaternion(delta_q, name="quaternion delta")
+        from ADCS.helpers.math_helpers import quat_mult
+
+        q = quat_mult(self.q, delta_q) if order == "right" else quat_mult(delta_q, self.q)
+        if normalize:
+            q = _unit_quaternion(q)
+        result = self.copy()
+        result.q = q
+        return result
+
+    def minus(
+        self,
+        ref: State,
+        *,
+        quaternion_mode: str = DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = DEFAULT_QUATERNION_ORDER,
+        shortest: bool = True,
+    ) -> np.ndarray:
+        """Return ``self ⊖ ref`` in reduced local coordinates.
+
+        Right errors satisfy ``self.q = ref.q ⊗ dq``; left errors satisfy
+        ``self.q = dq ⊗ ref.q``. Other state blocks subtract linearly.
         """
         if not isinstance(ref, State):
             raise TypeError(f"ref must be a State, got {type(ref).__name__}")
         if self.h.size != ref.h.size:
             raise ValueError("states must have the same number of reaction-wheel states")
+        quaternion_mode = _quaternion_mode(quaternion_mode)
+        if quaternion_mode == "full_quaternion":
+            q = self.aligned_quaternion(ref.q) if shortest else _unit_quaternion(self.q)
+            return np.concatenate((self.w - ref.w, q - ref.q, self.h - ref.h))
         from ADCS.helpers.math_helpers import quat_inv, quat_mult
 
-        dq = quat_mult(quat_inv(ref.q), self.q)
-        dq = dq / np.linalg.norm(dq)
-        if dq[0] < 0.0:
-            dq = -dq
-        return np.concatenate((self.w - ref.w, 2.0 * dq[1:], self.h - ref.h))
+        order = _quaternion_order(quaternion_order)
+        if order == "right":
+            dq = quat_mult(quat_inv(ref.q), self.q)
+        else:
+            dq = quat_mult(self.q, quat_inv(ref.q))
+        attitude = _quat_delta_to_vector(dq, quaternion_mode, shortest=shortest)
+        return np.concatenate((self.w - ref.w, attitude, self.h - ref.h))
+
+    def plus(
+        self,
+        delta: Any,
+        *,
+        quaternion_mode: str = DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = DEFAULT_QUATERNION_ORDER,
+        normalize: bool = True,
+    ) -> State:
+        """Apply a local perturbation and return a new state.
+
+        ``full_quaternion`` uses additive four-element quaternion coordinates
+        followed by optional normalization. Other modes are multiplicative and
+        use three attitude coordinates.
+        """
+        quaternion_mode = _quaternion_mode(quaternion_mode)
+        if quaternion_mode == "full_quaternion":
+            delta = _vector(delta, name="delta", size=self.full_size)
+            result = self.copy()
+            result.w = self.w + delta[:3]
+            q = self.q + delta[3:7]
+            result.q = _unit_quaternion(q) if normalize else q
+            result.h = self.h + delta[7:]
+            return result
+        delta = _vector(delta, name="delta", size=self.tangent_size)
+        dq = _quat_delta_from_vector(delta[3:6], quaternion_mode)
+        result = self.with_quaternion_delta(dq, order=quaternion_order, normalize=normalize)
+        result.w = self.w + delta[:3]
+        result.h = self.h + delta[6:]
+        return result
+
+    def retract(self, delta: Any, **kwargs: Any) -> State:
+        """Semantic alias for :meth:`plus`."""
+        return self.plus(delta, **kwargs)
+
+    def local_coordinates(self, ref: State, **kwargs: Any) -> np.ndarray:
+        """Semantic alias for :meth:`minus`."""
+        return self.minus(ref, **kwargs)
+
+    def subtract(self, ref: State) -> np.ndarray:
+        """Compatibility wrapper for the default :meth:`minus` convention."""
+        return self.minus(ref)
 
     def add_error(self, delta: np.ndarray) -> State:
-        """Apply a reduced error vector (the inverse of :meth:`subtract`).
+        """Compatibility wrapper for the default :meth:`plus` convention."""
+        return self.plus(delta)
 
-        ``delta`` is ``[δw, δθ, δh]`` of length ``6 + n_rw``; the attitude block
-        ``δθ = 2·vec(dq)`` is retracted onto the quaternion manifold via
-        ``q ⊗ dq`` with ``dq = [√(1−|δθ/2|²), δθ/2]``.
-        """
-        delta = _vector(delta, name="delta", size=6 + self.h.size)
-        v = delta[3:6] / 2.0
-        vv = float(v @ v)
-        if vv > 1.0:
-            raise ValueError("attitude error block exceeds the unit-quaternion range (|δθ| > 2)")
-        dq = np.concatenate(([np.sqrt(1.0 - vv)], v))
-        from ADCS.helpers.math_helpers import quat_mult
+    def tangent_map(
+        self,
+        *,
+        quaternion_mode: str = DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = DEFAULT_QUATERNION_ORDER,
+    ) -> np.ndarray:
+        """Map local state differentials into full quaternion-state differentials."""
+        quaternion_mode = _quaternion_mode(quaternion_mode)
+        if quaternion_mode == "full_quaternion":
+            return self.normalization_jacobian()
+        order = _quaternion_order(quaternion_order)
+        q = _unit_quaternion(self.q)
+        q0, qv = q[0], q[1:]
+        cross = np.array(
+            [[0.0, -qv[2], qv[1]], [qv[2], 0.0, -qv[0]], [-qv[1], qv[0], 0.0]]
+        )
+        sign = 1.0 if order == "right" else -1.0
+        quaternion_block = _quaternion_tangent_scale(quaternion_mode) * np.vstack(
+            (-qv, q0 * np.eye(3) + sign * cross)
+        )
+        result = np.zeros((self.full_size, self.tangent_size), dtype=float)
+        result[:3, :3] = np.eye(3)
+        result[3:7, 3:6] = quaternion_block
+        result[7:, 6:] = np.eye(self.full_size - 7)
+        return result
 
-        q = quat_mult(self.q, dq)
-        return State(w=self.w + delta[:3], q=q / np.linalg.norm(q), h=self.h + delta[6:])
+    def tangent_pinv(
+        self,
+        *,
+        quaternion_mode: str = DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = DEFAULT_QUATERNION_ORDER,
+    ) -> np.ndarray:
+        """Analytical Moore-Penrose inverse of :meth:`tangent_map`."""
+        quaternion_mode = _quaternion_mode(quaternion_mode)
+        if quaternion_mode == "full_quaternion":
+            return np.linalg.pinv(self.normalization_jacobian())
+        tangent = self.tangent_map(
+            quaternion_mode=quaternion_mode,
+            quaternion_order=quaternion_order,
+        )
+        scale = _quaternion_tangent_scale(quaternion_mode)
+        result = tangent.T.copy()
+        result[3:6, 3:7] /= scale**2
+        return result
+
+    def normalization_jacobian(self) -> np.ndarray:
+        """Jacobian for normalizing this state's full quaternion block."""
+        q = self.q
+        norm = float(np.linalg.norm(q))
+        if not np.isfinite(norm) or norm == 0.0:
+            raise ValueError("q must have a finite, non-zero norm")
+        result = np.eye(self.full_size)
+        result[3:7, 3:7] = np.eye(4) / norm - np.outer(q, q) / norm**3
+        return result
+
+    def is_close(self, other: State, *, rtol: float = 1e-5, atol: float = 1e-8) -> bool:
+        """Compare physical states while treating ``q`` and ``-q`` as equivalent."""
+        if not isinstance(other, State) or self.h.size != other.h.size:
+            return False
+        try:
+            self_q = _unit_quaternion(self.q)
+            other_q = _unit_quaternion(other.q)
+        except ValueError:
+            return False
+        return bool(
+            np.allclose(self.w, other.w, rtol=rtol, atol=atol)
+            and np.allclose(self.h, other.h, rtol=rtol, atol=atol)
+            and (
+                np.allclose(self_q, other_q, rtol=rtol, atol=atol)
+                or np.allclose(self_q, -other_q, rtol=rtol, atol=atol)
+            )
+        )
+
+    @classmethod
+    def mean(
+        cls,
+        states: Iterable[State],
+        weights: Any = None,
+        *,
+        reference: State | None = None,
+        quaternion_mode: str = DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = DEFAULT_QUATERNION_ORDER,
+        tolerance: float = 1e-12,
+        max_iterations: int = 50,
+    ) -> State:
+        """Compute an iterative weighted mean in the state's local coordinates."""
+        values = list(states)
+        if not values:
+            raise ValueError("states must not be empty")
+        if any(type(value) is not cls for value in values):
+            raise TypeError(f"all states must be {cls.__name__} objects")
+        if any(value.h.size != values[0].h.size for value in values):
+            raise ValueError("states must have the same number of reaction-wheel states")
+        if weights is None:
+            weight_array = np.full(len(values), 1.0 / len(values))
+        else:
+            weight_array = _vector(weights, name="weights", size=len(values))
+            total = float(np.sum(weight_array))
+            if not np.isfinite(total) or abs(total) < np.finfo(float).eps:
+                raise ValueError("weights must have a finite, non-zero sum")
+            weight_array = weight_array / total
+        current = values[0].copy() if reference is None else reference.copy()
+        if type(current) is not cls:
+            raise TypeError(f"reference must be a {cls.__name__}")
+        local_size = (
+            current.full_size
+            if _quaternion_mode(quaternion_mode) == "full_quaternion"
+            else current.tangent_size
+        )
+        for _ in range(max_iterations):
+            step = sum(
+                (
+                    weight * value.minus(
+                        current,
+                        quaternion_mode=quaternion_mode,
+                        quaternion_order=quaternion_order,
+                    )
+                    for value, weight in zip(values, weight_array)
+                ),
+                np.zeros(local_size),
+            )
+            current = current.plus(
+                step,
+                quaternion_mode=quaternion_mode,
+                quaternion_order=quaternion_order,
+            )
+            if float(np.linalg.norm(step)) <= tolerance:
+                return current
+        raise RuntimeError(f"state mean did not converge within {max_iterations} iterations")
 
     def to_dict(self) -> dict[str, Any]:
         return {"w": self.w.tolist(), "q": self.q.tolist(), "h": self.h.tolist()}
@@ -299,6 +630,14 @@ class EstimatorState(State):
         return 7 + self.h.size + self.act_bias.size + self.sens_bias.size + self.dist_param.size
 
     @property
+    def full_size(self) -> int:
+        return self.augmented_size
+
+    @property
+    def tangent_size(self) -> int:
+        return self.augmented_size - 1
+
+    @property
     def uses_reduced_quaternion_covariance(self) -> bool:
         return self.cov.shape == (self.augmented_size - 1, self.augmented_size - 1)
 
@@ -398,19 +737,27 @@ class EstimatorState(State):
             int_cov=lerp(self.int_cov, other.int_cov),
         )
 
-    def subtract(self, ref: State) -> np.ndarray:
-        """Manifold difference including bias/disturbance blocks.
-
-        Returns ``[δw, 2·vec(q_ref⁻¹ ⊗ q), δh, δact_bias, δsens_bias,
-        δdist_param]`` (length ``augmented_size − 1``); exact inverse of
-        :meth:`add_error`.
-        """
+    def minus(
+        self,
+        ref: State,
+        *,
+        quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = State.DEFAULT_QUATERNION_ORDER,
+        shortest: bool = True,
+    ) -> np.ndarray:
+        """Return the augmented-state difference in reduced local coordinates."""
         if not isinstance(ref, EstimatorState):
             raise TypeError(f"ref must be an EstimatorState, got {type(ref).__name__}")
         for name in ("act_bias", "sens_bias", "dist_param"):
             if getattr(self, name).size != getattr(ref, name).size:
                 raise ValueError(f"states must have matching {name} sizes to subtract")
-        base = State.subtract(self, ref)
+        base = State.minus(
+            self,
+            ref,
+            quaternion_mode=quaternion_mode,
+            quaternion_order=quaternion_order,
+            shortest=shortest,
+        )
         return np.concatenate(
             (
                 base,
@@ -420,24 +767,141 @@ class EstimatorState(State):
             )
         )
 
-    def add_error(self, delta: np.ndarray) -> EstimatorState:
-        """Apply a reduced error vector of length ``augmented_size − 1``.
-
-        The attitude block is retracted as in :meth:`State.add_error`; all
-        other blocks add linearly. Covariances are carried over unchanged.
-        """
-        delta = _vector(delta, name="delta", size=self.augmented_size - 1)
-        base = State.add_error(self, delta[: 6 + self.h.size])
+    def plus(
+        self,
+        delta: Any,
+        *,
+        quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = State.DEFAULT_QUATERNION_ORDER,
+        normalize: bool = True,
+    ) -> EstimatorState:
+        """Apply a perturbation to physical and estimated parameter blocks."""
+        quaternion_mode = _quaternion_mode(quaternion_mode)
+        if quaternion_mode == "full_quaternion":
+            delta = _vector(delta, name="delta", size=self.full_size)
+            result = self.copy()
+            result.w = self.w + delta[:3]
+            q = self.q + delta[3:7]
+            result.q = _unit_quaternion(q) if normalize else q
+            i = 7
+            result.h = self.h + delta[i : i + self.h.size]
+            i += self.h.size
+            result.act_bias = self.act_bias + delta[i : i + self.act_bias.size]
+            i += self.act_bias.size
+            result.sens_bias = self.sens_bias + delta[i : i + self.sens_bias.size]
+            i += self.sens_bias.size
+            result.dist_param = self.dist_param + delta[i:]
+            return result
+        delta = _vector(delta, name="delta", size=self.tangent_size)
+        dq = _quat_delta_from_vector(delta[3:6], quaternion_mode)
         i = 6 + self.h.size
-        result = self.copy()
-        result.w = base.w
-        result.q = base.q
-        result.h = base.h
+        result = self.with_quaternion_delta(
+            dq,
+            order=quaternion_order,
+            normalize=normalize,
+        )
+        result.w = self.w + delta[:3]
+        result.h = self.h + delta[6:i]
         result.act_bias = self.act_bias + delta[i : i + self.act_bias.size]
         i += self.act_bias.size
         result.sens_bias = self.sens_bias + delta[i : i + self.sens_bias.size]
         i += self.sens_bias.size
         result.dist_param = self.dist_param + delta[i:]
+        return result
+
+    def subtract(self, ref: State) -> np.ndarray:
+        """Compatibility wrapper for the default :meth:`minus` convention."""
+        return self.minus(ref)
+
+    def add_error(self, delta: np.ndarray) -> EstimatorState:
+        """Compatibility wrapper for the default :meth:`plus` convention."""
+        return self.plus(delta)
+
+    def is_close(
+        self,
+        other: State,
+        *,
+        rtol: float = 1e-5,
+        atol: float = 1e-8,
+        compare_covariance: bool = False,
+    ) -> bool:
+        """Compare augmented states, optionally including covariance matrices."""
+        if not isinstance(other, EstimatorState) or not State.is_close(
+            self, other, rtol=rtol, atol=atol
+        ):
+            return False
+        blocks_close = all(
+            getattr(self, name).shape == getattr(other, name).shape
+            and np.allclose(getattr(self, name), getattr(other, name), rtol=rtol, atol=atol)
+            for name in ("act_bias", "sens_bias", "dist_param")
+        )
+        if not blocks_close or not compare_covariance:
+            return blocks_close
+        return bool(
+            self.cov.shape == other.cov.shape
+            and self.int_cov.shape == other.int_cov.shape
+            and np.allclose(self.cov, other.cov, rtol=rtol, atol=atol)
+            and np.allclose(self.int_cov, other.int_cov, rtol=rtol, atol=atol)
+        )
+
+    def covariance_to_full(self, covariance: Any = None, **tangent_kwargs: Any) -> np.ndarray:
+        """Project a reduced covariance into full quaternion coordinates."""
+        mode = tangent_kwargs.get("quaternion_mode", self.DEFAULT_QUATERNION_MODE)
+        if _quaternion_mode(mode) == "full_quaternion":
+            raise ValueError("covariance_to_full requires a reduced quaternion mode")
+        source = self.cov if covariance is None else np.asarray(covariance, dtype=float)
+        expected = (self.tangent_size, self.tangent_size)
+        if source.shape != expected:
+            raise ValueError(f"reduced covariance must have shape {expected}, got {source.shape}")
+        tangent = self.tangent_map(**tangent_kwargs)
+        result = tangent @ source @ tangent.T
+        return (result + result.T) / 2.0
+
+    def covariance_to_reduced(self, covariance: Any = None, **tangent_kwargs: Any) -> np.ndarray:
+        """Project a full-quaternion covariance into reduced local coordinates."""
+        mode = tangent_kwargs.get("quaternion_mode", self.DEFAULT_QUATERNION_MODE)
+        if _quaternion_mode(mode) == "full_quaternion":
+            raise ValueError("covariance_to_reduced requires a reduced quaternion mode")
+        source = self.cov if covariance is None else np.asarray(covariance, dtype=float)
+        expected = (self.full_size, self.full_size)
+        if source.shape != expected:
+            raise ValueError(f"full covariance must have shape {expected}, got {source.shape}")
+        tangent_pinv = self.tangent_pinv(**tangent_kwargs)
+        result = tangent_pinv @ source @ tangent_pinv.T
+        return (result + result.T) / 2.0
+
+    @classmethod
+    def mean(
+        cls,
+        states: Iterable[EstimatorState],
+        weights: Any = None,
+        *,
+        reference: EstimatorState | None = None,
+        covariance: Literal["reference", "weighted"] = "reference",
+        **kwargs: Any,
+    ) -> EstimatorState:
+        """Compute an augmented-state mean with an explicit covariance policy."""
+        values = list(states)
+        result = State.mean.__func__(cls, values, weights, reference=reference, **kwargs)
+        if covariance == "reference":
+            return result
+        if covariance != "weighted":
+            raise ValueError("covariance must be 'reference' or 'weighted'")
+        if any(value.cov.shape != values[0].cov.shape for value in values):
+            raise ValueError("states must use matching covariance shapes")
+        if weights is None:
+            weight_array = np.full(len(values), 1.0 / len(values))
+        else:
+            weight_array = _vector(weights, name="weights", size=len(values))
+            weight_array = weight_array / np.sum(weight_array)
+        result.cov = sum(
+            (weight * value.cov for value, weight in zip(values, weight_array)),
+            np.zeros_like(values[0].cov),
+        )
+        result.int_cov = sum(
+            (weight * value.int_cov for value, weight in zip(values, weight_array)),
+            np.zeros_like(values[0].int_cov),
+        )
         return result
 
     def to_dict(self) -> dict[str, Any]:
