@@ -378,7 +378,38 @@ def main():
         with open(os.path.join(OUT, "TUNE_PDCHECK_FULL.txt"), "w") as f:
             f.write(txt + "\n")
         return 0
-    print("usage: tune_planner.py --check | --sweep | --sweepfull | --pdcheck | --spread")
+    if mode == "--validate":
+        # Registered validation of the per-task candidates (TUNE_PREDICTION protocol):
+        # REDUCED candidate (angle 1e2 / angle_N 1e4 / warm-hold) on easy 3, frontier
+        # 55 & 78, ex-divergence 68; FULL candidate (angle 1e3 flat / warm-hold) on
+        # held-out seed 40 (deterministic rule: median-final of the [3,6] band
+        # excluding tuning seed 35); 3+3 sanity deferred to the rerun bus (n_rw=3
+        # needs a different bus build than this helper wires).
+        if campaign_running():
+            print("REFUSING: campaign A generator still running.")
+            return 2
+        import multiprocessing as mp
+        RED = dict(angle=1e2, angle_N=1e4, warm="hold")
+        FUL = dict(angle=1e3, angle_N=1e3, warm="hold")
+        jobs = [(dict(RED, name=f"val_red_s{s}"), T_ORBIT, s, "reduced")
+                for s in (3, 55, 78, 68)]
+        jobs += [(dict(FUL, name="val_full_s40"), T_ORBIT, 40, "full")]
+        with mp.get_context("fork").Pool(5, maxtasksperchild=1) as p:
+            rows = p.starmap(run_one, jobs)
+        lines = []
+        for r in rows:
+            lines.append(f"{r['name']}: final {r['final']:8.3f}  standing "
+                         f"{r['standing'] if r['standing'] is None else round(r['standing'],3)}  "
+                         f"h_peak {r['h_peak']:.3f}  kills {r['kills']}  n_fb {r['n_fb']}")
+        lines.append("(baselines: s3 0.74 | s55 1.56-2.34 | s78 8.69 | s68 2.90 | "
+                     "s40 cell-2 4.11. Gates: no easy-seed break; 78 improvement; "
+                     "68 stays converged; full case beats 4.11 materially.)")
+        txt = "\n".join(lines)
+        print(txt)
+        with open(os.path.join(OUT, "TUNE_VALIDATE.txt"), "w") as f:
+            f.write(txt + "\n")
+        return 0
+    print("usage: tune_planner.py --check | --sweep | --sweepfull | --pdcheck | --spread | --validate")
     return 2
 
 

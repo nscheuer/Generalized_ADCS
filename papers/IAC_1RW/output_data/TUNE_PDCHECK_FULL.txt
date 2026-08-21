@@ -1,0 +1,9 @@
+pd_kp0.5_s5: final    0.942  standing    1.072
+pd_kp0.5_s11: final   50.935  standing  115.028
+pd_kp0.5_s17: final    0.417  standing    0.276
+pd_kp1_s5: final    0.477  standing    0.538
+pd_kp1_s11: final    1.317  standing    2.798
+pd_kp1_s17: final    0.205  standing    0.140
+pd_kp2_s5: final    0.395  standing    0.314
+pd_kp2_s11: final   99.882  standing   18.450
+pd_kp2_s17: final    0.107  standing    0.063
