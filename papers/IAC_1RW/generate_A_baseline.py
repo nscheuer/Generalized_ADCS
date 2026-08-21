@@ -225,9 +225,13 @@ def main() -> int:
         if len(todo) < len(cfgs):
             print(f"  (resume: {len(cfgs) - len(todo)}/{len(cfgs)} trials already on disk)")
         if todo:
+            # max_tasks_per_child=1: fresh worker per trial. Aged workers degrade the
+            # C++ solver (2 s -> 300 s wall-kills on previously-clean draws; crossover
+            # 2026-08-21) -- recycling removes the mechanism by construction.
             runner = MonteCarloRunner(sim_func=_worker,
                                       config_generator=lambda i, _c=todo: _c[i],
-                                      num_runs=len(todo))
+                                      num_runs=len(todo),
+                                      max_tasks_per_child=1)
             list(runner.run())
         # Disk is the single source of truth: fresh workers just wrote there too.
         runs = []

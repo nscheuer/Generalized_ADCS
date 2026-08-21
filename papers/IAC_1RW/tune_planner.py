@@ -307,7 +307,7 @@ def main():
         for sd in (5, 11, 17):
             jobs.append((dict(name=f"probe_s{sd}F", angle=1e1, angle_N=1e1,
                               warm="off", stock=True), sd, "full"))
-        with mp.get_context("fork").Pool(6) as p:
+        with mp.get_context("fork").Pool(6, maxtasksperchild=1) as p:
             rows = p.starmap(run_one, [(c, T_ORBIT, s, tk) for c, s, tk in jobs])
         lines = []
         for (cfg, sd, tk), r in zip(jobs, rows):
@@ -347,7 +347,8 @@ def main():
             print("REFUSING: campaign A generator still running.")
             return 2
         import multiprocessing as mp
-        with mp.get_context("fork").Pool(min(12, os.cpu_count() - 4)) as p:
+        with mp.get_context("fork").Pool(min(12, os.cpu_count() - 4),
+                                         maxtasksperchild=1) as p:
             rows = p.starmap(run_one, [(c, T_ORBIT, FULL_SEED, "full")
                                        for c in CONFIGS])
         hdr = ["name", "final", "standing", "jolt", "conv1_5400", "h_peak",
@@ -367,7 +368,8 @@ def main():
             return 2
         import multiprocessing as mp
         jobs = [(m, s) for m in (0.5, 1.0, 2.0) for s in (5, 11, 17)]
-        with mp.get_context("fork").Pool(min(9, os.cpu_count() - 4)) as p:
+        with mp.get_context("fork").Pool(min(9, os.cpu_count() - 4),
+                                         maxtasksperchild=1) as p:
             rows = p.starmap(run_one_pd, jobs)
         lines = [f"{r['name']}: final {r['final']:8.3f}  standing {r['standing']:8.3f}"
                  for r in rows]

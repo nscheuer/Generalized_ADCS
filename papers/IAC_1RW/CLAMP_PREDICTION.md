@@ -268,6 +268,36 @@ are partly flying PD (each killed window degrades to fallback). The cell read re
 the headline BOTH ways -- all trials, and pure-planner with kill-affected trials
 excluded and listed separately. No blended cell numbers.
 
+### Addendum 4c ADJUDICATED (2026-08-21, crossover): WORKER AGING, indicted both ways
+
+- Arm 1 (kill-seeds fresh): 88/94/97 ran CLEAN -- 0 kills, solve medians 1.6-6.2 s,
+  max <= 12 s, against 300 s+ killed windows in the cell. Hostility did not travel
+  with the draws. Fresh outcomes: 88 -> 9.75 deg (a genuinely hard POINTING draw,
+  unrelated to kills), 94 -> 0.55, 97 -> 3.69 -- corroborating the pure-planner
+  exclusion.
+- Arm 2 (early-cohort probes on the aged pool): seed 5 -- clean in cell position ~5 --
+  hit **7 kills of 12 windows** (solve_med ~300 s, final 91.9 deg on fallbacks);
+  seed 17 elevated sub-critical (med 14.7, max 50.2 vs ~2-6 baseline); seed 11 mildly
+  elevated (max 30.5). Previously-clean draws fail on aged workers.
+- VERDICT per the registered branch: **STATE/LOAD -- worker-process aging degrades the
+  solver** (2 s -> 300 s+ within a few trials of reuse). Task-class thread reduces to
+  the registered interaction residual: the aged-pool reduced fillers stayed clean while
+  full-attitude probes killed => full-attitude x aged-state. Paper gets the registered
+  one-clause sentence ("traced to test-harness resource pressure rather than the
+  problem instances"). PR #91 gains the finding: the solver library accumulates
+  process-level state across object lifetimes; mitigation = worker recycling or a
+  state audit. Harness rule adopted everywhere (MonteCarloRunner
+  max_tasks_per_child=1, tuning pools maxtasksperchild=1): the registered rerun runs
+  on fresh-worker-per-trial by construction.
+- **Seed 68 non-reproduction (bonus, spread pairs): 2.901 deg BOTH fresh runs** (and
+  seeds 3/68 pairs bitwise-identical while 49/55 spread 0.17/0.78 deg). The reduced
+  cell's lone divergence (41.9 deg as-run) did not reproduce -- reclassified as a
+  harness-state-era tail event; cell statistics stand AS MEASURED with this caveat on
+  the individual-seed sentence. Sharpens Addendum 4's earlier "stochastic solver
+  event": the nondeterminism is STATE-DEPENDENT, not intrinsic -- fresh workers are
+  largely deterministic.
+- STOP RULE honored: no further root-cause work; crossover is the last word.
+
 - **RETUNE_PREDICTION preconditions: NOT MET -- the 2-cell retune is NOT invoked** and
   the frozen-half numbers stand, per the registration. Held-window (t >= 1000 s, n=100):
   along-B energy fraction 0.452 (smoke read 0.451; isotropy 1/3) -- the fingerprint

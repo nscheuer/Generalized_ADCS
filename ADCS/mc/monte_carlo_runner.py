@@ -182,15 +182,21 @@ class MonteCarloRunner:
     :type max_workers: int
 
     """
-    def __init__(self, 
-                 sim_func: Callable[[Dict[str, Any]], Dict[str, Any]], 
-                 config_generator: Callable[[int], Dict[str, Any]], 
-                 num_runs: int, 
-                 max_workers: int = None):
+    def __init__(self,
+                 sim_func: Callable[[Dict[str, Any]], Dict[str, Any]],
+                 config_generator: Callable[[int], Dict[str, Any]],
+                 num_runs: int,
+                 max_workers: int = None,
+                 max_tasks_per_child: int = None):
         self.sim_func = sim_func
         self.config_generator = config_generator
         self.num_runs = num_runs
         self.max_workers = max_workers if max_workers else multiprocessing.cpu_count()
+        # Worker recycling. Long-lived workers accumulate process-level solver state:
+        # measured 2026-08-21, solves on aged workers degrade from ~2 s to wall-budget
+        # kills (300 s+) and previously-clean draws fail, while the same draws run
+        # clean on fresh workers. max_tasks_per_child=1 eliminates the mechanism.
+        self.max_tasks_per_child = max_tasks_per_child
 
     def run(self) -> List[Dict[str, Any]]:
         r"""
@@ -265,7 +271,7 @@ class MonteCarloRunner:
         print(f"Starting Monte Carlo: {self.num_runs} runs on {self.max_workers} cores.")
 
         with Live(dashboard, refresh_per_second=10):
-            with ProcessPoolExecutor(max_workers=self.max_workers, initializer=_worker_init, initargs=(progress_q, slot_q)) as executor:
+            with ProcessPoolExecutor(max_workers=self.max_workers, initializer=_worker_init, initargs=(progress_q, slot_q), max_tasks_per_child=self.max_tasks_per_child) as executor:
                 
                 futures = {executor.submit(self.sim_func, cfg): cfg["run_id"] for cfg in configs}
                 

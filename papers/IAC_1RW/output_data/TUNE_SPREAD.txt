@@ -1,0 +1,15 @@
+kills_s88F: final    9.752 deg  n_plans 12  n_fb 0  kills 0  solve_med 1.5697693334659562  solve_max 11.83297454204876
+kills_s94F: final    0.554 deg  n_plans 12  n_fb 0  kills 0  solve_med 2.2457504789927043  solve_max 10.871880000107922
+kills_s97F: final    3.690 deg  n_plans 12  n_fb 0  kills 0  solve_med 6.214541249501053  solve_max 11.560329457977787
+spread_s68A: final    2.901 deg  n_plans 12  n_fb 0  kills 0  solve_med 3.1653433749452233  solve_max 6.238487625028938
+spread_s68B: final    2.901 deg  n_plans 12  n_fb 0  kills 0  solve_med 3.199780645489227  solve_max 6.239838582929224
+spread_s49A: final    2.930 deg  n_plans 12  n_fb 0  kills 0  solve_med 2.8861539585050195  solve_max 3.971510707982816
+spread_s49B: final    2.758 deg  n_plans 12  n_fb 0  kills 0  solve_med 1.9318371879635379  solve_max 3.3024637079797685
+spread_s55A: final    2.337 deg  n_plans 12  n_fb 0  kills 0  solve_med 0.6450505629763938  solve_max 1.6115517080761492
+spread_s55B: final    1.560 deg  n_plans 12  n_fb 0  kills 0  solve_med 0.6252583335153759  solve_max 2.6577057499671355
+spread_s3A: final    0.737 deg  n_plans 12  n_fb 0  kills 0  solve_med 2.065154416486621  solve_max 3.0830589591059834
+spread_s3B: final    0.737 deg  n_plans 12  n_fb 0  kills 0  solve_med 2.069858479022514  solve_max 3.064273083000444
+probe_s5F: final   91.893 deg  n_plans 5  n_fb 7  kills 7  solve_med 300.0680170840351  solve_max 301.3198850409826
+probe_s11F: final    3.493 deg  n_plans 12  n_fb 0  kills 0  solve_med 4.571067209064495  solve_max 30.51042837498244
+probe_s17F: final   15.170 deg  n_plans 12  n_fb 0  kills 0  solve_med 14.714534291473683  solve_max 50.202330708969384
+(money-cell finals for reference: 68=41.9, 49=2.80, 55=3.44; cell-2 kill seeds 88/94/97 -- clean fresh runs => state/load, reproduced kills => draw/task hardness)

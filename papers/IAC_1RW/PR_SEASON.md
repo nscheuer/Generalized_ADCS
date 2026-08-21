@@ -52,3 +52,15 @@ allocation help?") with a measured no for this class of draw.
 
 PLAN_WINDOW_S/PLAN_OVERLAP_S structure with feedforward fallback, from `_iac_sim.py`.
 Port only after item 1 lands — the recipe inherits the timeout limitation until then.
+
+## 1b. Worker-aging degradation (companion to item 1, measured 2026-08-21)
+
+The solver library accumulates process-level state across planner-object lifetimes:
+on a worker that has run a few trials, solves degrade from ~2 s to wall-budget kills
+(300 s+) and previously-clean problems fail; the same problems run clean on fresh
+workers (crossover, both arms). Nondeterminism is state-dependent, not intrinsic --
+fresh workers reproduce bitwise on most draws. Upstream: (a) MonteCarloRunner
+max_tasks_per_child pass-through (implemented on paper/iac-1rw, 2-line change);
+(b) a state audit of the .so's statics for the real fix. Interaction note: only
+full-attitude solves crossed the kill threshold on aged workers; reduced solves
+merely slowed.
