@@ -247,3 +247,24 @@ PASS => freeze full config at 3e1 and rerun ONLY the planner-full cell (others
 stand). FAIL => full planner reverts to baseline weights (symmetric with reduced:
 "tuning selected the baseline" on both tasks), and Section V reports the boundary-
 currency finding: the angle lever is walled on BOTH sides for this solver.
+
+## FRAMING CORRECTED (Patrick, 2026-08-21): both walls are ABOVE baseline; compute binds FIRST
+
+Not "walled on both sides": the momentum wall appears at a1e3 (standing h 0.34, 4.4%
+of orbit above ceiling) and the compute wall at a1e2 (~14% of trials with kills) --
+both above baseline, with COMPUTE ARRIVING FIRST, at a weight the momentum ceiling
+still tolerates comfortably (h_peak 0.278 vs 0.42). The engineering sentence: a
+practitioner tuning this planner hits solver reliability before the physical
+ceiling; the ceiling is the SECOND constraint encountered. If the bridge at 3e1
+clears the compute gate while keeping half the pointing win, the compute boundary is
+located to within a factor of ~3 (between 3e1 and 1e2) -- a real number for Section V.
+
+## DECIDED (Patrick's lean, executed): clean baseline planner-full cell added -- UNCONDITIONALLY
+
+Cell E joins the wave (runs on the post-wave resume pass): baseline weights, stock
+controller, cold -- exactly cell 2's configuration on the immunized harness. Needed
+in EVERY branch: bridge-pass -> it is the as-configured baseline comparison; bridge-
+fail -> it is the adopted config's own cell. Cell 2 retires to "pre-isolation era,
+superseded" with the caveat stated once. The awkward sentence ("our planner-full
+numbers came from a configuration later found systematically contaminated") is never
+written.
