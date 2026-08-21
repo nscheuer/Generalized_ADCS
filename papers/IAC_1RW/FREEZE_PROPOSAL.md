@@ -268,3 +268,21 @@ fail -> it is the adopted config's own cell. Cell 2 retires to "pre-isolation er
 superseded" with the caveat stated once. The awkward sentence ("our planner-full
 numbers came from a configuration later found systematically contaminated") is never
 written.
+
+## ADOPTION-LINE ADJUDICATED (2026-08-21, cell table): PASSES BOTH GATES -- ADOPTED
+
+planner-full frozen a1e2+warm, n=100: ALL 94.0/23.0/1.42; PURE-PLANNER (68 trials)
+92.6/19.1/1.47. PRIMARY gate: fallback windows 6.5% < 10% PASS. TRIP-WIRE: conv5 gap
+1.4 pts < 5 PASS (conv1 gap 3.9; medians 1.42 vs 1.47).
+
+The surprise the gates were built to measure: kill-affected trials number 32 (78
+kills total -- far beyond the monitor-visible subset), yet their finals are FINE
+(median ~1.2 deg, one >5 at 7.8): a killed window degrades to fallback for 500 s,
+the next plan recovers. Window-level contamination 6.5%, trial-level 32%,
+outcome-level ~nil. The paper prints both-ways + the kill accounting; the
+"hard solves at a rate of X" descriptive sentence uses 78/1200 windows and 32/100
+trials, no baseline comparison until Cell E lands.
+
+vs the RETIRED contaminated baseline (context only): 72.2/15.5/2.23 -> 94/23/1.42.
+The printed comparison awaits Cell E. BRIDGE: stays staged, UNUSED -- its trigger
+did not fire. Wave continues: E (running) -> PD x3.
