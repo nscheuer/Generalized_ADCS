@@ -2,6 +2,7 @@ __all__ = ["EstimatedSatellite"]
 import copy
 import numpy as np
 
+from ADCS.covariance import Covariance
 from ADCS.state import State
 
 from typing import List, Dict, Union, Tuple, Any, Optional, Sequence
@@ -979,6 +980,37 @@ class EstimatedSatellite(Satellite):
             "but its bias slice could not be constructed."
         )
     
+    def control_covariance(self, *, form: str = "full") -> Covariance:
+        """Return block-diagonal control-noise covariance for all actuators."""
+        return Covariance.block_diagonal(
+            (actuator.control_covariance() for actuator in self.actuators),
+            form=form,
+            coordinates="control",
+        )
+
+    def measurement_covariance(
+        self,
+        which_sensors: Sequence[bool] | None = None,
+        *,
+        form: str = "full",
+    ) -> Covariance:
+        """Return selected sensor and wheel-momentum measurement covariance."""
+        if which_sensors is None:
+            which_sensors = [True for _ in self.attitude_sensors]
+        if len(which_sensors) != len(self.attitude_sensors):
+            raise ValueError("which_sensors must match the number of attitude sensors")
+        blocks = [
+            sensor.measurement_covariance()
+            for sensor, selected in zip(self.attitude_sensors, which_sensors)
+            if selected
+        ]
+        blocks.extend(
+            wheel.momentum_measurement_covariance() for wheel in self.rw_actuators
+        )
+        return Covariance.block_diagonal(
+            blocks, form=form, coordinates="measurement"
+        )
+
     def control_cov(self) -> np.ndarray:
         r"""
         Block-diagonal covariance of actuator input noise.

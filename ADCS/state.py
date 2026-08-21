@@ -9,6 +9,8 @@ from typing import Any, ClassVar, Iterable, Literal, Mapping
 
 import numpy as np
 
+from ADCS.covariance import Covariance
+
 
 QuaternionMode = Literal[
     "quaternion_vector",
@@ -555,15 +557,78 @@ class State:
         return np.vstack(rows)
 
 
-@dataclass(slots=True, eq=False)
+@dataclass(slots=True, eq=False, init=False)
 class EstimatorState(State):
-    """A :class:`~ADCS.state.State` with estimated parameters and uncertainty."""
+    """A :class:`~ADCS.state.State` with estimated parameters and uncertainty.
+
+    :attr:`covariance` and :attr:`process_noise` are authoritative
+    :class:`~ADCS.covariance.Covariance` objects. The ``cov`` and ``int_cov``
+    properties retain the legacy full-matrix interface during estimator
+    migration.
+    """
 
     act_bias: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
     sens_bias: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
     dist_param: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
-    cov: np.ndarray | None = None
-    int_cov: np.ndarray | None = None
+    _covariance: Covariance = field(init=False, repr=False)
+    _process_noise: Covariance = field(init=False, repr=False)
+
+    def __init__(
+        self,
+        w: Any,
+        q: Any,
+        h: Any = (),
+        act_bias: Any = (),
+        sens_bias: Any = (),
+        dist_param: Any = (),
+        cov: Any = None,
+        int_cov: Any = None,
+        *,
+        covariance: Covariance | None = None,
+        process_noise: Covariance | None = None,
+    ) -> None:
+        self.w = w
+        self.q = q
+        self.h = h
+        self.act_bias = act_bias
+        self.sens_bias = sens_bias
+        self.dist_param = dist_param
+
+        if cov is not None and covariance is not None:
+            raise ValueError("provide either cov or covariance, not both")
+        if int_cov is not None and process_noise is not None:
+            raise ValueError("provide either int_cov or process_noise, not both")
+
+        reduced_size = self.augmented_size - 1
+        covariance_value = covariance if covariance is not None else cov
+        if covariance_value is None:
+            covariance_value = Covariance.zeros(
+                reduced_size,
+                coordinates="state_tangent",
+                psd_policy="allow_indefinite",
+            )
+        self._covariance = self._coerce_covariance(
+            covariance_value, name="cov", default_coordinates="state_tangent"
+        )
+
+        process_value = process_noise if process_noise is not None else int_cov
+        if process_value is None:
+            process_value = Covariance.zeros(
+                self._covariance.dimension,
+                form=self._covariance.form,
+                coordinates=self._covariance.coordinates,
+                psd_policy="allow_indefinite",
+            )
+        self._process_noise = self._coerce_covariance(
+            process_value,
+            name="int_cov",
+            default_coordinates=self._covariance.coordinates,
+        )
+        if self._process_noise.shape != self._covariance.shape:
+            raise ValueError(
+                f"int_cov must match cov shape {self._covariance.shape}, "
+                f"got {self._process_noise.shape}"
+            )
 
     def __setattr__(self, name: str, value: Any) -> None:
         vector_sizes = {
@@ -577,38 +642,96 @@ class EstimatorState(State):
         if name in vector_sizes:
             value = _vector(value, name=name, size=vector_sizes[name])
             self._validate_existing_covariances_for_vector_assignment(name, value)
-        elif name in ("cov", "int_cov"):
-            value = _square_matrix(value, name=name)
-            self._validate_covariance_assignment(name, value)
         object.__setattr__(self, name, value)
 
-    def __post_init__(self) -> None:
-        self.act_bias = _vector(self.act_bias, name="act_bias")
-        self.sens_bias = _vector(self.sens_bias, name="sens_bias")
-        self.dist_param = _vector(self.dist_param, name="dist_param")
-
-        reduced_size = self.augmented_size - 1
-        if self.cov is None:
-            self.cov = np.zeros((reduced_size, reduced_size), dtype=float)
+    def _coerce_covariance(
+        self,
+        value: Covariance | Any,
+        *,
+        name: str,
+        default_coordinates: str,
+    ) -> Covariance:
+        if isinstance(value, Covariance):
+            result = value.copy()
         else:
-            self.cov = np.array(self.cov, dtype=float, copy=True)
-        if self.cov.ndim != 2 or self.cov.shape[0] != self.cov.shape[1]:
-            raise ValueError(f"cov must be square, got shape {self.cov.shape}")
-        allowed = {(reduced_size, reduced_size), (self.augmented_size, self.augmented_size)}
-        if self.cov.shape not in allowed:
-            raise ValueError(
-                "cov must use reduced- or full-quaternion coordinates; "
-                f"expected one of {sorted(allowed)}, got {self.cov.shape}"
+            matrix = _square_matrix(value, name=name)
+            if matrix is None:
+                raise ValueError(f"{name} cannot be None")
+            result = Covariance(
+                matrix,
+                coordinates=default_coordinates,
+                psd_policy="allow_indefinite",
             )
+        allowed = self._allowed_covariance_shapes()
+        if allowed is not None and result.shape not in allowed:
+            raise ValueError(
+                f"{name} must use reduced- or full-quaternion coordinates; "
+                f"expected one of {sorted(allowed)}, got {result.shape}"
+            )
+        return result
 
-        if self.int_cov is None:
-            self.int_cov = np.zeros_like(self.cov)
-        else:
-            self.int_cov = np.array(self.int_cov, dtype=float, copy=True)
-        if self.int_cov.shape != self.cov.shape:
+    @property
+    def covariance(self) -> Covariance:
+        """State-estimation covariance in full or square-root form."""
+        return self._covariance
+
+    @covariance.setter
+    def covariance(self, value: Covariance) -> None:
+        replacement = self._coerce_covariance(
+            value, name="cov", default_coordinates="state_tangent"
+        )
+        try:
+            process_shape = self._process_noise.shape
+        except AttributeError:
+            process_shape = replacement.shape
+        if replacement.shape != process_shape:
             raise ValueError(
-                f"int_cov must match cov shape {self.cov.shape}, got {self.int_cov.shape}"
+                f"cov must match int_cov shape {process_shape}, got {replacement.shape}"
             )
+        object.__setattr__(self, "_covariance", replacement)
+
+    @property
+    def process_noise(self) -> Covariance:
+        """Process-noise covariance associated with this estimated state."""
+        return self._process_noise
+
+    @process_noise.setter
+    def process_noise(self, value: Covariance) -> None:
+        replacement = self._coerce_covariance(
+            value, name="int_cov", default_coordinates=self._covariance.coordinates
+        )
+        if replacement.shape != self._covariance.shape:
+            raise ValueError(
+                f"int_cov must match cov shape {self._covariance.shape}, "
+                f"got {replacement.shape}"
+            )
+        object.__setattr__(self, "_process_noise", replacement)
+
+    @property
+    def cov(self) -> np.ndarray:
+        """Legacy full-matrix view of :attr:`covariance`."""
+        return self._covariance.as_matrix()
+
+    @cov.setter
+    def cov(self, value: Any) -> None:
+        matrix = _square_matrix(value, name="cov")
+        if matrix is None:
+            raise ValueError("cov cannot be None")
+        self._validate_covariance_assignment("cov", matrix)
+        self._covariance.assign(matrix)
+
+    @property
+    def int_cov(self) -> np.ndarray:
+        """Legacy full-matrix view of :attr:`process_noise`."""
+        return self._process_noise.as_matrix()
+
+    @int_cov.setter
+    def int_cov(self, value: Any) -> None:
+        matrix = _square_matrix(value, name="int_cov")
+        if matrix is None:
+            raise ValueError("int_cov cannot be None")
+        self._validate_covariance_assignment("int_cov", matrix)
+        self._process_noise.assign(matrix)
 
     def _allowed_covariance_shapes(
         self,
@@ -753,8 +876,8 @@ class EstimatorState(State):
             act_bias=self.act_bias,
             sens_bias=self.sens_bias,
             dist_param=self.dist_param,
-            cov=self.cov,
-            int_cov=self.int_cov,
+            covariance=self.covariance,
+            process_noise=self.process_noise,
         )
 
     def normalized(self) -> EstimatorState:
@@ -794,8 +917,16 @@ class EstimatorState(State):
             act_bias=lerp(self.act_bias, other.act_bias),
             sens_bias=lerp(self.sens_bias, other.sens_bias),
             dist_param=lerp(self.dist_param, other.dist_param),
-            cov=lerp(self.cov, other.cov),
-            int_cov=lerp(self.int_cov, other.int_cov),
+            covariance=Covariance(
+                lerp(self.cov, other.cov),
+                form=self.covariance.form,
+                coordinates=self.covariance.coordinates,
+            ),
+            process_noise=Covariance(
+                lerp(self.int_cov, other.int_cov),
+                form=self.process_noise.form,
+                coordinates=self.process_noise.coordinates,
+            ),
         )
 
     def minus(

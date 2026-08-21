@@ -3,6 +3,8 @@ __all__ = ["Noise"]
 import numpy as np
 from typing import Sequence
 
+from ADCS.covariance import Covariance
+
 class Noise:
     r"""
     Represents additive actuator noise with optional Gaussian randomness and bounds.
@@ -100,6 +102,15 @@ class Noise:
         else:
             # diagonal covariance matrix
             return np.diagflat(std2)
+
+    def covariance(
+        self,
+        *,
+        form: str = "full",
+        coordinates: str = "generic",
+    ) -> Covariance:
+        """Return this noise model's owned covariance object."""
+        return Covariance(self.cov(), form=form, coordinates=coordinates)
         
     def srcov(self) -> float | np.ndarray:
         if self.std_noise.size == 1:

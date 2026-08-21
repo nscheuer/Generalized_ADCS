@@ -14,11 +14,9 @@ from typing import Any, Iterable, Literal
 import numpy as np
 from scipy.linalg import solve_triangular
 
-from ADCS.helpers.cholesky_update import choldowndate, cholupdate
-
 
 CovarianceForm = Literal["full", "sqrt"]
-PSDPolicy = Literal["strict", "project", "jitter"]
+PSDPolicy = Literal["strict", "project", "jitter", "allow_indefinite"]
 
 
 def _form(value: str) -> CovarianceForm:
@@ -28,9 +26,10 @@ def _form(value: str) -> CovarianceForm:
 
 
 def _policy(value: str) -> PSDPolicy:
-    if value not in ("strict", "project", "jitter"):
+    if value not in ("strict", "project", "jitter", "allow_indefinite"):
         raise ValueError(
-            f"psd_policy must be 'strict', 'project', or 'jitter', got {value!r}"
+            "psd_policy must be 'strict', 'project', 'jitter', or "
+            f"'allow_indefinite', got {value!r}"
         )
     return value  # type: ignore[return-value]
 
@@ -84,8 +83,8 @@ def _safe_upper_cholesky(matrix: np.ndarray, *, policy: PSDPolicy) -> np.ndarray
         eigenvalues, eigenvectors = np.linalg.eigh(matrix)
         scale = max(1.0, float(np.max(np.abs(eigenvalues))))
         tolerance = 1e-12 * scale
-        if policy == "strict" and float(eigenvalues[0]) < -tolerance:
-            raise ValueError("covariance must be positive semidefinite") from None
+        if policy in ("strict", "allow_indefinite") and float(eigenvalues[0]) < -tolerance:
+            raise ValueError("covariance has no real square-root factor") from None
         eigenvalues = np.maximum(eigenvalues, 0.0)
         root = eigenvectors * np.sqrt(eigenvalues)
         _, upper = np.linalg.qr(root.T)
@@ -195,6 +194,27 @@ class Covariance:
     ) -> Covariance:
         deviations, weights = cls._deviations_and_weights(deviations, weights)
         dimension = deviations.shape[1]
+        form = _form(kwargs.get("form", "full"))
+        if form == "sqrt" and np.all(weights >= 0.0):
+            rows = [np.sqrt(weights)[:, None] * deviations]
+            if noise is not None:
+                noise_matrix = _as_covariance_matrix(noise, name="noise covariance")
+                if noise_matrix.shape != (dimension, dimension):
+                    raise ValueError("noise covariance dimension must match deviations")
+                rows.append(
+                    _safe_upper_cholesky(
+                        noise_matrix, policy=_policy(kwargs.get("psd_policy", "strict"))
+                    )
+                )
+            stacked = np.vstack(rows)
+            if stacked.shape[0] >= dimension:
+                _, factor = np.linalg.qr(stacked, mode="reduced")
+                return cls.from_upper_factor(
+                    _normalize_factor(factor),
+                    form="sqrt",
+                    coordinates=kwargs.get("coordinates", "generic"),
+                    psd_policy=kwargs.get("psd_policy", "strict"),
+                )
         matrix = np.einsum("i,ij,ik->jk", weights, deviations, deviations)
         if noise is not None:
             noise_matrix = _as_covariance_matrix(noise, name="noise covariance")
@@ -272,6 +292,10 @@ class Covariance:
     def assign(self, matrix: Covariance | Any) -> None:
         """Atomically replace the covariance while retaining this object's form."""
         matrix = _as_covariance_matrix(matrix, name="covariance")
+        if matrix.shape != self.shape:
+            raise ValueError(
+                f"assigned covariance must retain shape {self.shape}, got {matrix.shape}"
+            )
         validated = _symmetric_psd(matrix, policy=self._psd_policy)
         replacement = (
             validated
@@ -282,6 +306,11 @@ class Covariance:
 
     def assign_upper_factor(self, factor: Any) -> None:
         """Atomically replace the covariance from an upper factor."""
+        factor = _square(factor, name="upper factor")
+        if factor.shape != self.shape:
+            raise ValueError(
+                f"assigned upper factor must retain shape {self.shape}, got {factor.shape}"
+            )
         replacement = Covariance.from_upper_factor(
             factor,
             form=self.form,
@@ -379,6 +408,14 @@ class Covariance:
         if vectors.ndim != 2 or vectors.shape[1] != self.dimension:
             raise ValueError("vectors must have shape (updates, dimension)")
         weight = float(weight)
+        if self.form == "sqrt" and weight >= 0.0:
+            stacked = np.vstack((self.upper_factor(), np.sqrt(weight) * vectors))
+            _, factor = np.linalg.qr(stacked, mode="reduced")
+            return Covariance.from_upper_factor(
+                _normalize_factor(factor),
+                coordinates=self.coordinates,
+                psd_policy=self._psd_policy,
+            )
         matrix = self.as_matrix() + weight * vectors.T @ vectors
         return Covariance(
             matrix,
@@ -395,6 +432,19 @@ class Covariance:
         noise_matrix = _as_covariance_matrix(noise, name="process noise covariance")
         if noise_matrix.shape != (transition.shape[0], transition.shape[0]):
             raise ValueError("process noise dimension must match transition output")
+        if self.form == "sqrt":
+            rows = np.vstack(
+                (
+                    self.upper_factor() @ transition.T,
+                    _safe_upper_cholesky(noise_matrix, policy=self._psd_policy),
+                )
+            )
+            _, factor = np.linalg.qr(rows, mode="reduced")
+            return Covariance.from_upper_factor(
+                _normalize_factor(factor),
+                coordinates=self.coordinates,
+                psd_policy=self._psd_policy,
+            )
         matrix = transition @ self.as_matrix() @ transition.T + noise_matrix
         return Covariance(
             matrix,
