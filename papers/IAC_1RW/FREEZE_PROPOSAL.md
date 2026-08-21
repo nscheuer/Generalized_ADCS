@@ -204,3 +204,28 @@ THE LINE (set now, adjudicated at the cell table):
    process isolation and cannot be compared." The boundary-currency framing survives
    as a MECHANISM claim about a1e3's momentum wall (directly measured), with compute
    as a suggested parallel, not an established one.
+
+## REGISTERED pre-table (2026-08-21): cross-controller instance-hardness overlap
+
+Seed 11 is hard in two independent senses (PD: 30 deg at kp x2, authority-class;
+planner: 3 budget kills at a1e2). The registered question: do the planner KILL-SEEDS
+overlap the PD-full AUTHORITY-CLASS set beyond chance? If yes, difficulty lives in
+the PROBLEM INSTANCE, not either implementation -- "hard geometries are hard for
+everyone," the strongest frontier statement available.
+
+- CRITERION: overlap of (wave planner-full kill-seed set K) with (wave PD-full
+  authority-class set A, classified per the registered offset/authority rule) against
+  the hypergeometric null (N=100, |K|, |A|). INFERENCE only if
+  P(overlap >= observed | null) < 0.01; otherwise DESCRIPTIVE ONLY (twins
+  discipline).
+- POWER, stated before looking: with |K| ~ 4-6, only near-complete overlap can clear
+  0.01 unless |A| is small (for |K|=5, |A|=20: E[overlap]=1.0; P(=5) ~ 1e-4 clears;
+  P(>=3) ~ 0.02 does NOT). Partial overlap will almost certainly be reported without
+  inference.
+- CONTEXT, disclosed (old data, not the registered variable): against the kp x1
+  SATURATION list (already public), the current kill-seeds {4, 11, 38, 46} overlap
+  1/4 (seed 11 only), consistent with the null E ~ 1.0. Prior odds are weak; nobody
+  should over-read a partial overlap later.
+- CONFOUND, named: if overlapping seeds share initial-rate or goal-geometry
+  covariates (|omega_0|, sigma_med, dwell), the overlap is a SHARED-CAUSE candidate,
+  not instance difficulty; the covariate comparison is part of the adjudication.
