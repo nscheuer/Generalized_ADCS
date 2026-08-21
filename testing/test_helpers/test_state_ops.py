@@ -144,3 +144,153 @@ def test_add_error_rejects_out_of_range_attitude_block():
     delta[3] = 2.5  # |δθ| > 2 has no unit-quaternion pre-image
     with pytest.raises(ValueError):
         s.add_error(delta)
+
+
+@pytest.mark.parametrize(
+    "mode",
+    ["quaternion_vector", "rotation_vector", "mrp", "two_mrp", "cayley"],
+)
+@pytest.mark.parametrize("order", ["right", "left"])
+def test_plus_minus_roundtrip_for_supported_attitude_conventions(mode, order):
+    state = State(
+        w=[0.1, -0.2, 0.3],
+        q=_unit([0.8, -0.1, 0.3, 0.2]),
+        h=[0.4, -0.5],
+    )
+    delta = np.array([0.01, -0.02, 0.03, 0.08, -0.04, 0.02, 0.05, -0.06])
+
+    perturbed = state.plus(delta, quaternion_mode=mode, quaternion_order=order)
+    recovered = perturbed.minus(state, quaternion_mode=mode, quaternion_order=order)
+
+    assert np.allclose(recovered, delta, atol=1e-12)
+
+
+def test_quaternion_delta_can_be_applied_directly_on_either_side():
+    state = State(w=np.zeros(3), q=_unit([0.8, 0.1, -0.2, 0.3]))
+    dq = State.quaternion_delta_from_vector([0.1, -0.05, 0.02], mode="rotation_vector")
+
+    right = state.with_quaternion_delta(dq, order="right")
+    left = state.with_quaternion_delta(dq, order="left")
+
+    assert not np.allclose(right.q, left.q)
+    assert np.allclose(
+        right.minus(state, quaternion_mode="rotation_vector", quaternion_order="right")[3:6],
+        [0.1, -0.05, 0.02],
+    )
+    assert np.allclose(
+        left.minus(state, quaternion_mode="rotation_vector", quaternion_order="left")[3:6],
+        [0.1, -0.05, 0.02],
+    )
+
+
+def test_full_quaternion_additive_mode_roundtrips_and_linearizes_normalization():
+    reference = State(w=[0.1, 0.2, 0.3], q=_unit([0.8, 0.1, -0.2, 0.3]), h=[0.4])
+    target = State(w=[0.3, 0.1, 0.4], q=-_unit([0.7, -0.2, 0.1, 0.4]), h=[0.8])
+
+    delta = target.minus(reference, quaternion_mode="full_quaternion")
+    recovered = reference.plus(delta, quaternion_mode="full_quaternion")
+
+    assert delta.shape == (reference.full_size,)
+    assert recovered.is_close(target, atol=1e-12)
+    epsilon = 1e-7
+    finite_difference = np.empty((reference.full_size, reference.full_size))
+    for column in range(reference.full_size):
+        offset = np.zeros(reference.full_size)
+        offset[column] = epsilon
+        plus = reference.plus(offset, quaternion_mode="full_quaternion").as_array()
+        minus = reference.plus(-offset, quaternion_mode="full_quaternion").as_array()
+        finite_difference[:, column] = (plus - minus) / (2.0 * epsilon)
+    assert np.allclose(
+        reference.tangent_map(quaternion_mode="full_quaternion"),
+        finite_difference,
+        atol=1e-9,
+    )
+
+
+@pytest.mark.parametrize(
+    "mode",
+    ["quaternion_vector", "rotation_vector", "mrp", "two_mrp", "cayley"],
+)
+@pytest.mark.parametrize("order", ["right", "left"])
+def test_tangent_map_matches_finite_difference_and_pseudoinverse(mode, order):
+    state = State(
+        w=[0.1, -0.2, 0.3],
+        q=_unit([0.8, -0.1, 0.3, 0.2]),
+        h=[0.4, -0.5],
+    )
+    epsilon = 1e-7
+    finite_difference = np.empty((state.full_size, state.tangent_size))
+    for column in range(state.tangent_size):
+        offset = np.zeros(state.tangent_size)
+        offset[column] = epsilon
+        plus = state.plus(offset, quaternion_mode=mode, quaternion_order=order).as_array()
+        minus = state.plus(-offset, quaternion_mode=mode, quaternion_order=order).as_array()
+        finite_difference[:, column] = (plus - minus) / (2.0 * epsilon)
+
+    tangent = state.tangent_map(quaternion_mode=mode, quaternion_order=order)
+    tangent_pinv = state.tangent_pinv(quaternion_mode=mode, quaternion_order=order)
+
+    assert np.allclose(tangent, finite_difference, atol=1e-9)
+    assert np.allclose(tangent_pinv @ tangent, np.eye(state.tangent_size), atol=1e-12)
+
+
+def test_state_mean_handles_quaternion_sign_and_linear_blocks():
+    angle = 0.4
+    first = State(w=[0.0, 0.0, 0.0], q=[1.0, 0.0, 0.0, 0.0], h=[0.0])
+    second = State(
+        w=[2.0, 4.0, 6.0],
+        q=-np.array([np.cos(angle / 2.0), 0.0, np.sin(angle / 2.0), 0.0]),
+        h=[2.0],
+    )
+
+    mean = State.mean([first, second], [0.25, 0.75], quaternion_mode="rotation_vector")
+
+    expected_q = np.array([np.cos(0.75 * angle / 2.0), 0.0, np.sin(0.75 * angle / 2.0), 0.0])
+    assert mean.is_close(State(w=[1.5, 3.0, 4.5], q=expected_q, h=[1.5]), atol=1e-12)
+
+
+def test_estimator_state_geometry_extends_augmented_blocks_and_covariance():
+    reduced_size = 6 + 1 + 2 + 1 + 2
+    covariance = np.diag(np.linspace(1.0, 2.0, reduced_size))
+    state = EstimatorState(
+        w=[0.1, -0.2, 0.3],
+        q=_unit([0.8, -0.1, 0.3, 0.2]),
+        h=[0.4],
+        act_bias=[0.01, 0.02],
+        sens_bias=[0.03],
+        dist_param=[0.04, 0.05],
+        cov=covariance,
+    )
+    delta = np.linspace(-0.03, 0.04, state.tangent_size)
+
+    perturbed = state.plus(delta, quaternion_mode="two_mrp", quaternion_order="left")
+    assert np.allclose(
+        perturbed.minus(state, quaternion_mode="two_mrp", quaternion_order="left"),
+        delta,
+        atol=1e-12,
+    )
+    full_covariance = state.covariance_to_full()
+    assert full_covariance.shape == (state.full_size, state.full_size)
+    assert np.allclose(state.covariance_to_reduced(full_covariance), covariance, atol=1e-12)
+    assert np.allclose(state.normalization_jacobian()[7:, 7:], np.eye(state.full_size - 7))
+
+
+def test_estimator_mean_uses_explicit_covariance_policy():
+    first = EstimatorState(
+        w=np.zeros(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        sens_bias=[0.0],
+        cov=np.eye(7),
+    )
+    second = EstimatorState(
+        w=np.ones(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        sens_bias=[2.0],
+        cov=3.0 * np.eye(7),
+    )
+
+    mean = EstimatorState.mean([first, second], [0.25, 0.75], covariance="weighted")
+
+    assert np.allclose(mean.w, 0.75)
+    assert np.allclose(mean.sens_bias, [1.5])
+    assert np.allclose(mean.cov, 2.5 * np.eye(7))
