@@ -1,0 +1,31 @@
+# Seed-49 (reduced, low-sigma floor case) sweep -- interaction reading
+
+anchor: base_cold final 2.907 vs money-cell 2.80 / fresh-spread 2.76-2.93 -- decomposed
+path drift concern CLOSED.
+
+## Jolt (Prediction 2): COST-STRUCTURE, not init character
+- warm seeding does NOT remove it (0.350 -> 0.325): the optimizer re-introduces the
+  excursion from a no-excursion seed => genuinely optimal under 1e1/1e5.
+- angle x10 KILLS it (a1e2: -0.009): the more-interesting registered branch, closed.
+
+## Asymptote (Prediction 1, sigma-conditional): CONFIRMS on the floor case
+- standing: base 0.898 -> a1e2 1.006 -> a1e3 1.249. The held floor DOES NOT MOVE with
+  angle weight on this low-sigma draw (falsifier did not fire; asymmetric response).
+- final improves 2.91 -> 1.75 by jolt removal, not floor movement.
+- diminishing returns as registered: 1e1->1e2 buys 1.16 deg; 1e2->1e3 buys nothing.
+- cost: solve_med 7.5 -> 33-43 s at a1e3 (planner paper's 8x warning reproduces).
+
+## Interaction (angle_N read AGAINST angle, never pooled)
+- terminal emphasis ALONE FAILS: termN1e3 (1e1/1e3) final 3.22 > base 2.91.
+- combined it is the WINNER: a1e2N1e4_warmhold final 0.582, err@5400 0.548,
+  jolt 0.227, 0 kills, solve_med 23 s, h_peak 0.180.
+  vs a1e2_warmhold (flat 1e2): 0.999 -- angle_N x100 nearly halves it again.
+- warm-hold synergizes with higher angle (a1e2: cold 1.75 vs warm 1.00) though not at
+  base; warm does NOT cut solve time (expectation refuted).
+- ang_vel down-weighting HURTS (a1e2_av1e4: 2.56 final, h_peak 0.267 -- omega cost is
+  load-bearing for momentum discipline). Ratio lever works via angle UP only.
+
+## Candidate frozen REDUCED config (pending registered validation + gates)
+angle=1e2, angle_N=1e4, ang_vel=1e5, warm-hold. 5x better final on the floor draw,
+jolt eliminated, budget margins comfortable. Gap noted: a1e2N1e4_cold was not run;
+warm-hold is part of the candidate as-swept.
