@@ -232,7 +232,8 @@ FULL_SEED = 35        # deterministic rule: median-final of cell-2 [3,6]-deg no-
 PD_KP_BASE, PD_KD_BASE = 2.9e-4, 8.68e-3
 
 
-def run_one_pd(kp_mult, seed, task="full", inc_deg=None, save_dir=None):
+def run_one_pd(kp_mult, seed, task="full", inc_deg=None, save_dir=None,
+               prefix="lowinc"):
     """PD gain-check / spot-check runner. kd scales as sqrt(kp); optional
     inclination override (LOWINC_PREDICTION) and per-trial persistence."""
     from papers.IAC_1RW._feedforward import FeedforwardLP
@@ -253,7 +254,7 @@ def run_one_pd(kp_mult, seed, task="full", inc_deg=None, save_dir=None):
                  bus_kwargs={"tau_w": 2.0e-3, "h_max": 15.0e-3})
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
-        with open(os.path.join(save_dir, f"lowinc_s{seed:04d}.pkl"), "wb") as f:
+        with open(os.path.join(save_dir, f"{prefix}_s{seed:04d}.pkl"), "wb") as f:
             pickle.dump(r, f, protocol=pickle.HIGHEST_PROTOCOL)
     return metrics_row(dict(name=f"pd_kp{kp_mult:g}_s{seed}"), r)
 
@@ -495,6 +496,68 @@ def _run_mode(mode):
         print(txt)
         with open(os.path.join(OUT, "TUNE_VALIDATE.txt"), "w") as f:
             f.write(txt + "\n")
+        return 0
+    if mode == "--wave":
+        # THE REGISTERED RERUN WAVE (FREEZE_PROPOSAL, approved 2026-08-21).
+        # Sequential cells, aging-immune, resume-by-glob. Frozen configs pinned here.
+        FROZEN_FULL = dict(angle=1e2, angle_N=1e2, warm="hold",
+                           name="wave_planner_full")
+        assert (FROZEN_FULL["angle"], FROZEN_FULL["angle_N"]) == (1e2, 1e2), \
+            "frozen full-planner config drifted"
+        assert PD_KP_BASE == 2.9e-4, "PD base gain drifted"
+        import multiprocessing as mp
+        from papers.IAC_1RW._iac_sim import cell_metrics
+        wd = os.path.join(OUT, "wave")
+        os.makedirs(wd, exist_ok=True)
+        lines = []
+
+        def cell_report(tag, runs):
+            m = cell_metrics(runs, T_ORBIT)
+            s = (f"[{tag}] n={len(runs)}  conv5 {m['conv_pct_5deg']:.1f}%  conv1 "
+                 f"{m['conv_pct_1deg']:.1f}%  median {m['median_final_deg']:.2f}  "
+                 f"fb {m['mean_fallback_frac']}  kills {m['total_budget_kills']}")
+            print(s, flush=True)
+            lines.append(s)
+
+        # Cell A: planner-full, frozen a1e2 flat + warm-hold
+        todo = [s for s in range(100)
+                if not os.path.exists(os.path.join(
+                    OUT, f"tune_seed{s}_wave_planner_full.pkl"))]
+        if todo:
+            with mp.get_context("fork").Pool(min(14, os.cpu_count() - 2),
+                                             maxtasksperchild=1) as p:
+                p.starmap(run_one, [(dict(FROZEN_FULL), T_ORBIT, s, "full")
+                                    for s in todo])
+        runs = []
+        for s in range(100):
+            pth = os.path.join(OUT, f"tune_seed{s}_wave_planner_full.pkl")
+            if os.path.exists(pth):
+                with open(pth, "rb") as f:
+                    runs.append(pickle.load(f))
+        cell_report("planner_full_frozen", runs)
+
+        # Cells B-D: PD arms, persisted
+        for tag, kpm, task in (("pd_full_kp1", 1.0, "full"),
+                               ("pd_full_kp2", 2.0, "full"),
+                               ("pd_reduced_kp1", 1.0, "reduced")):
+            cdir = os.path.join(wd, tag)
+            todo = [s for s in range(100)
+                    if not os.path.exists(os.path.join(cdir, f"{tag}_s{s:04d}.pkl"))]
+            if todo:
+                with mp.get_context("fork").Pool(min(14, os.cpu_count() - 2),
+                                                 maxtasksperchild=1) as p:
+                    p.starmap(run_one_pd,
+                              [(kpm, s, task, None, cdir, tag) for s in todo])
+            runs = []
+            for s in range(100):
+                pth = os.path.join(cdir, f"{tag}_s{s:04d}.pkl")
+                if os.path.exists(pth):
+                    with open(pth, "rb") as f:
+                        runs.append(pickle.load(f))
+            cell_report(tag, runs)
+
+        with open(os.path.join(OUT, "WAVE_RESULTS.txt"), "w") as f:
+            f.write("\n".join(lines) + "\n")
         return 0
     if mode == "--lowinc":
         # LOWINC_PREDICTION.md spot-check: PD 3+1 reduced at inc=15 deg, n=30,

@@ -1,0 +1,4 @@
+n=30  divergence fraction 0.10 (baseline 0.11)
+dwell median 0.257 (baseline 0.150)
+screen: flag rate 0.23 (baseline 0.09); catches 0/3; FA among converged 7/27 (transfer-failure line: >10%)
+finals: 0.0 0.0 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.2 0.2 0.2 0.2 0.3 0.3 0.5 0.5 0.5 0.6 0.6 0.6 0.7 0.8 1.0 36.5 61.9 88.8
