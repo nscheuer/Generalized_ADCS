@@ -31,8 +31,36 @@ TUNE_VALIDATE.txt and the proposal goes to Patrick before the registered rerun.
 ## NOT FROZEN (out of tuning scope, unchanged from campaign)
 
 TVLQR tracking weights (tracking measured tight at 0.011 deg -- never the problem);
-PD gains (single bus-rule set, task-independent, PD-full check = [pending]);
 window structure (500+500); all bus/sensor/estimator parameters.
+
+## PD symmetry: the check FAILED its registered expectation -- decision needed
+
+Registered: kp = 2.9e-4 best-or-tied on full, else report and reconsider. Measured
+(kd scaled as sqrt(kp)):
+
+| seed | kp x0.5 | kp x1 (campaign) | kp x2 |
+|---|---|---|---|
+| 5  | 0.947 | 0.493 | **0.382** |
+| 11 | 120.4 | 105.0 | **30.2** (standing 3.1 -- late blowup, not rescued) |
+| 17 | 0.394 | 0.187 | **0.112** |
+
+kp x2 materially better on ALL THREE full-task seeds (~the tau_dist/kp offset
+scaling). Context that keeps the original choice principled: 2.9e-4 was set as the
+LARGEST ZERO-DIVERGENCE gain on the REDUCED task -- it is a stability-capped choice,
+not an oversight; the cap binds on reduced, and full-attitude pays for it.
+
+Options for Patrick (registered branch: report and reconsider):
+- **(i) RECOMMENDED: per-task PD gains, symmetric with the planner** -- reduced keeps
+  2.9e-4 (its measured stability ceiling), full gets 5.8e-4; the PD-full cell (n=100)
+  joins the registered rerun wave (~3 h, aging-immune). Honest symmetry: both
+  controllers get per-mode configs, both frozen, both reported. n=3 stability caveat
+  on 5.8e-4-full is closed by the rerun itself.
+- (ii) Keep the single gain and PRINT the cost: "the stability-capped single gain
+  leaves a measured ~0.6-0.8x error factor on the table on full attitude" -- honest,
+  cheaper, but now that the planner has per-task weights, asymmetric in the fairness
+  direction a reviewer will notice.
+Note either way: the seed-11 class is not rescued by gain (30 deg at kp x2) -- its
+divergence is authority/rate-class, not offset-class.
 
 ## Validation gates (registered in TUNE_PREDICTION, adjudicated at landing)
 
