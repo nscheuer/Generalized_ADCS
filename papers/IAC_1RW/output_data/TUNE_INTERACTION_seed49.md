@@ -29,3 +29,22 @@ path drift concern CLOSED.
 angle=1e2, angle_N=1e4, ang_vel=1e5, warm-hold. 5x better final on the floor draw,
 jolt eliminated, budget margins comfortable. Gap noted: a1e2N1e4_cold was not run;
 warm-hold is part of the candidate as-swept.
+
+## Pre-freeze protections (Patrick, 2026-08-21)
+
+- **Warm-hold must earn its place or be dropped.** It has failed both original
+  rationales (no solve-time cut; no jolt removal). Its one remaining measurable
+  contribution is solution quality at high angle (a1e2 flat: cold 1.75 vs warm 1.00).
+  PENDING: a1e2N1e4_cold x2 (running) vs the swept warmhold 0.582 -- if cold matches,
+  the frozen config drops warm; every component earns its place.
+- **Omega-lever design rule (paper keeper):** the omega cost is load-bearing for
+  momentum discipline (down-weighting it raised h_peak to 0.267 and worsened final);
+  the tuning lever is angle-UP only. One line, connects to the momentum channel.
+- **Nondeterminism phrasing lock:** "deterministic on fresh workers, with residual
+  variation on some draws" -- 3/68 bitwise vs 49/55 spread 0.17-0.78 is not noise and
+  not stochasticity; do not call it either way in print.
+- **Section V simplifications:** seed-68 divergence + novel-mode discussion OUT
+  (harness artifact); per-seed caveat retired.
+- **Section VI tuning sentence w/ mechanism:** terminal emphasis only helps once the
+  running attitude cost makes the pull meaningful (angle_N alone: 3.22 WORSE than
+  2.91 base; combined with angle=1e2: 0.582).
