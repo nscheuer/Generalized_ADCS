@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+__all__ = ["State", "EstimatorState"]
+
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Iterable, Literal, Mapping
 
@@ -129,10 +131,15 @@ def _square_matrix(value: Any, *, name: str) -> np.ndarray | None:
 
 @dataclass(slots=True, eq=False)
 class State:
-    """Physical spacecraft state ``[w, q, h]``.
+    r"""Physical spacecraft state :math:`x=[\boldsymbol\omega,\mathbf q,\mathbf h]`.
+
+    .. math::
+
+        x \in \mathbb R^3 \times \mathbb S^3 \times \mathbb R^{n_h}
 
     The class deliberately does not emulate a NumPy array. Numerical-library
-    boundaries must use :meth:`as_array` explicitly.
+    boundaries use :meth:`~ADCS.state.State.as_array` explicitly. Estimated
+    parameters and covariance are provided by :class:`~ADCS.state.EstimatorState`.
     """
 
     w: np.ndarray
@@ -184,7 +191,7 @@ class State:
 
     @property
     def error_size(self) -> int:
-        """Alias for :attr:`tangent_size` used by error-state estimators."""
+        """Alias for :attr:`~ADCS.state.State.tangent_size`."""
         return self.tangent_size
 
     def copy(self) -> State:
@@ -253,7 +260,17 @@ class State:
         order: str = DEFAULT_QUATERNION_ORDER,
         normalize: bool = True,
     ) -> State:
-        """Return a copy with a quaternion delta composed on the right or left."""
+        r"""Compose a unit delta quaternion on the right or left.
+
+        .. math::
+
+            \mathbf q^+ = \mathbf q\otimes\delta\mathbf q
+            \quad\text{or}\quad
+            \mathbf q^+ = \delta\mathbf q\otimes\mathbf q
+
+        The Hamilton product matches
+        :func:`~ADCS.helpers.math_helpers.quat_mult`.
+        """
         order = _quaternion_order(order)
         delta_q = _unit_quaternion(delta_q, name="quaternion delta")
         from ADCS.helpers.math_helpers import quat_mult
@@ -273,10 +290,19 @@ class State:
         quaternion_order: str = DEFAULT_QUATERNION_ORDER,
         shortest: bool = True,
     ) -> np.ndarray:
-        """Return ``self ⊖ ref`` in reduced local coordinates.
+        r"""Return :math:`x\boxminus x_{\mathrm{ref}}` in local coordinates.
 
-        Right errors satisfy ``self.q = ref.q ⊗ dq``; left errors satisfy
-        ``self.q = dq ⊗ ref.q``. Other state blocks subtract linearly.
+        For right errors,
+
+        .. math::
+
+            \delta\mathbf q = \mathbf q_{\mathrm{ref}}^{-1}\otimes\mathbf q,
+            \qquad
+            \delta x = [\Delta\boldsymbol\omega,
+            \phi(\delta\mathbf q),\Delta\mathbf h].
+
+        Left errors reverse the quaternion product. See
+        :meth:`~ADCS.state.State.plus` for the inverse operation.
         """
         if not isinstance(ref, State):
             raise TypeError(f"ref must be a State, got {type(ref).__name__}")
@@ -304,11 +330,20 @@ class State:
         quaternion_order: str = DEFAULT_QUATERNION_ORDER,
         normalize: bool = True,
     ) -> State:
-        """Apply a local perturbation and return a new state.
+        r"""Return :math:`x\boxplus\delta x`.
+
+        For the default right-error convention,
+
+        .. math::
+
+            x\boxplus\delta x =
+            [\boldsymbol\omega+\delta\boldsymbol\omega,
+            \mathbf q\otimes\phi^{-1}(\delta\boldsymbol\theta),
+            \mathbf h+\delta\mathbf h].
 
         ``full_quaternion`` uses additive four-element quaternion coordinates
-        followed by optional normalization. Other modes are multiplicative and
-        use three attitude coordinates.
+        followed by normalization. Other modes use three attitude coordinates.
+        This is the inverse of :meth:`~ADCS.state.State.minus` locally.
         """
         quaternion_mode = _quaternion_mode(quaternion_mode)
         if quaternion_mode == "full_quaternion":
@@ -327,19 +362,19 @@ class State:
         return result
 
     def retract(self, delta: Any, **kwargs: Any) -> State:
-        """Semantic alias for :meth:`plus`."""
+        """Semantic alias for :meth:`~ADCS.state.State.plus`."""
         return self.plus(delta, **kwargs)
 
     def local_coordinates(self, ref: State, **kwargs: Any) -> np.ndarray:
-        """Semantic alias for :meth:`minus`."""
+        """Semantic alias for :meth:`~ADCS.state.State.minus`."""
         return self.minus(ref, **kwargs)
 
     def subtract(self, ref: State) -> np.ndarray:
-        """Compatibility wrapper for the default :meth:`minus` convention."""
+        """Compatibility wrapper for :meth:`~ADCS.state.State.minus`."""
         return self.minus(ref)
 
     def add_error(self, delta: np.ndarray) -> State:
-        """Compatibility wrapper for the default :meth:`plus` convention."""
+        """Compatibility wrapper for :meth:`~ADCS.state.State.plus`."""
         return self.plus(delta)
 
     def tangent_map(
@@ -348,7 +383,17 @@ class State:
         quaternion_mode: str = DEFAULT_QUATERNION_MODE,
         quaternion_order: str = DEFAULT_QUATERNION_ORDER,
     ) -> np.ndarray:
-        """Map local state differentials into full quaternion-state differentials."""
+        r"""Return the local-to-full differential map :math:`G(x)`.
+
+        .. math::
+
+            G(x)=\operatorname{diag}(I_3,sW_{\pm}(\mathbf q),I_{n_h}),
+            \qquad
+            W_{\pm}(\mathbf q)=
+            \begin{bmatrix}-\mathbf q_v^T\\q_0I_3\pm[\mathbf q_v]_\times\end{bmatrix}.
+
+        The sign is positive for right errors and negative for left errors.
+        """
         quaternion_mode = _quaternion_mode(quaternion_mode)
         if quaternion_mode == "full_quaternion":
             return self.normalization_jacobian()
@@ -374,7 +419,9 @@ class State:
         quaternion_mode: str = DEFAULT_QUATERNION_MODE,
         quaternion_order: str = DEFAULT_QUATERNION_ORDER,
     ) -> np.ndarray:
-        """Analytical Moore-Penrose inverse of :meth:`tangent_map`."""
+        r"""Return :math:`G(x)^\dagger`, the analytical pseudoinverse of
+        :meth:`~ADCS.state.State.tangent_map`.
+        """
         quaternion_mode = _quaternion_mode(quaternion_mode)
         if quaternion_mode == "full_quaternion":
             return np.linalg.pinv(self.normalization_jacobian())
@@ -388,7 +435,13 @@ class State:
         return result
 
     def normalization_jacobian(self) -> np.ndarray:
-        """Jacobian for normalizing this state's full quaternion block."""
+        r"""Return the full-state quaternion-normalization Jacobian.
+
+        .. math::
+
+            N_q=\frac{1}{\lVert\mathbf q\rVert}
+            \left(I_4-\frac{\mathbf q\mathbf q^T}{\lVert\mathbf q\rVert^2}\right).
+        """
         q = self.q
         norm = float(np.linalg.norm(q))
         if not np.isfinite(norm) or norm == 0.0:
@@ -427,7 +480,15 @@ class State:
         tolerance: float = 1e-12,
         max_iterations: int = 50,
     ) -> State:
-        """Compute an iterative weighted mean in the state's local coordinates."""
+        r"""Compute the weighted manifold mean :math:`\bar x` satisfying
+
+        .. math::
+
+            \sum_i w_i\left(x_i\boxminus\bar x\right)=0.
+
+        Iteration uses :meth:`~ADCS.state.State.minus` and
+        :meth:`~ADCS.state.State.plus`.
+        """
         values = list(states)
         if not values:
             raise ValueError("states must not be empty")
@@ -496,7 +557,7 @@ class State:
 
 @dataclass(slots=True, eq=False)
 class EstimatorState(State):
-    """Physical state plus estimated parameters and uncertainty."""
+    """A :class:`~ADCS.state.State` with estimated parameters and uncertainty."""
 
     act_bias: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
     sens_bias: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
@@ -705,7 +766,7 @@ class EstimatorState(State):
         return result
 
     def interpolate(self, other: State, alpha: float, *, method: str = "slerp") -> EstimatorState:
-        """Blend two estimated states (see :meth:`State.interpolate`).
+        """Blend two estimated states; see :meth:`~ADCS.state.State.interpolate`.
 
         Bias and disturbance blocks interpolate linearly. Covariances also
         blend linearly — a convex combination of PSD matrices stays PSD, but
@@ -810,11 +871,11 @@ class EstimatorState(State):
         return result
 
     def subtract(self, ref: State) -> np.ndarray:
-        """Compatibility wrapper for the default :meth:`minus` convention."""
+        """Compatibility wrapper for :meth:`~ADCS.state.EstimatorState.minus`."""
         return self.minus(ref)
 
     def add_error(self, delta: np.ndarray) -> EstimatorState:
-        """Compatibility wrapper for the default :meth:`plus` convention."""
+        """Compatibility wrapper for :meth:`~ADCS.state.EstimatorState.plus`."""
         return self.plus(delta)
 
     def is_close(
@@ -845,7 +906,10 @@ class EstimatorState(State):
         )
 
     def covariance_to_full(self, covariance: Any = None, **tangent_kwargs: Any) -> np.ndarray:
-        """Project a reduced covariance into full quaternion coordinates."""
+        r"""Project reduced covariance with :math:`P_f=G P_r G^T`.
+
+        Here :math:`G` is :meth:`~ADCS.state.State.tangent_map`.
+        """
         mode = tangent_kwargs.get("quaternion_mode", self.DEFAULT_QUATERNION_MODE)
         if _quaternion_mode(mode) == "full_quaternion":
             raise ValueError("covariance_to_full requires a reduced quaternion mode")
@@ -858,7 +922,10 @@ class EstimatorState(State):
         return (result + result.T) / 2.0
 
     def covariance_to_reduced(self, covariance: Any = None, **tangent_kwargs: Any) -> np.ndarray:
-        """Project a full-quaternion covariance into reduced local coordinates."""
+        r"""Project full covariance with :math:`P_r=G^\dagger P_f(G^\dagger)^T`.
+
+        Here :math:`G^\dagger` is :meth:`~ADCS.state.State.tangent_pinv`.
+        """
         mode = tangent_kwargs.get("quaternion_mode", self.DEFAULT_QUATERNION_MODE)
         if _quaternion_mode(mode) == "full_quaternion":
             raise ValueError("covariance_to_reduced requires a reduced quaternion mode")
