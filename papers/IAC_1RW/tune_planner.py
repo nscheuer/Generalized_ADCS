@@ -232,8 +232,9 @@ FULL_SEED = 35        # deterministic rule: median-final of cell-2 [3,6]-deg no-
 PD_KP_BASE, PD_KD_BASE = 2.9e-4, 8.68e-3
 
 
-def run_one_pd(kp_mult, seed, task="full"):
-    """PD-full gain check (per-task-tuning condition 1). kd scales as sqrt(kp)."""
+def run_one_pd(kp_mult, seed, task="full", inc_deg=None, save_dir=None):
+    """PD gain-check / spot-check runner. kd scales as sqrt(kp); optional
+    inclination override (LOWINC_PREDICTION) and per-trial persistence."""
     from papers.IAC_1RW._feedforward import FeedforwardLP
     kp = PD_KP_BASE * kp_mult
     kd = PD_KD_BASE * np.sqrt(kp_mult)
@@ -245,9 +246,15 @@ def run_one_pd(kp_mult, seed, task="full"):
                              h_target=h_t, mode="dipole")
     config = dict(make_config(seed, n_rw=1, task=task, tf=T_ORBIT, dt=1.0, seed=seed),
                   controller="pd")
+    if inc_deg is not None:
+        config["inc_deg"] = float(inc_deg)
     r = simulate(config, maker,
                  disturbances=("gg", "drag", "srp", "dipole", "general"),
                  bus_kwargs={"tau_w": 2.0e-3, "h_max": 15.0e-3})
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+        with open(os.path.join(save_dir, f"lowinc_s{seed:04d}.pkl"), "wb") as f:
+            pickle.dump(r, f, protocol=pickle.HIGHEST_PROTOCOL)
     return metrics_row(dict(name=f"pd_kp{kp_mult:g}_s{seed}"), r)
 
 
@@ -489,7 +496,45 @@ def _run_mode(mode):
         with open(os.path.join(OUT, "TUNE_VALIDATE.txt"), "w") as f:
             f.write(txt + "\n")
         return 0
-    print("usage: tune_planner.py --check | --sweep | --sweepfull | --pdcheck | --spread | --validate")
+    if mode == "--lowinc":
+        # LOWINC_PREDICTION.md spot-check: PD 3+1 reduced at inc=15 deg, n=30,
+        # campaign gains, per-trial persistence. Adjudicated against the registered
+        # predictions (dwell direction, divergence fraction, screen FA rate).
+        import multiprocessing as mp
+        sd = os.path.join(OUT, "lowinc")
+        jobs = [(1.0, s, "reduced", 15.0, sd) for s in range(30)]
+        with mp.get_context("fork").Pool(min(10, os.cpu_count() - 4),
+                                         maxtasksperchild=1) as p:
+            rows = p.starmap(run_one_pd, jobs)
+        import glob as _glob
+        fin, dws = [], []
+        for pth in sorted(_glob.glob(os.path.join(sd, "lowinc_s*.pkl"))):
+            with open(pth, "rb") as f:
+                r = pickle.load(f)
+            from papers.IAC_1RW._iac_sim import error_series
+            e = error_series(r)
+            sg = np.asarray(r["sigma"], float)
+            fin.append(float(e[-1]))
+            dws.append(float(np.mean(sg[np.isfinite(sg)] < 0.2)))
+        fin, dws = np.asarray(fin), np.asarray(dws)
+        div = fin > 30.0
+        flag = dws <= 0.1035
+        lines = [
+            f"n={len(fin)}  divergence fraction {div.mean():.2f} (baseline 0.11)",
+            f"dwell median {np.median(dws):.3f} (baseline 0.150)",
+            f"screen: flag rate {flag.mean():.2f} (baseline 0.09); catches "
+            f"{int((flag & div).sum())}/{int(div.sum())}; FA among converged "
+            f"{int((flag & ~div).sum())}/{int((~div).sum())} "
+            f"(transfer-failure line: >10%)",
+            "finals: " + " ".join(f"{v:.1f}" for v in sorted(fin)),
+        ]
+        txt = "\n".join(lines)
+        print(txt)
+        with open(os.path.join(OUT, "LOWINC_RESULT.txt"), "w") as f:
+            f.write(txt + "\n")
+        return 0
+    print("usage: tune_planner.py --check | --sweep | --sweepfull | --pdcheck | "
+          "--spread | --validate | --lowinc")
     return 2
 
 

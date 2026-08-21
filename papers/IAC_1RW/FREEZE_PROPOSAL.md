@@ -59,7 +59,24 @@ fix at 30 deg corroborates authority-class, not offset-class.
 **Rerun wave scope (updated):** planner-reduced + planner-full (frozen per-task
 weights) + **PD-full at BOTH kp x1 and kp x2** (n=100 each, persisted per-trial --
 the x1 arm exists in the campaign only as aggregates, and the registered class split
-needs paired per-seed finals at both gains).
+needs paired per-seed finals at both gains) + **PD-reduced at kp x1** (n=100,
+persisted). The PD-reduced addition closes a SERIES GAP found by the review queue:
+the money cell predates per-trial persistence, so no omega/attitude/B series exist
+for it -- items 1 (demand-ratio recomputation with omega_perp + direction-appropriate
+authority at instantaneous field) and 2's sigma-threshold axis are impossible without
+it. ~2.5 h; PD is solver-free so reproduction of the as-run statistics is expected.
+
+**Item-1 adjudication rule (registered pre-wave, per the review brief):** recompute
+the quadrature demand ratio on the wave's PD-reduced series with (a) omega_perp
+(transverse to the wheel axis) not full omega, (b) authority available in the
+DIRECTION of the demand at the INSTANTANEOUS field (single-axis m_max*|B|, not the
+combined-pair median ~31 uN m), (c) both peak and post-transient omega_perp
+statistics. If converged trials land NEAR UNITY under the corrected normalization,
+the ceiling is reported as a validated threshold; if they stay materially above
+unity, it is reported as a SEPARATING COVARIATE ONLY and the residual factor is
+named (candidates: standing dipole-cancellation reserve, feedforward share of the
+command box). kd CONFIRMED for the draft: 8.683e-3 N m s (= 2 sqrt(KP*J_TRANS/2),
+KP = 2.9e-4, J_TRANS = 0.13) -- replace the provisional 8.7e-3.
 
 **REGISTERED before the wave (Patrick's risk flag):** if the higher gain rescues much
 full-attitude non-convergence, some of what reads as architecture was tuning. The

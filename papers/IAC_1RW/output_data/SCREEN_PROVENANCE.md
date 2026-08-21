@@ -68,3 +68,28 @@ Planner-full (task+controller transfer): only 2 h-pinned trials (88, 97 -- the
 worker-aging fallback-contaminated pair), 1/2 flagged; 28 non-pinned >5 deg failures
 are the elective-equilibrium tail, not the screen's class. Contributes little beyond
 confirming planning converts divergence into graceful imprecision.
+
+## Threshold sensitivity (review item 2, cutoff axis; sigma-threshold axis awaits the wave series)
+
+| cutoff | reduced in-sample | full out-of-sample |
+|---|---|---|
+| 0.050  | 0/11, 0 FP | 6/26, 0 FP |
+| 0.075  | 5/11, 0 FP | 7/26, 0 FP |
+| 0.100  | 8/11, 0 FP | 11/26, 1 FP |
+| 0.1035 | 9/11, 0 FP | 11/26, 1 FP |
+| 0.125  | 9/11, 7 FP | 13/26, 7 FP |
+| 0.150  | 9/11, 42 FP | 14/26, 26 FP |
+
+VERDICT: **asymmetric knife-edge, not a plateau** -- graceful catch-loss on the
+conservative side, an FP cliff within +0.02 on the permissive side, mirrored in both
+populations. Sharper still: the nearest CONVERGED trial in the fit population sits at
+dwell = 0.1035 EXACTLY -- the operating point abuts the first converged draw, zero
+permissive-side margin. The paper prints the cliff, not a plateau claim, and the
+low-inclination spot-check's transfer-failure line (FA > 10%) is the live risk.
+
+## LOO fold rule (adopted): stated rule, less-flattering figure
+Rule: for each held-out event, refit the threshold on the remaining 10 events + all
+89 non-events as the largest cutoff with <= 1 false alarm, maximizing catches; the
+held-out event counts as caught if its dwell <= that threshold. Under this rule:
+**8/11 LOO** (in-sample 9/11 @ <= 1 FP). The earlier "LOO 9/11 @ 1 FP" came from a
+variant fold rule; the paper quotes 8/11 and states the rule.
