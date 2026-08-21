@@ -49,18 +49,27 @@ scaling). Context that keeps the original choice principled: 2.9e-4 was set as t
 LARGEST ZERO-DIVERGENCE gain on the REDUCED task -- it is a stability-capped choice,
 not an oversight; the cap binds on reduced, and full-attitude pays for it.
 
-Options for Patrick (registered branch: report and reconsider):
-- **(i) RECOMMENDED: per-task PD gains, symmetric with the planner** -- reduced keeps
-  2.9e-4 (its measured stability ceiling), full gets 5.8e-4; the PD-full cell (n=100)
-  joins the registered rerun wave (~3 h, aging-immune). Honest symmetry: both
-  controllers get per-mode configs, both frozen, both reported. n=3 stability caveat
-  on 5.8e-4-full is closed by the rerun itself.
-- (ii) Keep the single gain and PRINT the cost: "the stability-capped single gain
-  leaves a measured ~0.6-0.8x error factor on the table on full attitude" -- honest,
-  cheaper, but now that the planner has per-task weights, asymmetric in the fairness
-  direction a reviewer will notice.
-Note either way: the seed-11 class is not rescued by gain (30 deg at kp x2) -- its
-divergence is authority/rate-class, not offset-class.
+**DECIDED (Patrick, 2026-08-21): per-task PD gains** -- reduced keeps 2.9e-4 (its
+measured stability ceiling), full gets 5.8e-4. FRAMING (better than either option as
+listed): kp ~ tr(J) is a BUS rule; the data says it carries residual task dependence
+-- "the scaling rule transfers across inertia but carries residual task dependence"
+EXTENDS the companion paper rather than contradicting it. Seed 11 resisting the gain
+fix at 30 deg corroborates authority-class, not offset-class.
+
+**Rerun wave scope (updated):** planner-reduced + planner-full (frozen per-task
+weights) + **PD-full at BOTH kp x1 and kp x2** (n=100 each, persisted per-trial --
+the x1 arm exists in the campaign only as aggregates, and the registered class split
+needs paired per-seed finals at both gains).
+
+**REGISTERED before the wave (Patrick's risk flag):** if the higher gain rescues much
+full-attitude non-convergence, some of what reads as architecture was tuning. The
+wave reports the full-attitude failure rate at both gains, split by class:
+- OFFSET-CLASS: final improves ~ 1/kp, wheel never pinned -- was tuning, not
+  architecture; Section VI's full-attitude story shrinks accordingly.
+- AUTHORITY-CLASS: h-pinned at either gain, or final > 30 deg unrescued at kp x2 --
+  genuine frontier; stays in Section VI.
+The split determines what Section VI's full-attitude claim actually is; adjudicated
+from the paired cells exactly as written here.
 
 ## Validation gates (registered in TUNE_PREDICTION, adjudicated at landing)
 
