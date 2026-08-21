@@ -100,9 +100,24 @@ def _as_covariance_matrix(value: Covariance | Any, *, name: str) -> np.ndarray:
 class Covariance:
     r"""Own a covariance in full or upper square-root form.
 
-    For ``form="sqrt"``, the internal factor :math:`S` is upper triangular and
-    satisfies :math:`P=S^T S`. Inputs and returned matrices are copied, so
-    updates occur only through explicit methods such as :meth:`assign`.
+    For a local error :math:`\delta x=x\boxminus\bar x`, covariance is
+
+    .. math::
+
+        P=\mathbb E\!\left[\delta x\,\delta x^T\right],
+        \qquad P=P^T\succeq0.
+
+    ``form="full"`` stores :math:`P` directly. ``form="sqrt"`` stores an
+    upper-triangular factor :math:`S` satisfying
+
+    .. math::
+
+        P=S^T S.
+
+    The same public operations are available in both forms. Inputs and
+    returned matrices are copied, so updates occur only through explicit
+    methods such as :meth:`~ADCS.covariance.Covariance.assign`. State-space
+    retraction remains the responsibility of :class:`~ADCS.state.State`.
 
     :param matrix: Symmetric positive-semidefinite covariance matrix.
     :param form: Internal representation, ``"full"`` or ``"sqrt"``.
@@ -192,6 +207,17 @@ class Covariance:
         noise: Covariance | Any | None = None,
         **kwargs: Any,
     ) -> Covariance:
+        r"""Construct a covariance from weighted local deviations.
+
+        For row deviations :math:`d_i` and optional additive noise :math:`Q`,
+
+        .. math::
+
+            P=\sum_i w_i d_i d_i^T+Q.
+
+        Non-negative weights in square-root form use a QR factorization of
+        the stacked weighted deviations and the noise factor.
+        """
         deviations, weights = cls._deviations_and_weights(deviations, weights)
         dimension = deviations.shape[1]
         form = _form(kwargs.get("form", "full"))
@@ -320,7 +346,20 @@ class Covariance:
         self._data = replacement._data
 
     def sigma_offsets(self, scale: float = 1.0) -> np.ndarray:
-        """Return paired positive and negative sigma-point offsets as rows."""
+        r"""Return paired positive and negative sigma-point offsets as rows.
+
+        With :math:`P=S^T S` and scale :math:`\gamma`, row :math:`i` produces
+
+        .. math::
+
+            \Delta_i^+=\gamma S_{i,:},\qquad
+            \Delta_i^-=-\gamma S_{i,:},\qquad
+            \chi_i^\pm=\bar x\boxplus\Delta_i^\pm.
+
+        The final retraction is performed by
+        :meth:`~ADCS.state.State.retract`; this method returns only the
+        Euclidean tangent offsets.
+        """
         scale = float(scale)
         if not np.isfinite(scale) or scale < 0.0:
             raise ValueError("scale must be finite and non-negative")
@@ -425,7 +464,22 @@ class Covariance:
         )
 
     def predicted_linear(self, transition: Any, noise: Covariance | Any) -> Covariance:
-        r"""Return the linear prediction :math:`F P F^T+Q`."""
+        r"""Return the linear prediction covariance.
+
+        .. math::
+
+            P_{k+1}^{-}=F_kP_k^{+}F_k^T+Q_k.
+
+        In square-root form, :math:`S_{k+1}^{-}` is the triangular factor from
+
+        .. math::
+
+            \begin{bmatrix}S_kF_k^T\\S_Q\end{bmatrix}
+            =\mathcal Q S_{k+1}^{-},
+            \qquad Q_k=S_Q^TS_Q,
+
+        avoiding explicit construction of :math:`F_kP_kF_k^T`.
+        """
         transition = np.asarray(transition, dtype=float)
         if transition.ndim != 2 or transition.shape[1] != self.dimension:
             raise ValueError("transition column count must match covariance dimension")
@@ -459,7 +513,17 @@ class Covariance:
         weights: Any,
         noise: Covariance | Any,
     ) -> Covariance:
-        """Return a weighted sigma-deviation covariance plus process noise."""
+        r"""Return the unscented prediction covariance.
+
+        For propagated sigma points :math:`x_i^-` and their manifold mean
+        :math:`\bar x^-`, callers supply
+
+        .. math::
+
+            d_i=x_i^-\boxminus\bar x^-,
+            \qquad
+            P^-=\sum_i w_i^{(c)}d_i d_i^T+Q.
+        """
         return Covariance.from_weighted_deviations(
             deviations,
             weights,
@@ -476,7 +540,22 @@ class Covariance:
         *,
         joseph: bool = True,
     ) -> tuple[np.ndarray, Covariance]:
-        r"""Return Kalman gain and posterior covariance for a linear update."""
+        r"""Return Kalman gain and posterior covariance for a linear update.
+
+        With measurement Jacobian :math:`H` and noise covariance :math:`R`,
+
+        .. math::
+
+            \Sigma=HP^-H^T+R,\qquad
+            K=P^-H^T\Sigma^{-1}.
+
+        The default Joseph update preserves symmetry and positive
+        semidefiniteness more reliably than direct subtraction:
+
+        .. math::
+
+            P^+=(I-KH)P^-(I-KH)^T+KRK^T.
+        """
         h = np.asarray(measurement_jacobian, dtype=float)
         if h.ndim != 2 or h.shape[1] != self.dimension:
             raise ValueError("measurement jacobian column count must match state dimension")
@@ -506,6 +585,12 @@ class Covariance:
         second_deviations: Any,
         weights: Any,
     ) -> np.ndarray:
+        r"""Return weighted cross-covariance.
+
+        .. math::
+
+            P_{xy}=\sum_i w_i d_i^{x}(d_i^{y})^T.
+        """
         first, weights = Covariance._deviations_and_weights(first_deviations, weights)
         second = np.asarray(second_deviations, dtype=float)
         if second.ndim != 2 or second.shape[0] != first.shape[0]:
@@ -521,7 +606,17 @@ class Covariance:
         weights: Any,
         measurement_noise: Covariance | Any,
     ) -> tuple[np.ndarray, Covariance]:
-        """Return Kalman gain and posterior from weighted sigma deviations."""
+        r"""Return gain and posterior from weighted sigma deviations.
+
+        .. math::
+
+            P_{yy}=\sum_i w_i d_i^y(d_i^y)^T+R,\qquad
+            K=P_{xy}P_{yy}^{-1},\qquad
+            P^+=P^- - KP_{yy}K^T.
+
+        State and measurement deviations must already be expressed relative
+        to their respective means.
+        """
         state_deviations, weights = self._deviations_and_weights(state_deviations, weights)
         if state_deviations.shape[1] != self.dimension:
             raise ValueError("state deviation dimension must match covariance")

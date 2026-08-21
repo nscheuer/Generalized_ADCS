@@ -137,7 +137,30 @@ class State:
 
     .. math::
 
-        x \in \mathbb R^3 \times \mathbb S^3 \times \mathbb R^{n_h}
+        x \in \mathbb R^3 \times \mathbb S^3 \times \mathbb R^{n_h},
+        \qquad
+        \delta x =
+        \begin{bmatrix}
+        \delta\boldsymbol\omega &
+        \delta\boldsymbol\theta &
+        \delta\mathbf h
+        \end{bmatrix}^{T}
+        \in\mathbb R^{6+n_h}.
+
+    The unit quaternion has the double-cover equivalence
+    :math:`\mathbf q\sim-\mathbf q`. Attitude differences therefore live in
+    the three-dimensional tangent block :math:`\delta\boldsymbol\theta`, not
+    in the four stored quaternion coefficients. For a relative quaternion
+    :math:`\delta\mathbf q=[\eta,\boldsymbol\epsilon]`, two common coordinate
+    maps supported by :meth:`~ADCS.state.State.minus` are
+
+    .. math::
+
+        \phi_{qv}(\delta\mathbf q)=2\boldsymbol\epsilon,
+        \qquad
+        \phi_{rv}(\delta\mathbf q)=
+        2\operatorname{atan2}(\lVert\boldsymbol\epsilon\rVert,\eta)
+        \frac{\boldsymbol\epsilon}{\lVert\boldsymbol\epsilon\rVert}.
 
     The class deliberately does not emulate a NumPy array. Numerical-library
     boundaries use :meth:`~ADCS.state.State.as_array` explicitly. Estimated
@@ -394,6 +417,14 @@ class State:
             W_{\pm}(\mathbf q)=
             \begin{bmatrix}-\mathbf q_v^T\\q_0I_3\pm[\mathbf q_v]_\times\end{bmatrix}.
 
+        Thus a local perturbation and its first-order full-state displacement
+        are related by
+
+        .. math::
+
+            (x\boxplus\delta x)-x = G(x)\,\delta x
+            +\mathcal O(\lVert\delta x\rVert^2).
+
         The sign is positive for right errors and negative for left errors.
         """
         quaternion_mode = _quaternion_mode(quaternion_mode)
@@ -423,6 +454,19 @@ class State:
     ) -> np.ndarray:
         r"""Return :math:`G(x)^\dagger`, the analytical pseudoinverse of
         :meth:`~ADCS.state.State.tangent_map`.
+
+        For reduced attitude coordinates the quaternion block satisfies
+
+        .. math::
+
+            (sW_\pm)^\dagger=\frac{1}{s}W_\pm^T,
+            \qquad
+            G^\dagger G=I,
+            \qquad
+            GG^\dagger=\Pi_{T_x\mathcal M},
+
+        where :math:`\Pi_{T_x\mathcal M}` projects a full quaternion
+        displacement onto the unit-quaternion tangent space.
         """
         quaternion_mode = _quaternion_mode(quaternion_mode)
         if quaternion_mode == "full_quaternion":
@@ -559,7 +603,25 @@ class State:
 
 @dataclass(slots=True, eq=False, init=False)
 class EstimatorState(State):
-    """A :class:`~ADCS.state.State` with estimated parameters and uncertainty.
+    r"""A :class:`~ADCS.state.State` with estimated parameters and uncertainty.
+
+    The augmented estimate and its reduced local error are ordered as
+
+    .. math::
+
+        \hat x=
+        \begin{bmatrix}
+        \boldsymbol\omega & \mathbf q & \mathbf h &
+        \mathbf b_a & \mathbf b_s & \mathbf d
+        \end{bmatrix}^{T},
+        \qquad
+        P=\mathbb E\!\left[\delta x\,\delta x^T\right].
+
+    Consequently, the default covariance has one fewer row and column than
+    the stored state because :math:`\mathbf q\in\mathbb S^3` contributes only
+    three local degrees of freedom. Full quaternion-coordinate covariances are
+    also accepted and can be projected using
+    :meth:`~ADCS.state.EstimatorState.covariance_to_reduced`.
 
     :attr:`covariance` and :attr:`process_noise` are authoritative
     :class:`~ADCS.covariance.Covariance` objects. The ``cov`` and ``int_cov``
