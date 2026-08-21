@@ -43,17 +43,26 @@ outcome dump-starvation predicts; divergence is downstream.
 
 RESULT at the frozen reduced-fit threshold (0.1035, untouched):
 - catches 11/26 saturation events, 1 false alarm among the other 74 (~1%).
-- caught set = exactly the low-dwell tail (all 11 pinned draws with dwell <= 0.1035);
-  missed 15 sit at dwell 0.11-0.33 -- saturation through full-attitude paths the
-  dump-window mechanism does not describe (authority-class: demand exceeds capacity
-  even with dump windows available).
 
-READING: the screen transfers as a MECHANISM-SPECIFIC predictor, not a general
-divergence predictor -- on reduced, dump starvation is essentially the only
-saturation path (9/11); on full it is 42% of paths, and the screen catches its
-subset at the same ~1% false-alarm rate on a population it never saw. That is the
-out-of-sample statement the paper can make, and it also quantifies "full attitude
-adds failure paths" with a number.
+**WITHDRAWN (2026-08-21, Patrick's circularity catch): the "mechanism-conditional
+recall" reading.** The 11-vs-15 route split ("dump-starved" vs "authority-class") was
+assigned FROM THE DWELL VALUES THEMSELVES -- no independent evidence (no allocator
+despin trace, no LP-saturation flags, no counterfactual was computed for these
+trials). A threshold screen's catches are by construction the low-dwell tail, so
+"recall = the dump-starvation share" was tautological. The route labels are removed.
+
+WHAT STANDS (sigma-independent outcome variable only): out-of-sample on a population
+the screen never saw, sensitivity 11/26 (42%) against momentum-saturation events,
+precision 11/12, false-alarm rate ~1%. No mechanism decomposition is claimed.
+
+REGISTERED path to a non-circular version (zero extra cost): the rerun wave's
+PD-full cells persist full per-trial series, so an INDEPENDENT route classification
+becomes computable from allocator state -- criterion registered NOW, before the wave:
+dump-starved := despin commanded on >= 30% of steps AND the LP despin channel
+saturated on >= 90% of those steps (the reduced-cell trace pattern: 44% / 99.7%);
+authority-class := saturation without that signature. If the screen's catches then
+align with the INDEPENDENTLY classified starved subset, the mechanism-conditional
+sentence may return; otherwise only the recall figure survives.
 
 Planner-full (task+controller transfer): only 2 h-pinned trials (88, 97 -- the
 worker-aging fallback-contaminated pair), 1/2 flagged; 28 non-pinned >5 deg failures
