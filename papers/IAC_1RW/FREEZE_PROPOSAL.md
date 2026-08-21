@@ -229,3 +229,21 @@ everyone," the strongest frontier statement available.
 - CONFOUND, named: if overlapping seeds share initial-rate or goal-geometry
   covariates (|omega_0|, sigma_med, dwell), the overlap is a SHARED-CAUSE candidate,
   not instance difficulty; the covariate comparison is part of the adjudication.
+
+## Bridge test STAGED (pre-table, per Patrick): angle ~3e1 retreat path
+
+Kill-seed count is tracking well past the trip-wire's likely firing point, so the
+bridge is staged now: --bridge mode, angle=3e1 flat (log-midpoint) + warm-hold, full
+task, seeds {28 (high-sigma), 40 (low-sigma held-out), 35 (tuning seed), + the
+lowest-final no-kill cell-2 converger picked in-mode (deterministic easy case)}.
+
+REGISTERED bridge gates (before any bridge data): PASS iff
+(a) s28 final <= half its cell-2 baseline (2.9 vs 5.83) -- the high-sigma win must
+    survive the retreat;
+(b) s40 no worse than its baseline 4.11 (low-sigma null tolerated, harm not);
+(c) easy seed stays converged;
+(d) kills across the four trials <= 1.
+PASS => freeze full config at 3e1 and rerun ONLY the planner-full cell (others
+stand). FAIL => full planner reverts to baseline weights (symmetric with reduced:
+"tuning selected the baseline" on both tasks), and Section V reports the boundary-
+currency finding: the angle lever is walled on BOTH sides for this solver.

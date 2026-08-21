@@ -31,3 +31,16 @@ All paths relative to papers/IAC_1RW/output_data/.
   dipole + offset figures** (Patrick's side); the caption then says "6U shown at two
   altitudes; smaller classes omitted for lack of sourced disturbance figures" rather
   than estimating.
+
+## Amendment (Patrick, 2026-08-21): 1U/3U overlays RESTORED, as bars
+
+- **cp-cg offset: 2 cm for ALL classes, standards-derived** -- the CubeSat Design
+  Specification bounds CG within 2 cm of the geometric center, which for a uniform
+  box IS the cp-cg offset the drag model needs. Same value the 6U already uses;
+  nothing scales. ALSO: cite the CDS in Section IV-A -- the reference bus's 2 cm
+  becomes a standards-derived worst case rather than a chosen parameter.
+- **Residual dipole: horizontal BARS, not points** -- 1U and 3U markers span
+  0.02-0.1 A m^2 (electronics-count argument: EPS+OBC+radio regardless of envelope).
+  Drag term computed exactly (CDS area + offset); dipole assumed and shown as a
+  range. Caption: "class markers span plausible residual dipole; the drag
+  contribution is computed, the dipole assumed."
