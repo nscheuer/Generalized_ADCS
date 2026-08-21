@@ -154,3 +154,14 @@ sigma: reduced s3 0.37, s55 0.31, s68 0.57, s78 0.26 | full s40 0.28, s28 0.67
 
 Planner-reduced: NOT rerun (config unchanged; cell 1 stands). ~10 h total,
 aging-immune, one job at a time.
+
+## APPROVED (Patrick, 2026-08-21) -- all three decisions, with framing requirement
+
+Decision 1 framing (BINDING for the paper): both tasks were tuned per-task; ON THE
+REDUCED TASK THE TUNING SELECTED THE BASELINE -- candidate fitted on seed 49, failed
+multi-seed validation (easy-seed break, ceiling-crossing regression), scaling-rule
+value survived. Never "reduced was untuned." Sigma-consistency sentence conditional:
+if the full validation table holds the pattern (breaks low-sigma, wins high-sigma),
+one sentence noting the tuning failure was predicted by the paper's organizing
+quantity. WAVE IS GO: planner-full (frozen a1e2 flat + warm-hold) + PD-full x2 gains
++ PD-reduced x1, n=100 each, sequential, aging-immune.

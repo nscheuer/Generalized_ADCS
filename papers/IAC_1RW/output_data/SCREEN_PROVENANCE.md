@@ -93,3 +93,37 @@ Rule: for each held-out event, refit the threshold on the remaining 10 events + 
 held-out event counts as caught if its dwell <= that threshold. Under this rule:
 **8/11 LOO** (in-sample 9/11 @ <= 1 FP). The earlier "LOO 9/11 @ 1 FP" came from a
 variant fold rule; the paper quotes 8/11 and states the rule.
+
+## AUTHORITATIVE OPERATING POINT (audit 2026-08-21) -- all prior figures retired
+
+Operating point: flag iff dwell(sigma<0.2) <= 0.1035, fixed. From this single point:
+
+| quantity | value |
+|---|---|
+| in-sample recall (reduced cell, 11 divergences) | 9/11 |
+| in-sample false alarms | **0** of 89 non-diverged (9 flags, 91 passes) |
+| LOO recall at the FIXED cutoff | 9/11 (identical to in-sample by construction) |
+| LOO recall, threshold refit per fold (stated rule) | **8/11**, <= 1 FP allowed per fold |
+| transfer recall (full cell, 26 saturation events) | 11/26 |
+| transfer false alarms | 1 of 74 non-events (12 flags, 88 passes; TP 11 / FN 15 / FP 1 / TN 73; n = 100 exactly) |
+
+CONFLICT RESOLUTION: the historic "1 FP" in-sample figure is RETIRED -- at the fixed
+cutoff there are zero false alarms; the nearest converged trial sits at 0.10353,
+0.00003 ABOVE the cutoff. The 1-FP figure originated inside LOO folds under the
+<= 1-FP-allowance refit rule (a fold's threshold can rise past 0.10353 and admit that
+trial); it never described the operating point. "2% residual" is retired with it.
+LOO fold rule, one sentence: "for each held-out divergence, the threshold is refit on
+the remaining 10 divergences and all 89 non-divergences as the largest cutoff
+admitting at most one false alarm while maximizing catches; the held-out event counts
+as caught if its dwell falls at or below that threshold" -- quoted figure 8/11, the
+less flattering of the two defensible rules.
+
+MISSES CORRECTED for the draft: seeds 15 and 53 at dwell **0.2672 and 0.1912** (the
+provisional 0.11 / 0.13 are wrong). Note the structure: the nine caught divergences
+span 0.051-0.100, then a clean gap to the two misses at 0.19 / 0.27 -- the misses are
+not near-threshold stragglers but a separated cluster, consistent with their
+registered second-mechanism classification (Addendum 3's outliers 15/53).
+
+Q2 CLOSURE: no missing draws. "1 false alarm among the other 74" meant the 74
+NON-EVENTS (100 - 26 saturation events), not passes. Full 2x2 above; PD-full has no
+kills and no pure-planner filter; n = 100.
