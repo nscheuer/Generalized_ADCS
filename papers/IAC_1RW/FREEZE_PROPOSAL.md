@@ -187,3 +187,20 @@ THE LINE (set now, adjudicated at the cell table):
    n=100 -- no auto-rerun.
 4. Either way the cell is reported both-ways with the kill-affected trials listed,
    per the standing convention.
+
+## AMENDMENT to the adoption-line registration (Patrick, 2026-08-21, pre-table)
+
+1. **Gate arithmetic acknowledged**: at the observed rate (~5 kills / ~506 windows
+   ~ 1%) the 10%-of-windows PRIMARY gate is non-binding; ~9% of TRIALS are
+   kill-affected, so the CONCENTRATION TRIP-WIRE (both-ways disagreement > 5 pts)
+   is the operative test, not the backstop. Adjudication proceeds knowing which.
+2. **Comparative claim DROPPED before it enters prose.** "More hard solves than
+   baseline" has no clean baseline: cell 2 predates process isolation and its kills
+   were traced to worker aging. Fresh-worker baseline-weight full-task sample
+   (crossover kill-seed reruns 88/94/97 + sweepfull base arms on seed 35): 7 trials,
+   ~84 windows, 0 kills -- real but underpowered (P(0/7 | the a1e2 trial-level rate)
+   ~ 0.45; discriminates nothing). ADOPTED: the descriptive sentence -- "the tuned
+   configuration produced hard solves at a rate of [X]; the untuned cell predates
+   process isolation and cannot be compared." The boundary-currency framing survives
+   as a MECHANISM claim about a1e3's momentum wall (directly measured), with compute
+   as a suggested parallel, not an established one.
