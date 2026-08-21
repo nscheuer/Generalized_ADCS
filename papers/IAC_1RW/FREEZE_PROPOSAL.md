@@ -165,3 +165,25 @@ if the full validation table holds the pattern (breaks low-sigma, wins high-sigm
 one sentence noting the tuning failure was predicted by the paper's organizing
 quantity. WAVE IS GO: planner-full (frozen a1e2 flat + warm-hold) + PD-full x2 gains
 + PD-reduced x1, n=100 each, sequential, aging-immune.
+
+## REGISTERED MID-WAVE (2026-08-21, before the planner-full cell completes):
+## the fallback-fraction adoption line for the tuned full config
+
+Live count at registration: 4 kill-seeds in the first ~46 dispatched (seeds 4, 11,
+38, 46; windows 1/1/4/4-5) -- materially above baseline cell 2's rate, on fresh
+workers. Shape note for the paper if it holds: raising the angle weight pushes toward
+a BOUNDARY in whatever currency is nearest -- momentum at a1e3 (the s40 catastrophe),
+COMPUTE at a1e2 (hard solves at the wall budget). Same lever, different wall.
+
+THE LINE (set now, adjudicated at the cell table):
+1. PRIMARY: if budget-kill/fallback windows exceed **10% of all windows**, the tuned
+   full config is NOT ADOPTABLE -- the pointing gain is bought with PD underneath it,
+   violating the cell-interpretation rule already in Section VI.
+2. SECONDARY (both-ways protection): if the all-trials vs pure-planner headline
+   numbers disagree by more than 5 points at conv@5, the cell is not a clean planner
+   measurement regardless of the window fraction, and adoption is deferred.
+3. FAILURE PATH: reconsider at angle ~3e1 (log-midpoint of 1e1 and 1e2) via a small
+   bridge test on the existing validation seeds (28, 40, 35 + one easy) BEFORE any
+   n=100 -- no auto-rerun.
+4. Either way the cell is reported both-ways with the kill-affected trials listed,
+   per the standing convention.
