@@ -1,0 +1,14 @@
+sigma full: s40 0.28, s28 0.67; sigma reduced: s3 0.37, s55 0.31, s68 0.57, s78 0.26
+val_red_s3: final    4.558  standing 1.181  h_peak 0.180  kills 0  n_fb 0
+val_red_s55: final    5.505  standing 1.031  h_peak 0.551  kills 1  n_fb 1
+val_red_s78: final    5.762  standing 0.615  h_peak 0.108  kills 0  n_fb 0
+val_red_s68: final    0.621  standing 0.739  h_peak 0.143  kills 0  n_fb 0
+val_redcold_s3: final    5.858  standing 0.897  h_peak 0.180  kills 0  n_fb 0
+val_redcold_s55: final    6.053  standing 1.496  h_peak 0.522  kills 1  n_fb 1
+val_redcold_s78: final    5.749  standing 0.616  h_peak 0.108  kills 0  n_fb 0
+val_redcold_s68: final    0.671  standing 0.604  h_peak 0.143  kills 0  n_fb 0
+val_full2_s40: final    4.444  standing 1.136  h_peak 0.130  kills 0  n_fb 0
+val_full3_s40: final   25.736  standing 83.048  h_peak 1.000  kills 10  n_fb 10
+val_full2_s28: final    0.730  standing 0.998  h_peak 0.489  kills 1  n_fb 1
+val_full3_s28: final    0.811  standing 0.772  h_peak 0.446  kills 1  n_fb 1
+(baselines: s3 0.74 | s55 1.56-2.34 | s78 8.69 | s68 2.90 | s40 cell-2 4.11. Gates: no easy-seed break; 78 improvement; 68 stays converged; full cases beat their cell-2 finals materially; warm earns via warm-vs-cold across the 4 reduced pairs or drops; h_peak watch on full3 arms.)

@@ -97,6 +97,60 @@ from the paired cells exactly as written here.
   seeds' angle response vs their logged sigma
 - h watch: no full-arm standing h near the ceiling at a1e2
 
-## Results ([pending validation])
+## Results (validation landed 2026-08-21) -- GATES ADJUDICATED AS WRITTEN
 
-[TUNE_VALIDATE.txt + PD check tables paste here at adjudication]
+sigma: reduced s3 0.37, s55 0.31, s68 0.57, s78 0.26 | full s40 0.28, s28 0.67
+
+| arm | final (baseline) | notes |
+|---|---|---|
+| red s3 warm/cold | 4.56 / 5.86 (0.74) | **EASY-SEED BREAK** |
+| red s55 warm/cold | 5.51 / 6.05 (1.6-2.3) | regression + h 0.55 + a BUDGET KILL (first reduced-task kill ever) |
+| red s78 warm/cold | 5.76 / 5.75 (8.69) | improved, still >5 |
+| red s68 warm/cold | 0.62 / 0.67 (2.90) | excellent |
+| full a1e2 s40 (sigma 0.28) | 4.44 (4.11) | null -- low-sigma floor |
+| full a1e3 s40 | **25.7, h=1.000, 10 kills** | CATASTROPHE: ceiling-riding realized |
+| full a1e2 s28 (sigma 0.67) | 0.73 (5.83) | 8x improvement |
+| full a1e3 s28 | 0.81 (5.83) | same, no extra gain |
+
+### Adjudications
+
+1. **REDUCED tuned candidate (a1e2/angle_N=1e4): REJECTED.** The easy-seed gate fired
+   (0.74 -> 4.56), s55 regressed with a ceiling-crossing wheel (0.55) and the first
+   reduced-task budget kill on record. The seed-49 win (0.58) did not transfer -- it
+   was overfit to that draw. Per protocol, caught BEFORE contaminating any cell.
+   PROPOSAL: reduced planner config REVERTS to the campaign baseline (angle 1e1 /
+   angle_N 1e1), which is already n=100-validated by cell 1 itself (96/53/0.99, zero
+   fallbacks). Consequence: the planner-REDUCED rerun is UNNECESSARY -- cell 1 stands.
+2. **Warm-hold on reduced: DROPS** (earn-or-drop): at the baseline config warm is a
+   tie (2.881 vs 2.907); its apparent win existed only on the rejected config.
+   Warm-hold on FULL: KEPT, speed-only justification (solve_med 10.5 -> 2.3 s,
+   outcomes bitwise-identical).
+3. **FULL candidate a1e2-flat + warm: ADOPT (recommendation).** Three-seed evidence,
+   all consistent with the sigma-conditional registration: transforms high-sigma
+   draws (s28: 5.83 -> 0.73; sweep s35 standing 5.38 -> 1.71), null-no-harm on
+   low-sigma (s40: 4.11 -> 4.44, within residual variation), h comfortable (0.13 /
+   0.49 peak). The n=100 rerun measures the population effect properly.
+4. **a1e3: REJECTED everywhere, and the s40 catastrophe is the paper's exhibit** --
+   on a low-sigma draw the heavy angle weight overdrives the wheel chasing an
+   along-field target the corridor prices out of reach: h pins at 1.000, every
+   window's solve dies at the wall budget, 25.7 deg. "Riding the ceiling" is not a
+   style critique; it is this trajectory. Strengthens Section III more than the
+   duty-cycle statistic did.
+5. **Sigma-conditional prediction: CONFIRMED in both task families** -- the reduced
+   validation breaks are the LOW-sigma seeds (s3 0.37, s55 0.31) while the high-sigma
+   seed wins (s68 0.57: 2.90 -> 0.62); the full contrast is textbook (s28 vs s40).
+   Unified tuning corollary of the single dial: angle-up helps exactly where sigma
+   lets the wheel serve the demand, and overdrives into the corridor wall where it
+   does not.
+
+### REVISED WAVE (pending Patrick's freeze sign-off)
+
+| cell | config | n | purpose |
+|---|---|---|---|
+| planner-FULL | a1e2 flat + warm-hold, FROZEN | 100 | tuned full cell (replaces 70/15/2.32) |
+| PD-full kp x1 | campaign gains | 100 | paired baseline + persistence (items 1-3) |
+| PD-full kp x2 | 5.8e-4 | 100 | per-task PD + offset/authority split |
+| PD-reduced kp x1 | campaign gains | 100 | series gap (items 1, 2-sigma) |
+
+Planner-reduced: NOT rerun (config unchanged; cell 1 stands). ~10 h total,
+aging-immune, one job at a time.
