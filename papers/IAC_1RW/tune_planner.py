@@ -447,6 +447,19 @@ def _run_mode(mode):
         s_hi = max(sig, key=sig.get)
         print(f"sigma-conditional full seeds: 40 (sigma {sig.get(40, float('nan')):.2f}), "
               f"{s_hi} (max sigma {sig[s_hi]:.2f})")
+        # sigma of EVERY validation seed (reduced ones from cell-1 pkls): the
+        # sigma-conditional structure, if real, should show in the reduced seeds'
+        # response to angle too -- free from a run already happening.
+        red_sig = {}
+        for s in (3, 55, 78, 68):
+            pth = os.path.join(OUT, "A_trials",
+                               f"1rw_reduced_planner_seed{s:04d}.pkl")
+            if os.path.exists(pth):
+                with open(pth, "rb") as f:
+                    rr = pickle.load(f)
+                red_sig[s] = float(np.nanmedian(np.asarray(rr["sigma"], float)))
+        print("reduced validation seeds sigma:",
+              {k: round(v, 2) for k, v in red_sig.items()})
         RED = dict(angle=1e2, angle_N=1e4)
         jobs = [(dict(RED, warm="hold", name=f"val_red_s{s}"), T_ORBIT, s, "reduced")
                 for s in (3, 55, 78, 68)]
@@ -459,7 +472,8 @@ def _run_mode(mode):
                            name=f"val_full3_s{s}"), T_ORBIT, s, "full")]
         with mp.get_context("fork").Pool(8, maxtasksperchild=1) as p:
             rows = p.starmap(run_one, jobs)
-        lines = [f"sigma: s40 {sig.get(40, float('nan')):.2f}, s{s_hi} {sig[s_hi]:.2f}"]
+        lines = [f"sigma full: s40 {sig.get(40, float('nan')):.2f}, s{s_hi} {sig[s_hi]:.2f}; "
+                 f"sigma reduced: " + ", ".join(f"s{k} {v:.2f}" for k, v in sorted(red_sig.items()))]
         for r in rows:
             st = r["standing"]
             lines.append(f"{r['name']}: final {r['final']:8.3f}  standing "
