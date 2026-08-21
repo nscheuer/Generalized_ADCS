@@ -662,9 +662,14 @@ estimated.</p></li>
 <dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.helpers.plot.states.quaternionplot.</span></span><span class="sig-name descname"><span class="pre">State</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Physical spacecraft state <code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">q,</span> <span class="pre">h]</span></code>.</p>
+<p>Physical spacecraft state <span class="math notranslate nohighlight">\(x=[\boldsymbol\omega,\mathbf q,\mathbf h]\)</span>.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[x \in \mathbb R^3 \times \mathbb S^3 \times \mathbb R^{n_h}\]</div>
+</div>
 <p>The class deliberately does not emulate a NumPy array. Numerical-library
-boundaries must use <a class="reference internal" href="#ADCS.helpers.plot.states.quaternionplot.State.as_array" title="ADCS.helpers.plot.states.quaternionplot.State.as_array"><code class="xref py py-meth docutils literal notranslate"><span class="pre">as_array()</span></code></a> explicitly.</p>
+boundaries use <a class="reference internal" href="ADCS.state.html#ADCS.state.State.as_array" title="ADCS.state.State.as_array"><code class="xref py py-meth docutils literal notranslate"><span class="pre">as_array()</span></code></a> explicitly. Estimated
+parameters and covariance are provided by <a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -680,7 +685,7 @@ boundaries must use <a class="reference internal" href="#ADCS.helpers.plot.state
 <dd><p>Build a state from the established <code class="docutils literal notranslate"><span class="pre">[w(3),</span> <span class="pre">q(4),</span> <span class="pre">h]</span></code> ordering.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>value</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.Any" title="typing.Any"><em>Any</em></a>)</p>
+<dd class="field-odd"><p><strong>value</strong> (<em>Any</em>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a></p>
@@ -693,10 +698,73 @@ boundaries must use <a class="reference internal" href="#ADCS.helpers.plot.state
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">payload</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.from_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.from_dict" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>payload</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="ADCS.state.html#ADCS.state.Any" title="typing.Any"><em>Any</em></a><em>]</em>)</p>
+<dd class="field-odd"><p><strong>payload</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.mean">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.mean" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the weighted manifold mean <span class="math notranslate nohighlight">\(\bar x\)</span> satisfying</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\sum_i w_i\left(x_i\boxminus\bar x\right)=0.\]</div>
+</div>
+<p>Iteration uses <a class="reference internal" href="ADCS.state.html#ADCS.state.State.minus" title="ADCS.state.State.minus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">minus()</span></code></a> and
+<a class="reference internal" href="ADCS.state.html#ADCS.state.State.plus" title="ADCS.state.State.plus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plus()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>states</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em>]</em>)</p></li>
+<li><p><strong>weights</strong> (<em>Any</em>)</p></li>
+<li><p><strong>reference</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>quaternion_mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>quaternion_order</strong> (<em>str</em>)</p></li>
+<li><p><strong>tolerance</strong> (<em>float</em>)</p></li>
+<li><p><strong>max_iterations</strong> (<em>int</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.quaternion_delta_from_vector">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">quaternion_delta_from_vector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.quaternion_delta_from_vector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.quaternion_delta_from_vector" title="Link to this definition">¶</a></dt>
+<dd><p>Convert three local attitude coordinates into a unit quaternion delta.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>Any</em>)</p></li>
+<li><p><strong>mode</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.quaternion_delta_to_vector">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">quaternion_delta_to_vector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shortest</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.quaternion_delta_to_vector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.quaternion_delta_to_vector" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a quaternion delta into three local attitude coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>Any</em>)</p></li>
+<li><p><strong>mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>shortest</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
 </dd>
 </dl>
 </dd></dl>
@@ -717,16 +785,27 @@ boundaries must use <a class="reference internal" href="#ADCS.helpers.plot.state
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.add_error">
 <span class="sig-name descname"><span class="pre">add_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.add_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.add_error" title="Link to this definition">¶</a></dt>
-<dd><p>Apply a reduced error vector (the inverse of <a class="reference internal" href="#ADCS.helpers.plot.states.quaternionplot.State.subtract" title="ADCS.helpers.plot.states.quaternionplot.State.subtract"><code class="xref py py-meth docutils literal notranslate"><span class="pre">subtract()</span></code></a>).</p>
-<p><code class="docutils literal notranslate"><span class="pre">delta</span></code> is <code class="docutils literal notranslate"><span class="pre">[δw,</span> <span class="pre">δθ,</span> <span class="pre">δh]</span></code> of length <code class="docutils literal notranslate"><span class="pre">6</span> <span class="pre">+</span> <span class="pre">n_rw</span></code>; the attitude block
-<code class="docutils literal notranslate"><span class="pre">δθ</span> <span class="pre">=</span> <span class="pre">2·vec(dq)</span></code> is retracted onto the quaternion manifold via
-<code class="docutils literal notranslate"><span class="pre">q</span> <span class="pre">⊗</span> <span class="pre">dq</span></code> with <code class="docutils literal notranslate"><span class="pre">dq</span> <span class="pre">=</span> <span class="pre">[√(1−|δθ/2|²),</span> <span class="pre">δθ/2]</span></code>.</p>
+<dd><p>Compatibility wrapper for <a class="reference internal" href="ADCS.state.html#ADCS.state.State.plus" title="ADCS.state.State.plus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plus()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>delta</strong> (<em>ndarray</em>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.aligned_quaternion">
+<span class="sig-name descname"><span class="pre">aligned_quaternion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.aligned_quaternion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.aligned_quaternion" title="Link to this definition">¶</a></dt>
+<dd><p>Return this state’s unit quaternion with the sign nearest <code class="docutils literal notranslate"><span class="pre">reference</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>reference</strong> (<em>Any</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
 </dd>
 </dl>
 </dd></dl>
@@ -774,6 +853,86 @@ not clamped; values outside <code class="docutils literal notranslate"><span cla
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.is_close">
+<span class="sig-name descname"><span class="pre">is_close</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">rtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-08</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.is_close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.is_close" title="Link to this definition">¶</a></dt>
+<dd><p>Compare physical states while treating <code class="docutils literal notranslate"><span class="pre">q</span></code> and <code class="docutils literal notranslate"><span class="pre">-q</span></code> as equivalent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>other</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a>)</p></li>
+<li><p><strong>rtol</strong> (<em>float</em>)</p></li>
+<li><p><strong>atol</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.local_coordinates">
+<span class="sig-name descname"><span class="pre">local_coordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.local_coordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.local_coordinates" title="Link to this definition">¶</a></dt>
+<dd><p>Semantic alias for <a class="reference internal" href="ADCS.state.html#ADCS.state.State.minus" title="ADCS.state.State.minus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">minus()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a>)</p></li>
+<li><p><strong>kwargs</strong> (<em>Any</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.minus">
+<span class="sig-name descname"><span class="pre">minus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shortest</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.minus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.minus" title="Link to this definition">¶</a></dt>
+<dd><p>Return <span class="math notranslate nohighlight">\(x\boxminus x_{\mathrm{ref}}\)</span> in local coordinates.</p>
+<p>For right errors,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\delta\mathbf q = \mathbf q_{\mathrm{ref}}^{-1}\otimes\mathbf q,
+\qquad
+\delta x = [\Delta\boldsymbol\omega,
+\phi(\delta\mathbf q),\Delta\mathbf h].\]</div>
+</div>
+<p>Left errors reverse the quaternion product. See
+<a class="reference internal" href="ADCS.state.html#ADCS.state.State.plus" title="ADCS.state.State.plus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plus()</span></code></a> for the inverse operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a>)</p></li>
+<li><p><strong>quaternion_mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>quaternion_order</strong> (<em>str</em>)</p></li>
+<li><p><strong>shortest</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.normalization_jacobian">
+<span class="sig-name descname"><span class="pre">normalization_jacobian</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.normalization_jacobian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.normalization_jacobian" title="Link to this definition">¶</a></dt>
+<dd><p>Return the full-state quaternion-normalization Jacobian.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[N_q=\frac{1}{\lVert\mathbf q\rVert}
+\left(I_4-\frac{\mathbf q\mathbf q^T}{\lVert\mathbf q\rVert^2}\right).\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.normalized">
 <span class="sig-name descname"><span class="pre">normalized</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.normalized"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.normalized" title="Link to this definition">¶</a></dt>
 <dd><p>Return a copy with a unit quaternion, without changing this state.</p>
@@ -785,17 +944,102 @@ not clamped; values outside <code class="docutils literal notranslate"><span cla
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.plus">
+<span class="sig-name descname"><span class="pre">plus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.plus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.plus" title="Link to this definition">¶</a></dt>
+<dd><p>Return <span class="math notranslate nohighlight">\(x\boxplus\delta x\)</span>.</p>
+<p>For the default right-error convention,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[x\boxplus\delta x =
+[\boldsymbol\omega+\delta\boldsymbol\omega,
+\mathbf q\otimes\phi^{-1}(\delta\boldsymbol\theta),
+\mathbf h+\delta\mathbf h].\]</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">full_quaternion</span></code> uses additive four-element quaternion coordinates
+followed by normalization. Other modes use three attitude coordinates.
+This is the inverse of <a class="reference internal" href="ADCS.state.html#ADCS.state.State.minus" title="ADCS.state.State.minus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">minus()</span></code></a> locally.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>delta</strong> (<em>Any</em>)</p></li>
+<li><p><strong>quaternion_mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>quaternion_order</strong> (<em>str</em>)</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.retract">
+<span class="sig-name descname"><span class="pre">retract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.retract"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.retract" title="Link to this definition">¶</a></dt>
+<dd><p>Semantic alias for <a class="reference internal" href="ADCS.state.html#ADCS.state.State.plus" title="ADCS.state.State.plus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plus()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>delta</strong> (<em>Any</em>)</p></li>
+<li><p><strong>kwargs</strong> (<em>Any</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.subtract">
 <span class="sig-name descname"><span class="pre">subtract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.subtract"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.subtract" title="Link to this definition">¶</a></dt>
-<dd><p>Manifold difference <code class="docutils literal notranslate"><span class="pre">self</span> <span class="pre">⊖</span> <span class="pre">ref</span></code> as a reduced error vector.</p>
-<p>Returns <code class="docutils literal notranslate"><span class="pre">[w</span> <span class="pre">-</span> <span class="pre">w_ref,</span> <span class="pre">2·vec(q_ref⁻¹</span> <span class="pre">⊗</span> <span class="pre">q),</span> <span class="pre">h</span> <span class="pre">-</span> <span class="pre">h_ref]</span></code> (length
-<code class="docutils literal notranslate"><span class="pre">6</span> <span class="pre">+</span> <span class="pre">n_rw</span></code>), with the error quaternion sign-corrected to the shortest
-rotation so the attitude block is exactly inverted by
-<a class="reference internal" href="#ADCS.helpers.plot.states.quaternionplot.State.add_error" title="ADCS.helpers.plot.states.quaternionplot.State.add_error"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_error()</span></code></a>. Note this is the plain quaternion-vector convention,
-not the 2×MRP convention used by the TVLQR tracker.</p>
+<dd><p>Compatibility wrapper for <a class="reference internal" href="ADCS.state.html#ADCS.state.State.minus" title="ADCS.state.State.minus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">minus()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>ref</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.tangent_map">
+<span class="sig-name descname"><span class="pre">tangent_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.tangent_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.tangent_map" title="Link to this definition">¶</a></dt>
+<dd><p>Return the local-to-full differential map <span class="math notranslate nohighlight">\(G(x)\)</span>.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}G(x)=\operatorname{diag}(I_3,sW_{\pm}(\mathbf q),I_{n_h}),
+\qquad
+W_{\pm}(\mathbf q)=
+\begin{bmatrix}-\mathbf q_v^T\\q_0I_3\pm[\mathbf q_v]_\times\end{bmatrix}.\end{split}\]</div>
+</div>
+<p>The sign is positive for right errors and negative for left errors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quaternion_mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>quaternion_order</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.tangent_pinv">
+<span class="sig-name descname"><span class="pre">tangent_pinv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.tangent_pinv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.tangent_pinv" title="Link to this definition">¶</a></dt>
+<dd><p>Return <span class="math notranslate nohighlight">\(G(x)^\dagger\)</span>, the analytical pseudoinverse of
+<a class="reference internal" href="ADCS.state.html#ADCS.state.State.tangent_map" title="ADCS.state.State.tangent_map"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tangent_map()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quaternion_mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>quaternion_order</strong> (<em>str</em>)</p></li>
+</ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>ndarray</em></p>
@@ -808,9 +1052,57 @@ not the 2×MRP convention used by the TVLQR tracker.</p>
 <span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.to_dict" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict[str, <a class="reference internal" href="ADCS.state.html#ADCS.state.Any" title="typing.Any"><em>Any</em></a>]</p>
+<dd class="field-odd"><p>dict[str, <em>Any</em>]</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.with_quaternion_delta">
+<span class="sig-name descname"><span class="pre">with_quaternion_delta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta_q</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.with_quaternion_delta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.with_quaternion_delta" title="Link to this definition">¶</a></dt>
+<dd><p>Compose a unit delta quaternion on the right or left.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf q^+ = \mathbf q\otimes\delta\mathbf q
+\quad\text{or}\quad
+\mathbf q^+ = \delta\mathbf q\otimes\mathbf q\]</div>
+</div>
+<p>The Hamilton product matches
+<a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_mult" title="ADCS.helpers.math_helpers.quat_mult"><code class="xref py py-func docutils literal notranslate"><span class="pre">quat_mult()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>delta_q</strong> (<em>Any</em>)</p></li>
+<li><p><strong>order</strong> (<em>str</em>)</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.DEFAULT_QUATERNION_MODE">
+<span class="sig-name descname"><span class="pre">DEFAULT_QUATERNION_MODE</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'quaternion_vector'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'rotation_vector'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'mrp'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'two_mrp'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'cayley'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'full_quaternion'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'quaternion_vector'</span></span><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.DEFAULT_QUATERNION_MODE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.DEFAULT_QUATERNION_ORDER">
+<span class="sig-name descname"><span class="pre">DEFAULT_QUATERNION_ORDER</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'right'</span></span><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.DEFAULT_QUATERNION_ORDER" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.error_size">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">error_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.error_size" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for <a class="reference internal" href="ADCS.state.html#ADCS.state.State.tangent_size" title="ADCS.state.State.tangent_size"><code class="xref py py-attr docutils literal notranslate"><span class="pre">tangent_size</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.full_size">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">full_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.full_size" title="Link to this definition">¶</a></dt>
+<dd><p>Number of stored scalar state elements, including all four quaternion elements.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -822,6 +1114,12 @@ not the 2×MRP convention used by the TVLQR tracker.</p>
 <dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.q">
 <span class="sig-name descname"><span class="pre">q</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.q" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.tangent_size">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tangent_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.helpers.plot.states.quaternionplot.State.tangent_size" title="Link to this definition">¶</a></dt>
+<dd><p>Dimension of the local state coordinates, with three attitude elements.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="ADCS.helpers.plot.states.quaternionplot.State.w">
@@ -904,5 +1202,6 @@ not the 2×MRP convention used by the TVLQR tracker.</p>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     </body>
 </html>

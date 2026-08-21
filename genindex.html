@@ -1818,6 +1818,12 @@
 </li>
         <li><a href="ADCS.satellite_hardware.errors.anisotropicnoise.html#ADCS.satellite_hardware.errors.anisotropicnoise.AnisotropicNoise.align_to_body">align_to_body() (ADCS.satellite_hardware.errors.anisotropicnoise.AnisotropicNoise method)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.aligned_quaternion">aligned_quaternion() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.aligned_quaternion">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.alilqr">alilqr() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.allocate_max_torque_in_direction">allocate_max_torque_in_direction() (ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP method)</a>
@@ -1867,8 +1873,6 @@
         <li><a href="ADCS.CONOPS.goals.vector_goals.antisun_goal.html#ADCS.CONOPS.goals.vector_goals.antisun_goal.AntiSun_Goal">AntiSun_Goal (class in ADCS.CONOPS.goals.vector_goals.antisun_goal)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.antivelocity_goal.html#ADCS.CONOPS.goals.vector_goals.antivelocity_goal.AntiVelocity_Goal">AntiVelocity_Goal (class in ADCS.CONOPS.goals.vector_goals.antivelocity_goal)</a>
-</li>
-        <li><a href="ADCS.state.html#ADCS.state.Any">Any (class in ADCS.state)</a>
 </li>
         <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.as_array">as_array() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
 
@@ -2066,10 +2070,10 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig.convergence">convergence (ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig attribute)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig">ConvergenceConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.CONOPS.goals.vector_goals.coordinate_goal.html#ADCS.CONOPS.goals.vector_goals.coordinate_goal.Coordinate_Goal">Coordinate_Goal (class in ADCS.CONOPS.goals.vector_goals.coordinate_goal)</a>
 </li>
         <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.copy">copy() (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State method)</a>
@@ -2107,6 +2111,10 @@
 </li>
         </ul></li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.cov_use">cov_use() (ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator method)</a>
+</li>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.covariance_to_full">covariance_to_full() (ADCS.state.EstimatorState method)</a>
+</li>
+        <li><a href="ADCS.state.html#ADCS.state.EstimatorState.covariance_to_reduced">covariance_to_reduced() (ADCS.state.EstimatorState method)</a>
 </li>
         <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_3_3_beavercube2_cubesat">create_3_3_beavercube2_cubesat() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
 </li>
@@ -2163,11 +2171,7 @@
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.dataclass">dataclass() (in module ADCS.mc.mcconfig)</a>
-
-        <ul>
-          <li><a href="ADCS.state.html#ADCS.state.dataclass">(in module ADCS.state)</a>
 </li>
-        </ul></li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.dcm_to_quat">dcm_to_quat() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.ddrotmatTvecdqdq">ddrotmatTvecdqdq() (in module ADCS.helpers.math_helpers)</a>
@@ -2286,12 +2290,24 @@
         </ul></li>
         <li><a href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dudu">ddtorq__dudu() (ADCS.satellite_hardware.actuators.actuator.Actuator method)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner">DebugPlanner (class in ADCS.controller.plan_and_track.debug_planner)</a>
 </li>
         <li><a href="ADCS.environment.star_catalog.html#ADCS.environment.star_catalog.NavigationStar.dec_rad">dec_rad (ADCS.environment.star_catalog.NavigationStar attribute)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.DEFAULT_QUATERNION_MODE">DEFAULT_QUATERNION_MODE (ADCS.helpers.plot.states.quaternionplot.State attribute)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.DEFAULT_QUATERNION_MODE">(ADCS.state.State attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.DEFAULT_QUATERNION_ORDER">DEFAULT_QUATERNION_ORDER (ADCS.helpers.plot.states.quaternionplot.State attribute)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.DEFAULT_QUATERNION_ORDER">(ADCS.state.State attribute)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.orbits.density_model.html#ADCS.orbits.density_model.DensityModel">DensityModel (class in ADCS.orbits.density_model)</a>
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.determine_covariances_to_use">determine_covariances_to_use() (ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF method)</a>
@@ -2454,6 +2470,12 @@
         </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.error_size">error_size (ADCS.helpers.plot.states.quaternionplot.State property)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.error_size">(ADCS.state.State property)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.satellite_hardware.errors.helpers.error_mode.html#ADCS.satellite_hardware.errors.helpers.error_mode.ErrorMode">ErrorMode (class in ADCS.satellite_hardware.errors.helpers.error_mode)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.est_actuator_bias">est_actuator_bias (ADCS.helpers.simresults.RunResults attribute)</a>
@@ -2498,8 +2520,6 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig.fallback">fallback (ADCS.remote.controller_rpc.RemoteSimulationConfig attribute)</a>
 </li>
-        <li><a href="ADCS.state.html#ADCS.state.field">field() (in module ADCS.state)</a>
-</li>
         <li><a href="ADCS.controller.controller.html#ADCS.controller.controller.Controller.find_max_torque">find_max_torque() (ADCS.controller.controller.Controller method)</a>
 </li>
         <li><a href="ADCS.controller.bdot.html#ADCS.controller.bdot.BDot.find_u">find_u() (ADCS.controller.bdot.BDot method)</a>
@@ -2530,12 +2550,12 @@
           <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteControllerProxy.find_u">(ADCS.remote.controller_rpc.RemoteControllerProxy method)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.find_u_desaturate">find_u_desaturate() (ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP method)</a>
 </li>
         <li><a href="ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.find_u_pointing">find_u_pointing() (ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP method)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults.first">first() (ADCS.helpers.simresults.SimulationResults method)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal.html#ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal.Fixed_Attitude_Goal">Fixed_Attitude_Goal (class in ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal)</a>
@@ -2570,6 +2590,14 @@
 </li>
         <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.from_satellite">from_satellite() (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite class method)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.full_size">full_size (ADCS.helpers.plot.states.quaternionplot.State property)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.full_size">(ADCS.state.EstimatorState property)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.full_size">(ADCS.state.State property)</a>
+</li>
+        </ul></li>
     </ul></td>
   </tr></table>
 </section>
@@ -2750,10 +2778,10 @@
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.initialize_estimate">initialize_estimate() (ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator method)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig">InitTrajConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.initTrajSettings">initTrajSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
         <li><a href="ADCS.state.html#ADCS.state.EstimatorState.int_cov">int_cov (ADCS.state.EstimatorState attribute)</a>
@@ -2770,6 +2798,14 @@
         </ul></li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.interpolate_quat">interpolate_quat() (in module ADCS.helpers.math_helpers)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.is_close">is_close() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.is_close">(ADCS.state.EstimatorState method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.is_close">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.is_sunlit">is_sunlit() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.is_valid_time">is_valid_time() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
@@ -2818,10 +2854,10 @@
         </ul></li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.limit">limit() (in module ADCS.helpers.math_helpers)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig.line_search">line_search (ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig attribute)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.linesearch">linesearch (ADCS.controller.saltro.SALTRO_pass_settings.PassConfig attribute)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig">LineSearchConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
@@ -2834,6 +2870,12 @@
 </li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.ComponentLocation.LOCAL">LOCAL (ADCS.remote.controller_rpc.ComponentLocation attribute)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.local_coordinates">local_coordinates() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.local_coordinates">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig.low_settings">low_settings (ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig attribute)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.lvlh_tangential_goal.html#ADCS.CONOPS.goals.vector_goals.lvlh_tangential_goal.LVLH_Tangential_Goal">LVLH_Tangential_Goal (class in ADCS.CONOPS.goals.vector_goals.lvlh_tangential_goal)</a>
@@ -2890,6 +2932,14 @@
 </li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig">MCConfig (class in ADCS.mc.mcconfig)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.mean">mean() (ADCS.helpers.plot.states.quaternionplot.State class method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.mean">(ADCS.state.EstimatorState class method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.mean">(ADCS.state.State class method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum">measure_momentum() (ADCS.satellite_hardware.actuators.reaction_wheel.RW method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum_noiseless">measure_momentum_noiseless() (ADCS.satellite_hardware.actuators.reaction_wheel.RW method)</a>
@@ -2898,6 +2948,14 @@
 
         <ul>
           <li><a href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.min_time">(ADCS.orbits.orbit.Orbit method)</a>
+</li>
+        </ul></li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.minus">minus() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.minus">(ADCS.state.EstimatorState method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.minus">(ADCS.state.State method)</a>
 </li>
         </ul></li>
         <li>
@@ -3325,10 +3383,10 @@
 </li>
         <li><a href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise">Noise (class in ADCS.satellite_hardware.errors.noise)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.noise_covariance">noise_covariance (ADCS.satellite_hardware.sensors.star_tracker.StarTracker property)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_rk4">noiseless_rk4() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_RW_readings">noiseless_RW_readings() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
@@ -3339,6 +3397,12 @@
 
         <ul>
           <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.norm">(in module ADCS.helpers.math_helpers)</a>
+</li>
+        </ul></li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.normalization_jacobian">normalization_jacobian() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.normalization_jacobian">(ADCS.state.State method)</a>
 </li>
         </ul></li>
         <li><a href="ADCS.controller.helpers.quaternion_math.html#ADCS.controller.helpers.quaternion_math.normalize">normalize() (in module ADCS.controller.helpers.quaternion_math)</a>
@@ -3585,6 +3649,14 @@
 </li>
         <li><a href="ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.plot_torques">plot_torques() (ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP method)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.plus">plus() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.plus">(ADCS.state.EstimatorState method)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.plus">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteAttitudeEstimatorProxy.port">port (ADCS.remote.controller_rpc.RemoteAttitudeEstimatorProxy property)</a>
 
         <ul>
@@ -3637,16 +3709,28 @@
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_mult">quat_mult() (in module ADCS.helpers.math_helpers)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_to_cayley">quat_to_cayley() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_to_euler">quat_to_euler() (in module ADCS.helpers.math_helpers)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_to_mrp">quat_to_mrp() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_to_vec3">quat_to_vec3() (in module ADCS.helpers.math_helpers)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.quaternion_delta_from_vector">quaternion_delta_from_vector() (ADCS.helpers.plot.states.quaternionplot.State static method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.quaternion_delta_from_vector">(ADCS.state.State static method)</a>
+</li>
+        </ul></li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.quaternion_delta_to_vector">quaternion_delta_to_vector() (ADCS.helpers.plot.states.quaternionplot.State static method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.quaternion_delta_to_vector">(ADCS.state.State static method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.QuaternionPlot">QuaternionPlot (class in ADCS.helpers.plot.states.quaternionplot)</a>
 </li>
         <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.QuaternionPlotCombined">QuaternionPlotCombined (class in ADCS.helpers.plot.states.quaternionplot)</a>
@@ -3717,10 +3801,10 @@
 </li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteControllerProxy">RemoteControllerProxy (class in ADCS.remote.controller_rpc)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteOrbitEstimatorProxy">RemoteOrbitEstimatorProxy (class in ADCS.remote.controller_rpc)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig">RemoteSimulationConfig (class in ADCS.remote.controller_rpc)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.reorder_controls_cpp_to_python">reorder_controls_cpp_to_python() (in module ADCS.controller.plan_and_track.build_csat)</a>
@@ -3741,6 +3825,12 @@
 </li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.reset_trace">reset_trace() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.retract">retract() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.retract">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig.retries">retries (ADCS.remote.controller_rpc.RemoteSimulationConfig attribute)</a>
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.reunite_states">reunite_states() (ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF method)</a>
@@ -3995,6 +4085,26 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.t_fsw">t_fsw (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core attribute)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.tangent_map">tangent_map() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.tangent_map">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.tangent_pinv">tangent_pinv() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.tangent_pinv">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.tangent_size">tangent_size (ADCS.helpers.plot.states.quaternionplot.State property)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.EstimatorState.tangent_size">(ADCS.state.EstimatorState property)</a>
+</li>
+          <li><a href="ADCS.state.html#ADCS.state.State.tangent_size">(ADCS.state.State property)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.target_hist">target_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
         <li><a href="ADCS.helpers.plot.control.targetplot.html#ADCS.helpers.plot.control.targetplot.TargetHistogram">TargetHistogram (class in ADCS.helpers.plot.control.targetplot)</a>
@@ -4281,12 +4391,18 @@
         </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.w_target_hist">w_target_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.wahbas_svd">wahbas_svd() (in module ADCS.helpers.math_helpers)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_SRUAKF.html#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate">weighted_cholupdate() (ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF method)</a>
 </li>
+        <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.with_quaternion_delta">with_quaternion_delta() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
+
+        <ul>
+          <li><a href="ADCS.state.html#ADCS.state.State.with_quaternion_delta">(ADCS.state.State method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.Wmat">Wmat() (in module ADCS.helpers.math_helpers)</a>
 </li>
         <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.wmax">wmax (ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig attribute)</a>

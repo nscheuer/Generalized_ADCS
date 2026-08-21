@@ -549,10 +549,113 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"State"</span><span class="p">,</span> <span class="s2">"EstimatorState"</span><span class="p">]</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Mapping</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+
+<span class="n">QuaternionMode</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span>
+    <span class="s2">"quaternion_vector"</span><span class="p">,</span>
+    <span class="s2">"rotation_vector"</span><span class="p">,</span>
+    <span class="s2">"mrp"</span><span class="p">,</span>
+    <span class="s2">"two_mrp"</span><span class="p">,</span>
+    <span class="s2">"cayley"</span><span class="p">,</span>
+    <span class="s2">"full_quaternion"</span><span class="p">,</span>
+<span class="p">]</span>
+<span class="n">QuaternionOrder</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"right"</span><span class="p">,</span> <span class="s2">"left"</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_quaternion_mode</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QuaternionMode</span><span class="p">:</span>
+    <span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"quat_vec"</span><span class="p">:</span> <span class="s2">"quaternion_vector"</span><span class="p">,</span>
+        <span class="s2">"rotvec"</span><span class="p">:</span> <span class="s2">"rotation_vector"</span><span class="p">,</span>
+        <span class="s2">"2mrp"</span><span class="p">:</span> <span class="s2">"two_mrp"</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"quaternion_vector"</span><span class="p">,</span>
+        <span class="s2">"rotation_vector"</span><span class="p">,</span>
+        <span class="s2">"mrp"</span><span class="p">,</span>
+        <span class="s2">"two_mrp"</span><span class="p">,</span>
+        <span class="s2">"cayley"</span><span class="p">,</span>
+        <span class="s2">"full_quaternion"</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"unsupported quaternion mode </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">; expected one of </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">allowed</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>  <span class="c1"># type: ignore[return-value]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_quaternion_order</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QuaternionOrder</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"right"</span><span class="p">,</span> <span class="s2">"left"</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"quaternion order must be 'right' or 'left', got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>  <span class="c1"># type: ignore[return-value]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_unit_quaternion</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"q"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">_vector</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span> <span class="ow">or</span> <span class="n">norm</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must have a finite, non-zero norm"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">q</span> <span class="o">/</span> <span class="n">norm</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_quat_delta_from_vector</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="n">vector</span> <span class="o">=</span> <span class="n">_vector</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"attitude delta"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"full_quaternion uses a four-element additive attitude block"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"quaternion_vector"</span><span class="p">:</span>
+        <span class="n">qv</span> <span class="o">=</span> <span class="n">vector</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="n">qv_norm_sq</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">qv</span> <span class="o">@</span> <span class="n">qv</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">qv_norm_sq</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"attitude delta exceeds quaternion-vector range (norm &gt; 2)"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">qv_norm_sq</span><span class="p">))],</span> <span class="n">qv</span><span class="p">))</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">rot_exp</span><span class="p">,</span> <span class="n">vec3_to_quat</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"rotation_vector"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">rot_exp</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
+    <span class="n">helper_mode</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"mrp"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"two_mrp"</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">"cayley"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">vec3_to_quat</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">helper_mode</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_quat_delta_to_vector</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">shortest</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"quaternion delta"</span><span class="p">)</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"full_quaternion does not convert to a three-element attitude vector"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">shortest</span> <span class="ow">and</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="o">-</span><span class="n">q</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"quaternion_vector"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"rotation_vector"</span><span class="p">:</span>
+        <span class="n">vector_norm</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+        <span class="k">if</span> <span class="n">vector_norm</span> <span class="o">&lt;</span> <span class="mf">1e-15</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">vector_norm</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">vector_norm</span><span class="p">)</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quat_to_vec3</span>
+
+    <span class="n">helper_mode</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"mrp"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"two_mrp"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">"cayley"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">quat_to_vec3</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">helper_mode</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_quaternion_tangent_scale</span><span class="p">(</span><span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"full_quaternion has no reduced quaternion tangent scale"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"quaternion_vector"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="s2">"rotation_vector"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="s2">"mrp"</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="s2">"two_mrp"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s2">"cayley"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_vector</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -577,15 +680,23 @@
 <a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">State</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Physical spacecraft state ``[w, q, h]``.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Physical spacecraft state :math:`x=[\boldsymbol\omega,\mathbf q,\mathbf h]`.</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        x \in \mathbb R^3 \times \mathbb S^3 \times \mathbb R^{n_h}</span>
 
 <span class="sd">    The class deliberately does not emulate a NumPy array. Numerical-library</span>
-<span class="sd">    boundaries must use :meth:`as_array` explicitly.</span>
+<span class="sd">    boundaries use :meth:`~ADCS.state.State.as_array` explicitly. Estimated</span>
+<span class="sd">    parameters and covariance are provided by :class:`~ADCS.state.EstimatorState`.</span>
 <span class="sd">    """</span>
 
     <span class="n">w</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
     <span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
     <span class="n">h</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+
+    <span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">QuaternionMode</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"quaternion_vector"</span>
+    <span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">QuaternionOrder</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"right"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"w"</span><span class="p">:</span>
@@ -622,6 +733,21 @@
 <span class="w">        </span><span class="sd">"""Return an owned physical-state vector in ``[w, q, h]`` ordering."""</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">))</span></div>
 
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Number of stored scalar state elements, including all four quaternion elements."""</span>
+        <span class="k">return</span> <span class="mi">7</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tangent_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Dimension of the local state coordinates, with three attitude elements."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_size</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">error_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Alias for :attr:`~ADCS.state.State.tangent_size`."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_size</span>
 
 <div class="viewcode-block" id="State.copy">
 <a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.copy">[docs]</a>
@@ -666,49 +792,354 @@
         <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="State.subtract">
-<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.subtract">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">subtract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Manifold difference ``self ⊖ ref`` as a reduced error vector.</span>
+<div class="viewcode-block" id="State.quaternion_delta_from_vector">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.quaternion_delta_from_vector">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">quaternion_delta_from_vector</span><span class="p">(</span>
+        <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Convert three local attitude coordinates into a unit quaternion delta."""</span>
+        <span class="k">return</span> <span class="n">_quat_delta_from_vector</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span></div>
 
-<span class="sd">        Returns ``[w - w_ref, 2·vec(q_ref⁻¹ ⊗ q), h - h_ref]`` (length</span>
-<span class="sd">        ``6 + n_rw``), with the error quaternion sign-corrected to the shortest</span>
-<span class="sd">        rotation so the attitude block is exactly inverted by</span>
-<span class="sd">        :meth:`add_error`. Note this is the plain quaternion-vector convention,</span>
-<span class="sd">        not the 2×MRP convention used by the TVLQR tracker.</span>
+
+<div class="viewcode-block" id="State.quaternion_delta_to_vector">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.quaternion_delta_to_vector">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">quaternion_delta_to_vector</span><span class="p">(</span>
+        <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+        <span class="n">shortest</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Convert a quaternion delta into three local attitude coordinates."""</span>
+        <span class="k">return</span> <span class="n">_quat_delta_to_vector</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">shortest</span><span class="o">=</span><span class="n">shortest</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="State.aligned_quaternion">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.aligned_quaternion">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">aligned_quaternion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return this state's unit quaternion with the sign nearest ``reference``."""</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"reference quaternion"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">q</span> <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">q</span> <span class="o">@</span> <span class="n">ref</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="n">q</span></div>
+
+
+<div class="viewcode-block" id="State.with_quaternion_delta">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.with_quaternion_delta">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_quaternion_delta</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">delta_q</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Compose a unit delta quaternion on the right or left.</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \mathbf q^+ = \mathbf q\otimes\delta\mathbf q</span>
+<span class="sd">            \quad\text{or}\quad</span>
+<span class="sd">            \mathbf q^+ = \delta\mathbf q\otimes\mathbf q</span>
+
+<span class="sd">        The Hamilton product matches</span>
+<span class="sd">        :func:`~ADCS.helpers.math_helpers.quat_mult`.</span>
+<span class="sd">        """</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">_quaternion_order</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+        <span class="n">delta_q</span> <span class="o">=</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="n">delta_q</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"quaternion delta"</span><span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quat_mult</span>
+
+        <span class="n">q</span> <span class="o">=</span> <span class="n">quat_mult</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">delta_q</span><span class="p">)</span> <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">"right"</span> <span class="k">else</span> <span class="n">quat_mult</span><span class="p">(</span><span class="n">delta_q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">q</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="State.minus">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.minus">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">minus</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ref</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+        <span class="n">quaternion_order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">,</span>
+        <span class="n">shortest</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Return :math:`x\boxminus x_{\mathrm{ref}}` in local coordinates.</span>
+
+<span class="sd">        For right errors,</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \delta\mathbf q = \mathbf q_{\mathrm{ref}}^{-1}\otimes\mathbf q,</span>
+<span class="sd">            \qquad</span>
+<span class="sd">            \delta x = [\Delta\boldsymbol\omega,</span>
+<span class="sd">            \phi(\delta\mathbf q),\Delta\mathbf h].</span>
+
+<span class="sd">        Left errors reverse the quaternion product. See</span>
+<span class="sd">        :meth:`~ADCS.state.State.plus` for the inverse operation.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ref must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">ref</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"states must have the same number of reaction-wheel states"</span><span class="p">)</span>
+        <span class="n">quaternion_mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">quaternion_mode</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">quaternion_mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aligned_quaternion</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">q</span><span class="p">)</span> <span class="k">if</span> <span class="n">shortest</span> <span class="k">else</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">-</span> <span class="n">ref</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">q</span> <span class="o">-</span> <span class="n">ref</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">-</span> <span class="n">ref</span><span class="o">.</span><span class="n">h</span><span class="p">))</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quat_inv</span><span class="p">,</span> <span class="n">quat_mult</span>
 
-        <span class="n">dq</span> <span class="o">=</span> <span class="n">quat_mult</span><span class="p">(</span><span class="n">quat_inv</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">q</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
-        <span class="n">dq</span> <span class="o">=</span> <span class="n">dq</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dq</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">dq</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
-            <span class="n">dq</span> <span class="o">=</span> <span class="o">-</span><span class="n">dq</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">-</span> <span class="n">ref</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">dq</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">-</span> <span class="n">ref</span><span class="o">.</span><span class="n">h</span><span class="p">))</span></div>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">_quaternion_order</span><span class="p">(</span><span class="n">quaternion_order</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">"right"</span><span class="p">:</span>
+            <span class="n">dq</span> <span class="o">=</span> <span class="n">quat_mult</span><span class="p">(</span><span class="n">quat_inv</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">q</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dq</span> <span class="o">=</span> <span class="n">quat_mult</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">quat_inv</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">q</span><span class="p">))</span>
+        <span class="n">attitude</span> <span class="o">=</span> <span class="n">_quat_delta_to_vector</span><span class="p">(</span><span class="n">dq</span><span class="p">,</span> <span class="n">quaternion_mode</span><span class="p">,</span> <span class="n">shortest</span><span class="o">=</span><span class="n">shortest</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">-</span> <span class="n">ref</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">attitude</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">-</span> <span class="n">ref</span><span class="o">.</span><span class="n">h</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="State.plus">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.plus">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plus</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">delta</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+        <span class="n">quaternion_order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Return :math:`x\boxplus\delta x`.</span>
+
+<span class="sd">        For the default right-error convention,</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            x\boxplus\delta x =</span>
+<span class="sd">            [\boldsymbol\omega+\delta\boldsymbol\omega,</span>
+<span class="sd">            \mathbf q\otimes\phi^{-1}(\delta\boldsymbol\theta),</span>
+<span class="sd">            \mathbf h+\delta\mathbf h].</span>
+
+<span class="sd">        ``full_quaternion`` uses additive four-element quaternion coordinates</span>
+<span class="sd">        followed by normalization. Other modes use three attitude coordinates.</span>
+<span class="sd">        This is the inverse of :meth:`~ADCS.state.State.minus` locally.</span>
+<span class="sd">        """</span>
+        <span class="n">quaternion_mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">quaternion_mode</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">quaternion_mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">_vector</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"delta"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_size</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">if</span> <span class="n">normalize</span> <span class="k">else</span> <span class="n">q</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
+            <span class="k">return</span> <span class="n">result</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">_vector</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"delta"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tangent_size</span><span class="p">)</span>
+        <span class="n">dq</span> <span class="o">=</span> <span class="n">_quat_delta_from_vector</span><span class="p">(</span><span class="n">delta</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="n">quaternion_mode</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_quaternion_delta</span><span class="p">(</span><span class="n">dq</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">quaternion_order</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="mi">6</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="State.retract">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.retract">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Semantic alias for :meth:`~ADCS.state.State.plus`."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plus</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="State.local_coordinates">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.local_coordinates">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">local_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Semantic alias for :meth:`~ADCS.state.State.minus`."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">minus</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="State.subtract">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.subtract">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subtract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Compatibility wrapper for :meth:`~ADCS.state.State.minus`."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">minus</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="State.add_error">
 <a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.add_error">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Apply a reduced error vector (the inverse of :meth:`subtract`).</span>
+<span class="w">        </span><span class="sd">"""Compatibility wrapper for :meth:`~ADCS.state.State.plus`."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plus</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span></div>
 
-<span class="sd">        ``delta`` is ``[δw, δθ, δh]`` of length ``6 + n_rw``; the attitude block</span>
-<span class="sd">        ``δθ = 2·vec(dq)`` is retracted onto the quaternion manifold via</span>
-<span class="sd">        ``q ⊗ dq`` with ``dq = [√(1−|δθ/2|²), δθ/2]``.</span>
+
+<div class="viewcode-block" id="State.tangent_map">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.tangent_map">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tangent_map</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+        <span class="n">quaternion_order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Return the local-to-full differential map :math:`G(x)`.</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            G(x)=\operatorname{diag}(I_3,sW_{\pm}(\mathbf q),I_{n_h}),</span>
+<span class="sd">            \qquad</span>
+<span class="sd">            W_{\pm}(\mathbf q)=</span>
+<span class="sd">            \begin{bmatrix}-\mathbf q_v^T\\q_0I_3\pm[\mathbf q_v]_\times\end{bmatrix}.</span>
+
+<span class="sd">        The sign is positive for right errors and negative for left errors.</span>
 <span class="sd">        """</span>
-        <span class="n">delta</span> <span class="o">=</span> <span class="n">_vector</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"delta"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">6</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
-        <span class="n">v</span> <span class="o">=</span> <span class="n">delta</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.0</span>
-        <span class="n">vv</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span> <span class="o">@</span> <span class="n">v</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">vv</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"attitude error block exceeds the unit-quaternion range (|δθ| &gt; 2)"</span><span class="p">)</span>
-        <span class="n">dq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">vv</span><span class="p">)],</span> <span class="n">v</span><span class="p">))</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quat_mult</span>
+        <span class="n">quaternion_mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">quaternion_mode</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">quaternion_mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalization_jacobian</span><span class="p">()</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">_quaternion_order</span><span class="p">(</span><span class="n">quaternion_order</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
+        <span class="n">q0</span><span class="p">,</span> <span class="n">qv</span> <span class="o">=</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">cross</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="n">qv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">qv</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">qv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="n">qv</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="o">-</span><span class="n">qv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qv</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">]]</span>
+        <span class="p">)</span>
+        <span class="n">sign</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">"right"</span> <span class="k">else</span> <span class="o">-</span><span class="mf">1.0</span>
+        <span class="n">quaternion_block</span> <span class="o">=</span> <span class="n">_quaternion_tangent_scale</span><span class="p">(</span><span class="n">quaternion_mode</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+            <span class="p">(</span><span class="o">-</span><span class="n">qv</span><span class="p">,</span> <span class="n">q0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">cross</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">full_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="n">quaternion_block</span>
+        <span class="n">result</span><span class="p">[</span><span class="mi">7</span><span class="p">:,</span> <span class="mi">6</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_size</span> <span class="o">-</span> <span class="mi">7</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
-        <span class="n">q</span> <span class="o">=</span> <span class="n">quat_mult</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">dq</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">State</span><span class="p">(</span><span class="n">w</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[:</span><span class="mi">3</span><span class="p">],</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">h</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="mi">6</span><span class="p">:])</span></div>
+
+<div class="viewcode-block" id="State.tangent_pinv">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.tangent_pinv">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tangent_pinv</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+        <span class="n">quaternion_order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Return :math:`G(x)^\dagger`, the analytical pseudoinverse of</span>
+<span class="sd">        :meth:`~ADCS.state.State.tangent_map`.</span>
+<span class="sd">        """</span>
+        <span class="n">quaternion_mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">quaternion_mode</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">quaternion_mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normalization_jacobian</span><span class="p">())</span>
+        <span class="n">tangent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_map</span><span class="p">(</span>
+            <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span>
+            <span class="n">quaternion_order</span><span class="o">=</span><span class="n">quaternion_order</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">_quaternion_tangent_scale</span><span class="p">(</span><span class="n">quaternion_mode</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">tangent</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">result</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">/=</span> <span class="n">scale</span><span class="o">**</span><span class="mi">2</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="State.normalization_jacobian">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.normalization_jacobian">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">normalization_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Return the full-state quaternion-normalization Jacobian.</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            N_q=\frac{1}{\lVert\mathbf q\rVert}</span>
+<span class="sd">            \left(I_4-\frac{\mathbf q\mathbf q^T}{\lVert\mathbf q\rVert^2}\right).</span>
+<span class="sd">        """</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span> <span class="ow">or</span> <span class="n">norm</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"q must have a finite, non-zero norm"</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_size</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">/</span> <span class="n">norm</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="o">/</span> <span class="n">norm</span><span class="o">**</span><span class="mi">3</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="State.is_close">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.is_close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_close</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">rtol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span> <span class="n">atol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Compare physical states while treating ``q`` and ``-q`` as equivalent."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">State</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">self_q</span> <span class="o">=</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
+            <span class="n">other_q</span> <span class="o">=</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">self_q</span><span class="p">,</span> <span class="n">other_q</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">self_q</span><span class="p">,</span> <span class="o">-</span><span class="n">other_q</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="State.mean">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.State.mean">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mean</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">states</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">State</span><span class="p">],</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">reference</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+        <span class="n">quaternion_order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">,</span>
+        <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">,</span>
+        <span class="n">max_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Compute the weighted manifold mean :math:`\bar x` satisfying</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \sum_i w_i\left(x_i\boxminus\bar x\right)=0.</span>
+
+<span class="sd">        Iteration uses :meth:`~ADCS.state.State.minus` and</span>
+<span class="sd">        :meth:`~ADCS.state.State.plus`.</span>
+<span class="sd">        """</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">values</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"states must not be empty"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">cls</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"all states must be </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> objects"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"states must have the same number of reaction-wheel states"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">weight_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">weight_array</span> <span class="o">=</span> <span class="n">_vector</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"weights"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+            <span class="n">total</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weight_array</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">total</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="n">total</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"weights must have a finite, non-zero sum"</span><span class="p">)</span>
+            <span class="n">weight_array</span> <span class="o">=</span> <span class="n">weight_array</span> <span class="o">/</span> <span class="n">total</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="n">reference</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">reference</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">current</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">cls</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"reference must be a </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">local_size</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">current</span><span class="o">.</span><span class="n">full_size</span>
+            <span class="k">if</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">quaternion_mode</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span>
+            <span class="k">else</span> <span class="n">current</span><span class="o">.</span><span class="n">tangent_size</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iterations</span><span class="p">):</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">weight</span> <span class="o">*</span> <span class="n">value</span><span class="o">.</span><span class="n">minus</span><span class="p">(</span>
+                        <span class="n">current</span><span class="p">,</span>
+                        <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span>
+                        <span class="n">quaternion_order</span><span class="o">=</span><span class="n">quaternion_order</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weight_array</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">local_size</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">plus</span><span class="p">(</span>
+                <span class="n">step</span><span class="p">,</span>
+                <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span>
+                <span class="n">quaternion_order</span><span class="o">=</span><span class="n">quaternion_order</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">step</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="n">tolerance</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">current</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"state mean did not converge within </span><span class="si">{</span><span class="n">max_iterations</span><span class="si">}</span><span class="s2"> iterations"</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="State.to_dict">
@@ -747,7 +1178,7 @@
 <a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">EstimatorState</span><span class="p">(</span><span class="n">State</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Physical state plus estimated parameters and uncertainty."""</span>
+<span class="w">    </span><span class="sd">"""A :class:`~ADCS.state.State` with estimated parameters and uncertainty."""</span>
 
     <span class="n">act_bias</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
     <span class="n">sens_bias</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
@@ -881,6 +1312,14 @@
         <span class="k">return</span> <span class="mi">7</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param</span><span class="o">.</span><span class="n">size</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">augmented_size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tangent_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">uses_reduced_quaternion_covariance</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cov</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
@@ -962,7 +1401,7 @@
 <div class="viewcode-block" id="EstimatorState.interpolate">
 <a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.interpolate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"slerp"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Blend two estimated states (see :meth:`State.interpolate`).</span>
+<span class="w">        </span><span class="sd">"""Blend two estimated states; see :meth:`~ADCS.state.State.interpolate`.</span>
 
 <span class="sd">        Bias and disturbance blocks interpolate linearly. Covariances also</span>
 <span class="sd">        blend linearly — a convex combination of PSD matrices stays PSD, but</span>
@@ -995,21 +1434,29 @@
         <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="EstimatorState.subtract">
-<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.subtract">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">subtract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Manifold difference including bias/disturbance blocks.</span>
-
-<span class="sd">        Returns ``[δw, 2·vec(q_ref⁻¹ ⊗ q), δh, δact_bias, δsens_bias,</span>
-<span class="sd">        δdist_param]`` (length ``augmented_size − 1``); exact inverse of</span>
-<span class="sd">        :meth:`add_error`.</span>
-<span class="sd">        """</span>
+<div class="viewcode-block" id="EstimatorState.minus">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.minus">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">minus</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ref</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+        <span class="n">quaternion_order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">,</span>
+        <span class="n">shortest</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the augmented-state difference in reduced local coordinates."""</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ref must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"act_bias"</span><span class="p">,</span> <span class="s2">"sens_bias"</span><span class="p">,</span> <span class="s2">"dist_param"</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"states must have matching </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> sizes to subtract"</span><span class="p">)</span>
-        <span class="n">base</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">)</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">minus</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">ref</span><span class="p">,</span>
+            <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span>
+            <span class="n">quaternion_order</span><span class="o">=</span><span class="n">quaternion_order</span><span class="p">,</span>
+            <span class="n">shortest</span><span class="o">=</span><span class="n">shortest</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
             <span class="p">(</span>
                 <span class="n">base</span><span class="p">,</span>
@@ -1020,26 +1467,167 @@
         <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="EstimatorState.add_error">
-<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.add_error">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Apply a reduced error vector of length ``augmented_size − 1``.</span>
-
-<span class="sd">        The attitude block is retracted as in :meth:`State.add_error`; all</span>
-<span class="sd">        other blocks add linearly. Covariances are carried over unchanged.</span>
-<span class="sd">        """</span>
-        <span class="n">delta</span> <span class="o">=</span> <span class="n">_vector</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"delta"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">base</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">[:</span> <span class="mi">6</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">])</span>
+<div class="viewcode-block" id="EstimatorState.plus">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.plus">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plus</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">delta</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+        <span class="n">quaternion_order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Apply a perturbation to physical and estimated parameter blocks."""</span>
+        <span class="n">quaternion_mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">quaternion_mode</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">quaternion_mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">_vector</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"delta"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_size</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">_unit_quaternion</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">if</span> <span class="n">normalize</span> <span class="k">else</span> <span class="n">q</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">7</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">]</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">act_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span><span class="p">]</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">sens_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span><span class="p">]</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">dist_param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="n">i</span><span class="p">:]</span>
+            <span class="k">return</span> <span class="n">result</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">_vector</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"delta"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tangent_size</span><span class="p">)</span>
+        <span class="n">dq</span> <span class="o">=</span> <span class="n">_quat_delta_from_vector</span><span class="p">(</span><span class="n">delta</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="n">quaternion_mode</span><span class="p">)</span>
         <span class="n">i</span> <span class="o">=</span> <span class="mi">6</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">w</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">q</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">h</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_quaternion_delta</span><span class="p">(</span>
+            <span class="n">dq</span><span class="p">,</span>
+            <span class="n">order</span><span class="o">=</span><span class="n">quaternion_order</span><span class="p">,</span>
+            <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="n">i</span><span class="p">]</span>
         <span class="n">result</span><span class="o">.</span><span class="n">act_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span><span class="p">]</span>
         <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span>
         <span class="n">result</span><span class="o">.</span><span class="n">sens_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span><span class="p">]</span>
         <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span>
         <span class="n">result</span><span class="o">.</span><span class="n">dist_param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param</span> <span class="o">+</span> <span class="n">delta</span><span class="p">[</span><span class="n">i</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="EstimatorState.subtract">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.subtract">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subtract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Compatibility wrapper for :meth:`~ADCS.state.EstimatorState.minus`."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">minus</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="EstimatorState.add_error">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.add_error">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Compatibility wrapper for :meth:`~ADCS.state.EstimatorState.plus`."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plus</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="EstimatorState.is_close">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.is_close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_close</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">other</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">rtol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
+        <span class="n">atol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
+        <span class="n">compare_covariance</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Compare augmented states, optionally including covariance matrices."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">State</span><span class="o">.</span><span class="n">is_close</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">blocks_close</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"act_bias"</span><span class="p">,</span> <span class="s2">"sens_bias"</span><span class="p">,</span> <span class="s2">"dist_param"</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">blocks_close</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">compare_covariance</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">blocks_close</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cov</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">cov</span><span class="o">.</span><span class="n">shape</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">int_cov</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">int_cov</span><span class="o">.</span><span class="n">shape</span>
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cov</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">cov</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">int_cov</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">int_cov</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="EstimatorState.covariance_to_full">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.covariance_to_full">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">covariance_to_full</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">covariance</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">tangent_kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Project reduced covariance with :math:`P_f=G P_r G^T`.</span>
+
+<span class="sd">        Here :math:`G` is :meth:`~ADCS.state.State.tangent_map`.</span>
+<span class="sd">        """</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">tangent_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"quaternion_mode"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"covariance_to_full requires a reduced quaternion mode"</span><span class="p">)</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cov</span> <span class="k">if</span> <span class="n">covariance</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">covariance</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">expected</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tangent_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">expected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"reduced covariance must have shape </span><span class="si">{</span><span class="n">expected</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">tangent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_map</span><span class="p">(</span><span class="o">**</span><span class="n">tangent_kwargs</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">tangent</span> <span class="o">@</span> <span class="n">source</span> <span class="o">@</span> <span class="n">tangent</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">result</span> <span class="o">+</span> <span class="n">result</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span></div>
+
+
+<div class="viewcode-block" id="EstimatorState.covariance_to_reduced">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.covariance_to_reduced">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">covariance_to_reduced</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">covariance</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">tangent_kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Project full covariance with :math:`P_r=G^\dagger P_f(G^\dagger)^T`.</span>
+
+<span class="sd">        Here :math:`G^\dagger` is :meth:`~ADCS.state.State.tangent_pinv`.</span>
+<span class="sd">        """</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">tangent_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"quaternion_mode"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"covariance_to_reduced requires a reduced quaternion mode"</span><span class="p">)</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cov</span> <span class="k">if</span> <span class="n">covariance</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">covariance</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">expected</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">expected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"full covariance must have shape </span><span class="si">{</span><span class="n">expected</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">tangent_pinv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_pinv</span><span class="p">(</span><span class="o">**</span><span class="n">tangent_kwargs</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">tangent_pinv</span> <span class="o">@</span> <span class="n">source</span> <span class="o">@</span> <span class="n">tangent_pinv</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">result</span> <span class="o">+</span> <span class="n">result</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span></div>
+
+
+<div class="viewcode-block" id="EstimatorState.mean">
+<a class="viewcode-back" href="../../ADCS.state.html#ADCS.helpers.plot.states.quaternionplot.EstimatorState.mean">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mean</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">states</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">EstimatorState</span><span class="p">],</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">reference</span><span class="p">:</span> <span class="n">EstimatorState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">covariance</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"reference"</span><span class="p">,</span> <span class="s2">"weighted"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"reference"</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Compute an augmented-state mean with an explicit covariance policy."""</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">mean</span><span class="o">.</span><span class="vm">__func__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">reference</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">covariance</span> <span class="o">==</span> <span class="s2">"reference"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span>
+        <span class="k">if</span> <span class="n">covariance</span> <span class="o">!=</span> <span class="s2">"weighted"</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"covariance must be 'reference' or 'weighted'"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">cov</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cov</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"states must use matching covariance shapes"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">weight_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">weight_array</span> <span class="o">=</span> <span class="n">_vector</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"weights"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+            <span class="n">weight_array</span> <span class="o">=</span> <span class="n">weight_array</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weight_array</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">cov</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">weight</span> <span class="o">*</span> <span class="n">value</span><span class="o">.</span><span class="n">cov</span> <span class="k">for</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weight_array</span><span class="p">)),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cov</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">int_cov</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">weight</span> <span class="o">*</span> <span class="n">value</span><span class="o">.</span><span class="n">int_cov</span> <span class="k">for</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weight_array</span><span class="p">)),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">int_cov</span><span class="p">),</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span></div>
 
 

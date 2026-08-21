@@ -675,7 +675,7 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a><em> or </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>ADCS.state.EstimatorState</em></a>) – State estimate for controller input.</p></li>
 <li><p><strong>sens</strong> (<em>numpy.ndarray</em>) – Sensor measurement vector for controller input.</p></li>
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.Any" title="ADCS.state.Any"><em>Any</em></a>) – Estimated satellite model (unused for transport parity).</p></li>
+<li><p><strong>est_sat</strong> (<em>Any</em>) – Estimated satellite model (unused for transport parity).</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state estimate.</p></li>
 <li><p><strong>goal</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Goal</span></code> or None) – Active guidance goal for the current step.</p></li>
 </ul>
@@ -883,7 +883,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>component</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.Any" title="ADCS.state.Any"><em>Any</em></a>) – Component instance to serve.</p></li>
+<li><p><strong>component</strong> (<em>Any</em>) – Component instance to serve.</p></li>
 <li><p><strong>host</strong> (<em>str</em>) – Bind address for the server.</p></li>
 <li><p><strong>port</strong> (<em>int</em>) – Bind port for the server.</p></li>
 </ul>
@@ -927,7 +927,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>controller</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.Any" title="ADCS.state.Any"><em>Any</em></a>) – Controller instance to serve.</p></li>
+<li><p><strong>controller</strong> (<em>Any</em>) – Controller instance to serve.</p></li>
 <li><p><strong>host</strong> (<em>str</em>) – Bind address for the server.</p></li>
 <li><p><strong>port</strong> (<em>int</em>) – Bind port for the server.</p></li>
 </ul>
