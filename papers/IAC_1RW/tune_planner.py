@@ -559,6 +559,39 @@ def _run_mode(mode):
         with open(os.path.join(OUT, "WAVE_RESULTS.txt"), "w") as f:
             f.write("\n".join(lines) + "\n")
         return 0
+    if mode == "--bridge":
+        # Staged retreat path (FREEZE_PROPOSAL, registered gates): angle ~3e1 flat.
+        import glob as _glob
+        import multiprocessing as mp
+        from papers.IAC_1RW._iac_sim import error_series
+        best, easy = None, None
+        for pth in _glob.glob(os.path.join(OUT, "A_trials",
+                                           "1rw_full_planner_seed*.pkl")):
+            with open(pth, "rb") as f:
+                r = pickle.load(f)
+            if r.get("n_budget_kills", 0):
+                continue
+            e = float(error_series(r)[-1])
+            if e < 30 and (best is None or e < best):
+                best, easy = e, int(r["config"]["seed"])
+        print(f"easy seed (lowest-final no-kill cell-2 converger): {easy} ({best:.2f} deg)")
+        BR = dict(angle=3e1, angle_N=3e1, warm="hold")
+        jobs = [(dict(BR, name=f"bridge_s{s}"), T_ORBIT, s, "full")
+                for s in (28, 40, 35, easy)]
+        with mp.get_context("fork").Pool(4, maxtasksperchild=1) as p:
+            rows = p.starmap(run_one, jobs)
+        lines = [f"easy={easy} (baseline {best:.2f})"]
+        for r in rows:
+            lines.append(f"{r['name']}: final {r['final']:8.3f}  standing "
+                         f"{r['standing'] if r['standing'] is None else round(r['standing'],3)}  "
+                         f"h_peak {r['h_peak']:.3f}  kills {r['kills']}")
+        lines.append("(gates: s28 <= 2.9; s40 <= 4.11-ish no-harm; easy converged; "
+                     "total kills <= 1)")
+        txt = "\n".join(lines)
+        print(txt)
+        with open(os.path.join(OUT, "TUNE_BRIDGE.txt"), "w") as f:
+            f.write(txt + "\n")
+        return 0
     if mode == "--lowinc":
         # LOWINC_PREDICTION.md spot-check: PD 3+1 reduced at inc=15 deg, n=30,
         # campaign gains, per-trial persistence. Adjudicated against the registered
