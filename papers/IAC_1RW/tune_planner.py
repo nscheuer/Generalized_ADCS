@@ -536,7 +536,32 @@ def _run_mode(mode):
                     runs.append(pickle.load(f))
         cell_report("planner_full_frozen", runs)
 
-        # Cells B-D: PD arms, persisted
+        # Cell E -- PROMOTED ahead of the PD cells (Patrick, 2026-08-21): the clean
+        # baseline-weights planner-full is the cell most likely to be printed (the
+        # tuned config is tracking toward failing its gate), so it must not be last
+        # in the queue. SEED-PAIRED with cell 2 by construction: make_config(s,
+        # seed=s) for s in 0..99, identical draws -- the paired deltas measure what
+        # aging actually cost (ledger, not paper). Stock controller, cold, exactly
+        # as cell 2 ran -- only the harness hygiene differs.
+        BASE_FULL = dict(angle=1e1, angle_N=1e1, warm="off", stock=True,
+                         name="wave_planner_full_base")
+        todo = [s for s in range(100)
+                if not os.path.exists(os.path.join(
+                    OUT, f"tune_seed{s}_wave_planner_full_base.pkl"))]
+        if todo:
+            with mp.get_context("fork").Pool(min(14, os.cpu_count() - 2),
+                                             maxtasksperchild=1) as p:
+                p.starmap(run_one, [(dict(BASE_FULL), T_ORBIT, s, "full")
+                                    for s in todo])
+        runs = []
+        for s in range(100):
+            pth = os.path.join(OUT, f"tune_seed{s}_wave_planner_full_base.pkl")
+            if os.path.exists(pth):
+                with open(pth, "rb") as f:
+                    runs.append(pickle.load(f))
+        cell_report("planner_full_BASELINE_clean", runs)
+
+        # PD arms, persisted
         for tag, kpm, task in (("pd_full_kp1", 1.0, "full"),
                                ("pd_full_kp2", 2.0, "full"),
                                ("pd_reduced_kp1", 1.0, "reduced")):
@@ -555,29 +580,6 @@ def _run_mode(mode):
                     with open(pth, "rb") as f:
                         runs.append(pickle.load(f))
             cell_report(tag, runs)
-
-        # Cell E (added 2026-08-21, Patrick's decision): CLEAN baseline-weights
-        # planner-full, n=100 -- replaces cell 2 as the baseline number in every
-        # branch (cell 2 predates process isolation; aging plausibly degraded solve
-        # quality in trials the kill filter cannot catch). Stock controller, cold,
-        # exactly as cell 2 ran -- only the harness hygiene differs.
-        BASE_FULL = dict(angle=1e1, angle_N=1e1, warm="off", stock=True,
-                         name="wave_planner_full_base")
-        todo = [s for s in range(100)
-                if not os.path.exists(os.path.join(
-                    OUT, f"tune_seed{s}_wave_planner_full_base.pkl"))]
-        if todo:
-            with mp.get_context("fork").Pool(min(14, os.cpu_count() - 2),
-                                             maxtasksperchild=1) as p:
-                p.starmap(run_one, [(dict(BASE_FULL), T_ORBIT, s, "full")
-                                    for s in todo])
-        runs = []
-        for s in range(100):
-            pth = os.path.join(OUT, f"tune_seed{s}_wave_planner_full_base.pkl")
-            if os.path.exists(pth):
-                with open(pth, "rb") as f:
-                    runs.append(pickle.load(f))
-        cell_report("planner_full_BASELINE_clean", runs)
 
         with open(os.path.join(OUT, "WAVE_RESULTS.txt"), "w") as f:
             f.write("\n".join(lines) + "\n")
