@@ -146,7 +146,8 @@ def make_planner(sat):
     return Plan_and_Track_LQR(est_sat=sat, planner_settings=ps)
 
 
-def slew_config(run_id, *, bus, theta, axis_seed, m_max, m_scale, t_max):
+def slew_config(run_id, *, bus, theta, axis_seed, m_max, m_scale, t_max,
+                axis_mode="random"):
     """REDUCED-attitude slews (TUNE_PREDICTION B-launch requirement 2).
 
     The 1/4 exponent is rest-to-rest rotation about the field axis; it does not
@@ -160,9 +161,29 @@ def slew_config(run_id, *, bus, theta, axis_seed, m_max, m_scale, t_max):
     from papers.IAC_1RW._iac_sim import IAC_6U
     rng = np.random.default_rng(axis_seed)
     bore = normalize(np.asarray(IAC_6U.boresight, float))
-    v = rng.standard_normal(3)
-    e = normalize(v - (v @ bore) * bore)              # e perp boresight
-    q0 = normalize(rng.standard_normal(4))
+    raan = float(rng.uniform(0, 360)); phase = float(rng.uniform(0, 360))
+    if axis_mode == "alongB":
+        # CONSTRUCTED along-field axis (small-theta 1/4-regime coverage: the random
+        # draws produced no align>=0.7 members below theta=0.5). e = B_hat(t0)
+        # projected perp boresight; q0 rejection-sampled so the projection is large.
+        oc = {"raan_deg": raan, "phase_deg": phase, "inc_deg": 97.0}
+        orb = _get_orbit(oc, 1.0, float(t_max))
+        B_eci = np.asarray(orb.get_os(J2000=EPOCH).B, float)
+        best = (-1.0, None, None)
+        for _ in range(200):
+            q0c = normalize(rng.standard_normal(4))
+            Bb = normalize(rot_mat(q0c).T @ B_eci)
+            proj = Bb - (Bb @ bore) * bore
+            a = float(np.linalg.norm(proj))
+            if a > best[0]:
+                best = (a, q0c, normalize(proj))
+            if a >= 0.95:
+                break
+        _, q0, e = best
+    else:
+        v = rng.standard_normal(3)
+        e = normalize(v - (v @ bore) * bore)          # e perp boresight
+        q0 = normalize(rng.standard_normal(4))
     # boresight rotated by theta about e (Rodrigues), then into ECI via q0
     tgt_body = (bore * np.cos(theta) + np.cross(e, bore) * np.sin(theta)
                 + e * (e @ bore) * (1.0 - np.cos(theta)))
@@ -172,7 +193,7 @@ def slew_config(run_id, *, bus, theta, axis_seed, m_max, m_scale, t_max):
             "axis_seed": axis_seed, "m_max": float(m_max), "m_scale": float(m_scale),
             "q0": q0, "q_goal": normalize(quat_mult(q0, dq)), "slew_axis_body": e,
             "goal_vec_eci": tgt_eci,
-            "raan_deg": float(rng.uniform(0, 360)), "phase_deg": float(rng.uniform(0, 360)),
+            "raan_deg": raan, "phase_deg": phase,
             "inc_deg": 97.0, "n_rw": 1 if bus == "3+1" else 0,
             "tf": float(t_max), "dt": 1.0, "task": "reduced"}
 
@@ -270,6 +291,43 @@ def main() -> int:
     # SMOKE GATE (registered, TUNE_PREDICTION B-launch requirement 4): one theta=0.5
     # slew on the equalized 3+0 bus before committing the sweep. Wedge => B needs
     # design work, not machine time.
+    if os.environ.get("B_TOPUP"):
+        # Small-theta along-field top-up (constructed axes) -- the 1/4-regime test
+        # the random draws missed. 3+0, m_scale 1.0, theta {0.05,0.1,0.2,0.5} x 4.
+        Bs = field_samples(120)
+        eq = solve_equal_torque_m_max(Bs, IAC_6U.tau_w)
+        cfgs, rid = [], 0
+        for th in (0.05, 0.1, 0.2, 0.5):
+            for k in range(4):
+                cfgs.append(slew_config(rid, bus="3+0", theta=th,
+                                        axis_seed=700000 + 1000 * k + int(th * 1000),
+                                        m_max=eq["m_max"], m_scale=1.0,
+                                        t_max=s["t_max"], axis_mode="alongB"))
+                rid += 1
+        runner = MonteCarloRunner(sim_func=run_slew,
+                                  config_generator=lambda i, _c=cfgs: _c[i],
+                                  num_runs=len(cfgs), max_tasks_per_child=1)
+        res = [r for r in runner.run() if r is not None]
+        with open(f"{OUT}/B_topup_alongB_{ts}.json", "w") as f:
+            json.dump({"task": "B_topup_alongB", "timestamp": ts, "raw": res}, f, indent=2)
+        done = [r for r in res if r["completed"]]
+        print(f"top-up: {len(done)}/{len(res)} completed; alignments "
+              f"{sorted(round(r['alignment'], 2) for r in done)}")
+        pts = {}
+        for r in done:
+            if r["alignment"] >= 0.7:
+                pts.setdefault(r["theta"], []).append(r["t_done_s"])
+        th_ = sorted(pts)
+        if len(th_) >= 3:
+            med = [float(np.median(pts[t])) for t in th_]
+            sl = float(np.polyfit(np.log(th_), np.log(med), 1)[0])
+            print(f"SMALL-THETA ALONG-FIELD SLOPE (align>=0.7, {len(th_)} thetas): "
+                  f"{sl:.3f}  (IV-B predicts ~0.25)")
+            for t, m in zip(th_, med):
+                print(f"  theta {t:.2f}: median t_done {m:.0f} s "
+                      f"(n={len(pts[t])})")
+        return 0
+
     if os.environ.get("B_SMOKE"):
         Bs = field_samples(120)
         eq = solve_equal_torque_m_max(Bs, IAC_6U.tau_w)
