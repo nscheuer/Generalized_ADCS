@@ -286,3 +286,19 @@ trials, no baseline comparison until Cell E lands.
 vs the RETIRED contaminated baseline (context only): 72.2/15.5/2.23 -> 94/23/1.42.
 The printed comparison awaits Cell E. BRIDGE: stays staged, UNUSED -- its trigger
 did not fire. Wave continues: E (running) -> PD x3.
+
+## CELL E LANDED (2026-08-21): cell 2 vindicated; the comparative kill sentence RESTORED
+
+Clean baseline planner-full (seed-paired, immunized harness): **72.0/19.0/2.24,
+4 kills / 1200 windows (0.33%)**.
+
+1. **Cell 2 was fine all along**: its pure-planner subset read 72.2/15.5/2.23 -- the
+   clean rerun reproduces it to within tenths (conv5 72.0 vs 72.2, median 2.24 vs
+   2.23). Aging cost ~nothing in surviving trials; the retirement caveat shrinks to
+   one clause, evidence-backed. Per-seed paired deltas to the ledger at wave end.
+2. **The comparative hard-solve sentence is SUPPORTABLE again**, now with same-harness
+   provenance: baseline 4 kills vs a1e2's 78 per 1200 windows -- a ~20x increase from
+   a 10x weight change. The compute-wall claim gets its number.
+3. **The adopted config's printed comparison** (same harness, same seeds): 94.0/23.0/
+   1.42 vs 72.0/19.0/2.24 -- +22 pts conv@5, median 1.6x better. Per-task tuning
+   delivered on full attitude, against a clean baseline.
