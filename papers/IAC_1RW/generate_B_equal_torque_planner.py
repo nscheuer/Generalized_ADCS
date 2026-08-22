@@ -62,7 +62,7 @@ from scipy.integrate import solve_ivp
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.CONOPS.goals import Fixed_Attitude_Goal
+from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.controller import MTQ_w_RW_LP
 from ADCS.helpers.math_helpers import normalize, quat_mult, rot_mat
 from ADCS.mc.monte_carlo_runner import (
@@ -74,7 +74,7 @@ from ADCS.mc.monte_carlo_runner import (
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_factory import create_iac_6u_bus, IAC_6U
 
-from papers.IAC_1RW._iac_sim import EPOCH, T_ORBIT, _get_orbit
+from papers.IAC_1RW._iac_sim import EPOCH, IAC_6U, T_ORBIT, _get_orbit
 from papers.IAC_1RW.generate_B_equal_torque import (
     ALIGN_HI, ALIGN_LO, fit_slope, field_samples, solve_equal_torque_m_max,
 )
@@ -88,13 +88,14 @@ N_AXES = 4
 
 DONE_ANGLE_RAD = np.deg2rad(2.0)
 DONE_RATE_RPS = np.deg2rad(0.02)
+_BORE = np.asarray([0.0, 0.0, 1.0], float)   # asserted == IAC_6U.boresight in main()
 
 #: Two orbits. A floor, if there is one, lives at a fraction of an orbit; a bracket that needs
 #: more than two orbits is not an agility story anyone will care about.
 T_MAX_S = 2.0 * T_ORBIT
 PLAN_WINDOW_S = 500.0
 PLAN_OVERLAP_S = 500.0
-PLAN_TIMEOUT_S = 90.0
+PLAN_TIMEOUT_S = 300.0   # hard process-boundary budget (ported; SIGALRM was inert)
 
 SCALES = {
     "fast":  {"thetas": (0.1, 0.5), "m_scales": (1.0,), "n_axes": 1,
@@ -108,21 +109,12 @@ def scale():
     return SCALES[os.environ.get("B_SCALE", "paper")]
 
 
-class _Timeout(Exception):
-    pass
-
-
-def _with_timeout(seconds, fn, *a, **kw):
-    """Wall-clock backstop. Rare drifted states make the planner grind for minutes."""
-    def _handler(signum, frame):
-        raise _Timeout()
-    old = signal.signal(signal.SIGALRM, _handler)
-    signal.setitimer(signal.ITIMER_REAL, seconds)
-    try:
-        return fn(*a, **kw)
-    finally:
-        signal.setitimer(signal.ITIMER_REAL, 0.0)
-        signal.signal(signal.SIGALRM, old)
+# Hard process-boundary budget, ported from the campaign core (TUNE_PREDICTION's
+# B-launch requirement 1): the old SIGALRM copy was inert against C++ grinds --
+# signals fire only between Python bytecodes. _plan_in_child forks, ships the
+# Trajectory back through a pipe, and SIGKILLs on overrun; the caller's except
+# path counts it as a fallback exactly as in Campaign A.
+from papers.IAC_1RW._iac_sim import _plan_in_child as _with_timeout  # noqa: E402
 
 
 def make_planner(sat):
@@ -155,16 +147,34 @@ def make_planner(sat):
 
 
 def slew_config(run_id, *, bus, theta, axis_seed, m_max, m_scale, t_max):
+    """REDUCED-attitude slews (TUNE_PREDICTION B-launch requirement 2).
+
+    The 1/4 exponent is rest-to-rest rotation about the field axis; it does not
+    need a full-attitude goal, and full attitude is the solver-hostile class. Slew
+    axis e is drawn PERPENDICULAR to the boresight (project + renormalize), so
+    rotating the boresight by theta about e traverses exactly theta -- the reduced
+    goal represents the slew faithfully -- and the optimizer keeps the roll
+    geometry-freedom the decomposition quantified (a 4x boresight price when
+    pinned). The |e.B| classification at t0 is unchanged.
+    """
+    from papers.IAC_1RW._iac_sim import IAC_6U
     rng = np.random.default_rng(axis_seed)
-    e = normalize(rng.standard_normal(3))
+    bore = normalize(np.asarray(IAC_6U.boresight, float))
+    v = rng.standard_normal(3)
+    e = normalize(v - (v @ bore) * bore)              # e perp boresight
     q0 = normalize(rng.standard_normal(4))
+    # boresight rotated by theta about e (Rodrigues), then into ECI via q0
+    tgt_body = (bore * np.cos(theta) + np.cross(e, bore) * np.sin(theta)
+                + e * (e @ bore) * (1.0 - np.cos(theta)))
+    tgt_eci = rot_mat(q0) @ normalize(tgt_body)
     dq = np.concatenate([[np.cos(theta / 2.0)], e * np.sin(theta / 2.0)])
     return {"run_id": run_id, "bus": bus, "theta": float(theta),
             "axis_seed": axis_seed, "m_max": float(m_max), "m_scale": float(m_scale),
             "q0": q0, "q_goal": normalize(quat_mult(q0, dq)), "slew_axis_body": e,
+            "goal_vec_eci": tgt_eci,
             "raan_deg": float(rng.uniform(0, 360)), "phase_deg": float(rng.uniform(0, 360)),
             "inc_deg": 97.0, "n_rw": 1 if bus == "3+1" else 0,
-            "tf": float(t_max), "dt": 1.0, "task": "full"}
+            "tf": float(t_max), "dt": 1.0, "task": "reduced"}
 
 
 def run_slew(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -179,7 +189,7 @@ def run_slew(config: Dict[str, Any]) -> Dict[str, Any]:
         sat = create_iac_6u_bus(n_rw=n_rw, **kw)
 
         orb = _get_orbit(config, dt, t_max + 2 * PLAN_OVERLAP_S)
-        goal = Fixed_Attitude_Goal(np.asarray(config["q_goal"], float))
+        goal = ECI_Goal(np.asarray(config["goal_vec_eci"], float))
         planner = make_planner(sat)
         fb = MTQ_w_RW_LP(est_sat=sat, p_gain=5e-5, d_gain=1e-3, c_gain=1e-3,
                          h_target=np.zeros(3))
@@ -214,7 +224,9 @@ def run_slew(config: Dict[str, Any]) -> Dict[str, Any]:
                     use, n_fallback = fb, n_fallback + 1
                 next_replan = t + PLAN_WINDOW_S
 
-            ang = 2.0 * np.arccos(np.clip(abs(float(x[3:7] @ qr)), 0.0, 1.0))
+            b_eci = rot_mat(x[3:7]) @ _BORE
+            ang = float(np.arccos(np.clip(
+                b_eci @ np.asarray(config["goal_vec_eci"], float), -1.0, 1.0)))
             if ang < DONE_ANGLE_RAD and np.linalg.norm(x[0:3]) < DONE_RATE_RPS:
                 t_done = t
                 break
@@ -253,6 +265,20 @@ def main() -> int:
     s = scale()
     ts = time.strftime("%Y%m%d_%H%M%S")
     os.makedirs(OUT, exist_ok=True)
+    assert np.allclose(_BORE, np.asarray(IAC_6U.boresight, float)), "boresight drifted"
+
+    # SMOKE GATE (registered, TUNE_PREDICTION B-launch requirement 4): one theta=0.5
+    # slew on the equalized 3+0 bus before committing the sweep. Wedge => B needs
+    # design work, not machine time.
+    if os.environ.get("B_SMOKE"):
+        Bs = field_samples(120)
+        eq = solve_equal_torque_m_max(Bs, IAC_6U.tau_w)
+        cfg = slew_config(0, bus="3+0", theta=0.5, axis_seed=999123,
+                          m_max=eq["m_max"], m_scale=1.0, t_max=s["t_max"])
+        t0 = time.time()
+        r = run_slew(cfg)
+        print(f"SMOKE: wall {time.time()-t0:.0f}s  result {r}")
+        return 0
 
     Bs = field_samples(120)
     eq = solve_equal_torque_m_max(Bs, IAC_6U.tau_w)
@@ -283,7 +309,8 @@ def main() -> int:
     print(f"\nrunning {len(cfgs)} planner slews, horizon {s['t_max']/T_ORBIT:.1f} orbits...")
     runner = MonteCarloRunner(sim_func=run_slew,
                               config_generator=lambda i, _c=cfgs: _c[i],
-                              num_runs=len(cfgs))
+                              num_runs=len(cfgs),
+                              max_tasks_per_child=1)
     res = [r for r in runner.run() if r is not None]
 
     # ---- floor vs bracket -------------------------------------------------------------
