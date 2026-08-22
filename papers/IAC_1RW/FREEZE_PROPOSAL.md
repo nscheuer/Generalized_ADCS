@@ -302,3 +302,37 @@ Clean baseline planner-full (seed-paired, immunized harness): **72.0/19.0/2.24,
 3. **The adopted config's printed comparison** (same harness, same seeds): 94.0/23.0/
    1.42 vs 72.0/19.0/2.24 -- +22 pts conv@5, median 1.6x better. Per-task tuning
    delivered on full attitude, against a clean baseline.
+
+## WAVE READS ADJUDICATED (2026-08-22) -- six registered items
+
+A. **Offset/authority: 31 authority, 0 offset, 0 residual.** kp x2 rescued nothing
+   net (failures 22 -> 27: it BREAKS 5 marginal draws while halving convergers'
+   median). NOTHING that reads as architecture was tuning -- the strongest available
+   resolution of the registered risk. Section VI's full-attitude story is
+   architecture, with the gain trade stated.
+   DECISION FLAG for Patrick: per-task PD-full at 5.8e-4 now has a measured trade
+   (73/71/0.13 vs 78/72/0.26) -- not dominant. Which arm prints (or both) is a
+   claim-affecting choice.
+B. **Route classification: STARVED = EMPTY -- the mechanism-conditional withdrawal
+   STANDS.** The registered allocator criterion (despin >= 30%, bind|despin >= 90%)
+   fires on nobody: rerun binding fractions run 0.60-0.90, far from the original
+   trace's 99.7%, so the criterion's operationalization (any-MTQ-at-box) evidently
+   differs from the original diagnostic's saturation measure. Per discipline: no
+   post-hoc criterion; the recall claim stays withdrawn for the paper. Rerun diverged
+   set: 12 (original 11 + seed 62); screen catches 8/12 @ 0 FP on fresh labels.
+C. **Demand ratio: VALIDATED AS A THRESHOLD under the corrected normalization.**
+   Post-transient: diverged ride the boundary (median 0.89 ~ unity), converged sit
+   far inside (0.00, IQR 0.00-0.01). Peaks are slew-dominated for everyone (5.1 vs
+   41.8) -- the old "both populations above unity" was full-omega + median-authority
+   artifact. The ceiling is a threshold in the post-transient statistic; peak is slew
+   context. The registered residual-factor question dissolves.
+D. **Sigma-threshold axis: the pre-outcome 0.2 cutoff is locally optimal** -- at
+   sigma<0.2/cut 0.1035: 8/12 @ 0 FP; sigma<0.15 collapses (21 FP), sigma<0.25
+   loses catches. Knife-edge structure confirmed on fresh labels.
+E. **Hardness overlap: NULL** -- overlap 10 vs E=9.9, P=0.57. Planner-hard and
+   PD-hard are INDEPENDENT populations; "hard geometries are hard for everyone" is
+   refuted, one sentence, descriptive per registration.
+F. **Aging deltas (ledger): cell-level reproduction excellent (median |delta| 0.073
+   deg), per-seed tail bistable (p90 18.5, max 165)** -- ~10% of draws flip outcome
+   between eras while cell statistics match. Cell stats robust; per-seed caveat
+   already in place.

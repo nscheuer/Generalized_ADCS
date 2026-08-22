@@ -1,0 +1,42 @@
+== A. OFFSET/AUTHORITY SPLIT (registered rule, paired PD-full) ==
+failures at kp1: 22; at kp2: 27
+AUTHORITY-class: 31 [0, 1, 2, 11, 16, 19, 27, 29, 30, 31, 32, 34, 35, 40, 43, 45, 53, 55, 56, 61, 66, 68, 73, 76, 81, 83, 85, 91, 92, 93, 96]
+OFFSET-class: 0 []
+unclassified residual: 0 []
+
+== B. ROUTE CLASSIFICATION, reduced (allocator-state criterion) ==
+diverged: 12 [8, 12, 15, 16, 23, 29, 49, 53, 55, 62, 78, 85]
+seed: (despin_frac, bind|despin, dwell, starved?, flagged?)
+  8: (0.38, 0.814, 0.0974, False, True)
+  12: (0.32, 0.621, 0.0646, False, True)
+  15: (0.33, 0.754, 0.2468, False, False)
+  16: (0.31, 0.677, 0.3588, False, False)
+  23: (0.41, 0.815, 0.0753, False, True)
+  29: (0.3, 0.673, 0.0672, False, True)
+  49: (0.32, 0.767, 0.1111, False, False)
+  53: (0.22, 0.821, 0.2193, False, False)
+  55: (0.21, 0.597, 0.07, False, True)
+  62: (0.2, 0.766, 0.0996, False, True)
+  78: (0.39, 0.667, 0.0852, False, True)
+  85: (0.3, 0.903, 0.051, False, True)
+STARVED (independent criterion): []
+screen catches: [8, 12, 23, 29, 55, 62, 78, 85]
+alignment: catches&starved 0, catches-only 8, starved-missed 0
+mechanism-conditional recall RETURNS only if catches ~= starved set.
+
+== C. DEMAND RATIO recomputed (omega_perp, directional instantaneous authority) ==
+converged: post-transient median 0.00 (IQR 0.00-0.01); peak median 5.14
+diverged:  post-transient median 0.89; peak median 41.76
+registered: converged near unity => validated threshold; materially above => separator only + residual named.
+
+== D. SCREEN sigma-threshold axis (rerun labels) ==
+  sigma<0.15: cut 0.075: 8/12 FP 1 | cut 0.1035: 9/12 FP 21 | cut 0.125: 10/12 FP 55
+  sigma<0.2: cut 0.075: 4/12 FP 0 | cut 0.1035: 8/12 FP 0 | cut 0.125: 9/12 FP 7
+  sigma<0.25: cut 0.075: 1/12 FP 0 | cut 0.1035: 5/12 FP 0 | cut 0.125: 6/12 FP 0
+
+== E. CROSS-CONTROLLER HARDNESS OVERLAP (registered) ==
+|K|=32 kill-seeds; |A|=31 authority-class; overlap 10: [11, 31, 32, 43, 45, 56, 61, 68, 85, 91]
+hypergeometric P(overlap >= 10) = 0.5729  (inference line 0.01; E[overlap] = 9.9)
+
+== F. AGING PAIRED DELTAS (ledger) ==
+paired |delta final| over 97 clean-comparable seeds: median 0.073 deg, p90 18.486, max 164.61

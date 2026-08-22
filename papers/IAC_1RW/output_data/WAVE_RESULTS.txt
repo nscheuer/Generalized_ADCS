@@ -1,0 +1,5 @@
+[planner_full_frozen] n=100  conv5 94.0%  conv1 23.0%  median 1.42  fb 0.065  kills 78
+[planner_full_BASELINE_clean] n=100  conv5 72.0%  conv1 19.0%  median 2.24  fb 0.003333333333333333  kills 4
+[pd_full_kp1] n=100  conv5 78.0%  conv1 72.0%  median 0.26  fb None  kills 0
+[pd_full_kp2] n=100  conv5 73.0%  conv1 71.0%  median 0.13  fb None  kills 0
+[pd_reduced_kp1] n=100  conv5 88.0%  conv1 82.0%  median 0.23  fb None  kills 0
