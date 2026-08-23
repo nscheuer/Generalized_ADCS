@@ -92,15 +92,21 @@ def main():
         th_b2 = np.degrees(TAU_PERP * T_ORBIT * D / tau_aT)
         cut = np.degrees(TAU_PERP * T_ORBIT / (CEIL * H_MAX))
         ok = th_b2 >= cut
-        ax.plot(D[ok], th_b2[ok], color=OI["grey"], lw=1.4,
-                label="B2: bias-only drift, $T_{corr}$=1 orbit" if task.startswith("Bores") else None)
-        ax.plot(D[~ok], th_b2[~ok], color=OI["grey"], lw=1.2, ls=":")
-        ax.plot(D, th_b2 / 4.0, color=OI["grey"], lw=0.8, alpha=0.45)
-        # feasible region: left of D=1, above B2
-        ax.fill_between(D[D <= 1], np.maximum(th_b2[D <= 1], 1e-2), 1e2,
-                        color=OI["blue"], alpha=0.07, lw=0)
-        ax.text(1.3e-2, 6e1, "feasible\n(one wheel suffices)", fontsize=7.5,
-                color=OI["blue"], alpha=0.9)
+        ax.plot(D[ok], th_b2[ok], color=OI["grey"], lw=1.4)
+        ax.plot(D[~ok], th_b2[~ok], color=OI["grey"], lw=1.2, ls=":",
+                label="bias-only drift bound (dotted: bias past the\nquadrature ceiling -- unreachable everywhere here)"
+                if task.startswith("Bores") else None)
+        if task.startswith("Bores"):
+            ax.annotate("bias unavailable (quadrature ceiling)",
+                        xy=(2.15e-2, float(np.degrees(TAU_PERP * T_ORBIT * 2.15e-2 / tau_aT))),
+                        xytext=(2, -11), textcoords="offset points", fontsize=6.3,
+                        color=OI["grey"], rotation=27)
+        # feasible region: SATURATION only (D < 1); B2 is a reference line, not a
+        # boundary (bias-only drift is a different physical question from active
+        # control -- category-error fix, 2026-08-22)
+        ax.fill_between(D[D <= 1], 1e-2, 1e2, color=OI["blue"], alpha=0.06, lw=0)
+        ax.text(1.4e-2, 5.5e1, "feasible: D < 1\n(one wheel suffices)", fontsize=7.5,
+                color=OI["blue"], alpha=0.95)
         # markers
         for lab, (d, th, dv), mk, col in marks:
             filled = dv < 0.5
@@ -125,17 +131,19 @@ def main():
                    fontsize=7, labelpad=2)
     # dimensional overlays (panel a)
     a = axes[0]
-    a.plot(D6_400, 3.2e1, "D", ms=6, color="k", mfc="k")
-    a.annotate("6U @400", (D6_400, 3.2e1), textcoords="offset points",
-               xytext=(5, -11), fontsize=7)
-    a.plot(D6_600, 6.2e1, "D", ms=6, color="k", mfc="w")
-    a.annotate("6U @600", (D6_600, 6.2e1), textcoords="offset points",
-               xytext=(-38, -3), fontsize=7)
+    a.plot(D6_400, 1.8e1, "D", ms=6, color="k", mfc="k")
+    a.annotate("6U @400", (D6_400, 1.8e1), textcoords="offset points",
+               xytext=(6, -3), fontsize=7,
+               bbox=dict(fc="white", ec="none", alpha=0.75, pad=0.5))
+    a.plot(D6_600, 8.0e0, "D", ms=6, color="k", mfc="w")
+    a.annotate("6U @600", (D6_600, 8.0e0), textcoords="offset points",
+               xytext=(-46, -3), fontsize=7,
+               bbox=dict(fc="white", ec="none", alpha=0.75, pad=0.5))
     for i, (name, (lo, hi)) in enumerate(bars.items()):
-        y = 1.35e1 * (1.7 ** i)
+        y = 2.6e0 * (1.75 ** i)
         a.plot([lo, hi], [y, y], "-", color="k", lw=2.2, solid_capstyle="butt")
-        a.annotate(name, (hi, y), textcoords="offset points", xytext=(4, -2),
-                   fontsize=7)
+        a.annotate(name, (hi, y), textcoords="offset points", xytext=(-4, 5),
+                   fontsize=7, ha="right")
     # annotations that are not curves
     a.annotate("below ~262 km:\nD > 1 for the\nreference bus",
                xy=(3.1, 2.6e-2), fontsize=7, ha="center", color=OI["verm"])
@@ -148,12 +156,21 @@ def main():
         "divergent minority: low-$\\sigma$-dwell draws,\nhigh inclination (§VI-E; screen scope)",
         xy=(0.03, 0.05), xycoords="axes fraction", fontsize=7,
         bbox=dict(fc="white", ec="0.7", lw=0.6))
-    axes[0].legend(loc="center right", fontsize=7.5, framealpha=0.95,
-                   bbox_to_anchor=(0.99, 0.72))
+    h_, l_ = axes[0].get_legend_handles_labels()
+    axes[1].legend(h_, l_, loc="upper right", fontsize=7.5, framealpha=0.95,
+                   bbox_to_anchor=(0.985, 0.80))
+    # the argument, visible: vertical gap from the bias-only line to active control
+    a0 = axes[0]
+    d_pd = red_pd[0]
+    th_line = float(np.degrees(TAU_PERP * T_ORBIT * d_pd / tau_aT))
+    a0.annotate("", xy=(d_pd, red_pd[1]), xytext=(d_pd, th_line),
+                arrowprops=dict(arrowstyle="<->", color="0.35", lw=0.9))
+    a0.text(1.35e-1, 1.35e0, "value of active\ncontrol ($\\sim$300$\\times$)",
+            fontsize=6.8, color="0.25", ha="left")
 
-    fig.suptitle("The one-wheel envelope: saturation (B1), drift/pointing (B2, "
-                 r"$T_{corr}$ = 1 orbit), quadrature ceiling (B3, dotted = unreachable)",
-                 fontsize=9.5)
+    fig.suptitle("The one-wheel envelope: feasibility is bounded by wheel saturation (D = 1)\n"
+                 "bias-only drift shown as reference; on this domain it lies entirely beyond the quadrature ceiling",
+                 fontsize=9)
     fig.tight_layout(rect=[0, 0, 1, 0.94])
     for ext in ("pdf", "png"):
         fig.savefig(os.path.join(OUT, f"fig3_envelope.{ext}"), dpi=220)
