@@ -10,9 +10,9 @@
 .. Tracking is scoped to the three /ssc26 pages ONLY. The rest of the docs
 .. site is deliberately left untracked.
 ..
-.. SETUP: create a site at https://www.goatcounter.com/ and replace
-.. pmckeen below with your site code (both occurrences are in this
-.. one file). Until then the beacon 404s harmlessly and the page is fine.
+.. The GoatCounter site code is ``pmckeen`` (dashboard at
+.. pmckeen.goatcounter.com). To point this elsewhere, replace it below --
+.. both occurrences are in this one file. A wrong code 404s harmlessly.
 
 .. raw:: html
 

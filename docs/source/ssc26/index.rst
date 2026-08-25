@@ -155,11 +155,9 @@ Every block on this page is executed verbatim by
 Paper and citation
 ==================
 
-.. TODO(ssc26): replace with the final SSC26-P2-54 PDF URL once published.
-
 P. McKeen, N. Scheuer and K. Cahoy, *Generalized Attitude Control for Small
 Spacecraft*, SSC26-P2-54, 40th Annual Small Satellite Conference, Salt Lake City UT,
-August 2026.
+August 2026. Open access: https://digitalcommons.usu.edu/smallsat/2026/all2026/253
 
 .. code-block:: bibtex
 
@@ -170,6 +168,7 @@ August 2026.
      number    = {SSC26-P2-54},
      year      = {2026},
      address   = {Salt Lake City, UT},
+     url       = {https://digitalcommons.usu.edu/smallsat/2026/all2026/253},
    }
 
 Where to go next

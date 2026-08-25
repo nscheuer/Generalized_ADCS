@@ -14,11 +14,6 @@ CubeSat from 90° off target to under a tenth of a degree.
 Open the notebook
 =================
 
-.. TODO(ssc26): the Colab link needs the notebook on main, which arrives with
-   the pipeline PR. This page is the QR target so the link can be corrected
-   without reprinting the poster. Until then the install instructions below
-   work today.
-
 .. raw:: html
 
    <p>
@@ -28,8 +23,7 @@ Open the notebook
      </a>
    </p>
 
-If the badge above 404s, the notebook has not reached ``main`` yet — install
-locally instead, it is one line:
+Prefer to run it locally? Same package, one line:
 
 .. code-block:: console
 

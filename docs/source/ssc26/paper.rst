@@ -21,14 +21,15 @@ August 2026.
 Read it
 =======
 
-.. TODO(ssc26): the proceedings PDF is not posted until the conference. Replace
-   this block with the direct link once it exists. This page is the QR target
-   precisely so that can be done without reprinting the poster.
+- **Paper** — https://digitalcommons.usu.edu/smallsat/2026/all2026/253
 
-The proceedings PDF is posted by the conference. Until then:
+  The proceedings entry on DigitalCommons@USU. The PDF is linked from that page
+  under *Additional Files*; the SmallSat collection is open access, so no
+  institutional login is needed.
 
-- **Digital Commons** (SmallSat proceedings) — https://digitalcommons.usu.edu/smallsat/
 - **Ask the authors** — :doc:`contact`, or pmckeen@mit.edu
+
+Presented in **Poster Session 2**, Salt Palace Convention Center, Salt Lake City UT.
 
 Abstract
 ========
@@ -65,6 +66,7 @@ Cite it
      number    = {SSC26-P2-54},
      year      = {2026},
      address   = {Salt Lake City, UT},
+     url       = {https://digitalcommons.usu.edu/smallsat/2026/all2026/253},
    }
 
 Also on the poster
