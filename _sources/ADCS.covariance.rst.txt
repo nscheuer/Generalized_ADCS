@@ -1,0 +1,7 @@
+ADCS.covariance module
+======================
+
+.. automodule:: ADCS.covariance
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -295,3 +295,24 @@
         font-size: 1.1rem;
     }
 }
+/* Embedded paper decks remain readable without overflowing narrow content. */
+.paper-pdf-preview {
+    width: 100%;
+    margin: 1rem 0;
+}
+
+.paper-pdf-preview object {
+    display: block;
+    width: 100%;
+    height: min(70vh, 640px);
+    min-height: 420px;
+    border: 1px solid var(--color-background-border);
+    border-radius: 6px;
+}
+
+@media (max-width: 600px) {
+    .paper-pdf-preview object {
+        height: 56vh;
+        min-height: 320px;
+    }
+}

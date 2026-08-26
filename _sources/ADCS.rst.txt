@@ -25,6 +25,7 @@ Submodules
 .. toctree::
    :maxdepth: 1
 
+   ADCS.covariance
    ADCS.simulate
    ADCS.simulate_remote
    ADCS.state

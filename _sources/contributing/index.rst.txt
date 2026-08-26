@@ -40,12 +40,10 @@ that the following requirements are met:
 
 - ✅ Appropriate test cases are added or updated in the ``testing/`` directory
 - ✅ All existing tests continue to pass
+- ✅ No significant performance regressions are introduced
 - ✅ The Sphinx documentation builds successfully
 
 Additional guidance can be found here:
 
-- 🛠 **Sphinx Build Guide**  
-
-
-- ⚙️ **Testing Guide**  
-
+- 🛠 :doc:`Sphinx Build Guide <documentation>`
+- ⚙️ :doc:`Testing Guide <testing>`
