@@ -1,9 +1,45 @@
-Generalized ACS (August 2026)
-=============================
+Generalized Attitude Control for Small Spacecraft
+=================================================
 
-*Generalized Attitude Control for Small Spacecraft* presents a configurable
-pipeline for applying published attitude-control laws across heterogeneous and
-underactuated spacecraft.
+Patrick McKeen\ :sup:`1`, Niclas Scheuer\ :sup:`2`, Kerri Cahoy\ :sup:`1`
+
+:sup:`1` Massachusetts Institute of Technology ·
+:sup:`2` ETH Zürich
+
+Paper **SSC26-P2-54**, Poster Session 2, 40th Annual Small Satellite
+Conference, Salt Lake City, Utah, August 24, 2026.
+
+Read it
+-------
+
+- **Paper page** — https://digitalcommons.usu.edu/smallsat/2026/all2026/253/
+- **Proceedings PDF** — https://digitalcommons.usu.edu/cgi/viewcontent.cgi?article=6639&context=smallsat
+- **Contact the authors** — :doc:`../ssc26/contact`
+
+Abstract
+--------
+
+Published controllers are derived for one actuator set, pointing goal, orbit,
+and disturbance model. Porting one means reproducing the paper, validating the
+implementation, then changing hardware and mission assumptions together.
+
+Cite it
+-------
+
+.. code-block:: bibtex
+
+   @inproceedings{mckeen2026generalized,
+     title     = {Generalized Attitude Control for Small Spacecraft},
+     author    = {McKeen, Patrick and Scheuer, Niclas and Cahoy, Kerri},
+     booktitle = {Proceedings of the 40th Annual Small Satellite Conference},
+     number    = {SSC26-P2-54},
+     year      = {2026},
+     address   = {Salt Lake City, UT},
+     url       = {https://digitalcommons.usu.edu/smallsat/2026/all2026/253/},
+   }
+
+Related pages
+-------------
 
 .. toctree::
    :maxdepth: 1
