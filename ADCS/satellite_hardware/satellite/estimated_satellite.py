@@ -988,6 +988,36 @@ class EstimatedSatellite(Satellite):
             coordinates="control",
         )
 
+    def actuator_bias_process_psd(self, *, form: str = "full") -> Covariance:
+        """Return continuous random-walk PSD for estimated actuator biases."""
+        return Covariance.block_diagonal(
+            (self.actuators[index].bias_process_psd() for index in self.act_bias_inds),
+            form=form,
+            coordinates="actuator_bias_rate",
+        )
+
+    def sensor_bias_process_psd(self, *, form: str = "full") -> Covariance:
+        """Return continuous random-walk PSD for estimated sensor biases."""
+        return Covariance.block_diagonal(
+            (
+                self.attitude_sensors[index].bias_process_psd()
+                for index in self.att_sens_bias_inds
+            ),
+            form=form,
+            coordinates="sensor_bias_rate",
+        )
+
+    def disturbance_parameter_process_psd(self, *, form: str = "full") -> Covariance:
+        """Return continuous random-walk PSD for estimated disturbance parameters."""
+        return Covariance.block_diagonal(
+            (
+                self.disturbances[index].parameter_process_psd()
+                for index in self.dist_param_inds
+            ),
+            form=form,
+            coordinates="disturbance_parameter_rate",
+        )
+
     def measurement_covariance(
         self,
         which_sensors: Sequence[bool] | None = None,

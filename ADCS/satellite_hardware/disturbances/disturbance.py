@@ -3,6 +3,8 @@ __all__ = ["Disturbance"]
 import numpy as np
 from typing import List
 
+from ADCS.covariance import Covariance
+
 class Disturbance:
     def __init__(self, estimate_dist: bool = False, estimated_vector_length: int = 0):
         r"""
@@ -80,6 +82,19 @@ class Disturbance:
         self.active = True
         self.std = np.zeros(int(estimated_vector_length))
 
+    def parameter_process_psd(self, *, form: str = "full") -> Covariance:
+        r"""Return the continuous PSD of estimated disturbance parameters.
+
+        ``std`` follows the same random-walk-rate convention as hardware
+        bias models.  A disturbance with no estimated parameters naturally
+        returns a zero-dimensional PSD.
+        """
+        return Covariance(
+            np.diagflat(self.std * self.std),
+            form=form,
+            coordinates="disturbance_parameter_rate",
+        )
+
     @property
     def main_param(self) -> "np.ndarray":
         raise NotImplementedError(
@@ -96,4 +111,3 @@ class Disturbance:
             f"`main_param`; cannot write back an estimated disturbance "
             f"parameter."
         )
-    

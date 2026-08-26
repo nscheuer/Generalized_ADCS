@@ -140,6 +140,10 @@ class Actuator:
         """Return the actuator-bias random-walk covariance over ``dt`` seconds."""
         return self.bias.process_covariance(dt, form=form)
 
+    def bias_process_psd(self, *, form: str = "full") -> Covariance:
+        """Return the continuous PSD of this actuator's bias random walk."""
+        return self.bias.process_psd(form=form)
+
     def torque(self, u: float, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""
         Compute the body-frame torque produced by the actuator.

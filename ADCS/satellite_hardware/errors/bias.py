@@ -71,9 +71,22 @@ class Bias:
         if not np.isfinite(dt) or dt < 0.0:
             raise ValueError("dt must be finite and non-negative")
         return Covariance(
-            np.diagflat(self.std_bias * self.std_bias * dt),
+            self.process_psd().as_matrix() * dt,
             form=form,
             coordinates="bias",
+        )
+
+    def process_psd(self, *, form: str = "full") -> Covariance:
+        r"""Return continuous random-walk PSD :math:`\operatorname{diag}(\sigma_b^2)`.
+
+        ``std_bias`` is a random-walk standard-deviation rate, not a
+        per-step covariance.  Discretizers such as Van Loan therefore use
+        this PSD directly and own the timestep conversion.
+        """
+        return Covariance(
+            np.diagflat(self.std_bias * self.std_bias),
+            form=form,
+            coordinates="bias_rate",
         )
 
     def _update_bias(self, j2000: float) -> None:
