@@ -714,7 +714,10 @@ class EstimatorState(State):
         default_coordinates: str,
     ) -> Covariance:
         if isinstance(value, Covariance):
-            result = value.copy()
+            result = value.copy(
+                coordinates=value.coordinates or default_coordinates,
+                psd_policy="allow_indefinite",
+            )
         else:
             matrix = _square_matrix(value, name=name)
             if matrix is None:
@@ -983,11 +986,13 @@ class EstimatorState(State):
                 lerp(self.cov, other.cov),
                 form=self.covariance.form,
                 coordinates=self.covariance.coordinates,
+                psd_policy="allow_indefinite",
             ),
             process_noise=Covariance(
                 lerp(self.int_cov, other.int_cov),
                 form=self.process_noise.form,
                 coordinates=self.process_noise.coordinates,
+                psd_policy="allow_indefinite",
             ),
         )
 
