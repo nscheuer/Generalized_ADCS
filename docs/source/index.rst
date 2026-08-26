@@ -109,6 +109,7 @@ objects intentionally do not support NumPy indexing or implicit conversion.
    installation/index
    tutorials/index
    release_notes/index
+   papers/index
 
 .. toctree::
    :maxdepth: 1
