@@ -2,7 +2,7 @@ __all__ = ["RW"]
 
 import numpy as np
 
-from ADCS.covariance import Covariance
+from ADCS.estimators.covariance import Covariance
 from ADCS.state import State
 import warnings
 from ADCS.satellite_hardware.actuators.actuator import Actuator

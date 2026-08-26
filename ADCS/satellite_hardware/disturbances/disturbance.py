@@ -3,7 +3,7 @@ __all__ = ["Disturbance"]
 import numpy as np
 from typing import List
 
-from ADCS.covariance import Covariance
+from ADCS.estimators.covariance import Covariance
 
 class Disturbance:
     def __init__(self, estimate_dist: bool = False, estimated_vector_length: int = 0):

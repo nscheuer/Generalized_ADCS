@@ -2,7 +2,7 @@ __all__ = ["EstimatedSatellite"]
 import copy
 import numpy as np
 
-from ADCS.covariance import Covariance
+from ADCS.estimators.covariance import Covariance
 from ADCS.state import State
 
 from typing import List, Dict, Union, Tuple, Any, Optional, Sequence

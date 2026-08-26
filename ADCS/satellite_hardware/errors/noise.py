@@ -3,7 +3,7 @@ __all__ = ["Noise"]
 import numpy as np
 from typing import Sequence
 
-from ADCS.covariance import Covariance
+from ADCS.estimators.covariance import Covariance
 
 class Noise:
     r"""

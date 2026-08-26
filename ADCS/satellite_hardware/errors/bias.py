@@ -3,7 +3,7 @@ __all__ = ["Bias"]
 import numpy as np
 from typing import Sequence
 from ADCS.orbits.universal_constants import TimeConstants
-from ADCS.covariance import Covariance
+from ADCS.estimators.covariance import Covariance
 
 class Bias:
     r"""
