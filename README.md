@@ -67,6 +67,12 @@ Optional add-ons:
 - Core ADCS functionality works without them.
 - Build instructions are in docs/Install_WSL.md and docs/Install_Windows.md.
 
+## Papers
+
+- [A Modular Open-Source ADCS Framework for Small Satellite Development and Testing](https://nscheuer.github.io/Generalized_ADCS/papers/package.html) — presented at SmallSat Europe 2026 in Amsterdam, Netherlands.
+- [Generalized Attitude Control for Small Spacecraft](https://nscheuer.github.io/Generalized_ADCS/papers/generalized_acs.html) — presented at the 40th Annual Small Satellite Conference, Poster Session 2, in Salt Lake City, Utah.
+- [A Feasibility-Aware Attitude Trajectory Planner for Small Satellites](https://nscheuer.github.io/Generalized_ADCS/papers/planner.html) — presented at the 40th Annual Small Satellite Conference, Flash Talks Session 3, in Salt Lake City, Utah.
+
 ## 📚 Academic Background
 
 This project is based on the PhD research of **Patrick McKeen**:

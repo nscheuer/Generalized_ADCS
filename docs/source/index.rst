@@ -3,6 +3,8 @@
 Generalized Attitude Determination and Control System
 =====================================================
 
+GitHub repository: `nscheuer/Generalized_ADCS <https://github.com/nscheuer/Generalized_ADCS>`_
+
 A Python-first framework for simulating spacecraft attitude dynamics,
 estimation, and control in orbit.
 
