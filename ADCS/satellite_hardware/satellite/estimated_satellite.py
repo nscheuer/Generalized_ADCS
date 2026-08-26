@@ -1041,6 +1041,13 @@ class EstimatedSatellite(Satellite):
             blocks, form=form, coordinates="measurement"
         )
 
+    @property
+    def measurement_stack(self):
+        """Canonical estimator measurement order and model for this satellite."""
+        from ADCS.estimators.measurement_stack import MeasurementStack
+
+        return MeasurementStack(self)
+
     def control_cov(self) -> np.ndarray:
         r"""
         Block-diagonal covariance of actuator input noise.
