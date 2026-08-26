@@ -2,6 +2,7 @@ __all__ = ["RW"]
 
 import numpy as np
 
+from ADCS.covariance import Covariance
 from ADCS.state import State
 import warnings
 from ADCS.satellite_hardware.actuators.actuator import Actuator
@@ -163,6 +164,10 @@ class RW(Actuator):
         else:
             self.h_meas_noise = Noise()
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
+
+    def momentum_measurement_covariance(self, *, form: str = "full") -> Covariance:
+        """Return covariance of this wheel's momentum measurement noise."""
+        return self.h_meas_noise.covariance(form=form, coordinates="measurement")
 
     def torque(self, u: float, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""

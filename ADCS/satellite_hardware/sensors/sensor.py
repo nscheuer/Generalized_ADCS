@@ -2,6 +2,7 @@ __all__ = ["Sensor"]
 
 import numpy as np
 
+from ADCS.covariance import Covariance
 from ADCS.state import State
 
 from ADCS.orbits.orbital_state import Orbital_State
@@ -120,6 +121,10 @@ class Sensor:
         self.sample_time = sample_time
         self.output_length = output_length
         self.estimate_bias = estimate_bias
+
+    def measurement_covariance(self, *, form: str = "full") -> Covariance:
+        """Return measurement-noise covariance owned by this sensor."""
+        return self.noise.covariance(form=form, coordinates="measurement")
 
     def reading(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""

@@ -3,6 +3,8 @@
 Generalized Attitude Determination and Control System
 =====================================================
 
+GitHub repository: `nscheuer/Generalized_ADCS <https://github.com/nscheuer/Generalized_ADCS>`_
+
 A Python-first framework for simulating spacecraft attitude dynamics,
 estimation, and control in orbit.
 
@@ -32,6 +34,15 @@ Latest Release Notes
          <h3>Benchmark</h3>
          <p>New performance benchmarks run on every pull request into <code>main</code> and compare results to catch regressions early.</p>
          <span>Explore release note 0.1.7</span>
+       </div>
+     </a>
+     <a class="release-card" href="release_notes/0_1_6_remote_execution.html">
+       <img src="_static/release_notes/0_1_6_raspberry_pi.jpeg" alt="Remote execution on Raspberry Pi">
+       <div class="release-card-copy">
+         <div class="release-card-kicker">Update 0.1.6</div>
+         <h3>Remote Execution</h3>
+         <p>Selected ADCS components can run on a Raspberry Pi over XML-RPC while the main PC keeps the truth model and simulation loop local.</p>
+         <span>Explore release note 0.1.6</span>
        </div>
      </a>
    </div>
@@ -100,6 +111,7 @@ objects intentionally do not support NumPy indexing or implicit conversion.
    installation/index
    tutorials/index
    release_notes/index
+   papers/index
 
 .. toctree::
    :maxdepth: 1

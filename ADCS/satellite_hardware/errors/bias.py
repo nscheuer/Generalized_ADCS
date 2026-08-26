@@ -3,6 +3,7 @@ __all__ = ["Bias"]
 import numpy as np
 from typing import Sequence
 from ADCS.orbits.universal_constants import TimeConstants
+from ADCS.covariance import Covariance
 
 class Bias:
     r"""
@@ -58,6 +59,22 @@ class Bias:
     
     def copy(self):
         return Bias(bias=self.bias, std_bias=self.std_bias, bounds=self.bounds)
+
+    def process_covariance(
+        self,
+        dt: float = 1.0,
+        *,
+        form: str = "full",
+    ) -> Covariance:
+        r"""Return random-walk covariance :math:`Q_b=\mathrm{diag}(\sigma_b^2\Delta t)`."""
+        dt = float(dt)
+        if not np.isfinite(dt) or dt < 0.0:
+            raise ValueError("dt must be finite and non-negative")
+        return Covariance(
+            np.diagflat(self.std_bias * self.std_bias * dt),
+            form=form,
+            coordinates="bias",
+        )
 
     def _update_bias(self, j2000: float) -> None:
         r"""

@@ -1,8 +1,12 @@
 # 🚀 Generalized ADCS
 
 <p>
-  <img src="https://raw.githubusercontent.com/nscheuer/Generalized_ADCS/main/docs/source/_static/starlab_logo.svg" alt="STARLab Logo" height="100">
-  <img src="https://raw.githubusercontent.com/nscheuer/Generalized_ADCS/main/docs/source/_static/ssc_logo.png" alt="Small Satellite Collaborative Logo" height="100">
+  <a href="https://aeroastro.mit.edu/starlab/">
+    <img src="https://raw.githubusercontent.com/nscheuer/Generalized_ADCS/main/docs/source/_static/starlab_logo.svg" alt="STARLab Logo" height="100">
+  </a>
+  <a href="https://aeroastro.mit.edu/small-satellite-collaborative/">
+    <img src="https://raw.githubusercontent.com/nscheuer/Generalized_ADCS/main/docs/source/_static/ssc_logo.png" alt="Small Satellite Collaborative Logo" height="100">
+  </a>
 </p>
 
 <strong>Generalized ADCS</strong> is a Python framework for satellite attitude determination
@@ -66,6 +70,12 @@ Optional add-ons:
 - trajectory_planner (tplaunch/pysat) and SALTRO (saltro_py) are optional C++ extensions.
 - Core ADCS functionality works without them.
 - Build instructions are in docs/Install_WSL.md and docs/Install_Windows.md.
+
+## Papers
+
+- [A Modular Open-Source ADCS Framework for Small Satellite Development and Testing](https://nscheuer.github.io/Generalized_ADCS/papers/package.html) — presented at SmallSat Europe 2026 in Amsterdam, Netherlands.
+- [Generalized Attitude Control for Small Spacecraft](https://nscheuer.github.io/Generalized_ADCS/papers/generalized_acs.html) — presented at the 40th Annual Small Satellite Conference, Poster Session 2, in Salt Lake City, Utah.
+- [A Feasibility-Aware Attitude Trajectory Planner for Small Satellites](https://nscheuer.github.io/Generalized_ADCS/papers/planner.html) — presented at the 40th Annual Small Satellite Conference, Flash Talks Session 3, in Salt Lake City, Utah.
 
 ## 📚 Academic Background
 

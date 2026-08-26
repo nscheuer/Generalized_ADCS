@@ -15,6 +15,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.mathjax',
     'myst_parser',
+    'sphinx_sitemap',
 ]
 
 autodoc_mock_imports = ["saltro_py", "matplotlib", "mpl_toolkits", "pyvista", "vtk", "rich", "trajectory_planner.build", "abc"]
@@ -46,6 +47,7 @@ html_css_files = ['custom.css']
 # poster QR codes point at /ssc26/) resolve to absolute URLs in link previews
 # and search results rather than to relative paths.
 html_baseurl = 'https://nscheuer.github.io/Generalized_ADCS/'
+sitemap_url_scheme = "{link}"
 
 html_theme_options = {
     "sidebar_hide_name": False,

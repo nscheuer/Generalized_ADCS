@@ -2,6 +2,7 @@ __all__ = ["Actuator"]
 
 import numpy as np
 
+from ADCS.covariance import Covariance
 from ADCS.state import State
 from ADCS.satellite_hardware.errors.bias import Bias
 from ADCS.satellite_hardware.errors.noise import Noise
@@ -125,6 +126,19 @@ class Actuator:
         self.estimate_bias: bool = estimate_bias
         self.input_len: int = 1
         self.last_bias_time: float = float('nan')
+
+    def control_covariance(self, *, form: str = "full") -> Covariance:
+        """Return input-noise covariance owned by this actuator."""
+        return self.noise.covariance(form=form, coordinates="control")
+
+    def bias_process_covariance(
+        self,
+        dt: float = 1.0,
+        *,
+        form: str = "full",
+    ) -> Covariance:
+        """Return the actuator-bias random-walk covariance over ``dt`` seconds."""
+        return self.bias.process_covariance(dt, form=form)
 
     def torque(self, u: float, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""
