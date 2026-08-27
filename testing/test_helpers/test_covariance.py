@@ -59,6 +59,36 @@ def test_project_policy_repairs_small_negative_eigenvalue():
     assert np.linalg.eigvalsh(covariance.as_matrix()).min() >= -1e-14
 
 
+def test_allow_indefinite_skips_eigen_validation(monkeypatch):
+    def fail(*args, **kwargs):
+        raise AssertionError("eigendecomposition should not run")
+
+    monkeypatch.setattr(np.linalg, "eigh", fail)
+    monkeypatch.setattr(np.linalg, "eigvalsh", fail)
+
+    covariance = Covariance(
+        [[1.0, 2.0], [2.0, 1.0]],
+        psd_policy="allow_indefinite",
+    )
+
+    np.testing.assert_allclose(covariance.as_matrix(), [[1.0, 2.0], [2.0, 1.0]])
+
+
+def test_copy_preserves_data_without_revalidation(monkeypatch):
+    covariance = Covariance(SPD)
+
+    def fail(*args, **kwargs):
+        raise AssertionError("copy should trust covariance invariants")
+
+    monkeypatch.setattr(np.linalg, "eigh", fail)
+    monkeypatch.setattr(np.linalg, "eigvalsh", fail)
+
+    copied = covariance.copy()
+
+    assert copied is not covariance
+    np.testing.assert_allclose(copied.as_matrix(), SPD)
+
+
 def test_assign_is_atomic_and_retains_representation():
     covariance = Covariance(SPD, form="sqrt")
     before = covariance.as_matrix()
@@ -72,6 +102,17 @@ def test_assign_is_atomic_and_retains_representation():
     np.testing.assert_allclose(covariance.as_matrix(), before)
     covariance.assign(np.eye(2) * 3.0)
     np.testing.assert_allclose(covariance.as_matrix(), np.eye(2) * 3.0)
+
+
+def test_block_diagonal_accepts_empty_and_zero_size_blocks():
+    covariance = Covariance.block_diagonal([np.zeros((0, 0)), SPD], form="sqrt")
+
+    assert covariance.shape == SPD.shape
+    np.testing.assert_allclose(covariance.as_matrix(), SPD)
+
+    empty = Covariance.block_diagonal([], form="sqrt")
+    assert empty.shape == (0, 0)
+    assert empty.upper_factor().shape == (0, 0)
 
 
 @pytest.mark.parametrize("form", ["full", "sqrt"])
@@ -126,6 +167,50 @@ def test_linear_prediction_and_joseph_update(form):
     assert posterior.form == form
 
 
+@pytest.mark.parametrize("weight", [0.25, -0.25])
+def test_sqrt_rank_updated_uses_weighted_cholesky_update(weight):
+    vector = np.array([0.5, -0.25])
+    covariance = Covariance(SPD, form="sqrt")
+
+    updated = covariance.rank_updated(vector, weight=weight)
+
+    expected = SPD + weight * np.outer(vector, vector)
+    np.testing.assert_allclose(updated.as_matrix(), expected, atol=1e-12)
+    assert updated.form == "sqrt"
+
+
+def test_sqrt_rank_update_from_singular_factor_keeps_qr_fallback():
+    covariance = Covariance.zeros(2, form="sqrt")
+
+    updated = covariance.rank_updated(np.eye(2), weight=2.0)
+
+    np.testing.assert_allclose(updated.as_matrix(), np.eye(2) * 2.0)
+
+
+def test_weighted_deviations_with_negative_weight_stays_in_sqrt_form():
+    deviations = np.array(
+        [
+            [0.5, -0.25],
+            [0.0, 0.75],
+            [0.25, 0.5],
+        ]
+    )
+    weights = np.array([-0.2, 0.4, 0.3])
+    noise = Covariance(np.eye(2) * 1.5)
+
+    covariance = Covariance.from_weighted_deviations(
+        deviations,
+        weights,
+        noise,
+        form="sqrt",
+    )
+
+    expected = np.einsum("i,ij,ik->jk", weights, deviations, deviations)
+    expected += noise.as_matrix()
+    np.testing.assert_allclose(covariance.as_matrix(), expected, atol=1e-12)
+    assert covariance.form == "sqrt"
+
+
 @pytest.mark.parametrize("form", ["full", "sqrt"])
 def test_unscented_prediction_and_update(form):
     state_deviations = np.array(
@@ -135,9 +220,8 @@ def test_unscented_prediction_and_update(form):
     process_noise = Covariance(np.diag([0.1, 0.2]))
     prior = Covariance.identity(2, form=form, coordinates="state_tangent")
     predicted = prior.predicted_unscented(state_deviations, weights, process_noise)
-    expected = Covariance.from_weighted_deviations(
-        state_deviations, weights, process_noise
-    ).as_matrix()
+    expected = np.einsum("i,ij,ik->jk", weights, state_deviations, state_deviations)
+    expected += process_noise.as_matrix()
     np.testing.assert_allclose(predicted.as_matrix(), expected)
 
     measurement_deviations = state_deviations @ np.array([[1.0], [0.5]])
@@ -148,9 +232,13 @@ def test_unscented_prediction_and_update(form):
     cross = Covariance.cross_covariance(
         state_deviations, measurement_deviations, weights
     )
-    innovation = Covariance.from_weighted_deviations(
-        measurement_deviations, weights, measurement_noise
-    ).as_matrix()
+    innovation = np.einsum(
+        "i,ij,ik->jk",
+        weights,
+        measurement_deviations,
+        measurement_deviations,
+    )
+    innovation += measurement_noise.as_matrix()
 
     np.testing.assert_allclose(gain, cross @ np.linalg.inv(innovation))
     np.testing.assert_allclose(
@@ -188,6 +276,33 @@ def test_estimator_state_legacy_matrix_path_preserves_indefinite_filter_fixture(
     np.testing.assert_array_equal(state.cov, legacy_matrix)
     with pytest.raises(ValueError, match="positive semidefinite"):
         Covariance(legacy_matrix)
+
+
+def test_estimator_state_normalizes_covariance_policy():
+    strict_covariance = Covariance.identity(6, scale=1.0, psd_policy="strict")
+    state = EstimatorState(
+        w=np.zeros(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        covariance=strict_covariance,
+    )
+    legacy_matrix = np.eye(6)
+    legacy_matrix[0, 1] = legacy_matrix[1, 0] = 2.0
+
+    assert state.covariance.psd_policy == "allow_indefinite"
+    state.cov = legacy_matrix
+    np.testing.assert_allclose(state.cov, legacy_matrix)
+
+
+def test_estimator_state_interpolate_preserves_allow_indefinite_policy():
+    legacy_matrix = np.eye(6)
+    legacy_matrix[0, 1] = legacy_matrix[1, 0] = 2.0
+    first = EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], cov=legacy_matrix)
+    second = EstimatorState(w=np.ones(3), q=[1.0, 0.0, 0.0, 0.0], cov=legacy_matrix)
+
+    midpoint = first.interpolate(second, 0.5)
+
+    assert midpoint.covariance.psd_policy == "allow_indefinite"
+    np.testing.assert_allclose(midpoint.cov, legacy_matrix)
 
 
 def test_noise_bias_sensor_and_actuator_covariance_ownership():
