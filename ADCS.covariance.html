@@ -736,6 +736,27 @@ the stacked weighted deviations and the noise factor.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.covariance.Covariance.weighted_cholupdate">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">weighted_cholupdate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vectors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/covariance.html#Covariance.weighted_cholupdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.covariance.Covariance.weighted_cholupdate" title="Link to this definition">¶</a></dt>
+<dd><p>Return the upper factor after weighted rank updates/downdates.</p>
+<p><code class="docutils literal notranslate"><span class="pre">factor</span></code> is an upper-triangular <span class="math notranslate nohighlight">\(S\)</span> with <span class="math notranslate nohighlight">\(P=S^T S\)</span>.
+Each row of <code class="docutils literal notranslate"><span class="pre">vectors</span></code> contributes <code class="docutils literal notranslate"><span class="pre">weight</span> <span class="pre">*</span> <span class="pre">v</span> <span class="pre">v^T</span></code>. Negative
+weights use the in-tree Cholesky downdate primitive.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>factor</strong> (<em>Any</em>)</p></li>
+<li><p><strong>vectors</strong> (<em>Any</em>)</p></li>
+<li><p><strong>weight</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.covariance.Covariance.added">
 <span class="sig-name descname"><span class="pre">added</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/covariance.html#Covariance.added"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.covariance.Covariance.added" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
@@ -789,12 +810,13 @@ the stacked weighted deviations and the noise factor.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.covariance.Covariance.copy">
-<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">form</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/covariance.html#Covariance.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.covariance.Covariance.copy" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">form</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psd_policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/covariance.html#Covariance.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.covariance.Covariance.copy" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>form</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>coordinates</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>psd_policy</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1072,6 +1094,11 @@ to their respective means.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="ADCS.covariance.Covariance.form">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">form</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'full'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'sqrt'</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.covariance.Covariance.form" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.covariance.Covariance.psd_policy">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">psd_policy</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'strict'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'project'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'jitter'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'allow_indefinite'</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.covariance.Covariance.psd_policy" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">

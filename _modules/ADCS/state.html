@@ -1349,7 +1349,10 @@
         <span class="n">default_coordinates</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Covariance</span><span class="p">):</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span>
+                <span class="n">coordinates</span><span class="o">=</span><span class="n">value</span><span class="o">.</span><span class="n">coordinates</span> <span class="ow">or</span> <span class="n">default_coordinates</span><span class="p">,</span>
+                <span class="n">psd_policy</span><span class="o">=</span><span class="s2">"allow_indefinite"</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">matrix</span> <span class="o">=</span> <span class="n">_square_matrix</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1632,11 +1635,13 @@
                 <span class="n">lerp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cov</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">cov</span><span class="p">),</span>
                 <span class="n">form</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">covariance</span><span class="o">.</span><span class="n">form</span><span class="p">,</span>
                 <span class="n">coordinates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">covariance</span><span class="o">.</span><span class="n">coordinates</span><span class="p">,</span>
+                <span class="n">psd_policy</span><span class="o">=</span><span class="s2">"allow_indefinite"</span><span class="p">,</span>
             <span class="p">),</span>
             <span class="n">process_noise</span><span class="o">=</span><span class="n">Covariance</span><span class="p">(</span>
                 <span class="n">lerp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">int_cov</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">int_cov</span><span class="p">),</span>
                 <span class="n">form</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">process_noise</span><span class="o">.</span><span class="n">form</span><span class="p">,</span>
                 <span class="n">coordinates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">process_noise</span><span class="o">.</span><span class="n">coordinates</span><span class="p">,</span>
+                <span class="n">psd_policy</span><span class="o">=</span><span class="s2">"allow_indefinite"</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">)</span></div>
 

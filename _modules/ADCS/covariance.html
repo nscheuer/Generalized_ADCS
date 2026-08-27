@@ -606,20 +606,27 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_symmetric_psd</span><span class="p">(</span><span class="n">matrix</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">policy</span><span class="p">:</span> <span class="n">PSDPolicy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
     <span class="n">matrix</span> <span class="o">=</span> <span class="n">_square</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"covariance"</span><span class="p">)</span>
-    <span class="n">scale</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">)))</span> <span class="k">if</span> <span class="n">matrix</span><span class="o">.</span><span class="n">size</span> <span class="k">else</span> <span class="mf">1.0</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">matrix</span><span class="p">))))</span> <span class="k">if</span> <span class="n">matrix</span><span class="o">.</span><span class="n">size</span> <span class="k">else</span> <span class="mf">1.0</span>
     <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1e-12</span> <span class="o">*</span> <span class="n">scale</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">matrix</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">tolerance</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"covariance must be symmetric"</span><span class="p">)</span>
     <span class="n">matrix</span> <span class="o">=</span> <span class="p">(</span><span class="n">matrix</span> <span class="o">+</span> <span class="n">matrix</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">matrix</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">matrix</span><span class="o">.</span><span class="n">size</span> <span class="ow">or</span> <span class="n">policy</span> <span class="o">==</span> <span class="s2">"allow_indefinite"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">matrix</span>
 
-    <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">eigenvectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">policy</span> <span class="o">==</span> <span class="s2">"project"</span><span class="p">:</span>
+        <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">eigenvectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">eigenvalues</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvalsh</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+        <span class="n">eigenvectors</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">minimum</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">policy</span> <span class="o">==</span> <span class="s2">"strict"</span> <span class="ow">and</span> <span class="n">minimum</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">tolerance</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"covariance must be positive semidefinite; minimum eigenvalue=</span><span class="si">{</span><span class="n">minimum</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"covariance must be positive semidefinite; minimum eigenvalue=</span><span class="si">{</span><span class="n">minimum</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
     <span class="k">if</span> <span class="n">policy</span> <span class="o">==</span> <span class="s2">"project"</span><span class="p">:</span>
         <span class="n">eigenvalues</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">eigenvectors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">matrix</span> <span class="o">=</span> <span class="p">(</span><span class="n">eigenvectors</span> <span class="o">*</span> <span class="n">eigenvalues</span><span class="p">)</span> <span class="o">@</span> <span class="n">eigenvectors</span><span class="o">.</span><span class="n">T</span>
     <span class="k">elif</span> <span class="n">policy</span> <span class="o">==</span> <span class="s2">"jitter"</span> <span class="ow">and</span> <span class="n">minimum</span> <span class="o">&lt;=</span> <span class="n">tolerance</span><span class="p">:</span>
         <span class="n">matrix</span> <span class="o">=</span> <span class="n">matrix</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="n">tolerance</span> <span class="o">-</span> <span class="n">minimum</span> <span class="o">+</span> <span class="n">tolerance</span><span class="p">)</span>
@@ -634,8 +641,14 @@
     <span class="k">return</span> <span class="n">factor</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_safe_upper_cholesky</span><span class="p">(</span><span class="n">matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">policy</span><span class="p">:</span> <span class="n">PSDPolicy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="n">matrix</span> <span class="o">=</span> <span class="n">_symmetric_psd</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_safe_upper_cholesky</span><span class="p">(</span>
+    <span class="n">matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">policy</span><span class="p">:</span> <span class="n">PSDPolicy</span><span class="p">,</span>
+    <span class="n">validate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">validate</span><span class="p">:</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">_symmetric_psd</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">matrix</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">matrix</span>
     <span class="k">try</span><span class="p">:</span>
@@ -644,7 +657,10 @@
         <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">eigenvectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
         <span class="n">scale</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">))))</span>
         <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1e-12</span> <span class="o">*</span> <span class="n">scale</span>
-        <span class="k">if</span> <span class="n">policy</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"strict"</span><span class="p">,</span> <span class="s2">"allow_indefinite"</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">float</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">tolerance</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">policy</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"strict"</span><span class="p">,</span> <span class="s2">"allow_indefinite"</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">float</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">tolerance</span>
+        <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"covariance has no real square-root factor"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
         <span class="n">eigenvalues</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
         <span class="n">root</span> <span class="o">=</span> <span class="n">eigenvectors</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">)</span>
@@ -705,7 +721,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">validated</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_form</span> <span class="o">==</span> <span class="s2">"full"</span>
-            <span class="k">else</span> <span class="n">_safe_upper_cholesky</span><span class="p">(</span><span class="n">validated</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">_safe_upper_cholesky</span><span class="p">(</span>
+                <span class="n">validated</span><span class="p">,</span>
+                <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">,</span>
+                <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Covariance.from_matrix">
@@ -801,26 +821,36 @@
         <span class="n">deviations</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_deviations_and_weights</span><span class="p">(</span><span class="n">deviations</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
         <span class="n">dimension</span> <span class="o">=</span> <span class="n">deviations</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">form</span> <span class="o">=</span> <span class="n">_form</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"form"</span><span class="p">,</span> <span class="s2">"full"</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s2">"sqrt"</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">weights</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">):</span>
-            <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">weights</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">deviations</span><span class="p">]</span>
+        <span class="n">policy</span> <span class="o">=</span> <span class="n">_policy</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"psd_policy"</span><span class="p">,</span> <span class="s2">"strict"</span><span class="p">))</span>
+        <span class="n">coordinates</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"coordinates"</span><span class="p">,</span> <span class="s2">"generic"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s2">"sqrt"</span><span class="p">:</span>
+            <span class="n">positive</span> <span class="o">=</span> <span class="n">weights</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">positive</span><span class="p">])[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">deviations</span><span class="p">[</span><span class="n">positive</span><span class="p">]]</span>
             <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">noise_matrix</span> <span class="o">=</span> <span class="n">_as_covariance_matrix</span><span class="p">(</span><span class="n">noise</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"noise covariance"</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">noise_matrix</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">dimension</span><span class="p">,</span> <span class="n">dimension</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"noise covariance dimension must match deviations"</span><span class="p">)</span>
-                <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">_safe_upper_cholesky</span><span class="p">(</span>
-                        <span class="n">noise_matrix</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">_policy</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"psd_policy"</span><span class="p">,</span> <span class="s2">"strict"</span><span class="p">))</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
+                <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_safe_upper_cholesky</span><span class="p">(</span><span class="n">noise_matrix</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">))</span>
             <span class="n">stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">stacked</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">dimension</span><span class="p">:</span>
                 <span class="n">_</span><span class="p">,</span> <span class="n">factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">stacked</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"reduced"</span><span class="p">)</span>
-                <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_upper_factor</span><span class="p">(</span>
-                    <span class="n">_normalize_factor</span><span class="p">(</span><span class="n">factor</span><span class="p">),</span>
-                    <span class="n">form</span><span class="o">=</span><span class="s2">"sqrt"</span><span class="p">,</span>
-                    <span class="n">coordinates</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"coordinates"</span><span class="p">,</span> <span class="s2">"generic"</span><span class="p">),</span>
-                    <span class="n">psd_policy</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"psd_policy"</span><span class="p">,</span> <span class="s2">"strict"</span><span class="p">),</span>
-                <span class="p">)</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="n">_normalize_factor</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">vector</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                        <span class="n">deviations</span><span class="p">[</span><span class="o">~</span><span class="n">positive</span><span class="p">],</span>
+                        <span class="n">weights</span><span class="p">[</span><span class="o">~</span><span class="n">positive</span><span class="p">],</span>
+                    <span class="p">):</span>
+                        <span class="n">factor</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">weighted_cholupdate</span><span class="p">(</span><span class="n">factor</span><span class="p">,</span> <span class="n">vector</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">policy</span> <span class="o">==</span> <span class="s2">"strict"</span><span class="p">:</span>
+                        <span class="k">raise</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_upper_factor</span><span class="p">(</span>
+                        <span class="n">factor</span><span class="p">,</span>
+                        <span class="n">form</span><span class="o">=</span><span class="s2">"sqrt"</span><span class="p">,</span>
+                        <span class="n">coordinates</span><span class="o">=</span><span class="n">coordinates</span><span class="p">,</span>
+                        <span class="n">psd_policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span>
+                    <span class="p">)</span>
         <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"i,ij,ik-&gt;jk"</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">deviations</span><span class="p">,</span> <span class="n">deviations</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">noise_matrix</span> <span class="o">=</span> <span class="n">_as_covariance_matrix</span><span class="p">(</span><span class="n">noise</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"noise covariance"</span><span class="p">)</span>
@@ -851,6 +881,10 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">psd_policy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PSDPolicy</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -869,22 +903,31 @@
 
 <div class="viewcode-block" id="Covariance.copy">
 <a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.copy">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">form</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">form</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">coordinates</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">psd_policy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
         <span class="n">target_form</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="k">if</span> <span class="n">form</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_form</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>
         <span class="n">target_coordinates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span> <span class="k">if</span> <span class="n">coordinates</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">coordinates</span>
-        <span class="k">if</span> <span class="n">target_form</span> <span class="o">==</span> <span class="s2">"sqrt"</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">Covariance</span><span class="o">.</span><span class="n">from_upper_factor</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">upper_factor</span><span class="p">(),</span>
-                <span class="n">form</span><span class="o">=</span><span class="s2">"sqrt"</span><span class="p">,</span>
-                <span class="n">coordinates</span><span class="o">=</span><span class="n">target_coordinates</span><span class="p">,</span>
-                <span class="n">psd_policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">,</span>
+        <span class="n">target_policy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span> <span class="k">if</span> <span class="n">psd_policy</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_policy</span><span class="p">(</span><span class="n">psd_policy</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">Covariance</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">Covariance</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">_form</span> <span class="o">=</span> <span class="n">target_form</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">_coordinates</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">target_coordinates</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">_psd_policy</span> <span class="o">=</span> <span class="n">target_policy</span>
+        <span class="k">if</span> <span class="n">target_form</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">target_form</span> <span class="o">==</span> <span class="s2">"full"</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">_safe_upper_cholesky</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span>
+                <span class="n">policy</span><span class="o">=</span><span class="n">target_policy</span><span class="p">,</span>
+                <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">Covariance</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">(),</span>
-            <span class="n">form</span><span class="o">=</span><span class="s2">"full"</span><span class="p">,</span>
-            <span class="n">coordinates</span><span class="o">=</span><span class="n">target_coordinates</span><span class="p">,</span>
-            <span class="n">psd_policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">result</span></div>
 
 
 <div class="viewcode-block" id="Covariance.as_matrix">
@@ -902,7 +945,11 @@
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""Return an owned upper factor :math:`S`, where :math:`P=S^T S`."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">==</span> <span class="s2">"sqrt"</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">_safe_upper_cholesky</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">_safe_upper_cholesky</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span>
+            <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">,</span>
+            <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Covariance.assign">
@@ -918,7 +965,11 @@
         <span class="n">replacement</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">validated</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">==</span> <span class="s2">"full"</span>
-            <span class="k">else</span> <span class="n">_safe_upper_cholesky</span><span class="p">(</span><span class="n">validated</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">_safe_upper_cholesky</span><span class="p">(</span>
+                <span class="n">validated</span><span class="p">,</span>
+                <span class="n">policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">,</span>
+                <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">replacement</span></div>
 
@@ -1060,6 +1111,46 @@
         <span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="Covariance.weighted_cholupdate">
+<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.weighted_cholupdate">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">weighted_cholupdate</span><span class="p">(</span><span class="n">factor</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">vectors</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Return the upper factor after weighted rank updates/downdates.</span>
+
+<span class="sd">        ``factor`` is an upper-triangular :math:`S` with :math:`P=S^T S`.</span>
+<span class="sd">        Each row of ``vectors`` contributes ``weight * v v^T``. Negative</span>
+<span class="sd">        weights use the in-tree Cholesky downdate primitive.</span>
+<span class="sd">        """</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="n">_square</span><span class="p">(</span><span class="n">factor</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"upper factor"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">factor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">triu</span><span class="p">(</span><span class="n">factor</span><span class="p">),</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"upper factor must be upper triangular"</span><span class="p">)</span>
+        <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vectors</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">vectors</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">vectors</span> <span class="o">=</span> <span class="n">vectors</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">if</span> <span class="n">vectors</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">factor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"vectors must have shape (updates, dimension)"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">vectors</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"vectors must contain only finite values"</span><span class="p">)</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">weight</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"weight must be finite"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">weight</span> <span class="o">==</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">factor</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.cholesky_update</span><span class="w"> </span><span class="kn">import</span> <span class="n">choldowndate</span><span class="p">,</span> <span class="n">cholupdate</span>
+
+        <span class="n">updated</span> <span class="o">=</span> <span class="n">factor</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">scaled</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">weight</span><span class="p">))</span> <span class="o">*</span> <span class="n">vectors</span>
+        <span class="n">update</span> <span class="o">=</span> <span class="n">cholupdate</span> <span class="k">if</span> <span class="n">weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="n">choldowndate</span>
+        <span class="k">for</span> <span class="n">vector</span> <span class="ow">in</span> <span class="n">scaled</span><span class="p">:</span>
+            <span class="n">update</span><span class="p">(</span><span class="n">updated</span><span class="p">,</span> <span class="n">vector</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">updated</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">(</span>
+                    <span class="s2">"weighted Cholesky update produced no real factor"</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">_normalize_factor</span><span class="p">(</span><span class="n">updated</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="Covariance.rank_updated">
 <a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.rank_updated">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">rank_updated</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectors</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
@@ -1069,11 +1160,20 @@
         <span class="k">if</span> <span class="n">vectors</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"vectors must have shape (updates, dimension)"</span><span class="p">)</span>
         <span class="n">weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">==</span> <span class="s2">"sqrt"</span> <span class="ow">and</span> <span class="n">weight</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-            <span class="n">stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">upper_factor</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">vectors</span><span class="p">))</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">stacked</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"reduced"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">==</span> <span class="s2">"sqrt"</span><span class="p">:</span>
+            <span class="n">base_factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">upper_factor</span><span class="p">()</span>
+            <span class="n">nonsingular</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span>
+                <span class="n">base_factor</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">base_factor</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">1e-14</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">weight</span> <span class="o">&gt;=</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">nonsingular</span><span class="p">:</span>
+                <span class="n">stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">base_factor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">vectors</span><span class="p">))</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">stacked</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"reduced"</span><span class="p">)</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="n">_normalize_factor</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weighted_cholupdate</span><span class="p">(</span><span class="n">base_factor</span><span class="p">,</span> <span class="n">vectors</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">Covariance</span><span class="o">.</span><span class="n">from_upper_factor</span><span class="p">(</span>
-                <span class="n">_normalize_factor</span><span class="p">(</span><span class="n">factor</span><span class="p">),</span>
+                <span class="n">factor</span><span class="p">,</span>
                 <span class="n">coordinates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">,</span>
                 <span class="n">psd_policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">,</span>
             <span class="p">)</span>
