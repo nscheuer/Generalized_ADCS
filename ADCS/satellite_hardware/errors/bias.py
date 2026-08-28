@@ -3,7 +3,7 @@ __all__ = ["Bias"]
 import numpy as np
 from typing import Sequence
 from ADCS.orbits.universal_constants import TimeConstants
-from ADCS.estimators.covariance import Covariance
+from ADCS.covariance import Covariance
 
 class Bias:
     r"""
@@ -42,6 +42,9 @@ class Bias:
             raise ValueError("Each lower bound must be <= the corresponding upper bound.")
         
         self.bias = bias
+        # Posterior uncertainty reported by an estimator.  Keep it separate
+        # from ``std_bias``, which is the configured random-walk rate.
+        self.estimated_std_bias = np.zeros_like(bias, dtype=float)
         self.std_bias = std_bias
         self.last_bias_time = float('nan')
         self.bounds = (lo, hi)
@@ -58,7 +61,9 @@ class Bias:
         return not (np.all(self.bias == 0.0) and np.all(self.std_bias == 0.0))
     
     def copy(self):
-        return Bias(bias=self.bias, std_bias=self.std_bias, bounds=self.bounds)
+        result = Bias(bias=self.bias, std_bias=self.std_bias, bounds=self.bounds)
+        result.estimated_std_bias = self.estimated_std_bias.copy()
+        return result
 
     def process_covariance(
         self,

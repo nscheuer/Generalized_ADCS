@@ -70,23 +70,31 @@ def assemble_continuous_process_psd(
     satellite: Any,
     *,
     unmodeled_dynamics_psd: Any = 0.0,
-    integration_error_psd: Any = 0.0,
+    quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
 ) -> np.ndarray:
-    r"""Assemble tangent-space continuous PSD :math:`Q_c` from the state layout.
+    r"""Assemble chart-local continuous PSD :math:`Q_c` from the state layout.
 
     ``unmodeled_dynamics_psd`` applies to the physical local state
-    ``[angular_velocity, attitude, wheel_momentum]``.  ``integration_error_psd``
-    applies to the complete local state.  Each accepts a scalar, a diagonal
-    vector, or a full PSD matrix.  Bias and disturbance blocks are populated
-    from their hardware random-walk rates, so they are not tuning inputs.
+    ``[angular_velocity, attitude, wheel_momentum]`` and accepts a scalar, a
+    diagonal vector, or a full PSD matrix. Bias and disturbance blocks are
+    populated from their configured hardware random-walk rates. The returned
+    coordinates match ``quaternion_mode``.
     """
     if not isinstance(state, EstimatorState):
         raise TypeError(f"state must be an EstimatorState, got {type(state).__name__}")
 
-    result = _as_psd(
-        integration_error_psd, state.tangent_size, name="integration_error_psd"
-    )
-    physical = state.tangent_slices["physical"]
+    full_quaternion = quaternion_mode == "full_quaternion"
+    if full_quaternion:
+        size = state.full_size
+        slices = state.full_slices
+        physical = slice(0, slices["wheel_momentum"].stop)
+    else:
+        # This also validates aliases and unsupported chart names.
+        state.tangent_map(quaternion_mode=quaternion_mode)
+        size = state.tangent_size
+        slices = state.tangent_slices
+        physical = slices["physical"]
+    result = np.zeros((size, size), dtype=float)
     result[physical, physical] += _as_psd(
         unmodeled_dynamics_psd,
         physical.stop - physical.start,
@@ -97,8 +105,11 @@ def assemble_continuous_process_psd(
         ("sensor_bias", "sensor_bias_process_psd"),
         ("disturbance_parameter", "disturbance_parameter_process_psd"),
     ):
-        sl = state.tangent_slices[block]
+        sl = slices[block]
         result[sl, sl] += _hardware_psd(satellite, method, sl.stop - sl.start, name=block)
+    if full_quaternion:
+        normalizer = state.normalization_jacobian()
+        result = normalizer @ result @ normalizer.T
     return (result + result.T) / 2.0
 
 
@@ -112,6 +123,9 @@ def error_state_transfer(
     quaternion_order: str = State.DEFAULT_QUATERNION_ORDER,
 ) -> np.ndarray:
     r"""Return the continuous local error-state transfer matrix ``F``.
+
+    ``F`` is chart-local at ``state``; it must be rebuilt after the estimate's
+    linearization point or quaternion chart changes.
 
     ``EstimatedSatellite.dynJacCore`` stores derivative variables in rows and
     derivative outputs in columns.  This function converts that historical
@@ -159,7 +173,6 @@ def continuous_error_state_model(
     orbital_state: Any,
     *,
     unmodeled_dynamics_psd: Any = 0.0,
-    integration_error_psd: Any = 0.0,
     quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
     quaternion_order: str = State.DEFAULT_QUATERNION_ORDER,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -177,7 +190,7 @@ def continuous_error_state_model(
             state,
             satellite,
             unmodeled_dynamics_psd=unmodeled_dynamics_psd,
-            integration_error_psd=integration_error_psd,
+            quaternion_mode=quaternion_mode,
         ),
     )
 
@@ -233,7 +246,10 @@ def discretize_process_noise(
     dt: float,
     **kwargs: Any,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Build and Van Loan-discretize the shared attitude process-noise model."""
+    """Build and Van Loan-discretize the shared attitude process-noise model.
+
+    The returned transition :math:`\\Phi` is chart-local at ``state``.
+    """
     transfer, continuous_psd = continuous_error_state_model(
         state, satellite, control, orbital_state, **kwargs
     )
