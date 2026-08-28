@@ -1,15 +1,8 @@
-from .process_noise import (
-    assemble_continuous_process_psd,
-    continuous_error_state_model,
-    discretize_process_noise,
-    error_state_transfer,
-    van_loan_discretize,
-)
+"""Estimator implementations.
 
-__all__ = [
-    "assemble_continuous_process_psd",
-    "continuous_error_state_model",
-    "discretize_process_noise",
-    "error_state_transfer",
-    "van_loan_discretize",
-]
+This package intentionally has no eager re-exports.  Import concrete estimator
+modules directly so importing the dependency-neutral :mod:`ADCS.state` module
+cannot enter an estimator/state cycle.
+"""
+
+__all__: list[str] = []

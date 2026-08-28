@@ -2,7 +2,7 @@ __all__ = ["EstimatedSatellite"]
 import copy
 import numpy as np
 
-from ADCS.estimators.covariance import Covariance
+from ADCS.covariance import Covariance
 from ADCS.state import State
 
 from typing import List, Dict, Union, Tuple, Any, Optional, Sequence
@@ -173,10 +173,10 @@ class EstimatedSatellite(Satellite):
 
         1. Extracting wheel momenta from the base state portion and updating wheel objects via
            :meth:`~ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs`.
-        2. Writing actuator biases into each actuator's bias object and setting per-bias standard
-           deviations from the corresponding covariance block.
-        3. Writing sensor biases into each attitude sensor's bias object and setting per-bias standard
-           deviations from the corresponding covariance block.
+        2. Writing actuator biases into each actuator's bias object and reporting posterior
+           standard deviations separately from configured random-walk rates.
+        3. Writing sensor biases into each attitude sensor's bias object and reporting posterior
+           standard deviations separately from configured random-walk rates.
         4. Writing disturbance parameters into each disturbance model (for active disturbances) and
            setting their parameter standard deviations from covariance blocks.
         5. For deterministic matching, disabling:
@@ -306,7 +306,9 @@ class EstimatedSatellite(Satellite):
             act = self.actuators[j]
             l = act.input_len
             act.bias.bias = act_bias[ind : ind + l]
-            act.bias.std_bias = np.sqrt(act_bias_ic[ind : ind + l, ind : ind + l])
+            act.bias.estimated_std_bias = np.sqrt(
+                np.diag(act_bias_ic[ind : ind + l, ind : ind + l])
+            )
             ind += l
 
         # --- Update sensor biases ---
@@ -315,31 +317,21 @@ class EstimatedSatellite(Satellite):
             sens = self.attitude_sensors[j]
             l = sens.output_length
             sens.bias.bias = sens_bias[ind : ind + l]
-            sens.bias.std_bias = np.sqrt(sens_bias_ic[ind : ind + l, ind : ind + l])
+            sens.bias.estimated_std_bias = np.sqrt(
+                np.diag(sens_bias_ic[ind : ind + l, ind : ind + l])
+            )
             ind += l
 
         # --- Update disturbance parameters ---
         ind = 0
         for j in self.dist_param_inds:
             dist = self.disturbances[j]
-            # WARNING: disturbance-parameter estimation is API-rotted dead
-            # scaffolding. This block references a `dist.active` /
-            # `dist.main_param` / `dist.std` interface that NO disturbance
-            # class implements (only Drag defines `active`; none define
-            # `main_param`/`std`), and `estimate_dist=True` is used nowhere
-            # in the codebase or tests. Same dead-scaffolding family as the
-            # rotted analytic Jacobians (PR #44 dynamics_Hessians / PR #47
-            # dynJacCore). The `getattr(..., True)` below fixes the one
-            # trivial, isolated sub-defect (the bare `dist.active` crashed
-            # for every non-Drag disturbance); the deeper `main_param`/`std`
-            # rot is NOT resurrected here (out of proportion -- there is no
-            # disturbance-param API or consumer to verify against) and is
-            # tracked by a strict-xfail guard:
-            # testing/test_estimators/test_disturbance_param_estimation.py.
             if getattr(dist, "active", True):  # Only update active ones
                 l = dist.main_param.size
                 dist.main_param = dist_param[ind : ind + l]
-                dist.std = np.sqrt(dist_param_ic[ind : ind + l, ind : ind + l])
+                dist.std = np.sqrt(
+                    np.diag(dist_param_ic[ind : ind + l, ind : ind + l])
+                )
                 ind += l
 
     def dist_torques_jacobian(self, x: State, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:

@@ -9,7 +9,7 @@ from typing import Any, ClassVar, Iterable, Literal, Mapping
 
 import numpy as np
 
-from ADCS.estimators.covariance import Covariance
+from ADCS.covariance import Covariance
 
 
 QuaternionMode = Literal[

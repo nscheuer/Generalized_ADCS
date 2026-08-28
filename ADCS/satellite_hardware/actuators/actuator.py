@@ -2,7 +2,7 @@ __all__ = ["Actuator"]
 
 import numpy as np
 
-from ADCS.estimators.covariance import Covariance
+from ADCS.covariance import Covariance
 from ADCS.state import State
 from ADCS.satellite_hardware.errors.bias import Bias
 from ADCS.satellite_hardware.errors.noise import Noise
