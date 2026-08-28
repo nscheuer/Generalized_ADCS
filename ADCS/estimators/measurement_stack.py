@@ -15,9 +15,8 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from ADCS.estimators.covariance import Covariance
+from ADCS.covariance import Covariance
 from ADCS.helpers.math_helpers import quat_diff
-from ADCS.satellite_hardware.actuators import RW
 from ADCS.satellite_hardware.sensors import StarTrackerQuaternion
 from ADCS.state import EstimatorState, State
 
@@ -53,7 +52,13 @@ class MeasurementStack:
 
     ``active_mask`` is entry-wise, while ``active_measurements`` and
     ``residual`` return compact vectors in the selected entry order.
+
+    Quaternion residuals, Jacobians, and covariances consistently use right
+    attitude errors. This is intentionally fixed rather than exposed as a
+    partially supported convention knob.
     """
+
+    _SCHEDULE_ATOL_S = 1e-7
 
     def __init__(self, satellite: Any) -> None:
         self.satellite = satellite
@@ -129,10 +134,13 @@ class MeasurementStack:
         time_s: float | None = None,
         enabled: Sequence[bool] | None = None,
         epoch_s: float = 0.0,
+        predicted: Any | None = None,
     ) -> np.ndarray:
         """Return the active entry mask for a raw measurement vector.
 
-        ``time_s`` is elapsed seconds on the sensor sampling timeline; it is
+        An entry is also inactive when ``predicted`` is supplied and any of
+        its predicted values are non-finite. ``time_s`` is elapsed seconds on
+        the sensor sampling timeline; it is
         intentionally not an orbital J2000 value.  When omitted, a received
         finite measurement is treated as live, which is the useful default for
         asynchronous telemetry streams.  A sensor with ``sample_time <= 0`` is
@@ -140,11 +148,16 @@ class MeasurementStack:
         continuously sampled until the hardware model gains a sampling period.
         """
         measurements = self._raw_measurements(measurements)
+        predicted_values = (
+            None if predicted is None else self._raw_measurements(predicted, name="predicted")
+        )
         enabled_mask = self._enabled_mask(enabled)
         active = np.zeros(len(self._entries), dtype=bool)
         for index, entry in enumerate(self._entries):
             values = measurements[entry.raw_slice]
             active[index] = enabled_mask[index] and np.all(np.isfinite(values))
+            if active[index] and predicted_values is not None:
+                active[index] = np.all(np.isfinite(predicted_values[entry.raw_slice]))
             if active[index] and time_s is not None:
                 active[index] = self._is_due(entry, time_s, epoch_s)
         return active
@@ -156,11 +169,31 @@ class MeasurementStack:
         parts = [measurements[entry.raw_slice] for entry, selected in zip(self._entries, active) if selected]
         return np.concatenate(parts) if parts else np.empty(0)
 
-    def predict(self, state: EstimatorState, orbital_state: Any) -> np.ndarray:
-        """Evaluate raw predicted measurements ``h(x)`` in canonical order."""
+    def predict(
+        self,
+        state: EstimatorState,
+        orbital_state: Any,
+        active_mask: Any | None = None,
+    ) -> np.ndarray:
+        """Evaluate raw predicted measurements ``h(x)`` in canonical order.
+
+        When ``active_mask`` is supplied, inactive sensor models are not
+        evaluated and their raw slots are filled with NaNs. Pass the result
+        back to :meth:`active_mask` as ``predicted`` to remove entries that
+        are unavailable at the estimated state.
+        """
         self._validate_state(state)
+        active = (
+            np.ones(len(self._entries), dtype=bool)
+            if active_mask is None
+            else self._entry_mask(active_mask)
+        )
         prediction: list[np.ndarray] = []
-        for entry in self._entries:
+        for entry, selected in zip(self._entries, active):
+            raw_length = entry.raw_slice.stop - entry.raw_slice.start
+            if not selected:
+                prediction.append(np.full(raw_length, np.nan))
+                continue
             if entry.sensor_index is None:
                 prediction.append(np.atleast_1d(state.h[entry.wheel_index]))
                 continue
@@ -194,6 +227,11 @@ class MeasurementStack:
                 continue
             measured = measurements[entry.raw_slice]
             expected = predicted[entry.raw_slice]
+            if not np.all(np.isfinite(measured)) or not np.all(np.isfinite(expected)):
+                raise ValueError(
+                    f"{entry.name} is active but its measurement or prediction is non-finite; "
+                    "recompute active_mask(..., predicted=predicted)"
+                )
             if entry.is_quaternion_attitude:
                 relative = quat_diff(expected, measured)
                 parts.append(
@@ -211,7 +249,7 @@ class MeasurementStack:
         form: str = "full",
         quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
     ) -> Covariance:
-        """Return active residual covariance ``R`` assembled from sensor noise."""
+        """Return active residual covariance ``R`` using right-error coordinates."""
         self._validate_state(state)
         active = self._entry_mask(active_mask)
         blocks: list[np.ndarray] = []
@@ -223,7 +261,10 @@ class MeasurementStack:
             else:
                 block = entry.source.measurement_covariance().as_matrix()
             if entry.is_quaternion_attitude:
-                reduction = state.tangent_pinv(quaternion_mode=quaternion_mode)[3:6, 3:7]
+                reduction = state.tangent_pinv(
+                    quaternion_mode=quaternion_mode,
+                    quaternion_order="right",
+                )[3:6, 3:7]
                 block = reduction @ block @ reduction.T
             blocks.append(block)
         return Covariance.block_diagonal(
@@ -239,15 +280,14 @@ class MeasurementStack:
         active_mask: Any,
         *,
         quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
-        quaternion_order: str = State.DEFAULT_QUATERNION_ORDER,
     ) -> np.ndarray:
-        r"""Return the active EKF measurement Jacobian ``H`` in tangent coordinates."""
+        r"""Return the active right-error EKF Jacobian ``H`` in tangent coordinates."""
         self._validate_state(state)
         active = self._entry_mask(active_mask)
         rows: list[np.ndarray] = []
         tangent_map = state.tangent_map(
             quaternion_mode=quaternion_mode,
-            quaternion_order=quaternion_order,
+            quaternion_order="right",
         )
         base_size = state.full_slices["wheel_momentum"].stop
 
@@ -278,29 +318,31 @@ class MeasurementStack:
                 )
             full = np.zeros((legacy.shape[1], state.full_size))
             full[:, :base_size] = legacy.T
-            bias = self._sensor_bias_slice(state, entry.sensor_index)
+            bias = self.satellite.sensor_bias_slice(entry.sensor_index)
             if bias is not None:
-                sensor_bias_start = state.full_slices["sensor_bias"].start
-                full[:, sensor_bias_start + bias.start : sensor_bias_start + bias.stop] = np.eye(
-                    legacy.shape[1]
+                bias_jacobian = np.asarray(
+                    entry.source.bias_jac(state, orbital_state), dtype=float
                 )
+                expected_bias_shape = (bias.stop - bias.start, output_size)
+                if bias_jacobian.shape != expected_bias_shape:
+                    raise ValueError(
+                        f"{entry.name}.bias_jac() must have shape "
+                        f"{expected_bias_shape}, got {bias_jacobian.shape}"
+                    )
+                full[:, bias] = bias_jacobian.T
             rows.append(full @ tangent_map)
         return np.vstack(rows) if rows else np.zeros((0, state.tangent_size))
 
     def _sensor_bias(self, state: EstimatorState, sensor_index: int) -> np.ndarray | None:
-        bias_slice = self._sensor_bias_slice(state, sensor_index)
-        return None if bias_slice is None else state.sens_bias[bias_slice]
-
-    def _sensor_bias_slice(self, state: EstimatorState, sensor_index: int) -> slice | None:
-        if sensor_index not in self.satellite.att_sens_bias_inds:
+        bias_slice = self.satellite.sensor_bias_slice(sensor_index)
+        if bias_slice is None:
             return None
-        offset = 0
-        for index in self.satellite.att_sens_bias_inds:
-            width = self.satellite.attitude_sensors[index].output_length
-            if index == sensor_index:
-                return slice(offset, offset + width)
-            offset += width
-        raise RuntimeError(f"sensor bias layout is missing sensor index {sensor_index}")
+        sensor_bias_start = state.full_slices["sensor_bias"].start
+        local = slice(
+            bias_slice.start - sensor_bias_start,
+            bias_slice.stop - sensor_bias_start,
+        )
+        return state.sens_bias[local]
 
     def _validate_state(self, state: EstimatorState) -> None:
         if not isinstance(state, EstimatorState):
@@ -309,6 +351,8 @@ class MeasurementStack:
             raise ValueError(
                 "EstimatorState wheel-momentum block must match the number of reaction wheels"
             )
+        if state.act_bias.size != self.satellite.act_bias_len:
+            raise ValueError("EstimatorState actuator-bias block does not match the satellite layout")
         if state.sens_bias.size != self.satellite.att_sens_bias_len:
             raise ValueError("EstimatorState sensor-bias block does not match the satellite layout")
 
@@ -336,5 +380,13 @@ class MeasurementStack:
         sample_time = getattr(entry.source, "sample_time", None)
         if sample_time is None or sample_time <= 0.0:
             return True
-        periods = (float(time_s) - float(epoch_s)) / float(sample_time)
-        return bool(np.isclose(periods, np.round(periods), rtol=0.0, atol=1e-9))
+        elapsed_s = float(time_s) - float(epoch_s)
+        nearest_sample_s = round(elapsed_s / float(sample_time)) * float(sample_time)
+        return bool(
+            np.isclose(
+                elapsed_s,
+                nearest_sample_s,
+                rtol=0.0,
+                atol=MeasurementStack._SCHEDULE_ATOL_S,
+            )
+        )

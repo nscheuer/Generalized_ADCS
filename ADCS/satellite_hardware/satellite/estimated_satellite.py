@@ -1,6 +1,7 @@
 __all__ = ["EstimatedSatellite"]
 import copy
 import numpy as np
+from functools import cached_property
 
 from ADCS.covariance import Covariance
 from ADCS.state import State
@@ -1016,7 +1017,13 @@ class EstimatedSatellite(Satellite):
         *,
         form: str = "full",
     ) -> Covariance:
-        """Return selected sensor and wheel-momentum measurement covariance."""
+        """Return selected sensor and all wheel measurement covariances.
+
+        This compatibility API remains for existing callers. The estimator
+        rewire should use :attr:`measurement_stack`, whose covariance mask
+        covers both sensors and wheels and whose quaternion blocks are in
+        residual coordinates.
+        """
         if which_sensors is None:
             which_sensors = [True for _ in self.attitude_sensors]
         if len(which_sensors) != len(self.attitude_sensors):
@@ -1033,7 +1040,7 @@ class EstimatedSatellite(Satellite):
             blocks, form=form, coordinates="measurement"
         )
 
-    @property
+    @cached_property
     def measurement_stack(self):
         """Canonical estimator measurement order and model for this satellite."""
         from ADCS.estimators.measurement_stack import MeasurementStack
@@ -1087,6 +1094,10 @@ class EstimatedSatellite(Satellite):
     def sensor_cov(self, which_sensors: Sequence[bool]) -> np.ndarray:
         r"""
         Block-diagonal covariance of attitude sensor noise (and wheel momentum measurement noise).
+
+        This is retained for the current UKF/SRUKF implementations. The
+        estimator rewire should replace it with ``measurement_stack.covariance``;
+        unlike this legacy method, the stack mask also controls wheel entries.
 
         For each attitude sensor :math:`i` with covariance :math:`\mathbf{R}_{y_i}` (from
         ``sensor.noise.cov()``), the attitude-sensor covariance is:

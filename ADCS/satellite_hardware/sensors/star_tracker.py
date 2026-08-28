@@ -374,6 +374,8 @@ class StarTracker(Sensor):
         :return: Empty bias Jacobian of shape ``(0, 3)``.
         :rtype: numpy.ndarray
         """
+        if self.estimate_bias:
+            return np.eye(self.output_length)
         return np.zeros((0, self.output_length))
 
     @property

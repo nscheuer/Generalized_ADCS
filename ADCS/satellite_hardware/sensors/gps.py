@@ -177,7 +177,7 @@ class GPS(Sensor):
         :rtype: numpy.ndarray
 
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return np.eye(6)
         else:
             return np.zeros((0, 6))
@@ -228,4 +228,3 @@ class GPS(Sensor):
         """
         mat = np.stack([os.eci_to_ecef(j) for j in MathConstants.unitvecs]).T
         return block_diag(mat, mat)
-
