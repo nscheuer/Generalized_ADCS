@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from ADCS.covariance import Covariance
+from ADCS.estimators.process_model import propagate_state
 from ADCS.estimators.process_noise import discretize_process_noise
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
@@ -51,10 +52,6 @@ def _estimate(*, wheel_momentum=()) -> EstimatorState:
     )
 
 
-def _as_estimate(state) -> EstimatorState:
-    return EstimatorState(w=state.w, q=state.q, h=state.h)
-
-
 def _numerical_discrete_transition(
     satellite: EstimatedSatellite,
     state: EstimatorState,
@@ -64,16 +61,14 @@ def _numerical_discrete_transition(
     control = np.zeros(satellite.control_len)
 
     def propagate(candidate: EstimatorState) -> EstimatorState:
-        return _as_estimate(
-            satellite.noiseless_rk4(
-                candidate,
-                control,
-                dt,
-                orbital_state,
-                orbital_state,
-                mid_orbital_state=orbital_state,
-                quat_as_vec=True,
-            )
+        return propagate_state(
+            candidate,
+            satellite,
+            control,
+            dt,
+            orbital_state,
+            orbital_state,
+            midpoint_orbital_state=orbital_state,
         )
 
     nominal = propagate(state)
@@ -86,6 +81,54 @@ def _numerical_discrete_transition(
         minus = propagate(state.plus(-offset)).minus(nominal)
         transition[:, column] = (plus - minus) / (2.0 * epsilon)
     return transition
+
+
+def test_deterministic_propagation_preserves_estimator_blocks_and_ownership(
+    orbital_state,
+):
+    wheel = RW(
+        axis=np.array([1.0, 0.0, 0.0]),
+        max_torque=0.01,
+        J=0.001,
+        h=0.02,
+        h_max=0.1,
+    )
+    satellite = EstimatedSatellite(
+        J_0=np.diag([0.5, 0.8, 1.2]),
+        actuators=[wheel],
+    )
+    state = EstimatorState(
+        w=[0.02, -0.015, 0.01],
+        q=[0.9, 0.2, -0.3, 0.1],
+        h=[0.03],
+        act_bias=[0.01],
+        sens_bias=[-0.02, 0.03],
+        dist_param=[0.04],
+        cov=np.eye(11) * 0.2,
+        int_cov=np.eye(11) * 0.01,
+    ).normalized()
+    original = state.copy()
+
+    propagated = propagate_state(
+        state,
+        satellite,
+        np.zeros(satellite.control_len),
+        0.01,
+        orbital_state,
+        orbital_state,
+        midpoint_orbital_state=orbital_state,
+    )
+
+    assert isinstance(propagated, EstimatorState)
+    assert propagated is not state
+    assert state == original
+    assert wheel.h == 0.02
+    assert not np.array_equal(propagated.as_array(), state.as_array())
+    np.testing.assert_array_equal(propagated.act_bias, state.act_bias)
+    np.testing.assert_array_equal(propagated.sens_bias, state.sens_bias)
+    np.testing.assert_array_equal(propagated.dist_param, state.dist_param)
+    np.testing.assert_array_equal(propagated.cov, state.cov)
+    np.testing.assert_array_equal(propagated.int_cov, state.int_cov)
 
 
 @pytest.mark.parametrize(

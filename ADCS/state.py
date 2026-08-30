@@ -555,6 +555,100 @@ class State:
         """Semantic alias for :meth:`~ADCS.state.State.plus`."""
         return self.plus(delta, **kwargs)
 
+    def retraction_jacobian(
+        self,
+        delta: Any,
+        *,
+        quaternion_mode: str = DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = DEFAULT_QUATERNION_ORDER,
+        step: float = 1.0e-7,
+    ) -> np.ndarray:
+        r"""Return the covariance-reset Jacobian after retracting ``delta``.
+
+        If ``updated = self.plus(delta)``, this is the differential
+
+        .. math::
+
+            J_{reset} = \left.\frac{\partial}{\partial\epsilon}
+            \left[
+            \bigl(self\boxplus(\delta+\epsilon)\bigr)
+            \boxminus updated
+            \right]\right|_{\epsilon=0}.
+
+        It transports an error covariance from the old tangent point to the
+        tangent point at ``updated``. Linear state blocks remain identity; only
+        the attitude block is evaluated numerically. This keeps the operation
+        consistent with every quaternion chart supported by :meth:`plus` and
+        :meth:`minus` without imposing chart-specific formulas on filters.
+        """
+        quaternion_mode = _quaternion_mode(quaternion_mode)
+        quaternion_order = _quaternion_order(quaternion_order)
+        local_size = self.full_size if quaternion_mode == "full_quaternion" else self.tangent_size
+        delta = _vector(delta, name="delta", size=local_size)
+        step = float(step)
+        if not np.isfinite(step) or step <= 0.0:
+            raise ValueError("step must be finite and positive")
+
+        coordinates = "full" if quaternion_mode == "full_quaternion" else "tangent"
+        attitude = self.slice("attitude", coordinates=coordinates)
+        updated = self.plus(
+            delta,
+            quaternion_mode=quaternion_mode,
+            quaternion_order=quaternion_order,
+        )
+        result = np.eye(local_size)
+        for column in range(attitude.start, attitude.stop):
+            offset = np.zeros(local_size)
+            offset[column] = step
+            plus_error = self.plus(
+                delta + offset,
+                quaternion_mode=quaternion_mode,
+                quaternion_order=quaternion_order,
+            ).minus(
+                updated,
+                quaternion_mode=quaternion_mode,
+                quaternion_order=quaternion_order,
+                shortest=False,
+            )
+            minus_error = self.plus(
+                delta - offset,
+                quaternion_mode=quaternion_mode,
+                quaternion_order=quaternion_order,
+            ).minus(
+                updated,
+                quaternion_mode=quaternion_mode,
+                quaternion_order=quaternion_order,
+                shortest=False,
+            )
+            result[attitude, column] = (
+                plus_error[attitude] - minus_error[attitude]
+            ) / (2.0 * step)
+        return result
+
+    def transport_covariance(
+        self,
+        covariance: Covariance,
+        delta: Any,
+        **retraction_kwargs: Any,
+    ) -> Covariance:
+        r"""Transport covariance after ``self.plus(delta)``.
+
+        Given an update covariance expressed around ``self``, return
+
+        .. math::
+
+            P_{new}=J_{reset}P J_{reset}^{T}
+
+        expressed around the retracted state. The covariance representation
+        and PSD policy are preserved by :meth:`Covariance.transformed`.
+        """
+        if not isinstance(covariance, Covariance):
+            raise TypeError(
+                f"covariance must be a Covariance, got {type(covariance).__name__}"
+            )
+        reset = self.retraction_jacobian(delta, **retraction_kwargs)
+        return covariance.transformed(reset)
+
     def local_coordinates(self, ref: State, **kwargs: Any) -> np.ndarray:
         """Semantic alias for :meth:`~ADCS.state.State.minus`."""
         return self.minus(ref, **kwargs)
