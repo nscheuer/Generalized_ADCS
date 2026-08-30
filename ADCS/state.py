@@ -223,6 +223,11 @@ class State:
     )
     _BLOCK_NAMES: ClassVar[tuple[str, ...]] = tuple(name for name, _ in _BLOCK_FIELDS)
     _BLOCK_ATTRIBUTES: ClassVar[Mapping[str, str]] = dict(_BLOCK_FIELDS)
+    # Membership set for __setattr__, which runs on every field assignment;
+    # scanning _BLOCK_ATTRIBUTES.values() there costs O(blocks) per set.
+    _BLOCK_ATTRIBUTE_SET: ClassVar[frozenset] = frozenset(
+        attribute for _, attribute in _BLOCK_FIELDS
+    )
     _BLOCK_ALIASES: ClassVar[Mapping[str, str]] = {
         "quaternion": "attitude",
         "estimated_parameter": "estimated_parameters",
@@ -236,8 +241,10 @@ class State:
         elif name == "h":
             value = _vector(value, name=name)
         object.__setattr__(self, name, value)
-        if name in self._BLOCK_ATTRIBUTES.values() and hasattr(self, "_slice_cache"):
-            self._slice_cache.clear()
+        if name in self._BLOCK_ATTRIBUTE_SET:
+            cache = getattr(self, "_slice_cache", None)
+            if cache is not None:
+                cache.clear()
 
     def __eq__(self, other: object) -> bool:
         if type(other) is not State:
@@ -1023,21 +1030,28 @@ class EstimatorState(State):
                 f"got {self._process_noise.shape}"
             )
 
+    # Rebuilding this mapping inside __setattr__ allocated a dict on every
+    # field assignment, which lands on the per-sigma-point construction path.
+    _VECTOR_SIZES: ClassVar[Mapping[str, int | None]] = {
+        "w": 3,
+        "q": 4,
+        "h": None,
+        "act_bias": None,
+        "sens_bias": None,
+        "dist_param": None,
+    }
+
     def __setattr__(self, name: str, value: Any) -> None:
-        vector_sizes = {
-            "w": 3,
-            "q": 4,
-            "h": None,
-            "act_bias": None,
-            "sens_bias": None,
-            "dist_param": None,
-        }
-        if name in vector_sizes:
-            value = _vector(value, name=name, size=vector_sizes[name])
+        size = self._VECTOR_SIZES.get(name, -1)
+        if size != -1:
+            value = _vector(value, name=name, size=size)
             self._validate_existing_covariances_for_vector_assignment(name, value)
+            object.__setattr__(self, name, value)
+            cache = getattr(self, "_slice_cache", None)
+            if cache is not None:
+                cache.clear()
+            return
         object.__setattr__(self, name, value)
-        if name in vector_sizes and hasattr(self, "_slice_cache"):
-            self._slice_cache.clear()
 
     def _coerce_covariance(
         self,
