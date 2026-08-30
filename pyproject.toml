@@ -150,6 +150,7 @@ packages = [
     "ADCS.environment",
     "ADCS.estimators",
     "ADCS.estimators.attitude_estimators",
+    "ADCS.estimators.old_attitude_estimators",
     "ADCS.estimators.estimator_helpers",
     "ADCS.estimators.orbit_estimators",
     "ADCS.flight_software",

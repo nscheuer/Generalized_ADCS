@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.linalg import block_diag
 
-from ADCS.estimators.attitude_estimators import UAKF
+from ADCS.estimators.old_attitude_estimators import UAKF
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
 from ADCS.orbits.ephemeris import Ephemeris

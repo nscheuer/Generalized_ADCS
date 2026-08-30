@@ -24,7 +24,7 @@ XML-RPC when their outputs are needed.
 You can choose where each component runs:
 
 - Controller: :class:`~ADCS.controller.controller.Controller`
-- Attitude estimator: :class:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator`
+- Attitude estimator: :class:`~ADCS.estimators.old_attitude_estimators.attitude_estimator.Attitude_Estimator`
 - Orbit estimator: :class:`~ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator`
 
 The server script used in this tutorial is

@@ -4,7 +4,7 @@ import pytest
 from ADCS.CONOPS.goals import No_Goal
 from ADCS.controller import Controller
 from ADCS.controller import MTQ_w_RW
-from ADCS.estimators.attitude_estimators import UAKF
+from ADCS.estimators.old_attitude_estimators import UAKF
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec
 from ADCS.orbits.ephemeris import Ephemeris

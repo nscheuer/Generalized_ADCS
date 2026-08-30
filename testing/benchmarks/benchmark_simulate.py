@@ -35,7 +35,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from ADCS.CONOPS.goals import No_Goal
 from ADCS.controller import BDot, MTQ_w_RW
-from ADCS.estimators.attitude_estimators import UAKF
+from ADCS.estimators.old_attitude_estimators import UAKF
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec
 from ADCS.orbits.ephemeris import Ephemeris

@@ -27,7 +27,7 @@ from ADCS.helpers.math_helpers import (
 )
 
 # Import the base UKF
-from ADCS.estimators.attitude_estimators import UAKF
+from ADCS.estimators.old_attitude_estimators.attitude_UAKF import UAKF
 
 class SRUAKF(UAKF):
     r"""
@@ -35,7 +35,7 @@ class SRUAKF(UAKF):
 
     This class implements a numerically stable Square Root UKF (SR-UKF) for
     spacecraft attitude estimation with an augmented state and reduced attitude
-    error representation inherited from :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`.
+    error representation inherited from :class:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF`.
 
     Instead of propagating the covariance matrix :math:`P`, this filter
     propagates an **upper-triangular** Cholesky factor :math:`S` such that
@@ -68,7 +68,7 @@ class SRUAKF(UAKF):
         Q = S_Q^\top S_Q.
 
     See also:
-    - :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`
+    - :class:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF`
     - :class:`~ADCS.state.EstimatorState`
     - :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
 
@@ -89,7 +89,7 @@ class SRUAKF(UAKF):
         Initialize the SR-UKF and compute initial square-root factors.
 
         This constructor delegates base initialization to
-        :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF` and then
+        :class:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF` and then
         computes:
 
         - the upper-triangular Cholesky factor :math:`S` of the current state
@@ -325,7 +325,7 @@ class SRUAKF(UAKF):
         These offsets are applied to the mean state :math:`\bar{\mathbf{x}}`
         using the estimator-specific state addition (which must respect quaternion
         error composition), via the inherited method
-        :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state`.
+        :meth:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF.add_to_state`.
 
         Augmentation blocks
         -------------------
@@ -579,7 +579,7 @@ class SRUAKF(UAKF):
             S^- \leftarrow \operatorname{cholop}\!\left(S^-, \mathbf{X}_0, W_0^{(c)}\right),
 
         where :math:`\operatorname{cholop}` is implemented by
-        :meth:`~ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate`.
+        :meth:`~ADCS.estimators.old_attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate`.
 
         Measurement square-root covariance
         ----------------------------------
@@ -662,7 +662,7 @@ class SRUAKF(UAKF):
             S^+ \leftarrow \operatorname{choldowndate}(S^-, U).
 
         This method performs that operation via
-        :meth:`~ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate`
+        :meth:`~ADCS.estimators.old_attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate`
         with a negative weight.
 
         Reconstruction and compatibility
@@ -686,7 +686,7 @@ class SRUAKF(UAKF):
         Active attitude sensors are inferred from the *actual* measurement vector
         by checking each sensor output slice for NaNs. The sensor-output mask is
         expanded using the inherited helper method
-        :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF._expand_sensor_mask`.
+        :meth:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF._expand_sensor_mask`.
 
         :param u: Control input vector.
         :type u: numpy.ndarray

@@ -21,9 +21,11 @@ from .CONOPS import goals
 from .CONOPS.goallist import GoalList
 from .estimators.attitude_estimators import (
     AttitudeEstimator,
-    Attitude_Estimator,
     EKF,
     MEKF,
+)
+from .estimators.old_attitude_estimators import (
+    Attitude_Estimator,
     SRUAKF,
     UAKF,
 )

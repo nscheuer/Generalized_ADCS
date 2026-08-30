@@ -12,7 +12,7 @@ from ADCS.state import State
 from ADCS.CONOPS.goals import Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.controller import Controller
-from ADCS.estimators.attitude_estimators import Attitude_Estimator
+from ADCS.estimators.old_attitude_estimators import Attitude_Estimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.helpers.simresults import SimulationResults
 from ADCS.orbits.orbital_state import Orbital_State
@@ -238,7 +238,7 @@ def simulate_remote(
     :param estimator:
         Local attitude estimator when estimator placement is local.
     :type estimator:
-        :class:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator` or None
+        :class:`~ADCS.estimators.old_attitude_estimators.attitude_estimator.Attitude_Estimator` or None
 
     :param orbit_estimator:
         Local orbit estimator when orbit-estimator placement is local.
