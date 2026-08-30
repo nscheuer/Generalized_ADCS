@@ -353,6 +353,8 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -577,8 +579,21 @@
 </ul>
 </div>
 </section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
+</ul>
+</div>
+</section>
 <section id="module-ADCS.estimators">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-ADCS.estimators" title="Link to this heading">¶</a></h2>
+<p>Estimator implementations.</p>
+<p>This package intentionally has no eager re-exports.  Import concrete estimator
+modules directly so importing the dependency-neutral <a class="reference internal" href="ADCS.state.html#module-ADCS.state" title="ADCS.state"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ADCS.state</span></code></a> module
+cannot enter an estimator/state cycle.</p>
 </section>
 </section>
 
@@ -639,6 +654,7 @@
             <ul>
 <li><a class="reference internal" href="#">ADCS.estimators package</a><ul>
 <li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-ADCS.estimators">Module contents</a></li>
 </ul>
 </li>

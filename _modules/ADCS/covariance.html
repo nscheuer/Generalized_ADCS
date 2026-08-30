@@ -352,6 +352,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -675,7 +677,7 @@
 
 
 <div class="viewcode-block" id="Covariance">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Covariance</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""Own a covariance in full or upper square-root form.</span>
 
@@ -729,7 +731,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Covariance.from_matrix">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.from_matrix">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.from_matrix">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_matrix</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">matrix</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Construct from a covariance matrix."""</span>
@@ -737,7 +739,7 @@
 
 
 <div class="viewcode-block" id="Covariance.from_upper_factor">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.from_upper_factor">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.from_upper_factor">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_upper_factor</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -761,7 +763,7 @@
 
 
 <div class="viewcode-block" id="Covariance.zeros">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.zeros">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.zeros">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">zeros</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dimension</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">dimension</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -770,7 +772,7 @@
 
 
 <div class="viewcode-block" id="Covariance.identity">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.identity">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.identity">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">identity</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dimension</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">dimension</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">scale</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
@@ -779,7 +781,7 @@
 
 
 <div class="viewcode-block" id="Covariance.block_diagonal">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.block_diagonal">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.block_diagonal">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">block_diagonal</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -798,7 +800,7 @@
 
 
 <div class="viewcode-block" id="Covariance.from_weighted_deviations">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.from_weighted_deviations">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.from_weighted_deviations">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_weighted_deviations</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -902,7 +904,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Covariance.copy">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.copy">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.copy">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -931,7 +933,7 @@
 
 
 <div class="viewcode-block" id="Covariance.as_matrix">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.as_matrix">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.as_matrix">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">as_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return an owned full covariance matrix."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">==</span> <span class="s2">"full"</span><span class="p">:</span>
@@ -940,7 +942,7 @@
 
 
 <div class="viewcode-block" id="Covariance.upper_factor">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.upper_factor">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.upper_factor">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">upper_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""Return an owned upper factor :math:`S`, where :math:`P=S^T S`."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span> <span class="o">==</span> <span class="s2">"sqrt"</span><span class="p">:</span>
@@ -953,7 +955,7 @@
 
 
 <div class="viewcode-block" id="Covariance.assign">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.assign">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.assign">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">assign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">:</span> <span class="n">Covariance</span> <span class="o">|</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Atomically replace the covariance while retaining this object's form."""</span>
         <span class="n">matrix</span> <span class="o">=</span> <span class="n">_as_covariance_matrix</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"covariance"</span><span class="p">)</span>
@@ -975,7 +977,7 @@
 
 
 <div class="viewcode-block" id="Covariance.assign_upper_factor">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.assign_upper_factor">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.assign_upper_factor">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">assign_upper_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Atomically replace the covariance from an upper factor."""</span>
         <span class="n">factor</span> <span class="o">=</span> <span class="n">_square</span><span class="p">(</span><span class="n">factor</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"upper factor"</span><span class="p">)</span>
@@ -993,7 +995,7 @@
 
 
 <div class="viewcode-block" id="Covariance.sigma_offsets">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.sigma_offsets">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.sigma_offsets">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sigma_offsets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""Return paired positive and negative sigma-point offsets as rows.</span>
 
@@ -1017,7 +1019,7 @@
 
 
 <div class="viewcode-block" id="Covariance.solve">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.solve">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.solve">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""Solve :math:`P X=B` without exposing the stored representation."""</span>
         <span class="n">rhs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -1030,7 +1032,7 @@
 
 
 <div class="viewcode-block" id="Covariance.transformed">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.transformed">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.transformed">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">transformed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jacobian</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""Return :math:`J P J^T`."""</span>
         <span class="n">jacobian</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">jacobian</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -1046,7 +1048,7 @@
 
 
 <div class="viewcode-block" id="Covariance.subset">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.subset">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.subset">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">subset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
         <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">)[</span><span class="n">indices</span><span class="p">]</span>
         <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
@@ -1060,7 +1062,7 @@
 
 
 <div class="viewcode-block" id="Covariance.replace_block">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.replace_block">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.replace_block">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">replace_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="n">Covariance</span> <span class="o">|</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">selected</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">)[</span><span class="n">indices</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
         <span class="n">block_matrix</span> <span class="o">=</span> <span class="n">_as_covariance_matrix</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"covariance block"</span><span class="p">)</span>
@@ -1072,7 +1074,7 @@
 
 
 <div class="viewcode-block" id="Covariance.zero_cross">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.zero_cross">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.zero_cross">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">zero_cross</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">first</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">second</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Set covariance cross terms between two index selections to zero."""</span>
         <span class="n">first</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">)[</span><span class="n">first</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
@@ -1084,7 +1086,7 @@
 
 
 <div class="viewcode-block" id="Covariance.added">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.added">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.added">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">added</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Covariance</span> <span class="o">|</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
         <span class="n">other_matrix</span> <span class="o">=</span> <span class="n">_as_covariance_matrix</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"covariance"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">other_matrix</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
@@ -1098,7 +1100,7 @@
 
 
 <div class="viewcode-block" id="Covariance.scaled">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.scaled">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.scaled">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
         <span class="n">scale</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span> <span class="ow">or</span> <span class="n">scale</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
@@ -1112,7 +1114,7 @@
 
 
 <div class="viewcode-block" id="Covariance.weighted_cholupdate">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.weighted_cholupdate">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.weighted_cholupdate">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">weighted_cholupdate</span><span class="p">(</span><span class="n">factor</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">vectors</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""Return the upper factor after weighted rank updates/downdates.</span>
@@ -1152,7 +1154,7 @@
 
 
 <div class="viewcode-block" id="Covariance.rank_updated">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.rank_updated">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.rank_updated">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">rank_updated</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectors</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
         <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vectors</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">vectors</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -1187,7 +1189,7 @@
 
 
 <div class="viewcode-block" id="Covariance.predicted_linear">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.predicted_linear">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.predicted_linear">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">predicted_linear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transition</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Covariance</span> <span class="o">|</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""Return the linear prediction covariance.</span>
 
@@ -1234,7 +1236,7 @@
 
 
 <div class="viewcode-block" id="Covariance.predicted_unscented">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.predicted_unscented">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.predicted_unscented">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">predicted_unscented</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">deviations</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1263,7 +1265,7 @@
 
 
 <div class="viewcode-block" id="Covariance.updated_linear">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.updated_linear">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.updated_linear">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">updated_linear</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">measurement_jacobian</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1312,7 +1314,7 @@
 
 
 <div class="viewcode-block" id="Covariance.cross_covariance">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.cross_covariance">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.cross_covariance">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">cross_covariance</span><span class="p">(</span>
         <span class="n">first_deviations</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1335,7 +1337,7 @@
 
 
 <div class="viewcode-block" id="Covariance.updated_unscented">
-<a class="viewcode-back" href="../../ADCS.covariance.html#ADCS.covariance.Covariance.updated_unscented">[docs]</a>
+<a class="viewcode-back" href="../../ADCS.estimators.covariance.html#ADCS.covariance.Covariance.updated_unscented">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">updated_unscented</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">state_deviations</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>

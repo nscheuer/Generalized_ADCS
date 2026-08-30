@@ -352,6 +352,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../../ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -605,6 +607,9 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Each lower bound must be &lt;= the corresponding upper bound."</span><span class="p">)</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">bias</span>
+        <span class="c1"># Posterior uncertainty reported by an estimator.  Keep it separate</span>
+        <span class="c1"># from ``std_bias``, which is the configured random-walk rate.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimated_std_bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">std_bias</span> <span class="o">=</span> <span class="n">std_bias</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">last_bias_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">'nan'</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span> <span class="o">=</span> <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span>
@@ -623,7 +628,9 @@
 <div class="viewcode-block" id="Bias.copy">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias.copy">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="n">std_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">std_bias</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">)</span></div>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="n">std_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">std_bias</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">estimated_std_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimated_std_bias</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
 
 <div class="viewcode-block" id="Bias.process_covariance">
@@ -639,9 +646,25 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">or</span> <span class="n">dt</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"dt must be finite and non-negative"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">Covariance</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">diagflat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_bias</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">std_bias</span> <span class="o">*</span> <span class="n">dt</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_psd</span><span class="p">()</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span>
             <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span>
             <span class="n">coordinates</span><span class="o">=</span><span class="s2">"bias"</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Bias.process_psd">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias.process_psd">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_psd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">form</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"full"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Return continuous random-walk PSD :math:`\operatorname{diag}(\sigma_b^2)`.</span>
+
+<span class="sd">        ``std_bias`` is a random-walk standard-deviation rate, not a</span>
+<span class="sd">        per-step covariance.  Discretizers such as Van Loan therefore use</span>
+<span class="sd">        this PSD directly and own the timestep conversion.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="n">Covariance</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">diagflat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_bias</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">std_bias</span><span class="p">),</span>
+            <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span>
+            <span class="n">coordinates</span><span class="o">=</span><span class="s2">"bias_rate"</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 

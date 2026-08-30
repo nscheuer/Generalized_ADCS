@@ -352,6 +352,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -1520,6 +1522,46 @@
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">tangent_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_slices</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">slice</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Slices for the stored augmented state vector.</span>
+
+<span class="sd">        The order is the single source of truth for estimator-facing block</span>
+<span class="sd">        assembly: angular velocity, quaternion, wheel momentum, actuator</span>
+<span class="sd">        bias, sensor bias, and disturbance parameters.</span>
+<span class="sd">        """</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"angular_velocity"</span><span class="p">:</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)}</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">3</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"quaternion"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">4</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"wheel_momentum"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"actuator_bias"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"sensor_bias"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"disturbance_parameter"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tangent_slices</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">slice</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Slices for the local error state used by covariance and PSD models."""</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"angular_velocity"</span><span class="p">:</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)}</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">3</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"attitude"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">3</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"wheel_momentum"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"actuator_bias"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"sensor_bias"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"disturbance_parameter"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[</span><span class="s2">"physical"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">uses_reduced_quaternion_covariance</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>

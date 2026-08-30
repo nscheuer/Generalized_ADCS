@@ -11,6 +11,15 @@ Subpackages
    ADCS.estimators.estimator_helpers
    ADCS.estimators.orbit_estimators
 
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.estimators.covariance
+   ADCS.estimators.process_noise
+
 Module contents
 ---------------
 

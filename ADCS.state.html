@@ -353,6 +353,8 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -881,6 +883,15 @@ covariance interpolation.</p>
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="ADCS.state.EstimatorState.full_slices">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">full_slices</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">slice</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.state.EstimatorState.full_slices" title="Link to this definition">¶</a></dt>
+<dd><p>Slices for the stored augmented state vector.</p>
+<p>The order is the single source of truth for estimator-facing block
+assembly: angular velocity, quaternion, wheel momentum, actuator
+bias, sensor bias, and disturbance parameters.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="ADCS.state.EstimatorState.int_cov">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">int_cov</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#ADCS.state.EstimatorState.int_cov" title="Link to this definition">¶</a></dt>
 <dd><p>Legacy full-matrix view of <a class="reference internal" href="#ADCS.state.EstimatorState.process_noise" title="ADCS.state.EstimatorState.process_noise"><code class="xref py py-attr docutils literal notranslate"><span class="pre">process_noise</span></code></a>.</p>
@@ -901,6 +912,12 @@ covariance interpolation.</p>
 <dt class="sig sig-object py" id="ADCS.state.EstimatorState.tangent_size">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tangent_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.state.EstimatorState.tangent_size" title="Link to this definition">¶</a></dt>
 <dd><p>Dimension of the local state coordinates, with three attitude elements.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.state.EstimatorState.tangent_slices">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tangent_slices</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">slice</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.state.EstimatorState.tangent_slices" title="Link to this definition">¶</a></dt>
+<dd><p>Slices for the local error state used by covariance and PSD models.</p>
 </dd></dl>
 
 <dl class="py property">

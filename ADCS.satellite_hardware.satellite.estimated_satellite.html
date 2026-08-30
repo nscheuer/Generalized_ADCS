@@ -353,6 +353,8 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -663,6 +665,20 @@ plant, as the “cloning” contract promises.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.actuator_bias_process_psd">
+<span class="sig-name descname"><span class="pre">actuator_bias_process_psd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">form</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'full'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.actuator_bias_process_psd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.actuator_bias_process_psd" title="Link to this definition">¶</a></dt>
+<dd><p>Return continuous random-walk PSD for estimated actuator biases.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>form</strong> (<em>str</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.covariance.html#ADCS.covariance.Covariance" title="ADCS.covariance.Covariance"><em>Covariance</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov">
 <span class="sig-name descname"><span class="pre">control_cov</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.control_cov"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov" title="Link to this definition">¶</a></dt>
 <dd><p>Block-diagonal covariance of actuator input noise.</p>
@@ -890,6 +906,20 @@ like <code class="docutils literal notranslate"><span class="pre">&quot;db&quot;
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.disturbance_parameter_process_psd">
+<span class="sig-name descname"><span class="pre">disturbance_parameter_process_psd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">form</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'full'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.disturbance_parameter_process_psd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.disturbance_parameter_process_psd" title="Link to this definition">¶</a></dt>
+<dd><p>Return continuous random-walk PSD for estimated disturbance parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>form</strong> (<em>str</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.covariance.html#ADCS.covariance.Covariance" title="ADCS.covariance.Covariance"><em>Covariance</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynJacCore">
 <span class="sig-name descname"><span class="pre">dynJacCore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.dynJacCore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynJacCore" title="Link to this definition">¶</a></dt>
 <dd><p>Jacobians of augmented dynamics w.r.t. state, inputs, and estimated parameters.</p>
@@ -1093,10 +1123,10 @@ organized as a block matrix over the stacked variable vector</p>
 <ol class="arabic simple">
 <li><p>Extracting wheel momenta from the base state portion and updating wheel objects via
 <a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs" title="ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_RWhs()</span></code></a>.</p></li>
-<li><p>Writing actuator biases into each actuator’s bias object and setting per-bias standard
-deviations from the corresponding covariance block.</p></li>
-<li><p>Writing sensor biases into each attitude sensor’s bias object and setting per-bias standard
-deviations from the corresponding covariance block.</p></li>
+<li><p>Writing actuator biases into each actuator’s bias object and reporting posterior
+standard deviations separately from configured random-walk rates.</p></li>
+<li><p>Writing sensor biases into each attitude sensor’s bias object and reporting posterior
+standard deviations separately from configured random-walk rates.</p></li>
 <li><p>Writing disturbance parameters into each disturbance model (for active disturbances) and
 setting their parameter standard deviations from covariance blocks.</p></li>
 <li><p>For deterministic matching, disabling:
@@ -1177,6 +1207,20 @@ bias/parameter blocks, covariance, and integrated covariance.</p></li>
 <li><p><strong>which_sensors</strong> (<em>Sequence</em><em>[</em><em>bool</em><em>] </em><em>| </em><em>None</em>)</p></li>
 <li><p><strong>form</strong> (<em>str</em>)</p></li>
 </ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.covariance.html#ADCS.covariance.Covariance" title="ADCS.covariance.Covariance"><em>Covariance</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_bias_process_psd">
+<span class="sig-name descname"><span class="pre">sensor_bias_process_psd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">form</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'full'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.sensor_bias_process_psd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_bias_process_psd" title="Link to this definition">¶</a></dt>
+<dd><p>Return continuous random-walk PSD for estimated sensor biases.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>form</strong> (<em>str</em>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="ADCS.covariance.html#ADCS.covariance.Covariance" title="ADCS.covariance.Covariance"><em>Covariance</em></a></p>

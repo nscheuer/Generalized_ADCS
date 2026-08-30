@@ -353,6 +353,8 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -613,6 +615,23 @@
 <li><p><strong>dt</strong> (<em>float</em>)</p></li>
 <li><p><strong>form</strong> (<em>str</em>)</p></li>
 </ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.covariance.html#ADCS.covariance.Covariance" title="ADCS.covariance.Covariance"><em>Covariance</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.errors.bias.Bias.process_psd">
+<span class="sig-name descname"><span class="pre">process_psd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">form</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'full'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/errors/bias.html#Bias.process_psd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.errors.bias.Bias.process_psd" title="Link to this definition">¶</a></dt>
+<dd><p>Return continuous random-walk PSD <span class="math notranslate nohighlight">\(\operatorname{diag}(\sigma_b^2)\)</span>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">std_bias</span></code> is a random-walk standard-deviation rate, not a
+per-step covariance.  Discretizers such as Van Loan therefore use
+this PSD directly and own the timestep conversion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>form</strong> (<em>str</em>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="ADCS.covariance.html#ADCS.covariance.Covariance" title="ADCS.covariance.Covariance"><em>Covariance</em></a></p>

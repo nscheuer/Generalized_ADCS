@@ -352,6 +352,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../../ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -564,10 +566,17 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.covariance</span><span class="w"> </span><span class="kn">import</span> <span class="n">Covariance</span>
+
 <div class="viewcode-block" id="Disturbance">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Disturbance</span><span class="p">:</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">estimate_dist</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">estimated_vector_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">estimate_dist</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">estimated_vector_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">parameter_std_rate</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Base Class for Disturbance Models.</span>
 
@@ -619,6 +628,9 @@
 <span class="sd">        :param estimated_vector_length: Length of the disturbance parameter vector</span>
 <span class="sd">            to be estimated.</span>
 <span class="sd">        :type estimated_vector_length: int</span>
+<span class="sd">        :param parameter_std_rate: Continuous random-walk standard-deviation</span>
+<span class="sd">            rate for each estimated parameter.</span>
+<span class="sd">        :type parameter_std_rate: float or numpy.ndarray</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
 <span class="sd">        """</span>
@@ -626,22 +638,49 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">estimated_vector_length</span> <span class="o">=</span> <span class="n">estimated_vector_length</span>
 
         <span class="c1"># Disturbance-parameter-estimation interface consumed by</span>
-        <span class="c1"># EstimatedSatellite.match_estimate (restored: this was working in</span>
-        <span class="c1"># the original PhD/thesis code and rotted in the port -- no</span>
-        <span class="c1"># disturbance class implemented it, so estimating ANY disturbance</span>
-        <span class="c1"># parameter raised AttributeError).</span>
+        <span class="c1"># EstimatedSatellite.match_estimate.</span>
         <span class="c1">#</span>
         <span class="c1"># `active`: a Drag-only deactivation flag; default True so every</span>
         <span class="c1">#   disturbance exposes it (a disturbance with estimate_dist=True is</span>
         <span class="c1">#   active for estimation by definition).</span>
-        <span class="c1"># `std`: the estimated-parameter 1-sigma vector, length</span>
-        <span class="c1">#   `estimated_vector_length`.</span>
+        <span class="c1"># `std`: posterior estimated-parameter 1-sigma values.</span>
+        <span class="c1"># `parameter_std_rate`: configured random-walk diffusion rates.  These</span>
+        <span class="c1">#   must not be overwritten when an estimate is matched.</span>
         <span class="c1"># Estimable disturbances (`estimated_vector_length &gt; 0`) MUST also</span>
         <span class="c1"># implement the `main_param` property (the estimated parameter</span>
         <span class="c1"># vector, read by the estimator and written back by match_estimate);</span>
         <span class="c1"># the base raises a clear error rather than silently mis-estimating.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">estimated_vector_length</span><span class="p">))</span>
+        <span class="n">rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">parameter_std_rate</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameter_std_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+                <span class="n">rate</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">estimated_vector_length</span><span class="p">),)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"parameter_std_rate must be scalar or match estimated_vector_length"</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_std_rate</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameter_std_rate</span> <span class="o">&lt;</span> <span class="mf">0.0</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"parameter_std_rate must be finite and non-negative"</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Disturbance.parameter_process_psd">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance.parameter_process_psd">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parameter_process_psd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">form</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"full"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Return the continuous PSD of estimated disturbance parameters.</span>
+
+<span class="sd">        ``parameter_std_rate`` is configuration, while ``std`` reports the</span>
+<span class="sd">        current estimator uncertainty.  A disturbance with no estimated</span>
+<span class="sd">        parameters naturally returns a zero-dimensional PSD.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="n">Covariance</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">diagflat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_std_rate</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_std_rate</span><span class="p">),</span>
+            <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span>
+            <span class="n">coordinates</span><span class="o">=</span><span class="s2">"disturbance_parameter_rate"</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">main_param</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"np.ndarray"</span><span class="p">:</span>
@@ -660,7 +699,6 @@
             <span class="sa">f</span><span class="s2">"parameter."</span>
         <span class="p">)</span></div>
 
-    
 </pre></div>
         </article>
       </div>

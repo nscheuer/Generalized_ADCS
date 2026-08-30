@@ -1,0 +1,7 @@
+ADCS.estimators.covariance module
+=================================
+
+.. automodule:: ADCS.estimators.covariance
+   :members:
+   :show-inheritance:
+   :undoc-members:
