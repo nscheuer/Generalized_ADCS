@@ -183,14 +183,26 @@ def test_match_estimate_uses_full_size_integrated_covariance_without_index_shift
     sens_start = act_start + satellite.act_bias_len
     dist_start = sens_start + satellite.att_sens_bias_len
     np.testing.assert_allclose(
-        [np.asarray(act.bias.std_bias).reshape(-1)[0] for act in satellite.actuators[:3]],
+        [np.asarray(act.bias.estimated_std_bias).reshape(-1)[0] for act in satellite.actuators[:3]],
         np.sqrt(diagonal[act_start : act_start + satellite.act_bias_len]),
     )
     np.testing.assert_allclose(
-        [np.asarray(sensor.bias.std_bias).reshape(-1)[0] for sensor in satellite.attitude_sensors],
+        [np.asarray(sensor.bias.estimated_std_bias).reshape(-1)[0] for sensor in satellite.attitude_sensors],
         np.sqrt(diagonal[sens_start : sens_start + satellite.att_sens_bias_len]),
     )
     np.testing.assert_allclose(
-        np.diag(satellite.disturbances[0].std),
+        satellite.disturbances[0].std,
         np.sqrt(diagonal[dist_start : dist_start + satellite.dist_param_len]),
+    )
+    np.testing.assert_allclose(
+        [np.asarray(act.bias.std_bias).item() for act in satellite.actuators[:3]],
+        1.0e-4,
+    )
+    np.testing.assert_allclose(
+        [np.asarray(sensor.bias.std_bias).item() for sensor in satellite.attitude_sensors],
+        1.0e-4,
+    )
+    np.testing.assert_allclose(
+        satellite.disturbances[0].parameter_std_rate,
+        np.zeros(satellite.dist_param_len),
     )

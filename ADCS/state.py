@@ -887,6 +887,46 @@ class EstimatorState(State):
         return self.augmented_size - 1
 
     @property
+    def full_slices(self) -> dict[str, slice]:
+        """Slices for the stored augmented state vector.
+
+        The order is the single source of truth for estimator-facing block
+        assembly: angular velocity, quaternion, wheel momentum, actuator
+        bias, sensor bias, and disturbance parameters.
+        """
+        i = 0
+        result = {"angular_velocity": slice(i, i + 3)}
+        i += 3
+        result["quaternion"] = slice(i, i + 4)
+        i += 4
+        result["wheel_momentum"] = slice(i, i + self.h.size)
+        i += self.h.size
+        result["actuator_bias"] = slice(i, i + self.act_bias.size)
+        i += self.act_bias.size
+        result["sensor_bias"] = slice(i, i + self.sens_bias.size)
+        i += self.sens_bias.size
+        result["disturbance_parameter"] = slice(i, i + self.dist_param.size)
+        return result
+
+    @property
+    def tangent_slices(self) -> dict[str, slice]:
+        """Slices for the local error state used by covariance and PSD models."""
+        i = 0
+        result = {"angular_velocity": slice(i, i + 3)}
+        i += 3
+        result["attitude"] = slice(i, i + 3)
+        i += 3
+        result["wheel_momentum"] = slice(i, i + self.h.size)
+        i += self.h.size
+        result["actuator_bias"] = slice(i, i + self.act_bias.size)
+        i += self.act_bias.size
+        result["sensor_bias"] = slice(i, i + self.sens_bias.size)
+        i += self.sens_bias.size
+        result["disturbance_parameter"] = slice(i, i + self.dist_param.size)
+        result["physical"] = slice(0, 6 + self.h.size)
+        return result
+
+    @property
     def uses_reduced_quaternion_covariance(self) -> bool:
         return self.cov.shape == (self.augmented_size - 1, self.augmented_size - 1)
 

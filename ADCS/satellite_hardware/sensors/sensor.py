@@ -126,6 +126,10 @@ class Sensor:
         """Return measurement-noise covariance owned by this sensor."""
         return self.noise.covariance(form=form, coordinates="measurement")
 
+    def bias_process_psd(self, *, form: str = "full") -> Covariance:
+        """Return the continuous PSD of this sensor's bias random walk."""
+        return self.bias.process_psd(form=form)
+
     def reading(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute the full sensor measurement including bias and noise.

@@ -42,6 +42,9 @@ class Bias:
             raise ValueError("Each lower bound must be <= the corresponding upper bound.")
         
         self.bias = bias
+        # Posterior uncertainty reported by an estimator.  Keep it separate
+        # from ``std_bias``, which is the configured random-walk rate.
+        self.estimated_std_bias = np.zeros_like(bias, dtype=float)
         self.std_bias = std_bias
         self.last_bias_time = float('nan')
         self.bounds = (lo, hi)
@@ -58,7 +61,9 @@ class Bias:
         return not (np.all(self.bias == 0.0) and np.all(self.std_bias == 0.0))
     
     def copy(self):
-        return Bias(bias=self.bias, std_bias=self.std_bias, bounds=self.bounds)
+        result = Bias(bias=self.bias, std_bias=self.std_bias, bounds=self.bounds)
+        result.estimated_std_bias = self.estimated_std_bias.copy()
+        return result
 
     def process_covariance(
         self,
@@ -71,9 +76,22 @@ class Bias:
         if not np.isfinite(dt) or dt < 0.0:
             raise ValueError("dt must be finite and non-negative")
         return Covariance(
-            np.diagflat(self.std_bias * self.std_bias * dt),
+            self.process_psd().as_matrix() * dt,
             form=form,
             coordinates="bias",
+        )
+
+    def process_psd(self, *, form: str = "full") -> Covariance:
+        r"""Return continuous random-walk PSD :math:`\operatorname{diag}(\sigma_b^2)`.
+
+        ``std_bias`` is a random-walk standard-deviation rate, not a
+        per-step covariance.  Discretizers such as Van Loan therefore use
+        this PSD directly and own the timestep conversion.
+        """
+        return Covariance(
+            np.diagflat(self.std_bias * self.std_bias),
+            form=form,
+            coordinates="bias_rate",
         )
 
     def _update_bias(self, j2000: float) -> None:
