@@ -594,7 +594,7 @@ class MTQ(Actuator):
         :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.
         :rtype: numpy.ndarray
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddtorq__dudu(u=u, x=x, os=os)
         else:
             return np.zeros((0, 0, 3))
@@ -628,7 +628,7 @@ class MTQ(Actuator):
         :return: Mixed Hessian tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.
         :rtype: numpy.ndarray
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddtorq__dudbasestate(u=u, x=x, os=os)
         else:
             return np.zeros((0, 7, 3))
@@ -659,6 +659,4 @@ class MTQ(Actuator):
         :rtype: numpy.ndarray
         """
         return np.zeros((1, 0, 3))
-
-
 

@@ -93,6 +93,30 @@ def test_stack_nan_mask_and_multirate_selection_are_entry_wise():
     np.testing.assert_allclose(stack.active_measurements([0.1, 0.2], [False, True]), [0.2])
 
 
+def test_numeric_entry_mask_is_treated_like_bool_mask():
+    sensors = [
+        Gyro(axis=np.array([1.0, 0.0, 0.0])),
+        Gyro(axis=np.array([0.0, 1.0, 0.0])),
+    ]
+    stack = MeasurementStack(EstimatedSatellite(sensors=sensors))
+    state = make_state()
+
+    numeric_mask = [1, 0]
+    bool_mask = [True, False]
+
+    np.testing.assert_array_equal(stack._entry_mask(numeric_mask), bool_mask)
+    np.testing.assert_array_equal(stack._entry_mask([1, 1]), [True, True])
+    np.testing.assert_array_equal(stack._entry_mask([0, 0]), [False, False])
+    np.testing.assert_allclose(
+        stack.active_measurements([0.1, 0.2], numeric_mask),
+        stack.active_measurements([0.1, 0.2], bool_mask),
+    )
+    np.testing.assert_array_equal(
+        np.isnan(stack.predict(state, None, active_mask=numeric_mask)),
+        [False, True],
+    )
+
+
 def test_sources_are_identifiable_and_semantically_selectable():
     gyros = [
         Gyro(axis=np.array([1.0, 0.0, 0.0])),
