@@ -12,7 +12,7 @@ from ADCS.estimators.process_noise import discretize_process_noise
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
-from ADCS.satellite_hardware.errors import Noise
+from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import (
     EarthHorizonSensor,
@@ -393,3 +393,50 @@ def test_linear_ekf_primitives_match_in_full_and_square_root_forms():
     np.testing.assert_allclose(results[0][1], expected_posterior)
     np.testing.assert_allclose(results[0][1], results[0][1].T)
     assert np.linalg.eigvalsh(results[0][1]).min() >= -1.0e-14
+
+
+def test_cg5_propagation_runs_on_a_real_satellite_without_stage_states(orbital_state):
+    """The satellite-built stage path must work on a real satellite.
+
+    The other ``cg5`` contracts use ``_RecordingSatellite``, which never calls
+    the integrator, so the branch that builds its own stage orbital states was
+    never executed against real code.
+    """
+    satellite = EstimatedSatellite(
+        J_0=np.diag([0.5, 0.8, 1.2]),
+        actuators=[MTQ(axis=np.array([1.0, 0.0, 0.0]), max_torque=1.0)],
+    )
+    state = EstimatorState(w=[0.02, -0.01, 0.015], q=[0.9, 0.2, -0.3, 0.1]).normalized()
+
+    propagated = propagate_state(
+        state,
+        satellite,
+        np.zeros(1),
+        0.5,
+        orbital_state,
+        orbital_state,
+        quaternion_integrator="cg5",
+    )
+
+    assert np.isclose(np.linalg.norm(propagated.q), 1.0)
+    assert np.all(np.isfinite(propagated.as_array()))
+
+
+def test_cg5_and_rk4_agree_on_a_short_step(orbital_state):
+    satellite = EstimatedSatellite(
+        J_0=np.diag([0.5, 0.8, 1.2]),
+        actuators=[MTQ(axis=np.array([1.0, 0.0, 0.0]), max_torque=1.0)],
+    )
+    state = EstimatorState(w=[0.02, -0.01, 0.015], q=[0.9, 0.2, -0.3, 0.1]).normalized()
+
+    rk4 = propagate_state(
+        state, satellite, np.zeros(1), 0.5, orbital_state, orbital_state,
+        quaternion_integrator="rk4",
+    )
+    cg5 = propagate_state(
+        state, satellite, np.zeros(1), 0.5, orbital_state, orbital_state,
+        quaternion_integrator="cg5",
+    )
+
+    assert np.allclose(cg5.q, rk4.q, atol=1.0e-5)
+    assert np.allclose(cg5.w, rk4.w, atol=1.0e-7)
