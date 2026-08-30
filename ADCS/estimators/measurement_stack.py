@@ -10,8 +10,9 @@ stored coefficients to three local attitude coordinates.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 import numpy as np
 
@@ -21,12 +22,17 @@ from ADCS.satellite_hardware.sensors import StarTrackerQuaternion
 from ADCS.state import EstimatorState, State
 
 
-__all__ = ["MeasurementStack"]
+__all__ = ["MeasurementSource", "MeasurementStack"]
 
 
 @dataclass(frozen=True, slots=True)
-class _MeasurementEntry:
-    """One contiguous source in the canonical raw measurement vector."""
+class MeasurementSource:
+    """One identifiable source in the canonical measurement vector.
+
+    ``name`` is stable within a stack and intended for configuration and
+    diagnostics. ``raw_slice`` addresses received/predicted telemetry, while
+    ``residual_slice`` describes this source's unmasked innovation width.
+    """
 
     source: Any
     name: str
@@ -38,6 +44,25 @@ class _MeasurementEntry:
     @property
     def is_quaternion_attitude(self) -> bool:
         return isinstance(self.source, StarTrackerQuaternion)
+
+    @property
+    def kind(self) -> str:
+        """Return ``sensor`` or ``reaction_wheel``."""
+        return "sensor" if self.sensor_index is not None else "reaction_wheel"
+
+    @property
+    def raw_size(self) -> int:
+        return self.raw_slice.stop - self.raw_slice.start
+
+    @property
+    def residual_size(self) -> int:
+        return self.residual_slice.stop - self.residual_slice.start
+
+
+def _source_stem(source: Any) -> str:
+    """Convert a hardware class name to a concise selector name."""
+    name = type(source).__name__.lstrip("_")
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", name).lower()
 
 
 class MeasurementStack:
@@ -52,6 +77,9 @@ class MeasurementStack:
 
     ``active_mask`` is entry-wise, while ``active_measurements`` and
     ``residual`` return compact vectors in the selected entry order.
+    Every operation that accepts an entry mask also accepts the selectors
+    understood by :meth:`mask`; selectors are resolved once to a NumPy boolean
+    mask before numerical work begins.
 
     Quaternion residuals, Jacobians, and covariances consistently use right
     attitude errors. This is intentionally fixed rather than exposed as a
@@ -62,22 +90,26 @@ class MeasurementStack:
 
     def __init__(self, satellite: Any) -> None:
         self.satellite = satellite
-        entries: list[_MeasurementEntry] = []
+        entries: list[MeasurementSource] = []
         raw_offset = 0
         residual_offset = 0
+        source_counts: dict[str, int] = {}
 
         for index, sensor in enumerate(satellite.attitude_sensors):
             raw_length = int(sensor.output_length)
             residual_length = 3 if isinstance(sensor, StarTrackerQuaternion) else raw_length
+            stem = _source_stem(sensor)
+            source_number = source_counts.get(stem, 0)
+            source_counts[stem] = source_number + 1
             if isinstance(sensor, StarTrackerQuaternion) and sensor.estimate_bias:
                 raise ValueError(
                     "StarTrackerQuaternion biases cannot be estimated as additive "
                     "four-coefficient states; use a three-coordinate attitude error model."
                 )
             entries.append(
-                _MeasurementEntry(
+                MeasurementSource(
                     source=sensor,
-                    name=f"sensor[{index}]",
+                    name=f"{stem}[{source_number}]",
                     raw_slice=slice(raw_offset, raw_offset + raw_length),
                     residual_slice=slice(residual_offset, residual_offset + residual_length),
                     sensor_index=index,
@@ -88,7 +120,7 @@ class MeasurementStack:
 
         for index, wheel in enumerate(satellite.rw_actuators):
             entries.append(
-                _MeasurementEntry(
+                MeasurementSource(
                     source=wheel,
                     name=f"reaction_wheel[{index}]",
                     raw_slice=slice(raw_offset, raw_offset + 1),
@@ -100,18 +132,91 @@ class MeasurementStack:
             residual_offset += 1
 
         self._entries = tuple(entries)
+        self._names = tuple(entry.name for entry in entries)
+        self._name_to_index = {entry.name: index for index, entry in enumerate(entries)}
+        self._aliases = {
+            f"sensor[{entry.sensor_index}]": index
+            for index, entry in enumerate(entries)
+            if entry.sensor_index is not None
+        }
         self.raw_size = raw_offset
         self.residual_size = residual_offset
 
     @property
-    def entries(self) -> tuple[_MeasurementEntry, ...]:
-        """Ordered measurement sources, primarily for diagnostics and tests."""
+    def entries(self) -> tuple[MeasurementSource, ...]:
+        """Ordered, immutable measurement-source descriptions."""
         return self._entries
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
+    @property
+    def names(self) -> tuple[str, ...]:
+        """Stable semantic source names in stack order."""
+        return self._names
 
     @property
     def source_order(self) -> tuple[str, ...]:
-        """Stable, human-readable order of the measurement sources."""
-        return tuple(entry.name for entry in self._entries)
+        """Compatibility alias for :attr:`names`."""
+        return self.names
+
+    def entry(self, selector: Any) -> MeasurementSource:
+        """Return the single source identified by ``selector``.
+
+        Exact names, entry indices, source objects, and
+        :class:`MeasurementSource` objects are accepted. Broader selectors
+        such as ``"gyro"`` or ``Gyro`` must match exactly one source here;
+        use :meth:`mask` when selecting groups.
+        """
+        indices = self._selector_indices(selector)
+        if len(indices) != 1:
+            raise ValueError(
+                f"selector must identify one measurement source, matched {len(indices)}"
+            )
+        return self._entries[next(iter(indices))]
+
+    def mask(self, *include: Any, exclude: Any = ()) -> np.ndarray:
+        """Build an entry-wise boolean mask from semantic selectors.
+
+        With no ``include`` selectors, all sources are selected. Selectors may
+        be names (``"gyro[0]"``), source families (``"gyro"``), groups
+        (``"sensors"`` or ``"reaction_wheels"``), entry indices, hardware
+        objects, source classes, :class:`MeasurementSource` objects, nested
+        sequences, or an existing boolean mask.
+
+        Examples::
+
+            stack.mask("gyro", "star_tracker_quaternion")
+            stack.mask("sensors", exclude="gyro[1]")
+            stack.mask(exclude="reaction_wheels")
+        """
+        selected = set(range(len(self._entries))) if not include else set()
+        for selector in include:
+            selected.update(self._selector_indices(selector))
+        selected.difference_update(self._selector_indices(exclude))
+        result = np.zeros(len(self._entries), dtype=bool)
+        if selected:
+            result[np.fromiter(sorted(selected), dtype=int)] = True
+        return result
+
+    def selected(self, mask: Any) -> tuple[MeasurementSource, ...]:
+        """Return source descriptions selected by a mask or semantic selector."""
+        active = self._entry_mask(mask)
+        return tuple(entry for entry, enabled in zip(self._entries, active) if enabled)
+
+    def raw_mask(self, mask: Any) -> np.ndarray:
+        """Expand an entry mask to the raw telemetry-vector dimension."""
+        result = np.zeros(self.raw_size, dtype=bool)
+        for entry in self.selected(mask):
+            result[entry.raw_slice] = True
+        return result
+
+    def residual_mask(self, mask: Any) -> np.ndarray:
+        """Expand an entry mask to the unmasked residual-vector dimension."""
+        result = np.zeros(self.residual_size, dtype=bool)
+        for entry in self.selected(mask):
+            result[entry.residual_slice] = True
+        return result
 
     def readings(self, state: State, orbital_state: Any, *, dmode: Any = None) -> np.ndarray:
         """Return raw readings in the stack's canonical order.
@@ -132,7 +237,7 @@ class MeasurementStack:
         measurements: Any,
         *,
         time_s: float | None = None,
-        enabled: Sequence[bool] | None = None,
+        enabled: Any | None = None,
         epoch_s: float = 0.0,
         predicted: Any | None = None,
     ) -> np.ndarray:
@@ -146,6 +251,8 @@ class MeasurementStack:
         asynchronous telemetry streams.  A sensor with ``sample_time <= 0`` is
         treated as continuously sampled.  Reaction-wheel measurements are
         continuously sampled until the hardware model gains a sampling period.
+        ``enabled`` may be a boolean mask or any semantic selector accepted by
+        :meth:`mask`.
         """
         measurements = self._raw_measurements(measurements)
         predicted_values = (
@@ -166,7 +273,11 @@ class MeasurementStack:
         """Return the compact raw measurement vector selected by ``active_mask``."""
         measurements = self._raw_measurements(measurements)
         active = self._entry_mask(active_mask)
-        parts = [measurements[entry.raw_slice] for entry, selected in zip(self._entries, active) if selected]
+        parts = [
+            measurements[entry.raw_slice]
+            for entry, selected in zip(self._entries, active)
+            if selected
+        ]
         return np.concatenate(parts) if parts else np.empty(0)
 
     def predict(
@@ -364,20 +475,112 @@ class MeasurementStack:
         return values
 
     def _entry_mask(self, active_mask: Any) -> np.ndarray:
-        mask = np.asarray(active_mask, dtype=bool)
-        if mask.shape != (len(self._entries),):
-            raise ValueError(
-                f"active_mask must have shape ({len(self._entries)},), got {mask.shape}"
-            )
-        return mask
+        mask = self._mask_array(active_mask)
+        if mask is not None:
+            return mask
+        return self.mask(active_mask)
 
-    def _enabled_mask(self, enabled: Sequence[bool] | None) -> np.ndarray:
+    def _enabled_mask(self, enabled: Any | None) -> np.ndarray:
         if enabled is None:
             return np.ones(len(self._entries), dtype=bool)
         return self._entry_mask(enabled)
 
+    def _mask_array(self, value: Any) -> np.ndarray | None:
+        """Return a copied entry mask when ``value`` unambiguously is one."""
+        try:
+            array = np.asarray(value)
+        except (TypeError, ValueError):
+            return None
+        if array.shape != (len(self._entries),):
+            return None
+        if np.issubdtype(array.dtype, np.bool_):
+            return array.astype(bool, copy=True)
+        return None
+
+    def _selector_indices(self, selector: Any) -> set[int]:
+        """Resolve one possibly nested selector to entry indices."""
+        if selector is None:
+            return set()
+
+        mask = self._mask_array(selector)
+        if mask is not None:
+            return set(np.flatnonzero(mask).tolist())
+
+        if isinstance(selector, MeasurementSource):
+            for index, entry in enumerate(self._entries):
+                if selector is entry:
+                    return {index}
+            raise ValueError("MeasurementSource does not belong to this stack")
+
+        if isinstance(selector, (bool, np.bool_)):
+            raise TypeError("a boolean selector must be part of a full entry mask")
+
+        if isinstance(selector, (int, np.integer)):
+            index = int(selector)
+            if not 0 <= index < len(self._entries):
+                raise IndexError(
+                    f"measurement source index {index} is outside [0, {len(self._entries)})"
+                )
+            return {index}
+
+        if isinstance(selector, str):
+            if selector in self._name_to_index:
+                return {self._name_to_index[selector]}
+            if selector in self._aliases:
+                return {self._aliases[selector]}
+
+            normalized = selector.lower().strip()
+            if normalized in ("all", "measurements", "sources"):
+                return set(range(len(self._entries)))
+            if normalized in ("sensor", "sensors"):
+                return {
+                    index
+                    for index, entry in enumerate(self._entries)
+                    if entry.sensor_index is not None
+                }
+            if normalized in ("reaction_wheel", "reaction_wheels", "wheels"):
+                return {
+                    index
+                    for index, entry in enumerate(self._entries)
+                    if entry.wheel_index is not None
+                }
+
+            family = {
+                index
+                for index, entry in enumerate(self._entries)
+                if entry.name.partition("[")[0] == normalized
+            }
+            if family:
+                return family
+            raise KeyError(
+                f"unknown measurement selector {selector!r}; available sources are "
+                f"{self.source_order}"
+            )
+
+        if isinstance(selector, type):
+            return {
+                index
+                for index, entry in enumerate(self._entries)
+                if isinstance(entry.source, selector)
+            }
+
+        for index, entry in enumerate(self._entries):
+            if selector is entry.source:
+                return {index}
+
+        if isinstance(selector, (list, tuple, set, frozenset, np.ndarray)):
+            result: set[int] = set()
+            for item in selector:
+                result.update(self._selector_indices(item))
+            return result
+
+        raise TypeError(
+            "measurement selectors must be names, indices, source objects, "
+            "source classes, MeasurementSource objects, or sequences of them"
+        )
+
     @staticmethod
-    def _is_due(entry: _MeasurementEntry, time_s: float, epoch_s: float) -> bool:
+    def _is_due(entry: MeasurementSource, time_s: float, epoch_s: float) -> bool:
         sample_time = getattr(entry.source, "sample_time", None)
         if sample_time is None or sample_time <= 0.0:
             return True

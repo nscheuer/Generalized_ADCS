@@ -67,7 +67,7 @@ def test_stack_owns_sensor_then_wheel_order_and_additive_ekf_blocks():
     stack = satellite.measurement_stack
     state = make_state(h=[0.3], sens_bias=[0.2])
 
-    assert stack.source_order == ("sensor[0]", "reaction_wheel[0]")
+    assert stack.source_order == ("gyro[0]", "reaction_wheel[0]")
     np.testing.assert_allclose(stack.predict(state, None), [0.3, 0.3])
     mask = stack.active_mask([0.7, 0.4])
     assert np.array_equal(mask, [True, True])
@@ -91,6 +91,69 @@ def test_stack_nan_mask_and_multirate_selection_are_entry_wise():
     np.testing.assert_array_equal(stack.active_mask([0.1, 0.2], time_s=0.5), [True, False])
     np.testing.assert_array_equal(stack.active_mask([0.1, 0.2], time_s=1.0), [True, True])
     np.testing.assert_allclose(stack.active_measurements([0.1, 0.2], [False, True]), [0.2])
+
+
+def test_sources_are_identifiable_and_semantically_selectable():
+    gyros = [
+        Gyro(axis=np.array([1.0, 0.0, 0.0])),
+        Gyro(axis=np.array([0.0, 1.0, 0.0])),
+    ]
+    vector = _VectorSensor()
+    wheel = make_wheel()
+    stack = MeasurementStack(
+        EstimatedSatellite(sensors=[*gyros, vector], actuators=[wheel])
+    )
+
+    assert stack.source_order == (
+        "gyro[0]",
+        "gyro[1]",
+        "vector_sensor[0]",
+        "reaction_wheel[0]",
+    )
+    assert stack.entry("gyro[1]").source is gyros[1]
+    assert stack.entry("sensor[1]").name == "gyro[1]"
+    assert stack.entry(wheel).kind == "reaction_wheel"
+    assert stack.entry(2).raw_size == 3
+    with np.testing.assert_raises_regex(ValueError, "matched 2"):
+        stack.entry(Gyro)
+
+    np.testing.assert_array_equal(stack.mask("gyro"), [True, True, False, False])
+    np.testing.assert_array_equal(
+        stack.mask("sensors", exclude=["gyro[0]", vector]),
+        [False, True, False, False],
+    )
+    np.testing.assert_array_equal(
+        stack.mask(Gyro, "reaction_wheels"),
+        [True, True, False, True],
+    )
+    assert tuple(entry.name for entry in stack.selected("gyro")) == (
+        "gyro[0]",
+        "gyro[1]",
+    )
+    np.testing.assert_array_equal(
+        stack.raw_mask("vector_sensor"),
+        [False, False, True, True, True, False],
+    )
+    np.testing.assert_array_equal(
+        stack.residual_mask(["gyro[1]", "reaction_wheels"]),
+        [False, True, False, False, False, True],
+    )
+
+
+def test_semantic_selection_works_anywhere_an_entry_mask_is_accepted():
+    sensors = [
+        Gyro(axis=np.array([1.0, 0.0, 0.0])),
+        Gyro(axis=np.array([0.0, 1.0, 0.0])),
+    ]
+    stack = MeasurementStack(EstimatedSatellite(sensors=sensors))
+    state = make_state()
+
+    active = stack.active_mask([0.1, 0.2], enabled="gyro[1]")
+    predicted = stack.predict(state, None, active_mask="gyro[1]")
+
+    np.testing.assert_array_equal(active, [False, True])
+    np.testing.assert_array_equal(np.isnan(predicted), [True, False])
+    assert stack.jacobian(state, None, "gyro[1]").shape == (1, state.tangent_size)
 
 
 def test_quaternion_measurement_uses_three_dimensional_manifold_residual():
