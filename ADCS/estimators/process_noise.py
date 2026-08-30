@@ -183,7 +183,9 @@ def error_state_transfer(
         raise TypeError(f"state must be an EstimatorState, got {type(state).__name__}")
     blocks = satellite.dynJacCore(state, np.asarray(control, dtype=float), orbital_state)
     if len(blocks) != 5:
-        raise ValueError("dynJacCore must return five state, control, and estimated-parameter blocks")
+        raise ValueError(
+            "dynJacCore must return five state, control, and estimated-parameter blocks"
+        )
     dxdot_dx, _, dxdot_dab, dxdot_dsb, dxdot_ddp = blocks
     full = np.zeros((state.full_size, state.full_size), dtype=float)
     slices = state.slices(coordinates="full")
@@ -320,13 +322,39 @@ def discretize_process_noise(
     control: np.ndarray,
     orbital_state: Any,
     dt: float,
+    *,
+    final_state: EstimatorState | None = None,
     **kwargs: Any,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Build and Van Loan-discretize the shared attitude process-noise model.
 
     The returned transition :math:`\\Phi` is chart-local at ``state``.
+    For ``full_quaternion``, pass the propagated ``final_state`` so the initial
+    and final quaternion-normalization differentials are both represented.
     """
     transfer, continuous_psd = continuous_error_state_model(
         state, satellite, control, orbital_state, **kwargs
     )
-    return van_loan_discretize(transfer, continuous_psd, dt)
+    transition, discrete_psd = van_loan_discretize(transfer, continuous_psd, dt)
+
+    # A normalized four-component quaternion has only three independent
+    # perturbations.  ``expm(F dt)`` is necessarily the identity on F's null
+    # direction, whereas applying an additive quaternion perturbation first
+    # normalizes it and therefore removes that radial component.  Include the
+    # initial normalization differential explicitly so Phi is the Jacobian of
+    # the operation the additive EKF actually performs.
+    if kwargs.get("quaternion_mode", State.DEFAULT_QUATERNION_MODE) == "full_quaternion":
+        if final_state is None:
+            final_state = state
+        if not isinstance(final_state, EstimatorState):
+            raise TypeError(
+                f"final_state must be an EstimatorState, got {type(final_state).__name__}"
+            )
+        if final_state.full_size != state.full_size:
+            raise ValueError("state and final_state must have matching layouts")
+        initial_projection = state.normalization_jacobian()
+        final_projection = final_state.normalization_jacobian()
+        transition = final_projection @ transition @ initial_projection
+        discrete_psd = final_projection @ discrete_psd @ final_projection.T
+
+    return transition, discrete_psd
