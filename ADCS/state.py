@@ -1196,7 +1196,9 @@ class EstimatorState(State):
         )
 
     def as_estimator_array(self) -> np.ndarray:
-        return np.concatenate(tuple(self.block(name) for name in self.block_names))
+        return np.concatenate(
+            (self.w, self.q, self.h, self.act_bias, self.sens_bias, self.dist_param)
+        )
 
     def copy(self) -> EstimatorState:
         return EstimatorState(
