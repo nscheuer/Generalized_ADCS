@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.flight_software package" href="ADCS.flight_software.html"><link rel="prev" title="ADCS.estimators.covariance module" href="ADCS.estimators.covariance.html">
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.flight_software package" href="ADCS.flight_software.html"><link rel="prev" title="ADCS.estimators.measurement_stack module" href="ADCS.estimators.measurement_stack.html">
         <link rel="canonical" href="https://nscheuer.github.io/Generalized_ADCS/ADCS.estimators.process_noise.html">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
@@ -354,6 +354,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -647,7 +648,9 @@ coordinates match <code class="docutils literal notranslate"><span class="pre">q
 <span class="sig-prename descclassname"><span class="pre">ADCS.estimators.process_noise.</span></span><span class="sig-name descname"><span class="pre">error_state_transfer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/process_noise.html#error_state_transfer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.process_noise.error_state_transfer" title="Link to this definition">¶</a></dt>
 <dd><p>Return the continuous local error-state transfer matrix <code class="docutils literal notranslate"><span class="pre">F</span></code>.</p>
 <p><code class="docutils literal notranslate"><span class="pre">F</span></code> is chart-local at <code class="docutils literal notranslate"><span class="pre">state</span></code>; it must be rebuilt after the estimate’s
-linearization point or quaternion chart changes.</p>
+linearization point or quaternion chart changes.  Because the quaternion
+tangent map moves with the nominal attitude, the returned matrix includes
+the chart-motion term <code class="docutils literal notranslate"><span class="pre">G_dot</span></code>.</p>
 <p><code class="docutils literal notranslate"><span class="pre">EstimatedSatellite.dynJacCore</span></code> stores derivative variables in rows and
 derivative outputs in columns.  This function converts that historical
 convention to the conventional column-error matrix before augmenting it
@@ -708,14 +711,14 @@ assembled by <a class="reference internal" href="#ADCS.estimators.process_noise.
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="ADCS.estimators.covariance.html">
+          <a class="prev-page" href="ADCS.estimators.measurement_stack.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">ADCS.estimators.covariance module</div>
+                <div class="title">ADCS.estimators.measurement_stack module</div>
                 
               </div>
             </a>

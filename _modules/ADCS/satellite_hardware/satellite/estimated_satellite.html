@@ -353,6 +353,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -564,6 +565,7 @@
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"EstimatedSatellite"</span><span class="p">]</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.covariance</span><span class="w"> </span><span class="kn">import</span> <span class="n">Covariance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span>
@@ -1616,7 +1618,13 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">form</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"full"</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Return selected sensor and wheel-momentum measurement covariance."""</span>
+<span class="w">        </span><span class="sd">"""Return selected sensor and all wheel measurement covariances.</span>
+
+<span class="sd">        This compatibility API remains for existing callers. The estimator</span>
+<span class="sd">        rewire should use :attr:`measurement_stack`, whose covariance mask</span>
+<span class="sd">        covers both sensors and wheels and whose quaternion blocks are in</span>
+<span class="sd">        residual coordinates.</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">which_sensors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">which_sensors</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attitude_sensors</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">which_sensors</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attitude_sensors</span><span class="p">):</span>
@@ -1633,6 +1641,13 @@
             <span class="n">blocks</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="s2">"measurement"</span>
         <span class="p">)</span></div>
 
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">measurement_stack</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Canonical estimator measurement order and model for this satellite."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.measurement_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">MeasurementStack</span>
+
+        <span class="k">return</span> <span class="n">MeasurementStack</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 <div class="viewcode-block" id="EstimatedSatellite.control_cov">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov">[docs]</a>
@@ -1689,6 +1704,10 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">sensor_cov</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">which_sensors</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Block-diagonal covariance of attitude sensor noise (and wheel momentum measurement noise).</span>
+
+<span class="sd">        This is retained for the current UKF/SRUKF implementations. The</span>
+<span class="sd">        estimator rewire should replace it with ``measurement_stack.covariance``;</span>
+<span class="sd">        unlike this legacy method, the stack mask also controls wheel entries.</span>
 
 <span class="sd">        For each attitude sensor :math:`i` with covariance :math:`\mathbf{R}_{y_i}` (from</span>
 <span class="sd">        ``sensor.noise.cov()``), the attitude-sensor covariance is:</span>

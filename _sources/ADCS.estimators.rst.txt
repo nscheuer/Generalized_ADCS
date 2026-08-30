@@ -18,6 +18,7 @@ Submodules
    :maxdepth: 1
 
    ADCS.estimators.covariance
+   ADCS.estimators.measurement_stack
    ADCS.estimators.process_noise
 
 Module contents

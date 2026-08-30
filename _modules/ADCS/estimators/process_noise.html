@@ -353,6 +353,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -576,6 +577,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">expm</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ErrorMode</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span>
 
 
@@ -626,6 +628,49 @@
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">() returned </span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, but EstimatorState </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> block has size </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_tangent_map_rate</span><span class="p">(</span>
+    <span class="n">state</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">,</span>
+    <span class="n">state_rate</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">quaternion_order</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Return :math:`\dot G` for the local-to-full tangent map.</span>
+
+<span class="sd">    The tangent map depends on the nominal quaternion.  A local perturbation</span>
+<span class="sd">    satisfies ``delta_full = G(q) @ delta_local``; differentiating this</span>
+<span class="sd">    relation gives ``delta_dot_local = G^dagger (A G - G_dot) delta_local``.</span>
+<span class="sd">    ``G_dot`` is evaluated along the nominal quaternion trajectory.  Keeping</span>
+<span class="sd">    this small numerical derivative here supports every quaternion chart</span>
+<span class="sd">    already implemented by :class:`State` without duplicating chart-specific</span>
+<span class="sd">    derivatives.</span>
+<span class="sd">    """</span>
+    <span class="n">state_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">state_rate</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">state_rate</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">full_size</span><span class="p">,):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"state_rate must have shape (</span><span class="si">{</span><span class="n">state</span><span class="o">.</span><span class="n">full_size</span><span class="si">}</span><span class="s2">,), got </span><span class="si">{</span><span class="n">state_rate</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">q_rate</span> <span class="o">=</span> <span class="n">state_rate</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">q_rate</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">state</span><span class="o">.</span><span class="n">full_size</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">tangent_size</span><span class="p">))</span>
+
+    <span class="n">step</span> <span class="o">=</span> <span class="mf">1.0e-7</span>
+    <span class="n">plus</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">minus</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">plus</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">q</span> <span class="o">+</span> <span class="n">step</span> <span class="o">*</span> <span class="n">q_rate</span>
+    <span class="n">minus</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">q</span> <span class="o">-</span> <span class="n">step</span> <span class="o">*</span> <span class="n">q_rate</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">plus</span><span class="o">.</span><span class="n">tangent_map</span><span class="p">(</span>
+            <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span>
+            <span class="n">quaternion_order</span><span class="o">=</span><span class="n">quaternion_order</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="o">-</span> <span class="n">minus</span><span class="o">.</span><span class="n">tangent_map</span><span class="p">(</span>
+            <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span>
+            <span class="n">quaternion_order</span><span class="o">=</span><span class="n">quaternion_order</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">step</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="assemble_continuous_process_psd">
@@ -693,7 +738,9 @@
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""Return the continuous local error-state transfer matrix ``F``.</span>
 
 <span class="sd">    ``F`` is chart-local at ``state``; it must be rebuilt after the estimate's</span>
-<span class="sd">    linearization point or quaternion chart changes.</span>
+<span class="sd">    linearization point or quaternion chart changes.  Because the quaternion</span>
+<span class="sd">    tangent map moves with the nominal attitude, the returned matrix includes</span>
+<span class="sd">    the chart-motion term ``G_dot``.</span>
 
 <span class="sd">    ``EstimatedSatellite.dynJacCore`` stores derivative variables in rows and</span>
 <span class="sd">    derivative outputs in columns.  This function converts that historical</span>
@@ -722,16 +769,45 @@
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">block</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">expected</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"dynJacCore </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> block must have shape </span><span class="si">{</span><span class="n">expected</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">full</span><span class="p">[:</span><span class="n">base</span><span class="p">,</span> <span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
-    <span class="k">if</span> <span class="n">quaternion_mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
-        <span class="n">normalizer</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">normalization_jacobian</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">normalizer</span> <span class="o">@</span> <span class="n">full</span> <span class="o">@</span> <span class="n">normalizer</span>
+
+    <span class="n">dynamics_core</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="s2">"dynamics_core"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dynamics_core</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Keep lightweight Jacobian providers usable.  Real spacecraft models</span>
+        <span class="c1"># provide dynamics_core, which is required for the moving-chart term.</span>
+        <span class="n">state_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">full_size</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">state_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+            <span class="n">dynamics_core</span><span class="p">(</span>
+                <span class="n">state</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">control</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+                <span class="n">orbital_state</span><span class="p">,</span>
+                <span class="n">dmode</span><span class="o">=</span><span class="n">ErrorMode</span><span class="p">(</span>
+                    <span class="n">add_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">add_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">update_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">update_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">state_rate</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">base</span><span class="p">,):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"dynamics_core must return shape (</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">,), got </span><span class="si">{</span><span class="n">state_rate</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
     <span class="n">tangent</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">tangent_map</span><span class="p">(</span>
         <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span> <span class="n">quaternion_order</span><span class="o">=</span><span class="n">quaternion_order</span>
     <span class="p">)</span>
     <span class="n">tangent_pinv</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">tangent_pinv</span><span class="p">(</span>
         <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span> <span class="n">quaternion_order</span><span class="o">=</span><span class="n">quaternion_order</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">tangent_pinv</span> <span class="o">@</span> <span class="n">full</span> <span class="o">@</span> <span class="n">tangent</span></div>
+    <span class="n">tangent_rate</span> <span class="o">=</span> <span class="n">_tangent_map_rate</span><span class="p">(</span>
+        <span class="n">state</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">state_rate</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">full_size</span> <span class="o">-</span> <span class="n">state_rate</span><span class="o">.</span><span class="n">size</span><span class="p">)),</span>
+        <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span>
+        <span class="n">quaternion_order</span><span class="o">=</span><span class="n">quaternion_order</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">tangent_pinv</span> <span class="o">@</span> <span class="p">(</span><span class="n">full</span> <span class="o">@</span> <span class="n">tangent</span> <span class="o">-</span> <span class="n">tangent_rate</span><span class="p">)</span></div>
 
 
 

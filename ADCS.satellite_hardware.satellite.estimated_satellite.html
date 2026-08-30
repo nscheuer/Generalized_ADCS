@@ -354,6 +354,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -1200,7 +1201,11 @@ bias/parameter blocks, covariance, and integrated covariance.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.measurement_covariance">
 <span class="sig-name descname"><span class="pre">measurement_covariance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_sensors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">form</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'full'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.measurement_covariance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.measurement_covariance" title="Link to this definition">¶</a></dt>
-<dd><p>Return selected sensor and wheel-momentum measurement covariance.</p>
+<dd><p>Return selected sensor and all wheel measurement covariances.</p>
+<p>This compatibility API remains for existing callers. The estimator
+rewire should use <a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.measurement_stack" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.measurement_stack"><code class="xref py py-attr docutils literal notranslate"><span class="pre">measurement_stack</span></code></a>, whose covariance mask
+covers both sensors and wheels and whose quaternion blocks are in
+residual coordinates.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1274,6 +1279,9 @@ the method returns <code class="docutils literal notranslate"><span class="pre">
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_cov">
 <span class="sig-name descname"><span class="pre">sensor_cov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_sensors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.sensor_cov"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_cov" title="Link to this definition">¶</a></dt>
 <dd><p>Block-diagonal covariance of attitude sensor noise (and wheel momentum measurement noise).</p>
+<p>This is retained for the current UKF/SRUKF implementations. The
+estimator rewire should replace it with <code class="docutils literal notranslate"><span class="pre">measurement_stack.covariance</span></code>;
+unlike this legacy method, the stack mask also controls wheel entries.</p>
 <p>For each attitude sensor <span class="math notranslate nohighlight">\(i\)</span> with covariance <span class="math notranslate nohighlight">\(\mathbf{R}_{y_i}\)</span> (from
 <code class="docutils literal notranslate"><span class="pre">sensor.noise.cov()</span></code>), the attitude-sensor covariance is:</p>
 <div class="math-wrapper docutils container">
@@ -1323,6 +1331,12 @@ which attitude sensors to include. If <code class="docutils literal notranslate"
 <dd class="field-odd"><p>numpy.ndarray</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.measurement_stack">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">measurement_stack</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.measurement_stack" title="Link to this definition">¶</a></dt>
+<dd><p>Canonical estimator measurement order and model for this satellite.</p>
 </dd></dl>
 
 </dd></dl>

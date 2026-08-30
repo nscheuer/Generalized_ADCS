@@ -352,6 +352,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -573,6 +574,10 @@
         <li><a href="ADCS.state.html#ADCS.state.EstimatorState.act_bias">act_bias (ADCS.state.EstimatorState attribute)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.act_torque">act_torque() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
+</li>
+        <li><a href="ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.active_mask">active_mask() (ADCS.estimators.measurement_stack.MeasurementStack method)</a>
+</li>
+        <li><a href="ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.active_measurements">active_measurements() (ADCS.estimators.measurement_stack.MeasurementStack method)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase.active_trajectory">active_trajectory (ADCS.controller.plan_and_track_base.PlanAndTrackBase attribute)</a>
 </li>
@@ -1038,6 +1043,13 @@
 </li>
         </ul></li>
         <li>
+    ADCS.estimators.measurement_stack
+
+        <ul>
+          <li><a href="ADCS.estimators.measurement_stack.html#module-ADCS.estimators.measurement_stack">module</a>
+</li>
+        </ul></li>
+        <li>
     ADCS.estimators.orbit_estimators
 
         <ul>
@@ -1289,6 +1301,8 @@
           <li><a href="ADCS.helpers.plot.subplot.html#module-ADCS.helpers.plot.subplot">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     ADCS.helpers.plotting
 
@@ -1296,8 +1310,6 @@
           <li><a href="ADCS.helpers.plotting.html#module-ADCS.helpers.plotting">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     ADCS.helpers.plotting.animate_estimator
 
@@ -2217,8 +2229,12 @@
           <li><a href="ADCS.estimators.covariance.html#ADCS.estimators.covariance.Covariance">(class in ADCS.estimators.covariance)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise.covariance">covariance() (ADCS.satellite_hardware.errors.noise.Noise method)</a>
+        <li><a href="ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.covariance">covariance() (ADCS.estimators.measurement_stack.MeasurementStack method)</a>
+
+        <ul>
+          <li><a href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise.covariance">(ADCS.satellite_hardware.errors.noise.Noise method)</a>
 </li>
+        </ul></li>
         <li><a href="ADCS.state.html#ADCS.state.EstimatorState.covariance_to_full">covariance_to_full() (ADCS.state.EstimatorState method)</a>
 </li>
         <li><a href="ADCS.state.html#ADCS.state.EstimatorState.covariance_to_reduced">covariance_to_reduced() (ADCS.state.EstimatorState method)</a>
@@ -2572,6 +2588,8 @@
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.end_time">end_time (ADCS.controller.helpers.trajectory.Trajectory attribute)</a>
 </li>
         <li><a href="ADCS.helpers.plot.close_all.html#ADCS.helpers.plot.close_all.ensure_close_all_button">ensure_close_all_button() (in module ADCS.helpers.plot.close_all)</a>
+</li>
+        <li><a href="ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.entries">entries (ADCS.estimators.measurement_stack.MeasurementStack property)</a>
 </li>
         <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.enu_to_eci">enu_to_eci() (ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
@@ -2979,6 +2997,8 @@
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.jacobian">jacobian() (ADCS.estimators.measurement_stack.MeasurementStack method)</a>
+</li>
         <li><a href="ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.jacobians">jacobians() (ADCS.satellite_hardware.actuators.magnetotorquer.MTQ method)</a>
 </li>
     </ul></td>
@@ -3107,6 +3127,10 @@
           <li><a href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor.measurement_covariance">(ADCS.satellite_hardware.sensors.sensor.Sensor method)</a>
 </li>
         </ul></li>
+        <li><a href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.measurement_stack">measurement_stack (ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite property)</a>
+</li>
+        <li><a href="ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack">MeasurementStack (class in ADCS.estimators.measurement_stack)</a>
+</li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.Orbit.min_time">min_time() (ADCS.mc.mcconfig.Orbit method)</a>
 
         <ul>
@@ -3254,6 +3278,8 @@
           <li><a href="ADCS.estimators.estimator_helpers.html#module-ADCS.estimators.estimator_helpers">ADCS.estimators.estimator_helpers</a>
 </li>
           <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#module-ADCS.estimators.estimator_helpers.estimator_helpers">ADCS.estimators.estimator_helpers.estimator_helpers</a>
+</li>
+          <li><a href="ADCS.estimators.measurement_stack.html#module-ADCS.estimators.measurement_stack">ADCS.estimators.measurement_stack</a>
 </li>
           <li><a href="ADCS.estimators.orbit_estimators.html#module-ADCS.estimators.orbit_estimators">ADCS.estimators.orbit_estimators</a>
 </li>
@@ -3840,6 +3866,8 @@
           <li><a href="ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteSimulationConfig.port">(ADCS.remote.controller_rpc.RemoteSimulationConfig attribute)</a>
 </li>
         </ul></li>
+        <li><a href="ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.predict">predict() (ADCS.estimators.measurement_stack.MeasurementStack method)</a>
+</li>
         <li><a href="ADCS.covariance.html#ADCS.covariance.Covariance.predicted_linear">predicted_linear() (ADCS.covariance.Covariance method)</a>
 
         <ul>
@@ -3974,6 +4002,8 @@
           <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion.reading">(ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion method)</a>
 </li>
         </ul></li>
+        <li><a href="ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.readings">readings() (ADCS.estimators.measurement_stack.MeasurementStack method)</a>
+</li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.readParameters">readParameters() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.record">record() (ADCS.helpers.simresults.RunResults method)</a>
@@ -4033,6 +4063,8 @@
         <li><a href="ADCS.controller.plan_and_track_lqr_disturbed.html#ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed.reset_disturbance_estimate">reset_disturbance_estimate() (ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed method)</a>
 </li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.reset_trace">reset_trace() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
+</li>
+        <li><a href="ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.residual">residual() (ADCS.estimators.measurement_stack.MeasurementStack method)</a>
 </li>
         <li><a href="ADCS.helpers.plot.states.quaternionplot.html#ADCS.helpers.plot.states.quaternionplot.State.retract">retract() (ADCS.helpers.plot.states.quaternionplot.State method)</a>
 
@@ -4209,6 +4241,8 @@
         <li><a href="ADCS.controller.mtq_w_rw_QPC.html#ADCS.controller.mtq_w_rw_QPC.MTQ_w_RW_QPC.solve_lp_scaling">solve_lp_scaling() (ADCS.controller.mtq_w_rw_QPC.MTQ_w_RW_QPC method)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig">SolverPassConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
+</li>
+        <li><a href="ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.source_order">source_order (ADCS.estimators.measurement_stack.MeasurementStack property)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_off">specific_dist_off() (ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
