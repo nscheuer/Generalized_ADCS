@@ -10,6 +10,29 @@ def _unit(q):
     return q / np.linalg.norm(q)
 
 
+def _skew(vector):
+    return np.array(
+        [
+            [0.0, -vector[2], vector[1]],
+            [vector[2], 0.0, -vector[0]],
+            [-vector[1], vector[0], 0.0],
+        ]
+    )
+
+
+def _rotation_vector_reset_oracle(vector, order):
+    theta = float(np.linalg.norm(vector))
+    cross = _skew(vector)
+    if theta < 1.0e-8:
+        a = 0.5
+        b = 1.0 / 6.0
+    else:
+        a = (1.0 - np.cos(theta)) / (theta * theta)
+        b = (theta - np.sin(theta)) / (theta * theta * theta)
+    sign = -1.0 if order == "right" else 1.0
+    return np.eye(3) + sign * a * cross + b * (cross @ cross)
+
+
 def test_interpolate_slerp_matches_exact_geodesic():
     theta = 0.3
     a = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=[0.1])
@@ -269,6 +292,63 @@ def test_retraction_jacobian_matches_change_of_tangent_point(mode, order):
         numerical,
         atol=2.0e-9,
     )
+
+
+@pytest.mark.parametrize("order", ["right", "left"])
+def test_quaternion_vector_reset_jacobian_matches_closed_form_at_large_delta(order):
+    state = State(w=np.zeros(3), q=_unit([0.7, 0.1, -0.2, 0.3]), h=[0.4])
+    delta = np.zeros(state.tangent_size)
+    attitude = np.array([0.8, -0.55, 0.35])
+    delta[state.slice("attitude", coordinates="tangent")] = attitude
+    qv = attitude / 2.0
+    q0 = np.sqrt(1.0 - qv @ qv)
+    sign = -1.0 if order == "right" else 1.0
+    expected = q0 * np.eye(3) + np.outer(qv, qv) / q0 + sign * _skew(qv)
+
+    reset = state.retraction_jacobian(
+        delta,
+        quaternion_mode="quaternion_vector",
+        quaternion_order=order,
+    )
+
+    np.testing.assert_allclose(reset[3:6, 3:6], expected, atol=1.0e-14)
+    np.testing.assert_allclose(reset[:3, :3], np.eye(3), atol=0.0)
+    np.testing.assert_allclose(reset[6:, 6:], np.eye(1), atol=0.0)
+
+
+@pytest.mark.parametrize("order", ["right", "left"])
+def test_rotation_vector_reset_jacobian_matches_closed_form_at_large_delta(order):
+    state = State(w=np.zeros(3), q=_unit([0.7, 0.1, -0.2, 0.3]), h=[0.4])
+    delta = np.zeros(state.tangent_size)
+    attitude = np.array([0.9, -0.45, 0.3])
+    delta[state.slice("attitude", coordinates="tangent")] = attitude
+
+    reset = state.retraction_jacobian(
+        delta,
+        quaternion_mode="rotation_vector",
+        quaternion_order=order,
+    )
+
+    np.testing.assert_allclose(
+        reset[3:6, 3:6],
+        _rotation_vector_reset_oracle(attitude, order),
+        atol=1.0e-14,
+    )
+
+
+def test_slice_cache_is_invalidated_when_layout_changes():
+    state = State(
+        w=np.zeros(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        h=[0.1],
+    )
+
+    assert state.full_size == 8
+    assert state.slice("wheel_momentum", coordinates="full") == slice(7, 8)
+    state.h = [0.1, 0.2, 0.3]
+
+    assert state.full_size == 10
+    assert state.slice("wheel_momentum", coordinates="full") == slice(7, 10)
 
 
 @pytest.mark.parametrize("form", ["full", "sqrt"])

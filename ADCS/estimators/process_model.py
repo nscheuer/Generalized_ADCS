@@ -7,6 +7,7 @@ how ``noiseless_rk4`` represents physical versus augmented estimator state.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
@@ -58,6 +59,14 @@ def propagate_state(
             f"but satellite expects {expected_size}"
         )
 
+    integrator_midpoint = midpoint_orbital_state
+    if quaternion_integrator == "cg5":
+        if isinstance(midpoint_orbital_state, Sequence):
+            if len(midpoint_orbital_state) != 5:
+                raise ValueError("cg5 midpoint_orbital_state must contain five stage states")
+        elif midpoint_orbital_state is not None:
+            integrator_midpoint = None
+
     propagated = satellite.noiseless_rk4(
         state,
         control,
@@ -65,7 +74,7 @@ def propagate_state(
         orbital_state_start,
         orbital_state_end,
         verbose=False,
-        mid_orbital_state=midpoint_orbital_state,
+        mid_orbital_state=integrator_midpoint,
         quat_as_vec=quaternion_integrator == "rk4",
         give_err_est=False,
     )

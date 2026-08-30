@@ -114,6 +114,42 @@ def _quaternion_tangent_scale(mode: str) -> float:
     }[mode]
 
 
+def _skew(vector: np.ndarray) -> np.ndarray:
+    return np.array(
+        [
+            [0.0, -vector[2], vector[1]],
+            [vector[2], 0.0, -vector[0]],
+            [-vector[1], vector[0], 0.0],
+        ]
+    )
+
+
+def _rotation_vector_reset_jacobian(vector: np.ndarray, order: QuaternionOrder) -> np.ndarray:
+    theta = float(np.linalg.norm(vector))
+    theta_sq = theta * theta
+    if theta < 1.0e-8:
+        a = 0.5 - theta_sq / 24.0
+        b = 1.0 / 6.0 - theta_sq / 120.0
+    else:
+        a = (1.0 - np.cos(theta)) / theta_sq
+        b = (theta - np.sin(theta)) / (theta_sq * theta)
+    cross = _skew(vector)
+    sign = -1.0 if order == "right" else 1.0
+    return np.eye(3) + sign * a * cross + b * (cross @ cross)
+
+
+def _quaternion_vector_reset_jacobian(vector: np.ndarray, order: QuaternionOrder) -> np.ndarray | None:
+    qv = vector / 2.0
+    qv_norm_sq = float(qv @ qv)
+    if qv_norm_sq > 1.0:
+        raise ValueError("attitude delta exceeds quaternion-vector range (norm > 2)")
+    q0 = np.sqrt(max(0.0, 1.0 - qv_norm_sq))
+    if q0 <= 1.0e-12:
+        return None
+    sign = -1.0 if order == "right" else 1.0
+    return q0 * np.eye(3) + np.outer(qv, qv) / q0 + sign * _skew(qv)
+
+
 def _vector(value: Any, *, name: str, size: int | None = None) -> np.ndarray:
     array = np.array(value, dtype=float, copy=True)
     if array.ndim != 1:
@@ -171,6 +207,12 @@ class State:
     w: np.ndarray
     q: np.ndarray
     h: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
+    _slice_cache: dict[StateCoordinates, dict[str, slice]] = field(
+        default_factory=dict,
+        init=False,
+        repr=False,
+        compare=False,
+    )
 
     DEFAULT_QUATERNION_MODE: ClassVar[QuaternionMode] = "quaternion_vector"
     DEFAULT_QUATERNION_ORDER: ClassVar[QuaternionOrder] = "right"
@@ -194,6 +236,8 @@ class State:
         elif name == "h":
             value = _vector(value, name=name)
         object.__setattr__(self, name, value)
+        if name in self._BLOCK_ATTRIBUTES.values() and hasattr(self, "_slice_cache"):
+            self._slice_cache.clear()
 
     def __eq__(self, other: object) -> bool:
         if type(other) is not State:
@@ -284,29 +328,20 @@ class State:
         ``quaternion`` remains an alias for the canonical ``attitude`` name.
         """
         coordinates = self._coordinates(coordinates)
+        cached = self._cached_slices(coordinates)
         canonical = self._BLOCK_ALIASES.get(name, name)
         if canonical == "physical":
-            return slice(0, self.block_size("physical", coordinates=coordinates))
+            return cached["physical"]
         if canonical == "estimated_parameters":
-            start = self.block_size("physical", coordinates=coordinates)
-            return slice(start, self.size(coordinates=coordinates))
-
-        start = 0
-        for block_name, attribute in self._BLOCK_FIELDS:
-            width = self._block_width(block_name, attribute, coordinates)
-            if block_name == canonical:
-                return slice(start, start + width)
-            start += width
+            return cached["estimated_parameters"]
+        if canonical in cached:
+            return cached[canonical]
         raise KeyError(f"unknown state block {name!r}; expected one of {self.block_names}")
 
-    def slices(self, *, coordinates: str = "full") -> dict[str, slice]:
-        """Return all named slices for one coordinate representation.
-
-        For repeated block assembly, obtain this mapping once and reuse it.
-        Single-block callers should prefer :meth:`slice`, which avoids
-        allocating a mapping.
-        """
-        coordinates = self._coordinates(coordinates)
+    def _cached_slices(self, coordinates: StateCoordinates) -> dict[str, slice]:
+        cached = self._slice_cache.get(coordinates)
+        if cached is not None:
+            return cached
         result: dict[str, slice] = {}
         start = 0
         physical_stop = 0
@@ -320,7 +355,18 @@ class State:
         result["estimated_parameters"] = slice(physical_stop, start)
         if coordinates == "full":
             result["quaternion"] = result["attitude"]
+        self._slice_cache[coordinates] = result
         return result
+
+    def slices(self, *, coordinates: str = "full") -> dict[str, slice]:
+        """Return all named slices for one coordinate representation.
+
+        For repeated block assembly, obtain this mapping once and reuse it.
+        Single-block callers should prefer :meth:`slice`, which avoids
+        allocating a mapping.
+        """
+        coordinates = self._coordinates(coordinates)
+        return dict(self._cached_slices(coordinates))
 
     @property
     def full_slices(self) -> dict[str, slice]:
@@ -345,10 +391,7 @@ class State:
     def size(self, *, coordinates: str = "full") -> int:
         """Return the total stored or local state dimension."""
         coordinates = self._coordinates(coordinates)
-        return sum(
-            self._block_width(name, attribute, coordinates)
-            for name, attribute in self._BLOCK_FIELDS
-        )
+        return self._cached_slices(coordinates)["estimated_parameters"].stop
 
     def validate_layout(self, **expected_sizes: int) -> None:
         """Validate selected block dimensions with concise diagnostics.
@@ -384,6 +427,7 @@ class State:
 
     def copy(self) -> State:
         result = object.__new__(State)
+        object.__setattr__(result, "_slice_cache", {})
         object.__setattr__(result, "w", self.w.copy())
         object.__setattr__(result, "q", self.q.copy())
         object.__setattr__(result, "h", self.h.copy())
@@ -561,7 +605,7 @@ class State:
         *,
         quaternion_mode: str = DEFAULT_QUATERNION_MODE,
         quaternion_order: str = DEFAULT_QUATERNION_ORDER,
-        step: float = 1.0e-7,
+        step: float = 1.0e-5,
     ) -> np.ndarray:
         r"""Return the covariance-reset Jacobian after retracting ``delta``.
 
@@ -591,6 +635,20 @@ class State:
 
         coordinates = "full" if quaternion_mode == "full_quaternion" else "tangent"
         attitude = self.slice("attitude", coordinates=coordinates)
+        if quaternion_mode == "rotation_vector":
+            result = np.eye(local_size)
+            result[attitude, attitude] = _rotation_vector_reset_jacobian(
+                delta[attitude], quaternion_order
+            )
+            return result
+        if quaternion_mode == "quaternion_vector":
+            attitude_reset = _quaternion_vector_reset_jacobian(
+                delta[attitude], quaternion_order
+            )
+            if attitude_reset is not None:
+                result = np.eye(local_size)
+                result[attitude, attitude] = attitude_reset
+                return result
         updated = self.plus(
             delta,
             quaternion_mode=quaternion_mode,
@@ -692,9 +750,7 @@ class State:
         order = _quaternion_order(quaternion_order)
         q = _unit_quaternion(self.q)
         q0, qv = q[0], q[1:]
-        cross = np.array(
-            [[0.0, -qv[2], qv[1]], [qv[2], 0.0, -qv[0]], [-qv[1], qv[0], 0.0]]
-        )
+        cross = _skew(qv)
         sign = 1.0 if order == "right" else -1.0
         quaternion_block = _quaternion_tangent_scale(quaternion_mode) * np.vstack(
             (-qv, q0 * np.eye(3) + sign * cross)
@@ -923,6 +979,7 @@ class EstimatorState(State):
         covariance: Covariance | None = None,
         process_noise: Covariance | None = None,
     ) -> None:
+        object.__setattr__(self, "_slice_cache", {})
         self.w = w
         self.q = q
         self.h = h
@@ -979,6 +1036,8 @@ class EstimatorState(State):
             value = _vector(value, name=name, size=vector_sizes[name])
             self._validate_existing_covariances_for_vector_assignment(name, value)
         object.__setattr__(self, name, value)
+        if name in vector_sizes and hasattr(self, "_slice_cache"):
+            self._slice_cache.clear()
 
     def _coerce_covariance(
         self,

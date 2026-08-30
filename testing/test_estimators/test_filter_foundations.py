@@ -23,7 +23,7 @@ from ADCS.satellite_hardware.sensors import (
     SunPair,
     SunSensor,
 )
-from ADCS.state import EstimatorState
+from ADCS.state import EstimatorState, State
 
 
 @pytest.fixture(scope="module")
@@ -50,6 +50,31 @@ def _estimate(*, wheel_momentum=()) -> EstimatorState:
         q=quaternion,
         h=wheel_momentum,
     )
+
+
+class _RecordingSatellite:
+    state_len = 7
+
+    def __init__(self):
+        self.mid_orbital_state = None
+        self.quat_as_vec = None
+
+    def noiseless_rk4(
+        self,
+        state,
+        control,
+        dt,
+        orbital_state_start,
+        orbital_state_end,
+        *,
+        verbose,
+        mid_orbital_state,
+        quat_as_vec,
+        give_err_est,
+    ):
+        self.mid_orbital_state = mid_orbital_state
+        self.quat_as_vec = quat_as_vec
+        return state.copy()
 
 
 def _numerical_discrete_transition(
@@ -129,6 +154,61 @@ def test_deterministic_propagation_preserves_estimator_blocks_and_ownership(
     np.testing.assert_array_equal(propagated.dist_param, state.dist_param)
     np.testing.assert_array_equal(propagated.cov, state.cov)
     np.testing.assert_array_equal(propagated.int_cov, state.int_cov)
+
+
+def test_cg5_propagation_lets_satellite_build_stage_orbital_states(orbital_state):
+    satellite = _RecordingSatellite()
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
+
+    propagate_state(
+        state,
+        satellite,
+        np.zeros(0),
+        0.01,
+        orbital_state,
+        orbital_state,
+        midpoint_orbital_state=orbital_state,
+        quaternion_integrator="cg5",
+    )
+
+    assert satellite.quat_as_vec is False
+    assert satellite.mid_orbital_state is None
+
+
+def test_cg5_propagation_accepts_five_stage_orbital_states(orbital_state):
+    satellite = _RecordingSatellite()
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
+    stages = [orbital_state] * 5
+
+    propagate_state(
+        state,
+        satellite,
+        np.zeros(0),
+        0.01,
+        orbital_state,
+        orbital_state,
+        midpoint_orbital_state=stages,
+        quaternion_integrator="cg5",
+    )
+
+    assert satellite.mid_orbital_state is stages
+
+
+def test_cg5_propagation_rejects_wrong_number_of_stage_orbital_states(orbital_state):
+    satellite = _RecordingSatellite()
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
+
+    with pytest.raises(ValueError, match="five stage states"):
+        propagate_state(
+            state,
+            satellite,
+            np.zeros(0),
+            0.01,
+            orbital_state,
+            orbital_state,
+            midpoint_orbital_state=[orbital_state] * 4,
+            quaternion_integrator="cg5",
+        )
 
 
 @pytest.mark.parametrize(
