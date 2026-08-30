@@ -182,7 +182,7 @@ class MTM(Sensor):
                  otherwise a ``(0, 1)`` empty matrix.
         :rtype: numpy.ndarray
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return np.ones((1,1))
         else:
             return np.zeros((0,1))
@@ -246,4 +246,3 @@ class MTM(Sensor):
         return np.vstack([np.zeros((3,1)), vecs['db']@np.expand_dims(self.axis,1)])
         
     
-

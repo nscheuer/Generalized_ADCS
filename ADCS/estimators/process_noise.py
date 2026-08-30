@@ -13,6 +13,7 @@ from typing import Any
 import numpy as np
 from scipy.linalg import expm
 
+from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.state import EstimatorState, State
 
 
@@ -63,6 +64,49 @@ def _hardware_psd(satellite: Any, method: str, size: int, *, name: str) -> np.nd
             f"{method}() returned {value.shape}, but EstimatorState {name} block has size {size}"
         )
     return value
+
+
+def _tangent_map_rate(
+    state: EstimatorState,
+    state_rate: np.ndarray,
+    *,
+    quaternion_mode: str,
+    quaternion_order: str,
+) -> np.ndarray:
+    r"""Return :math:`\dot G` for the local-to-full tangent map.
+
+    The tangent map depends on the nominal quaternion.  A local perturbation
+    satisfies ``delta_full = G(q) @ delta_local``; differentiating this
+    relation gives ``delta_dot_local = G^dagger (A G - G_dot) delta_local``.
+    ``G_dot`` is evaluated along the nominal quaternion trajectory.  Keeping
+    this small numerical derivative here supports every quaternion chart
+    already implemented by :class:`State` without duplicating chart-specific
+    derivatives.
+    """
+    state_rate = np.asarray(state_rate, dtype=float)
+    if state_rate.shape != (state.full_size,):
+        raise ValueError(
+            f"state_rate must have shape ({state.full_size},), got {state_rate.shape}"
+        )
+    q_rate = state_rate[3:7]
+    if np.linalg.norm(q_rate) == 0.0:
+        return np.zeros((state.full_size, state.tangent_size))
+
+    step = 1.0e-7
+    plus = state.copy()
+    minus = state.copy()
+    plus.q = state.q + step * q_rate
+    minus.q = state.q - step * q_rate
+    return (
+        plus.tangent_map(
+            quaternion_mode=quaternion_mode,
+            quaternion_order=quaternion_order,
+        )
+        - minus.tangent_map(
+            quaternion_mode=quaternion_mode,
+            quaternion_order=quaternion_order,
+        )
+    ) / (2.0 * step)
 
 
 def assemble_continuous_process_psd(
@@ -125,7 +169,9 @@ def error_state_transfer(
     r"""Return the continuous local error-state transfer matrix ``F``.
 
     ``F`` is chart-local at ``state``; it must be rebuilt after the estimate's
-    linearization point or quaternion chart changes.
+    linearization point or quaternion chart changes.  Because the quaternion
+    tangent map moves with the nominal attitude, the returned matrix includes
+    the chart-motion term ``G_dot``.
 
     ``EstimatedSatellite.dynJacCore`` stores derivative variables in rows and
     derivative outputs in columns.  This function converts that historical
@@ -154,16 +200,45 @@ def error_state_transfer(
         if np.asarray(block).shape != expected:
             raise ValueError(f"dynJacCore {name} block must have shape {expected}")
         full[:base, sl] = np.asarray(block, dtype=float).T
-    if quaternion_mode == "full_quaternion":
-        normalizer = state.normalization_jacobian()
-        return normalizer @ full @ normalizer
+
+    dynamics_core = getattr(satellite, "dynamics_core", None)
+    if dynamics_core is None:
+        # Keep lightweight Jacobian providers usable.  Real spacecraft models
+        # provide dynamics_core, which is required for the moving-chart term.
+        state_rate = np.zeros(state.full_size)
+    else:
+        state_rate = np.asarray(
+            dynamics_core(
+                state,
+                np.asarray(control, dtype=float),
+                orbital_state,
+                dmode=ErrorMode(
+                    add_bias=False,
+                    add_noise=False,
+                    update_bias=False,
+                    update_noise=False,
+                ),
+            ),
+            dtype=float,
+        )
+        if state_rate.shape != (base,):
+            raise ValueError(
+                f"dynamics_core must return shape ({base},), got {state_rate.shape}"
+            )
+
     tangent = state.tangent_map(
         quaternion_mode=quaternion_mode, quaternion_order=quaternion_order
     )
     tangent_pinv = state.tangent_pinv(
         quaternion_mode=quaternion_mode, quaternion_order=quaternion_order
     )
-    return tangent_pinv @ full @ tangent
+    tangent_rate = _tangent_map_rate(
+        state,
+        np.pad(state_rate, (0, state.full_size - state_rate.size)),
+        quaternion_mode=quaternion_mode,
+        quaternion_order=quaternion_order,
+    )
+    return tangent_pinv @ (full @ tangent - tangent_rate)
 
 
 def continuous_error_state_model(

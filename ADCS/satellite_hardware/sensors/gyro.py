@@ -176,7 +176,7 @@ class Gyro(Sensor):
                  otherwise a ``(0, 1)`` empty matrix.
         :rtype: numpy.ndarray
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return np.ones((1,1))
         else:
             return np.zeros((0,1))

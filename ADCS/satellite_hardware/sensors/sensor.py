@@ -255,7 +255,7 @@ class Sensor:
         :rtype: numpy.ndarray
 
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return np.eye(self.output_length)
         else:
             return np.zeros((0, self.output_length))
