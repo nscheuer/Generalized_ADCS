@@ -94,11 +94,11 @@ def test_match_estimate_rejects_non_estimator_state() -> None:
         )
 
 
-def test_match_estimate_rejects_wrong_augmented_size() -> None:
+def test_match_estimate_rejects_wrong_disturbance_parameter_layout() -> None:
     satellite = _make_estimated_satellite()
     est_state = _state(satellite, dist_param=np.zeros(satellite.dist_param_len + 1))
 
-    with pytest.raises(ValueError, match="wrong size"):
+    with pytest.raises(ValueError, match="disturbance_parameter.*expected"):
         satellite.match_estimate(est_state, dt=1.0)
 
 
@@ -110,7 +110,7 @@ def test_match_estimate_rejects_wrong_wheel_state_count_after_size_check() -> No
         act_bias=np.zeros(satellite.act_bias_len + 1),
     )
 
-    with pytest.raises(ValueError, match="wheel states"):
+    with pytest.raises(ValueError, match="wheel_momentum.*expected"):
         satellite.match_estimate(est_state, dt=1.0)
 
 
@@ -122,7 +122,7 @@ def test_match_estimate_rejects_wrong_actuator_bias_count_after_size_check() -> 
         sens_bias=np.zeros(satellite.att_sens_bias_len + 1),
     )
 
-    with pytest.raises(ValueError, match="actuator biases"):
+    with pytest.raises(ValueError, match="actuator_bias.*expected"):
         satellite.match_estimate(est_state, dt=1.0)
 
 
@@ -134,36 +134,32 @@ def test_match_estimate_rejects_wrong_sensor_bias_count_after_size_check() -> No
         dist_param=np.zeros(satellite.dist_param_len + 1),
     )
 
-    with pytest.raises(ValueError, match="sensor biases"):
+    with pytest.raises(ValueError, match="sensor_bias.*expected"):
         satellite.match_estimate(est_state, dt=1.0)
 
 
-@pytest.mark.xfail(reason="dist_param length check is unreachable after augmented_size validation")
 def test_match_estimate_rejects_wrong_disturbance_parameter_count_after_size_check() -> None:
     satellite = _make_estimated_satellite()
     est_state = _state(satellite, dist_param=np.zeros(satellite.dist_param_len - 1))
 
-    with pytest.raises(ValueError, match="disturbance parameters"):
+    with pytest.raises(ValueError, match="disturbance_parameter.*expected"):
         satellite.match_estimate(est_state, dt=1.0)
 
 
-def test_match_estimate_uses_full_size_integrated_covariance_without_index_shift() -> None:
+@pytest.mark.parametrize("full_cov", [False, True])
+def test_match_estimate_uses_state_layout_for_integrated_covariance(full_cov: bool) -> None:
     satellite = _make_estimated_satellite()
-    expected_len = (
-        satellite.state_len
-        + satellite.act_bias_len
-        + satellite.att_sens_bias_len
-        + satellite.dist_param_len
-    )
     est_state = _state(
         satellite,
         h=np.array([0.04, -0.03]),
         act_bias=np.array([1.0e-3, -2.0e-3, 3.0e-3]),
         sens_bias=np.array([4.0e-3, -5.0e-3, 6.0e-3]),
         dist_param=np.array([7.0e-6, -8.0e-6, 9.0e-6]),
-        full_cov=True,
+        full_cov=full_cov,
     )
-    diagonal = np.arange(1, expected_len + 1, dtype=float) ** 2
+    coordinates = "full" if full_cov else "tangent"
+    covariance_size = est_state.size(coordinates=coordinates)
+    diagonal = np.arange(1, covariance_size + 1, dtype=float) ** 2
     est_state.int_cov = np.diag(diagonal)
 
     satellite.match_estimate(est_state, dt=1.0)
@@ -179,20 +175,20 @@ def test_match_estimate_uses_full_size_integrated_covariance_without_index_shift
     )
     np.testing.assert_allclose(satellite.disturbances[0].main_param, est_state.dist_param)
 
-    act_start = satellite.state_len
-    sens_start = act_start + satellite.act_bias_len
-    dist_start = sens_start + satellite.att_sens_bias_len
+    act_slice = est_state.slice("actuator_bias", coordinates=coordinates)
+    sens_slice = est_state.slice("sensor_bias", coordinates=coordinates)
+    dist_slice = est_state.slice("disturbance_parameter", coordinates=coordinates)
     np.testing.assert_allclose(
         [np.asarray(act.bias.estimated_std_bias).reshape(-1)[0] for act in satellite.actuators[:3]],
-        np.sqrt(diagonal[act_start : act_start + satellite.act_bias_len]),
+        np.sqrt(diagonal[act_slice]),
     )
     np.testing.assert_allclose(
         [np.asarray(sensor.bias.estimated_std_bias).reshape(-1)[0] for sensor in satellite.attitude_sensors],
-        np.sqrt(diagonal[sens_start : sens_start + satellite.att_sens_bias_len]),
+        np.sqrt(diagonal[sens_slice]),
     )
     np.testing.assert_allclose(
         satellite.disturbances[0].std,
-        np.sqrt(diagonal[dist_start : dist_start + satellite.dist_param_len]),
+        np.sqrt(diagonal[dist_slice]),
     )
     np.testing.assert_allclose(
         [np.asarray(act.bias.std_bias).item() for act in satellite.actuators[:3]],

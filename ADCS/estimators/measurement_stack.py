@@ -261,10 +261,12 @@ class MeasurementStack:
             else:
                 block = entry.source.measurement_covariance().as_matrix()
             if entry.is_quaternion_attitude:
+                attitude_tangent = state.slice("attitude", coordinates="tangent")
+                attitude_full = state.slice("attitude", coordinates="full")
                 reduction = state.tangent_pinv(
                     quaternion_mode=quaternion_mode,
                     quaternion_order="right",
-                )[3:6, 3:7]
+                )[attitude_tangent, attitude_full]
                 block = reduction @ block @ reduction.T
             blocks.append(block)
         return Covariance.block_diagonal(
@@ -289,19 +291,21 @@ class MeasurementStack:
             quaternion_mode=quaternion_mode,
             quaternion_order="right",
         )
-        base_size = state.full_slices["wheel_momentum"].stop
+        base_size = state.slice("physical", coordinates="full").stop
+        wheel_tangent = state.slice("wheel_momentum", coordinates="tangent")
+        attitude_tangent = state.slice("attitude", coordinates="tangent")
 
         for entry, selected in zip(self._entries, active):
             if not selected:
                 continue
             if entry.sensor_index is None:
                 row = np.zeros((1, state.tangent_size))
-                row[0, state.tangent_slices["wheel_momentum"].start + entry.wheel_index] = 1.0
+                row[0, wheel_tangent.start + entry.wheel_index] = 1.0
                 rows.append(row)
                 continue
             if entry.is_quaternion_attitude:
                 row = np.zeros((3, state.tangent_size))
-                row[:, state.tangent_slices["attitude"]] = np.eye(3)
+                row[:, attitude_tangent] = np.eye(3)
                 rows.append(row)
                 continue
 
@@ -337,7 +341,7 @@ class MeasurementStack:
         bias_slice = self.satellite.sensor_bias_slice(sensor_index)
         if bias_slice is None:
             return None
-        sensor_bias_start = state.full_slices["sensor_bias"].start
+        sensor_bias_start = state.slice("sensor_bias", coordinates="full").start
         local = slice(
             bias_slice.start - sensor_bias_start,
             bias_slice.stop - sensor_bias_start,
@@ -347,14 +351,11 @@ class MeasurementStack:
     def _validate_state(self, state: EstimatorState) -> None:
         if not isinstance(state, EstimatorState):
             raise TypeError(f"state must be an EstimatorState, got {type(state).__name__}")
-        if state.h.size != len(self.satellite.rw_actuators):
-            raise ValueError(
-                "EstimatorState wheel-momentum block must match the number of reaction wheels"
-            )
-        if state.act_bias.size != self.satellite.act_bias_len:
-            raise ValueError("EstimatorState actuator-bias block does not match the satellite layout")
-        if state.sens_bias.size != self.satellite.att_sens_bias_len:
-            raise ValueError("EstimatorState sensor-bias block does not match the satellite layout")
+        state.validate_layout(
+            wheel_momentum=len(self.satellite.rw_actuators),
+            actuator_bias=self.satellite.act_bias_len,
+            sensor_bias=self.satellite.att_sens_bias_len,
+        )
 
     def _raw_measurements(self, measurements: Any, *, name: str = "measurements") -> np.ndarray:
         values = np.asarray(measurements, dtype=float)

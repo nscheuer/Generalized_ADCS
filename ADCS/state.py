@@ -21,6 +21,7 @@ QuaternionMode = Literal[
     "full_quaternion",
 ]
 QuaternionOrder = Literal["right", "left"]
+StateCoordinates = Literal["full", "tangent"]
 
 
 def _quaternion_mode(value: str) -> QuaternionMode:
@@ -173,6 +174,17 @@ class State:
 
     DEFAULT_QUATERNION_MODE: ClassVar[QuaternionMode] = "quaternion_vector"
     DEFAULT_QUATERNION_ORDER: ClassVar[QuaternionOrder] = "right"
+    _BLOCK_FIELDS: ClassVar[tuple[tuple[str, str], ...]] = (
+        ("angular_velocity", "w"),
+        ("attitude", "q"),
+        ("wheel_momentum", "h"),
+    )
+    _BLOCK_NAMES: ClassVar[tuple[str, ...]] = tuple(name for name, _ in _BLOCK_FIELDS)
+    _BLOCK_ATTRIBUTES: ClassVar[Mapping[str, str]] = dict(_BLOCK_FIELDS)
+    _BLOCK_ALIASES: ClassVar[Mapping[str, str]] = {
+        "quaternion": "attitude",
+        "estimated_parameter": "estimated_parameters",
+    }
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "w":
@@ -205,14 +217,165 @@ class State:
         return np.concatenate((self.w, self.q, self.h))
 
     @property
+    def block_names(self) -> tuple[str, ...]:
+        """Canonical state-block names in storage order."""
+        return self._BLOCK_NAMES
+
+    def block(self, name: str) -> np.ndarray:
+        """Return a state block by semantic name without copying it.
+
+        This is the bridge between estimator mathematics and storage names:
+        ``state.block("attitude")`` returns ``state.q`` and
+        ``state.block("wheel_momentum")`` returns ``state.h``.  Callers that
+        need ownership should copy the returned array.
+        """
+        canonical = self._BLOCK_ALIASES.get(name, name)
+        try:
+            attribute = self._BLOCK_ATTRIBUTES[canonical]
+        except KeyError:
+            raise KeyError(
+                f"unknown state block {name!r}; expected one of {self.block_names}"
+            ) from None
+        return getattr(self, attribute)
+
+    @staticmethod
+    def _coordinates(value: str) -> StateCoordinates:
+        if value not in ("full", "tangent"):
+            raise ValueError(f"coordinates must be 'full' or 'tangent', got {value!r}")
+        return value  # type: ignore[return-value]
+
+    def block_size(self, name: str, *, coordinates: str = "full") -> int:
+        """Return one block's dimension in stored or local coordinates."""
+        coordinates = self._coordinates(coordinates)
+        canonical = self._BLOCK_ALIASES.get(name, name)
+        if canonical == "physical":
+            return sum(
+                self._block_width(block_name, attribute, coordinates)
+                for block_name, attribute in State._BLOCK_FIELDS
+            )
+        if canonical == "estimated_parameters":
+            return sum(
+                self._block_width(block_name, attribute, coordinates)
+                for block_name, attribute in self._BLOCK_FIELDS[len(State._BLOCK_FIELDS) :]
+            )
+        try:
+            attribute = self._BLOCK_ATTRIBUTES[canonical]
+        except KeyError:
+            raise KeyError(
+                f"unknown state block {name!r}; expected one of {self.block_names}"
+            ) from None
+        return self._block_width(canonical, attribute, coordinates)
+
+    def _block_width(
+        self,
+        name: str,
+        attribute: str,
+        coordinates: StateCoordinates,
+    ) -> int:
+        if coordinates == "tangent" and name == "attitude":
+            return 3
+        return getattr(self, attribute).size
+
+    def slice(self, name: str, *, coordinates: str = "full") -> slice:
+        """Return a block slice in stored or local state coordinates.
+
+        ``physical`` selects angular velocity through wheel momentum;
+        ``estimated_parameters`` selects all augmented bias/parameter blocks.
+        ``quaternion`` remains an alias for the canonical ``attitude`` name.
+        """
+        coordinates = self._coordinates(coordinates)
+        canonical = self._BLOCK_ALIASES.get(name, name)
+        if canonical == "physical":
+            return slice(0, self.block_size("physical", coordinates=coordinates))
+        if canonical == "estimated_parameters":
+            start = self.block_size("physical", coordinates=coordinates)
+            return slice(start, self.size(coordinates=coordinates))
+
+        start = 0
+        for block_name, attribute in self._BLOCK_FIELDS:
+            width = self._block_width(block_name, attribute, coordinates)
+            if block_name == canonical:
+                return slice(start, start + width)
+            start += width
+        raise KeyError(f"unknown state block {name!r}; expected one of {self.block_names}")
+
+    def slices(self, *, coordinates: str = "full") -> dict[str, slice]:
+        """Return all named slices for one coordinate representation.
+
+        For repeated block assembly, obtain this mapping once and reuse it.
+        Single-block callers should prefer :meth:`slice`, which avoids
+        allocating a mapping.
+        """
+        coordinates = self._coordinates(coordinates)
+        result: dict[str, slice] = {}
+        start = 0
+        physical_stop = 0
+        for index, (name, attribute) in enumerate(self._BLOCK_FIELDS):
+            width = self._block_width(name, attribute, coordinates)
+            result[name] = slice(start, start + width)
+            start += width
+            if index + 1 == len(State._BLOCK_FIELDS):
+                physical_stop = start
+        result["physical"] = slice(0, physical_stop)
+        result["estimated_parameters"] = slice(physical_stop, start)
+        if coordinates == "full":
+            result["quaternion"] = result["attitude"]
+        return result
+
+    @property
+    def full_slices(self) -> dict[str, slice]:
+        """Compatibility mapping of stored-vector slices.
+
+        New code should prefer :meth:`slice` or :meth:`slices`; this property
+        retains the established ``quaternion`` key and compact mapping.
+        """
+        result = self.slices(coordinates="full")
+        result.pop("attitude")
+        result.pop("physical")
+        result.pop("estimated_parameters")
+        return result
+
+    @property
+    def tangent_slices(self) -> dict[str, slice]:
+        """Compatibility mapping of local-error slices."""
+        result = self.slices(coordinates="tangent")
+        result.pop("estimated_parameters")
+        return result
+
+    def size(self, *, coordinates: str = "full") -> int:
+        """Return the total stored or local state dimension."""
+        coordinates = self._coordinates(coordinates)
+        return sum(
+            self._block_width(name, attribute, coordinates)
+            for name, attribute in self._BLOCK_FIELDS
+        )
+
+    def validate_layout(self, **expected_sizes: int) -> None:
+        """Validate selected block dimensions with concise diagnostics.
+
+        Example: ``state.validate_layout(wheel_momentum=3, sensor_bias=6)``.
+        Dimensions refer to stored coordinates; only attitude differs in local
+        coordinates, and hardware-facing layout checks should never depend on
+        the chosen attitude chart.
+        """
+        for name, expected in expected_sizes.items():
+            if not isinstance(expected, (int, np.integer)) or expected < 0:
+                raise ValueError(f"expected size for {name!r} must be a non-negative integer")
+            actual = self.block_size(name)
+            if actual != expected:
+                raise ValueError(
+                    f"state block {name!r} has size {actual}, expected {expected}"
+                )
+
+    @property
     def full_size(self) -> int:
         """Number of stored scalar state elements, including all four quaternion elements."""
-        return 7 + self.h.size
+        return self.size(coordinates="full")
 
     @property
     def tangent_size(self) -> int:
         """Dimension of the local state coordinates, with three attitude elements."""
-        return self.full_size - 1
+        return self.size(coordinates="tangent")
 
     @property
     def error_size(self) -> int:
@@ -373,17 +536,19 @@ class State:
         quaternion_mode = _quaternion_mode(quaternion_mode)
         if quaternion_mode == "full_quaternion":
             delta = _vector(delta, name="delta", size=self.full_size)
+            slices = self.slices(coordinates="full")
             result = self.copy()
-            result.w = self.w + delta[:3]
-            q = self.q + delta[3:7]
+            result.w = self.w + delta[slices["angular_velocity"]]
+            q = self.q + delta[slices["attitude"]]
             result.q = _unit_quaternion(q) if normalize else q
-            result.h = self.h + delta[7:]
+            result.h = self.h + delta[slices["wheel_momentum"]]
             return result
         delta = _vector(delta, name="delta", size=self.tangent_size)
-        dq = _quat_delta_from_vector(delta[3:6], quaternion_mode)
+        slices = self.slices(coordinates="tangent")
+        dq = _quat_delta_from_vector(delta[slices["attitude"]], quaternion_mode)
         result = self.with_quaternion_delta(dq, order=quaternion_order, normalize=normalize)
-        result.w = self.w + delta[:3]
-        result.h = self.h + delta[6:]
+        result.w = self.w + delta[slices["angular_velocity"]]
+        result.h = self.h + delta[slices["wheel_momentum"]]
         return result
 
     def retract(self, delta: Any, **kwargs: Any) -> State:
@@ -440,10 +605,14 @@ class State:
         quaternion_block = _quaternion_tangent_scale(quaternion_mode) * np.vstack(
             (-qv, q0 * np.eye(3) + sign * cross)
         )
+        full = self.slices(coordinates="full")
+        tangent = self.slices(coordinates="tangent")
         result = np.zeros((self.full_size, self.tangent_size), dtype=float)
-        result[:3, :3] = np.eye(3)
-        result[3:7, 3:6] = quaternion_block
-        result[7:, 6:] = np.eye(self.full_size - 7)
+        for name in self.block_names:
+            if name == "attitude":
+                result[full[name], tangent[name]] = quaternion_block
+            else:
+                result[full[name], tangent[name]] = np.eye(self.block_size(name))
         return result
 
     def tangent_pinv(
@@ -477,7 +646,10 @@ class State:
         )
         scale = _quaternion_tangent_scale(quaternion_mode)
         result = tangent.T.copy()
-        result[3:6, 3:7] /= scale**2
+        result[
+            self.slice("attitude", coordinates="tangent"),
+            self.slice("attitude", coordinates="full"),
+        ] /= scale**2
         return result
 
     def normalization_jacobian(self) -> np.ndarray:
@@ -493,7 +665,8 @@ class State:
         if not np.isfinite(norm) or norm == 0.0:
             raise ValueError("q must have a finite, non-zero norm")
         result = np.eye(self.full_size)
-        result[3:7, 3:7] = np.eye(4) / norm - np.outer(q, q) / norm**3
+        attitude = self.slice("attitude", coordinates="full")
+        result[attitude, attitude] = np.eye(4) / norm - np.outer(q, q) / norm**3
         return result
 
     def is_close(self, other: State, *, rtol: float = 1e-5, atol: float = 1e-8) -> bool:
@@ -634,6 +807,13 @@ class EstimatorState(State):
     dist_param: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
     _covariance: Covariance = field(init=False, repr=False)
     _process_noise: Covariance = field(init=False, repr=False)
+    _BLOCK_FIELDS: ClassVar[tuple[tuple[str, str], ...]] = State._BLOCK_FIELDS + (
+        ("actuator_bias", "act_bias"),
+        ("sensor_bias", "sens_bias"),
+        ("disturbance_parameter", "dist_param"),
+    )
+    _BLOCK_NAMES: ClassVar[tuple[str, ...]] = tuple(name for name, _ in _BLOCK_FIELDS)
+    _BLOCK_ATTRIBUTES: ClassVar[Mapping[str, str]] = dict(_BLOCK_FIELDS)
 
     def __init__(
         self,
@@ -661,7 +841,7 @@ class EstimatorState(State):
         if int_cov is not None and process_noise is not None:
             raise ValueError("provide either int_cov or process_noise, not both")
 
-        reduced_size = self.augmented_size - 1
+        reduced_size = self.tangent_size
         covariance_value = covariance if covariance is not None else cov
         if covariance_value is None:
             covariance_value = Covariance.zeros(
@@ -876,59 +1056,12 @@ class EstimatorState(State):
 
     @property
     def augmented_size(self) -> int:
-        return 7 + self.h.size + self.act_bias.size + self.sens_bias.size + self.dist_param.size
-
-    @property
-    def full_size(self) -> int:
-        return self.augmented_size
-
-    @property
-    def tangent_size(self) -> int:
-        return self.augmented_size - 1
-
-    @property
-    def full_slices(self) -> dict[str, slice]:
-        """Slices for the stored augmented state vector.
-
-        The order is the single source of truth for estimator-facing block
-        assembly: angular velocity, quaternion, wheel momentum, actuator
-        bias, sensor bias, and disturbance parameters.
-        """
-        i = 0
-        result = {"angular_velocity": slice(i, i + 3)}
-        i += 3
-        result["quaternion"] = slice(i, i + 4)
-        i += 4
-        result["wheel_momentum"] = slice(i, i + self.h.size)
-        i += self.h.size
-        result["actuator_bias"] = slice(i, i + self.act_bias.size)
-        i += self.act_bias.size
-        result["sensor_bias"] = slice(i, i + self.sens_bias.size)
-        i += self.sens_bias.size
-        result["disturbance_parameter"] = slice(i, i + self.dist_param.size)
-        return result
-
-    @property
-    def tangent_slices(self) -> dict[str, slice]:
-        """Slices for the local error state used by covariance and PSD models."""
-        i = 0
-        result = {"angular_velocity": slice(i, i + 3)}
-        i += 3
-        result["attitude"] = slice(i, i + 3)
-        i += 3
-        result["wheel_momentum"] = slice(i, i + self.h.size)
-        i += self.h.size
-        result["actuator_bias"] = slice(i, i + self.act_bias.size)
-        i += self.act_bias.size
-        result["sensor_bias"] = slice(i, i + self.sens_bias.size)
-        i += self.sens_bias.size
-        result["disturbance_parameter"] = slice(i, i + self.dist_param.size)
-        result["physical"] = slice(0, 6 + self.h.size)
-        return result
+        """Compatibility name for the stored estimator-state dimension."""
+        return self.full_size
 
     @property
     def uses_reduced_quaternion_covariance(self) -> bool:
-        return self.cov.shape == (self.augmented_size - 1, self.augmented_size - 1)
+        return self.cov.shape == (self.tangent_size, self.tangent_size)
 
     @classmethod
     def from_estimator_array(
@@ -969,9 +1102,7 @@ class EstimatorState(State):
         )
 
     def as_estimator_array(self) -> np.ndarray:
-        return np.concatenate(
-            (self.w, self.q, self.h, self.act_bias, self.sens_bias, self.dist_param)
-        )
+        return np.concatenate(tuple(self.block(name) for name in self.block_names))
 
     def copy(self) -> EstimatorState:
         return EstimatorState(
@@ -1079,33 +1210,24 @@ class EstimatorState(State):
         if quaternion_mode == "full_quaternion":
             delta = _vector(delta, name="delta", size=self.full_size)
             result = self.copy()
-            result.w = self.w + delta[:3]
-            q = self.q + delta[3:7]
+            slices = self.slices(coordinates="full")
+            result.w = self.w + delta[slices["angular_velocity"]]
+            q = self.q + delta[slices["attitude"]]
             result.q = _unit_quaternion(q) if normalize else q
-            i = 7
-            result.h = self.h + delta[i : i + self.h.size]
-            i += self.h.size
-            result.act_bias = self.act_bias + delta[i : i + self.act_bias.size]
-            i += self.act_bias.size
-            result.sens_bias = self.sens_bias + delta[i : i + self.sens_bias.size]
-            i += self.sens_bias.size
-            result.dist_param = self.dist_param + delta[i:]
+            for name, attribute in self._BLOCK_FIELDS[2:]:
+                setattr(result, attribute, self.block(name) + delta[slices[name]])
             return result
         delta = _vector(delta, name="delta", size=self.tangent_size)
-        dq = _quat_delta_from_vector(delta[3:6], quaternion_mode)
-        i = 6 + self.h.size
+        slices = self.slices(coordinates="tangent")
+        dq = _quat_delta_from_vector(delta[slices["attitude"]], quaternion_mode)
         result = self.with_quaternion_delta(
             dq,
             order=quaternion_order,
             normalize=normalize,
         )
-        result.w = self.w + delta[:3]
-        result.h = self.h + delta[6:i]
-        result.act_bias = self.act_bias + delta[i : i + self.act_bias.size]
-        i += self.act_bias.size
-        result.sens_bias = self.sens_bias + delta[i : i + self.sens_bias.size]
-        i += self.sens_bias.size
-        result.dist_param = self.dist_param + delta[i:]
+        result.w = self.w + delta[slices["angular_velocity"]]
+        for name, attribute in self._BLOCK_FIELDS[2:]:
+            setattr(result, attribute, self.block(name) + delta[slices[name]])
         return result
 
     def subtract(self, ref: State) -> np.ndarray:
