@@ -135,9 +135,7 @@ class Attitude_Estimator():
         # Without this the caller had no way to share a single ephemeris, nor
         # to point at one on a machine that cannot reach the network.
         if ephem is None:
-            from ADCS.estimators.attitude_estimators import attitude_estimator as public_module
-
-            ephem = public_module.Ephemeris()
+            ephem = Ephemeris()
         self.prev_os = Orbital_State(ephem=ephem, J2000=0, R=np.array([1,0,0]), V=np.array([0,1,0]))
 
         self.reset(J2000=J2000, x_hat=x_hat, P_hat=P_hat, Q_hat=Q_hat, dt=dt, cross_term=cross_term)

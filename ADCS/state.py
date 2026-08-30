@@ -168,7 +168,7 @@ def _square_matrix(value: Any, *, name: str) -> np.ndarray | None:
     return array
 
 
-@dataclass(slots=True, eq=False)
+@dataclass(slots=True, eq=False, init=False)
 class State:
     r"""Physical spacecraft state :math:`x=[\boldsymbol\omega,\mathbf q,\mathbf h]`.
 
@@ -227,6 +227,12 @@ class State:
         "quaternion": "attitude",
         "estimated_parameter": "estimated_parameters",
     }
+
+    def __init__(self, w: Any, q: Any, h: Any = ()) -> None:
+        object.__setattr__(self, "_slice_cache", {})
+        self.w = w
+        self.q = q
+        self.h = h
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "w":
@@ -755,8 +761,8 @@ class State:
         quaternion_block = _quaternion_tangent_scale(quaternion_mode) * np.vstack(
             (-qv, q0 * np.eye(3) + sign * cross)
         )
-        full = self.slices(coordinates="full")
-        tangent = self.slices(coordinates="tangent")
+        full = self._cached_slices("full")
+        tangent = self._cached_slices("tangent")
         result = np.zeros((self.full_size, self.tangent_size), dtype=float)
         for name in self.block_names:
             if name == "attitude":
