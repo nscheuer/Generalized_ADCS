@@ -3,6 +3,8 @@ import pytest
 
 from ADCS.estimators.attitude_estimators import SRUAKF, UAKF
 from ADCS.helpers.math_constants import MathConstants
+from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
@@ -11,6 +13,17 @@ from ADCS.state import EstimatorState
 
 
 UNIT_VECTORS = MathConstants.unitvecs
+
+
+def make_orbital_state() -> Orbital_State:
+    return Orbital_State(
+        ephem=Ephemeris(),
+        J2000=0.22,
+        R=np.array([7000.0, 0.0, 0.0]),
+        V=np.array([0.0, 8.0, 0.0]),
+        B=np.array([1.0e-5, 0.0, 0.0]),
+        fast=True,
+    )
 
 
 def make_estimated_satellite() -> EstimatedSatellite:
@@ -90,3 +103,69 @@ def test_match_estimate_writes_actuator_bias_values(filter_type):
     build_filter(filter_type, estimated_satellite, x_hat)
     actual_biases = np.concatenate([np.atleast_1d(actuator.bias.bias) for actuator in estimated_satellite.actuators])
     np.testing.assert_allclose(actual_biases, expected_biases, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("bias_value", [0.0, 0.01])
+@pytest.mark.parametrize("std_bias", [0.0, 1e-4])
+@pytest.mark.parametrize("estimate_bias", [False, True])
+def test_mtq_bias_derivative_shapes_follow_estimate_bias(
+    bias_value, std_bias, estimate_bias
+):
+    actuator = MTQ(
+        axis=UNIT_VECTORS[0],
+        max_torque=0.1,
+        bias=Bias(bias=bias_value, std_bias=std_bias),
+        estimate_bias=estimate_bias,
+    )
+    state = EstimatorState(w=np.zeros(3), q=np.array([1.0, 0.0, 0.0, 0.0]))
+    orbital_state = make_orbital_state()
+    expected_bias_len = 1 if estimate_bias or actuator.bias else 0
+
+    assert actuator.dtorq__dbias(0.02, state, orbital_state).shape == (
+        expected_bias_len,
+        3,
+    )
+    assert actuator.ddtorq__dudbias(0.02, state, orbital_state).shape == (
+        1,
+        expected_bias_len,
+        3,
+    )
+    assert actuator.ddtorq__dbiasdbias(0.02, state, orbital_state).shape == (
+        expected_bias_len,
+        expected_bias_len,
+        3,
+    )
+    assert actuator.ddtorq__dbiasdbasestate(0.02, state, orbital_state).shape == (
+        expected_bias_len,
+        7,
+        3,
+    )
+
+
+@pytest.mark.parametrize("std_bias", [0.0, 1e-4])
+def test_dyn_jac_core_accepts_estimated_zero_actuator_bias(std_bias):
+    actuator = MTQ(
+        axis=UNIT_VECTORS[0],
+        max_torque=0.1,
+        bias=Bias(bias=0.0, std_bias=std_bias),
+        estimate_bias=True,
+    )
+    satellite = EstimatedSatellite(
+        mass=4.0,
+        J_0=np.diagflat([3.4, 2.9, 1.3]),
+        actuators=[actuator],
+    )
+    state = EstimatorState(
+        w=np.zeros(3),
+        q=np.array([1.0, 0.0, 0.0, 0.0]),
+        act_bias=np.zeros(1),
+    )
+
+    dxdot__dab = satellite.dynJacCore(
+        state,
+        np.array([0.02]),
+        make_orbital_state(),
+    )[2]
+
+    assert satellite.act_bias_len == 1
+    assert dxdot__dab.shape == (1, satellite.state_len)

@@ -495,6 +495,8 @@ class MeasurementStack:
             return None
         if np.issubdtype(array.dtype, np.bool_):
             return array.astype(bool, copy=True)
+        if np.issubdtype(array.dtype, np.number):
+            return array.astype(bool, copy=True)
         return None
 
     def _selector_indices(self, selector: Any) -> set[int]:
