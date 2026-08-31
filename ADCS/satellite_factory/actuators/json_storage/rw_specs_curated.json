@@ -1,0 +1,162 @@
+[
+  {
+    "component_type": "reaction_wheel",
+    "vendor": "Kongsberg NanoAvionics",
+    "model": "NA-RW0-G0-R9",
+    "max_torque_Nm": 0.0032,
+    "rotor_inertia_kgm2": null,
+    "h_max_Nm_s": 0.02,
+    "initial_h_Nm_s": 0.0,
+    "mass": 0.137,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "datasheet_path": "ADCS\\satellite_factory\\actuators\\datasheet_pdf_storage\\satbase-na-4rw0-datasheet.pdf"
+  },
+  {
+    "component_type": "reaction_wheel",
+    "vendor": "Comat",
+    "model": "RW20",
+    "max_torque_Nm": 0.002,
+    "rotor_inertia_kgm2": null,
+    "h_max_Nm_s": 0.02,
+    "initial_h_Nm_s": 0.0,
+    "mass": 0.142,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "datasheet_path": "ADCS\\satellite_factory\\actuators\\datasheet_pdf_storage\\satbase-rw20-datasheet.pdf"
+  },
+  {
+    "component_type": "reaction_wheel",
+    "vendor": "R W A",
+    "model": "RWA05",
+    "max_torque_Nm": 0.016,
+    "rotor_inertia_kgm2": null,
+    "h_max_Nm_s": 0.5,
+    "initial_h_Nm_s": 0.0,
+    "mass": 1.7,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "datasheet_path": "ADCS\\satellite_factory\\actuators\\datasheet_pdf_storage\\satbase-rwa-05-datasheet.pdf"
+  },
+  {
+    "component_type": "reaction_wheel",
+    "vendor": "Cubesat Reaction Wheels",
+    "model": "CubeWheel",
+    "max_torque_Nm": 0.001,
+    "rotor_inertia_kgm2": null,
+    "h_max_Nm_s": 0.005,
+    "initial_h_Nm_s": 0.0,
+    "mass": 0.08,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "datasheet_path": "ADCS\\satellite_factory\\actuators\\datasheet_pdf_storage\\SatCatalog_-_SAVOMID_-_CubeWheel_-_Datasheet.pdf"
+  },
+  {
+    "component_type": "reaction_wheel",
+    "vendor": "Comat",
+    "model": "RW40",
+    "max_torque_Nm": 0.006,
+    "rotor_inertia_kgm2": null,
+    "h_max_Nm_s": 0.04,
+    "initial_h_Nm_s": 0.0,
+    "mass": 0.23,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "datasheet_path": "ADCS\\satellite_factory\\actuators\\datasheet_pdf_storage\\satbase-rw20-datasheet.pdf"
+  },
+  {
+    "component_type": "reaction_wheel",
+    "vendor": "Comat",
+    "model": "RW60",
+    "max_torque_Nm": 0.006,
+    "rotor_inertia_kgm2": null,
+    "h_max_Nm_s": 0.06,
+    "initial_h_Nm_s": 0.0,
+    "mass": 0.27,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "datasheet_path": "ADCS\\satellite_factory\\actuators\\datasheet_pdf_storage\\satbase-rw20-datasheet.pdf"
+  },
+  {
+    "component_type": "reaction_wheel",
+    "vendor": "Comat",
+    "model": "RW180",
+    "max_torque_Nm": 0.07,
+    "rotor_inertia_kgm2": null,
+    "h_max_Nm_s": 0.18,
+    "initial_h_Nm_s": 0.0,
+    "mass": 0.8,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "datasheet_path": "ADCS\\satellite_factory\\actuators\\datasheet_pdf_storage\\satbase-rw20-datasheet.pdf"
+  },
+  {
+    "component_type": "reaction_wheel",
+    "vendor": "Comat",
+    "model": "RW500",
+    "max_torque_Nm": 0.07,
+    "rotor_inertia_kgm2": null,
+    "h_max_Nm_s": 0.5,
+    "initial_h_Nm_s": 0.0,
+    "mass": 1.075,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "datasheet_path": "ADCS\\satellite_factory\\actuators\\datasheet_pdf_storage\\satbase-rw20-datasheet.pdf"
+  },
+  {
+    "component_type": "reaction_wheel",
+    "vendor": "Comat",
+    "model": "RW1k",
+    "max_torque_Nm": 0.07,
+    "rotor_inertia_kgm2": null,
+    "h_max_Nm_s": 1.0,
+    "initial_h_Nm_s": 0.0,
+    "mass": 1.4,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "datasheet_path": "ADCS\\satellite_factory\\actuators\\datasheet_pdf_storage\\satbase-rw20-datasheet.pdf"
+  },
+  {
+    "component_type": "reaction_wheel",
+    "vendor": "Comat",
+    "model": "RW2k",
+    "max_torque_Nm": 0.07,
+    "rotor_inertia_kgm2": null,
+    "h_max_Nm_s": 2.0,
+    "initial_h_Nm_s": 0.0,
+    "mass": 1.7,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "datasheet_path": "ADCS\\satellite_factory\\actuators\\datasheet_pdf_storage\\satbase-rw20-datasheet.pdf"
+  }
+]
