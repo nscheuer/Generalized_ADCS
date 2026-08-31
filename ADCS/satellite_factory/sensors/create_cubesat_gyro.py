@@ -78,23 +78,22 @@ def create_adis16405_gyros(
 
 
 def create_bmx055_gyros(
-    axes: np.ndarray = np.tile(np.eye(3), (6, 1)),
+    axes: np.ndarray = np.eye(3),
     bias: List[Bias] | None = None,
     noise: List[Noise] | None = None,
     estimate_bias: bool = False,
 ) -> List[Gyro]:
     r"""
-    Create the Bosch Sensortec BMX055 gyroscope channels used on MOVE-II.
+    Create one Bosch Sensortec BMX055 gyroscope triad used on MOVE-II.
 
-    MOVE-II carried one BMX055 on each of six ADCS panels, represented here as
-    eighteen one-dimensional :class:`~ADCS.satellite_hardware.sensors.Gyro`
-    channels because the exact per-panel body-frame DCMs were not recovered.
+    The BMX055 gyroscope is represented as three one-dimensional
+    :class:`~ADCS.satellite_hardware.sensors.Gyro` channels.
 
     Default error model provenance:
         ``bias`` defaults to the MOVE-II HIL simulation vector
-        ``[1.75e-3, 3.49e-3, -1.75e-3] rad/s`` repeated for each BMX055 triad.
-        ``noise`` defaults to additive Gaussian white noise with
-        ``sigma = 8.727e-4 rad/s``. The source also models scale factor,
+        ``[1.75e-3, 3.49e-3, -1.75e-3] rad/s`` for one BMX055 triad. ``noise``
+        defaults to additive Gaussian white noise with ``sigma = 8.727e-4
+        rad/s``. The source also models scale factor,
         misalignment, nonorthogonality, quantization, time sampling,
         low-pass filtering, and gyro-bias random walk; those terms are not
         represented directly by this scalar gyro factory.
@@ -107,8 +106,7 @@ def create_bmx055_gyros(
     n_axes = len(axes)
     if bias is None:
         triad_bias = np.array([1.75e-3, 3.49e-3, -1.75e-3])
-        e_bias = np.tile(triad_bias, n_axes // 3)
-        bias = [Bias(bias=e_bias[j], std_bias=0.0) for j in range(n_axes)]
+        bias = [Bias(bias=triad_bias[j], std_bias=0.0) for j in range(n_axes)]
     if noise is None:
         noise = [Noise(noise=0.0, std_noise=8.727e-4) for _ in range(n_axes)]
 
@@ -116,16 +114,15 @@ def create_bmx055_gyros(
 
 
 def create_itg3200_gyros(
-    axes: np.ndarray = np.tile(np.eye(3), (4, 1)),
+    axes: np.ndarray = np.eye(3),
     bias: List[Bias] | None = None,
     noise: List[Noise] | None = None,
     estimate_bias: bool = False,
 ) -> List[Gyro]:
     r"""
-    Create the ESTCube-1 InvenSense ITG-3200 gyro set.
+    Create one ESTCube-1 InvenSense ITG-3200 gyro triad.
 
-    ESTCube-1 carried four ITG-3200 three-axis gyros on the ADCS sensor board,
-    represented here as twelve one-dimensional
+    The ITG-3200 gyroscope is represented as three one-dimensional
     :class:`~ADCS.satellite_hardware.sensors.Gyro` channels.
 
     Default error model provenance:

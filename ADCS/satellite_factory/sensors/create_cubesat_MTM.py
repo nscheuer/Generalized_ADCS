@@ -105,23 +105,22 @@ def create_micromag3_magnetometers(
 
 
 def create_bmx055_magnetometers(
-    axes: np.ndarray = np.tile(np.eye(3), (6, 1)),
+    axes: np.ndarray = np.eye(3),
     bias: List[Bias] | None = None,
     noise: List[Noise] | None = None,
     estimate_bias: bool = False,
 ) -> List[MTM]:
     r"""
-    Create the Bosch Sensortec BMX055 magnetometer channels used on MOVE-II.
+    Create one Bosch Sensortec BMX055 magnetometer triad used on MOVE-II.
 
-    MOVE-II carried one BMX055 on each of six ADCS panels, represented here as
-    eighteen one-dimensional :class:`~ADCS.satellite_hardware.sensors.MTM`
-    channels. The exact per-panel body-frame DCMs were not recovered.
+    The BMX055 magnetometer is represented as three one-dimensional
+    :class:`~ADCS.satellite_hardware.sensors.MTM` channels.
 
     Default error model provenance:
         ``bias`` defaults to the MOVE-II HIL simulation vector
-        ``[2.0e-6, -3.0e-6, 3.0e-6] T`` repeated for each BMX055 triad.
-        ``noise`` defaults to additive Gaussian white noise with
-        ``sigma = 5.0e-7 T``. The source also models scale factor,
+        ``[2.0e-6, -3.0e-6, 3.0e-6] T`` for one BMX055 triad. ``noise``
+        defaults to additive Gaussian white noise with ``sigma = 5.0e-7 T``.
+        The source also models scale factor,
         misalignment, nonorthogonality, quantization, time sampling, and
         low-pass filtering; those terms are not represented directly here.
 
@@ -133,8 +132,7 @@ def create_bmx055_magnetometers(
     n_axes = len(axes)
     if bias is None:
         triad_bias = np.array([2.0e-6, -3.0e-6, 3.0e-6])
-        e_bias = np.tile(triad_bias, n_axes // 3)
-        bias = [Bias(bias=e_bias[j], std_bias=0.0) for j in range(n_axes)]
+        bias = [Bias(bias=triad_bias[j], std_bias=0.0) for j in range(n_axes)]
     if noise is None:
         noise = [Noise(noise=0.0, std_noise=5.0e-7) for _ in range(n_axes)]
 
@@ -142,15 +140,16 @@ def create_bmx055_magnetometers(
 
 
 def create_hmc5883l_magnetometers(
-    axes: np.ndarray = np.vstack((np.eye(3), np.eye(3))),
+    axes: np.ndarray = np.eye(3),
     bias: List[Bias] | None = None,
     noise: List[Noise] | None = None,
     estimate_bias: bool = False,
 ) -> List[MTM]:
     r"""
-    Create the ESTCube-1 Honeywell HMC5883L magnetometer set.
+    Create one ESTCube-1 Honeywell HMC5883L magnetometer triad.
 
-    ESTCube-1 used two three-axis HMC5883L magnetometers.
+    The HMC5883L magnetometer is represented as three one-dimensional
+    :class:`~ADCS.satellite_hardware.sensors.MTM` channels.
 
     Default error model provenance:
         ``bias`` defaults to a uniform initial bias over +/-2400 nT. The

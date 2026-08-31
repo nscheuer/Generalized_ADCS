@@ -103,9 +103,22 @@ def create_estcube1_cubesat(estimated: bool = False):
     ])
 
     mtqs: List[MTQ] = create_estcube1_magnetorquers(estimate_bias=estimated)
-    mtms: List[MTM] = create_hmc5883l_magnetometers(estimate_bias=estimated)
-    gyros: List[Gyro] = create_itg3200_gyros(estimate_bias=estimated)
-    suns = create_hamamatsu_s3931_sun_sensors(estimate_bias=estimated)
+    mtms: List[MTM] = [
+        mtm
+        for _ in range(2)
+        for mtm in create_hmc5883l_magnetometers(estimate_bias=estimated)
+    ]
+    gyros: List[Gyro] = [
+        gyro
+        for _ in range(4)
+        for gyro in create_itg3200_gyros(estimate_bias=estimated)
+    ]
+    sun_axes = np.repeat(np.vstack((np.eye(3), -np.eye(3))), 2, axis=0)
+    suns = [
+        sun
+        for axis in sun_axes
+        for sun in create_hamamatsu_s3931_sun_sensors(axes=np.array([axis]), estimate_bias=estimated)
+    ]
 
     geometry_faces: List[GeometryFace] = [
         GeometryFace(area=0.1*0.1, centroid=MathConstants.unitvecs[0]*0.05, normal=MathConstants.unitvecs[0], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
@@ -149,9 +162,22 @@ def create_moveii_cubesat(estimated: bool = False):
     J = np.diag([0.00297, 0.00330, 0.00320])
 
     mtqs: List[MTQ] = create_moveii_pcb_magnetorquers(estimate_bias=estimated)
-    mtms: List[MTM] = create_bmx055_magnetometers(estimate_bias=estimated)
-    gyros: List[Gyro] = create_bmx055_gyros(estimate_bias=estimated)
-    suns = create_nano_iss60_sun_sensors(estimate_bias=estimated)
+    mtms: List[MTM] = [
+        mtm
+        for _ in range(6)
+        for mtm in create_bmx055_magnetometers(estimate_bias=estimated)
+    ]
+    gyros: List[Gyro] = [
+        gyro
+        for _ in range(6)
+        for gyro in create_bmx055_gyros(estimate_bias=estimated)
+    ]
+    sun_axes = np.vstack((np.eye(3), -np.eye(2, 3)))
+    suns = [
+        sun
+        for axis in sun_axes
+        for sun in create_nano_iss60_sun_sensors(axes=np.array([axis]), estimate_bias=estimated)
+    ]
 
     geometry_faces: List[GeometryFace] = [
         GeometryFace(area=0.1*0.1, centroid=MathConstants.unitvecs[0]*0.05, normal=MathConstants.unitvecs[0], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),

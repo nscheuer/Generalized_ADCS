@@ -44,20 +44,19 @@ def create_Clydespace_3U_array(axis: np.ndarray = np.array([1, 0, 0]), bias: Bia
 
 
 def create_hamamatsu_s3931_sun_sensors(
-    axes: np.ndarray = np.repeat(np.vstack((np.eye(3), -np.eye(3))), 2, axis=0),
+    axes: np.ndarray = np.array([[1, 0, 0]]),
     bias: List[Bias] | None = None,
     noise: List[Noise] | None = None,
     estimate_bias: bool = False,
 ) -> List[SunSensor]:
     r"""
-    Create the ESTCube-1 Hamamatsu S3931 one-dimensional Sun sensor channels.
+    Create one ESTCube-1 Hamamatsu S3931 one-dimensional Sun sensor channel.
 
     ESTCube-1 had six custom Sun sensor assemblies, one per spacecraft face.
     Each assembly used two Hamamatsu S3931 one-dimensional PSDs under
-    perpendicular slits, so this factory returns twelve one-dimensional
-    :class:`~ADCS.satellite_hardware.sensors.SunSensor` channels. The preflight
-    simulator used angular noise of approximately 1.25 deg and initial angular
-    bias uniformly distributed over +/-1 deg.
+    perpendicular slits. This helper represents one such one-dimensional
+    channel. The preflight simulator used angular noise of approximately
+    1.25 deg and initial angular bias uniformly distributed over +/-1 deg.
 
     Default error model provenance:
         ``bias`` approximates the published +/-1 deg initial angular bias as a
@@ -95,13 +94,14 @@ def create_osram_sfh2430_sun_sensors(
     estimate_bias: bool = False,
 ) -> List[SunSensor]:
     r"""
-    Create the OSRAM SFH2430 coarse Sun-sensor photodiodes used on RAX.
+    Create OSRAM SFH2430 coarse Sun-sensor photodiode channels used on RAX.
 
-    RAX-1 used 9 SFH2430 photodiodes; RAX-2 used 17. Pass the mission-specific
-    azimuth/elevation table through ``az_el_deg``. The published RAX estimator
-    simulations used 0.05 V additive white noise, with scale factors around
-    2.5-4 V. This factory uses an efficiency of 3.0 V so the sensor output and
-    noise are in the same approximate voltage units.
+    By default this helper creates one photodiode aligned with ``+X``. RAX-1
+    used 9 SFH2430 photodiodes and RAX-2 used 17; pass the mission-specific
+    azimuth/elevation table through ``az_el_deg`` to create those arrays. The
+    published RAX estimator simulations used 0.05 V additive white noise, with
+    scale factors around 2.5-4 V. This factory uses an efficiency of 3.0 V so
+    the sensor output and noise are in the same approximate voltage units.
 
     Default error model provenance:
         ``noise`` defaults to the 0.05 V additive white-noise value from the
@@ -119,10 +119,7 @@ def create_osram_sfh2430_sun_sensors(
         https://deepblue.lib.umich.edu/bitstream/handle/2027.42/140645/1.g000175.pdf?sequence=1
     """
     if az_el_deg is None:
-        az_el_deg = np.array([
-            [0, 0], [180, 0], [90, 0], [270, 0], [0, 90],
-            [0, 90], [0, 90], [0, -90], [0, -90],
-        ])
+        az_el_deg = np.array([[0, 0]])
 
     axes = _axes_from_az_el_deg(az_el_deg)
     n_axes = len(axes)
@@ -138,17 +135,16 @@ def create_osram_sfh2430_sun_sensors(
 
 
 def create_nano_iss60_sun_sensors(
-    axes: np.ndarray = np.vstack((np.eye(3), -np.eye(2, 3))),
+    axes: np.ndarray = np.array([[1, 0, 0]]),
     bias: List[Bias] | None = None,
     noise: List[Noise] | None = None,
     estimate_bias: bool = False,
 ) -> List[SunSensor]:
     r"""
-    Create the Solar MEMS NANO-ISS60 Sun sensors used on MOVE-II.
+    Create one Solar MEMS NANO-ISS60 Sun sensor proxy used on MOVE-II.
 
-    MOVE-II used five NANO-ISS60 two-axis analog Sun position sensors, one on
-    each outer ADCS panel and none on the inner Mainpanel. Each device is
-    represented here by one body-normal
+    A NANO-ISS60 is a two-axis analog Sun position sensor. It is represented
+    here by one body-normal
     :class:`~ADCS.satellite_hardware.sensors.SunSensor` proxy because the
     current package has scalar Sun-sensor channels rather than a native
     two-axis NANO-ISS60 model.
