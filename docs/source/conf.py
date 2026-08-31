@@ -42,6 +42,7 @@ exclude_patterns = []
 html_theme = 'furo'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
+html_js_files = ['factory-tables.js']
 
 # Canonical URL. Needed so that pages linked from print material (the SSC26
 # poster QR codes point at /ssc26/) resolve to absolute URLs in link previews
