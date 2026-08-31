@@ -1,4 +1,4 @@
-__all__ = ['create_ICM20948_IMU']
+__all__ = ['create_ICM20948_IMU', 'create_itg3200_gyros']
 
 import numpy as np
 from typing import Optional, List
@@ -21,3 +21,32 @@ def create_ICM20948_IMU(axes: np.ndarray = np.array([[1, 0, 0], [0, 1, 0], [0, 0
     return [Gyro(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(3)]
 
 
+def create_itg3200_gyros(
+    axes: np.ndarray = np.tile(np.eye(3), (4, 1)),
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[Gyro]:
+    r"""
+    Create the ESTCube-1 InvenSense ITG-3200 gyro set.
+
+    ESTCube-1 carried four ITG-3200 three-axis gyros on the ADCS sensor board,
+    represented here as twelve one-dimensional
+    :class:`~ADCS.satellite_hardware.sensors.Gyro` channels. The preflight
+    simulator used gyro noise of approximately 1.8 deg/s and initial bias
+    uniformly distributed over +/-0.5 deg/s per measurement channel. Flight
+    calibration reported approximately 0.5 deg/s expanded uncertainty.
+
+    Source: `ESTCube-1 attitude determination flight results
+    <https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504>`__
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias_bound = 0.5 * np.pi / 180.0
+        e_bias = np.random.uniform(-bias_bound, bias_bound, size=n_axes)
+        bias = [Bias(bias=e_bias[j], std_bias=0.0, bounds=(-bias_bound, bias_bound)) for j in range(n_axes)]
+    if noise is None:
+        std_noise = 1.8 * np.pi / 180.0
+        noise = [Noise(noise=0.0, std_noise=std_noise) for _ in range(n_axes)]
+
+    return [Gyro(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]

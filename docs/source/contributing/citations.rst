@@ -50,13 +50,35 @@ derived from a specific paper or validated against a published formulation.
 Satellites
 ----------
 
-Satellite citations should be added here when a spacecraft configuration uses
-properties from a flown CubeSat, mission paper, thesis, technical report, or
-public mission documentation.
+.. list-table::
+   :header-rows: 1
+   :widths: 20 25 40 15
+
+   * - Model
+     - Documentation
+     - Original citation
+     - Paper
+   * - ESTCube-1
+     - :doc:`CubeSat factories <../ADCS.satellite_factory.satellites.create_cubesats>`
+     - J. Slavinskis et al., "ESTCube-1 attitude determination system flight results," *Journal of Aerospace Engineering*, 2016.
+     - `ASCE Library <https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504>`__
 
 Actuators & Sensors
 -------------------
 
-Actuator and sensor citations should be added here when default properties,
-noise models, bias models, saturation limits, or geometry assumptions are taken
-from papers, data sheets, or public hardware documentation.
+.. list-table::
+   :header-rows: 1
+   :widths: 20 25 40 15
+
+   * - Model
+     - Documentation
+     - Original citation
+     - Paper
+   * - ESTCube-1 ITG-3200 gyros, HMC5883L magnetometers, and Hamamatsu S3931 Sun sensors
+     - :doc:`Sensor factories <../ADCS.satellite_factory.sensors>`
+     - J. Slavinskis et al., "ESTCube-1 attitude determination system flight results," *Journal of Aerospace Engineering*, 2016.
+     - `ASCE Library <https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504>`__
+   * - ESTCube-1 magnetic coils
+     - :doc:`Actuator factories <../ADCS.satellite_factory.actuators>`
+     - ESTCube-1 magnetic actuator flight-results paper, *Acta Astronautica*, 2016.
+     - `ScienceDirect <https://www.sciencedirect.com/science/article/pii/S0094576515302216>`__
