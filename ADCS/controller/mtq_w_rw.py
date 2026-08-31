@@ -23,6 +23,7 @@ class MTQ_w_RW(Controller):
     with magnetic torquers (MTQ) for continuous reaction wheel momentum
     unloading. The formulation follows the principles of redundant reaction
     wheel momentum management described by Hogan and Schaub [1]_.
+    Original paper: `doi:10.2514/1.G000812 <https://doi.org/10.2514/1.G000812>`__
 
     Reaction wheels provide high-bandwidth torque authority, while magnetic
     torquers exploit the geomagnetic field to generate torques orthogonal to
@@ -111,7 +112,8 @@ class MTQ_w_RW(Controller):
        Three-Axis Attitude Control Using Redundant Reaction Wheels
        with Continuous Momentum Dumping,
        Journal of Guidance, Control, and Dynamics,
-       Vol. 44, No. 3, 2021.
+       Vol. 38, No. 10, 2015, pp. 1865–1871.
+       Original paper: `doi:10.2514/1.G000812 <https://doi.org/10.2514/1.G000812>`__
 
     """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray) -> None:
@@ -279,7 +281,6 @@ class MTQ_w_RW(Controller):
         u_total = u_mtq+u_rw
 
         return u_total
-
 
 
 

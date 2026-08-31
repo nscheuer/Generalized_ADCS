@@ -25,6 +25,8 @@ class MTQ_w_RW_QP(MTQ_w_RW_LP):
     composed of reaction wheels (RWs) and magnetorquers (MTQs). It computes bounded actuator
     inputs that best reproduce a desired body torque in a least-squares sense, while strictly
     respecting actuator saturation limits.
+    Original allocator paper: `Generalized Attitude Control for Small Spacecraft
+    <https://digitalcommons.usu.edu/smallsat/2026/all2026/253/>`__
 
     The class extends :class:`~ADCS.controller.MTQ_w_RW_LP` and replaces the LP-style directional
     prioritization with a bounded least-squares formulation solved via
