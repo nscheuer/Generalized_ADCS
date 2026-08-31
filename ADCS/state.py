@@ -168,7 +168,7 @@ def _square_matrix(value: Any, *, name: str) -> np.ndarray | None:
     return array
 
 
-@dataclass(slots=True, eq=False)
+@dataclass(slots=True, eq=False, init=False)
 class State:
     r"""Physical spacecraft state :math:`x=[\boldsymbol\omega,\mathbf q,\mathbf h]`.
 
@@ -232,6 +232,12 @@ class State:
         "quaternion": "attitude",
         "estimated_parameter": "estimated_parameters",
     }
+
+    def __init__(self, w: Any, q: Any, h: Any = ()) -> None:
+        object.__setattr__(self, "w", _vector(w, name="w", size=3))
+        object.__setattr__(self, "q", _vector(q, name="q", size=4))
+        object.__setattr__(self, "h", _vector(h, name="h"))
+        object.__setattr__(self, "_slice_cache", {})
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "w":
