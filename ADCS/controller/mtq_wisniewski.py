@@ -15,6 +15,7 @@ from ADCS.helpers.math_helpers import rot_mat, Wmat
 class MTQ_Wisniewski(Controller):
     r"""
     Sliding mode magnetic attitude controller based on Wisniewski (1998).
+    Original paper: `doi:10.1016/S1474-6670(17)41076-7 <https://doi.org/10.1016/S1474-6670(17)41076-7>`__
 
     This controller implements a sliding mode control law for spacecraft
     attitude regulation using magnetic torquers as the sole actuation
@@ -93,7 +94,8 @@ class MTQ_Wisniewski(Controller):
     ----------
     R. Wisniewski,
     Sliding Mode Attitude Control for Magnetic Actuated Satellite,
-    IFAC Proceedings Volumes, Vol. 31, No. 18, 1998.
+    IFAC Proceedings Volumes, Vol. 31, No. 21, 1998, pp. 179–184.
+    Original paper: `doi:10.1016/S1474-6670(17)41076-7 <https://doi.org/10.1016/S1474-6670(17)41076-7>`__
 
     """
     def __init__(self, est_sat: EstimatedSatellite, lambda_s: np.ndarray, lambda_q: np.ndarray) -> None:
