@@ -62,6 +62,14 @@ Satellites
      - :doc:`CubeSat factories <../ADCS.satellite_factory.satellites.create_cubesats>`
      - J. Slavinskis et al., "ESTCube-1 attitude determination system flight results," *Journal of Aerospace Engineering*, 2016.
      - `ASCE Library <https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504>`__
+   * - RAX-1
+     - :doc:`CubeSat factories <../ADCS.satellite_factory.satellites.create_cubesats>`
+     - J. C. Springmann et al., "The attitude determination system of the RAX satellite," *Acta Astronautica*, Vol. 75, 2012, pp. 120-135.
+     - `doi:10.1016/j.actaastro.2012.02.001 <https://doi.org/10.1016/j.actaastro.2012.02.001>`__
+   * - RAX-2
+     - :doc:`CubeSat factories <../ADCS.satellite_factory.satellites.create_cubesats>`
+     - J. C. Springmann and J. W. Cutler, "Flight results of a low-cost attitude determination system," *Acta Astronautica*, Vol. 99, 2014, pp. 201-214.
+     - `doi:10.1016/j.actaastro.2014.02.026 <https://doi.org/10.1016/j.actaastro.2014.02.026>`__
 
 Actuators & Sensors
 -------------------
@@ -82,3 +90,11 @@ Actuators & Sensors
      - :doc:`Actuator factories <../ADCS.satellite_factory.actuators>`
      - ESTCube-1 magnetic actuator flight-results paper, *Acta Astronautica*, 2016.
      - `ScienceDirect <https://www.sciencedirect.com/science/article/pii/S0094576515302216>`__
+   * - RAX ADIS16405 gyros and magnetometers, MicroMag3 magnetometer, and SFH2430 Sun sensors
+     - :doc:`Sensor factories <../ADCS.satellite_factory.sensors>`
+     - J. C. Springmann, "Satellite Attitude Determination with Low-Cost Sensors," Ph.D. dissertation, University of Michigan, 2013.
+     - `Deep Blue <https://deepblue.lib.umich.edu/bitstream/handle/2027.42/102312/jspringm_1.pdf?sequence=1>`__
+   * - RAX OSRAM SFH2430 photodiode layouts and calibration
+     - :doc:`Sensor factories <../ADCS.satellite_factory.sensors>`
+     - J. C. Springmann and J. W. Cutler, "On-orbit calibration of photodiodes for attitude determination," *Journal of Guidance, Control, and Dynamics*, 2014.
+     - `Deep Blue <https://deepblue.lib.umich.edu/bitstream/handle/2027.42/140645/1.g000175.pdf?sequence=1>`__
