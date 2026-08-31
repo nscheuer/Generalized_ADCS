@@ -1,4 +1,8 @@
-__all__ = ['create_isis_magnetorquer_board', 'create_estcube1_magnetorquers']
+__all__ = [
+    'create_isis_magnetorquer_board',
+    'create_estcube1_magnetorquers',
+    'create_moveii_pcb_magnetorquers',
+]
 
 import numpy as np
 from typing import Optional, List, Sequence
@@ -54,6 +58,46 @@ def create_estcube1_magnetorquers(
         noise = [Noise() for _ in range(3)]
 
     mtq_max = 0.1
+    return [
+        MTQ(axis=axes[j], max_torque=mtq_max, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
+        for j in range(3)
+    ]
+
+
+def create_moveii_pcb_magnetorquers(
+    axes: np.ndarray = np.eye(3),
+    bias: Sequence[Bias] | None = None,
+    noise: Sequence[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[MTQ]:
+    r"""
+    Create a simplified MOVE-II custom PCB-coil magnetorquer set.
+
+    MOVE-II used six in-house PCB-integrated magnetorquer coils distributed over
+    the ADCS panels. The published summary gives approximately 0.05 A m^2 per
+    coil and 0.10 A m^2 per axis at room temperature. Because the exact
+    per-panel body-axis sign table was not recovered, this helper returns a
+    three-axis equivalent commandable MTQ set with 0.10 A m^2 per axis.
+
+    Default error model provenance:
+        No stochastic dipole-noise value was found. The attached MOVE-II source
+        summary reports a residual magnetic moment of
+        ``[-0.001, 0.012, -0.045] A m^2`` with 0.001 A m^2 uncertainty and a
+        simplified worst-case disturbance of 0.020 A m^2. Those are spacecraft
+        disturbance terms rather than command-channel white noise, so this
+        helper leaves ``bias`` and ``noise`` at zero unless supplied by the
+        caller.
+
+    Source:
+        `Magnetic Attitude Control for the MOVE-II Mission
+        <https://www.eucass.eu/doi/EUCASS2017-664.pdf>`__
+    """
+    if bias is None:
+        bias = [Bias() for _ in range(3)]
+    if noise is None:
+        noise = [Noise() for _ in range(3)]
+
+    mtq_max = 0.10
     return [
         MTQ(axis=axes[j], max_torque=mtq_max, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
         for j in range(3)

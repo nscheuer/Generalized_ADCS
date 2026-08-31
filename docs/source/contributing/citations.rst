@@ -62,6 +62,10 @@ Satellites
      - :doc:`CubeSat factories <../ADCS.satellite_factory.satellites.create_cubesats>`
      - J. Slavinskis et al., "ESTCube-1 attitude determination system flight results," *Journal of Aerospace Engineering*, 2016.
      - `ASCE Library <https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504>`__
+   * - MOVE-II
+     - :doc:`CubeSat factories <../ADCS.satellite_factory.satellites.create_cubesats>`
+     - J. Kiesbye, D. Messmann, M. Preisinger, G. Reina, D. Nagy, F. Schummer, M. Mostad, T. Kale, and M. Langer, "Hardware-In-The-Loop and Software-In-The-Loop Testing of the MOVE-II CubeSat," *Aerospace*, Vol. 6, No. 12, 2019.
+     - `doi:10.3390/aerospace6120130 <https://doi.org/10.3390/aerospace6120130>`__
    * - RAX-1
      - :doc:`CubeSat factories <../ADCS.satellite_factory.satellites.create_cubesats>`
      - J. C. Springmann et al., "The attitude determination system of the RAX satellite," *Acta Astronautica*, Vol. 75, 2012, pp. 120-135.
@@ -90,6 +94,14 @@ Actuators & Sensors
      - :doc:`Actuator factories <../ADCS.satellite_factory.actuators>`
      - ESTCube-1 magnetic actuator flight-results paper, *Acta Astronautica*, 2016.
      - `ScienceDirect <https://www.sciencedirect.com/science/article/pii/S0094576515302216>`__
+   * - MOVE-II Bosch Sensortec BMX055 gyros and magnetometers, and Solar MEMS NANO-ISS60 Sun sensors
+     - :doc:`Sensor factories <../ADCS.satellite_factory.sensors>`
+     - J. Kiesbye, "Hardware-in-the-Loop Verification of the Distributed, Magnetorquer-Based Attitude Determination & Control System of the CubeSat MOVE-II," Master's thesis, Technical University of Munich, 2017.
+     - `mediaTUM <https://mediatum.ub.tum.de/doc/1483411/document.pdf>`__
+   * - MOVE-II custom PCB magnetorquer coils
+     - :doc:`Actuator factories <../ADCS.satellite_factory.actuators>`
+     - D. Messmann, F. Coelho, P. Niermeyer, M. Langer, H. Huang, and U. Walter, "Magnetic Attitude Control for the MOVE-II Mission," 7th European Conference for Aeronautics and Aerospace Sciences, 2017.
+     - `EUCASS <https://www.eucass.eu/doi/EUCASS2017-664.pdf>`__
    * - RAX ADIS16405 gyros and magnetometers, MicroMag3 magnetometer, and SFH2430 Sun sensors
      - :doc:`Sensor factories <../ADCS.satellite_factory.sensors>`
      - J. C. Springmann, "Satellite Attitude Determination with Low-Cost Sensors," Ph.D. dissertation, University of Michigan, 2013.
