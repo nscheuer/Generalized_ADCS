@@ -1,8 +1,23 @@
 import numpy as np
 
 from ADCS.satellite_factory import create_estcube1_cubesat
+from ADCS.satellite_factory.sensors import (
+    create_hamamatsu_s3931_sun_sensors,
+    create_hmc5883l_magnetometers,
+    create_itg3200_gyros,
+)
 from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.sensors import Gyro, MTM, SunSensor
+
+
+def test_estcube1_component_helpers_create_one_component():
+    gyros = create_itg3200_gyros()
+    mtms = create_hmc5883l_magnetometers()
+    suns = create_hamamatsu_s3931_sun_sensors()
+
+    assert len(gyros) == 3
+    assert len(mtms) == 3
+    assert len(suns) == 1
 
 
 def test_create_estcube1_cubesat_properties():

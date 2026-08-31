@@ -1,7 +1,16 @@
 import numpy as np
 
 from ADCS.satellite_factory import create_rax1_cubesat, create_rax2_cubesat
+from ADCS.satellite_factory.sensors import create_osram_sfh2430_sun_sensors
 from ADCS.satellite_hardware.sensors import Gyro, MTM, SunSensor
+
+
+def test_osram_sfh2430_helper_creates_one_photodiode_by_default():
+    suns = create_osram_sfh2430_sun_sensors()
+
+    assert len(suns) == 1
+    assert np.allclose(suns[0].axis, np.array([1.0, 0.0, 0.0]))
+    assert np.isclose(suns[0].noise.std_noise.item(), 0.05)
 
 
 def _rax_inertia() -> np.ndarray:

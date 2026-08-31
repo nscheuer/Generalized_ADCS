@@ -1,9 +1,32 @@
 import numpy as np
 
 from ADCS.satellite_factory import create_moveii_cubesat
+from ADCS.satellite_factory.sensors import (
+    create_bmx055_gyros,
+    create_bmx055_magnetometers,
+    create_nano_iss60_sun_sensors,
+)
 from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance
 from ADCS.satellite_hardware.sensors import Gyro, MTM, SunSensor
+
+
+def test_bmx055_helpers_create_one_triad():
+    gyros = create_bmx055_gyros()
+    mtms = create_bmx055_magnetometers()
+
+    assert len(gyros) == 3
+    assert len(mtms) == 3
+    assert np.allclose([gyro.bias.bias.item() for gyro in gyros], [1.75e-3, 3.49e-3, -1.75e-3])
+    assert np.allclose([mtm.bias.bias.item() for mtm in mtms], [2.0e-6, -3.0e-6, 3.0e-6])
+
+
+def test_nano_iss60_helper_creates_one_sensor_proxy():
+    suns = create_nano_iss60_sun_sensors()
+
+    assert len(suns) == 1
+    assert np.allclose(suns[0].axis, np.array([1.0, 0.0, 0.0]))
+    assert np.isclose(suns[0].noise.std_noise.item(), np.sin(0.06 * np.pi / 180.0))
 
 
 def test_create_moveii_cubesat_properties():
