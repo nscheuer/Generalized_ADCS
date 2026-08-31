@@ -118,6 +118,7 @@ objects intentionally do not support NumPy indexing or implicit conversion.
    :caption: Function Documentation
 
    ADCS
+   satellite_factory/index
 
 .. toctree::
    :maxdepth: 1

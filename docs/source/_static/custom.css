@@ -208,6 +208,27 @@
     }
 }
 
+table.sortable-factory th.factory-sortable-header {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+table.sortable-factory th.factory-sortable-header::after {
+    content: " ↕";
+    color: var(--color-foreground-muted);
+    font-size: 0.85em;
+}
+
+table.sortable-factory th.factory-sort-active::after {
+    content: " ↑";
+    color: var(--color-brand-primary);
+}
+
+table.sortable-factory th.factory-sort-active.factory-sort-desc::after {
+    content: " ↓";
+}
+
 /* ---------------------------------------------------------------------------
    SSC26 poster landing pages (/ssc26/)
    Uses furo's own CSS variables so the form tracks the light/dark theme
