@@ -1,4 +1,9 @@
-__all__ = ['create_ICM20948_IMU', 'create_adis16405_gyros', 'create_itg3200_gyros']
+__all__ = [
+    'create_ICM20948_IMU',
+    'create_adis16405_gyros',
+    'create_bmx055_gyros',
+    'create_itg3200_gyros',
+]
 
 import numpy as np
 from typing import Optional, List
@@ -68,6 +73,44 @@ def create_adis16405_gyros(
     if noise is None:
         std_noise = 0.9 * np.pi / 180.0
         noise = [Noise(noise=0.0, std_noise=std_noise) for _ in range(n_axes)]
+
+    return [Gyro(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
+
+
+def create_bmx055_gyros(
+    axes: np.ndarray = np.tile(np.eye(3), (6, 1)),
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[Gyro]:
+    r"""
+    Create the Bosch Sensortec BMX055 gyroscope channels used on MOVE-II.
+
+    MOVE-II carried one BMX055 on each of six ADCS panels, represented here as
+    eighteen one-dimensional :class:`~ADCS.satellite_hardware.sensors.Gyro`
+    channels because the exact per-panel body-frame DCMs were not recovered.
+
+    Default error model provenance:
+        ``bias`` defaults to the MOVE-II HIL simulation vector
+        ``[1.75e-3, 3.49e-3, -1.75e-3] rad/s`` repeated for each BMX055 triad.
+        ``noise`` defaults to additive Gaussian white noise with
+        ``sigma = 8.727e-4 rad/s``. The source also models scale factor,
+        misalignment, nonorthogonality, quantization, time sampling,
+        low-pass filtering, and gyro-bias random walk; those terms are not
+        represented directly by this scalar gyro factory.
+
+    Source:
+        `Hardware-in-the-Loop Verification of the Distributed,
+        Magnetorquer-Based ADCS of the CubeSat MOVE-II
+        <https://mediatum.ub.tum.de/doc/1483411/document.pdf>`__
+    """
+    n_axes = len(axes)
+    if bias is None:
+        triad_bias = np.array([1.75e-3, 3.49e-3, -1.75e-3])
+        e_bias = np.tile(triad_bias, n_axes // 3)
+        bias = [Bias(bias=e_bias[j], std_bias=0.0) for j in range(n_axes)]
+    if noise is None:
+        noise = [Noise(noise=0.0, std_noise=8.727e-4) for _ in range(n_axes)]
 
     return [Gyro(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
 

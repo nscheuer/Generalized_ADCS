@@ -1,6 +1,7 @@
 __all__ = [
     'create_Clydespace_3U_array',
     'create_hamamatsu_s3931_sun_sensors',
+    'create_nano_iss60_sun_sensors',
     'create_osram_sfh2430_sun_sensors',
 ]
 
@@ -132,5 +133,47 @@ def create_osram_sfh2430_sun_sensors(
 
     return [
         SunSensor(axis=axes[j], efficiency=3.0, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
+        for j in range(n_axes)
+    ]
+
+
+def create_nano_iss60_sun_sensors(
+    axes: np.ndarray = np.vstack((np.eye(3), -np.eye(2, 3))),
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[SunSensor]:
+    r"""
+    Create the Solar MEMS NANO-ISS60 Sun sensors used on MOVE-II.
+
+    MOVE-II used five NANO-ISS60 two-axis analog Sun position sensors, one on
+    each outer ADCS panel and none on the inner Mainpanel. Each device is
+    represented here by one body-normal
+    :class:`~ADCS.satellite_hardware.sensors.SunSensor` proxy because the
+    current package has scalar Sun-sensor channels rather than a native
+    two-axis NANO-ISS60 model.
+
+    Default error model provenance:
+        ``noise`` approximates the MOVE-II HIL angular Sun-vector noise
+        ``sigma = 0.06 deg = 1.047e-3 rad`` as scalar cosine-measurement noise
+        ``sin(0.06 deg)``. No nominal fixed Sun-sensor bias was given in the
+        accessible tables, so ``bias`` defaults to zero. The source documents a
+        10 deg Sun-sensor bias sensitivity case, but that is not the nominal
+        default.
+
+    Source:
+        `Hardware-in-the-Loop Verification of the Distributed,
+        Magnetorquer-Based ADCS of the CubeSat MOVE-II
+        <https://mediatum.ub.tum.de/doc/1483411/document.pdf>`__
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias = [Bias() for _ in range(n_axes)]
+    if noise is None:
+        std_noise = np.sin(0.06 * np.pi / 180.0)
+        noise = [Noise(noise=0.0, std_noise=std_noise) for _ in range(n_axes)]
+
+    return [
+        SunSensor(axis=axes[j], efficiency=1.0, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
         for j in range(n_axes)
     ]

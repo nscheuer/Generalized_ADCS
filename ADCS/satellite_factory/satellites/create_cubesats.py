@@ -3,6 +3,7 @@ __all__ = [
     'create_beavercube2_cubesat',
     'create_3_3_beavercube2_cubesat',
     'create_estcube1_cubesat',
+    'create_moveii_cubesat',
     'create_rax1_cubesat',
     'create_rax2_cubesat',
 ]
@@ -10,22 +11,30 @@ __all__ = [
 import numpy as np
 from typing import List
 
-from ADCS.satellite_factory.actuators import create_cubewheel_smallplus_rw, create_estcube1_magnetorquers, create_isis_magnetorquer_board
+from ADCS.satellite_factory.actuators import (
+    create_cubewheel_smallplus_rw,
+    create_estcube1_magnetorquers,
+    create_isis_magnetorquer_board,
+    create_moveii_pcb_magnetorquers,
+)
 from ADCS.satellite_factory.sensors import (
     create_Clydespace_3U_array,
     create_ICM20948_IMU,
     create_adis16405_gyros,
     create_adis16405_magnetometers,
+    create_bmx055_gyros,
+    create_bmx055_magnetometers,
     create_hamamatsu_s3931_sun_sensors,
     create_hmc5883l_magnetometers,
     create_itg3200_gyros,
     create_isis_magnetometer,
     create_micromag3_magnetometers,
+    create_nano_iss60_sun_sensors,
     create_osram_sfh2430_sun_sensors,
 )
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
-from ADCS.satellite_hardware.disturbances import GeometryFace, GeometryConfig, Drag_Disturbance, GG_Disturbance, SRP_Disturbance
+from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, GeometryFace, GeometryConfig, Drag_Disturbance, GG_Disturbance, SRP_Disturbance
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.helpers.math_constants import MathConstants
@@ -108,6 +117,53 @@ def create_estcube1_cubesat(estimated: bool = False):
     ]
     config = GeometryConfig(geometry_faces)
     disturbances = [GG_Disturbance(), Drag_Disturbance(config), SRP_Disturbance(config)]
+
+    boresight = np.array([0, 0, 1])
+
+    if estimated:
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
+    else:
+        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
+
+
+def create_moveii_cubesat(estimated: bool = False):
+    r"""
+    Create a MOVE-II CubeSat model.
+
+    MOVE-II is a 1U CubeSat with a distributed magnetorquer-based ADCS: six
+    ADCS PCBs carry Bosch Sensortec BMX055 gyros and magnetometers, the five
+    outer panels carry Solar MEMS NANO-ISS60 Sun sensors, and the ADCS panels
+    include custom PCB magnetorquer coils.
+
+    The inertia tensor follows the diagonal values printed in the MOVE-II
+    magnetic-control simulation paper,
+    ``diag(0.00297, 0.00330, 0.00320) kg m^2``. No public center-of-mass vector
+    was found in the attached source summary, so the factory uses ``COM = 0``.
+
+    Source:
+        `Hardware-In-The-Loop and Software-In-The-Loop Testing of the MOVE-II
+        CubeSat <https://doi.org/10.3390/aerospace6120130>`__
+    """
+    mass = 1.2
+    COM = np.zeros(3)
+    J = np.diag([0.00297, 0.00330, 0.00320])
+
+    mtqs: List[MTQ] = create_moveii_pcb_magnetorquers(estimate_bias=estimated)
+    mtms: List[MTM] = create_bmx055_magnetometers(estimate_bias=estimated)
+    gyros: List[Gyro] = create_bmx055_gyros(estimate_bias=estimated)
+    suns = create_nano_iss60_sun_sensors(estimate_bias=estimated)
+
+    geometry_faces: List[GeometryFace] = [
+        GeometryFace(area=0.1*0.1, centroid=MathConstants.unitvecs[0]*0.05, normal=MathConstants.unitvecs[0], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1*0.1, centroid=-MathConstants.unitvecs[0]*0.05, normal=-MathConstants.unitvecs[0], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1*0.1, centroid=MathConstants.unitvecs[1]*0.05, normal=MathConstants.unitvecs[1], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1*0.1, centroid=-MathConstants.unitvecs[1]*0.05, normal=-MathConstants.unitvecs[1], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1*0.1, centroid=MathConstants.unitvecs[2]*0.05, normal=MathConstants.unitvecs[2], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1*0.1, centroid=-MathConstants.unitvecs[2]*0.05, normal=-MathConstants.unitvecs[2], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+    ]
+    config = GeometryConfig(geometry_faces)
+    residual_dipole = Dipole_Disturbance(dipole_torque=np.array([-0.001, 0.012, -0.045]))
+    disturbances = [GG_Disturbance(), Drag_Disturbance(config), SRP_Disturbance(config), residual_dipole]
 
     boresight = np.array([0, 0, 1])
 

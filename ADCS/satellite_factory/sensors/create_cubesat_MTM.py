@@ -1,6 +1,7 @@
 __all__ = [
     'create_isis_magnetometer',
     'create_adis16405_magnetometers',
+    'create_bmx055_magnetometers',
     'create_hmc5883l_magnetometers',
     'create_micromag3_magnetometers',
 ]
@@ -99,6 +100,43 @@ def create_micromag3_magnetometers(
     if noise is None:
         std_noise = 100e-9
         noise = [Noise(noise=0.0, std_noise=std_noise) for _ in range(n_axes)]
+
+    return [MTM(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
+
+
+def create_bmx055_magnetometers(
+    axes: np.ndarray = np.tile(np.eye(3), (6, 1)),
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[MTM]:
+    r"""
+    Create the Bosch Sensortec BMX055 magnetometer channels used on MOVE-II.
+
+    MOVE-II carried one BMX055 on each of six ADCS panels, represented here as
+    eighteen one-dimensional :class:`~ADCS.satellite_hardware.sensors.MTM`
+    channels. The exact per-panel body-frame DCMs were not recovered.
+
+    Default error model provenance:
+        ``bias`` defaults to the MOVE-II HIL simulation vector
+        ``[2.0e-6, -3.0e-6, 3.0e-6] T`` repeated for each BMX055 triad.
+        ``noise`` defaults to additive Gaussian white noise with
+        ``sigma = 5.0e-7 T``. The source also models scale factor,
+        misalignment, nonorthogonality, quantization, time sampling, and
+        low-pass filtering; those terms are not represented directly here.
+
+    Source:
+        `Hardware-in-the-Loop Verification of the Distributed,
+        Magnetorquer-Based ADCS of the CubeSat MOVE-II
+        <https://mediatum.ub.tum.de/doc/1483411/document.pdf>`__
+    """
+    n_axes = len(axes)
+    if bias is None:
+        triad_bias = np.array([2.0e-6, -3.0e-6, 3.0e-6])
+        e_bias = np.tile(triad_bias, n_axes // 3)
+        bias = [Bias(bias=e_bias[j], std_bias=0.0) for j in range(n_axes)]
+    if noise is None:
+        noise = [Noise(noise=0.0, std_noise=5.0e-7) for _ in range(n_axes)]
 
     return [MTM(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
 
