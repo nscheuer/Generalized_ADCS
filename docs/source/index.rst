@@ -126,6 +126,7 @@ objects intentionally do not support NumPy indexing or implicit conversion.
    contributing/index
    contributing/testing
    contributing/documentation
+   contributing/citations
 
 Indices and tables
 ==================

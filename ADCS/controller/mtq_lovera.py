@@ -22,6 +22,7 @@ class MTQ_Lovera(Controller):
     M. Lovera and A. Astolfi,
     Global Magnetic Attitude Control of Inertially Pointing Spacecraft,
     Journal of Guidance, Control, and Dynamics, Vol. 28, No. 5, 2005, pp. 1065–1072.
+    Original paper: `doi:10.2514/1.11844 <https://doi.org/10.2514/1.11844>`__
 
     The control law achieves global asymptotic stabilization of a constant inertial
     attitude using only magnetic torquers by exploiting the time-varying nature of
@@ -153,6 +154,7 @@ class MTQ_Lovera(Controller):
        Global Magnetic Attitude Control of Inertially Pointing Spacecraft,
        Journal of Guidance, Control, and Dynamics,
        Vol. 28, No. 5, 2005, pp. 1065–1072.
+       Original paper: `doi:10.2514/1.11844 <https://doi.org/10.2514/1.11844>`__
 
     """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, eps: float) -> None:
