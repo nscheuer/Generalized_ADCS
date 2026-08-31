@@ -3,6 +3,8 @@ __all__ = [
     'create_beavercube2_cubesat',
     'create_3_3_beavercube2_cubesat',
     'create_estcube1_cubesat',
+    'create_rax1_cubesat',
+    'create_rax2_cubesat',
 ]
 
 import numpy as np
@@ -12,10 +14,14 @@ from ADCS.satellite_factory.actuators import create_cubewheel_smallplus_rw, crea
 from ADCS.satellite_factory.sensors import (
     create_Clydespace_3U_array,
     create_ICM20948_IMU,
+    create_adis16405_gyros,
+    create_adis16405_magnetometers,
     create_hamamatsu_s3931_sun_sensors,
     create_hmc5883l_magnetometers,
     create_itg3200_gyros,
     create_isis_magnetometer,
+    create_micromag3_magnetometers,
+    create_osram_sfh2430_sun_sensors,
 )
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
@@ -109,6 +115,101 @@ def create_estcube1_cubesat(estimated: bool = False):
         return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
     else:
         return Satellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
+
+
+def _rax_inertia() -> np.ndarray:
+    return 1e-2 * np.diag([2.91058, 2.91058, 0.59261])
+
+
+def _rax_sun_sensor_layout(variant: int) -> np.ndarray:
+    if variant == 1:
+        return np.array([
+            [0, 0], [180, 0], [90, 0], [270, 0], [0, 90],
+            [0, 90], [0, 90], [0, -90], [0, -90],
+        ])
+    if variant == 2:
+        return np.array([
+            [17, -10], [0, 20], [-17, -10],
+            [-162, -10], [180, 20], [162, -10],
+            [72, 10], [107, 10], [90, -20],
+            [-107, 10], [-72, 10], [-90, -20],
+            [0, 90], [0, 90], [0, 90],
+            [0, -90], [0, -90],
+        ])
+    raise ValueError("RAX variant must be 1 or 2.")
+
+
+def _create_rax_cubesat(mass: float, variant: int, estimated: bool = False):
+    COM = np.zeros(3)
+    J = _rax_inertia()
+
+    gyros: List[Gyro] = create_adis16405_gyros(estimate_bias=estimated)
+    mtms: List[MTM] = (
+        create_adis16405_magnetometers(estimate_bias=estimated)
+        + create_micromag3_magnetometers(estimate_bias=estimated)
+    )
+    suns = create_osram_sfh2430_sun_sensors(
+        az_el_deg=_rax_sun_sensor_layout(variant),
+        estimate_bias=estimated,
+    )
+
+    geometry_faces: List[GeometryFace] = [
+        GeometryFace(area=0.1*0.34, centroid=MathConstants.unitvecs[0]*0.05, normal=MathConstants.unitvecs[0], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1*0.34, centroid=-MathConstants.unitvecs[0]*0.05, normal=-MathConstants.unitvecs[0], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1*0.34, centroid=MathConstants.unitvecs[1]*0.05, normal=MathConstants.unitvecs[1], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1*0.34, centroid=-MathConstants.unitvecs[1]*0.05, normal=-MathConstants.unitvecs[1], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1*0.1, centroid=MathConstants.unitvecs[2]*0.17, normal=MathConstants.unitvecs[2], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1*0.1, centroid=-MathConstants.unitvecs[2]*0.17, normal=-MathConstants.unitvecs[2], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+    ]
+    config = GeometryConfig(geometry_faces)
+    disturbances = [GG_Disturbance(), Drag_Disturbance(config), SRP_Disturbance(config)]
+
+    boresight = np.array([0, 0, 1])
+
+    if estimated:
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=[], boresight=boresight)
+    else:
+        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=[], boresight=boresight)
+
+
+def create_rax1_cubesat(estimated: bool = False):
+    r"""
+    Create a RAX-1 spacecraft model.
+
+    RAX-1 was a 3U CubeSat using passive magnetic attitude stabilization:
+    four permanent magnets aligned with the long body-Z axis and two HyMu80
+    hysteresis strips along transverse axes. This package does not yet have
+    passive magnetic stabilization actuator classes, so those devices are
+    documented here but are not returned as commandable actuators.
+
+    The inertia tensor follows the published RAX dynamics model,
+    ``diag(2.91058, 2.91058, 0.59261) * 1e-2 kg m^2``, reflecting the body-Z
+    principal symmetry axis.
+
+    Source: `RAX attitude determination system design
+    <https://doi.org/10.1016/j.actaastro.2012.02.001>`__
+    """
+    return _create_rax_cubesat(mass=2.8, variant=1, estimated=estimated)
+
+
+def create_rax2_cubesat(estimated: bool = False):
+    r"""
+    Create a RAX-2 spacecraft model.
+
+    RAX-2 used the same core RAX attitude-determination hardware as RAX-1, with
+    the revised 17-photodiode OSRAM SFH2430 Sun-sensor layout. Passive magnetic
+    stabilization hardware is documented but not represented as commandable
+    actuators because this package does not yet include permanent-magnet or
+    hysteresis-strip actuator models.
+
+    The inertia tensor follows the published RAX dynamics model,
+    ``diag(2.91058, 2.91058, 0.59261) * 1e-2 kg m^2``, reflecting the body-Z
+    principal symmetry axis.
+
+    Source: `RAX-1/RAX-2 flight attitude-determination results
+    <https://doi.org/10.1016/j.actaastro.2014.02.026>`__
+    """
+    return _create_rax_cubesat(mass=2.9, variant=2, estimated=estimated)
 
 
 def create_beavercube2_cubesat(estimated: bool = False):
