@@ -254,13 +254,7 @@ def test_state_dict_roundtrip_preserves_subclass_and_data():
     np.testing.assert_array_equal(rebuilt.int_cov, state.int_cov)
 
 
-def test_block_assignment_invalidates_cached_slices_for_every_block():
-    """Every block attribute must clear the layout cache when reassigned.
-
-    ``__setattr__`` decides this from a per-class membership set, so a subclass
-    that adds blocks has to extend it; otherwise a resized bias block would
-    keep serving stale slices.
-    """
+def test_block_assignment_keeps_layout_valid_for_every_block():
     state = EstimatorState(
         w=np.zeros(3),
         q=[1.0, 0.0, 0.0, 0.0],
@@ -270,10 +264,9 @@ def test_block_assignment_invalidates_cached_slices_for_every_block():
     )
 
     for attribute in ("w", "q", "h", "act_bias", "sens_bias", "dist_param"):
-        state.slices(coordinates="full")
-        assert state._slice_cache, "expected a warm cache before reassignment"
         setattr(state, attribute, getattr(state, attribute).copy())
-        assert not state._slice_cache, f"assigning {attribute} left a stale layout cache"
+        assert state.full_size == 13
+        assert state.tangent_size == 12
 
 
 def test_resizing_a_block_reports_new_slices():

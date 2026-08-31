@@ -168,7 +168,7 @@ def _square_matrix(value: Any, *, name: str) -> np.ndarray | None:
     return array
 
 
-@dataclass(slots=True, eq=False, init=False)
+@dataclass(slots=True, eq=False)
 class State:
     r"""Physical spacecraft state :math:`x=[\boldsymbol\omega,\mathbf q,\mathbf h]`.
 
@@ -207,12 +207,6 @@ class State:
     w: np.ndarray
     q: np.ndarray
     h: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
-    _slice_cache: dict[StateCoordinates, dict[str, slice]] = field(
-        default_factory=dict,
-        init=False,
-        repr=False,
-        compare=False,
-    )
 
     DEFAULT_QUATERNION_MODE: ClassVar[QuaternionMode] = "quaternion_vector"
     DEFAULT_QUATERNION_ORDER: ClassVar[QuaternionOrder] = "right"
@@ -223,21 +217,10 @@ class State:
     )
     _BLOCK_NAMES: ClassVar[tuple[str, ...]] = tuple(name for name, _ in _BLOCK_FIELDS)
     _BLOCK_ATTRIBUTES: ClassVar[Mapping[str, str]] = dict(_BLOCK_FIELDS)
-    # Membership set for __setattr__, which runs on every field assignment;
-    # scanning _BLOCK_ATTRIBUTES.values() there costs O(blocks) per set.
-    _BLOCK_ATTRIBUTE_SET: ClassVar[frozenset] = frozenset(
-        attribute for _, attribute in _BLOCK_FIELDS
-    )
     _BLOCK_ALIASES: ClassVar[Mapping[str, str]] = {
         "quaternion": "attitude",
         "estimated_parameter": "estimated_parameters",
     }
-
-    def __init__(self, w: Any, q: Any, h: Any = ()) -> None:
-        object.__setattr__(self, "w", _vector(w, name="w", size=3))
-        object.__setattr__(self, "q", _vector(q, name="q", size=4))
-        object.__setattr__(self, "h", _vector(h, name="h"))
-        object.__setattr__(self, "_slice_cache", {})
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "w":
@@ -247,10 +230,6 @@ class State:
         elif name == "h":
             value = _vector(value, name=name)
         object.__setattr__(self, name, value)
-        if name in self._BLOCK_ATTRIBUTE_SET:
-            cache = getattr(self, "_slice_cache", None)
-            if cache is not None:
-                cache.clear()
 
     def __eq__(self, other: object) -> bool:
         if type(other) is not State:
@@ -341,20 +320,29 @@ class State:
         ``quaternion`` remains an alias for the canonical ``attitude`` name.
         """
         coordinates = self._coordinates(coordinates)
-        cached = self._cached_slices(coordinates)
         canonical = self._BLOCK_ALIASES.get(name, name)
         if canonical == "physical":
-            return cached["physical"]
+            return slice(0, self.block_size("physical", coordinates=coordinates))
         if canonical == "estimated_parameters":
-            return cached["estimated_parameters"]
-        if canonical in cached:
-            return cached[canonical]
+            start = self.block_size("physical", coordinates=coordinates)
+            return slice(start, self.size(coordinates=coordinates))
+
+        start = 0
+        for block_name, attribute in self._BLOCK_FIELDS:
+            width = self._block_width(block_name, attribute, coordinates)
+            if block_name == canonical:
+                return slice(start, start + width)
+            start += width
         raise KeyError(f"unknown state block {name!r}; expected one of {self.block_names}")
 
-    def _cached_slices(self, coordinates: StateCoordinates) -> dict[str, slice]:
-        cached = self._slice_cache.get(coordinates)
-        if cached is not None:
-            return cached
+    def slices(self, *, coordinates: str = "full") -> dict[str, slice]:
+        """Return all named slices for one coordinate representation.
+
+        For repeated block assembly, obtain this mapping once and reuse it.
+        Single-block callers should prefer :meth:`slice`, which avoids
+        allocating a mapping.
+        """
+        coordinates = self._coordinates(coordinates)
         result: dict[str, slice] = {}
         start = 0
         physical_stop = 0
@@ -368,18 +356,7 @@ class State:
         result["estimated_parameters"] = slice(physical_stop, start)
         if coordinates == "full":
             result["quaternion"] = result["attitude"]
-        self._slice_cache[coordinates] = result
         return result
-
-    def slices(self, *, coordinates: str = "full") -> dict[str, slice]:
-        """Return all named slices for one coordinate representation.
-
-        For repeated block assembly, obtain this mapping once and reuse it.
-        Single-block callers should prefer :meth:`slice`, which avoids
-        allocating a mapping.
-        """
-        coordinates = self._coordinates(coordinates)
-        return dict(self._cached_slices(coordinates))
 
     @property
     def full_slices(self) -> dict[str, slice]:
@@ -404,7 +381,10 @@ class State:
     def size(self, *, coordinates: str = "full") -> int:
         """Return the total stored or local state dimension."""
         coordinates = self._coordinates(coordinates)
-        return self._cached_slices(coordinates)["estimated_parameters"].stop
+        return sum(
+            self._block_width(name, attribute, coordinates)
+            for name, attribute in self._BLOCK_FIELDS
+        )
 
     def validate_layout(self, **expected_sizes: int) -> None:
         """Validate selected block dimensions with concise diagnostics.
@@ -440,7 +420,6 @@ class State:
 
     def copy(self) -> State:
         result = object.__new__(State)
-        object.__setattr__(result, "_slice_cache", {})
         object.__setattr__(result, "w", self.w.copy())
         object.__setattr__(result, "q", self.q.copy())
         object.__setattr__(result, "h", self.h.copy())
@@ -992,7 +971,6 @@ class EstimatorState(State):
         covariance: Covariance | None = None,
         process_noise: Covariance | None = None,
     ) -> None:
-        object.__setattr__(self, "_slice_cache", {})
         self.w = w
         self.q = q
         self.h = h
@@ -1053,9 +1031,6 @@ class EstimatorState(State):
             value = _vector(value, name=name, size=size)
             self._validate_existing_covariances_for_vector_assignment(name, value)
             object.__setattr__(self, name, value)
-            cache = getattr(self, "_slice_cache", None)
-            if cache is not None:
-                cache.clear()
             return
         object.__setattr__(self, name, value)
 
