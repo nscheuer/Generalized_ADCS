@@ -252,3 +252,28 @@ def test_state_dict_roundtrip_preserves_subclass_and_data():
     np.testing.assert_array_equal(rebuilt.as_estimator_array(), state.as_estimator_array())
     np.testing.assert_array_equal(rebuilt.cov, state.cov)
     np.testing.assert_array_equal(rebuilt.int_cov, state.int_cov)
+
+
+def test_block_assignment_keeps_layout_valid_for_every_block():
+    state = EstimatorState(
+        w=np.zeros(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        h=np.zeros(2),
+        act_bias=np.zeros(1),
+        sens_bias=np.zeros(3),
+    )
+
+    for attribute in ("w", "q", "h", "act_bias", "sens_bias", "dist_param"):
+        setattr(state, attribute, getattr(state, attribute).copy())
+        assert state.full_size == 13
+        assert state.tangent_size == 12
+
+
+def test_resizing_a_block_reports_new_slices():
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(2))
+    assert state.slices(coordinates="full")["wheel_momentum"] == slice(7, 9)
+
+    state.h = np.zeros(5)
+
+    assert state.slices(coordinates="full")["wheel_momentum"] == slice(7, 12)
+    assert state.full_size == 12

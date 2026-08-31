@@ -12,7 +12,7 @@ from ADCS.estimators.process_noise import discretize_process_noise
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
-from ADCS.satellite_hardware.errors import Noise
+from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import (
     EarthHorizonSensor,
@@ -393,3 +393,128 @@ def test_linear_ekf_primitives_match_in_full_and_square_root_forms():
     np.testing.assert_allclose(results[0][1], expected_posterior)
     np.testing.assert_allclose(results[0][1], results[0][1].T)
     assert np.linalg.eigvalsh(results[0][1]).min() >= -1.0e-14
+
+
+def test_cg5_propagation_runs_on_a_real_satellite_without_stage_states(orbital_state):
+    """The satellite-built stage path must work on a real satellite.
+
+    The other ``cg5`` contracts use ``_RecordingSatellite``, which never calls
+    the integrator, so the branch that builds its own stage orbital states was
+    never executed against real code.
+    """
+    satellite = EstimatedSatellite(
+        J_0=np.diag([0.5, 0.8, 1.2]),
+        actuators=[MTQ(axis=np.array([1.0, 0.0, 0.0]), max_torque=1.0)],
+    )
+    state = EstimatorState(w=[0.02, -0.01, 0.015], q=[0.9, 0.2, -0.3, 0.1]).normalized()
+
+    propagated = propagate_state(
+        state,
+        satellite,
+        np.zeros(1),
+        0.5,
+        orbital_state,
+        orbital_state,
+        quaternion_integrator="cg5",
+    )
+
+    assert np.isclose(np.linalg.norm(propagated.q), 1.0)
+    assert np.all(np.isfinite(propagated.as_array()))
+
+
+def test_cg5_and_rk4_agree_on_a_short_step(orbital_state):
+    satellite = EstimatedSatellite(
+        J_0=np.diag([0.5, 0.8, 1.2]),
+        actuators=[MTQ(axis=np.array([1.0, 0.0, 0.0]), max_torque=1.0)],
+    )
+    state = EstimatorState(w=[0.02, -0.01, 0.015], q=[0.9, 0.2, -0.3, 0.1]).normalized()
+
+    rk4 = propagate_state(
+        state, satellite, np.zeros(1), 0.5, orbital_state, orbital_state,
+        quaternion_integrator="rk4",
+    )
+    cg5 = propagate_state(
+        state, satellite, np.zeros(1), 0.5, orbital_state, orbital_state,
+        quaternion_integrator="cg5",
+    )
+
+    assert np.allclose(cg5.q, rk4.q, atol=1.0e-5)
+    assert np.allclose(cg5.w, rk4.w, atol=1.0e-7)
+
+
+@pytest.mark.parametrize("initial_bias", [0.0, 1.0e-3])
+@pytest.mark.parametrize("bias_rate", [0.0, 1.0e-6])
+@pytest.mark.parametrize("estimate_bias", [False, True])
+def test_sensor_bias_state_and_jacobian_agree_in_every_quadrant(
+    orbital_state, initial_bias, bias_rate, estimate_bias
+):
+    """Bias-state allocation and Jacobian width must key on the same thing.
+
+    ``Bias.__bool__`` is value-dependent (false when both the offset and the
+    rate are zero), so gating a *shape* on it disagrees with the layout, which
+    keys on ``estimate_bias``. All four quadrants of (bias present, estimated)
+    must stay consistent.
+    """
+    gyro = Gyro(
+        axis=np.array([1.0, 0.0, 0.0]),
+        noise=Noise(noise=0.0, std_noise=0.0),
+        bias=Bias(bias=np.array([initial_bias]), std_bias=np.array([bias_rate])),
+        estimate_bias=estimate_bias,
+    )
+    satellite = EstimatedSatellite(J_0=np.diag([0.5, 0.8, 1.2]), sensors=[gyro])
+    state = EstimatorState(
+        w=[0.05, 0.0, 0.0],
+        q=[1.0, 0.0, 0.0, 0.0],
+        sens_bias=np.zeros(satellite.att_sens_bias_len),
+    )
+
+    expected = 1 if estimate_bias else 0
+    assert satellite.att_sens_bias_len == expected
+    assert state.sens_bias.size == expected
+
+    stack = satellite.measurement_stack
+    jacobian = stack.jacobian(state, orbital_state, np.ones(len(stack.entries), dtype=bool))
+    assert jacobian.shape[1] == state.tangent_size
+
+    bias_columns = jacobian[:, state.slice("sensor_bias", coordinates="tangent")]
+    assert bias_columns.shape[1] == expected
+    if estimate_bias:
+        # The bias must be a live parameter, not a dead state.
+        assert np.any(bias_columns != 0.0)
+
+
+@pytest.mark.parametrize("initial_bias", [0.0, 1.0e-3])
+@pytest.mark.parametrize("bias_rate", [0.0, 1.0e-6])
+@pytest.mark.parametrize("estimate_bias", [False, True])
+def test_actuator_bias_state_and_jacobian_agree_in_every_quadrant(
+    orbital_state, initial_bias, bias_rate, estimate_bias
+):
+    """Same contract for actuators, whose Jacobians previously gated on truthiness.
+
+    ``estimate_bias=True`` with an identically zero bias (the default) used to
+    return a zero-row Jacobian while the state allocated a bias element, which
+    raised inside ``dynJacCore``.
+    """
+    actuators = [
+        MTQ(
+            axis=axis,
+            max_torque=1.0,
+            noise=Noise(noise=0.0, std_noise=0.0),
+            bias=Bias(bias=np.array([initial_bias]), std_bias=np.array([bias_rate])),
+            estimate_bias=estimate_bias,
+        )
+        for axis in (np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]), np.array([0.0, 0.0, 1.0]))
+    ]
+    satellite = EstimatedSatellite(J_0=np.diag([0.5, 0.8, 1.2]), actuators=actuators)
+    state = EstimatorState(
+        w=[0.02, -0.01, 0.015],
+        q=[1.0, 0.0, 0.0, 0.0],
+        act_bias=np.zeros(satellite.act_bias_len),
+    )
+
+    expected = 3 if estimate_bias else 0
+    assert satellite.act_bias_len == expected
+    assert state.act_bias.size == expected
+
+    blocks = satellite.dynJacCore(state, np.zeros(3), orbital_state)
+    assert np.asarray(blocks[2]).shape[0] == expected

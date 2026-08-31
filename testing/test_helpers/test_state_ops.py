@@ -336,7 +336,7 @@ def test_rotation_vector_reset_jacobian_matches_closed_form_at_large_delta(order
     )
 
 
-def test_slice_cache_is_invalidated_when_layout_changes():
+def test_slices_reflect_layout_changes():
     state = State(
         w=np.zeros(3),
         q=[1.0, 0.0, 0.0, 0.0],

@@ -1351,7 +1351,7 @@ class Satellite:
 
             if mid_orbital_state is None:
                 mid_orbital_state = [
-                    orbital_state0.average(orbital_state1, CG5_c[i]) for i in range(5)
+                    orbital_state0.average(orbital_state1, uc.CG5_c[i]) for i in range(5)
                 ]
 
             for j in range(5):
