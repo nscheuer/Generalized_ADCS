@@ -354,6 +354,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -574,8 +575,9 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -585,12 +587,19 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span>
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MeasurementStack"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MeasurementSource"</span><span class="p">,</span> <span class="s2">"MeasurementStack"</span><span class="p">]</span>
 
 
+<div class="viewcode-block" id="MeasurementSource">
+<a class="viewcode-back" href="../../../ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementSource">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">_MeasurementEntry</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""One contiguous source in the canonical raw measurement vector."""</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MeasurementSource</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""One identifiable source in the canonical measurement vector.</span>
+
+<span class="sd">    ``name`` is stable within a stack and intended for configuration and</span>
+<span class="sd">    diagnostics. ``raw_slice`` addresses received/predicted telemetry, while</span>
+<span class="sd">    ``residual_slice`` describes this source's unmasked innovation width.</span>
+<span class="sd">    """</span>
 
     <span class="n">source</span><span class="p">:</span> <span class="n">Any</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -602,6 +611,26 @@
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_quaternion_attitude</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">StarTrackerQuaternion</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">kind</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return ``sensor`` or ``reaction_wheel``."""</span>
+        <span class="k">return</span> <span class="s2">"sensor"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensor_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">"reaction_wheel"</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">raw_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_slice</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_slice</span><span class="o">.</span><span class="n">start</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">residual_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_slice</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_slice</span><span class="o">.</span><span class="n">start</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_stem</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Convert a hardware class name to a concise selector name."""</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">"_"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(?&lt;=[a-z0-9])(?=[A-Z])"</span><span class="p">,</span> <span class="s2">"_"</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="MeasurementStack">
@@ -618,6 +647,9 @@
 
 <span class="sd">    ``active_mask`` is entry-wise, while ``active_measurements`` and</span>
 <span class="sd">    ``residual`` return compact vectors in the selected entry order.</span>
+<span class="sd">    Every operation that accepts an entry mask also accepts the selectors</span>
+<span class="sd">    understood by :meth:`mask`; selectors are resolved once to a NumPy boolean</span>
+<span class="sd">    mask before numerical work begins.</span>
 
 <span class="sd">    Quaternion residuals, Jacobians, and covariances consistently use right</span>
 <span class="sd">    attitude errors. This is intentionally fixed rather than exposed as a</span>
@@ -628,22 +660,26 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">satellite</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span> <span class="o">=</span> <span class="n">satellite</span>
-        <span class="n">entries</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">_MeasurementEntry</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">entries</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MeasurementSource</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">raw_offset</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">residual_offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">source_counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">satellite</span><span class="o">.</span><span class="n">attitude_sensors</span><span class="p">):</span>
             <span class="n">raw_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sensor</span><span class="o">.</span><span class="n">output_length</span><span class="p">)</span>
             <span class="n">residual_length</span> <span class="o">=</span> <span class="mi">3</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="n">StarTrackerQuaternion</span><span class="p">)</span> <span class="k">else</span> <span class="n">raw_length</span>
+            <span class="n">stem</span> <span class="o">=</span> <span class="n">_source_stem</span><span class="p">(</span><span class="n">sensor</span><span class="p">)</span>
+            <span class="n">source_number</span> <span class="o">=</span> <span class="n">source_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">stem</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">source_counts</span><span class="p">[</span><span class="n">stem</span><span class="p">]</span> <span class="o">=</span> <span class="n">source_number</span> <span class="o">+</span> <span class="mi">1</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="n">StarTrackerQuaternion</span><span class="p">)</span> <span class="ow">and</span> <span class="n">sensor</span><span class="o">.</span><span class="n">estimate_bias</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">"StarTrackerQuaternion biases cannot be estimated as additive "</span>
                     <span class="s2">"four-coefficient states; use a three-coordinate attitude error model."</span>
                 <span class="p">)</span>
             <span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">_MeasurementEntry</span><span class="p">(</span>
+                <span class="n">MeasurementSource</span><span class="p">(</span>
                     <span class="n">source</span><span class="o">=</span><span class="n">sensor</span><span class="p">,</span>
-                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">"sensor[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">]"</span><span class="p">,</span>
+                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">stem</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="n">source_number</span><span class="si">}</span><span class="s2">]"</span><span class="p">,</span>
                     <span class="n">raw_slice</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="n">raw_offset</span><span class="p">,</span> <span class="n">raw_offset</span> <span class="o">+</span> <span class="n">raw_length</span><span class="p">),</span>
                     <span class="n">residual_slice</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="n">residual_offset</span><span class="p">,</span> <span class="n">residual_offset</span> <span class="o">+</span> <span class="n">residual_length</span><span class="p">),</span>
                     <span class="n">sensor_index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span>
@@ -654,7 +690,7 @@
 
         <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">wheel</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">satellite</span><span class="o">.</span><span class="n">rw_actuators</span><span class="p">):</span>
             <span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">_MeasurementEntry</span><span class="p">(</span>
+                <span class="n">MeasurementSource</span><span class="p">(</span>
                     <span class="n">source</span><span class="o">=</span><span class="n">wheel</span><span class="p">,</span>
                     <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">"reaction_wheel[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">]"</span><span class="p">,</span>
                     <span class="n">raw_slice</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="n">raw_offset</span><span class="p">,</span> <span class="n">raw_offset</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
@@ -666,18 +702,106 @@
             <span class="n">residual_offset</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name_to_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">index</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">entries</span><span class="p">)}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">"sensor[</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">sensor_index</span><span class="si">}</span><span class="s2">]"</span><span class="p">:</span> <span class="n">index</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">sensor_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">raw_size</span> <span class="o">=</span> <span class="n">raw_offset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">residual_size</span> <span class="o">=</span> <span class="n">residual_offset</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">entries</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">_MeasurementEntry</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Ordered measurement sources, primarily for diagnostics and tests."""</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">entries</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">MeasurementSource</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Ordered, immutable measurement-source descriptions."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Stable semantic source names in stack order."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_names</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">source_order</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Stable, human-readable order of the measurement sources."""</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Compatibility alias for :attr:`names`."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span>
+
+<div class="viewcode-block" id="MeasurementStack.entry">
+<a class="viewcode-back" href="../../../ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.entry">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selector</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MeasurementSource</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the single source identified by ``selector``.</span>
+
+<span class="sd">        Exact names, entry indices, source objects, and</span>
+<span class="sd">        :class:`MeasurementSource` objects are accepted. Broader selectors</span>
+<span class="sd">        such as ``"gyro"`` or ``Gyro`` must match exactly one source here;</span>
+<span class="sd">        use :meth:`mask` when selecting groups.</span>
+<span class="sd">        """</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selector_indices</span><span class="p">(</span><span class="n">selector</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"selector must identify one measurement source, matched </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">[</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">indices</span><span class="p">))]</span></div>
+
+
+<div class="viewcode-block" id="MeasurementStack.mask">
+<a class="viewcode-back" href="../../../ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.mask">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">include</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="p">())</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Build an entry-wise boolean mask from semantic selectors.</span>
+
+<span class="sd">        With no ``include`` selectors, all sources are selected. Selectors may</span>
+<span class="sd">        be names (``"gyro[0]"``), source families (``"gyro"``), groups</span>
+<span class="sd">        (``"sensors"`` or ``"reaction_wheels"``), entry indices, hardware</span>
+<span class="sd">        objects, source classes, :class:`MeasurementSource` objects, nested</span>
+<span class="sd">        sequences, or an existing boolean mask.</span>
+
+<span class="sd">        Examples::</span>
+
+<span class="sd">            stack.mask("gyro", "star_tracker_quaternion")</span>
+<span class="sd">            stack.mask("sensors", exclude="gyro[1]")</span>
+<span class="sd">            stack.mask(exclude="reaction_wheels")</span>
+<span class="sd">        """</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)))</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">include</span> <span class="k">else</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">selector</span> <span class="ow">in</span> <span class="n">include</span><span class="p">:</span>
+            <span class="n">selected</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_selector_indices</span><span class="p">(</span><span class="n">selector</span><span class="p">))</span>
+        <span class="n">selected</span><span class="o">.</span><span class="n">difference_update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_selector_indices</span><span class="p">(</span><span class="n">exclude</span><span class="p">))</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">selected</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">selected</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="MeasurementStack.selected">
+<a class="viewcode-back" href="../../../ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.selected">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">selected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">MeasurementSource</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return source descriptions selected by a mask or semantic selector."""</span>
+        <span class="n">active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_mask</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">entry</span> <span class="k">for</span> <span class="n">entry</span><span class="p">,</span> <span class="n">enabled</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">,</span> <span class="n">active</span><span class="p">)</span> <span class="k">if</span> <span class="n">enabled</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MeasurementStack.raw_mask">
+<a class="viewcode-back" href="../../../ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.raw_mask">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">raw_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Expand an entry mask to the raw telemetry-vector dimension."""</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span><span class="p">(</span><span class="n">mask</span><span class="p">):</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">raw_slice</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="MeasurementStack.residual_mask">
+<a class="viewcode-back" href="../../../ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.residual_mask">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">residual_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Expand an entry mask to the unmasked residual-vector dimension."""</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residual_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected</span><span class="p">(</span><span class="n">mask</span><span class="p">):</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">residual_slice</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
 
 <div class="viewcode-block" id="MeasurementStack.readings">
 <a class="viewcode-back" href="../../../ADCS.estimators.measurement_stack.html#ADCS.estimators.measurement_stack.MeasurementStack.readings">[docs]</a>
@@ -703,7 +827,7 @@
         <span class="n">measurements</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">time_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">enabled</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">enabled</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">epoch_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">predicted</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -717,6 +841,8 @@
 <span class="sd">        asynchronous telemetry streams.  A sensor with ``sample_time &lt;= 0`` is</span>
 <span class="sd">        treated as continuously sampled.  Reaction-wheel measurements are</span>
 <span class="sd">        continuously sampled until the hardware model gains a sampling period.</span>
+<span class="sd">        ``enabled`` may be a boolean mask or any semantic selector accepted by</span>
+<span class="sd">        :meth:`mask`.</span>
 <span class="sd">        """</span>
         <span class="n">measurements</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_measurements</span><span class="p">(</span><span class="n">measurements</span><span class="p">)</span>
         <span class="n">predicted_values</span> <span class="o">=</span> <span class="p">(</span>
@@ -740,7 +866,11 @@
 <span class="w">        </span><span class="sd">"""Return the compact raw measurement vector selected by ``active_mask``."""</span>
         <span class="n">measurements</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_measurements</span><span class="p">(</span><span class="n">measurements</span><span class="p">)</span>
         <span class="n">active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_mask</span><span class="p">(</span><span class="n">active_mask</span><span class="p">)</span>
-        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">measurements</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">raw_slice</span><span class="p">]</span> <span class="k">for</span> <span class="n">entry</span><span class="p">,</span> <span class="n">selected</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">,</span> <span class="n">active</span><span class="p">)</span> <span class="k">if</span> <span class="n">selected</span><span class="p">]</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">measurements</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">raw_slice</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">entry</span><span class="p">,</span> <span class="n">selected</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">,</span> <span class="n">active</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">selected</span>
+        <span class="p">]</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="k">if</span> <span class="n">parts</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
 
 
@@ -844,10 +974,12 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">block</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">measurement_covariance</span><span class="p">()</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">is_quaternion_attitude</span><span class="p">:</span>
+                <span class="n">attitude_tangent</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="s2">"attitude"</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="s2">"tangent"</span><span class="p">)</span>
+                <span class="n">attitude_full</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="s2">"attitude"</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="s2">"full"</span><span class="p">)</span>
                 <span class="n">reduction</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">tangent_pinv</span><span class="p">(</span>
                     <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span>
                     <span class="n">quaternion_order</span><span class="o">=</span><span class="s2">"right"</span><span class="p">,</span>
-                <span class="p">)[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+                <span class="p">)[</span><span class="n">attitude_tangent</span><span class="p">,</span> <span class="n">attitude_full</span><span class="p">]</span>
                 <span class="n">block</span> <span class="o">=</span> <span class="n">reduction</span> <span class="o">@</span> <span class="n">block</span> <span class="o">@</span> <span class="n">reduction</span><span class="o">.</span><span class="n">T</span>
             <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">Covariance</span><span class="o">.</span><span class="n">block_diagonal</span><span class="p">(</span>
@@ -875,19 +1007,21 @@
             <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span>
             <span class="n">quaternion_order</span><span class="o">=</span><span class="s2">"right"</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">base_size</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">full_slices</span><span class="p">[</span><span class="s2">"wheel_momentum"</span><span class="p">]</span><span class="o">.</span><span class="n">stop</span>
+        <span class="n">base_size</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="s2">"physical"</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="s2">"full"</span><span class="p">)</span><span class="o">.</span><span class="n">stop</span>
+        <span class="n">wheel_tangent</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="s2">"wheel_momentum"</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="s2">"tangent"</span><span class="p">)</span>
+        <span class="n">attitude_tangent</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="s2">"attitude"</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="s2">"tangent"</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">entry</span><span class="p">,</span> <span class="n">selected</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">selected</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">sensor_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">row</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">tangent_size</span><span class="p">))</span>
-                <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">tangent_slices</span><span class="p">[</span><span class="s2">"wheel_momentum"</span><span class="p">]</span><span class="o">.</span><span class="n">start</span> <span class="o">+</span> <span class="n">entry</span><span class="o">.</span><span class="n">wheel_index</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">wheel_tangent</span><span class="o">.</span><span class="n">start</span> <span class="o">+</span> <span class="n">entry</span><span class="o">.</span><span class="n">wheel_index</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
                 <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">is_quaternion_attitude</span><span class="p">:</span>
                 <span class="n">row</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">tangent_size</span><span class="p">))</span>
-                <span class="n">row</span><span class="p">[:,</span> <span class="n">state</span><span class="o">.</span><span class="n">tangent_slices</span><span class="p">[</span><span class="s2">"attitude"</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+                <span class="n">row</span><span class="p">[:,</span> <span class="n">attitude_tangent</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
                 <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
                 <span class="k">continue</span>
 
@@ -924,7 +1058,7 @@
         <span class="n">bias_slice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">sensor_bias_slice</span><span class="p">(</span><span class="n">sensor_index</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">bias_slice</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="n">sensor_bias_start</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">full_slices</span><span class="p">[</span><span class="s2">"sensor_bias"</span><span class="p">]</span><span class="o">.</span><span class="n">start</span>
+        <span class="n">sensor_bias_start</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="s2">"sensor_bias"</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="s2">"full"</span><span class="p">)</span><span class="o">.</span><span class="n">start</span>
         <span class="n">local</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span>
             <span class="n">bias_slice</span><span class="o">.</span><span class="n">start</span> <span class="o">-</span> <span class="n">sensor_bias_start</span><span class="p">,</span>
             <span class="n">bias_slice</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="n">sensor_bias_start</span><span class="p">,</span>
@@ -934,14 +1068,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_validate_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"state must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">rw_actuators</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"EstimatorState wheel-momentum block must match the number of reaction wheels"</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">act_bias_len</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"EstimatorState actuator-bias block does not match the satellite layout"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"EstimatorState sensor-bias block does not match the satellite layout"</span><span class="p">)</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">validate_layout</span><span class="p">(</span>
+            <span class="n">wheel_momentum</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">rw_actuators</span><span class="p">),</span>
+            <span class="n">actuator_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">act_bias_len</span><span class="p">,</span>
+            <span class="n">sensor_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_raw_measurements</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">measurements</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"measurements"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">measurements</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -950,20 +1081,114 @@
         <span class="k">return</span> <span class="n">values</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_entry_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">active_mask</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">active_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">),):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"active_mask must have shape (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)</span><span class="si">}</span><span class="s2">,), got </span><span class="si">{</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">mask</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_array</span><span class="p">(</span><span class="n">active_mask</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mask</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">active_mask</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_enabled_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_enabled_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">enabled</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_mask</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_mask_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return a copied entry mask when ``value`` unambiguously is one."""</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">),):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_selector_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selector</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Resolve one possibly nested selector to entry indices."""</span>
+        <span class="k">if</span> <span class="n">selector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_array</span><span class="p">(</span><span class="n">selector</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="n">MeasurementSource</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">selector</span> <span class="ow">is</span> <span class="n">entry</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">{</span><span class="n">index</span><span class="p">}</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"MeasurementSource does not belong to this stack"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"a boolean selector must be part of a full entry mask"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">selector</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"measurement source index </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2"> is outside [0, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">index</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">selector</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_to_index</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_name_to_index</span><span class="p">[</span><span class="n">selector</span><span class="p">]}</span>
+            <span class="k">if</span> <span class="n">selector</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">selector</span><span class="p">]}</span>
+
+            <span class="n">normalized</span> <span class="o">=</span> <span class="n">selector</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">normalized</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"measurements"</span><span class="p">,</span> <span class="s2">"sources"</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">normalized</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"sensor"</span><span class="p">,</span> <span class="s2">"sensors"</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">{</span>
+                    <span class="n">index</span>
+                    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">sensor_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="p">}</span>
+            <span class="k">if</span> <span class="n">normalized</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"reaction_wheel"</span><span class="p">,</span> <span class="s2">"reaction_wheels"</span><span class="p">,</span> <span class="s2">"wheels"</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">{</span>
+                    <span class="n">index</span>
+                    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">wheel_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="p">}</span>
+
+            <span class="n">family</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">index</span>
+                <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">"["</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">normalized</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">family</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">family</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"unknown measurement selector </span><span class="si">{</span><span class="n">selector</span><span class="si">!r}</span><span class="s2">; available sources are "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">source_order</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="n">index</span>
+                <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">selector</span><span class="p">)</span>
+            <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">selector</span> <span class="ow">is</span> <span class="n">entry</span><span class="o">.</span><span class="n">source</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span><span class="n">index</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+            <span class="n">result</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">selector</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_selector_indices</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">"measurement selectors must be names, indices, source objects, "</span>
+            <span class="s2">"source classes, MeasurementSource objects, or sequences of them"</span>
+        <span class="p">)</span>
+
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_is_due</span><span class="p">(</span><span class="n">entry</span><span class="p">:</span> <span class="n">_MeasurementEntry</span><span class="p">,</span> <span class="n">time_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">epoch_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_due</span><span class="p">(</span><span class="n">entry</span><span class="p">:</span> <span class="n">MeasurementSource</span><span class="p">,</span> <span class="n">time_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">epoch_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="n">sample_time</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="s2">"sample_time"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">sample_time</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">sample_time</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>

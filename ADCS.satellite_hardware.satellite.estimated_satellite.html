@@ -355,6 +355,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -1173,9 +1174,10 @@ assigned as:</p>
 <div class="math notranslate nohighlight">
 \[\boldsymbol{\sigma} = \sqrt{\operatorname{diag}(\mathbf{P}_{block})}.\]</div>
 </div>
-<p>In the implementation, the estimator provides an <em>integrated</em> covariance block (<code class="docutils literal notranslate"><span class="pre">int_cov</span></code>) that may
-be dimension-shifted by one element in some configurations (e.g., quaternion handling). The method
-applies an index adjustment <code class="docutils literal notranslate"><span class="pre">adj</span></code> when <code class="docutils literal notranslate"><span class="pre">int_cov</span></code> is off-by-one.</p>
+<p>The estimator may provide <code class="docutils literal notranslate"><span class="pre">int_cov</span></code> in full quaternion coordinates or
+reduced tangent coordinates. Each bias/parameter block is selected
+through <a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>’s named layout, so the
+quaternion dimension does not leak into block-index arithmetic.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

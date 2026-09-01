@@ -355,6 +355,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -858,7 +859,8 @@ covariance interpolation.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="ADCS.state.EstimatorState.augmented_size">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">augmented_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.state.EstimatorState.augmented_size" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Compatibility name for the stored estimator-state dimension.</p>
+</dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="ADCS.state.EstimatorState.cov">
@@ -878,21 +880,6 @@ covariance interpolation.</p>
 <dd></dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="ADCS.state.EstimatorState.full_size">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">full_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.state.EstimatorState.full_size" title="Link to this definition">¶</a></dt>
-<dd><p>Number of stored scalar state elements, including all four quaternion elements.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="ADCS.state.EstimatorState.full_slices">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">full_slices</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">slice</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.state.EstimatorState.full_slices" title="Link to this definition">¶</a></dt>
-<dd><p>Slices for the stored augmented state vector.</p>
-<p>The order is the single source of truth for estimator-facing block
-assembly: angular velocity, quaternion, wheel momentum, actuator
-bias, sensor bias, and disturbance parameters.</p>
-</dd></dl>
-
-<dl class="py property">
 <dt class="sig sig-object py" id="ADCS.state.EstimatorState.int_cov">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">int_cov</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#ADCS.state.EstimatorState.int_cov" title="Link to this definition">¶</a></dt>
 <dd><p>Legacy full-matrix view of <a class="reference internal" href="#ADCS.state.EstimatorState.process_noise" title="ADCS.state.EstimatorState.process_noise"><code class="xref py py-attr docutils literal notranslate"><span class="pre">process_noise</span></code></a>.</p>
@@ -908,18 +895,6 @@ bias, sensor bias, and disturbance parameters.</p>
 <dt class="sig sig-object py" id="ADCS.state.EstimatorState.sens_bias">
 <span class="sig-name descname"><span class="pre">sens_bias</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#ADCS.state.EstimatorState.sens_bias" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="ADCS.state.EstimatorState.tangent_size">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tangent_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.state.EstimatorState.tangent_size" title="Link to this definition">¶</a></dt>
-<dd><p>Dimension of the local state coordinates, with three attitude elements.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="ADCS.state.EstimatorState.tangent_slices">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tangent_slices</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">slice</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.state.EstimatorState.tangent_slices" title="Link to this definition">¶</a></dt>
-<dd><p>Slices for the local error state used by covariance and PSD models.</p>
-</dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="ADCS.state.EstimatorState.uses_reduced_quaternion_covariance">
@@ -1114,6 +1089,41 @@ parameters and covariance are provided by <a class="reference internal" href="#A
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.state.State.block">
+<span class="sig-name descname"><span class="pre">block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.block"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.block" title="Link to this definition">¶</a></dt>
+<dd><p>Return a state block by semantic name without copying it.</p>
+<p>This is the bridge between estimator mathematics and storage names:
+<code class="docutils literal notranslate"><span class="pre">state.block(&quot;attitude&quot;)</span></code> returns <code class="docutils literal notranslate"><span class="pre">state.q</span></code> and
+<code class="docutils literal notranslate"><span class="pre">state.block(&quot;wheel_momentum&quot;)</span></code> returns <code class="docutils literal notranslate"><span class="pre">state.h</span></code>.  Callers that
+need ownership should copy the returned array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.state.State.block_size">
+<span class="sig-name descname"><span class="pre">block_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'full'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.block_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.block_size" title="Link to this definition">¶</a></dt>
+<dd><p>Return one block’s dimension in stored or local coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>coordinates</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.state.State.copy">
 <span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.copy" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
@@ -1283,6 +1293,90 @@ This is the inverse of <a class="reference internal" href="#ADCS.state.State.min
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.state.State.retraction_jacobian">
+<span class="sig-name descname"><span class="pre">retraction_jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.retraction_jacobian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.retraction_jacobian" title="Link to this definition">¶</a></dt>
+<dd><p>Return the covariance-reset Jacobian after retracting <code class="docutils literal notranslate"><span class="pre">delta</span></code>.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">updated</span> <span class="pre">=</span> <span class="pre">self.plus(delta)</span></code>, this is the differential</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[J_{reset} = \left.\frac{\partial}{\partial\epsilon}
+\left[
+\bigl(self\boxplus(\delta+\epsilon)\bigr)
+\boxminus updated
+\right]\right|_{\epsilon=0}.\]</div>
+</div>
+<p>It transports an error covariance from the old tangent point to the
+tangent point at <code class="docutils literal notranslate"><span class="pre">updated</span></code>. Linear state blocks remain identity; only
+the attitude block is evaluated numerically. This keeps the operation
+consistent with every quaternion chart supported by <a class="reference internal" href="#ADCS.state.State.plus" title="ADCS.state.State.plus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">plus()</span></code></a> and
+<a class="reference internal" href="#ADCS.state.State.minus" title="ADCS.state.State.minus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">minus()</span></code></a> without imposing chart-specific formulas on filters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>delta</strong> (<em>Any</em>)</p></li>
+<li><p><strong>quaternion_mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>quaternion_order</strong> (<em>str</em>)</p></li>
+<li><p><strong>step</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.state.State.size">
+<span class="sig-name descname"><span class="pre">size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'full'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.size" title="Link to this definition">¶</a></dt>
+<dd><p>Return the total stored or local state dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coordinates</strong> (<em>str</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.state.State.slice">
+<span class="sig-name descname"><span class="pre">slice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'full'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.slice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.slice" title="Link to this definition">¶</a></dt>
+<dd><p>Return a block slice in stored or local state coordinates.</p>
+<p><code class="docutils literal notranslate"><span class="pre">physical</span></code> selects angular velocity through wheel momentum;
+<code class="docutils literal notranslate"><span class="pre">estimated_parameters</span></code> selects all augmented bias/parameter blocks.
+<code class="docutils literal notranslate"><span class="pre">quaternion</span></code> remains an alias for the canonical <code class="docutils literal notranslate"><span class="pre">attitude</span></code> name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>coordinates</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>slice</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.state.State.slices">
+<span class="sig-name descname"><span class="pre">slices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'full'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.slices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.slices" title="Link to this definition">¶</a></dt>
+<dd><p>Return all named slices for one coordinate representation.</p>
+<p>For repeated block assembly, obtain this mapping once and reuse it.
+Single-block callers should prefer <a class="reference internal" href="#ADCS.state.State.slice" title="ADCS.state.State.slice"><code class="xref py py-meth docutils literal notranslate"><span class="pre">slice()</span></code></a>, which avoids
+allocating a mapping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coordinates</strong> (<em>str</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict[str, slice]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.state.State.subtract">
 <span class="sig-name descname"><span class="pre">subtract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.subtract"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.subtract" title="Link to this definition">¶</a></dt>
 <dd><p>Compatibility wrapper for <a class="reference internal" href="#ADCS.state.State.minus" title="ADCS.state.State.minus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">minus()</span></code></a>.</p>
@@ -1368,6 +1462,49 @@ displacement onto the unit-quaternion tangent space.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.state.State.transport_covariance">
+<span class="sig-name descname"><span class="pre">transport_covariance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">covariance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">retraction_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.transport_covariance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.transport_covariance" title="Link to this definition">¶</a></dt>
+<dd><p>Transport covariance after <code class="docutils literal notranslate"><span class="pre">self.plus(delta)</span></code>.</p>
+<p>Given an update covariance expressed around <code class="docutils literal notranslate"><span class="pre">self</span></code>, return</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[P_{new}=J_{reset}P J_{reset}^{T}\]</div>
+</div>
+<p>expressed around the retracted state. The covariance representation
+and PSD policy are preserved by <code class="xref py py-meth docutils literal notranslate"><span class="pre">Covariance.transformed()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>covariance</strong> (<a class="reference internal" href="ADCS.covariance.html#ADCS.covariance.Covariance" title="ADCS.covariance.Covariance"><em>Covariance</em></a>)</p></li>
+<li><p><strong>delta</strong> (<em>Any</em>)</p></li>
+<li><p><strong>retraction_kwargs</strong> (<em>Any</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.covariance.html#ADCS.covariance.Covariance" title="ADCS.covariance.Covariance"><em>Covariance</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.state.State.validate_layout">
+<span class="sig-name descname"><span class="pre">validate_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">expected_sizes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.validate_layout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.validate_layout" title="Link to this definition">¶</a></dt>
+<dd><p>Validate selected block dimensions with concise diagnostics.</p>
+<p>Example: <code class="docutils literal notranslate"><span class="pre">state.validate_layout(wheel_momentum=3,</span> <span class="pre">sensor_bias=6)</span></code>.
+Dimensions refer to stored coordinates; only attitude differs in local
+coordinates, and hardware-facing layout checks should never depend on
+the chosen attitude chart.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>expected_sizes</strong> (<em>int</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.state.State.with_quaternion_delta">
 <span class="sig-name descname"><span class="pre">with_quaternion_delta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta_q</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/state.html#State.with_quaternion_delta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.state.State.with_quaternion_delta" title="Link to this definition">¶</a></dt>
 <dd><p>Compose a unit delta quaternion on the right or left.</p>
@@ -1404,6 +1541,12 @@ displacement onto the unit-quaternion tangent space.</p>
 <dd></dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="ADCS.state.State.block_names">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">block_names</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.state.State.block_names" title="Link to this definition">¶</a></dt>
+<dd><p>Canonical state-block names in storage order.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="ADCS.state.State.error_size">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">error_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.state.State.error_size" title="Link to this definition">¶</a></dt>
 <dd><p>Alias for <a class="reference internal" href="#ADCS.state.State.tangent_size" title="ADCS.state.State.tangent_size"><code class="xref py py-attr docutils literal notranslate"><span class="pre">tangent_size</span></code></a>.</p>
@@ -1413,6 +1556,14 @@ displacement onto the unit-quaternion tangent space.</p>
 <dt class="sig sig-object py" id="ADCS.state.State.full_size">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">full_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.state.State.full_size" title="Link to this definition">¶</a></dt>
 <dd><p>Number of stored scalar state elements, including all four quaternion elements.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.state.State.full_slices">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">full_slices</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">slice</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.state.State.full_slices" title="Link to this definition">¶</a></dt>
+<dd><p>Compatibility mapping of stored-vector slices.</p>
+<p>New code should prefer <a class="reference internal" href="#ADCS.state.State.slice" title="ADCS.state.State.slice"><code class="xref py py-meth docutils literal notranslate"><span class="pre">slice()</span></code></a> or <a class="reference internal" href="#ADCS.state.State.slices" title="ADCS.state.State.slices"><code class="xref py py-meth docutils literal notranslate"><span class="pre">slices()</span></code></a>; this property
+retains the established <code class="docutils literal notranslate"><span class="pre">quaternion</span></code> key and compact mapping.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1429,6 +1580,12 @@ displacement onto the unit-quaternion tangent space.</p>
 <dt class="sig sig-object py" id="ADCS.state.State.tangent_size">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tangent_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.state.State.tangent_size" title="Link to this definition">¶</a></dt>
 <dd><p>Dimension of the local state coordinates, with three attitude elements.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.state.State.tangent_slices">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tangent_slices</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">slice</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.state.State.tangent_slices" title="Link to this definition">¶</a></dt>
+<dd><p>Compatibility mapping of local-error slices.</p>
 </dd></dl>
 
 <dl class="py attribute">

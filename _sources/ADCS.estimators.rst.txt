@@ -19,6 +19,7 @@ Submodules
 
    ADCS.estimators.covariance
    ADCS.estimators.measurement_stack
+   ADCS.estimators.process_model
    ADCS.estimators.process_noise
 
 Module contents

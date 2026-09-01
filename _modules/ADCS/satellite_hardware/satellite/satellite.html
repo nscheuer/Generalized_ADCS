@@ -354,6 +354,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -1975,7 +1976,7 @@
 
             <span class="k">if</span> <span class="n">mid_orbital_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">mid_orbital_state</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">orbital_state0</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">orbital_state1</span><span class="p">,</span> <span class="n">CG5_c</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+                    <span class="n">orbital_state0</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">orbital_state1</span><span class="p">,</span> <span class="n">uc</span><span class="o">.</span><span class="n">CG5_c</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
                 <span class="p">]</span>
 
             <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>

@@ -1,0 +1,7 @@
+ADCS.estimators.process\_model module
+=====================================
+
+.. automodule:: ADCS.estimators.process_model
+   :members:
+   :show-inheritance:
+   :undoc-members:

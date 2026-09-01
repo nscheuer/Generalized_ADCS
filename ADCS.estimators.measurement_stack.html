@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.estimators.process_noise module" href="ADCS.estimators.process_noise.html"><link rel="prev" title="ADCS.estimators.covariance module" href="ADCS.estimators.covariance.html">
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.estimators.process_model module" href="ADCS.estimators.process_model.html"><link rel="prev" title="ADCS.estimators.covariance module" href="ADCS.estimators.covariance.html">
         <link rel="canonical" href="https://nscheuer.github.io/Generalized_ADCS/ADCS.estimators.measurement_stack.html">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
@@ -355,6 +355,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -578,6 +579,79 @@ reaction-wheel momentum measurements.  The residual vector may have a
 different dimension: a quaternion attitude measurement is reduced from four
 stored coefficients to three local attitude coordinates.</p>
 <dl class="py class">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.estimators.measurement_stack.</span></span><span class="sig-name descname"><span class="pre">MeasurementSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw_slice</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_slice</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensor_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wheel_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/measurement_stack.html#MeasurementSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>One identifiable source in the canonical measurement vector.</p>
+<p><code class="docutils literal notranslate"><span class="pre">name</span></code> is stable within a stack and intended for configuration and
+diagnostics. <code class="docutils literal notranslate"><span class="pre">raw_slice</span></code> addresses received/predicted telemetry, while
+<code class="docutils literal notranslate"><span class="pre">residual_slice</span></code> describes this source’s unmasked innovation width.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<em>Any</em>)</p></li>
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+<li><p><strong>raw_slice</strong> (<em>slice</em>)</p></li>
+<li><p><strong>residual_slice</strong> (<em>slice</em>)</p></li>
+<li><p><strong>sensor_index</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>wheel_index</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource.is_quaternion_attitude">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_quaternion_attitude</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource.is_quaternion_attitude" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource.kind">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">kind</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource.kind" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">sensor</span></code> or <code class="docutils literal notranslate"><span class="pre">reaction_wheel</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource.name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource.raw_size">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">raw_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource.raw_size" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource.raw_slice">
+<span class="sig-name descname"><span class="pre">raw_slice</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">slice</span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource.raw_slice" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource.residual_size">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">residual_size</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource.residual_size" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource.residual_slice">
+<span class="sig-name descname"><span class="pre">residual_slice</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">slice</span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource.residual_slice" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource.sensor_index">
+<span class="sig-name descname"><span class="pre">sensor_index</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource.sensor_index" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource.source">
+<span class="sig-name descname"><span class="pre">source</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Any</span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource.source" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementSource.wheel_index">
+<span class="sig-name descname"><span class="pre">wheel_index</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementSource.wheel_index" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementStack">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.estimators.measurement_stack.</span></span><span class="sig-name descname"><span class="pre">MeasurementStack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/measurement_stack.html#MeasurementStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
@@ -589,7 +663,10 @@ is supplied, its <code class="docutils literal notranslate"><span class="pre">sa
 a partially missing vector measurement unavailable as a whole: retaining a
 subset would silently change that sensor’s physical measurement model.</p>
 <p><code class="docutils literal notranslate"><span class="pre">active_mask</span></code> is entry-wise, while <code class="docutils literal notranslate"><span class="pre">active_measurements</span></code> and
-<code class="docutils literal notranslate"><span class="pre">residual</span></code> return compact vectors in the selected entry order.</p>
+<code class="docutils literal notranslate"><span class="pre">residual</span></code> return compact vectors in the selected entry order.
+Every operation that accepts an entry mask also accepts the selectors
+understood by <a class="reference internal" href="#ADCS.estimators.measurement_stack.MeasurementStack.mask" title="ADCS.estimators.measurement_stack.MeasurementStack.mask"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mask()</span></code></a>; selectors are resolved once to a NumPy boolean
+mask before numerical work begins.</p>
 <p>Quaternion residuals, Jacobians, and covariances consistently use right
 attitude errors. This is intentionally fixed rather than exposed as a
 partially supported convention knob.</p>
@@ -609,13 +686,15 @@ intentionally not an orbital J2000 value.  When omitted, a received
 finite measurement is treated as live, which is the useful default for
 asynchronous telemetry streams.  A sensor with <code class="docutils literal notranslate"><span class="pre">sample_time</span> <span class="pre">&lt;=</span> <span class="pre">0</span></code> is
 treated as continuously sampled.  Reaction-wheel measurements are
-continuously sampled until the hardware model gains a sampling period.</p>
+continuously sampled until the hardware model gains a sampling period.
+<code class="docutils literal notranslate"><span class="pre">enabled</span></code> may be a boolean mask or any semantic selector accepted by
+<a class="reference internal" href="#ADCS.estimators.measurement_stack.MeasurementStack.mask" title="ADCS.estimators.measurement_stack.MeasurementStack.mask"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mask()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>measurements</strong> (<em>Any</em>)</p></li>
 <li><p><strong>time_s</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>enabled</strong> (<em>Sequence</em><em>[</em><em>bool</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>enabled</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>epoch_s</strong> (<em>float</em>)</p></li>
 <li><p><strong>predicted</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
 </ul>
@@ -663,6 +742,24 @@ continuously sampled until the hardware model gains a sampling period.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementStack.entry">
+<span class="sig-name descname"><span class="pre">entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">selector</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/measurement_stack.html#MeasurementStack.entry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack.entry" title="Link to this definition">¶</a></dt>
+<dd><p>Return the single source identified by <code class="docutils literal notranslate"><span class="pre">selector</span></code>.</p>
+<p>Exact names, entry indices, source objects, and
+<a class="reference internal" href="#ADCS.estimators.measurement_stack.MeasurementSource" title="ADCS.estimators.measurement_stack.MeasurementSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">MeasurementSource</span></code></a> objects are accepted. Broader selectors
+such as <code class="docutils literal notranslate"><span class="pre">&quot;gyro&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">Gyro</span></code> must match exactly one source here;
+use <a class="reference internal" href="#ADCS.estimators.measurement_stack.MeasurementStack.mask" title="ADCS.estimators.measurement_stack.MeasurementStack.mask"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mask()</span></code></a> when selecting groups.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>selector</strong> (<em>Any</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#ADCS.estimators.measurement_stack.MeasurementSource" title="ADCS.estimators.measurement_stack.MeasurementSource"><em>MeasurementSource</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementStack.jacobian">
 <span class="sig-name descname"><span class="pre">jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">active_mask</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/measurement_stack.html#MeasurementStack.jacobian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack.jacobian" title="Link to this definition">¶</a></dt>
 <dd><p>Return the active right-error EKF Jacobian <code class="docutils literal notranslate"><span class="pre">H</span></code> in tangent coordinates.</p>
@@ -673,6 +770,34 @@ continuously sampled until the hardware model gains a sampling period.</p>
 <li><p><strong>orbital_state</strong> (<em>Any</em>)</p></li>
 <li><p><strong>active_mask</strong> (<em>Any</em>)</p></li>
 <li><p><strong>quaternion_mode</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementStack.mask">
+<span class="sig-name descname"><span class="pre">mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">include</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/measurement_stack.html#MeasurementStack.mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack.mask" title="Link to this definition">¶</a></dt>
+<dd><p>Build an entry-wise boolean mask from semantic selectors.</p>
+<p>With no <code class="docutils literal notranslate"><span class="pre">include</span></code> selectors, all sources are selected. Selectors may
+be names (<code class="docutils literal notranslate"><span class="pre">&quot;gyro[0]&quot;</span></code>), source families (<code class="docutils literal notranslate"><span class="pre">&quot;gyro&quot;</span></code>), groups
+(<code class="docutils literal notranslate"><span class="pre">&quot;sensors&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;reaction_wheels&quot;</span></code>), entry indices, hardware
+objects, source classes, <a class="reference internal" href="#ADCS.estimators.measurement_stack.MeasurementSource" title="ADCS.estimators.measurement_stack.MeasurementSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">MeasurementSource</span></code></a> objects, nested
+sequences, or an existing boolean mask.</p>
+<p>Examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">stack</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="s2">"gyro"</span><span class="p">,</span> <span class="s2">"star_tracker_quaternion"</span><span class="p">)</span>
+<span class="n">stack</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="s2">"sensors"</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="s2">"gyro[1]"</span><span class="p">)</span>
+<span class="n">stack</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">exclude</span><span class="o">=</span><span class="s2">"reaction_wheels"</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>include</strong> (<em>Any</em>)</p></li>
+<li><p><strong>exclude</strong> (<em>Any</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -696,6 +821,20 @@ are unavailable at the estimated state.</p>
 <li><p><strong>orbital_state</strong> (<em>Any</em>)</p></li>
 <li><p><strong>active_mask</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
 </ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementStack.raw_mask">
+<span class="sig-name descname"><span class="pre">raw_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/measurement_stack.html#MeasurementStack.raw_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack.raw_mask" title="Link to this definition">¶</a></dt>
+<dd><p>Expand an entry mask to the raw telemetry-vector dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mask</strong> (<em>Any</em>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>ndarray</em></p>
@@ -745,16 +884,50 @@ to the three attitude coordinates selected by <code class="docutils literal notr
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementStack.residual_mask">
+<span class="sig-name descname"><span class="pre">residual_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/measurement_stack.html#MeasurementStack.residual_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack.residual_mask" title="Link to this definition">¶</a></dt>
+<dd><p>Expand an entry mask to the unmasked residual-vector dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mask</strong> (<em>Any</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementStack.selected">
+<span class="sig-name descname"><span class="pre">selected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/measurement_stack.html#MeasurementStack.selected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack.selected" title="Link to this definition">¶</a></dt>
+<dd><p>Return source descriptions selected by a mask or semantic selector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mask</strong> (<em>Any</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple[<a class="reference internal" href="#ADCS.estimators.measurement_stack.MeasurementSource" title="ADCS.estimators.measurement_stack.MeasurementSource"><em>MeasurementSource</em></a>, …]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementStack.entries">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">entries</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">_MeasurementEntry</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack.entries" title="Link to this definition">¶</a></dt>
-<dd><p>Ordered measurement sources, primarily for diagnostics and tests.</p>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">entries</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#ADCS.estimators.measurement_stack.MeasurementSource" title="ADCS.estimators.measurement_stack.MeasurementSource"><span class="pre">MeasurementSource</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack.entries" title="Link to this definition">¶</a></dt>
+<dd><p>Ordered, immutable measurement-source descriptions.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementStack.names">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">names</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack.names" title="Link to this definition">¶</a></dt>
+<dd><p>Stable semantic source names in stack order.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="ADCS.estimators.measurement_stack.MeasurementStack.source_order">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">source_order</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.estimators.measurement_stack.MeasurementStack.source_order" title="Link to this definition">¶</a></dt>
-<dd><p>Stable, human-readable order of the measurement sources.</p>
+<dd><p>Compatibility alias for <a class="reference internal" href="#ADCS.estimators.measurement_stack.MeasurementStack.names" title="ADCS.estimators.measurement_stack.MeasurementStack.names"><code class="xref py py-attr docutils literal notranslate"><span class="pre">names</span></code></a>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -766,12 +939,12 @@ to the three attitude coordinates selected by <code class="docutils literal notr
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="ADCS.estimators.process_noise.html">
+          <a class="next-page" href="ADCS.estimators.process_model.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">ADCS.estimators.process_noise module</div>
+                <div class="title">ADCS.estimators.process_model module</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

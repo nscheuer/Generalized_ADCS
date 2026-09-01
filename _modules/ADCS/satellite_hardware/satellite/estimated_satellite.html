@@ -354,6 +354,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 </ul>
 </li>
@@ -800,9 +801,10 @@
 
 <span class="sd">            \boldsymbol{\sigma} = \sqrt{\operatorname{diag}(\mathbf{P}_{block})}.</span>
 
-<span class="sd">        In the implementation, the estimator provides an *integrated* covariance block (``int_cov``) that may</span>
-<span class="sd">        be dimension-shifted by one element in some configurations (e.g., quaternion handling). The method</span>
-<span class="sd">        applies an index adjustment ``adj`` when ``int_cov`` is off-by-one.</span>
+<span class="sd">        The estimator may provide ``int_cov`` in full quaternion coordinates or</span>
+<span class="sd">        reduced tangent coordinates. Each bias/parameter block is selected</span>
+<span class="sd">        through :class:`~ADCS.state.EstimatorState`'s named layout, so the</span>
+<span class="sd">        quaternion dimension does not leak into block-index arithmetic.</span>
 
 <span class="sd">        :param est_state: Estimator output container providing the attitude state,</span>
 <span class="sd">            bias/parameter blocks, covariance, and integrated covariance.</span>
@@ -821,45 +823,31 @@
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">est_state</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"est_state must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">est_state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">est_state</span><span class="o">.</span><span class="n">validate_layout</span><span class="p">(</span>
+            <span class="n">wheel_momentum</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">number_RW</span><span class="p">,</span>
+            <span class="n">actuator_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span><span class="p">,</span>
+            <span class="n">sensor_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="p">,</span>
+            <span class="n">disturbance_parameter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Covariance blocks use the same semantic layout as the state.  The</span>
+        <span class="c1"># attitude block alone changes width between full and tangent</span>
+        <span class="c1"># coordinates, so no global off-by-one adjustment is needed.</span>
+        <span class="n">covariance_coordinates</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">"tangent"</span> <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">uses_reduced_quaternion_covariance</span> <span class="k">else</span> <span class="s2">"full"</span>
+        <span class="p">)</span>
         <span class="n">int_cov</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">int_cov</span>
 
-        <span class="c1"># Dimension checks</span>
-        <span class="n">expected_len</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">!=</span> <span class="n">expected_len</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Estimator state has wrong size (expected </span><span class="si">{</span><span class="n">expected_len</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">est_state</span><span class="o">.</span><span class="n">augmented_size</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_RW</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Estimator state has </span><span class="si">{</span><span class="n">est_state</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> wheel states, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">number_RW</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Estimator state has </span><span class="si">{</span><span class="n">est_state</span><span class="o">.</span><span class="n">act_bias</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> actuator biases, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Estimator state has </span><span class="si">{</span><span class="n">est_state</span><span class="o">.</span><span class="n">sens_bias</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> sensor biases, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">est_state</span><span class="o">.</span><span class="n">dist_param</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Estimator state has </span><span class="si">{</span><span class="n">est_state</span><span class="o">.</span><span class="n">dist_param</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> disturbance parameters, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        
-        <span class="c1"># Adjustment if integrated covariance is off by one (e.g. quaternion handling)</span>
-        <span class="n">adj</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">int_cov</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">expected_len</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">process_block</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="n">block_slice</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="n">covariance_coordinates</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">int_cov</span><span class="p">[</span><span class="n">block_slice</span><span class="p">,</span> <span class="n">block_slice</span><span class="p">]</span>
 
-        <span class="c1"># --- Partition the full state vector ---</span>
-        <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_len</span>
-        <span class="n">act_bias</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">act_bias</span>
-        <span class="n">act_bias_ic</span> <span class="o">=</span> <span class="n">int_cov</span><span class="p">[</span>
-            <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
-            <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
-        <span class="p">]</span>
-
-        <span class="n">idx</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_bias_len</span>
-        <span class="n">sens_bias</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">sens_bias</span>
-        <span class="n">sens_bias_ic</span> <span class="o">=</span> <span class="n">int_cov</span><span class="p">[</span>
-            <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
-            <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
-        <span class="p">]</span>
-
-        <span class="n">idx</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_sens_bias_len</span>
-        <span class="n">dist_param</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">dist_param</span>
-        <span class="n">dist_param_ic</span> <span class="o">=</span> <span class="n">int_cov</span><span class="p">[</span>
-            <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
-            <span class="n">idx</span> <span class="o">+</span> <span class="n">adj</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_len</span> <span class="o">+</span> <span class="n">adj</span><span class="p">,</span>
-        <span class="p">]</span>
+        <span class="n">act_bias</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">"actuator_bias"</span><span class="p">)</span>
+        <span class="n">act_bias_ic</span> <span class="o">=</span> <span class="n">process_block</span><span class="p">(</span><span class="s2">"actuator_bias"</span><span class="p">)</span>
+        <span class="n">sens_bias</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">"sensor_bias"</span><span class="p">)</span>
+        <span class="n">sens_bias_ic</span> <span class="o">=</span> <span class="n">process_block</span><span class="p">(</span><span class="s2">"sensor_bias"</span><span class="p">)</span>
+        <span class="n">dist_param</span> <span class="o">=</span> <span class="n">est_state</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="s2">"disturbance_parameter"</span><span class="p">)</span>
+        <span class="n">dist_param_ic</span> <span class="o">=</span> <span class="n">process_block</span><span class="p">(</span><span class="s2">"disturbance_parameter"</span><span class="p">)</span>
 
         <span class="c1"># --- Update satellite dynamic state ---</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_RWhs</span><span class="p">(</span><span class="n">est_state</span><span class="p">)</span>
