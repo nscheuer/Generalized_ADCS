@@ -14,6 +14,13 @@ Magnetorquers
      - Missions
      - Notes
    * - 🔵
+     - BRITE air-core coils
+     - 
+     - 
+     - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
+     - BRITE-Austria
+     - Orthogonal coils; dipole known.
+   * - 🔵
      - ISIS Magnetorquer Board
      - ``create_isis_magnetorquer_board``
      - :doc:`Factory <../ADCS.satellite_factory.actuators.create_cubesat_MTQ>`

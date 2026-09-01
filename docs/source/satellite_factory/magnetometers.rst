@@ -13,6 +13,13 @@ Magnetometers
      - Source
      - Missions
      - Notes
+   * - 🟡
+     - BRITE 3-axis magnetometer
+     - 
+     - 
+     - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
+     - BRITE-Austria
+     - Range, noise, bias known.
    * - 🔵
      - ISIS magnetometer triad
      - ``create_isis_magnetometer``

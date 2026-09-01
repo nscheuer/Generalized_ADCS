@@ -17,7 +17,7 @@ Tier Legend
 
    * - Tier
      - Meaning
-   * - 🩶
+   * - ⚪
      - Estimates on satellite, actuator, and sensor layout.
    * - 🔵
      - Satellite, actuator, and sensor layout known.
