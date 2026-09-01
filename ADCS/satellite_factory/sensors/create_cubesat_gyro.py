@@ -1,8 +1,11 @@
 __all__ = [
+    'create_analog_devices_pib_gyros',
+    'create_gnb_rate_sensors',
     'create_ICM20948_IMU',
     'create_adis16405_gyros',
     'create_bmx055_gyros',
     'create_itg3200_gyros',
+    'create_intrepid_mainboard_gyros',
 ]
 
 import numpy as np
@@ -33,6 +36,74 @@ def create_ICM20948_IMU(axes: np.ndarray = np.array([[1, 0, 0], [0, 1, 0], [0, 0
         noise = [Noise(noise=e_noise[j], std_noise=std_noise[j]) for j in range(3)]
 
     return [Gyro(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(3)]
+
+
+def create_gnb_rate_sensors(
+    axes: np.ndarray = np.eye(3),
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[Gyro]:
+    r"""
+    Create the nominal BRITE/GNB orthogonal rate-sensor triad.
+
+    The BRITE ADCS design gives gyro noise density ``0.05 deg/s/sqrt(Hz)`` and
+    long-term bias variation ``0.2 deg/s``. The factory represents those as
+    per-sample white noise and bias uncertainty defaults in the scalar
+    :class:`~ADCS.satellite_hardware.sensors.Gyro` model.
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias = [Bias(bias=0.0, std_bias=0.2 * np.pi / 180.0) for _ in range(n_axes)]
+    if noise is None:
+        noise = [Noise(noise=0.0, std_noise=0.05 * np.pi / 180.0) for _ in range(n_axes)]
+
+    return [Gyro(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
+
+
+def create_analog_devices_pib_gyros(
+    axes: np.ndarray = np.eye(3),
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[Gyro]:
+    r"""
+    Create the LightSail 2 primary PIB gyro triad.
+
+    The default biases are the Dec 2020-Feb 2021 flight cross-calibration
+    values ``[0.47837, 0.14098, 0.043055] deg/s`` and the default white-noise
+    standard deviation is ``0.27 deg/s`` per axis.
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias_values = np.array([0.47837, 0.14098, 0.043055]) * np.pi / 180.0
+        bias = [Bias(bias=bias_values[j], std_bias=0.0) for j in range(n_axes)]
+    if noise is None:
+        noise = [Noise(noise=0.0, std_noise=0.27 * np.pi / 180.0) for _ in range(n_axes)]
+
+    return [Gyro(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
+
+
+def create_intrepid_mainboard_gyros(
+    axes: np.ndarray = np.eye(3),
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[Gyro]:
+    r"""
+    Create the LightSail 2 secondary mainboard gyro triad.
+
+    These gyros were uncalibrated and used in modes that did not require
+    accurate attitude knowledge. No source-backed noise or bias values are
+    assigned by default.
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias = [Bias() for _ in range(n_axes)]
+    if noise is None:
+        noise = [Noise() for _ in range(n_axes)]
+
+    return [Gyro(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
 
 
 def create_adis16405_gyros(

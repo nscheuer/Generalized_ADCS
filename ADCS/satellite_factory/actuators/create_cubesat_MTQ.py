@@ -1,7 +1,9 @@
 __all__ = [
+    'create_gnb_air_core_magnetorquers',
     'create_isis_magnetorquer_board',
     'create_estcube1_magnetorquers',
     'create_moveii_pcb_magnetorquers',
+    'create_stras_space_torque_rods',
 ]
 
 import numpy as np
@@ -27,6 +29,56 @@ def create_isis_magnetorquer_board(axes: np.ndarray = np.array([[1, 0, 0], [0, 1
     mtq_max = 0.2
 
     return [MTQ(axis=axes[j], max_torque=mtq_max, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(3)]
+
+
+def create_gnb_air_core_magnetorquers(
+    axes: np.ndarray = np.eye(3),
+    bias: Sequence[Bias] | None = None,
+    noise: Sequence[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[MTQ]:
+    r"""
+    Create the nominal BRITE/GNB three-axis air-core coil set.
+
+    The BRITE ADCS design gives three orthogonal magnetorquers with maximum
+    dipole ``0.12 A m^2``. No source-backed dipole noise or bias values were
+    found, so the default error models are zero unless supplied by the caller.
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias = [Bias() for _ in range(n_axes)]
+    if noise is None:
+        noise = [Noise() for _ in range(n_axes)]
+
+    return [
+        MTQ(axis=axes[j], max_torque=0.12, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
+        for j in range(n_axes)
+    ]
+
+
+def create_stras_space_torque_rods(
+    axes: np.ndarray = np.eye(3),
+    bias: Sequence[Bias] | None = None,
+    noise: Sequence[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[MTQ]:
+    r"""
+    Create the LightSail 2 three-axis magnetic torque-rod set.
+
+    LightSail 2 used three Stras Space torque rods with maximum dipole
+    ``1.0 A m^2``. Public sources do not provide dipole noise or bias values,
+    so the default error models are zero unless supplied by the caller.
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias = [Bias() for _ in range(n_axes)]
+    if noise is None:
+        noise = [Noise() for _ in range(n_axes)]
+
+    return [
+        MTQ(axis=axes[j], max_torque=1.0, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
+        for j in range(n_axes)
+    ]
 
 
 def create_estcube1_magnetorquers(

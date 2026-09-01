@@ -40,12 +40,20 @@ Satellites
      - 3x MTQ, 3x RW, 3x MTM, 3x gyro, 2x SunPair.
    * - ⚪
      - BRITE-Austria
-     - 
-     - 
+     - ``create_brite_austria``
+     - :doc:`Factory <../ADCS.satellite_factory.satellites.create_cubesats>`
      - `TU Graz <https://www.tugraz.at/en/institute/iks/space-missions/brite-austria-tugsat-1/satellite-and-payload>`__
      - Launched 2013-02-25.
      - High-precision photometry of bright massive stars.
      - 3x RW, 3x MTQ, 3x gyro, 1x MTM, 6x SunSensor, 1x StarTracker.
+   * - 🔵
+     - LightSail 2
+     - ``create_lightsail2``
+     - :doc:`Factory <../ADCS.satellite_factory.satellites.create_cubesats>`
+     - `doi:10.3390/aerospace10070579 <https://www.mdpi.com/2226-4310/10/7/579>`__
+     - Launched 2019-06-25; reentered 2022-11-17.
+     - Demonstrate controlled solar sailing in Earth orbit using a CubeSat.
+     - 1x RW, 3x MTQ, 2x MTM, 6x gyro, 5x SunSensor.
    * - 🟡
      - ESTCube-1
      - ``create_estcube1_cubesat``

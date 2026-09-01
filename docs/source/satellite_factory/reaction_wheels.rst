@@ -15,8 +15,8 @@ Reaction Wheels
      - Notes
    * - 🔵
      - BRITE/SFL reaction wheel
-     - 
-     - 
+     - ``create_sfl_reaction_wheels``
+     - :doc:`Factory <../ADCS.satellite_factory.actuators.create_cubesat_RW>`
      - `GNB report <https://www.researchgate.net/publication/349758612_ADCS_Preliminary_Design_For_GNB>`__
      - BRITE-Austria
      - Orthogonal triad; wheel specs.
@@ -27,3 +27,10 @@ Reaction Wheels
      - 
      - BeaverCube 2
      - Layout + wheel defaults.
+   * - 🔵
+     - LightSail 2 momentum wheel
+     - ``create_sinclair_interplanetary_momentum_wheel``
+     - :doc:`Factory <../ADCS.satellite_factory.actuators.create_cubesat_RW>`
+     - `doi:10.3390/aerospace10070579 <https://www.mdpi.com/2226-4310/10/7/579>`__
+     - LightSail 2
+     - +Y wheel; torque/momentum known.

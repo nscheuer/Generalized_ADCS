@@ -1,5 +1,7 @@
 __all__ = [
     'create_Clydespace_3U_array',
+    'create_elmos_sun_sensors',
+    'create_gnb_sun_sensors',
     'create_hamamatsu_s3931_sun_sensors',
     'create_nano_iss60_sun_sensors',
     'create_osram_sfh2430_sun_sensors',
@@ -41,6 +43,67 @@ def create_Clydespace_3U_array(axis: np.ndarray = np.array([1, 0, 0]), bias: Bia
         noise = Noise(noise=e_noise, std_noise=std_noise)
 
     return [SunPair(axis=axis, efficiency=(sun_eff, sun_eff), bias=bias, noise=noise, estimate_bias=estimate_bias)]
+
+
+def create_gnb_sun_sensors(
+    axes: np.ndarray = np.vstack((np.eye(3), -np.eye(3))),
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[SunSensor]:
+    r"""
+    Create the final BRITE/GNB six-face dedicated Sun-sensor set.
+
+    The public GNB summary gives one dedicated sensor per spacecraft face and
+    accuracy/resolution specifications, but not statistical noise or bias
+    values for the final dedicated sensors. Defaults are therefore ideal unless
+    supplied by the caller.
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias = [Bias() for _ in range(n_axes)]
+    if noise is None:
+        noise = [Noise() for _ in range(n_axes)]
+
+    return [
+        SunSensor(axis=axes[j], efficiency=1.0, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
+        for j in range(n_axes)
+    ]
+
+
+def create_elmos_sun_sensors(
+    axes: np.ndarray | None = None,
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[SunSensor]:
+    r"""
+    Create the LightSail 2 coarse Sun-sensor set.
+
+    LightSail 2 had four Elmos Sun sensors on deployable solar panels and one
+    on the -Z spacecraft face. Exact deployed-panel boresight vectors are not
+    encoded here, so panel sensors use a nominal +/-X/+Y layout and the -Z
+    sensor uses the documented body vector. No source-backed noise or bias
+    values are assigned by default.
+    """
+    if axes is None:
+        axes = np.array([
+            [1.0, 0.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, 0.0, -1.0],
+        ])
+    n_axes = len(axes)
+    if bias is None:
+        bias = [Bias() for _ in range(n_axes)]
+    if noise is None:
+        noise = [Noise() for _ in range(n_axes)]
+
+    return [
+        SunSensor(axis=axes[j], efficiency=1.0, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
+        for j in range(n_axes)
+    ]
 
 
 def create_hamamatsu_s3931_sun_sensors(

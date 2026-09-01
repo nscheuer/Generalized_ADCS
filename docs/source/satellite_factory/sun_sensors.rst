@@ -15,8 +15,8 @@ Sun Sensors
      - Notes
    * - 🔵
      - BRITE dedicated Sun sensors
-     - 
-     - 
+     - ``create_gnb_sun_sensors``
+     - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_sunpair>`
      - `GNB report <https://www.researchgate.net/publication/349758612_ADCS_Preliminary_Design_For_GNB>`__
      - BRITE-Austria
      - 6 faces; accuracy known.
@@ -27,6 +27,13 @@ Sun Sensors
      - 
      - BeaverCube 1, BeaverCube 2
      - Axis + efficiency.
+   * - 🔵
+     - LightSail 2 Elmos Sun sensors
+     - ``create_elmos_sun_sensors``
+     - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_sunpair>`
+     - `doi:10.3390/aerospace10070579 <https://www.mdpi.com/2226-4310/10/7/579>`__
+     - LightSail 2
+     - 5 coarse sensors; resolution known.
    * - 🟡
      - Hamamatsu S3931 Sun sensors
      - ``create_hamamatsu_s3931_sun_sensors``

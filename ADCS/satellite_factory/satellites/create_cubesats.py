@@ -2,7 +2,9 @@ __all__ = [
     'create_beavercube1_cubesat',
     'create_beavercube2_cubesat',
     'create_3_3_beavercube2_cubesat',
+    'create_brite_austria',
     'create_estcube1_cubesat',
+    'create_lightsail2',
     'create_moveii_cubesat',
     'create_rax1_cubesat',
     'create_rax2_cubesat',
@@ -14,11 +16,21 @@ from typing import List
 from ADCS.satellite_factory.actuators import (
     create_cubewheel_smallplus_rw,
     create_estcube1_magnetorquers,
+    create_gnb_air_core_magnetorquers,
     create_isis_magnetorquer_board,
     create_moveii_pcb_magnetorquers,
+    create_sfl_reaction_wheels,
+    create_sinclair_interplanetary_momentum_wheel,
+    create_stras_space_torque_rods,
 )
 from ADCS.satellite_factory.sensors import (
+    create_aeroastro_mst,
+    create_analog_devices_pib_gyros,
     create_Clydespace_3U_array,
+    create_elmos_sun_sensors,
+    create_gnb_magnetometer,
+    create_gnb_rate_sensors,
+    create_gnb_sun_sensors,
     create_ICM20948_IMU,
     create_adis16405_gyros,
     create_adis16405_magnetometers,
@@ -26,8 +38,10 @@ from ADCS.satellite_factory.sensors import (
     create_bmx055_magnetometers,
     create_hamamatsu_s3931_sun_sensors,
     create_hmc5883l_magnetometers,
+    create_honeywell_lightsail2_magnetometers,
     create_itg3200_gyros,
     create_isis_magnetometer,
+    create_intrepid_mainboard_gyros,
     create_micromag3_magnetometers,
     create_nano_iss60_sun_sensors,
     create_osram_sfh2430_sun_sensors,
@@ -74,6 +88,72 @@ def create_beavercube1_cubesat(estimated: bool = False):
         return EstimatedSatellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
     else:
         return Satellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
+
+
+def create_brite_austria(estimated: bool = False):
+    r"""
+    Create a BRITE-Austria/TUGSAT-1 spacecraft model.
+
+    BRITE-Austria used the Generic Nanosatellite Bus with three reaction
+    wheels, three magnetorquers, three rate sensors, one three-axis
+    magnetometer, six dedicated Sun sensors, and one AeroAstro Miniature Star
+    Tracker. The representative BRITE/GNB inertia tensor is used here. No
+    defensible numerical TUGSAT-1 COM vector was found, so ``COM = 0``.
+    """
+    mass = 6.9
+    COM = np.zeros(3)
+    J = np.array([
+        [0.0465, -0.0007, 0.0004],
+        [-0.0007, 0.0486, -0.0021],
+        [0.0004, -0.0021, 0.0482],
+    ])
+
+    rws: List[RW] = create_sfl_reaction_wheels(estimate_bias=estimated)
+    mtqs: List[MTQ] = create_gnb_air_core_magnetorquers(estimate_bias=estimated)
+    gyros: List[Gyro] = create_gnb_rate_sensors(estimate_bias=estimated)
+    mtms: List[MTM] = create_gnb_magnetometer(estimate_bias=estimated)
+    suns = create_gnb_sun_sensors(estimate_bias=estimated)
+    star_trackers = [create_aeroastro_mst(estimate_bias=estimated)]
+    boresight = np.array([0, 0, 1])
+
+    if estimated:
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, sensors=gyros+mtms+suns+star_trackers, actuators=rws+mtqs, boresight=boresight)
+    else:
+        return Satellite(mass=mass, COM=COM, J_0=J, sensors=gyros+mtms+suns+star_trackers, actuators=rws+mtqs, boresight=boresight)
+
+
+def create_lightsail2(estimated: bool = False):
+    r"""
+    Create a LightSail 2 deployed-sail spacecraft model.
+
+    LightSail 2 used one +Y Sinclair Interplanetary momentum wheel, three
+    Stras Space magnetic torque rods, two three-axis Honeywell magnetometers,
+    three primary PIB gyros, three secondary mainboard gyros, and five coarse
+    Elmos Sun sensors. The inertia tensor is the published deployed-sail tensor
+    and the COM is taken from the LightSail-B deployed corner-cube drawing.
+    """
+    mass = 4.93
+    COM = np.array([0.00046, -0.00003, 0.13746])
+    J = np.array([
+        [3.79, -1.90e-4, -8.18e-4],
+        [-1.90e-4, 3.79, 1.47e-3],
+        [-8.18e-4, 1.47e-3, 7.33],
+    ])
+
+    rw: List[RW] = [create_sinclair_interplanetary_momentum_wheel(estimate_bias=estimated)]
+    mtqs: List[MTQ] = create_stras_space_torque_rods(estimate_bias=estimated)
+    mtms: List[MTM] = create_honeywell_lightsail2_magnetometers(estimate_bias=estimated)
+    gyros: List[Gyro] = (
+        create_analog_devices_pib_gyros(estimate_bias=estimated)
+        + create_intrepid_mainboard_gyros(estimate_bias=estimated)
+    )
+    suns = create_elmos_sun_sensors(estimate_bias=estimated)
+    boresight = np.array([0, 0, 1])
+
+    if estimated:
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=rw+mtqs, boresight=boresight)
+    else:
+        return Satellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=rw+mtqs, boresight=boresight)
 
 
 def create_estcube1_cubesat(estimated: bool = False):
