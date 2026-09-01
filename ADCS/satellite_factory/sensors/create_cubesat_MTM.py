@@ -1,7 +1,9 @@
 __all__ = [
+    'create_gnb_magnetometer',
     'create_isis_magnetometer',
     'create_adis16405_magnetometers',
     'create_bmx055_magnetometers',
+    'create_honeywell_lightsail2_magnetometers',
     'create_hmc5883l_magnetometers',
     'create_micromag3_magnetometers',
 ]
@@ -37,6 +39,54 @@ def create_isis_magnetometer(axes: np.ndarray = np.array([[1, 0, 0], [0, 1, 0], 
         noise = [Noise(noise=e_noise[j], std_noise=std_noise[j]) for j in range(3)]
 
     return [MTM(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(3)]
+
+
+def create_gnb_magnetometer(
+    axes: np.ndarray = np.eye(3),
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[MTM]:
+    r"""
+    Create the nominal BRITE/GNB three-axis magnetometer.
+
+    The BRITE ADCS design gives magnetometer noise ``2.0e-7 T`` and worst-case
+    bias ``4.0e-6 T``. The factory represents the latter as a bounded
+    per-axis bias uncertainty because no fixed flight bias vector was found.
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias_bound = 4.0e-6
+        bias = [Bias(bias=0.0, std_bias=0.0, bounds=(-bias_bound, bias_bound)) for _ in range(n_axes)]
+    if noise is None:
+        noise = [Noise(noise=0.0, std_noise=2.0e-7) for _ in range(n_axes)]
+
+    return [MTM(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
+
+
+def create_honeywell_lightsail2_magnetometers(
+    axes: np.ndarray | None = None,
+    bias: List[Bias] | None = None,
+    noise: List[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[MTM]:
+    r"""
+    Create the two LightSail 2 three-axis Honeywell magnetometers.
+
+    LightSail 2 had one 3-axis unit on the +X solar panel and one on the +Y
+    solar panel. Exact sensor-to-body rotation matrices are not encoded here,
+    so each unit is represented as an orthogonal triad in body axes. The
+    published 1-sigma noise is ``0.2 uT``; no fixed bias is assigned.
+    """
+    if axes is None:
+        axes = np.vstack((np.eye(3), np.eye(3)))
+    n_axes = len(axes)
+    if bias is None:
+        bias = [Bias() for _ in range(n_axes)]
+    if noise is None:
+        noise = [Noise(noise=0.0, std_noise=0.2e-6) for _ in range(n_axes)]
+
+    return [MTM(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
 
 
 def create_adis16405_magnetometers(

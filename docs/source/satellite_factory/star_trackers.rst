@@ -15,8 +15,8 @@ Star Trackers
      - Notes
    * - 🔵
      - AeroAstro MST
-     - 
-     - 
+     - ``create_aeroastro_mst``
+     - :doc:`Factory <../ADCS.satellite_factory.sensors.create_star_tracker>`
      - `TU Graz <https://www.tugraz.at/en/institute/iks/space-missions/brite-austria-tugsat-1/satellite-and-payload>`__
      - BRITE-Austria
      - Telescope-aligned attitude sensor.

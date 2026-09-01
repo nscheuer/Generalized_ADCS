@@ -15,8 +15,8 @@ Magnetometers
      - Notes
    * - 🟡
      - BRITE 3-axis magnetometer
-     - 
-     - 
+     - ``create_gnb_magnetometer``
+     - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_MTM>`
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
      - BRITE-Austria
      - Range, noise, bias known.
@@ -48,6 +48,13 @@ Magnetometers
      - `ASCE Library <https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504>`__
      - ESTCube-1
      - ESTCube bias/noise defaults.
+   * - 🟣
+     - LightSail 2 Honeywell magnetometers
+     - ``create_honeywell_lightsail2_magnetometers``
+     - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_MTM>`
+     - `doi:10.3390/aerospace10070579 <https://www.mdpi.com/2226-4310/10/7/579>`__
+     - LightSail 2
+     - 2x 3-axis; noise known.
    * - 🟡
      - MicroMag3 magnetometers
      - ``create_micromag3_magnetometers``

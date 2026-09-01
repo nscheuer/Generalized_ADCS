@@ -15,8 +15,8 @@ Gyroscopes
      - Notes
    * - 🟡
      - BRITE rate sensors
-     - 
-     - 
+     - ``create_gnb_rate_sensors``
+     - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
      - BRITE-Austria
      - Noise density + bias variation.
@@ -27,6 +27,20 @@ Gyroscopes
      - 
      - BeaverCube 1, BeaverCube 2
      - 3-axis layout.
+   * - 🟡
+     - LightSail 2 PIB gyros
+     - ``create_analog_devices_pib_gyros``
+     - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`
+     - `doi:10.3390/aerospace10070579 <https://www.mdpi.com/2226-4310/10/7/579>`__
+     - LightSail 2
+     - Primary 3-axis; noise+bias known.
+   * - 🔵
+     - LightSail 2 mainboard gyros
+     - ``create_intrepid_mainboard_gyros``
+     - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`
+     - `doi:10.3390/aerospace10070579 <https://www.mdpi.com/2226-4310/10/7/579>`__
+     - LightSail 2
+     - Secondary 3-axis; uncalibrated.
    * - 🟡
      - ADIS16405 gyros
      - ``create_adis16405_gyros``
