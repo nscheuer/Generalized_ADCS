@@ -1,12 +1,36 @@
 import numpy as np
 import pytest
 
+from ADCS.covariance import Covariance
 from ADCS.state import EstimatorState, State
 
 
 def _unit(q):
     q = np.asarray(q, dtype=float)
     return q / np.linalg.norm(q)
+
+
+def _skew(vector):
+    return np.array(
+        [
+            [0.0, -vector[2], vector[1]],
+            [vector[2], 0.0, -vector[0]],
+            [-vector[1], vector[0], 0.0],
+        ]
+    )
+
+
+def _rotation_vector_reset_oracle(vector, order):
+    theta = float(np.linalg.norm(vector))
+    cross = _skew(vector)
+    if theta < 1.0e-8:
+        a = 0.5
+        b = 1.0 / 6.0
+    else:
+        a = (1.0 - np.cos(theta)) / (theta * theta)
+        b = (theta - np.sin(theta)) / (theta * theta * theta)
+    sign = -1.0 if order == "right" else 1.0
+    return np.eye(3) + sign * a * cross + b * (cross @ cross)
 
 
 def test_interpolate_slerp_matches_exact_geodesic():
@@ -232,6 +256,148 @@ def test_tangent_map_matches_finite_difference_and_pseudoinverse(mode, order):
 
     assert np.allclose(tangent, finite_difference, atol=1e-9)
     assert np.allclose(tangent_pinv @ tangent, np.eye(state.tangent_size), atol=1e-12)
+
+
+@pytest.mark.parametrize(
+    "mode",
+    ["quaternion_vector", "rotation_vector", "mrp", "two_mrp", "cayley"],
+)
+@pytest.mark.parametrize("order", ["right", "left"])
+def test_retraction_jacobian_matches_change_of_tangent_point(mode, order):
+    state = EstimatorState(
+        w=[0.1, -0.2, 0.3],
+        q=_unit([0.8, -0.1, 0.3, 0.2]),
+        h=[0.4],
+        sens_bias=[0.01, -0.02],
+    )
+    delta = np.linspace(-0.02, 0.03, state.tangent_size)
+    updated = state.plus(delta, quaternion_mode=mode, quaternion_order=order)
+    epsilon = 1.0e-7
+    numerical = np.empty((state.tangent_size, state.tangent_size))
+    for column in range(state.tangent_size):
+        offset = np.zeros(state.tangent_size)
+        offset[column] = epsilon
+        plus = state.plus(
+            delta + offset, quaternion_mode=mode, quaternion_order=order
+        ).minus(updated, quaternion_mode=mode, quaternion_order=order, shortest=False)
+        minus = state.plus(
+            delta - offset, quaternion_mode=mode, quaternion_order=order
+        ).minus(updated, quaternion_mode=mode, quaternion_order=order, shortest=False)
+        numerical[:, column] = (plus - minus) / (2.0 * epsilon)
+
+    np.testing.assert_allclose(
+        state.retraction_jacobian(
+            delta, quaternion_mode=mode, quaternion_order=order
+        ),
+        numerical,
+        atol=2.0e-9,
+    )
+
+
+@pytest.mark.parametrize("order", ["right", "left"])
+def test_quaternion_vector_reset_jacobian_matches_closed_form_at_large_delta(order):
+    state = State(w=np.zeros(3), q=_unit([0.7, 0.1, -0.2, 0.3]), h=[0.4])
+    delta = np.zeros(state.tangent_size)
+    attitude = np.array([0.8, -0.55, 0.35])
+    delta[state.slice("attitude", coordinates="tangent")] = attitude
+    qv = attitude / 2.0
+    q0 = np.sqrt(1.0 - qv @ qv)
+    sign = -1.0 if order == "right" else 1.0
+    expected = q0 * np.eye(3) + np.outer(qv, qv) / q0 + sign * _skew(qv)
+
+    reset = state.retraction_jacobian(
+        delta,
+        quaternion_mode="quaternion_vector",
+        quaternion_order=order,
+    )
+
+    np.testing.assert_allclose(reset[3:6, 3:6], expected, atol=1.0e-14)
+    np.testing.assert_allclose(reset[:3, :3], np.eye(3), atol=0.0)
+    np.testing.assert_allclose(reset[6:, 6:], np.eye(1), atol=0.0)
+
+
+@pytest.mark.parametrize("order", ["right", "left"])
+def test_rotation_vector_reset_jacobian_matches_closed_form_at_large_delta(order):
+    state = State(w=np.zeros(3), q=_unit([0.7, 0.1, -0.2, 0.3]), h=[0.4])
+    delta = np.zeros(state.tangent_size)
+    attitude = np.array([0.9, -0.45, 0.3])
+    delta[state.slice("attitude", coordinates="tangent")] = attitude
+
+    reset = state.retraction_jacobian(
+        delta,
+        quaternion_mode="rotation_vector",
+        quaternion_order=order,
+    )
+
+    np.testing.assert_allclose(
+        reset[3:6, 3:6],
+        _rotation_vector_reset_oracle(attitude, order),
+        atol=1.0e-14,
+    )
+
+
+def test_slices_reflect_layout_changes():
+    state = State(
+        w=np.zeros(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        h=[0.1],
+    )
+
+    assert state.full_size == 8
+    assert state.slice("wheel_momentum", coordinates="full") == slice(7, 8)
+    state.h = [0.1, 0.2, 0.3]
+
+    assert state.full_size == 10
+    assert state.slice("wheel_momentum", coordinates="full") == slice(7, 10)
+
+
+@pytest.mark.parametrize("form", ["full", "sqrt"])
+def test_retraction_transport_preserves_covariance_representation(form):
+    state = State(w=np.zeros(3), q=_unit([0.9, 0.2, -0.1, 0.3]), h=[0.2])
+    delta = np.linspace(-0.02, 0.03, state.tangent_size)
+    covariance = Covariance.identity(
+        state.tangent_size,
+        scale=0.1,
+        form=form,
+        coordinates="state_tangent",
+    )
+    reset = state.retraction_jacobian(delta, quaternion_mode="rotation_vector")
+
+    transported = state.transport_covariance(
+        covariance,
+        delta,
+        quaternion_mode="rotation_vector",
+    )
+
+    assert transported.form == form
+    assert transported.coordinates == "state_tangent"
+    np.testing.assert_allclose(
+        transported.as_matrix(),
+        reset @ covariance.as_matrix() @ reset.T,
+        atol=1.0e-14,
+    )
+
+
+def test_right_error_reset_has_expected_small_angle_sign():
+    state = State(w=np.zeros(3), q=_unit([0.8, 0.1, -0.2, 0.3]))
+    delta = np.zeros(state.tangent_size)
+    attitude = np.array([1.0e-4, -2.0e-4, 0.5e-4])
+    delta[state.slice("attitude", coordinates="tangent")] = attitude
+    cross = np.array(
+        [
+            [0.0, -attitude[2], attitude[1]],
+            [attitude[2], 0.0, -attitude[0]],
+            [-attitude[1], attitude[0], 0.0],
+        ]
+    )
+
+    reset = state.retraction_jacobian(
+        delta,
+        quaternion_mode="rotation_vector",
+        quaternion_order="right",
+    )
+
+    np.testing.assert_allclose(reset[3:6, 3:6], np.eye(3) - 0.5 * cross, atol=2.0e-8)
 
 
 def test_state_mean_handles_quaternion_sign_and_linear_blocks():

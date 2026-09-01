@@ -229,9 +229,10 @@ class EstimatedSatellite(Satellite):
 
             \boldsymbol{\sigma} = \sqrt{\operatorname{diag}(\mathbf{P}_{block})}.
 
-        In the implementation, the estimator provides an *integrated* covariance block (``int_cov``) that may
-        be dimension-shifted by one element in some configurations (e.g., quaternion handling). The method
-        applies an index adjustment ``adj`` when ``int_cov`` is off-by-one.
+        The estimator may provide ``int_cov`` in full quaternion coordinates or
+        reduced tangent coordinates. Each bias/parameter block is selected
+        through :class:`~ADCS.state.EstimatorState`'s named layout, so the
+        quaternion dimension does not leak into block-index arithmetic.
 
         :param est_state: Estimator output container providing the attitude state,
             bias/parameter blocks, covariance, and integrated covariance.
@@ -250,45 +251,31 @@ class EstimatedSatellite(Satellite):
         """
         if not isinstance(est_state, EstimatorState):
             raise TypeError(f"est_state must be an EstimatorState, got {type(est_state).__name__}")
+        est_state.validate_layout(
+            wheel_momentum=self.number_RW,
+            actuator_bias=self.act_bias_len,
+            sensor_bias=self.att_sens_bias_len,
+            disturbance_parameter=self.dist_param_len,
+        )
+
+        # Covariance blocks use the same semantic layout as the state.  The
+        # attitude block alone changes width between full and tangent
+        # coordinates, so no global off-by-one adjustment is needed.
+        covariance_coordinates = (
+            "tangent" if est_state.uses_reduced_quaternion_covariance else "full"
+        )
         int_cov = est_state.int_cov
 
-        # Dimension checks
-        expected_len = (self.state_len + self.act_bias_len + self.att_sens_bias_len + self.dist_param_len)
-        if est_state.augmented_size != expected_len:
-            raise ValueError(f"Estimator state has wrong size (expected {expected_len}, got {est_state.augmented_size})")
-        if est_state.h.size != self.number_RW:
-            raise ValueError(f"Estimator state has {est_state.h.size} wheel states, expected {self.number_RW}")
-        if est_state.act_bias.size != self.act_bias_len:
-            raise ValueError(f"Estimator state has {est_state.act_bias.size} actuator biases, expected {self.act_bias_len}")
-        if est_state.sens_bias.size != self.att_sens_bias_len:
-            raise ValueError(f"Estimator state has {est_state.sens_bias.size} sensor biases, expected {self.att_sens_bias_len}")
-        if est_state.dist_param.size != self.dist_param_len:
-            raise ValueError(f"Estimator state has {est_state.dist_param.size} disturbance parameters, expected {self.dist_param_len}")
-        
-        # Adjustment if integrated covariance is off by one (e.g. quaternion handling)
-        adj = -1 if int_cov.shape[0] + 1 == expected_len else 0
+        def process_block(name: str) -> np.ndarray:
+            block_slice = est_state.slice(name, coordinates=covariance_coordinates)
+            return int_cov[block_slice, block_slice]
 
-        # --- Partition the full state vector ---
-        idx = self.state_len
-        act_bias = est_state.act_bias
-        act_bias_ic = int_cov[
-            idx + adj : idx + self.act_bias_len + adj,
-            idx + adj : idx + self.act_bias_len + adj,
-        ]
-
-        idx += self.act_bias_len
-        sens_bias = est_state.sens_bias
-        sens_bias_ic = int_cov[
-            idx + adj : idx + self.att_sens_bias_len + adj,
-            idx + adj : idx + self.att_sens_bias_len + adj,
-        ]
-
-        idx += self.att_sens_bias_len
-        dist_param = est_state.dist_param
-        dist_param_ic = int_cov[
-            idx + adj : idx + self.dist_param_len + adj,
-            idx + adj : idx + self.dist_param_len + adj,
-        ]
+        act_bias = est_state.block("actuator_bias")
+        act_bias_ic = process_block("actuator_bias")
+        sens_bias = est_state.block("sensor_bias")
+        sens_bias_ic = process_block("sensor_bias")
+        dist_param = est_state.block("disturbance_parameter")
+        dist_param_ic = process_block("disturbance_parameter")
 
         # --- Update satellite dynamic state ---
         self.update_RWhs(est_state)

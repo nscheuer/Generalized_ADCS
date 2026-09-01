@@ -243,7 +243,7 @@ class Actuator:
         :return: Row-Jacobian of torque w.r.t. bias.
         :rtype: numpy.ndarray of shape ``(1, 3)`` or ``(0, 3)``
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.dtorq__du(u=u, x=x, os=os)
         else:
             return np.zeros((0, 3))
@@ -337,7 +337,7 @@ class Actuator:
         :return: Input–bias Hessian of torque.
         :rtype: numpy.ndarray of shape ``(1, 1, 3)`` or ``(1, 0, 3)``
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddtorq__dudu(u=u, x=x, os=os)
         else:
             return np.zeros((1, 0, 3))
@@ -415,7 +415,7 @@ class Actuator:
         :rtype: numpy.ndarray of shape ``(1, 1, 3)`` or ``(0, 0, 3)``
         """
 
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddtorq__dudu(u=u, x=x, os=os)
         else:
             return np.zeros((0, 0, 3))
@@ -440,7 +440,7 @@ class Actuator:
         :return: Bias–state Hessian of torque.
         :rtype: numpy.ndarray of shape ``(1, 7, 3)`` or ``(0, 7, 3)``
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddtorq__dudbasestate(u=u, x=x, os=os)
         else:
             return np.zeros((0, 7, 3))
@@ -465,7 +465,7 @@ class Actuator:
         :return: Bias–storage Hessian of torque.
         :rtype: numpy.ndarray of shape ``(1, 0, 3)`` or ``(0, 0, 3)``
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddtorq__dudh(u=u, x=x, os=os)
         else:
             return np.zeros((0, 0, 3))
@@ -579,7 +579,7 @@ class Actuator:
         :rtype: numpy.ndarray of shape ``(1, 0)`` or ``(0, 0)``
         """
 
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.dstor_torq__du(u=u, x=x, os=os)
         else:
             return np.zeros((0, 0))
@@ -666,7 +666,7 @@ class Actuator:
         :return: Input–bias Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 1, 0)`` or ``(1, 0, 0)``
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddstor_torq__dudu(u=u, x=x, os=os)
         else:
             return np.zeros((1, 0, 0))
@@ -735,7 +735,7 @@ class Actuator:
         :return: Bias–bias Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 1, 0)`` or ``(0, 0, 0)``
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddstor_torq__dudu(u=u, x=x, os=os)
         else:
             return np.zeros((0, 0, 0))
@@ -760,7 +760,7 @@ class Actuator:
         :return: Bias–state Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 7, 0)`` or ``(0, 7, 0)``
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddstor_torq__dudbasestate(u=u, x=x, os=os)
         else:
             return np.zeros((0, 7, 0))
@@ -785,7 +785,7 @@ class Actuator:
         :return: Bias–storage Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 0, 0)`` or ``(0, 0, 0)``
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddstor_torq__dudh(u=u, x=x, os=os)
         else:
             return np.zeros((0, 0, 0))

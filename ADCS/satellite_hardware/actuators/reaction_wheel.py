@@ -512,7 +512,7 @@ class RW(Actuator):
         :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.
         :rtype: numpy.ndarray
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddtorq__dudh(u=u, x=x, os=os)
         else:
             return np.zeros((0, 1, 3))
@@ -628,7 +628,7 @@ class RW(Actuator):
         :return: ``(1,1)`` matrix equal to :math:`-1` if a bias model exists; otherwise an empty array with shape ``(0,1)``.
         :rtype: numpy.ndarray
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.dstor_torq__du(u=u, x=x, os=os)
         else:
             return np.zeros((0, 1))
@@ -735,7 +735,7 @@ class RW(Actuator):
         :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.
         :rtype: numpy.ndarray
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddstor_torq__dudu(u=u, x=x, os=os)
         else:
             return np.zeros((1, 0, 1))
@@ -811,7 +811,7 @@ class RW(Actuator):
         :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.
         :rtype: numpy.ndarray
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddstor_torq__dudu(u=u, x=x, os=os)
         else:
             return np.zeros((0, 0, 1))
@@ -838,7 +838,7 @@ class RW(Actuator):
         :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.
         :rtype: numpy.ndarray
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddstor_torq__dudbasestate(u=u, x=x, os=os)
         else:
             return np.zeros((0, 7, 1))
@@ -865,7 +865,7 @@ class RW(Actuator):
         :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.
         :rtype: numpy.ndarray
         """
-        if self.bias:
+        if self.estimate_bias or self.bias:
             return self.ddstor_torq__dudh(u=u, x=x, os=os)
         else:
             return np.zeros((0, 1, 1))

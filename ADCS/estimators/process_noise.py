@@ -88,7 +88,7 @@ def _tangent_map_rate(
         raise ValueError(
             f"state_rate must have shape ({state.full_size},), got {state_rate.shape}"
         )
-    q_rate = state_rate[3:7]
+    q_rate = state_rate[state.slice("attitude", coordinates="full")]
     if np.linalg.norm(q_rate) == 0.0:
         return np.zeros((state.full_size, state.tangent_size))
 
@@ -130,13 +130,13 @@ def assemble_continuous_process_psd(
     full_quaternion = quaternion_mode == "full_quaternion"
     if full_quaternion:
         size = state.full_size
-        slices = state.full_slices
-        physical = slice(0, slices["wheel_momentum"].stop)
+        slices = state.slices(coordinates="full")
+        physical = slices["physical"]
     else:
         # This also validates aliases and unsupported chart names.
         state.tangent_map(quaternion_mode=quaternion_mode)
         size = state.tangent_size
-        slices = state.tangent_slices
+        slices = state.slices(coordinates="tangent")
         physical = slices["physical"]
     result = np.zeros((size, size), dtype=float)
     result[physical, physical] += _as_psd(
@@ -186,7 +186,8 @@ def error_state_transfer(
         raise ValueError("dynJacCore must return five state, control, and estimated-parameter blocks")
     dxdot_dx, _, dxdot_dab, dxdot_dsb, dxdot_ddp = blocks
     full = np.zeros((state.full_size, state.full_size), dtype=float)
-    base = state.full_slices["wheel_momentum"].stop
+    slices = state.slices(coordinates="full")
+    base = slices["physical"].stop
     if np.asarray(dxdot_dx).shape != (base, base):
         raise ValueError(f"dynJacCore state block must have shape {(base, base)}")
     full[:base, :base] = np.asarray(dxdot_dx, dtype=float).T
@@ -195,7 +196,7 @@ def error_state_transfer(
         ("sensor_bias", dxdot_dsb),
         ("disturbance_parameter", dxdot_ddp),
     ):
-        sl = state.full_slices[name]
+        sl = slices[name]
         expected = (sl.stop - sl.start, base)
         if np.asarray(block).shape != expected:
             raise ValueError(f"dynJacCore {name} block must have shape {expected}")

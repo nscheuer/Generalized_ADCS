@@ -16,6 +16,49 @@ def test_state_roundtrip_owns_input_arrays():
     assert state.h.shape == (2,)
 
 
+def test_state_layout_describes_full_and_tangent_coordinates():
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=[0.1, 0.2])
+
+    assert state.block_names == ("angular_velocity", "attitude", "wheel_momentum")
+    assert state.full_size == 9
+    assert state.tangent_size == 8
+    assert state.slice("attitude", coordinates="full") == slice(3, 7)
+    assert state.slice("attitude", coordinates="tangent") == slice(3, 6)
+    assert state.slice("quaternion") == state.slice("attitude")
+    assert state.slice("physical", coordinates="tangent") == slice(0, 8)
+    assert state.slice("estimated_parameters") == slice(9, 9)
+    assert state.block_size("attitude") == 4
+    assert state.block_size("attitude", coordinates="tangent") == 3
+    assert state.block("attitude") is state.q
+
+
+def test_estimator_state_layout_extends_physical_state_without_offset_arithmetic():
+    state = EstimatorState(
+        w=np.zeros(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        h=np.zeros(2),
+        act_bias=np.zeros(1),
+        sens_bias=np.zeros(3),
+        dist_param=np.zeros(2),
+    )
+
+    assert state.block_names == (
+        "angular_velocity",
+        "attitude",
+        "wheel_momentum",
+        "actuator_bias",
+        "sensor_bias",
+        "disturbance_parameter",
+    )
+    assert state.slice("sensor_bias") == slice(10, 13)
+    assert state.slice("sensor_bias", coordinates="tangent") == slice(9, 12)
+    assert state.slice("estimated_parameters") == slice(9, 15)
+    assert state.slice("estimated_parameters", coordinates="tangent") == slice(8, 14)
+    state.validate_layout(wheel_momentum=2, sensor_bias=3)
+    with pytest.raises(ValueError, match="sensor_bias.*size 3, expected 2"):
+        state.validate_layout(sensor_bias=2)
+
+
 @pytest.mark.parametrize(
     "kwargs, message",
     [
@@ -209,3 +252,28 @@ def test_state_dict_roundtrip_preserves_subclass_and_data():
     np.testing.assert_array_equal(rebuilt.as_estimator_array(), state.as_estimator_array())
     np.testing.assert_array_equal(rebuilt.cov, state.cov)
     np.testing.assert_array_equal(rebuilt.int_cov, state.int_cov)
+
+
+def test_block_assignment_keeps_layout_valid_for_every_block():
+    state = EstimatorState(
+        w=np.zeros(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        h=np.zeros(2),
+        act_bias=np.zeros(1),
+        sens_bias=np.zeros(3),
+    )
+
+    for attribute in ("w", "q", "h", "act_bias", "sens_bias", "dist_param"):
+        setattr(state, attribute, getattr(state, attribute).copy())
+        assert state.full_size == 13
+        assert state.tangent_size == 12
+
+
+def test_resizing_a_block_reports_new_slices():
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(2))
+    assert state.slices(coordinates="full")["wheel_momentum"] == slice(7, 9)
+
+    state.h = np.zeros(5)
+
+    assert state.slices(coordinates="full")["wheel_momentum"] == slice(7, 12)
+    assert state.full_size == 12
