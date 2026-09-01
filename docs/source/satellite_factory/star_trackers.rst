@@ -13,6 +13,13 @@ Star Trackers
      - Source
      - Missions
      - Notes
+   * - 🔵
+     - AeroAstro MST
+     - 
+     - 
+     - `TU Graz <https://www.tugraz.at/en/institute/iks/space-missions/brite-austria-tugsat-1/satellite-and-payload>`__
+     - BRITE-Austria
+     - Telescope-aligned attitude sensor.
    * - 🟣
      - BCT Nano Star Tracker
      - ``create_bct_nst``

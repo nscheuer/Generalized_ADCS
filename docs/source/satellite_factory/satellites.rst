@@ -38,6 +38,14 @@ Satellites
      - Theoretical study.
      - BeaverCube 2 variant for full three-wheel control studies.
      - 3x MTQ, 3x RW, 3x MTM, 3x gyro, 2x SunPair.
+   * - ⚪
+     - BRITE-Austria
+     - 
+     - 
+     - `TU Graz <https://www.tugraz.at/en/institute/iks/space-missions/brite-austria-tugsat-1/satellite-and-payload>`__
+     - Launched 2013-02-25.
+     - High-precision photometry of bright massive stars.
+     - 3x RW, 3x MTQ, 3x gyro, 1x MTM, 6x SunSensor, 1x StarTracker.
    * - 🟡
      - ESTCube-1
      - ``create_estcube1_cubesat``

@@ -14,6 +14,13 @@ Sun Sensors
      - Missions
      - Notes
    * - 🔵
+     - BRITE dedicated Sun sensors
+     - 
+     - 
+     - `GNB report <https://www.researchgate.net/publication/349758612_ADCS_Preliminary_Design_For_GNB>`__
+     - BRITE-Austria
+     - 6 faces; accuracy known.
+   * - 🔵
      - Clyde Space 3U solar-array SunPair proxy
      - ``create_Clydespace_3U_array``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_sunpair>`

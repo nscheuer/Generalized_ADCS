@@ -13,6 +13,13 @@ Gyroscopes
      - Source
      - Missions
      - Notes
+   * - 🟡
+     - BRITE rate sensors
+     - 
+     - 
+     - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
+     - BRITE-Austria
+     - Noise density + bias variation.
    * - 🔵
      - ICM-20948 IMU gyros
      - ``create_ICM20948_IMU``
