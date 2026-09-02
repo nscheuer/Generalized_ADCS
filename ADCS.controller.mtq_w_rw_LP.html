@@ -13,7 +13,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=326e7d2b" />
     
     
 
@@ -527,12 +527,25 @@
 <li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -579,7 +592,8 @@
 <p>This controller allocates attitude control effort between reaction wheels (RWs) and
 magnetorquers (MTQs) using a geometry-aware linear program (LP). The LP computes the
 maximum physically achievable torque colinear with a requested torque direction while
-enforcing hard actuator saturation limits and the MTQ torque-plane constraint.</p>
+enforcing hard actuator saturation limits and the MTQ torque-plane constraint.
+Original allocator paper: <a class="reference external" href="https://digitalcommons.usu.edu/smallsat/2026/all2026/253/">Generalized Attitude Control for Small Spacecraft</a></p>
 <p>The implementation is intended for use with an estimated satellite model
 <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>
 and goal objects derived from <code class="xref py py-class docutils literal notranslate"><span class="pre">Goal</span></code>.</p>
@@ -1252,5 +1266,6 @@ the plotting primitive.</p>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

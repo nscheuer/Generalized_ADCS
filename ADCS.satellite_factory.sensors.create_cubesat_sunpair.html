@@ -13,7 +13,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=326e7d2b" />
     
     
 
@@ -527,12 +527,25 @@
 <li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -574,7 +587,16 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_Clydespace_3U_array">
 <span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_sunpair.</span></span><span class="sig-name descname"><span class="pre">create_Clydespace_3U_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([1,</span> <span class="pre">0,</span> <span class="pre">0])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_sunpair.html#create_Clydespace_3U_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_Clydespace_3U_array" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Create a Clyde Space 3U solar-array SunPair proxy.</p>
+<dl class="simple">
+<dt>Default error model provenance:</dt><dd><p>The default bias/noise values in this helper are package-level
+representative simulation values for BeaverCube-style examples. They
+are not currently tied to a published Clyde Space data sheet table or
+BeaverCube flight-calibration result. Pass explicit <code class="docutils literal notranslate"><span class="pre">bias</span></code> and
+<code class="docutils literal notranslate"><span class="pre">noise</span></code> objects when a traceable mission or vendor model is required.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>axis</strong> (<em>ndarray</em>)</p></li>
@@ -585,6 +607,171 @@
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.sunpair.html#ADCS.satellite_hardware.sensors.sunpair.SunPair" title="ADCS.satellite_hardware.sensors.sunpair.SunPair"><em>SunPair</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_elmos_sun_sensors">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_sunpair.</span></span><span class="sig-name descname"><span class="pre">create_elmos_sun_sensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_sunpair.html#create_elmos_sun_sensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_elmos_sun_sensors" title="Link to this definition">¶</a></dt>
+<dd><p>Create the LightSail 2 coarse Sun-sensor set.</p>
+<p>LightSail 2 had four Elmos Sun sensors on deployable solar panels and one
+on the -Z spacecraft face. Exact deployed-panel boresight vectors are not
+encoded here, so panel sensors use a nominal +/-X/+Y layout and the -Z
+sensor uses the documented body vector. The default <code class="docutils literal notranslate"><span class="pre">noise</span></code> uses
+<code class="docutils literal notranslate"><span class="pre">sin(5</span> <span class="pre">deg)</span></code> as a conservative scalar cosine-measurement noise floor so
+estimator measurement covariances remain non-singular. This noise floor is
+an approximate modeling assumption, not a source-backed calibration value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.sunsensor.html#ADCS.satellite_hardware.sensors.sunsensor.SunSensor" title="ADCS.satellite_hardware.sensors.sunsensor.SunSensor"><em>SunSensor</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_gnb_sun_sensors">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_sunpair.</span></span><span class="sig-name descname"><span class="pre">create_gnb_sun_sensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.],</span> <span class="pre">[-1.,</span> <span class="pre">-0.,</span> <span class="pre">-0.],</span> <span class="pre">[-0.,</span> <span class="pre">-1.,</span> <span class="pre">-0.],</span> <span class="pre">[-0.,</span> <span class="pre">-0.,</span> <span class="pre">-1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_sunpair.html#create_gnb_sun_sensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_gnb_sun_sensors" title="Link to this definition">¶</a></dt>
+<dd><p>Create the final BRITE/GNB six-face dedicated Sun-sensor set.</p>
+<p>The public GNB summary gives one dedicated sensor per spacecraft face and
+accuracy/resolution specifications, but not statistical noise or bias
+values for the final dedicated sensors. The default <code class="docutils literal notranslate"><span class="pre">noise</span></code> uses
+<code class="docutils literal notranslate"><span class="pre">sin(1</span> <span class="pre">deg)</span></code> as a conservative scalar cosine-measurement noise floor so
+estimator measurement covariances remain non-singular. This noise floor is
+an approximate modeling assumption, not a source-backed calibration value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.sunsensor.html#ADCS.satellite_hardware.sensors.sunsensor.SunSensor" title="ADCS.satellite_hardware.sensors.sunsensor.SunSensor"><em>SunSensor</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_hamamatsu_s3931_sun_sensors">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_sunpair.</span></span><span class="sig-name descname"><span class="pre">create_hamamatsu_s3931_sun_sensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1,</span> <span class="pre">0,</span> <span class="pre">0]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_sunpair.html#create_hamamatsu_s3931_sun_sensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_hamamatsu_s3931_sun_sensors" title="Link to this definition">¶</a></dt>
+<dd><p>Create one ESTCube-1 Hamamatsu S3931 one-dimensional Sun sensor channel.</p>
+<p>ESTCube-1 had six custom Sun sensor assemblies, one per spacecraft face.
+Each assembly used two Hamamatsu S3931 one-dimensional PSDs under
+perpendicular slits. This helper represents one such one-dimensional
+channel. The preflight simulator used angular noise of approximately
+1.25 deg and initial angular bias uniformly distributed over +/-1 deg.</p>
+<dl class="simple">
+<dt>Default error model provenance:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">bias</span></code> approximates the published +/-1 deg initial angular bias as a
+scalar cosine-measurement offset of <code class="docutils literal notranslate"><span class="pre">sin(1</span> <span class="pre">deg)</span></code>. <code class="docutils literal notranslate"><span class="pre">noise</span></code>
+approximates the published 1.25 deg Gaussian angular simulator noise as
+scalar cosine-measurement noise of <code class="docutils literal notranslate"><span class="pre">sin(1.25</span> <span class="pre">deg)</span></code>. The useful flight
+region was approximately +/-36.7 deg with incidence-angle-dependent
+flight covariance; the current sensor model does not encode that finite
+field-of-view or covariance schedule.</p>
+</dd>
+<dt>Source:</dt><dd><p>J. Slavinskis et al., “ESTCube-1 attitude determination system flight
+results,” <em>Journal of Aerospace Engineering</em>, 2016.
+<a class="reference external" href="https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504">https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.sunsensor.html#ADCS.satellite_hardware.sensors.sunsensor.SunSensor" title="ADCS.satellite_hardware.sensors.sunsensor.SunSensor"><em>SunSensor</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_nano_iss60_sun_sensors">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_sunpair.</span></span><span class="sig-name descname"><span class="pre">create_nano_iss60_sun_sensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1,</span> <span class="pre">0,</span> <span class="pre">0]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_sunpair.html#create_nano_iss60_sun_sensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_nano_iss60_sun_sensors" title="Link to this definition">¶</a></dt>
+<dd><p>Create one Solar MEMS NANO-ISS60 Sun sensor proxy used on MOVE-II.</p>
+<p>A NANO-ISS60 is a two-axis analog Sun position sensor. It is represented
+here by one body-normal
+<code class="xref py py-class docutils literal notranslate"><span class="pre">SunSensor</span></code> proxy because the
+current package has scalar Sun-sensor channels rather than a native
+two-axis NANO-ISS60 model.</p>
+<dl class="simple">
+<dt>Default error model provenance:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">noise</span></code> approximates the MOVE-II HIL angular Sun-vector noise
+<code class="docutils literal notranslate"><span class="pre">sigma</span> <span class="pre">=</span> <span class="pre">0.06</span> <span class="pre">deg</span> <span class="pre">=</span> <span class="pre">1.047e-3</span> <span class="pre">rad</span></code> as scalar cosine-measurement noise
+<code class="docutils literal notranslate"><span class="pre">sin(0.06</span> <span class="pre">deg)</span></code>. No nominal fixed Sun-sensor bias was given in the
+accessible tables, so <code class="docutils literal notranslate"><span class="pre">bias</span></code> defaults to zero. The source documents a
+10 deg Sun-sensor bias sensitivity case, but that is not the nominal
+default.</p>
+</dd>
+<dt>Source:</dt><dd><p><a class="reference external" href="https://mediatum.ub.tum.de/doc/1483411/document.pdf">Hardware-in-the-Loop Verification of the Distributed,
+Magnetorquer-Based ADCS of the CubeSat MOVE-II</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.sunsensor.html#ADCS.satellite_hardware.sensors.sunsensor.SunSensor" title="ADCS.satellite_hardware.sensors.sunsensor.SunSensor"><em>SunSensor</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_osram_sfh2430_sun_sensors">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_sunpair.</span></span><span class="sig-name descname"><span class="pre">create_osram_sfh2430_sun_sensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">az_el_deg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_sunpair.html#create_osram_sfh2430_sun_sensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_osram_sfh2430_sun_sensors" title="Link to this definition">¶</a></dt>
+<dd><p>Create OSRAM SFH2430 coarse Sun-sensor photodiode channels used on RAX.</p>
+<p>By default this helper creates one photodiode aligned with <code class="docutils literal notranslate"><span class="pre">+X</span></code>. RAX-1
+used 9 SFH2430 photodiodes and RAX-2 used 17; pass the mission-specific
+azimuth/elevation table through <code class="docutils literal notranslate"><span class="pre">az_el_deg</span></code> to create those arrays. The
+published RAX estimator simulations used 0.05 V additive white noise, with
+scale factors around 2.5-4 V. This factory uses an efficiency of 3.0 V so
+the sensor output and noise are in the same approximate voltage units.</p>
+<dl class="simple">
+<dt>Default error model provenance:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">noise</span></code> defaults to the 0.05 V additive white-noise value from the
+RAX photodiode calibration/simulation tables. The default additive
+<code class="docutils literal notranslate"><span class="pre">bias</span></code> is zero because the RAX calibration estimated photodiode scale
+factor and mounting azimuth/elevation errors rather than publishing a
+single additive voltage-bias value. The cited calibration work reports
+that 0.05 V corresponds to roughly 1.0-5.7 deg angular uncertainty,
+depending on incidence angle and scale factor.</p>
+</dd>
+<dt>Source:</dt><dd><p>J. C. Springmann and J. W. Cutler, “On-orbit calibration of photodiodes
+for attitude determination,” <em>Journal of Guidance, Control, and
+Dynamics</em>, 2014.
+<a class="reference external" href="https://deepblue.lib.umich.edu/bitstream/handle/2027.42/140645/1.g000175.pdf?sequence=1">https://deepblue.lib.umich.edu/bitstream/handle/2027.42/140645/1.g000175.pdf?sequence=1</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>az_el_deg</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.sunsensor.html#ADCS.satellite_hardware.sensors.sunsensor.SunSensor" title="ADCS.satellite_hardware.sensors.sunsensor.SunSensor"><em>SunSensor</em></a>]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -644,5 +831,6 @@
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

@@ -12,7 +12,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=326e7d2b" />
     
     
 
@@ -526,12 +526,25 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -566,6 +579,7 @@
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"create_aeroastro_mst"</span><span class="p">,</span>
     <span class="s2">"create_bct_nst"</span><span class="p">,</span>
     <span class="s2">"create_terma_t1"</span><span class="p">,</span>
     <span class="s2">"create_generic_star_tracker"</span><span class="p">,</span>
@@ -578,9 +592,44 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors.star_tracker</span><span class="w"> </span><span class="kn">import</span> <span class="n">StarTracker</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors.star_tracker_quaternion</span><span class="w"> </span><span class="kn">import</span> <span class="n">StarTrackerQuaternion</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnisotropicNoise</span><span class="p">,</span> <span class="n">Noise</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnisotropicNoise</span><span class="p">,</span> <span class="n">Bias</span><span class="p">,</span> <span class="n">Noise</span>
 
 <span class="n">_ARCSEC2RAD</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="mf">180.0</span> <span class="o">*</span> <span class="mf">3600.0</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="create_aeroastro_mst">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_aeroastro_mst">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_aeroastro_mst</span><span class="p">(</span>
+    <span class="n">boresight</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">anisotropic_noise</span><span class="p">:</span> <span class="n">AnisotropicNoise</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StarTracker</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the AeroAstro Miniature Star Tracker used on BRITE-Austria.</span>
+
+<span class="sd">    The source gives mass, dimensions, update rate, and attitude accuracy</span>
+<span class="sd">    specifications. The default ``anisotropic_noise`` uses ``10 arcsec``</span>
+<span class="sd">    cross-boresight and ``50 arcsec`` roll as conservative approximate noise</span>
+<span class="sd">    floors so estimator measurement covariances remain non-singular. These</span>
+<span class="sd">    noise floors are modeling assumptions, not source-backed BRITE-Austria</span>
+<span class="sd">    calibration values.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">anisotropic_noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">anisotropic_noise</span> <span class="o">=</span> <span class="n">AnisotropicNoise</span><span class="p">(</span>
+            <span class="n">std_cross</span><span class="o">=</span><span class="mf">10.0</span> <span class="o">*</span> <span class="n">_ARCSEC2RAD</span><span class="p">,</span>
+            <span class="n">std_roll</span><span class="o">=</span><span class="mf">50.0</span> <span class="o">*</span> <span class="n">_ARCSEC2RAD</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">StarTracker</span><span class="p">(</span>
+        <span class="n">boresight</span><span class="o">=</span><span class="n">boresight</span><span class="p">,</span>
+        <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+        <span class="n">anisotropic_noise</span><span class="o">=</span><span class="n">anisotropic_noise</span><span class="p">,</span>
+        <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">,</span>
+        <span class="n">fov</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">10.0</span><span class="p">),</span>
+        <span class="n">sun_exclusion</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">30.0</span><span class="p">),</span>
+    <span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="create_bct_nst">
 <a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_bct_nst">[docs]</a>
@@ -740,5 +789,6 @@
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

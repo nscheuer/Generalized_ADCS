@@ -12,7 +12,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=326e7d2b" />
     
     
 
@@ -526,12 +526,25 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -563,7 +576,11 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_factory.actuators.create_cubesat_RW</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'create_cubewheel_smallplus_rw'</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">'create_cubewheel_smallplus_rw'</span><span class="p">,</span>
+    <span class="s1">'create_sfl_reaction_wheels'</span><span class="p">,</span>
+    <span class="s1">'create_sinclair_interplanetary_momentum_wheel'</span><span class="p">,</span>
+<span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
@@ -596,6 +613,91 @@
     <span class="k">return</span> <span class="n">RW</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">max_torque</span><span class="o">=</span><span class="n">max_torque</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="n">J</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">h</span><span class="p">,</span> <span class="n">h_max</span><span class="o">=</span><span class="n">h_max</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span> <span class="n">h_meas_noise</span><span class="o">=</span><span class="n">h_meas_noise</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span></div>
 
 
+
+<div class="viewcode-block" id="create_sfl_reaction_wheels">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.actuators.create_cubesat_RW.html#ADCS.satellite_factory.actuators.create_cubesat_RW.create_sfl_reaction_wheels">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_sfl_reaction_wheels</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">h_meas_noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">RW</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the nominal three-wheel BRITE/GNB reaction-wheel assembly.</span>
+
+<span class="sd">    The BRITE/GNB hardware summary gives an orthogonal three-wheel assembly</span>
+<span class="sd">    with per-wheel rotor inertia ``5.12e-5 kg m^2``, momentum capacity</span>
+<span class="sd">    ``0.030 N m s``, and maximum torque ``0.002 N m``. No source-backed torque</span>
+<span class="sd">    noise, torque bias, or wheel-momentum measurement noise values were found.</span>
+<span class="sd">    The default ``h_meas_noise`` uses ``1.0e-6 N m s`` as a conservative</span>
+<span class="sd">    estimator-safe noise floor; torque noise and torque bias remain zero unless</span>
+<span class="sd">    supplied by the caller.</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">h_meas_noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">h_meas_noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="mf">1.0e-6</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">RW</span><span class="p">(</span>
+            <span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+            <span class="n">max_torque</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span>
+            <span class="n">J</span><span class="o">=</span><span class="mf">5.12e-5</span><span class="p">,</span>
+            <span class="n">h</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">h_max</span><span class="o">=</span><span class="mf">0.030</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+            <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+            <span class="n">h_meas_noise</span><span class="o">=</span><span class="n">h_meas_noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+            <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="create_sinclair_interplanetary_momentum_wheel">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.actuators.create_cubesat_RW.html#ADCS.satellite_factory.actuators.create_cubesat_RW.create_sinclair_interplanetary_momentum_wheel">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_sinclair_interplanetary_momentum_wheel</span><span class="p">(</span>
+    <span class="n">axis</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">h_meas_noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RW</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the LightSail 2 single +Y momentum wheel.</span>
+
+<span class="sd">    LightSail 2 used one Sinclair Interplanetary momentum wheel about +Y with</span>
+<span class="sd">    maximum torque ``5.0e-3 N m`` and maximum angular momentum</span>
+<span class="sd">    ``0.06 N m s`` at ``5920 rpm``. The public source does not provide a rotor</span>
+<span class="sd">    inertia directly, so ``J`` is inferred from ``H = J omega`` as</span>
+<span class="sd">    ``0.06 / (5920 * 2 pi / 60) = 9.68e-5 kg m^2``. Torque noise and torque</span>
+<span class="sd">    bias remain zero unless supplied by the caller. The default</span>
+<span class="sd">    ``h_meas_noise`` uses ``1.0e-6 N m s`` as a conservative estimator-safe</span>
+<span class="sd">    wheel-momentum measurement noise floor.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="n">Bias</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="n">Noise</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">h_meas_noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">h_meas_noise</span> <span class="o">=</span> <span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="mf">1.0e-6</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">RW</span><span class="p">(</span>
+        <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span>
+        <span class="n">max_torque</span><span class="o">=</span><span class="mf">5.0e-3</span><span class="p">,</span>
+        <span class="n">J</span><span class="o">=</span><span class="mf">0.06</span> <span class="o">/</span> <span class="p">(</span><span class="mf">5920.0</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">60.0</span><span class="p">),</span>
+        <span class="n">h</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">h_max</span><span class="o">=</span><span class="mf">0.06</span><span class="p">,</span>
+        <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+        <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
+        <span class="n">h_meas_noise</span><span class="o">=</span><span class="n">h_meas_noise</span><span class="p">,</span>
+        <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 </pre></div>
         </article>
@@ -633,5 +735,6 @@
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

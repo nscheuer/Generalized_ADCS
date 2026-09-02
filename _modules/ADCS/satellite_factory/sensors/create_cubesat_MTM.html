@@ -12,7 +12,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=326e7d2b" />
     
     
 
@@ -526,12 +526,25 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -563,7 +576,15 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_factory.sensors.create_cubesat_MTM</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'create_isis_magnetometer'</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">'create_gnb_magnetometer'</span><span class="p">,</span>
+    <span class="s1">'create_isis_magnetometer'</span><span class="p">,</span>
+    <span class="s1">'create_adis16405_magnetometers'</span><span class="p">,</span>
+    <span class="s1">'create_bmx055_magnetometers'</span><span class="p">,</span>
+    <span class="s1">'create_honeywell_lightsail2_magnetometers'</span><span class="p">,</span>
+    <span class="s1">'create_hmc5883l_magnetometers'</span><span class="p">,</span>
+    <span class="s1">'create_micromag3_magnetometers'</span><span class="p">,</span>
+<span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
@@ -575,7 +596,19 @@
 <div class="viewcode-block" id="create_isis_magnetometer">
 <a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_isis_magnetometer">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">create_isis_magnetometer</span><span class="p">(</span><span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]),</span> <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTM</span><span class="p">]:</span>
-    <span class="c1"># https://satsearch.co/products/isis-isis-magnetorquer-board-i-mtq</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create an ISIS magnetometer triad.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        The hardware identity is linked to the ISIS magnetorquer-board product</span>
+<span class="sd">        listing below, but the default bias/noise values in this helper are</span>
+<span class="sd">        package-level representative simulation values rather than traceable</span>
+<span class="sd">        vendor or flight-calibration values. Pass explicit ``bias`` and</span>
+<span class="sd">        ``noise`` objects when a source-backed model is required.</span>
+
+<span class="sd">    Source for hardware identity:</span>
+<span class="sd">        https://satsearch.co/products/isis-isis-magnetorquer-board-i-mtq</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">e_bias</span> <span class="o">=</span> <span class="n">random_n_unit_vec</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">1e-9</span><span class="p">,</span><span class="mf">1e-7</span><span class="p">)</span>
         <span class="n">std_bias</span> <span class="o">=</span> <span class="mf">1e-9</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
@@ -588,6 +621,213 @@
     <span class="k">return</span> <span class="p">[</span><span class="n">MTM</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span></div>
 
 
+
+<div class="viewcode-block" id="create_gnb_magnetometer">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_gnb_magnetometer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_gnb_magnetometer</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTM</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the nominal BRITE/GNB three-axis magnetometer.</span>
+
+<span class="sd">    The BRITE ADCS design gives magnetometer noise ``2.0e-7 T`` and worst-case</span>
+<span class="sd">    bias ``4.0e-6 T``. The factory represents the latter as a bounded</span>
+<span class="sd">    per-axis bias uncertainty because no fixed flight bias vector was found.</span>
+<span class="sd">    The ``1.0e-9 T/sqrt(s)`` bias random walk is a conservative modeling</span>
+<span class="sd">    assumption, not a source-backed BRITE/GNB calibration value.</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias_bound</span> <span class="o">=</span> <span class="mf">4.0e-6</span>
+        <span class="n">std_bias</span> <span class="o">=</span> <span class="mf">1.0e-9</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_bias</span><span class="o">=</span><span class="n">std_bias</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="n">bias_bound</span><span class="p">,</span> <span class="n">bias_bound</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="mf">2.0e-7</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">MTM</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="create_honeywell_lightsail2_magnetometers">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_honeywell_lightsail2_magnetometers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_honeywell_lightsail2_magnetometers</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTM</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the two LightSail 2 three-axis Honeywell magnetometers.</span>
+
+<span class="sd">    LightSail 2 had one 3-axis unit on the +X solar panel and one on the +Y</span>
+<span class="sd">    solar panel. Exact sensor-to-body rotation matrices are not encoded here,</span>
+<span class="sd">    so each unit is represented as an orthogonal triad in body axes. The</span>
+<span class="sd">    published 1-sigma noise is ``0.2 uT``; no fixed bias is assigned.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)))</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="mf">0.2e-6</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">MTM</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="create_adis16405_magnetometers">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_adis16405_magnetometers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_adis16405_magnetometers</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTM</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the ADIS16405 integrated magnetometer channels used on RAX.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        ``bias`` defaults to a Gaussian initial bias with 400 nT one-sigma</span>
+<span class="sd">        component error. ``noise`` defaults to 125 nT output-noise RMS. These</span>
+<span class="sd">        are ADIS16405 component characterization values reported for the RAX</span>
+<span class="sd">        attitude-determination system, not a published fixed RAX flight bias</span>
+<span class="sd">        vector.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        J. C. Springmann, *Satellite Attitude Determination with Low-Cost</span>
+<span class="sd">        Sensors*, Ph.D. dissertation, University of Michigan, 2013.</span>
+<span class="sd">        https://deepblue.lib.umich.edu/bitstream/handle/2027.42/102312/jspringm_1.pdf?sequence=1</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias_std</span> <span class="o">=</span> <span class="mf">400e-9</span>
+        <span class="n">e_bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bias_std</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_axes</span><span class="p">)</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="n">e_bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">std_bias</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">std_noise</span> <span class="o">=</span> <span class="mf">125e-9</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="n">std_noise</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">MTM</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="create_micromag3_magnetometers">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_micromag3_magnetometers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_micromag3_magnetometers</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTM</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the PNI Sensor Corporation MicroMag3 magnetometer channels used on RAX.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        ``noise`` defaults to the 100 nT Gaussian magnetometer noise used in</span>
+<span class="sd">        the RAX sensor-error simulations. The default constant ``bias`` is zero</span>
+<span class="sd">        because the RAX flight calibration treated the embedded MicroMag3 error</span>
+<span class="sd">        as scale-factor, nonorthogonality, constant-bias, and</span>
+<span class="sd">        spacecraft-current-dependent terms, not as a single published fixed</span>
+<span class="sd">        mission bias vector.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        J. C. Springmann, *Satellite Attitude Determination with Low-Cost</span>
+<span class="sd">        Sensors*, Ph.D. dissertation, University of Michigan, 2013.</span>
+<span class="sd">        https://deepblue.lib.umich.edu/bitstream/handle/2027.42/102312/jspringm_1.pdf?sequence=1</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">std_noise</span> <span class="o">=</span> <span class="mf">100e-9</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="n">std_noise</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">MTM</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="create_bmx055_magnetometers">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_bmx055_magnetometers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_bmx055_magnetometers</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTM</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create one Bosch Sensortec BMX055 magnetometer triad used on MOVE-II.</span>
+
+<span class="sd">    The BMX055 magnetometer is represented as three one-dimensional</span>
+<span class="sd">    :class:`~ADCS.satellite_hardware.sensors.MTM` channels.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        ``bias`` defaults to the MOVE-II HIL simulation vector</span>
+<span class="sd">        ``[2.0e-6, -3.0e-6, 3.0e-6] T`` for one BMX055 triad. ``noise``</span>
+<span class="sd">        defaults to additive Gaussian white noise with ``sigma = 5.0e-7 T``.</span>
+<span class="sd">        The source also models scale factor,</span>
+<span class="sd">        misalignment, nonorthogonality, quantization, time sampling, and</span>
+<span class="sd">        low-pass filtering; those terms are not represented directly here.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        `Hardware-in-the-Loop Verification of the Distributed,</span>
+<span class="sd">        Magnetorquer-Based ADCS of the CubeSat MOVE-II</span>
+<span class="sd">        &lt;https://mediatum.ub.tum.de/doc/1483411/document.pdf&gt;`__</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">triad_bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.0e-6</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.0e-6</span><span class="p">,</span> <span class="mf">3.0e-6</span><span class="p">])</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="n">triad_bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">std_bias</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="mf">5.0e-7</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">MTM</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="create_hmc5883l_magnetometers">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_hmc5883l_magnetometers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_hmc5883l_magnetometers</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTM</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create one ESTCube-1 Honeywell HMC5883L magnetometer triad.</span>
+
+<span class="sd">    The HMC5883L magnetometer is represented as three one-dimensional</span>
+<span class="sd">    :class:`~ADCS.satellite_hardware.sensors.MTM` channels.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        ``bias`` defaults to a uniform initial bias over +/-2400 nT. The</span>
+<span class="sd">        ESTCube-1 preflight simulator modeled magnetic-field direction noise as</span>
+<span class="sd">        Gaussian 1.6 deg. Since this package's</span>
+<span class="sd">        :class:`~ADCS.satellite_hardware.sensors.MTM` model uses scalar magnetic</span>
+<span class="sd">        field measurements, ``noise`` approximates that 1.6 deg direction error</span>
+<span class="sd">        as a transverse component error for a representative 50 microtesla</span>
+<span class="sd">        field. Ground characterization also reported 0.8 deg statistical</span>
+<span class="sd">        magnetic-direction uncertainty, but the simulator value is the default.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        J. Slavinskis et al., "ESTCube-1 attitude determination system flight</span>
+<span class="sd">        results," *Journal of Aerospace Engineering*, 2016.</span>
+<span class="sd">        https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias_bound</span> <span class="o">=</span> <span class="mf">2400e-9</span>
+        <span class="n">e_bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">bias_bound</span><span class="p">,</span> <span class="n">bias_bound</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_axes</span><span class="p">)</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="n">e_bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">std_bias</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="n">bias_bound</span><span class="p">,</span> <span class="n">bias_bound</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">representative_field</span> <span class="o">=</span> <span class="mf">50e-6</span>
+        <span class="n">std_noise</span> <span class="o">=</span> <span class="n">representative_field</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">1.6</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="n">std_noise</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">MTM</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
 
 </pre></div>
         </article>
@@ -625,5 +865,6 @@
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

@@ -11,7 +11,7 @@
 <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=326e7d2b" />
     
     
 
@@ -525,12 +525,25 @@
 <li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -2227,8 +2240,6 @@
           <li><a href="ADCS.state.html#ADCS.state.State.copy">(ADCS.state.State method)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.cost">cost (ADCS.controller.saltro.SALTRO_pass_settings.PassConfig attribute)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.cost2Func">cost2Func() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
@@ -2245,6 +2256,8 @@
           <li><a href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise.cov">(ADCS.satellite_hardware.errors.noise.Noise method)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.cov_use">cov_use() (ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator method)</a>
 </li>
         <li><a href="ADCS.state.html#ADCS.state.EstimatorState.covariance">covariance (ADCS.state.EstimatorState property)</a>
@@ -2267,6 +2280,14 @@
 </li>
         <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_3_3_beavercube2_cubesat">create_3_3_beavercube2_cubesat() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
 </li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_adis16405_gyros">create_adis16405_gyros() (in module ADCS.satellite_factory.sensors.create_cubesat_gyro)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_adis16405_magnetometers">create_adis16405_magnetometers() (in module ADCS.satellite_factory.sensors.create_cubesat_MTM)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_aeroastro_mst">create_aeroastro_mst() (in module ADCS.satellite_factory.sensors.create_star_tracker)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_analog_devices_pib_gyros">create_analog_devices_pib_gyros() (in module ADCS.satellite_factory.sensors.create_cubesat_gyro)</a>
+</li>
         <li><a href="ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_bct_nst">create_bct_nst() (in module ADCS.satellite_factory.sensors.create_star_tracker)</a>
 </li>
         <li><a href="ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_bct_nst_quaternion">create_bct_nst_quaternion() (in module ADCS.satellite_factory.sensors.create_star_tracker)</a>
@@ -2275,11 +2296,23 @@
 </li>
         <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_beavercube2_cubesat">create_beavercube2_cubesat() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
 </li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_bmx055_gyros">create_bmx055_gyros() (in module ADCS.satellite_factory.sensors.create_cubesat_gyro)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_bmx055_magnetometers">create_bmx055_magnetometers() (in module ADCS.satellite_factory.sensors.create_cubesat_MTM)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_brite_austria">create_brite_austria() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
+</li>
         <li><a href="ADCS.helpers.plotting.close_all_plots.html#ADCS.helpers.plotting.close_all_plots.create_close_all_button_window">create_close_all_button_window() (in module ADCS.helpers.plotting.close_all_plots)</a>
 </li>
         <li><a href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_Clydespace_3U_array">create_Clydespace_3U_array() (in module ADCS.satellite_factory.sensors.create_cubesat_sunpair)</a>
 </li>
         <li><a href="ADCS.satellite_factory.actuators.create_cubesat_RW.html#ADCS.satellite_factory.actuators.create_cubesat_RW.create_cubewheel_smallplus_rw">create_cubewheel_smallplus_rw() (in module ADCS.satellite_factory.actuators.create_cubesat_RW)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_elmos_sun_sensors">create_elmos_sun_sensors() (in module ADCS.satellite_factory.sensors.create_cubesat_sunpair)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_estcube1_cubesat">create_estcube1_cubesat() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.actuators.create_cubesat_MTQ.html#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_estcube1_magnetorquers">create_estcube1_magnetorquers() (in module ADCS.satellite_factory.actuators.create_cubesat_MTQ)</a>
 </li>
         <li><a href="ADCS.satellite_factory.sensors.create_earth_horizon.html#ADCS.satellite_factory.sensors.create_earth_horizon.create_generic_earth_horizon">create_generic_earth_horizon() (in module ADCS.satellite_factory.sensors.create_earth_horizon)</a>
 </li>
@@ -2287,7 +2320,23 @@
 </li>
         <li><a href="ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_generic_star_tracker_quaternion">create_generic_star_tracker_quaternion() (in module ADCS.satellite_factory.sensors.create_star_tracker)</a>
 </li>
+        <li><a href="ADCS.satellite_factory.actuators.create_cubesat_MTQ.html#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_gnb_air_core_magnetorquers">create_gnb_air_core_magnetorquers() (in module ADCS.satellite_factory.actuators.create_cubesat_MTQ)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_gnb_magnetometer">create_gnb_magnetometer() (in module ADCS.satellite_factory.sensors.create_cubesat_MTM)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_gnb_rate_sensors">create_gnb_rate_sensors() (in module ADCS.satellite_factory.sensors.create_cubesat_gyro)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_gnb_sun_sensors">create_gnb_sun_sensors() (in module ADCS.satellite_factory.sensors.create_cubesat_sunpair)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_hamamatsu_s3931_sun_sensors">create_hamamatsu_s3931_sun_sensors() (in module ADCS.satellite_factory.sensors.create_cubesat_sunpair)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_hmc5883l_magnetometers">create_hmc5883l_magnetometers() (in module ADCS.satellite_factory.sensors.create_cubesat_MTM)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_honeywell_lightsail2_magnetometers">create_honeywell_lightsail2_magnetometers() (in module ADCS.satellite_factory.sensors.create_cubesat_MTM)</a>
+</li>
         <li><a href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_ICM20948_IMU">create_ICM20948_IMU() (in module ADCS.satellite_factory.sensors.create_cubesat_gyro)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_intrepid_mainboard_gyros">create_intrepid_mainboard_gyros() (in module ADCS.satellite_factory.sensors.create_cubesat_gyro)</a>
 </li>
         <li><a href="ADCS.satellite_factory.sensors.create_earth_horizon.html#ADCS.satellite_factory.sensors.create_earth_horizon.create_irst_horizon_sensor">create_irst_horizon_sensor() (in module ADCS.satellite_factory.sensors.create_earth_horizon)</a>
 </li>
@@ -2295,11 +2344,35 @@
 </li>
         <li><a href="ADCS.satellite_factory.actuators.create_cubesat_MTQ.html#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_isis_magnetorquer_board">create_isis_magnetorquer_board() (in module ADCS.satellite_factory.actuators.create_cubesat_MTQ)</a>
 </li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_itg3200_gyros">create_itg3200_gyros() (in module ADCS.satellite_factory.sensors.create_cubesat_gyro)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_lightsail2">create_lightsail2() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_micromag3_magnetometers">create_micromag3_magnetometers() (in module ADCS.satellite_factory.sensors.create_cubesat_MTM)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_moveii_cubesat">create_moveii_cubesat() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.actuators.create_cubesat_MTQ.html#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_moveii_pcb_magnetorquers">create_moveii_pcb_magnetorquers() (in module ADCS.satellite_factory.actuators.create_cubesat_MTQ)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_nano_iss60_sun_sensors">create_nano_iss60_sun_sensors() (in module ADCS.satellite_factory.sensors.create_cubesat_sunpair)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_osram_sfh2430_sun_sensors">create_osram_sfh2430_sun_sensors() (in module ADCS.satellite_factory.sensors.create_cubesat_sunpair)</a>
+</li>
         <li><a href="ADCS.satellite_factory.sensors.create_cubesat_GPS.html#ADCS.satellite_factory.sensors.create_cubesat_GPS.create_pumpkinspace_GPSRM1">create_pumpkinspace_GPSRM1() (in module ADCS.satellite_factory.sensors.create_cubesat_GPS)</a>
 </li>
         <li><a href="ADCS.orbits.helpers.orbit_factory.html#ADCS.orbits.helpers.orbit_factory.create_random_circular_orbit">create_random_circular_orbit() (in module ADCS.orbits.helpers.orbit_factory)</a>
 </li>
         <li><a href="ADCS.orbits.helpers.orbit_factory.html#ADCS.orbits.helpers.orbit_factory.create_random_circular_os">create_random_circular_os() (in module ADCS.orbits.helpers.orbit_factory)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_rax1_cubesat">create_rax1_cubesat() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_rax2_cubesat">create_rax2_cubesat() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.actuators.create_cubesat_RW.html#ADCS.satellite_factory.actuators.create_cubesat_RW.create_sfl_reaction_wheels">create_sfl_reaction_wheels() (in module ADCS.satellite_factory.actuators.create_cubesat_RW)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.actuators.create_cubesat_RW.html#ADCS.satellite_factory.actuators.create_cubesat_RW.create_sinclair_interplanetary_momentum_wheel">create_sinclair_interplanetary_momentum_wheel() (in module ADCS.satellite_factory.actuators.create_cubesat_RW)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.actuators.create_cubesat_MTQ.html#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_stras_space_torque_rods">create_stras_space_torque_rods() (in module ADCS.satellite_factory.actuators.create_cubesat_MTQ)</a>
 </li>
         <li><a href="ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_terma_t1">create_terma_t1() (in module ADCS.satellite_factory.sensors.create_star_tracker)</a>
 </li>
@@ -4908,5 +4981,6 @@
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

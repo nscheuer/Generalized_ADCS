@@ -12,7 +12,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=326e7d2b" />
     
     
 
@@ -526,12 +526,25 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -563,19 +576,42 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_factory.sensors.create_cubesat_sunpair</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'create_Clydespace_3U_array'</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">'create_Clydespace_3U_array'</span><span class="p">,</span>
+    <span class="s1">'create_elmos_sun_sensors'</span><span class="p">,</span>
+    <span class="s1">'create_gnb_sun_sensors'</span><span class="p">,</span>
+    <span class="s1">'create_hamamatsu_s3931_sun_sensors'</span><span class="p">,</span>
+    <span class="s1">'create_nano_iss60_sun_sensors'</span><span class="p">,</span>
+    <span class="s1">'create_osram_sfh2430_sun_sensors'</span><span class="p">,</span>
+<span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">SunPair</span> 
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">SunPair</span><span class="p">,</span> <span class="n">SunSensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">Noise</span><span class="p">,</span> <span class="n">Bias</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">random_n_unit_vec</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_axes_from_az_el_deg</span><span class="p">(</span><span class="n">az_el_deg</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">az_el_deg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+    <span class="n">az</span> <span class="o">=</span> <span class="n">angles</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">el</span> <span class="o">=</span> <span class="n">angles</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">az</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">az</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">el</span><span class="p">)))</span>
 
 <div class="viewcode-block" id="create_Clydespace_3U_array">
 <a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_Clydespace_3U_array">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">create_Clydespace_3U_array</span><span class="p">(</span><span class="n">axis</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span> <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SunPair</span><span class="p">]:</span>
-    <span class="c1"># As used on BeaverCube 1 &amp; 2</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create a Clyde Space 3U solar-array SunPair proxy.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        The default bias/noise values in this helper are package-level</span>
+<span class="sd">        representative simulation values for BeaverCube-style examples. They</span>
+<span class="sd">        are not currently tied to a published Clyde Space data sheet table or</span>
+<span class="sd">        BeaverCube flight-calibration result. Pass explicit ``bias`` and</span>
+<span class="sd">        ``noise`` objects when a traceable mission or vendor model is required.</span>
+<span class="sd">    """</span>
     <span class="n">sun_eff</span> <span class="o">=</span> <span class="mf">0.3</span>
     <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">e_bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.2</span><span class="p">)</span><span class="o">*</span><span class="n">sun_eff</span>
@@ -589,6 +625,218 @@
     <span class="k">return</span> <span class="p">[</span><span class="n">SunPair</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">efficiency</span><span class="o">=</span><span class="p">(</span><span class="n">sun_eff</span><span class="p">,</span> <span class="n">sun_eff</span><span class="p">),</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)]</span></div>
 
 
+
+<div class="viewcode-block" id="create_gnb_sun_sensors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_gnb_sun_sensors">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_gnb_sun_sensors</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">))),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SunSensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the final BRITE/GNB six-face dedicated Sun-sensor set.</span>
+
+<span class="sd">    The public GNB summary gives one dedicated sensor per spacecraft face and</span>
+<span class="sd">    accuracy/resolution specifications, but not statistical noise or bias</span>
+<span class="sd">    values for the final dedicated sensors. The default ``noise`` uses</span>
+<span class="sd">    ``sin(1 deg)`` as a conservative scalar cosine-measurement noise floor so</span>
+<span class="sd">    estimator measurement covariances remain non-singular. This noise floor is</span>
+<span class="sd">    an approximate modeling assumption, not a source-backed calibration value.</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">std_noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="n">std_noise</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">SunSensor</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">efficiency</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="create_elmos_sun_sensors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_elmos_sun_sensors">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_elmos_sun_sensors</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SunSensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the LightSail 2 coarse Sun-sensor set.</span>
+
+<span class="sd">    LightSail 2 had four Elmos Sun sensors on deployable solar panels and one</span>
+<span class="sd">    on the -Z spacecraft face. Exact deployed-panel boresight vectors are not</span>
+<span class="sd">    encoded here, so panel sensors use a nominal +/-X/+Y layout and the -Z</span>
+<span class="sd">    sensor uses the documented body vector. The default ``noise`` uses</span>
+<span class="sd">    ``sin(5 deg)`` as a conservative scalar cosine-measurement noise floor so</span>
+<span class="sd">    estimator measurement covariances remain non-singular. This noise floor is</span>
+<span class="sd">    an approximate modeling assumption, not a source-backed calibration value.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+            <span class="p">[</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">],</span>
+        <span class="p">])</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">std_noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">5.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="n">std_noise</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">SunSensor</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">efficiency</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="create_hamamatsu_s3931_sun_sensors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_hamamatsu_s3931_sun_sensors">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_hamamatsu_s3931_sun_sensors</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SunSensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create one ESTCube-1 Hamamatsu S3931 one-dimensional Sun sensor channel.</span>
+
+<span class="sd">    ESTCube-1 had six custom Sun sensor assemblies, one per spacecraft face.</span>
+<span class="sd">    Each assembly used two Hamamatsu S3931 one-dimensional PSDs under</span>
+<span class="sd">    perpendicular slits. This helper represents one such one-dimensional</span>
+<span class="sd">    channel. The preflight simulator used angular noise of approximately</span>
+<span class="sd">    1.25 deg and initial angular bias uniformly distributed over +/-1 deg.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        ``bias`` approximates the published +/-1 deg initial angular bias as a</span>
+<span class="sd">        scalar cosine-measurement offset of ``sin(1 deg)``. ``noise``</span>
+<span class="sd">        approximates the published 1.25 deg Gaussian angular simulator noise as</span>
+<span class="sd">        scalar cosine-measurement noise of ``sin(1.25 deg)``. The useful flight</span>
+<span class="sd">        region was approximately +/-36.7 deg with incidence-angle-dependent</span>
+<span class="sd">        flight covariance; the current sensor model does not encode that finite</span>
+<span class="sd">        field-of-view or covariance schedule.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        J. Slavinskis et al., "ESTCube-1 attitude determination system flight</span>
+<span class="sd">        results," *Journal of Aerospace Engineering*, 2016.</span>
+<span class="sd">        https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias_bound</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span>
+        <span class="n">e_bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">bias_bound</span><span class="p">,</span> <span class="n">bias_bound</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_axes</span><span class="p">)</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="n">e_bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">std_bias</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="n">bias_bound</span><span class="p">,</span> <span class="n">bias_bound</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">std_noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">1.25</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="n">std_noise</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">SunSensor</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">efficiency</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="create_osram_sfh2430_sun_sensors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_osram_sfh2430_sun_sensors">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_osram_sfh2430_sun_sensors</span><span class="p">(</span>
+    <span class="n">az_el_deg</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SunSensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create OSRAM SFH2430 coarse Sun-sensor photodiode channels used on RAX.</span>
+
+<span class="sd">    By default this helper creates one photodiode aligned with ``+X``. RAX-1</span>
+<span class="sd">    used 9 SFH2430 photodiodes and RAX-2 used 17; pass the mission-specific</span>
+<span class="sd">    azimuth/elevation table through ``az_el_deg`` to create those arrays. The</span>
+<span class="sd">    published RAX estimator simulations used 0.05 V additive white noise, with</span>
+<span class="sd">    scale factors around 2.5-4 V. This factory uses an efficiency of 3.0 V so</span>
+<span class="sd">    the sensor output and noise are in the same approximate voltage units.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        ``noise`` defaults to the 0.05 V additive white-noise value from the</span>
+<span class="sd">        RAX photodiode calibration/simulation tables. The default additive</span>
+<span class="sd">        ``bias`` is zero because the RAX calibration estimated photodiode scale</span>
+<span class="sd">        factor and mounting azimuth/elevation errors rather than publishing a</span>
+<span class="sd">        single additive voltage-bias value. The cited calibration work reports</span>
+<span class="sd">        that 0.05 V corresponds to roughly 1.0-5.7 deg angular uncertainty,</span>
+<span class="sd">        depending on incidence angle and scale factor.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        J. C. Springmann and J. W. Cutler, "On-orbit calibration of photodiodes</span>
+<span class="sd">        for attitude determination," *Journal of Guidance, Control, and</span>
+<span class="sd">        Dynamics*, 2014.</span>
+<span class="sd">        https://deepblue.lib.umich.edu/bitstream/handle/2027.42/140645/1.g000175.pdf?sequence=1</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">az_el_deg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">az_el_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+
+    <span class="n">axes</span> <span class="o">=</span> <span class="n">_axes_from_az_el_deg</span><span class="p">(</span><span class="n">az_el_deg</span><span class="p">)</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">SunSensor</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">efficiency</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="create_nano_iss60_sun_sensors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#ADCS.satellite_factory.sensors.create_cubesat_sunpair.create_nano_iss60_sun_sensors">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_nano_iss60_sun_sensors</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SunSensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create one Solar MEMS NANO-ISS60 Sun sensor proxy used on MOVE-II.</span>
+
+<span class="sd">    A NANO-ISS60 is a two-axis analog Sun position sensor. It is represented</span>
+<span class="sd">    here by one body-normal</span>
+<span class="sd">    :class:`~ADCS.satellite_hardware.sensors.SunSensor` proxy because the</span>
+<span class="sd">    current package has scalar Sun-sensor channels rather than a native</span>
+<span class="sd">    two-axis NANO-ISS60 model.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        ``noise`` approximates the MOVE-II HIL angular Sun-vector noise</span>
+<span class="sd">        ``sigma = 0.06 deg = 1.047e-3 rad`` as scalar cosine-measurement noise</span>
+<span class="sd">        ``sin(0.06 deg)``. No nominal fixed Sun-sensor bias was given in the</span>
+<span class="sd">        accessible tables, so ``bias`` defaults to zero. The source documents a</span>
+<span class="sd">        10 deg Sun-sensor bias sensitivity case, but that is not the nominal</span>
+<span class="sd">        default.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        `Hardware-in-the-Loop Verification of the Distributed,</span>
+<span class="sd">        Magnetorquer-Based ADCS of the CubeSat MOVE-II</span>
+<span class="sd">        &lt;https://mediatum.ub.tum.de/doc/1483411/document.pdf&gt;`__</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">std_noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">0.06</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="n">std_noise</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">SunSensor</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">efficiency</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)</span>
+    <span class="p">]</span></div>
 
 </pre></div>
         </article>
@@ -626,5 +874,6 @@
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

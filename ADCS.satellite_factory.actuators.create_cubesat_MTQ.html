@@ -13,7 +13,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=326e7d2b" />
     
     
 
@@ -527,12 +527,25 @@
 <li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -572,9 +585,119 @@
           <section id="module-ADCS.satellite_factory.actuators.create_cubesat_MTQ">
 <span id="adcs-satellite-factory-actuators-create-cubesat-mtq-module"></span><h1>ADCS.satellite_factory.actuators.create_cubesat_MTQ module<a class="headerlink" href="#module-ADCS.satellite_factory.actuators.create_cubesat_MTQ" title="Link to this heading">¶</a></h1>
 <dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_estcube1_magnetorquers">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.actuators.create_cubesat_MTQ.</span></span><span class="sig-name descname"><span class="pre">create_estcube1_magnetorquers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/actuators/create_cubesat_MTQ.html#create_estcube1_magnetorquers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_estcube1_magnetorquers" title="Link to this definition">¶</a></dt>
+<dd><p>Create the nominal ESTCube-1 electromagnetic coil set.</p>
+<p>ESTCube-1 used three electromagnetic coils with nominal axes aligned to the
+spacecraft body axes and approximately 0.1 A m^2 nominal dipole authority per
+coil. Flight results reported substantial actuator nonidealities, including
+axis misalignment, positive/negative gain asymmetry, and residual magnetic
+moment; this factory captures the nominal dipole limit only unless explicit
+<code class="docutils literal notranslate"><span class="pre">bias</span></code> or <code class="docutils literal notranslate"><span class="pre">noise</span></code> models are supplied.</p>
+<p>Sources:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S0094576515302216">ESTCube-1 magnetic actuator flight results</a></p></li>
+<li><p><a class="reference external" href="https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504">ESTCube-1 attitude determination flight results</a></p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ" title="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ"><em>MTQ</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_gnb_air_core_magnetorquers">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.actuators.create_cubesat_MTQ.</span></span><span class="sig-name descname"><span class="pre">create_gnb_air_core_magnetorquers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/actuators/create_cubesat_MTQ.html#create_gnb_air_core_magnetorquers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_gnb_air_core_magnetorquers" title="Link to this definition">¶</a></dt>
+<dd><p>Create the nominal BRITE/GNB three-axis air-core coil set.</p>
+<p>The BRITE ADCS design gives three orthogonal magnetorquers with maximum
+dipole <code class="docutils literal notranslate"><span class="pre">0.12</span> <span class="pre">A</span> <span class="pre">m^2</span></code>. No source-backed dipole noise or bias values were
+found, so the default error models are zero unless supplied by the caller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ" title="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ"><em>MTQ</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_isis_magnetorquer_board">
 <span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.actuators.create_cubesat_MTQ.</span></span><span class="sig-name descname"><span class="pre">create_isis_magnetorquer_board</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1,</span> <span class="pre">0,</span> <span class="pre">0],</span> <span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">0],</span> <span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">1]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/actuators/create_cubesat_MTQ.html#create_isis_magnetorquer_board"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_isis_magnetorquer_board" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ" title="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ"><em>MTQ</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_moveii_pcb_magnetorquers">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.actuators.create_cubesat_MTQ.</span></span><span class="sig-name descname"><span class="pre">create_moveii_pcb_magnetorquers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/actuators/create_cubesat_MTQ.html#create_moveii_pcb_magnetorquers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_moveii_pcb_magnetorquers" title="Link to this definition">¶</a></dt>
+<dd><p>Create a simplified MOVE-II custom PCB-coil magnetorquer set.</p>
+<p>MOVE-II used six in-house PCB-integrated magnetorquer coils distributed over
+the ADCS panels. The published summary gives approximately 0.05 A m^2 per
+coil and 0.10 A m^2 per axis at room temperature. Because the exact
+per-panel body-axis sign table was not recovered, this helper returns a
+three-axis equivalent commandable MTQ set with 0.10 A m^2 per axis.</p>
+<dl class="simple">
+<dt>Default error model provenance:</dt><dd><p>No stochastic dipole-noise value was found. The attached MOVE-II source
+summary reports a residual magnetic moment of
+<code class="docutils literal notranslate"><span class="pre">[-0.001,</span> <span class="pre">0.012,</span> <span class="pre">-0.045]</span> <span class="pre">A</span> <span class="pre">m^2</span></code> with 0.001 A m^2 uncertainty and a
+simplified worst-case disturbance of 0.020 A m^2. Those are spacecraft
+disturbance terms rather than command-channel white noise, so this
+helper leaves <code class="docutils literal notranslate"><span class="pre">bias</span></code> and <code class="docutils literal notranslate"><span class="pre">noise</span></code> at zero unless supplied by the
+caller.</p>
+</dd>
+<dt>Source:</dt><dd><p><a class="reference external" href="https://www.eucass.eu/doi/EUCASS2017-664.pdf">Magnetic Attitude Control for the MOVE-II Mission</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ" title="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ"><em>MTQ</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_stras_space_torque_rods">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.actuators.create_cubesat_MTQ.</span></span><span class="sig-name descname"><span class="pre">create_stras_space_torque_rods</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/actuators/create_cubesat_MTQ.html#create_stras_space_torque_rods"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_stras_space_torque_rods" title="Link to this definition">¶</a></dt>
+<dd><p>Create the LightSail 2 three-axis magnetic torque-rod set.</p>
+<p>LightSail 2 used three Stras Space torque rods with maximum dipole
+<code class="docutils literal notranslate"><span class="pre">1.0</span> <span class="pre">A</span> <span class="pre">m^2</span></code>. Public sources do not provide dipole noise or bias values,
+so the default error models are zero unless supplied by the caller.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
@@ -644,5 +767,6 @@
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

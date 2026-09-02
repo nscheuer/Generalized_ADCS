@@ -12,7 +12,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=326e7d2b" />
     
     
 
@@ -526,12 +526,25 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -563,7 +576,13 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_factory.actuators.create_cubesat_MTQ</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'create_isis_magnetorquer_board'</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">'create_gnb_air_core_magnetorquers'</span><span class="p">,</span>
+    <span class="s1">'create_isis_magnetorquer_board'</span><span class="p">,</span>
+    <span class="s1">'create_estcube1_magnetorquers'</span><span class="p">,</span>
+    <span class="s1">'create_moveii_pcb_magnetorquers'</span><span class="p">,</span>
+    <span class="s1">'create_stras_space_torque_rods'</span><span class="p">,</span>
+<span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Sequence</span>
@@ -592,6 +611,141 @@
     <span class="k">return</span> <span class="p">[</span><span class="n">MTQ</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">max_torque</span><span class="o">=</span><span class="n">mtq_max</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span></div>
 
 
+
+<div class="viewcode-block" id="create_gnb_air_core_magnetorquers">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.actuators.create_cubesat_MTQ.html#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_gnb_air_core_magnetorquers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_gnb_air_core_magnetorquers</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTQ</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the nominal BRITE/GNB three-axis air-core coil set.</span>
+
+<span class="sd">    The BRITE ADCS design gives three orthogonal magnetorquers with maximum</span>
+<span class="sd">    dipole ``0.12 A m^2``. No source-backed dipole noise or bias values were</span>
+<span class="sd">    found, so the default error models are zero unless supplied by the caller.</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">MTQ</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">max_torque</span><span class="o">=</span><span class="mf">0.12</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="create_stras_space_torque_rods">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.actuators.create_cubesat_MTQ.html#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_stras_space_torque_rods">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_stras_space_torque_rods</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTQ</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the LightSail 2 three-axis magnetic torque-rod set.</span>
+
+<span class="sd">    LightSail 2 used three Stras Space torque rods with maximum dipole</span>
+<span class="sd">    ``1.0 A m^2``. Public sources do not provide dipole noise or bias values,</span>
+<span class="sd">    so the default error models are zero unless supplied by the caller.</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">MTQ</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">max_torque</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="create_estcube1_magnetorquers">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.actuators.create_cubesat_MTQ.html#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_estcube1_magnetorquers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_estcube1_magnetorquers</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTQ</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the nominal ESTCube-1 electromagnetic coil set.</span>
+
+<span class="sd">    ESTCube-1 used three electromagnetic coils with nominal axes aligned to the</span>
+<span class="sd">    spacecraft body axes and approximately 0.1 A m^2 nominal dipole authority per</span>
+<span class="sd">    coil. Flight results reported substantial actuator nonidealities, including</span>
+<span class="sd">    axis misalignment, positive/negative gain asymmetry, and residual magnetic</span>
+<span class="sd">    moment; this factory captures the nominal dipole limit only unless explicit</span>
+<span class="sd">    ``bias`` or ``noise`` models are supplied.</span>
+
+<span class="sd">    Sources:</span>
+
+<span class="sd">    * `ESTCube-1 magnetic actuator flight results</span>
+<span class="sd">      &lt;https://www.sciencedirect.com/science/article/pii/S0094576515302216&gt;`__</span>
+<span class="sd">    * `ESTCube-1 attitude determination flight results</span>
+<span class="sd">      &lt;https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504&gt;`__</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+
+    <span class="n">mtq_max</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">MTQ</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">max_torque</span><span class="o">=</span><span class="n">mtq_max</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="create_moveii_pcb_magnetorquers">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.actuators.create_cubesat_MTQ.html#ADCS.satellite_factory.actuators.create_cubesat_MTQ.create_moveii_pcb_magnetorquers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_moveii_pcb_magnetorquers</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MTQ</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create a simplified MOVE-II custom PCB-coil magnetorquer set.</span>
+
+<span class="sd">    MOVE-II used six in-house PCB-integrated magnetorquer coils distributed over</span>
+<span class="sd">    the ADCS panels. The published summary gives approximately 0.05 A m^2 per</span>
+<span class="sd">    coil and 0.10 A m^2 per axis at room temperature. Because the exact</span>
+<span class="sd">    per-panel body-axis sign table was not recovered, this helper returns a</span>
+<span class="sd">    three-axis equivalent commandable MTQ set with 0.10 A m^2 per axis.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        No stochastic dipole-noise value was found. The attached MOVE-II source</span>
+<span class="sd">        summary reports a residual magnetic moment of</span>
+<span class="sd">        ``[-0.001, 0.012, -0.045] A m^2`` with 0.001 A m^2 uncertainty and a</span>
+<span class="sd">        simplified worst-case disturbance of 0.020 A m^2. Those are spacecraft</span>
+<span class="sd">        disturbance terms rather than command-channel white noise, so this</span>
+<span class="sd">        helper leaves ``bias`` and ``noise`` at zero unless supplied by the</span>
+<span class="sd">        caller.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        `Magnetic Attitude Control for the MOVE-II Mission</span>
+<span class="sd">        &lt;https://www.eucass.eu/doi/EUCASS2017-664.pdf&gt;`__</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+
+    <span class="n">mtq_max</span> <span class="o">=</span> <span class="mf">0.10</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">MTQ</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">max_torque</span><span class="o">=</span><span class="n">mtq_max</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="p">]</span></div>
 
 </pre></div>
         </article>
@@ -629,5 +783,6 @@
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

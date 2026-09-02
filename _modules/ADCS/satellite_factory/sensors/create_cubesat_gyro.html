@@ -12,7 +12,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=326e7d2b" />
     
     
 
@@ -526,12 +526,25 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -563,7 +576,15 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_factory.sensors.create_cubesat_gyro</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'create_ICM20948_IMU'</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">'create_analog_devices_pib_gyros'</span><span class="p">,</span>
+    <span class="s1">'create_gnb_rate_sensors'</span><span class="p">,</span>
+    <span class="s1">'create_ICM20948_IMU'</span><span class="p">,</span>
+    <span class="s1">'create_adis16405_gyros'</span><span class="p">,</span>
+    <span class="s1">'create_bmx055_gyros'</span><span class="p">,</span>
+    <span class="s1">'create_itg3200_gyros'</span><span class="p">,</span>
+    <span class="s1">'create_intrepid_mainboard_gyros'</span><span class="p">,</span>
+<span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
@@ -575,7 +596,16 @@
 <div class="viewcode-block" id="create_ICM20948_IMU">
 <a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_ICM20948_IMU">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">create_ICM20948_IMU</span><span class="p">(</span><span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]),</span> <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Gyro</span><span class="p">]:</span>
-    <span class="c1"># As used on BeaverCube 1 &amp; 2</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create an ICM-20948 gyro triad.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        The default bias/noise values in this helper are package-level</span>
+<span class="sd">        representative simulation values for BeaverCube-style examples. They</span>
+<span class="sd">        are not currently tied to a published ICM-20948 paper, data sheet table,</span>
+<span class="sd">        or BeaverCube flight-calibration result. Pass explicit ``bias`` and</span>
+<span class="sd">        ``noise`` objects when a traceable mission or vendor model is required.</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">e_bias</span> <span class="o">=</span> <span class="n">random_n_unit_vec</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span><span class="mf">0.2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.0</span><span class="p">)</span>
         <span class="n">std_bias</span> <span class="o">=</span> <span class="mf">0.0004</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.0</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
@@ -588,6 +618,217 @@
     <span class="k">return</span> <span class="p">[</span><span class="n">Gyro</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span></div>
 
 
+
+<div class="viewcode-block" id="create_gnb_rate_sensors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_gnb_rate_sensors">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_gnb_rate_sensors</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Gyro</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the nominal BRITE/GNB orthogonal rate-sensor triad.</span>
+
+<span class="sd">    The BRITE ADCS design gives gyro noise density ``0.05 deg/s/sqrt(Hz)`` and</span>
+<span class="sd">    long-term bias variation ``0.2 deg/s``. The factory represents the bias</span>
+<span class="sd">    variation as a bounded per-axis bias uncertainty, with ``0.0004</span>
+<span class="sd">    deg/s/sqrt(s)`` used as a conservative assumed bias random walk.</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias_bound</span> <span class="o">=</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+        <span class="n">std_bias</span> <span class="o">=</span> <span class="mf">0.0004</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_bias</span><span class="o">=</span><span class="n">std_bias</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="n">bias_bound</span><span class="p">,</span> <span class="n">bias_bound</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="mf">0.05</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">Gyro</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="create_analog_devices_pib_gyros">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_analog_devices_pib_gyros">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_analog_devices_pib_gyros</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Gyro</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the LightSail 2 primary PIB gyro triad.</span>
+
+<span class="sd">    The default biases are the Dec 2020-Feb 2021 flight cross-calibration</span>
+<span class="sd">    values ``[0.47837, 0.14098, 0.043055] deg/s`` and the default white-noise</span>
+<span class="sd">    standard deviation is ``0.27 deg/s`` per axis.</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.47837</span><span class="p">,</span> <span class="mf">0.14098</span><span class="p">,</span> <span class="mf">0.043055</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="n">bias_values</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">std_bias</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="mf">0.27</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">Gyro</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="create_intrepid_mainboard_gyros">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_intrepid_mainboard_gyros">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_intrepid_mainboard_gyros</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Gyro</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the LightSail 2 secondary mainboard gyro triad.</span>
+
+<span class="sd">    These gyros were uncalibrated and used in modes that did not require</span>
+<span class="sd">    accurate attitude knowledge. The default ``noise`` uses ``1 deg/s`` per</span>
+<span class="sd">    axis as a conservative approximate white-noise floor so estimator</span>
+<span class="sd">    measurement covariances remain non-singular. This noise floor is a modeling</span>
+<span class="sd">    assumption, not a source-backed LightSail 2 calibration value.</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">Gyro</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="create_adis16405_gyros">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_adis16405_gyros">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_adis16405_gyros</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Gyro</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create the Analog Devices ADIS16405 gyro channels used on RAX-1 and RAX-2.</span>
+
+<span class="sd">    RAX used one ADIS16405 IMU on the attitude determination board.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        ``bias`` defaults to a Gaussian turn-on bias with 3 deg/s one-sigma</span>
+<span class="sd">        component error, ``std_bias`` uses the reported rate-random-walk</span>
+<span class="sd">        ``3.14e-5 rad/s^(3/2)`` value, and the bias is bounded to wander within</span>
+<span class="sd">        the reported 0.007 deg/s in-run stability around that sampled turn-on</span>
+<span class="sd">        bias. ``noise`` defaults to 0.9 deg/s output-noise RMS. These values are</span>
+<span class="sd">        ADIS16405 component characterization values reported for the RAX</span>
+<span class="sd">        attitude-determination system; they are not a single fixed RAX</span>
+<span class="sd">        flight-estimated bias vector.</span>
+
+<span class="sd">        The RAX estimator simulation also reported angle-random-walk</span>
+<span class="sd">        ``4.89e-4 rad/s^(1/2)``. That value is not represented directly by this</span>
+<span class="sd">        scalar white-noise :class:`~ADCS.satellite_hardware.sensors.Gyro` model.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        J. C. Springmann, *Satellite Attitude Determination with Low-Cost</span>
+<span class="sd">        Sensors*, Ph.D. dissertation, University of Michigan, 2013.</span>
+<span class="sd">        https://deepblue.lib.umich.edu/bitstream/handle/2027.42/102312/jspringm_1.pdf?sequence=1</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias_std</span> <span class="o">=</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+        <span class="n">stability</span> <span class="o">=</span> <span class="mf">0.007</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+        <span class="n">e_bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bias_std</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_axes</span><span class="p">)</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Bias</span><span class="p">(</span>
+                <span class="n">bias</span><span class="o">=</span><span class="n">e_bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+                <span class="n">std_bias</span><span class="o">=</span><span class="mf">3.14e-5</span><span class="p">,</span>
+                <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="n">e_bias</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">stability</span><span class="p">,</span> <span class="n">e_bias</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">stability</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">std_noise</span> <span class="o">=</span> <span class="mf">0.9</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="n">std_noise</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">Gyro</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="create_bmx055_gyros">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_bmx055_gyros">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_bmx055_gyros</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Gyro</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create one Bosch Sensortec BMX055 gyroscope triad used on MOVE-II.</span>
+
+<span class="sd">    The BMX055 gyroscope is represented as three one-dimensional</span>
+<span class="sd">    :class:`~ADCS.satellite_hardware.sensors.Gyro` channels.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        ``bias`` defaults to the MOVE-II HIL simulation vector</span>
+<span class="sd">        ``[1.75e-3, 3.49e-3, -1.75e-3] rad/s`` for one BMX055 triad. ``noise``</span>
+<span class="sd">        defaults to additive Gaussian white noise with ``sigma = 8.727e-4</span>
+<span class="sd">        rad/s``. The source also models scale factor,</span>
+<span class="sd">        misalignment, nonorthogonality, quantization, time sampling,</span>
+<span class="sd">        low-pass filtering, and gyro-bias random walk; those terms are not</span>
+<span class="sd">        represented directly by this scalar gyro factory.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        `Hardware-in-the-Loop Verification of the Distributed,</span>
+<span class="sd">        Magnetorquer-Based ADCS of the CubeSat MOVE-II</span>
+<span class="sd">        &lt;https://mediatum.ub.tum.de/doc/1483411/document.pdf&gt;`__</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">triad_bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.75e-3</span><span class="p">,</span> <span class="mf">3.49e-3</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.75e-3</span><span class="p">])</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="n">triad_bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">std_bias</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="mf">8.727e-4</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">Gyro</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="create_itg3200_gyros">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_itg3200_gyros">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_itg3200_gyros</span><span class="p">(</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">bias</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Bias</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">noise</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Noise</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Gyro</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create one ESTCube-1 InvenSense ITG-3200 gyro triad.</span>
+
+<span class="sd">    The ITG-3200 gyroscope is represented as three one-dimensional</span>
+<span class="sd">    :class:`~ADCS.satellite_hardware.sensors.Gyro` channels.</span>
+
+<span class="sd">    Default error model provenance:</span>
+<span class="sd">        ``bias`` defaults to a uniform initial bias over +/-0.5 deg/s per</span>
+<span class="sd">        measurement channel. ``noise`` defaults to Gaussian 1.8 deg/s standard</span>
+<span class="sd">        deviation. These are the ESTCube-1 preflight simulator values. The</span>
+<span class="sd">        ground characterization also reported 0.9 deg/s statistical noise, and</span>
+<span class="sd">        flight calibration reported approximately 0.5 deg/s expanded</span>
+<span class="sd">        uncertainty; those are documented here but are not the default.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">        J. Slavinskis et al., "ESTCube-1 attitude determination system flight</span>
+<span class="sd">        results," *Journal of Aerospace Engineering*, 2016.</span>
+<span class="sd">        https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504</span>
+<span class="sd">    """</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias_bound</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+        <span class="n">e_bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">bias_bound</span><span class="p">,</span> <span class="n">bias_bound</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_axes</span><span class="p">)</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bias</span><span class="p">(</span><span class="n">bias</span><span class="o">=</span><span class="n">e_bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">std_bias</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="n">bias_bound</span><span class="p">,</span> <span class="n">bias_bound</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">std_noise</span> <span class="o">=</span> <span class="mf">1.8</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="p">[</span><span class="n">Noise</span><span class="p">(</span><span class="n">noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std_noise</span><span class="o">=</span><span class="n">std_noise</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">Gyro</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_axes</span><span class="p">)]</span></div>
 
 </pre></div>
         </article>
@@ -625,5 +866,6 @@
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

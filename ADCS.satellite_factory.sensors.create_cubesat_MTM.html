@@ -13,7 +13,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=326e7d2b" />
     
     
 
@@ -527,12 +527,25 @@
 <li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -572,14 +585,204 @@
           <section id="module-ADCS.satellite_factory.sensors.create_cubesat_MTM">
 <span id="adcs-satellite-factory-sensors-create-cubesat-mtm-module"></span><h1>ADCS.satellite_factory.sensors.create_cubesat_MTM module<a class="headerlink" href="#module-ADCS.satellite_factory.sensors.create_cubesat_MTM" title="Link to this heading">¶</a></h1>
 <dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_MTM.create_adis16405_magnetometers">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_MTM.</span></span><span class="sig-name descname"><span class="pre">create_adis16405_magnetometers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_MTM.html#create_adis16405_magnetometers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_adis16405_magnetometers" title="Link to this definition">¶</a></dt>
+<dd><p>Create the ADIS16405 integrated magnetometer channels used on RAX.</p>
+<dl class="simple">
+<dt>Default error model provenance:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">bias</span></code> defaults to a Gaussian initial bias with 400 nT one-sigma
+component error. <code class="docutils literal notranslate"><span class="pre">noise</span></code> defaults to 125 nT output-noise RMS. These
+are ADIS16405 component characterization values reported for the RAX
+attitude-determination system, not a published fixed RAX flight bias
+vector.</p>
+</dd>
+<dt>Source:</dt><dd><p>J. C. Springmann, <em>Satellite Attitude Determination with Low-Cost
+Sensors</em>, Ph.D. dissertation, University of Michigan, 2013.
+<a class="reference external" href="https://deepblue.lib.umich.edu/bitstream/handle/2027.42/102312/jspringm_1.pdf?sequence=1">https://deepblue.lib.umich.edu/bitstream/handle/2027.42/102312/jspringm_1.pdf?sequence=1</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.magnetometer.html#ADCS.satellite_hardware.sensors.magnetometer.MTM" title="ADCS.satellite_hardware.sensors.magnetometer.MTM"><em>MTM</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_MTM.create_bmx055_magnetometers">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_MTM.</span></span><span class="sig-name descname"><span class="pre">create_bmx055_magnetometers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_MTM.html#create_bmx055_magnetometers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_bmx055_magnetometers" title="Link to this definition">¶</a></dt>
+<dd><p>Create one Bosch Sensortec BMX055 magnetometer triad used on MOVE-II.</p>
+<p>The BMX055 magnetometer is represented as three one-dimensional
+<code class="xref py py-class docutils literal notranslate"><span class="pre">MTM</span></code> channels.</p>
+<dl class="simple">
+<dt>Default error model provenance:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">bias</span></code> defaults to the MOVE-II HIL simulation vector
+<code class="docutils literal notranslate"><span class="pre">[2.0e-6,</span> <span class="pre">-3.0e-6,</span> <span class="pre">3.0e-6]</span> <span class="pre">T</span></code> for one BMX055 triad. <code class="docutils literal notranslate"><span class="pre">noise</span></code>
+defaults to additive Gaussian white noise with <code class="docutils literal notranslate"><span class="pre">sigma</span> <span class="pre">=</span> <span class="pre">5.0e-7</span> <span class="pre">T</span></code>.
+The source also models scale factor,
+misalignment, nonorthogonality, quantization, time sampling, and
+low-pass filtering; those terms are not represented directly here.</p>
+</dd>
+<dt>Source:</dt><dd><p><a class="reference external" href="https://mediatum.ub.tum.de/doc/1483411/document.pdf">Hardware-in-the-Loop Verification of the Distributed,
+Magnetorquer-Based ADCS of the CubeSat MOVE-II</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.magnetometer.html#ADCS.satellite_hardware.sensors.magnetometer.MTM" title="ADCS.satellite_hardware.sensors.magnetometer.MTM"><em>MTM</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_MTM.create_gnb_magnetometer">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_MTM.</span></span><span class="sig-name descname"><span class="pre">create_gnb_magnetometer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_MTM.html#create_gnb_magnetometer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_gnb_magnetometer" title="Link to this definition">¶</a></dt>
+<dd><p>Create the nominal BRITE/GNB three-axis magnetometer.</p>
+<p>The BRITE ADCS design gives magnetometer noise <code class="docutils literal notranslate"><span class="pre">2.0e-7</span> <span class="pre">T</span></code> and worst-case
+bias <code class="docutils literal notranslate"><span class="pre">4.0e-6</span> <span class="pre">T</span></code>. The factory represents the latter as a bounded
+per-axis bias uncertainty because no fixed flight bias vector was found.
+The <code class="docutils literal notranslate"><span class="pre">1.0e-9</span> <span class="pre">T/sqrt(s)</span></code> bias random walk is a conservative modeling
+assumption, not a source-backed BRITE/GNB calibration value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.magnetometer.html#ADCS.satellite_hardware.sensors.magnetometer.MTM" title="ADCS.satellite_hardware.sensors.magnetometer.MTM"><em>MTM</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_MTM.create_hmc5883l_magnetometers">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_MTM.</span></span><span class="sig-name descname"><span class="pre">create_hmc5883l_magnetometers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_MTM.html#create_hmc5883l_magnetometers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_hmc5883l_magnetometers" title="Link to this definition">¶</a></dt>
+<dd><p>Create one ESTCube-1 Honeywell HMC5883L magnetometer triad.</p>
+<p>The HMC5883L magnetometer is represented as three one-dimensional
+<code class="xref py py-class docutils literal notranslate"><span class="pre">MTM</span></code> channels.</p>
+<dl class="simple">
+<dt>Default error model provenance:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">bias</span></code> defaults to a uniform initial bias over +/-2400 nT. The
+ESTCube-1 preflight simulator modeled magnetic-field direction noise as
+Gaussian 1.6 deg. Since this package’s
+<code class="xref py py-class docutils literal notranslate"><span class="pre">MTM</span></code> model uses scalar magnetic
+field measurements, <code class="docutils literal notranslate"><span class="pre">noise</span></code> approximates that 1.6 deg direction error
+as a transverse component error for a representative 50 microtesla
+field. Ground characterization also reported 0.8 deg statistical
+magnetic-direction uncertainty, but the simulator value is the default.</p>
+</dd>
+<dt>Source:</dt><dd><p>J. Slavinskis et al., “ESTCube-1 attitude determination system flight
+results,” <em>Journal of Aerospace Engineering</em>, 2016.
+<a class="reference external" href="https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504">https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.magnetometer.html#ADCS.satellite_hardware.sensors.magnetometer.MTM" title="ADCS.satellite_hardware.sensors.magnetometer.MTM"><em>MTM</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_MTM.create_honeywell_lightsail2_magnetometers">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_MTM.</span></span><span class="sig-name descname"><span class="pre">create_honeywell_lightsail2_magnetometers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_MTM.html#create_honeywell_lightsail2_magnetometers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_honeywell_lightsail2_magnetometers" title="Link to this definition">¶</a></dt>
+<dd><p>Create the two LightSail 2 three-axis Honeywell magnetometers.</p>
+<p>LightSail 2 had one 3-axis unit on the +X solar panel and one on the +Y
+solar panel. Exact sensor-to-body rotation matrices are not encoded here,
+so each unit is represented as an orthogonal triad in body axes. The
+published 1-sigma noise is <code class="docutils literal notranslate"><span class="pre">0.2</span> <span class="pre">uT</span></code>; no fixed bias is assigned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.magnetometer.html#ADCS.satellite_hardware.sensors.magnetometer.MTM" title="ADCS.satellite_hardware.sensors.magnetometer.MTM"><em>MTM</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_MTM.create_isis_magnetometer">
 <span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_MTM.</span></span><span class="sig-name descname"><span class="pre">create_isis_magnetometer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1,</span> <span class="pre">0,</span> <span class="pre">0],</span> <span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">0],</span> <span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">1]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_MTM.html#create_isis_magnetometer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_isis_magnetometer" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Create an ISIS magnetometer triad.</p>
+<dl class="simple">
+<dt>Default error model provenance:</dt><dd><p>The hardware identity is linked to the ISIS magnetorquer-board product
+listing below, but the default bias/noise values in this helper are
+package-level representative simulation values rather than traceable
+vendor or flight-calibration values. Pass explicit <code class="docutils literal notranslate"><span class="pre">bias</span></code> and
+<code class="docutils literal notranslate"><span class="pre">noise</span></code> objects when a source-backed model is required.</p>
+</dd>
+<dt>Source for hardware identity:</dt><dd><p><a class="reference external" href="https://satsearch.co/products/isis-isis-magnetorquer-board-i-mtq">https://satsearch.co/products/isis-isis-magnetorquer-board-i-mtq</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
 <li><p><strong>bias</strong> (<a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.sensors.magnetometer.html#ADCS.satellite_hardware.sensors.magnetometer.MTM" title="ADCS.satellite_hardware.sensors.magnetometer.MTM"><em>MTM</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_cubesat_MTM.create_micromag3_magnetometers">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_cubesat_MTM.</span></span><span class="sig-name descname"><span class="pre">create_micromag3_magnetometers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_cubesat_MTM.html#create_micromag3_magnetometers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_micromag3_magnetometers" title="Link to this definition">¶</a></dt>
+<dd><p>Create the PNI Sensor Corporation MicroMag3 magnetometer channels used on RAX.</p>
+<dl class="simple">
+<dt>Default error model provenance:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">noise</span></code> defaults to the 100 nT Gaussian magnetometer noise used in
+the RAX sensor-error simulations. The default constant <code class="docutils literal notranslate"><span class="pre">bias</span></code> is zero
+because the RAX flight calibration treated the embedded MicroMag3 error
+as scale-factor, nonorthogonality, constant-bias, and
+spacecraft-current-dependent terms, not as a single published fixed
+mission bias vector.</p>
+</dd>
+<dt>Source:</dt><dd><p>J. C. Springmann, <em>Satellite Attitude Determination with Low-Cost
+Sensors</em>, Ph.D. dissertation, University of Michigan, 2013.
+<a class="reference external" href="https://deepblue.lib.umich.edu/bitstream/handle/2027.42/102312/jspringm_1.pdf?sequence=1">https://deepblue.lib.umich.edu/bitstream/handle/2027.42/102312/jspringm_1.pdf?sequence=1</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
 <li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
 </ul>
 </dd>
@@ -644,5 +847,6 @@
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

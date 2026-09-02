@@ -13,7 +13,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=326e7d2b" />
     
     
 
@@ -527,12 +527,25 @@
 <li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -575,7 +588,8 @@
 <dt class="sig sig-object py" id="ADCS.controller.mtq_wisniewski.MTQ_Wisniewski">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.controller.mtq_wisniewski.</span></span><span class="sig-name descname"><span class="pre">MTQ_Wisniewski</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/mtq_wisniewski.html#MTQ_Wisniewski"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.mtq_wisniewski.MTQ_Wisniewski" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller" title="ADCS.controller.controller.Controller"><code class="xref py py-class docutils literal notranslate"><span class="pre">Controller</span></code></a></p>
-<p>Sliding mode magnetic attitude controller based on Wisniewski (1998).</p>
+<p>Sliding mode magnetic attitude controller based on Wisniewski (1998).
+Original paper: <a class="reference external" href="https://doi.org/10.1016/S1474-6670(17)41076-7">doi:10.1016/S1474-6670(17)41076-7</a></p>
 <p>This controller implements a sliding mode control law for spacecraft
 attitude regulation using magnetic torquers as the sole actuation
 mechanism. The formulation follows the work of R. Wisniewski and is
@@ -643,7 +657,8 @@ and sensor configuration.</p></li>
 <p class="rubric">References</p>
 <p>R. Wisniewski,
 Sliding Mode Attitude Control for Magnetic Actuated Satellite,
-IFAC Proceedings Volumes, Vol. 31, No. 18, 1998.</p>
+IFAC Proceedings Volumes, Vol. 31, No. 21, 1998, pp. 179–184.
+Original paper: <a class="reference external" href="https://doi.org/10.1016/S1474-6670(17)41076-7">doi:10.1016/S1474-6670(17)41076-7</a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.controller.mtq_wisniewski.MTQ_Wisniewski.find_u">
 <span class="sig-name descname"><span class="pre">find_u</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/mtq_wisniewski.html#MTQ_Wisniewski.find_u"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.mtq_wisniewski.MTQ_Wisniewski.find_u" title="Link to this definition">¶</a></dt>
@@ -758,5 +773,6 @@ ordered according to <code class="docutils literal notranslate"><span class="pre
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

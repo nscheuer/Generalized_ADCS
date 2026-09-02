@@ -13,7 +13,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=326e7d2b" />
     
     
 
@@ -527,12 +527,25 @@
 <li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -601,6 +614,129 @@
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.satellites.create_cubesats.create_brite_austria">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.satellites.create_cubesats.</span></span><span class="sig-name descname"><span class="pre">create_brite_austria</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estimated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/satellites/create_cubesats.html#create_brite_austria"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.satellites.create_cubesats.create_brite_austria" title="Link to this definition">¶</a></dt>
+<dd><p>Create a BRITE-Austria/TUGSAT-1 spacecraft model.</p>
+<p>BRITE-Austria used the Generic Nanosatellite Bus with three reaction
+wheels, three magnetorquers, three rate sensors, one three-axis
+magnetometer, six dedicated Sun sensors, and one AeroAstro Miniature Star
+Tracker. The representative BRITE/GNB inertia tensor is used here. No
+defensible numerical TUGSAT-1 COM vector was found, so <code class="docutils literal notranslate"><span class="pre">COM</span> <span class="pre">=</span> <span class="pre">0</span></code>.
+Disturbances use a 20 cm cube geometry from the public BRITE/GNB bus
+description with generic optical and aerodynamic coefficients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>estimated</strong> (<em>bool</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.satellites.create_cubesats.create_estcube1_cubesat">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.satellites.create_cubesats.</span></span><span class="sig-name descname"><span class="pre">create_estcube1_cubesat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estimated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/satellites/create_cubesats.html#create_estcube1_cubesat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.satellites.create_cubesats.create_estcube1_cubesat" title="Link to this definition">¶</a></dt>
+<dd><p>Create an ESTCube-1 magnetic-control CubeSat model.</p>
+<p>The preset captures the best-documented ESTCube-1 flight-fitted inertia and
+published ADCS component configuration: two Honeywell HMC5883L three-axis
+magnetometers, four InvenSense ITG-3200 three-axis gyros, twelve Hamamatsu
+S3931 one-dimensional Sun sensor channels arranged as six two-channel Sun
+sensor assemblies, and three nominal electromagnetic coils with no reaction
+wheels.</p>
+<p>Sources:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504">ESTCube-1 attitude determination flight results</a></p></li>
+<li><p><a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S0094576515302216">ESTCube-1 magnetic actuator flight results</a></p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>estimated</strong> (<em>bool</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.satellites.create_cubesats.create_lightsail2">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.satellites.create_cubesats.</span></span><span class="sig-name descname"><span class="pre">create_lightsail2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estimated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/satellites/create_cubesats.html#create_lightsail2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.satellites.create_cubesats.create_lightsail2" title="Link to this definition">¶</a></dt>
+<dd><p>Create a LightSail 2 deployed-sail spacecraft model.</p>
+<p>LightSail 2 used one +Y Sinclair Interplanetary momentum wheel, three
+Stras Space magnetic torque rods, two three-axis Honeywell magnetometers,
+three primary PIB gyros, three secondary mainboard gyros, and five coarse
+Elmos Sun sensors. The inertia tensor is the published deployed-sail tensor
+and the COM is taken from the LightSail-B deployed corner-cube drawing.
+Disturbances use a 3U bus plus a two-sided 32 m^2 deployed-sail geometry
+with generic aerodynamic and approximate aluminized-Mylar optical
+coefficients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>estimated</strong> (<em>bool</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.satellites.create_cubesats.create_moveii_cubesat">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.satellites.create_cubesats.</span></span><span class="sig-name descname"><span class="pre">create_moveii_cubesat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estimated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/satellites/create_cubesats.html#create_moveii_cubesat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.satellites.create_cubesats.create_moveii_cubesat" title="Link to this definition">¶</a></dt>
+<dd><p>Create a MOVE-II CubeSat model.</p>
+<p>MOVE-II is a 1U CubeSat with a distributed magnetorquer-based ADCS: six
+ADCS PCBs carry Bosch Sensortec BMX055 gyros and magnetometers, the five
+outer panels carry Solar MEMS NANO-ISS60 Sun sensors, and the ADCS panels
+include custom PCB magnetorquer coils.</p>
+<p>The inertia tensor follows the diagonal values printed in the MOVE-II
+magnetic-control simulation paper,
+<code class="docutils literal notranslate"><span class="pre">diag(0.00297,</span> <span class="pre">0.00330,</span> <span class="pre">0.00320)</span> <span class="pre">kg</span> <span class="pre">m^2</span></code>. No public center-of-mass vector
+was found in the attached source summary, so the factory uses <code class="docutils literal notranslate"><span class="pre">COM</span> <span class="pre">=</span> <span class="pre">0</span></code>.</p>
+<dl class="simple">
+<dt>Source:</dt><dd><p><a class="reference external" href="https://doi.org/10.3390/aerospace6120130">Hardware-In-The-Loop and Software-In-The-Loop Testing of the MOVE-II
+CubeSat</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>estimated</strong> (<em>bool</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.satellites.create_cubesats.create_rax1_cubesat">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.satellites.create_cubesats.</span></span><span class="sig-name descname"><span class="pre">create_rax1_cubesat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estimated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/satellites/create_cubesats.html#create_rax1_cubesat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.satellites.create_cubesats.create_rax1_cubesat" title="Link to this definition">¶</a></dt>
+<dd><p>Create a RAX-1 spacecraft model.</p>
+<p>RAX-1 was a 3U CubeSat using passive magnetic attitude stabilization:
+four permanent magnets aligned with the long body-Z axis and two HyMu80
+hysteresis strips along transverse axes. This package does not yet have
+passive magnetic stabilization actuator classes, so those devices are
+documented here but are not returned as commandable actuators.</p>
+<p>The inertia tensor follows the published RAX dynamics model,
+<code class="docutils literal notranslate"><span class="pre">diag(2.91058,</span> <span class="pre">2.91058,</span> <span class="pre">0.59261)</span> <span class="pre">*</span> <span class="pre">1e-2</span> <span class="pre">kg</span> <span class="pre">m^2</span></code>, reflecting the body-Z
+principal symmetry axis.</p>
+<p>Source: <a class="reference external" href="https://doi.org/10.1016/j.actaastro.2012.02.001">RAX attitude determination system design</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>estimated</strong> (<em>bool</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.satellites.create_cubesats.create_rax2_cubesat">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.satellites.create_cubesats.</span></span><span class="sig-name descname"><span class="pre">create_rax2_cubesat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estimated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/satellites/create_cubesats.html#create_rax2_cubesat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.satellites.create_cubesats.create_rax2_cubesat" title="Link to this definition">¶</a></dt>
+<dd><p>Create a RAX-2 spacecraft model.</p>
+<p>RAX-2 used the same core RAX attitude-determination hardware as RAX-1, with
+the revised 17-photodiode OSRAM SFH2430 Sun-sensor layout. Passive magnetic
+stabilization hardware is documented but not represented as commandable
+actuators because this package does not yet include permanent-magnet or
+hysteresis-strip actuator models.</p>
+<p>The inertia tensor follows the published RAX dynamics model,
+<code class="docutils literal notranslate"><span class="pre">diag(2.91058,</span> <span class="pre">2.91058,</span> <span class="pre">0.59261)</span> <span class="pre">*</span> <span class="pre">1e-2</span> <span class="pre">kg</span> <span class="pre">m^2</span></code>, reflecting the body-Z
+principal symmetry axis.</p>
+<p>Source: <a class="reference external" href="https://doi.org/10.1016/j.actaastro.2014.02.026">RAX-1/RAX-2 flight attitude-determination results</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>estimated</strong> (<em>bool</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
         </article>
@@ -656,5 +792,6 @@
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

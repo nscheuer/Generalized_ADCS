@@ -13,7 +13,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be624d23" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=326e7d2b" />
     
     
 
@@ -527,12 +527,25 @@
 <li class="toctree-l2"><a class="reference internal" href="ADCS.state.html">ADCS.state module</a></li>
 </ul>
 </li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="satellite_factory/index.html">Satellite Factory</a><input aria-label="Toggle navigation of Satellite Factory" class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/satellites.html">Satellites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/reaction_wheels.html">Reaction Wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetorquers.html">Magnetorquers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/magnetometers.html">Magnetometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gyroscopes.html">Gyroscopes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/sun_sensors.html">Sun Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/star_trackers.html">Star Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/gps.html">GPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="satellite_factory/earth_horizon_sensors.html">Earth Horizon Sensors</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing/index.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/documentation.html">Documentation Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/citations.html">Citations</a></li>
 </ul>
 
 </div></div>
@@ -575,6 +588,61 @@
 <dt class="sig sig-object py" id="ADCS.satellite_factory.actuators.create_cubesat_RW.create_cubewheel_smallplus_rw">
 <span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.actuators.create_cubesat_RW.</span></span><span class="sig-name descname"><span class="pre">create_cubewheel_smallplus_rw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([1,</span> <span class="pre">0,</span> <span class="pre">0])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_meas_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/actuators/create_cubesat_RW.html#create_cubewheel_smallplus_rw"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.actuators.create_cubesat_RW.create_cubewheel_smallplus_rw" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>h_meas_noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW" title="ADCS.satellite_hardware.actuators.reaction_wheel.RW"><em>RW</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.actuators.create_cubesat_RW.create_sfl_reaction_wheels">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.actuators.create_cubesat_RW.</span></span><span class="sig-name descname"><span class="pre">create_sfl_reaction_wheels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[1.,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">1.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">1.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_meas_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/actuators/create_cubesat_RW.html#create_sfl_reaction_wheels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.actuators.create_cubesat_RW.create_sfl_reaction_wheels" title="Link to this definition">¶</a></dt>
+<dd><p>Create the nominal three-wheel BRITE/GNB reaction-wheel assembly.</p>
+<p>The BRITE/GNB hardware summary gives an orthogonal three-wheel assembly
+with per-wheel rotor inertia <code class="docutils literal notranslate"><span class="pre">5.12e-5</span> <span class="pre">kg</span> <span class="pre">m^2</span></code>, momentum capacity
+<code class="docutils literal notranslate"><span class="pre">0.030</span> <span class="pre">N</span> <span class="pre">m</span> <span class="pre">s</span></code>, and maximum torque <code class="docutils literal notranslate"><span class="pre">0.002</span> <span class="pre">N</span> <span class="pre">m</span></code>. No source-backed torque
+noise, torque bias, or wheel-momentum measurement noise values were found.
+The default <code class="docutils literal notranslate"><span class="pre">h_meas_noise</span></code> uses <code class="docutils literal notranslate"><span class="pre">1.0e-6</span> <span class="pre">N</span> <span class="pre">m</span> <span class="pre">s</span></code> as a conservative
+estimator-safe noise floor; torque noise and torque bias remain zero unless
+supplied by the caller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>bias</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><em>Bias</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>h_meas_noise</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><em>Noise</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<a class="reference internal" href="ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW" title="ADCS.satellite_hardware.actuators.reaction_wheel.RW"><em>RW</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.actuators.create_cubesat_RW.create_sinclair_interplanetary_momentum_wheel">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.actuators.create_cubesat_RW.</span></span><span class="sig-name descname"><span class="pre">create_sinclair_interplanetary_momentum_wheel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([0,</span> <span class="pre">1,</span> <span class="pre">0])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_meas_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/actuators/create_cubesat_RW.html#create_sinclair_interplanetary_momentum_wheel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.actuators.create_cubesat_RW.create_sinclair_interplanetary_momentum_wheel" title="Link to this definition">¶</a></dt>
+<dd><p>Create the LightSail 2 single +Y momentum wheel.</p>
+<p>LightSail 2 used one Sinclair Interplanetary momentum wheel about +Y with
+maximum torque <code class="docutils literal notranslate"><span class="pre">5.0e-3</span> <span class="pre">N</span> <span class="pre">m</span></code> and maximum angular momentum
+<code class="docutils literal notranslate"><span class="pre">0.06</span> <span class="pre">N</span> <span class="pre">m</span> <span class="pre">s</span></code> at <code class="docutils literal notranslate"><span class="pre">5920</span> <span class="pre">rpm</span></code>. The public source does not provide a rotor
+inertia directly, so <code class="docutils literal notranslate"><span class="pre">J</span></code> is inferred from <code class="docutils literal notranslate"><span class="pre">H</span> <span class="pre">=</span> <span class="pre">J</span> <span class="pre">omega</span></code> as
+<code class="docutils literal notranslate"><span class="pre">0.06</span> <span class="pre">/</span> <span class="pre">(5920</span> <span class="pre">*</span> <span class="pre">2</span> <span class="pre">pi</span> <span class="pre">/</span> <span class="pre">60)</span> <span class="pre">=</span> <span class="pre">9.68e-5</span> <span class="pre">kg</span> <span class="pre">m^2</span></code>. Torque noise and torque
+bias remain zero unless supplied by the caller. The default
+<code class="docutils literal notranslate"><span class="pre">h_meas_noise</span></code> uses <code class="docutils literal notranslate"><span class="pre">1.0e-6</span> <span class="pre">N</span> <span class="pre">m</span> <span class="pre">s</span></code> as a conservative estimator-safe
+wheel-momentum measurement noise floor.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>axis</strong> (<em>ndarray</em>)</p></li>
@@ -645,5 +713,6 @@
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>
