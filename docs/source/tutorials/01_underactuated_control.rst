@@ -40,7 +40,7 @@ Following this definition, we simulate the environment and analyze the performan
    import numpy as np
    import matplotlib.pyplot as plt
 
-   acts = [ADCS.RW(axis=np.array([1, 0, 0]), max_torque=0.0023, J=5.7e-6, h=0.0, h_max=0.0036)]
+   acts: list[ADCS.Actuator] = [ADCS.RW(axis=np.array([1, 0, 0]), max_torque=0.0023, J=5.7e-6, h=0.0, h_max=0.0036)]
    acts += [ADCS.MTQ(axis, max_torque=0.2) for axis in np.eye(3)]
    sens = [ADCS.MTM(axis) for axis in np.eye(3)]
 
