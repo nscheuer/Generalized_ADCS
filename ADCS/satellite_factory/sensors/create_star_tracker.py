@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 __all__ = [
+    "create_aeroastro_mst",
     "create_bct_nst",
     "create_terma_t1",
     "create_generic_star_tracker",
@@ -13,9 +14,41 @@ from numpy.typing import NDArray
 
 from ADCS.satellite_hardware.sensors.star_tracker import StarTracker
 from ADCS.satellite_hardware.sensors.star_tracker_quaternion import StarTrackerQuaternion
-from ADCS.satellite_hardware.errors import AnisotropicNoise, Noise
+from ADCS.satellite_hardware.errors import AnisotropicNoise, Bias, Noise
 
 _ARCSEC2RAD = np.pi / (180.0 * 3600.0)
+
+
+def create_aeroastro_mst(
+    boresight: NDArray[np.float64] = np.array([0.0, 0.0, 1.0]),
+    bias: Bias | None = None,
+    anisotropic_noise: AnisotropicNoise | None = None,
+    estimate_bias: bool = False,
+) -> StarTracker:
+    r"""
+    Create the AeroAstro Miniature Star Tracker used on BRITE-Austria.
+
+    The source gives mass, dimensions, update rate, and attitude accuracy
+    specifications. The default ``anisotropic_noise`` uses ``10 arcsec``
+    cross-boresight and ``50 arcsec`` roll as conservative approximate noise
+    floors so estimator measurement covariances remain non-singular. These
+    noise floors are modeling assumptions, not source-backed BRITE-Austria
+    calibration values.
+    """
+    if anisotropic_noise is None:
+        anisotropic_noise = AnisotropicNoise(
+            std_cross=10.0 * _ARCSEC2RAD,
+            std_roll=50.0 * _ARCSEC2RAD,
+        )
+
+    return StarTracker(
+        boresight=boresight,
+        bias=bias,
+        anisotropic_noise=anisotropic_noise,
+        estimate_bias=estimate_bias,
+        fov=np.deg2rad(10.0),
+        sun_exclusion=np.deg2rad(30.0),
+    )
 
 def create_bct_nst(boresight: NDArray[np.float64] = np.array([0.0, 0.0, 1.0])) -> StarTracker:
     noise = AnisotropicNoise(

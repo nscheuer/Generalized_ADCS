@@ -47,3 +47,4 @@ Additional guidance can be found here:
 
 - 🛠 :doc:`Sphinx Build Guide <documentation>`
 - ⚙️ :doc:`Testing Guide <testing>`
+- 📚 :doc:`Citation Guide <citations>`

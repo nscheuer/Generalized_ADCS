@@ -28,6 +28,8 @@ class MTQ_w_RW_LP(Controller):
     magnetorquers (MTQs) using a geometry-aware linear program (LP). The LP computes the
     maximum physically achievable torque colinear with a requested torque direction while
     enforcing hard actuator saturation limits and the MTQ torque-plane constraint.
+    Original allocator paper: `Generalized Attitude Control for Small Spacecraft
+    <https://digitalcommons.usu.edu/smallsat/2026/all2026/253/>`__
 
     The implementation is intended for use with an estimated satellite model
     :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`

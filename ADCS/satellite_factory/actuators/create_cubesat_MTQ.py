@@ -1,4 +1,10 @@
-__all__ = ['create_isis_magnetorquer_board']
+__all__ = [
+    'create_gnb_air_core_magnetorquers',
+    'create_isis_magnetorquer_board',
+    'create_estcube1_magnetorquers',
+    'create_moveii_pcb_magnetorquers',
+    'create_stras_space_torque_rods',
+]
 
 import numpy as np
 from typing import Optional, List, Sequence
@@ -25,3 +31,126 @@ def create_isis_magnetorquer_board(axes: np.ndarray = np.array([[1, 0, 0], [0, 1
     return [MTQ(axis=axes[j], max_torque=mtq_max, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(3)]
 
 
+def create_gnb_air_core_magnetorquers(
+    axes: np.ndarray = np.eye(3),
+    bias: Sequence[Bias] | None = None,
+    noise: Sequence[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[MTQ]:
+    r"""
+    Create the nominal BRITE/GNB three-axis air-core coil set.
+
+    The BRITE ADCS design gives three orthogonal magnetorquers with maximum
+    dipole ``0.12 A m^2``. No source-backed dipole noise or bias values were
+    found, so the default error models are zero unless supplied by the caller.
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias = [Bias() for _ in range(n_axes)]
+    if noise is None:
+        noise = [Noise() for _ in range(n_axes)]
+
+    return [
+        MTQ(axis=axes[j], max_torque=0.12, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
+        for j in range(n_axes)
+    ]
+
+
+def create_stras_space_torque_rods(
+    axes: np.ndarray = np.eye(3),
+    bias: Sequence[Bias] | None = None,
+    noise: Sequence[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[MTQ]:
+    r"""
+    Create the LightSail 2 three-axis magnetic torque-rod set.
+
+    LightSail 2 used three Stras Space torque rods with maximum dipole
+    ``1.0 A m^2``. Public sources do not provide dipole noise or bias values,
+    so the default error models are zero unless supplied by the caller.
+    """
+    n_axes = len(axes)
+    if bias is None:
+        bias = [Bias() for _ in range(n_axes)]
+    if noise is None:
+        noise = [Noise() for _ in range(n_axes)]
+
+    return [
+        MTQ(axis=axes[j], max_torque=1.0, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
+        for j in range(n_axes)
+    ]
+
+
+def create_estcube1_magnetorquers(
+    axes: np.ndarray = np.eye(3),
+    bias: Sequence[Bias] | None = None,
+    noise: Sequence[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[MTQ]:
+    r"""
+    Create the nominal ESTCube-1 electromagnetic coil set.
+
+    ESTCube-1 used three electromagnetic coils with nominal axes aligned to the
+    spacecraft body axes and approximately 0.1 A m^2 nominal dipole authority per
+    coil. Flight results reported substantial actuator nonidealities, including
+    axis misalignment, positive/negative gain asymmetry, and residual magnetic
+    moment; this factory captures the nominal dipole limit only unless explicit
+    ``bias`` or ``noise`` models are supplied.
+
+    Sources:
+
+    * `ESTCube-1 magnetic actuator flight results
+      <https://www.sciencedirect.com/science/article/pii/S0094576515302216>`__
+    * `ESTCube-1 attitude determination flight results
+      <https://ascelibrary.org/doi/10.1061/%28ASCE%29AS.1943-5525.0000504>`__
+    """
+    if bias is None:
+        bias = [Bias() for _ in range(3)]
+    if noise is None:
+        noise = [Noise() for _ in range(3)]
+
+    mtq_max = 0.1
+    return [
+        MTQ(axis=axes[j], max_torque=mtq_max, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
+        for j in range(3)
+    ]
+
+
+def create_moveii_pcb_magnetorquers(
+    axes: np.ndarray = np.eye(3),
+    bias: Sequence[Bias] | None = None,
+    noise: Sequence[Noise] | None = None,
+    estimate_bias: bool = False,
+) -> List[MTQ]:
+    r"""
+    Create a simplified MOVE-II custom PCB-coil magnetorquer set.
+
+    MOVE-II used six in-house PCB-integrated magnetorquer coils distributed over
+    the ADCS panels. The published summary gives approximately 0.05 A m^2 per
+    coil and 0.10 A m^2 per axis at room temperature. Because the exact
+    per-panel body-axis sign table was not recovered, this helper returns a
+    three-axis equivalent commandable MTQ set with 0.10 A m^2 per axis.
+
+    Default error model provenance:
+        No stochastic dipole-noise value was found. The attached MOVE-II source
+        summary reports a residual magnetic moment of
+        ``[-0.001, 0.012, -0.045] A m^2`` with 0.001 A m^2 uncertainty and a
+        simplified worst-case disturbance of 0.020 A m^2. Those are spacecraft
+        disturbance terms rather than command-channel white noise, so this
+        helper leaves ``bias`` and ``noise`` at zero unless supplied by the
+        caller.
+
+    Source:
+        `Magnetic Attitude Control for the MOVE-II Mission
+        <https://www.eucass.eu/doi/EUCASS2017-664.pdf>`__
+    """
+    if bias is None:
+        bias = [Bias() for _ in range(3)]
+    if noise is None:
+        noise = [Noise() for _ in range(3)]
+
+    mtq_max = 0.10
+    return [
+        MTQ(axis=axes[j], max_torque=mtq_max, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
+        for j in range(3)
+    ]
