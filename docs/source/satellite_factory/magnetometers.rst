@@ -13,13 +13,13 @@ Magnetometers
      - Source
      - Missions
      - Notes
-   * - 🟡
+   * - 🟣
      - BRITE 3-axis magnetometer
      - ``create_gnb_magnetometer``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_MTM>`
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
      - BRITE-Austria
-     - Range, noise, bias known.
+     - Range, noise, and bias bound known; bias random walk assumed.
    * - 🔵
      - ISIS magnetometer triad
      - ``create_isis_magnetometer``

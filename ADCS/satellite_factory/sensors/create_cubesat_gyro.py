@@ -48,13 +48,15 @@ def create_gnb_rate_sensors(
     Create the nominal BRITE/GNB orthogonal rate-sensor triad.
 
     The BRITE ADCS design gives gyro noise density ``0.05 deg/s/sqrt(Hz)`` and
-    long-term bias variation ``0.2 deg/s``. The factory represents those as
-    per-sample white noise and bias uncertainty defaults in the scalar
-    :class:`~ADCS.satellite_hardware.sensors.Gyro` model.
+    long-term bias variation ``0.2 deg/s``. The factory represents the bias
+    variation as a bounded per-axis bias uncertainty, with ``0.0004
+    deg/s/sqrt(s)`` used as a conservative assumed bias random walk.
     """
     n_axes = len(axes)
     if bias is None:
-        bias = [Bias(bias=0.0, std_bias=0.2 * np.pi / 180.0) for _ in range(n_axes)]
+        bias_bound = 0.2 * np.pi / 180.0
+        std_bias = 0.0004 * np.pi / 180.0
+        bias = [Bias(bias=0.0, std_bias=std_bias, bounds=(-bias_bound, bias_bound)) for _ in range(n_axes)]
     if noise is None:
         noise = [Noise(noise=0.0, std_noise=0.05 * np.pi / 180.0) for _ in range(n_axes)]
 

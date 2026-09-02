@@ -13,13 +13,13 @@ Gyroscopes
      - Source
      - Missions
      - Notes
-   * - 🟡
+   * - 🟣
      - BRITE rate sensors
      - ``create_gnb_rate_sensors``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
      - BRITE-Austria
-     - Noise density + bias variation.
+     - Noise density and bias bound known; bias random walk assumed.
    * - 🔵
      - ICM-20948 IMU gyros
      - ``create_ICM20948_IMU``
