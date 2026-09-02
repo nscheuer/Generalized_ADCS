@@ -53,6 +53,62 @@ from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.helpers.math_constants import MathConstants
 
+
+def _box_geometry_faces(dimensions: np.ndarray) -> List[GeometryFace]:
+    """Create a six-face rectangular-prism geometry centered on the body origin."""
+    x_len, y_len, z_len = np.asarray(dimensions, dtype=float)
+    half = np.array([x_len, y_len, z_len]) / 2.0
+    eta_s = 0.5
+    eta_d = 0.2
+    eta_a = 0.3
+    CD = 2.2
+    return [
+        GeometryFace(area=y_len*z_len, centroid=half[0]*MathConstants.unitvecs[0], normal=MathConstants.unitvecs[0], eta_s=eta_s, eta_d=eta_d, eta_a=eta_a, CD=CD),
+        GeometryFace(area=y_len*z_len, centroid=-half[0]*MathConstants.unitvecs[0], normal=-MathConstants.unitvecs[0], eta_s=eta_s, eta_d=eta_d, eta_a=eta_a, CD=CD),
+        GeometryFace(area=x_len*z_len, centroid=half[1]*MathConstants.unitvecs[1], normal=MathConstants.unitvecs[1], eta_s=eta_s, eta_d=eta_d, eta_a=eta_a, CD=CD),
+        GeometryFace(area=x_len*z_len, centroid=-half[1]*MathConstants.unitvecs[1], normal=-MathConstants.unitvecs[1], eta_s=eta_s, eta_d=eta_d, eta_a=eta_a, CD=CD),
+        GeometryFace(area=x_len*y_len, centroid=half[2]*MathConstants.unitvecs[2], normal=MathConstants.unitvecs[2], eta_s=eta_s, eta_d=eta_d, eta_a=eta_a, CD=CD),
+        GeometryFace(area=x_len*y_len, centroid=-half[2]*MathConstants.unitvecs[2], normal=-MathConstants.unitvecs[2], eta_s=eta_s, eta_d=eta_d, eta_a=eta_a, CD=CD),
+    ]
+
+
+def _environment_disturbances(geometry_faces: List[GeometryFace]) -> List:
+    config = GeometryConfig(geometry_faces)
+    return [GG_Disturbance(), Drag_Disturbance(config), SRP_Disturbance(config)]
+
+
+def _box_environment_disturbances(dimensions: np.ndarray) -> List:
+    return _environment_disturbances(_box_geometry_faces(dimensions))
+
+
+def _lightsail2_geometry_faces() -> List[GeometryFace]:
+    r"""
+    Approximate LightSail 2 as a 3U core plus a deployed two-sided sail.
+
+    Public mission summaries give a 3U CubeSat bus and a deployed sail area of
+    32 m^2. The exact panel centroid coordinates are not encoded in the public
+    factory sources, so the sail is represented as four coplanar triangular
+    quadrants on each side of a square sail with total area 32 m^2.
+    """
+    faces = _box_geometry_faces(np.array([0.1, 0.1, 0.3]))
+    total_sail_area = 32.0
+    half_side = np.sqrt(total_sail_area) / 2.0
+    centroid_offset = 2.0 * half_side / 3.0
+    sail_centroids = [
+        np.array([centroid_offset, 0.0, 0.0]),
+        np.array([0.0, centroid_offset, 0.0]),
+        np.array([-centroid_offset, 0.0, 0.0]),
+        np.array([0.0, -centroid_offset, 0.0]),
+    ]
+    sail_area = total_sail_area / 4.0
+    for normal in (MathConstants.unitvecs[2], -MathConstants.unitvecs[2]):
+        faces.extend(
+            GeometryFace(area=sail_area, centroid=centroid, normal=normal, eta_s=0.8, eta_d=0.1, eta_a=0.1, CD=2.2)
+            for centroid in sail_centroids
+        )
+    return faces
+
+
 def create_beavercube1_cubesat(estimated: bool = False):
     mass = 4
     COM = np.zeros(3)
@@ -70,24 +126,14 @@ def create_beavercube1_cubesat(estimated: bool = False):
     solar_panel_2 = create_Clydespace_3U_array(axis=np.array([0, 1, 0]), estimate_bias=estimated)
     suns: List[SunPair] = solar_panel_1+solar_panel_2
 
-    # Disturbances
-    geometry_faces: List[GeometryFace] = [GeometryFace(area=0.1*0.3, centroid=MathConstants.unitvecs[0]*0.05, normal=MathConstants.unitvecs[0], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
-                                 GeometryFace(area=0.1*0.3, centroid=-MathConstants.unitvecs[0]*0.05, normal=-MathConstants.unitvecs[0], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
-                                 GeometryFace(area=0.1*0.3, centroid=MathConstants.unitvecs[1]*0.05, normal=MathConstants.unitvecs[1], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
-                                 GeometryFace(area=0.1*0.3, centroid=-MathConstants.unitvecs[1]*0.05, normal=-MathConstants.unitvecs[1], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
-                                 GeometryFace(area=0.1*0.1, centroid=MathConstants.unitvecs[2]*0.15, normal=MathConstants.unitvecs[2], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
-                                 GeometryFace(area=0.1*0.1, centroid=-MathConstants.unitvecs[2]*0.15, normal=-MathConstants.unitvecs[2], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2)]
-    config = GeometryConfig(geometry_faces)
-    gg_dist = [GG_Disturbance()]
-    drag_dist = [Drag_Disturbance(config)]
-    srp_dist = [SRP_Disturbance(config)]
+    disturbances = _box_environment_disturbances(np.array([0.1, 0.1, 0.3]))
 
     boresight = np.array([0, 1, 0])
 
     if estimated:
-        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
     else:
-        return Satellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
+        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
 
 
 def create_brite_austria(estimated: bool = False):
@@ -99,6 +145,8 @@ def create_brite_austria(estimated: bool = False):
     magnetometer, six dedicated Sun sensors, and one AeroAstro Miniature Star
     Tracker. The representative BRITE/GNB inertia tensor is used here. No
     defensible numerical TUGSAT-1 COM vector was found, so ``COM = 0``.
+    Disturbances use a 20 cm cube geometry from the public BRITE/GNB bus
+    description with generic optical and aerodynamic coefficients.
     """
     mass = 6.9
     COM = np.zeros(3)
@@ -114,12 +162,13 @@ def create_brite_austria(estimated: bool = False):
     mtms: List[MTM] = create_gnb_magnetometer(estimate_bias=estimated)
     suns = create_gnb_sun_sensors(estimate_bias=estimated)
     star_trackers = [create_aeroastro_mst(estimate_bias=estimated)]
+    disturbances = _box_environment_disturbances(np.array([0.2, 0.2, 0.2]))
     boresight = np.array([0, 0, 1])
 
     if estimated:
-        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, sensors=gyros+mtms+suns+star_trackers, actuators=rws+mtqs, boresight=boresight)
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=gyros+mtms+suns+star_trackers, actuators=rws+mtqs, boresight=boresight)
     else:
-        return Satellite(mass=mass, COM=COM, J_0=J, sensors=gyros+mtms+suns+star_trackers, actuators=rws+mtqs, boresight=boresight)
+        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=gyros+mtms+suns+star_trackers, actuators=rws+mtqs, boresight=boresight)
 
 
 def create_lightsail2(estimated: bool = False):
@@ -131,6 +180,9 @@ def create_lightsail2(estimated: bool = False):
     three primary PIB gyros, three secondary mainboard gyros, and five coarse
     Elmos Sun sensors. The inertia tensor is the published deployed-sail tensor
     and the COM is taken from the LightSail-B deployed corner-cube drawing.
+    Disturbances use a 3U bus plus a two-sided 32 m^2 deployed-sail geometry
+    with generic aerodynamic and approximate aluminized-Mylar optical
+    coefficients.
     """
     mass = 4.93
     COM = np.array([0.00046, -0.00003, 0.13746])
@@ -148,12 +200,13 @@ def create_lightsail2(estimated: bool = False):
         + create_intrepid_mainboard_gyros(estimate_bias=estimated)
     )
     suns = create_elmos_sun_sensors(estimate_bias=estimated)
+    disturbances = _environment_disturbances(_lightsail2_geometry_faces())
     boresight = np.array([0, 0, 1])
 
     if estimated:
-        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=rw+mtqs, boresight=boresight)
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=rw+mtqs, boresight=boresight)
     else:
-        return Satellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=rw+mtqs, boresight=boresight)
+        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=rw+mtqs, boresight=boresight)
 
 
 def create_estcube1_cubesat(estimated: bool = False):

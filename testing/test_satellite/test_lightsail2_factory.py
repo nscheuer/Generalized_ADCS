@@ -8,6 +8,7 @@ from ADCS.satellite_factory.sensors import (
     create_intrepid_mainboard_gyros,
 )
 from ADCS.satellite_hardware.actuators import MTQ, RW
+from ADCS.satellite_hardware.disturbances import Drag_Disturbance, GG_Disturbance, SRP_Disturbance
 from ADCS.satellite_hardware.sensors import Gyro, MTM, SunSensor
 
 
@@ -57,6 +58,10 @@ def test_create_lightsail2_properties():
     assert len(mtms) == 6
     assert len(gyros) == 6
     assert len(suns) == 5
+    assert len(sat.disturbances) == 3
+    assert len([dist for dist in sat.disturbances if isinstance(dist, GG_Disturbance)]) == 1
+    assert len([dist for dist in sat.disturbances if isinstance(dist, Drag_Disturbance)]) == 1
+    assert len([dist for dist in sat.disturbances if isinstance(dist, SRP_Disturbance)]) == 1
 
     expected_wheel_inertia = 0.06 / (5920.0 * 2.0 * np.pi / 60.0)
     assert np.isclose(rws[0].J, expected_wheel_inertia)

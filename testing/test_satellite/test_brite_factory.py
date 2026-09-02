@@ -8,6 +8,7 @@ from ADCS.satellite_factory.sensors import (
     create_gnb_sun_sensors,
 )
 from ADCS.satellite_hardware.actuators import MTQ, RW
+from ADCS.satellite_hardware.disturbances import Drag_Disturbance, GG_Disturbance, SRP_Disturbance
 from ADCS.satellite_hardware.sensors import Gyro, MTM, StarTracker, SunSensor
 
 
@@ -59,6 +60,10 @@ def test_create_brite_austria_properties():
     assert len(mtms) == 3
     assert len(suns) == 6
     assert len(trackers) == 1
+    assert len(sat.disturbances) == 3
+    assert len([dist for dist in sat.disturbances if isinstance(dist, GG_Disturbance)]) == 1
+    assert len([dist for dist in sat.disturbances if isinstance(dist, Drag_Disturbance)]) == 1
+    assert len([dist for dist in sat.disturbances if isinstance(dist, SRP_Disturbance)]) == 1
 
     assert all(np.isclose(rw.J, 5.12e-5) for rw in rws)
     assert all(np.isclose(rw.h_max, 0.030) for rw in rws)
