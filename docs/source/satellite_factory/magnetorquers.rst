@@ -1,6 +1,24 @@
 Magnetorquers
 =============
 
+Tier Legend
+-----------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Tier
+     - Meaning
+   * - ⚪
+     - Representative or simplified magnetorquer layout/defaults.
+   * - 🔵
+     - Axis/layout and dipole authority are traceable or explicitly stated.
+   * - 🟣
+     - Blue-tier information plus source-backed actuator noise or uncertainty defaults.
+   * - 🟡
+     - Purple-tier information plus source-backed actuator bias/error model defaults.
+
 .. list-table::
    :class: sortable-factory
    :header-rows: 1
@@ -20,7 +38,7 @@ Magnetorquers
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
      - BRITE-Austria
      - Orthogonal coils; dipole known.
-   * - 🔵
+   * - ⚪
      - ISIS Magnetorquer Board
      - ``create_isis_magnetorquer_board``
      - :doc:`Factory <../ADCS.satellite_factory.actuators.create_cubesat_MTQ>`

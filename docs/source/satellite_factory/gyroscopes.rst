@@ -1,6 +1,24 @@
 Gyroscopes
 ==========
 
+Tier Legend
+-----------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Tier
+     - Meaning
+   * - ⚪
+     - Representative or simplified gyro layout/defaults.
+   * - 🔵
+     - Hardware identity and axis layout are traceable; error defaults may be representative or assumed.
+   * - 🟣
+     - Blue-tier information plus source-backed measurement noise or accuracy defaults.
+   * - 🟡
+     - Purple-tier information plus source-backed bias, bias-bound, or calibration defaults.
+
 .. list-table::
    :class: sortable-factory
    :header-rows: 1
@@ -20,7 +38,7 @@ Gyroscopes
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
      - BRITE-Austria
      - Noise density and bias bound known; bias random walk assumed.
-   * - 🔵
+   * - ⚪
      - ICM-20948 IMU gyros
      - ``create_ICM20948_IMU``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`

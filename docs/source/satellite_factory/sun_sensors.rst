@@ -1,6 +1,24 @@
 Sun Sensors
 ===========
 
+Tier Legend
+-----------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Tier
+     - Meaning
+   * - ⚪
+     - Representative or simplified Sun-sensor layout/defaults.
+   * - 🔵
+     - Hardware identity and layout are traceable; error defaults may be representative or assumed.
+   * - 🟣
+     - Blue-tier information plus source-backed measurement noise or accuracy defaults.
+   * - 🟡
+     - Purple-tier information plus source-backed bias, bias-bound, or calibration defaults.
+
 .. list-table::
    :class: sortable-factory
    :header-rows: 1
@@ -20,7 +38,7 @@ Sun Sensors
      - `GNB report <https://www.researchgate.net/publication/349758612_ADCS_Preliminary_Design_For_GNB>`__
      - BRITE-Austria
      - 6 faces; approximate noise floor.
-   * - 🔵
+   * - ⚪
      - Clyde Space 3U solar-array SunPair proxy
      - ``create_Clydespace_3U_array``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_sunpair>`
@@ -48,7 +66,7 @@ Sun Sensors
      - `mediaTUM <https://mediatum.ub.tum.de/doc/1483411/document.pdf>`__
      - MOVE-II
      - MOVE-II noise default.
-   * - 🟡
+   * - 🟣
      - OSRAM SFH2430 Sun sensors
      - ``create_osram_sfh2430_sun_sensors``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_sunpair>`

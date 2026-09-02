@@ -85,9 +85,10 @@ def create_sinclair_interplanetary_momentum_wheel(
 
     LightSail 2 used one Sinclair Interplanetary momentum wheel about +Y with
     maximum torque ``5.0e-3 N m`` and maximum angular momentum
-    ``0.06 N m s``. The public source does not provide a rotor inertia, torque
-    noise, or torque bias, so ``J`` is set to zero and default error models are
-    zero unless supplied by the caller.
+    ``0.06 N m s`` at ``5920 rpm``. The public source does not provide a rotor
+    inertia directly, so ``J`` is inferred from ``H = J omega`` as
+    ``0.06 / (5920 * 2 pi / 60) = 9.68e-5 kg m^2``. Torque noise and torque
+    bias remain zero unless supplied by the caller.
     """
     if bias is None:
         bias = Bias()
@@ -99,7 +100,7 @@ def create_sinclair_interplanetary_momentum_wheel(
     return RW(
         axis=axis,
         max_torque=5.0e-3,
-        J=0.0,
+        J=0.06 / (5920.0 * 2.0 * np.pi / 60.0),
         h=0.0,
         h_max=0.06,
         bias=bias,

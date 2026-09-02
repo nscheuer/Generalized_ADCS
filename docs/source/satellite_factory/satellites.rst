@@ -1,6 +1,24 @@
 Satellites
 ==========
 
+Tier Legend
+-----------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Tier
+     - Meaning
+   * - ⚪
+     - Representative or theoretical spacecraft model; one or more major physical properties or hardware details are assumed.
+   * - 🔵
+     - Mission hardware configuration is traceable, with approximate or partial mass-property data.
+   * - 🟣
+     - Blue-tier information plus source-backed inertia or center-of-mass data.
+   * - 🟡
+     - Source-backed hardware configuration, inertia, center of mass, and mission-specific disturbance/configuration data.
+
 .. list-table::
    :class: sortable-factory
    :header-rows: 1
@@ -14,7 +32,7 @@ Satellites
      - Timeline
      - Goal
      - Configuration
-   * - 🔵
+   * - ⚪
      - BeaverCube 1
      - ``create_beavercube1_cubesat``
      - :doc:`Factory <../ADCS.satellite_factory.satellites.create_cubesats>`
@@ -22,7 +40,7 @@ Satellites
      - Launched 2022-09-06; mission ended 2023-04-12.
      - Coastal imaging mission using visible and thermal infrared CubeSat data.
      - 3x MTQ, 3x MTM, 3x gyro, 2x SunPair.
-   * - 🔵
+   * - ⚪
      - BeaverCube 2
      - ``create_beavercube2_cubesat``
      - :doc:`Factory <../ADCS.satellite_factory.satellites.create_cubesats>`
@@ -30,7 +48,7 @@ Satellites
      - Slated March 2027.
      - Demonstrate autonomous on-orbit image processing and classification.
      - 3x MTQ, 1x RW, 3x MTM, 3x gyro, 2x SunPair.
-   * - 🔵
+   * - ⚪
      - BeaverCube 2, 3 MTQ + 3 RW
      - ``create_3_3_beavercube2_cubesat``
      - :doc:`Factory <../ADCS.satellite_factory.satellites.create_cubesats>`
@@ -46,7 +64,7 @@ Satellites
      - Launched 2013-02-25.
      - High-precision photometry of bright massive stars.
      - 3x RW, 3x MTQ, 3x gyro, 1x MTM, 6x SunSensor, 1x StarTracker.
-   * - 🔵
+   * - 🟣
      - LightSail 2
      - ``create_lightsail2``
      - :doc:`Factory <../ADCS.satellite_factory.satellites.create_cubesats>`
@@ -54,7 +72,7 @@ Satellites
      - Launched 2019-06-25; reentered 2022-11-17.
      - Demonstrate controlled solar sailing in Earth orbit using a CubeSat.
      - 1x RW, 3x MTQ, 2x MTM, 6x gyro, 5x SunSensor.
-   * - 🟡
+   * - 🟣
      - ESTCube-1
      - ``create_estcube1_cubesat``
      - :doc:`Factory <../ADCS.satellite_factory.satellites.create_cubesats>`
@@ -62,7 +80,7 @@ Satellites
      - Launched 2013-05-07; mission ended 2015-02-17.
      - Demonstrate electric solar wind sail technology from a student CubeSat.
      - 3x MTQ, 6x MTM, 12x gyro, 12x SunSensor.
-   * - 🟡
+   * - 🟣
      - MOVE-II
      - ``create_moveii_cubesat``
      - :doc:`Factory <../ADCS.satellite_factory.satellites.create_cubesats>`
@@ -70,7 +88,7 @@ Satellites
      - Launched 2018-12-03.
      - Verify a CubeSat bus able to support demanding payloads.
      - 3x MTQ, 18x MTM, 18x gyro, 5x SunSensor.
-   * - 🟡
+   * - 🟣
      - RAX-1
      - ``create_rax1_cubesat``
      - :doc:`Factory <../ADCS.satellite_factory.satellites.create_cubesats>`
@@ -78,7 +96,7 @@ Satellites
      - Launched 2010-11-19; ended after about 60 days.
      - Study small-scale plasma density irregularities in Earth's ionosphere.
      - Passive magnetic stabilization, 6x MTM, 3x gyro, 9x SunSensor.
-   * - 🟡
+   * - 🟣
      - RAX-2
      - ``create_rax2_cubesat``
      - :doc:`Factory <../ADCS.satellite_factory.satellites.create_cubesats>`
