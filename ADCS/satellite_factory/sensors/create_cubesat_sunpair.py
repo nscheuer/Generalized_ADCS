@@ -56,14 +56,17 @@ def create_gnb_sun_sensors(
 
     The public GNB summary gives one dedicated sensor per spacecraft face and
     accuracy/resolution specifications, but not statistical noise or bias
-    values for the final dedicated sensors. Defaults are therefore ideal unless
-    supplied by the caller.
+    values for the final dedicated sensors. The default ``noise`` uses
+    ``sin(1 deg)`` as a conservative scalar cosine-measurement noise floor so
+    estimator measurement covariances remain non-singular. This noise floor is
+    an approximate modeling assumption, not a source-backed calibration value.
     """
     n_axes = len(axes)
     if bias is None:
         bias = [Bias() for _ in range(n_axes)]
     if noise is None:
-        noise = [Noise() for _ in range(n_axes)]
+        std_noise = np.sin(1.0 * np.pi / 180.0)
+        noise = [Noise(noise=0.0, std_noise=std_noise) for _ in range(n_axes)]
 
     return [
         SunSensor(axis=axes[j], efficiency=1.0, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)
@@ -83,8 +86,10 @@ def create_elmos_sun_sensors(
     LightSail 2 had four Elmos Sun sensors on deployable solar panels and one
     on the -Z spacecraft face. Exact deployed-panel boresight vectors are not
     encoded here, so panel sensors use a nominal +/-X/+Y layout and the -Z
-    sensor uses the documented body vector. No source-backed noise or bias
-    values are assigned by default.
+    sensor uses the documented body vector. The default ``noise`` uses
+    ``sin(5 deg)`` as a conservative scalar cosine-measurement noise floor so
+    estimator measurement covariances remain non-singular. This noise floor is
+    an approximate modeling assumption, not a source-backed calibration value.
     """
     if axes is None:
         axes = np.array([
@@ -98,7 +103,8 @@ def create_elmos_sun_sensors(
     if bias is None:
         bias = [Bias() for _ in range(n_axes)]
     if noise is None:
-        noise = [Noise() for _ in range(n_axes)]
+        std_noise = np.sin(5.0 * np.pi / 180.0)
+        noise = [Noise(noise=0.0, std_noise=std_noise) for _ in range(n_axes)]
 
     return [
         SunSensor(axis=axes[j], efficiency=1.0, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias)

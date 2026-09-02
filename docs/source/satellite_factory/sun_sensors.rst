@@ -19,7 +19,7 @@ Sun Sensors
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_sunpair>`
      - `GNB report <https://www.researchgate.net/publication/349758612_ADCS_Preliminary_Design_For_GNB>`__
      - BRITE-Austria
-     - 6 faces; accuracy known.
+     - 6 faces; approximate noise floor.
    * - 🔵
      - Clyde Space 3U solar-array SunPair proxy
      - ``create_Clydespace_3U_array``
@@ -33,7 +33,7 @@ Sun Sensors
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_sunpair>`
      - `doi:10.3390/aerospace10070579 <https://www.mdpi.com/2226-4310/10/7/579>`__
      - LightSail 2
-     - 5 coarse sensors; resolution known.
+     - 5 coarse sensors; approximate noise floor.
    * - 🟡
      - Hamamatsu S3931 Sun sensors
      - ``create_hamamatsu_s3931_sun_sensors``

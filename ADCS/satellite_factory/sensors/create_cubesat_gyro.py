@@ -96,14 +96,16 @@ def create_intrepid_mainboard_gyros(
     Create the LightSail 2 secondary mainboard gyro triad.
 
     These gyros were uncalibrated and used in modes that did not require
-    accurate attitude knowledge. No source-backed noise or bias values are
-    assigned by default.
+    accurate attitude knowledge. The default ``noise`` uses ``1 deg/s`` per
+    axis as a conservative approximate white-noise floor so estimator
+    measurement covariances remain non-singular. This noise floor is a modeling
+    assumption, not a source-backed LightSail 2 calibration value.
     """
     n_axes = len(axes)
     if bias is None:
         bias = [Bias() for _ in range(n_axes)]
     if noise is None:
-        noise = [Noise() for _ in range(n_axes)]
+        noise = [Noise(noise=0.0, std_noise=1.0 * np.pi / 180.0) for _ in range(n_axes)]
 
     return [Gyro(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
 

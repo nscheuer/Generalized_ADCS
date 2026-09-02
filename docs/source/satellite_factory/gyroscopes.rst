@@ -40,7 +40,7 @@ Gyroscopes
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`
      - `doi:10.3390/aerospace10070579 <https://www.mdpi.com/2226-4310/10/7/579>`__
      - LightSail 2
-     - Secondary 3-axis; uncalibrated.
+     - Secondary 3-axis; approximate noise floor.
    * - 🟡
      - ADIS16405 gyros
      - ``create_adis16405_gyros``

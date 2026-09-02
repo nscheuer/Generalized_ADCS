@@ -29,9 +29,18 @@ def create_aeroastro_mst(
     Create the AeroAstro Miniature Star Tracker used on BRITE-Austria.
 
     The source gives mass, dimensions, update rate, and attitude accuracy
-    specifications. No source-backed Gaussian noise or fixed bias model is
-    assigned here, so the default sensor error model is ideal.
+    specifications. The default ``anisotropic_noise`` uses ``10 arcsec``
+    cross-boresight and ``50 arcsec`` roll as conservative approximate noise
+    floors so estimator measurement covariances remain non-singular. These
+    noise floors are modeling assumptions, not source-backed BRITE-Austria
+    calibration values.
     """
+    if anisotropic_noise is None:
+        anisotropic_noise = AnisotropicNoise(
+            std_cross=10.0 * _ARCSEC2RAD,
+            std_roll=50.0 * _ARCSEC2RAD,
+        )
+
     return StarTracker(
         boresight=boresight,
         bias=bias,
