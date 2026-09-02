@@ -13,7 +13,7 @@ import warnings
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.controller import Controller
 from ADCS.controller.helpers.quaternion_math import vector_alignment_error
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM
@@ -138,7 +138,7 @@ class MTQ_w_RW_LP(Controller):
     (B-dot style) with optional RW coordination to reduce rates and dump wheel momentum while
     respecting actuator limits.
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
+    def __init__(self, est_sat: Satellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
         r"""
         Construct the LP-based mixed RW–MTQ controller.
 
@@ -162,7 +162,7 @@ class MTQ_w_RW_LP(Controller):
 
         :param est_sat: Estimated satellite object providing actuators, sensors, inertia,
             and boresight information.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param p_gain: Proportional gain applied to the goal attitude error signal.
         :type p_gain: float
         :param d_gain: Derivative gain applied to angular-rate error (and used for B-dot style damping).
@@ -294,7 +294,7 @@ class MTQ_w_RW_LP(Controller):
         self,
         x_hat: State | EstimatorState,
         sens: np.ndarray,
-        est_sat: EstimatedSatellite,
+        est_sat: Satellite,
         os_hat: Orbital_State,
         goal: Goal | None = None,
     ) -> np.ndarray:
@@ -315,7 +315,7 @@ class MTQ_w_RW_LP(Controller):
         :param sens: Raw sensor vector used to estimate the body magnetic field via the MTM model.
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object providing hardware configuration and inertia.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param os_hat: Estimated orbital state used by the goal to compute reference vectors and rates.
         :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goal: Pointing goal. If ``None``, the controller uses :class:`~ADCS.CONOPS.goals.No_Goal`.
@@ -349,7 +349,7 @@ class MTQ_w_RW_LP(Controller):
         self,
         x_hat: State | EstimatorState,
         sens: np.ndarray,
-        est_sat: EstimatedSatellite,
+        est_sat: Satellite,
         os_hat: Orbital_State,
         goal: Goal,
     ) -> np.ndarray:
@@ -444,7 +444,7 @@ class MTQ_w_RW_LP(Controller):
         :param sens: Sensor vector used to estimate the body magnetic field from MTM measurements.
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object containing actuators, inertia, and boresight configuration.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param os_hat: Estimated orbital state used by the goal to define reference vectors and rates.
         :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goal: Pointing goal providing reference vector and attitude error computation.
@@ -608,7 +608,7 @@ class MTQ_w_RW_LP(Controller):
         self,
         x_hat: State | EstimatorState,
         sens: np.ndarray,
-        est_sat: EstimatedSatellite,
+        est_sat: Satellite,
         os_hat: Orbital_State,
         goal: Goal | None = None,    
     ):
@@ -699,7 +699,7 @@ class MTQ_w_RW_LP(Controller):
         :param sens: Sensor vector used to estimate the body magnetic field from MTM measurements.
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object providing actuators and inertia.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param os_hat: Estimated orbital state (not required by the current desaturation logic but included for interface compatibility).
         :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goal: Optional goal (unused in this mode). Included for signature compatibility.
@@ -791,7 +791,7 @@ class MTQ_w_RW_LP(Controller):
 
         
 
-    def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> tuple[np.ndarray, np.ndarray, float]:    
+    def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: Satellite) -> tuple[np.ndarray, np.ndarray, float]:    
         r"""
         Solve the LP to maximize feasible torque colinear with a desired torque direction.
 
@@ -844,7 +844,7 @@ class MTQ_w_RW_LP(Controller):
         :param b_body: Body-frame magnetic field vector :math:`\boldsymbol{B}`.
         :type b_body: numpy.ndarray
         :param est_sat: Estimated satellite providing the RW and MTQ actuator sets and limits.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :return: Tuple ``(u_rw_cmd, u_mtq_cmd, alpha)`` where ``u_rw_cmd`` has shape ``(N_rw,)``,
             ``u_mtq_cmd`` has shape ``(N_mtq,)``, and ``alpha`` is the achievable torque fraction.
         :rtype: tuple[numpy.ndarray, numpy.ndarray, float]
@@ -943,7 +943,7 @@ class MTQ_w_RW_LP(Controller):
             # Solver failed (usually singular geometry where NO torque is possible)
             return np.zeros(n_rw), np.zeros(n_mtq), 0.0
 
-    def plot_torques(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> None:
+    def plot_torques(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: Satellite) -> None:
         r"""
         Plot achievable torque envelopes and the allocated torque vectors in 3D.
 
@@ -982,7 +982,7 @@ class MTQ_w_RW_LP(Controller):
         :param b_body: Body-frame magnetic field vector used for MTQ torque mapping.
         :type b_body: numpy.ndarray
         :param est_sat: Estimated satellite providing actuator configuration and limits.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :return: None
         :rtype: None
 

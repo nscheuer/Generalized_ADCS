@@ -6,7 +6,7 @@ from ADCS.state import EstimatorState, State
 from typing import List, Tuple, Type, Optional, Sequence
 
 from ADCS.CONOPS.goals import Goal
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.sensors import Sensor
 from ADCS.satellite_hardware.actuators import Actuator
@@ -30,18 +30,25 @@ class Controller():
     :meth:`~ADCS.controller.controller.Controller.find_u`.
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, **kwargs) -> None:
+    def __init__(self, est_sat: Satellite, **kwargs) -> None:
         r"""
         Initializes the base controller.
 
         This constructor provides a common initialization entry point for all
         controller implementations. Derived controllers may extract and store
         satellite parameters, actuator layouts, or sensor configurations from
-        the estimated satellite model.
+        the satellite model.
 
-        :param est_sat: Estimated satellite model containing inertia, actuators,
+        Controllers only read :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        level members (inertia, actuator and sensor layout), so a plain
+        ``Satellite`` is accepted. Passing one models the perfect-state-knowledge
+        case, where the control cycle runs without an estimator in the loop.
+        An :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        is also accepted, since it is a subclass.
+
+        :param est_sat: Satellite model containing inertia, actuators,
                         and sensors
-        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
+        :type est_sat: ~ADCS.satellite_hardware.satellite.satellite.Satellite
         :param kwargs: Optional keyword arguments passed to derived controllers
         :type kwargs: dict
         :return: None
@@ -83,7 +90,7 @@ class Controller():
         return h.copy()
 
 
-    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None, **kwargs) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: Satellite, os_hat: Orbital_State, goal: Goal | None, **kwargs) -> np.ndarray:
         r"""
         Computes actuator command inputs that satisfy the control objective.
 
@@ -112,7 +119,7 @@ class Controller():
         :param sens: Flattened sensor measurement vector
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite model providing hardware properties
-        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
+        :type est_sat: ~ADCS.satellite_hardware.satellite.satellite.Satellite
         :param os_hat: Estimated orbital state
         :type os_hat: ~ADCS.orbits.orbital_state.Orbital_State
         :param goal: Optional mission goal definition

@@ -13,7 +13,7 @@ from typing import Tuple, Optional, List
 from numpy.typing import NDArray
 from dataclasses import dataclass, field, InitVar
 
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 
 def _get_saltro_py():
     """Import and return the ``saltro_py`` binding module.
@@ -47,7 +47,7 @@ class ConstraintConfig:
     including actuator limits, maximum angular velocity, and sun-angle limits.
 
     :param est_sat: Estimated satellite model used to derive actuator limits.
-    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
     :param control_limit_scale: Scale factor applied to actuator ``u_max``.
     :type control_limit_scale: float
     :param wmax: Maximum angular-velocity magnitude (rad/s).
@@ -56,7 +56,7 @@ class ConstraintConfig:
     :type sun_limit_angle: float
     """
 
-    est_sat: InitVar[EstimatedSatellite]
+    est_sat: InitVar[Satellite]
 
     control_limit_scale: float = 0.75
     rw_momentum_limit_scale: float = 1.0
@@ -68,7 +68,7 @@ class ConstraintConfig:
         """Initialize derived actuator limits from the estimated satellite.
 
         :param est_sat: Estimated satellite model containing actuators.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :return: None
         :rtype: None
         """

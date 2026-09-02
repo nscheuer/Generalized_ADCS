@@ -6,7 +6,7 @@ from ADCS.state import EstimatorState, State
 
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.controller import Controller
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM
@@ -157,7 +157,7 @@ class MTQ_Lovera(Controller):
        Original paper: `doi:10.2514/1.11844 <https://doi.org/10.2514/1.11844>`__
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, eps: float) -> None:
+    def __init__(self, est_sat: Satellite, p_gain: float, d_gain: float, eps: float) -> None:
         r"""
         Initializes the Lovera–Astolfi magnetic attitude controller.
 
@@ -167,7 +167,7 @@ class MTQ_Lovera(Controller):
         actuators.
 
         :param est_sat: Estimated satellite object containing sensors and actuators
-        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
+        :type est_sat: ~ADCS.satellite_hardware.satellite.satellite.Satellite
         :param p_gain: Proportional gain k_p for attitude error feedback
         :type p_gain: float
         :param d_gain: Derivative gain k_d for angular velocity error feedback
@@ -186,7 +186,7 @@ class MTQ_Lovera(Controller):
 
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         
-    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: Satellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Computes magnetorquer actuator commands using the Lovera–Astolfi control law.
 
@@ -203,7 +203,7 @@ class MTQ_Lovera(Controller):
         :param sens: Raw sensor measurement vector
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object providing hardware properties
-        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
+        :type est_sat: ~ADCS.satellite_hardware.satellite.satellite.Satellite
         :param os_hat: Estimated orbital state
         :type os_hat: ~ADCS.orbits.orbital_state.Orbital_State
         :param goal: Optional mission goal definition

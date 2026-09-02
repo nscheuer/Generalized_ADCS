@@ -14,7 +14,8 @@ from typing import Tuple, Optional, List
 from numpy.typing import NDArray
 from dataclasses import dataclass, field, InitVar
 
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Disturbance
 
 from .SALTRO_pass_settings import PassConfig
@@ -112,10 +113,10 @@ class DisturbanceConfig:
     and stores associated model coefficients and fixed torques.
 
     :param est_sat: Estimated satellite used to initialize disturbance terms.
-    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
     """
 
-    est_sat: InitVar[EstimatedSatellite]
+    est_sat: InitVar[Satellite]
 
     plan_for_aero: int = 0
     plan_for_prop: int = 0
@@ -137,7 +138,7 @@ class DisturbanceConfig:
         """Initialize disturbance vectors from the estimated satellite model.
 
         :param est_sat: Estimated satellite containing disturbance instances.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :return: None
         :rtype: None
         """
@@ -179,7 +180,7 @@ class PlannerSettings:
 
     :param est_sat: Estimated satellite model used to derive constraints and
         disturbance defaults.
-    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
     :param init_traj: Initial trajectory generator settings.
     :type init_traj: :class:`InitTrajConfig`
     :param tvlqr: TVLQR gain-generation settings.
@@ -188,7 +189,7 @@ class PlannerSettings:
     :type passes: list[:class:`PassConfig`]
     """
 
-    est_sat: EstimatedSatellite
+    est_sat: Satellite
 
     # Constraints
     constraints: ConstraintConfig = field(init=False)

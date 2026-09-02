@@ -34,7 +34,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ, RW
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 
 def _ensure_saltro_path() -> str:
     """Ensure the SALTRO build directory is available on ``sys.path``.
@@ -86,16 +86,16 @@ class SALTRO(Controller):
 
     :param est_sat: Estimated satellite model used for constraints and actuator
         definitions.
-    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
     :param planner_settings: SALTRO planner settings bundle.
     :type planner_settings: :class:`~ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings`
     """
 
-    def __init__(self, est_sat: EstimatedSatellite, planner_settings: PlannerSettings):
+    def __init__(self, est_sat: Satellite, planner_settings: PlannerSettings):
         """Construct the SALTRO controller with no active trajectory.
 
         :param est_sat: Estimated satellite model used by the planner.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param planner_settings: Planner and constraint settings for SALTRO.
         :type planner_settings: :class:`~ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings`
         :return: None
@@ -294,7 +294,7 @@ class SALTRO(Controller):
         self,
         x_hat: State | EstimatorState,
         sens: np.ndarray,
-        est_sat: EstimatedSatellite,
+        est_sat: Satellite,
         os_hat: Orbital_State,
         goal: Optional[Goal] = None,
         **kwargs,
@@ -313,7 +313,7 @@ class SALTRO(Controller):
         :param sens: Sensor vector (accepted for interface compatibility).
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite (accepted for interface compatibility).
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param os_hat: Orbital state carrying the current J2000 time.
         :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goal: Active goal (accepted for interface compatibility).
