@@ -37,7 +37,7 @@ Tier Legend
      - :doc:`Factory <../ADCS.satellite_factory.actuators.create_cubesat_RW>`
      - `GNB report <https://www.researchgate.net/publication/349758612_ADCS_Preliminary_Design_For_GNB>`__
      - BRITE-Austria
-     - Orthogonal triad; wheel specs.
+     - Preliminary design values; not flight-calibrated.
    * - ⚪
      - CubeWheel Small+
      - ``create_cubewheel_smallplus_rw``

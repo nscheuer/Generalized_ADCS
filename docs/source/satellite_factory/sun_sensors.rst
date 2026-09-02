@@ -37,7 +37,7 @@ Tier Legend
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_sunpair>`
      - `GNB report <https://www.researchgate.net/publication/349758612_ADCS_Preliminary_Design_For_GNB>`__
      - BRITE-Austria
-     - 6 faces; approximate noise floor.
+     - Preliminary design layout; approximate noise floor.
    * - ⚪
      - Clyde Space 3U solar-array SunPair proxy
      - ``create_Clydespace_3U_array``

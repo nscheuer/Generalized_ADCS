@@ -37,7 +37,7 @@ Tier Legend
      - :doc:`Factory <../ADCS.satellite_factory.actuators.create_cubesat_MTQ>`
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
      - BRITE-Austria
-     - Orthogonal coils; dipole known.
+     - Preliminary design dipole; not flight-calibrated.
    * - ⚪
      - ISIS Magnetorquer Board
      - ``create_isis_magnetorquer_board``
