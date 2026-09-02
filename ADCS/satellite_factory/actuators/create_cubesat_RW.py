@@ -46,8 +46,10 @@ def create_sfl_reaction_wheels(
     The BRITE/GNB hardware summary gives an orthogonal three-wheel assembly
     with per-wheel rotor inertia ``5.12e-5 kg m^2``, momentum capacity
     ``0.030 N m s``, and maximum torque ``0.002 N m``. No source-backed torque
-    noise or torque bias values were found, so the default error models are
-    zero unless supplied by the caller.
+    noise, torque bias, or wheel-momentum measurement noise values were found.
+    The default ``h_meas_noise`` uses ``1.0e-6 N m s`` as a conservative
+    estimator-safe noise floor; torque noise and torque bias remain zero unless
+    supplied by the caller.
     """
     n_axes = len(axes)
     if bias is None:
@@ -55,7 +57,7 @@ def create_sfl_reaction_wheels(
     if noise is None:
         noise = [Noise() for _ in range(n_axes)]
     if h_meas_noise is None:
-        h_meas_noise = [Noise() for _ in range(n_axes)]
+        h_meas_noise = [Noise(noise=0.0, std_noise=1.0e-6) for _ in range(n_axes)]
 
     return [
         RW(
@@ -88,14 +90,16 @@ def create_sinclair_interplanetary_momentum_wheel(
     ``0.06 N m s`` at ``5920 rpm``. The public source does not provide a rotor
     inertia directly, so ``J`` is inferred from ``H = J omega`` as
     ``0.06 / (5920 * 2 pi / 60) = 9.68e-5 kg m^2``. Torque noise and torque
-    bias remain zero unless supplied by the caller.
+    bias remain zero unless supplied by the caller. The default
+    ``h_meas_noise`` uses ``1.0e-6 N m s`` as a conservative estimator-safe
+    wheel-momentum measurement noise floor.
     """
     if bias is None:
         bias = Bias()
     if noise is None:
         noise = Noise()
     if h_meas_noise is None:
-        h_meas_noise = Noise()
+        h_meas_noise = Noise(noise=0.0, std_noise=1.0e-6)
 
     return RW(
         axis=axis,

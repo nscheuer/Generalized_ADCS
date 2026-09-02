@@ -67,8 +67,13 @@ def test_create_brite_austria_properties():
 
     assert all(np.isclose(rw.J, 5.12e-5) for rw in rws)
     assert all(np.isclose(rw.h_max, 0.030) for rw in rws)
+    assert all(np.isclose(rw.h_meas_noise.std_noise.item(), 1.0e-6) for rw in rws)
     assert all(np.isclose(mtq.u_max, 0.12) for mtq in mtqs)
     assert all(np.all(np.diag(sensor.noise.cov()) > 0.0) for sensor in gyros + mtms + suns + trackers)
+
+    est_sat = create_brite_austria(estimated=True)
+    cov = est_sat.sensor_cov([True] * len(est_sat.attitude_sensors))
+    assert np.all(np.diag(cov) > 0.0)
 
 
 def test_create_brite_austria_estimated():

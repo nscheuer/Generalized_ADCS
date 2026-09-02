@@ -67,8 +67,13 @@ def test_create_lightsail2_properties():
     assert np.isclose(rws[0].J, expected_wheel_inertia)
     assert np.isclose(rws[0].h_max, 0.06)
     assert np.isclose(rws[0].u_max, 5.0e-3)
+    assert np.isclose(rws[0].h_meas_noise.std_noise.item(), 1.0e-6)
     assert all(np.isclose(mtq.u_max, 1.0) for mtq in mtqs)
     assert all(np.all(np.diag(sensor.noise.cov()) > 0.0) for sensor in mtms + gyros + suns)
+
+    est_sat = create_lightsail2(estimated=True)
+    cov = est_sat.sensor_cov([True] * len(est_sat.attitude_sensors))
+    assert np.all(np.diag(cov) > 0.0)
 
 
 def test_create_lightsail2_estimated():
