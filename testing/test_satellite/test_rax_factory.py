@@ -32,6 +32,8 @@ def test_create_rax1_cubesat_properties():
     assert len(sat.actuators) == 0
     assert len(sat.disturbances) == 3
     assert all(np.isclose(gyro.noise.std_noise.item(), 0.9 * np.pi / 180.0) for gyro in gyros)
+    assert all(np.isclose(gyro.bias.std_bias.item(), 3.14e-5) for gyro in gyros)
+    assert all(np.isclose(abs(gyro.bias.bounds[0].item()), 0.007 * np.pi / 180.0) for gyro in gyros)
     assert all(np.isclose(mtm.noise.std_noise.item(), 100e-9) for mtm in mtms[3:])
     assert all(np.isclose(sun.noise.std_noise.item(), 0.05) for sun in suns)
     assert all(np.isclose(sun.efficiency, 3.0) for sun in suns)

@@ -123,17 +123,16 @@ def create_adis16405_gyros(
 
     Default error model provenance:
         ``bias`` defaults to a Gaussian initial bias with 3 deg/s one-sigma
-        component error, and ``std_bias`` uses the 0.007 deg/s in-run bias
-        stability value. ``noise`` defaults to 0.9 deg/s output-noise RMS.
-        These values are ADIS16405 component characterization values reported
-        for the RAX attitude-determination system; they are not a single fixed
-        RAX flight-estimated bias vector.
+        component error, ``std_bias`` uses the reported rate-random-walk
+        ``3.14e-5 rad/s^(3/2)`` value, and the bias is bounded by the reported
+        0.007 deg/s in-run bias stability. ``noise`` defaults to 0.9 deg/s
+        output-noise RMS. These values are ADIS16405 component characterization
+        values reported for the RAX attitude-determination system; they are not
+        a single fixed RAX flight-estimated bias vector.
 
         The RAX estimator simulation also reported angle-random-walk
-        ``4.89e-4 rad/s^(1/2)`` and rate-random-walk
-        ``3.14e-5 rad/s^(3/2)`` parameters, but those are not represented
-        directly by this scalar white-noise
-        :class:`~ADCS.satellite_hardware.sensors.Gyro` model.
+        ``4.89e-4 rad/s^(1/2)``. That value is not represented directly by this
+        scalar white-noise :class:`~ADCS.satellite_hardware.sensors.Gyro` model.
 
     Source:
         J. C. Springmann, *Satellite Attitude Determination with Low-Cost
@@ -143,8 +142,9 @@ def create_adis16405_gyros(
     n_axes = len(axes)
     if bias is None:
         bias_std = 3.0 * np.pi / 180.0
+        bias_bound = 0.007 * np.pi / 180.0
         e_bias = np.random.normal(0.0, bias_std, size=n_axes)
-        bias = [Bias(bias=e_bias[j], std_bias=0.007 * np.pi / 180.0) for j in range(n_axes)]
+        bias = [Bias(bias=e_bias[j], std_bias=3.14e-5, bounds=(-bias_bound, bias_bound)) for j in range(n_axes)]
     if noise is None:
         std_noise = 0.9 * np.pi / 180.0
         noise = [Noise(noise=0.0, std_noise=std_noise) for _ in range(n_axes)]

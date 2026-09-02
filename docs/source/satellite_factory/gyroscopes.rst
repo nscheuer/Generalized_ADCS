@@ -65,7 +65,7 @@ Tier Legend
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`
      - `Deep Blue <https://deepblue.lib.umich.edu/bitstream/handle/2027.42/102312/jspringm_1.pdf?sequence=1>`__
      - RAX-1, RAX-2
-     - RAX bias/noise defaults.
+     - RAX noise, bias bound, and RRW defaults.
    * - 🟡
      - Bosch BMX055 gyros
      - ``create_bmx055_gyros``
