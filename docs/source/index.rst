@@ -110,6 +110,7 @@ objects intentionally do not support NumPy indexing or implicit conversion.
 
    installation/index
    tutorials/index
+   references
    release_notes/index
    papers/index
 

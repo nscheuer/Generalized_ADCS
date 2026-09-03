@@ -114,6 +114,11 @@ class BDot(Controller):
         :rtype: None
 
         """
+
+References
+----------
+M. J. Sidi, *Spacecraft Dynamics and Control: A Practical Engineering Approach*,
+Cambridge University Press, 1997, Chapter 5.
         self.gain = gain
         
         # Sensor Reading Matrix

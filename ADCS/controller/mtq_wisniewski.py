@@ -94,6 +94,8 @@ class MTQ_Wisniewski(Controller):
     ----------
     R. Wisniewski,
     Sliding Mode Attitude Control for Magnetic Actuated Satellite,
+
+.. [1] R. Wisniewski, "Sliding Mode Attitude Control for Magnetic Actuated Satellite," *IFAC Proceedings Volumes*, Vol. 31, No. 21, 1998, pp. 179-184. <https://doi.org/10.1016/S1474-6670(17)41076-7>_
     IFAC Proceedings Volumes, Vol. 31, No. 21, 1998, pp. 179–184.
     Original paper: `doi:10.1016/S1474-6670(17)41076-7 <https://doi.org/10.1016/S1474-6670(17)41076-7>`__
 
