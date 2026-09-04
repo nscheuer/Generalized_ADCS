@@ -183,6 +183,7 @@ def compare_results(current: dict, baseline: dict) -> list[str]:
     failures = []
     for name, current_entry in current["benchmarks"].items():
         if name not in baseline["benchmarks"]:
+            failures.append(f"{name}: missing from baseline")
             continue
         baseline_entry = baseline["benchmarks"][name]
         threshold = float(baseline_entry.get("max_regression", current_entry["max_regression"]))

@@ -30,11 +30,41 @@
       "normalized_seconds": 1.85060899548458e-05,
       "seconds": 8.908572387677366e-08
     },
+    "full_size": {
+      "loops": 65536,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00034965118918392057,
+      "seconds": 5.279254917667231e-07
+    },
+    "full_slices": {
+      "loops": 32768,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0006259011381508499,
+      "seconds": 9.450251461373682e-07
+    },
     "physical_conversion": {
       "loops": 32768,
       "max_regression": 1.5,
       "normalized_seconds": 0.0002215965501512496,
       "seconds": 1.0667347412115363e-06
+    },
+    "retraction_jacobian_mrp_fallback": {
+      "loops": 128,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.17574801090225567,
+      "seconds": 0.00026535546840023017
+    },
+    "retraction_jacobian_quaternion_vector": {
+      "loops": 4096,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.005150661341521081,
+      "seconds": 7.776794433311807e-06
+    },
+    "retraction_jacobian_rotation_vector": {
+      "loops": 4096,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.005002263750560373,
+      "seconds": 7.552734359705937e-06
     },
     "rk4_propagation": {
       "loops": 512,
@@ -47,6 +77,30 @@
       "max_regression": 1.5,
       "normalized_seconds": 0.04683318835703965,
       "seconds": 0.00022544840625027263
+    },
+    "tangent_map": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.009542801226353712,
+      "seconds": 1.4408325171189063e-05
+    },
+    "tangent_pinv": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.011388897871045989,
+      "seconds": 1.7195678708503692e-05
+    },
+    "tangent_size": {
+      "loops": 65536,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.000342657361402455,
+      "seconds": 5.173657680046517e-07
+    },
+    "tangent_slices": {
+      "loops": 32768,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0006078575726999612,
+      "seconds": 9.177818292016582e-07
     }
   },
   "calibration_loops": 8,
