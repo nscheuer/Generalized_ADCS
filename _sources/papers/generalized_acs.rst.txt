@@ -13,7 +13,7 @@ Read it
 -------
 
 - **Paper page** — https://digitalcommons.usu.edu/smallsat/2026/all2026/253/
-- **Proceedings PDF** — https://digitalcommons.usu.edu/cgi/viewcontent.cgi?article=6639&context=smallsat
+- **Proceedings page** — https://digitalcommons.usu.edu/smallsat/2026/all2026/253/
 - **Contact the authors** — :doc:`../ssc26/contact`
 
 Abstract
