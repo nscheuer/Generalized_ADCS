@@ -14,7 +14,7 @@ from ADCS.controller.plan_and_track_base import PlanAndTrackBase
 from ADCS.controller.helpers.trajectory import Trajectory
 from ADCS.controller.plan_and_track import PlannerSettings
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 
 
 class Plan_and_Track_LQR(PlanAndTrackBase):
@@ -74,7 +74,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
     required but explicit disturbance estimation is not needed.
 
     :param est_sat: Estimated satellite model with actuators and sensors.
-    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
     :param planner_settings: ALTRO trajectory planner configuration bundle.
     :type planner_settings: :class:`~ADCS.controller.plan_and_track.PlannerSettings`
     :return: None.
@@ -82,7 +82,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
 
     """
 
-    def __init__(self, est_sat: EstimatedSatellite, planner_settings: PlannerSettings) -> None:
+    def __init__(self, est_sat: Satellite, planner_settings: PlannerSettings) -> None:
         r"""
         Construct the Plan-and-Track LQR controller.
 
@@ -102,7 +102,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         defined by the base class.
 
         :param est_sat: Estimated satellite model with actuator and sensor models.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param planner_settings: ALTRO planner configuration settings.
         :type planner_settings: :class:`~ADCS.controller.plan_and_track.PlannerSettings`
         :return: None.
@@ -116,7 +116,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         self,
         x_hat: State | EstimatorState,
         sens: NDArray[np.float64],
-        est_sat: EstimatedSatellite,
+        est_sat: Satellite,
         os_hat: Orbital_State,
         goal: Optional[Goal] = None,
     ) -> NDArray[np.float64]:
@@ -163,7 +163,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         :param sens: Sensor measurement vector. Not directly used.
         :type sens: numpy.typing.NDArray[numpy.float64]
         :param est_sat: Estimated satellite model. Not directly used.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param os_hat: Estimated orbital state providing the current time.
         :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goal_vector_eci: Goal vector in ECI frame. Not directly used.

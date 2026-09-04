@@ -7,7 +7,7 @@ from typing import Tuple, Optional
 from numpy.typing import NDArray
 
 from ADCS.controller.plan_and_track.planner_subsettings import SolverPassConfig, CostWeights, InitTrajConfig, ConvergenceConfig, AugLagConfig
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Disturbance, General_Disturbance
 
 
@@ -176,7 +176,7 @@ class PlannerSettings:
     """
     def __init__(
             self, 
-            est_sat: EstimatedSatellite, 
+            est_sat: Satellite, 
             dt_control: float = 1.0,
             pass1_config: Optional[SolverPassConfig] = None,
             pass2_config: Optional[SolverPassConfig] = None,

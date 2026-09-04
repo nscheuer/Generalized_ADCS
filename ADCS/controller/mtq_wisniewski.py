@@ -6,7 +6,7 @@ from ADCS.state import EstimatorState, State
 
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.controller import Controller
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM
@@ -78,7 +78,7 @@ class MTQ_Wisniewski(Controller):
 
     Parameters
     ----------
-    est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    est_sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         Estimated satellite model providing inertia, actuator geometry,
         and sensor configuration.
     lambda_s : numpy.ndarray
@@ -98,7 +98,7 @@ class MTQ_Wisniewski(Controller):
     Original paper: `doi:10.1016/S1474-6670(17)41076-7 <https://doi.org/10.1016/S1474-6670(17)41076-7>`__
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, lambda_s: np.ndarray, lambda_q: np.ndarray) -> None:
+    def __init__(self, est_sat: Satellite, lambda_s: np.ndarray, lambda_q: np.ndarray) -> None:
         r"""
         Initialize the Wisniewski sliding mode magnetic controller.
 
@@ -109,7 +109,7 @@ class MTQ_Wisniewski(Controller):
 
         Parameters
         ----------
-        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
             Estimated satellite object containing sensors, actuators,
             and inertia properties.
         lambda_s : numpy.ndarray
@@ -129,7 +129,7 @@ class MTQ_Wisniewski(Controller):
 
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         
-    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: Satellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Compute magnetic torquer command vector using sliding mode control.
 
@@ -175,7 +175,7 @@ class MTQ_Wisniewski(Controller):
             attitude quaternion, and optional reaction wheel momentum states.
         sens : numpy.ndarray
             Raw magnetometer sensor measurements.
-        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
             Satellite model providing actuator configuration and inertia.
         os_hat : :class:`~ADCS.orbits.orbital_state.Orbital_State`
             Estimated orbital state providing geomagnetic field information.

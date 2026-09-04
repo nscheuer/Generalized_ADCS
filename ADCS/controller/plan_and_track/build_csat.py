@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 
 if TYPE_CHECKING:
     from ADCS.controller.plan_and_track import PlannerSettings
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
 from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
 
@@ -222,7 +222,7 @@ def reorder_gains_cpp_to_python(Kset: NDArray[np.float64], actuators: Sequence[A
         return Kset
 
 
-def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSettings) -> pysat.Satellite:
+def build_cpp_satellite(est_sat: Satellite, planner_settings: PlannerSettings) -> pysat.Satellite:
     r"""
     Construct a C++ planner-compatible satellite model from a Python estimated satellite.
 
