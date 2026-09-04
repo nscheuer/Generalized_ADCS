@@ -47,6 +47,7 @@ from ADCS.satellite_factory.sensors import (
     create_osram_sfh2430_sun_sensors,
 )
 from ADCS.satellite_hardware.actuators import MTQ, RW
+from ADCS.satellite_hardware.errors import Bias
 from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, GeometryFace, GeometryConfig, Drag_Disturbance, GG_Disturbance, SRP_Disturbance
 from ADCS.satellite_hardware.satellite.satellite import Satellite
@@ -711,22 +712,28 @@ def create_rax2_cubesat(estimated: bool = False):
     return _create_rax_cubesat(mass=2.9, variant=2, estimated=estimated)
 
 
-def create_beavercube2_cubesat(estimated: bool = False):
+def create_beavercube2_cubesat(estimated: bool = False, include_biases: bool = True):
     mass = 4
     COM = np.zeros(3)
     J =  np.array([[0.03136490806, 5.88304e-05, -0.00671361357],
                 [5.88304e-05, 0.03409127827, -0.00012334756],
                 [-0.00671361357, -0.00012334756, 0.01004091997]])
+    estimate_biases = estimated and include_biases
     
     # Actuators
-    mtqs: List[MTQ] = create_isis_magnetorquer_board(estimate_bias=estimated)
-    rws: List[RW] = [create_cubewheel_smallplus_rw(axis=np.array([0, 0, 1]), estimate_bias=estimated)]
+    mtq_bias = None if include_biases else [Bias() for _ in range(3)]
+    rw_bias = None if include_biases else Bias()
+    mtqs: List[MTQ] = create_isis_magnetorquer_board(bias=mtq_bias, estimate_bias=estimate_biases)
+    rws: List[RW] = [create_cubewheel_smallplus_rw(axis=np.array([0, 0, 1]), bias=rw_bias, estimate_bias=estimate_biases)]
     
     # Sensors
-    mtms: List[MTM] = create_isis_magnetometer(estimate_bias=estimated)
-    gyros: List[Gyro] = create_ICM20948_IMU(estimate_bias=estimated)
-    solar_panel_1 = create_Clydespace_3U_array(axis=np.array([1, 0, 0]), estimate_bias=estimated)
-    solar_panel_2 = create_Clydespace_3U_array(axis=np.array([0, 1, 0]), estimate_bias=estimated)
+    mtm_bias = None if include_biases else [Bias() for _ in range(3)]
+    gyro_bias = None if include_biases else [Bias() for _ in range(3)]
+    sun_bias = None if include_biases else Bias()
+    mtms: List[MTM] = create_isis_magnetometer(bias=mtm_bias, estimate_bias=estimate_biases)
+    gyros: List[Gyro] = create_ICM20948_IMU(bias=gyro_bias, estimate_bias=estimate_biases)
+    solar_panel_1 = create_Clydespace_3U_array(axis=np.array([1, 0, 0]), bias=sun_bias, estimate_bias=estimate_biases)
+    solar_panel_2 = create_Clydespace_3U_array(axis=np.array([0, 1, 0]), bias=sun_bias, estimate_bias=estimate_biases)
     suns: List[SunPair] = solar_panel_1+solar_panel_2
 
     # Disturbances
@@ -749,24 +756,30 @@ def create_beavercube2_cubesat(estimated: bool = False):
         return Satellite(mass=mass, COM=COM, J_0=J, disturbances=gg_dist+drag_dist+srp_dist, sensors=mtms+gyros+suns, actuators=mtqs+rws, boresight=boresight)
 
 
-def create_3_3_beavercube2_cubesat(estimated: bool = False):
+def create_3_3_beavercube2_cubesat(estimated: bool = False, include_biases: bool = True):
     mass = 4
     COM = np.zeros(3)
     J =  np.array([[0.03136490806, 5.88304e-05, -0.00671361357],
                 [5.88304e-05, 0.03409127827, -0.00012334756],
                 [-0.00671361357, -0.00012334756, 0.01004091997]])
+    estimate_biases = estimated and include_biases
     
     # Actuators
-    mtqs: List[MTQ] = create_isis_magnetorquer_board(estimate_bias=estimated)
-    rws: List[RW] = [create_cubewheel_smallplus_rw(axis=np.array([1, 0, 0]), estimate_bias=estimated),
-                     create_cubewheel_smallplus_rw(axis=np.array([0, 1, 0]), estimate_bias=estimated),
-                     create_cubewheel_smallplus_rw(axis=np.array([0, 0, 1]), estimate_bias=estimated)]
+    mtq_bias = None if include_biases else [Bias() for _ in range(3)]
+    rw_bias = None if include_biases else Bias()
+    mtqs: List[MTQ] = create_isis_magnetorquer_board(bias=mtq_bias, estimate_bias=estimate_biases)
+    rws: List[RW] = [create_cubewheel_smallplus_rw(axis=np.array([1, 0, 0]), bias=rw_bias, estimate_bias=estimate_biases),
+                     create_cubewheel_smallplus_rw(axis=np.array([0, 1, 0]), bias=rw_bias, estimate_bias=estimate_biases),
+                     create_cubewheel_smallplus_rw(axis=np.array([0, 0, 1]), bias=rw_bias, estimate_bias=estimate_biases)]
     
     # Sensors
-    mtms: List[MTM] = create_isis_magnetometer(estimate_bias=estimated)
-    gyros: List[Gyro] = create_ICM20948_IMU(estimate_bias=estimated)
-    solar_panel_1 = create_Clydespace_3U_array(axis=np.array([1, 0, 0]), estimate_bias=estimated)
-    solar_panel_2 = create_Clydespace_3U_array(axis=np.array([0, 1, 0]), estimate_bias=estimated)
+    mtm_bias = None if include_biases else [Bias() for _ in range(3)]
+    gyro_bias = None if include_biases else [Bias() for _ in range(3)]
+    sun_bias = None if include_biases else Bias()
+    mtms: List[MTM] = create_isis_magnetometer(bias=mtm_bias, estimate_bias=estimate_biases)
+    gyros: List[Gyro] = create_ICM20948_IMU(bias=gyro_bias, estimate_bias=estimate_biases)
+    solar_panel_1 = create_Clydespace_3U_array(axis=np.array([1, 0, 0]), bias=sun_bias, estimate_bias=estimate_biases)
+    solar_panel_2 = create_Clydespace_3U_array(axis=np.array([0, 1, 0]), bias=sun_bias, estimate_bias=estimate_biases)
     suns: List[SunPair] = solar_panel_1+solar_panel_2
 
     # Disturbances
