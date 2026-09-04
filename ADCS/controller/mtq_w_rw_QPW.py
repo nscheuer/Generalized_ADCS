@@ -10,7 +10,7 @@ import itertools
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.controller import Controller, MTQ_w_RW_LP
 from ADCS.controller.helpers.quaternion_math import vector_alignment_error
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM
@@ -165,7 +165,7 @@ class MTQ_w_RW_QPW(MTQ_w_RW_LP):
         {\|\boldsymbol{\tau}_{\mathrm{des}}\|}\right).
 
     :param est_sat: Estimated satellite model providing actuator instances and configuration.
-    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
     :param p_gain: Proportional gain used by the parent controller law.
     :type p_gain: float
     :param d_gain: Derivative gain used by the parent controller law.
@@ -176,7 +176,7 @@ class MTQ_w_RW_QPW(MTQ_w_RW_LP):
     :type h_target: numpy.ndarray | list
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
+    def __init__(self, est_sat: Satellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
         r"""
         Initialize the direction-weighted QP torque allocator.
 
@@ -185,7 +185,7 @@ class MTQ_w_RW_QPW(MTQ_w_RW_LP):
         implemented in :meth:`~ADCS.controller.MTQ_w_RW_QPW.allocate_max_torque_in_direction`.
 
         :param est_sat: Estimated satellite model providing actuators and configuration.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param p_gain: Proportional gain used by the parent control law.
         :type p_gain: float
         :param d_gain: Derivative gain used by the parent control law.
@@ -200,7 +200,7 @@ class MTQ_w_RW_QPW(MTQ_w_RW_LP):
         """
         super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)
 
-    def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> tuple[np.ndarray, np.ndarray, float]:
+    def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: Satellite) -> tuple[np.ndarray, np.ndarray, float]:
         r"""
         Allocate bounded RW and MTQ commands using direction-weighted least squares.
 
@@ -275,7 +275,7 @@ class MTQ_w_RW_QPW(MTQ_w_RW_LP):
         :param b_body: Body-frame geomagnetic field vector :math:`\boldsymbol{B}` in tesla.
         :type b_body: numpy.ndarray
         :param est_sat: Estimated satellite model providing actuator instances and limits.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :return: Tuple of RW commands, MTQ commands, and effectiveness scalar :math:`\alpha`.
         :rtype: tuple[numpy.ndarray, numpy.ndarray, float]
 

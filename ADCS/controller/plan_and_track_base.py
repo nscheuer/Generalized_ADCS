@@ -16,7 +16,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
 from ADCS.controller.plan_and_track.build_csat import build_cpp_satellite
 from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.orbits.universal_constants import TimeConstants
 
 
@@ -85,7 +85,7 @@ class PlanAndTrackBase(Controller):
 
     """
 
-    est_sat: EstimatedSatellite
+    est_sat: Satellite
     planner_settings: PlannerSettings
     csat: pysat.Satellite
     planner: tplaunch.Planner
@@ -95,7 +95,7 @@ class PlanAndTrackBase(Controller):
 
     def _init_planner(
         self,
-        est_sat: EstimatedSatellite,
+        est_sat: Satellite,
         planner_settings: PlannerSettings,
         tracking_lqr_formulation: int,
         quat_to_3vec_mode: int = 0
@@ -136,7 +136,7 @@ class PlanAndTrackBase(Controller):
 
         :param est_sat: Estimated satellite model that defines the state and control
             dimensions and contains actuator/sensor configuration.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param planner_settings: Configuration bundle for system and solver settings
             used by the C++ planner.
         :type planner_settings: :class:`~ADCS.controller.plan_and_track.PlannerSettings`

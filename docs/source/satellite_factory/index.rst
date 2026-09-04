@@ -4,27 +4,11 @@ Satellite Factory
 These pages summarize the preset spacecraft and hardware factories available in
 ``ADCS.satellite_factory``.
 
-For component-only factory pages, the tier is applied to the component layout
-and error-model information available for that hardware. Satellite inertia and
-center of mass are evaluated on the satellite rows.
-
-Tier Legend
------------
-
-.. list-table::
-   :header-rows: 1
-   :widths: 15 85
-
-   * - Tier
-     - Meaning
-   * - ⚪
-     - Estimates on satellite, actuator, and sensor layout.
-   * - 🔵
-     - Satellite, actuator, and sensor layout known.
-   * - 🟣
-     - Blue-tier information plus noise known.
-   * - 🟡
-     - Purple-tier information plus noise and bias known.
+Factory source links are listed on each spacecraft and component table next to
+the affected preset. These sources document preset data values such as hardware
+configuration, inertia, center of mass, sensor errors, actuator authority, and
+mission-specific assumptions. Package-level algorithm and model references are
+kept separately in :doc:`../contributing/citations`.
 
 .. toctree::
    :maxdepth: 1

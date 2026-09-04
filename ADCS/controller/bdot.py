@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from ADCS.CONOPS.goals import Goal
 from ADCS.controller.controller import Controller
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.sensors import Sensor, MTM
 from ADCS.satellite_hardware.actuators import Actuator, MTQ
 from ADCS.orbits.orbital_state import Orbital_State
@@ -91,7 +91,7 @@ class BDot(Controller):
       commands, allowing for redundant or non-orthogonal magnetorquers
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, gain: float) -> None:
+    def __init__(self, est_sat: Satellite, gain: float) -> None:
         r"""
         Initializes the B-Dot controller.
 
@@ -107,7 +107,7 @@ class BDot(Controller):
         vectors.
 
         :param est_sat: Estimated satellite object containing sensors and actuators
-        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
+        :type est_sat: ~ADCS.satellite_hardware.satellite.satellite.Satellite
         :param gain: Proportional B-Dot control gain K
         :type gain: float
         :return: None
@@ -133,7 +133,7 @@ class BDot(Controller):
         self.n_actuators = len(est_sat.actuators)
 
 
-    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Optional[Goal] = None) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: Satellite, os_hat: Orbital_State, goal: Optional[Goal] = None) -> np.ndarray:
         r"""
         Computes the B-Dot control command.
 
@@ -195,7 +195,7 @@ class BDot(Controller):
         :param sens: Raw sensor measurement vector
         :type sens: np.ndarray
         :param est_sat: Estimated satellite object required by the controller interface
-        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
+        :type est_sat: ~ADCS.satellite_hardware.satellite.satellite.Satellite
         :param os_hat: Orbital state estimate providing timing information
         :type os_hat: ~ADCS.orbits.orbital_state.Orbital_State
         :return: Actuator command vector for magnetorquers

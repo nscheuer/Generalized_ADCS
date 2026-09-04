@@ -53,11 +53,14 @@ def create_gnb_magnetometer(
     The BRITE ADCS design gives magnetometer noise ``2.0e-7 T`` and worst-case
     bias ``4.0e-6 T``. The factory represents the latter as a bounded
     per-axis bias uncertainty because no fixed flight bias vector was found.
+    The ``1.0e-9 T/sqrt(s)`` bias random walk is a conservative modeling
+    assumption, not a source-backed BRITE/GNB calibration value.
     """
     n_axes = len(axes)
     if bias is None:
         bias_bound = 4.0e-6
-        bias = [Bias(bias=0.0, std_bias=0.0, bounds=(-bias_bound, bias_bound)) for _ in range(n_axes)]
+        std_bias = 1.0e-9
+        bias = [Bias(bias=0.0, std_bias=std_bias, bounds=(-bias_bound, bias_bound)) for _ in range(n_axes)]
     if noise is None:
         noise = [Noise(noise=0.0, std_noise=2.0e-7) for _ in range(n_axes)]
 

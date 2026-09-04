@@ -8,7 +8,7 @@ from typing import List
 from ADCS.CONOPS.goals import Goal
 from ADCS.controller import Controller
 from ADCS.controller.helpers.quaternion_math import vector_alignment_error
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM
@@ -82,7 +82,7 @@ class MTQ_w_RW(Controller):
 
     Parameters
     ----------
-    est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    est_sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         Estimated satellite model containing inertia properties, actuator
         geometry, and sensor configuration.
     p_gain : float
@@ -116,7 +116,7 @@ class MTQ_w_RW(Controller):
        Original paper: `doi:10.2514/1.G000812 <https://doi.org/10.2514/1.G000812>`__
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray) -> None:
+    def __init__(self, est_sat: Satellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray) -> None:
         r"""
         Initialize the hybrid MTQ and reaction wheel controller.
 
@@ -126,7 +126,7 @@ class MTQ_w_RW(Controller):
 
         Parameters
         ----------
-        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
             Estimated satellite object providing actuator, sensor, and
             inertia configuration.
         p_gain : float
@@ -163,7 +163,7 @@ class MTQ_w_RW(Controller):
         self.n_actuators = len(est_sat.actuators)
 
 
-    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: Satellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Compute actuator command vector for reaction wheels and magnetic torquers.
 
@@ -210,7 +210,7 @@ class MTQ_w_RW(Controller):
         sens : numpy.ndarray
             Raw sensor measurement vector used to reconstruct the magnetic
             field via MTM pseudo-inverse mapping.
-        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
             Satellite model containing inertia and actuator configuration.
         os_hat : :class:`~ADCS.orbits.orbital_state.Orbital_State`
             Estimated orbital state providing geomagnetic field information.

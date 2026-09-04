@@ -1,6 +1,24 @@
 Gyroscopes
 ==========
 
+Tier Legend
+-----------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Tier
+     - Meaning
+   * - ⚪
+     - Representative or simplified gyro layout/defaults.
+   * - 🔵
+     - Hardware identity and axis layout are traceable; error defaults may be representative or assumed.
+   * - 🟣
+     - Blue-tier information plus source-backed measurement noise or accuracy defaults.
+   * - 🟡
+     - Purple-tier information plus source-backed bias, bias-bound, or calibration defaults.
+
 .. list-table::
    :class: sortable-factory
    :header-rows: 1
@@ -13,14 +31,14 @@ Gyroscopes
      - Source
      - Missions
      - Notes
-   * - 🟡
+   * - 🟣
      - BRITE rate sensors
      - ``create_gnb_rate_sensors``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
      - BRITE-Austria
-     - Noise density + bias variation.
-   * - 🔵
+     - Preliminary design specs; bias random walk assumed.
+   * - ⚪
      - ICM-20948 IMU gyros
      - ``create_ICM20948_IMU``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`
@@ -40,14 +58,14 @@ Gyroscopes
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`
      - `doi:10.3390/aerospace10070579 <https://www.mdpi.com/2226-4310/10/7/579>`__
      - LightSail 2
-     - Secondary 3-axis; uncalibrated.
+     - Secondary 3-axis; approximate noise floor.
    * - 🟡
      - ADIS16405 gyros
      - ``create_adis16405_gyros``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_gyro>`
      - `Deep Blue <https://deepblue.lib.umich.edu/bitstream/handle/2027.42/102312/jspringm_1.pdf?sequence=1>`__
      - RAX-1, RAX-2
-     - RAX bias/noise defaults.
+     - RAX noise, bias bound, and RRW defaults.
    * - 🟡
      - Bosch BMX055 gyros
      - ``create_bmx055_gyros``

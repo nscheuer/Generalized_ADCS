@@ -12,7 +12,7 @@ import itertools
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.controller import Controller, MTQ_w_RW_LP
 from ADCS.controller.helpers.quaternion_math import vector_alignment_error
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM
@@ -156,7 +156,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
         \max\!\left(0,\frac{\boldsymbol{\tau}_{\mathrm{ach}}\cdot\hat{\boldsymbol{\tau}}}{\|\boldsymbol{\tau}_{\mathrm{des}}\|}\right).
 
     :param est_sat: Estimated satellite model providing actuator instances and configuration.
-    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
     :param p_gain: Proportional gain used by the parent controller law.
     :type p_gain: float
     :param d_gain: Derivative gain used by the parent controller law.
@@ -169,7 +169,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
     :type h_target: numpy.ndarray | list
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, gamma: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
+    def __init__(self, est_sat: Satellite, p_gain: float, d_gain: float, gamma: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
         r"""
         Initialize the gyroscopically weighted QP torque allocator.
 
@@ -179,7 +179,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
         :math:`W(\boldsymbol{\omega})`.
 
         :param est_sat: Estimated satellite model providing actuators and configuration.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param p_gain: Proportional gain used by the parent control law.
         :type p_gain: float
         :param d_gain: Derivative gain used by the parent control law.
@@ -201,7 +201,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
         self,
         x_hat: State | EstimatorState,
         sens: np.ndarray,
-        est_sat: EstimatedSatellite,
+        est_sat: Satellite,
         os_hat: Orbital_State,
         goal: Goal | None = None,
     ) -> np.ndarray:
@@ -238,7 +238,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
                      MTM readout model.
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite model providing actuators, inertia, and boresight.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param os_hat: Estimated orbital state used by goal reference generation and error models.
         :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goal: Optional goal object providing desired pointing and reference rates.
@@ -375,7 +375,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
 
         return u_out
 
-    def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite, omega: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
+    def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: Satellite, omega: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
         r"""
         Allocate bounded RW and MTQ commands using a gyroscopically weighted least-squares metric.
 
@@ -450,7 +450,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
         :param b_body: Body-frame geomagnetic field vector :math:`\boldsymbol{B}` in tesla.
         :type b_body: numpy.ndarray
         :param est_sat: Estimated satellite model providing actuator instances and limits.
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
         :param omega: Body angular velocity vector :math:`\boldsymbol{\omega}` in rad/s used to form the weighting matrix.
         :type omega: numpy.ndarray
         :return: Tuple of RW commands, MTQ commands, and effectiveness scalar :math:`\alpha`.

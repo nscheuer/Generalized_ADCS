@@ -48,13 +48,15 @@ def create_gnb_rate_sensors(
     Create the nominal BRITE/GNB orthogonal rate-sensor triad.
 
     The BRITE ADCS design gives gyro noise density ``0.05 deg/s/sqrt(Hz)`` and
-    long-term bias variation ``0.2 deg/s``. The factory represents those as
-    per-sample white noise and bias uncertainty defaults in the scalar
-    :class:`~ADCS.satellite_hardware.sensors.Gyro` model.
+    long-term bias variation ``0.2 deg/s``. The factory represents the bias
+    variation as a bounded per-axis bias uncertainty, with ``0.0004
+    deg/s/sqrt(s)`` used as a conservative assumed bias random walk.
     """
     n_axes = len(axes)
     if bias is None:
-        bias = [Bias(bias=0.0, std_bias=0.2 * np.pi / 180.0) for _ in range(n_axes)]
+        bias_bound = 0.2 * np.pi / 180.0
+        std_bias = 0.0004 * np.pi / 180.0
+        bias = [Bias(bias=0.0, std_bias=std_bias, bounds=(-bias_bound, bias_bound)) for _ in range(n_axes)]
     if noise is None:
         noise = [Noise(noise=0.0, std_noise=0.05 * np.pi / 180.0) for _ in range(n_axes)]
 
@@ -94,14 +96,16 @@ def create_intrepid_mainboard_gyros(
     Create the LightSail 2 secondary mainboard gyro triad.
 
     These gyros were uncalibrated and used in modes that did not require
-    accurate attitude knowledge. No source-backed noise or bias values are
-    assigned by default.
+    accurate attitude knowledge. The default ``noise`` uses ``1 deg/s`` per
+    axis as a conservative approximate white-noise floor so estimator
+    measurement covariances remain non-singular. This noise floor is a modeling
+    assumption, not a source-backed LightSail 2 calibration value.
     """
     n_axes = len(axes)
     if bias is None:
         bias = [Bias() for _ in range(n_axes)]
     if noise is None:
-        noise = [Noise() for _ in range(n_axes)]
+        noise = [Noise(noise=0.0, std_noise=1.0 * np.pi / 180.0) for _ in range(n_axes)]
 
     return [Gyro(axis=axes[j], bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(n_axes)]
 
@@ -118,18 +122,18 @@ def create_adis16405_gyros(
     RAX used one ADIS16405 IMU on the attitude determination board.
 
     Default error model provenance:
-        ``bias`` defaults to a Gaussian initial bias with 3 deg/s one-sigma
-        component error, and ``std_bias`` uses the 0.007 deg/s in-run bias
-        stability value. ``noise`` defaults to 0.9 deg/s output-noise RMS.
-        These values are ADIS16405 component characterization values reported
-        for the RAX attitude-determination system; they are not a single fixed
-        RAX flight-estimated bias vector.
+        ``bias`` defaults to a Gaussian turn-on bias with 3 deg/s one-sigma
+        component error, ``std_bias`` uses the reported rate-random-walk
+        ``3.14e-5 rad/s^(3/2)`` value, and the bias is bounded to wander within
+        the reported 0.007 deg/s in-run stability around that sampled turn-on
+        bias. ``noise`` defaults to 0.9 deg/s output-noise RMS. These values are
+        ADIS16405 component characterization values reported for the RAX
+        attitude-determination system; they are not a single fixed RAX
+        flight-estimated bias vector.
 
         The RAX estimator simulation also reported angle-random-walk
-        ``4.89e-4 rad/s^(1/2)`` and rate-random-walk
-        ``3.14e-5 rad/s^(3/2)`` parameters, but those are not represented
-        directly by this scalar white-noise
-        :class:`~ADCS.satellite_hardware.sensors.Gyro` model.
+        ``4.89e-4 rad/s^(1/2)``. That value is not represented directly by this
+        scalar white-noise :class:`~ADCS.satellite_hardware.sensors.Gyro` model.
 
     Source:
         J. C. Springmann, *Satellite Attitude Determination with Low-Cost
@@ -139,8 +143,16 @@ def create_adis16405_gyros(
     n_axes = len(axes)
     if bias is None:
         bias_std = 3.0 * np.pi / 180.0
+        stability = 0.007 * np.pi / 180.0
         e_bias = np.random.normal(0.0, bias_std, size=n_axes)
-        bias = [Bias(bias=e_bias[j], std_bias=0.007 * np.pi / 180.0) for j in range(n_axes)]
+        bias = [
+            Bias(
+                bias=e_bias[j],
+                std_bias=3.14e-5,
+                bounds=(e_bias[j] - stability, e_bias[j] + stability),
+            )
+            for j in range(n_axes)
+        ]
     if noise is None:
         std_noise = 0.9 * np.pi / 180.0
         noise = [Noise(noise=0.0, std_noise=std_noise) for _ in range(n_axes)]

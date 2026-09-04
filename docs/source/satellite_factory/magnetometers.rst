@@ -1,6 +1,24 @@
 Magnetometers
 =============
 
+Tier Legend
+-----------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Tier
+     - Meaning
+   * - ⚪
+     - Representative or simplified magnetometer layout/defaults.
+   * - 🔵
+     - Hardware identity and measurement layout are traceable; error defaults may be representative or assumed.
+   * - 🟣
+     - Blue-tier information plus source-backed measurement noise or accuracy defaults.
+   * - 🟡
+     - Purple-tier information plus source-backed bias, bias-bound, or calibration defaults.
+
 .. list-table::
    :class: sortable-factory
    :header-rows: 1
@@ -13,13 +31,13 @@ Magnetometers
      - Source
      - Missions
      - Notes
-   * - 🟡
+   * - 🟣
      - BRITE 3-axis magnetometer
      - ``create_gnb_magnetometer``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_MTM>`
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2004/All2004/24/>`__
      - BRITE-Austria
-     - Range, noise, bias known.
+     - Preliminary design specs; bias random walk assumed.
    * - 🔵
      - ISIS magnetometer triad
      - ``create_isis_magnetometer``
@@ -55,7 +73,7 @@ Magnetometers
      - `doi:10.3390/aerospace10070579 <https://www.mdpi.com/2226-4310/10/7/579>`__
      - LightSail 2
      - 2x 3-axis; noise known.
-   * - 🟡
+   * - 🟣
      - MicroMag3 magnetometers
      - ``create_micromag3_magnetometers``
      - :doc:`Factory <../ADCS.satellite_factory.sensors.create_cubesat_MTM>`
