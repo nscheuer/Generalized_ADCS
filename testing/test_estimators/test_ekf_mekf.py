@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from ADCS.estimators.attitude_estimators import EKF, MEKF
+from ADCS.estimators.attitude_estimators.attitude_estimator import AttitudeEstimator
 from ADCS.estimators.process_model import propagate_state
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
@@ -307,3 +308,59 @@ def test_first_generation_filters_explicitly_reject_augmented_states():
 
     with pytest.raises(NotImplementedError, match="does not yet support estimated biases"):
         MEKF(satellite, state, dt=0.1)
+
+
+# --- chart configuration ---------------------------------------------------
+
+
+def _identity_state(size: int = 6) -> EstimatorState:
+    return EstimatorState(
+        w=np.zeros(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        cov=np.eye(size) * 1.0e-2,
+        int_cov=np.zeros((size, size)),
+    )
+
+
+@pytest.mark.parametrize(
+    "covariance_coordinates, correction_mode, measurement_quaternion_mode",
+    [
+        ("tangent", "mrp", "quaternion_vector"),  # H in one chart, P in another
+        ("tangent", "full_quaternion", "quaternion_vector"),
+        ("full", "mrp", "mrp"),
+        ("full", "full_quaternion", "full_quaternion"),  # residuals are always minimal
+        ("tangent", "bogus", "bogus"),
+    ],
+)
+def test_attitude_estimator_rejects_inconsistent_charts_at_construction(
+    covariance_coordinates, correction_mode, measurement_quaternion_mode
+):
+    size = 7 if covariance_coordinates == "full" else 6
+    with pytest.raises(ValueError):
+        AttitudeEstimator(
+            _tracker_satellite(),
+            _identity_state(size),
+            dt=1.0,
+            covariance_coordinates=covariance_coordinates,
+            correction_mode=correction_mode,
+            measurement_quaternion_mode=measurement_quaternion_mode,
+        )
+
+
+@pytest.mark.parametrize("mode", ["rotation_vector", "mrp", "two_mrp", "cayley"])
+def test_mekf_accepts_every_three_parameter_chart(mode):
+    estimator = MEKF(_tracker_satellite(), _identity_state(), dt=1.0, quaternion_mode=mode)
+    assert estimator.correction_mode == mode
+    assert estimator.measurement_quaternion_mode == mode
+
+
+def test_mekf_rejects_full_quaternion_chart_at_construction():
+    with pytest.raises(ValueError):
+        MEKF(_tracker_satellite(), _identity_state(), dt=1.0, quaternion_mode="full_quaternion")
+
+
+def test_chart_configuration_is_read_only():
+    estimator = MEKF(_tracker_satellite(), _identity_state(), dt=1.0)
+    for name in ("covariance_coordinates", "correction_mode", "measurement_quaternion_mode"):
+        with pytest.raises(AttributeError):
+            setattr(estimator, name, "mrp")

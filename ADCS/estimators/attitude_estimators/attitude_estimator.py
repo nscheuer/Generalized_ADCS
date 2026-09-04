@@ -7,17 +7,19 @@ from the legacy UKF-era ``Attitude_Estimator`` class.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, get_args
 
 import numpy as np
 
 from ADCS.covariance import Covariance
 from ADCS.estimators.process_model import propagate_state
 from ADCS.estimators.process_noise import discretize_process_noise
-from ADCS.state import EstimatorState, State
+from ADCS.state import EstimatorState, QuaternionMode
 
 
 __all__ = ["AttitudeEstimator"]
+
+_QUATERNION_MODES = tuple(get_args(QuaternionMode))
 
 
 class AttitudeEstimator:
@@ -45,18 +47,36 @@ class AttitudeEstimator:
             raise ValueError("dt must be finite and non-negative")
         if covariance_coordinates not in ("full", "tangent"):
             raise ValueError("covariance_coordinates must be 'full' or 'tangent'")
+        self._validate_charts(
+            covariance_coordinates, correction_mode, measurement_quaternion_mode
+        )
 
         self.satellite = satellite
         self.dt = dt
-        self.covariance_coordinates = covariance_coordinates
-        self.correction_mode = correction_mode
-        self.measurement_quaternion_mode = measurement_quaternion_mode
+        self._covariance_coordinates = covariance_coordinates
+        self._correction_mode = correction_mode
+        self._measurement_quaternion_mode = measurement_quaternion_mode
         self._validate_state(state)
         self.unmodeled_dynamics_psd = np.array(
             unmodeled_dynamics_psd, dtype=float, copy=True
         )
         self._state = self._normalize_initial_state(state)
         self._diagnostics: dict[str, np.ndarray] = {}
+
+    @property
+    def covariance_coordinates(self) -> str:
+        """Coordinates the covariance is kept in: ``"full"`` (EKF) or ``"tangent"`` (MEKF)."""
+        return self._covariance_coordinates
+
+    @property
+    def correction_mode(self) -> str:
+        """Attitude chart used for the transition matrix, the correction, and the reset."""
+        return self._correction_mode
+
+    @property
+    def measurement_quaternion_mode(self) -> str:
+        """Attitude chart used for quaternion residuals and their Jacobians."""
+        return self._measurement_quaternion_mode
 
     @property
     def state(self) -> EstimatorState:
@@ -74,6 +94,47 @@ class AttitudeEstimator:
         self._state = self._normalize_initial_state(state)
         self._diagnostics = {}
         return self.state
+
+    @staticmethod
+    def _validate_charts(
+        covariance_coordinates: str,
+        correction_mode: str,
+        measurement_quaternion_mode: str,
+    ) -> None:
+        """Reject chart combinations that would silently mix conventions.
+
+        The measurement Jacobian is written in ``measurement_quaternion_mode``
+        and applied to a covariance kept in ``correction_mode``. With a tangent
+        covariance those are only interchangeable when they name the same chart;
+        with a full covariance the correction must be the four-element block.
+        """
+        for name, mode in (
+            ("correction_mode", correction_mode),
+            ("measurement_quaternion_mode", measurement_quaternion_mode),
+        ):
+            if mode not in _QUATERNION_MODES:
+                raise ValueError(f"{name} must be one of {_QUATERNION_MODES}, got {mode!r}")
+        if measurement_quaternion_mode == "full_quaternion":
+            raise ValueError(
+                "measurement_quaternion_mode must be a three-parameter attitude chart; "
+                "quaternion residuals are always minimal"
+            )
+        if covariance_coordinates == "full":
+            if correction_mode != "full_quaternion":
+                raise ValueError(
+                    "a full covariance must be corrected with "
+                    f"correction_mode='full_quaternion', got {correction_mode!r}"
+                )
+        elif correction_mode == "full_quaternion":
+            raise ValueError(
+                "a tangent covariance cannot be corrected with correction_mode='full_quaternion'"
+            )
+        elif correction_mode != measurement_quaternion_mode:
+            raise ValueError(
+                f"correction_mode {correction_mode!r} and measurement_quaternion_mode "
+                f"{measurement_quaternion_mode!r} must match when the covariance is kept "
+                "in tangent coordinates"
+            )
 
     def _validate_state(self, state: EstimatorState) -> None:
         """Validate the state/hardware contract shared by reset and construction."""
