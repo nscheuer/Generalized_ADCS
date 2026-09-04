@@ -89,8 +89,12 @@ def _tangent_map_rate(
             f"state_rate must have shape ({state.full_size},), got {state_rate.shape}"
         )
     q_rate = state_rate[state.slice("attitude", coordinates="full")]
+    tangent = state.tangent_map(
+        quaternion_mode=quaternion_mode,
+        quaternion_order=quaternion_order,
+    )
     if np.linalg.norm(q_rate) == 0.0:
-        return np.zeros((state.full_size, state.tangent_size))
+        return np.zeros_like(tangent)
 
     step = 1.0e-7
     plus = state.copy()
@@ -164,14 +168,22 @@ def error_state_transfer(
     orbital_state: Any,
     *,
     quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
+    source_quaternion_mode: str | None = None,
+    target_quaternion_mode: str | None = None,
     quaternion_order: str = State.DEFAULT_QUATERNION_ORDER,
 ) -> np.ndarray:
     r"""Return the continuous local error-state transfer matrix ``F``.
 
-    ``F`` is chart-local at ``state``; it must be rebuilt after the estimate's
-    linearization point or quaternion chart changes.  Because the quaternion
-    tangent map moves with the nominal attitude, the returned matrix includes
-    the chart-motion term ``G_dot``.
+    By default the source and target charts are both ``quaternion_mode``.
+    ``source_quaternion_mode`` and ``target_quaternion_mode`` may be supplied
+    independently to build rectangular coordinate-transition Jacobians such as
+    tangent-to-full-quaternion or full-quaternion-to-tangent.  The returned
+    matrix maps a perturbation expressed in the source chart to a perturbation
+    rate expressed in the target chart, evaluated at ``state``.
+
+    Because the target tangent map moves with the nominal attitude, the matrix
+    includes the target chart-motion term ``G_dot``.  For matching source and
+    target charts this reduces to the familiar ``G^\dagger(A G - \dot G)``.
 
     ``EstimatedSatellite.dynJacCore`` stores derivative variables in rows and
     derivative outputs in columns.  This function converts that historical
@@ -229,19 +241,22 @@ def error_state_transfer(
                 f"dynamics_core must return shape ({base},), got {state_rate.shape}"
             )
 
-    tangent = state.tangent_map(
-        quaternion_mode=quaternion_mode, quaternion_order=quaternion_order
+    source_mode = quaternion_mode if source_quaternion_mode is None else source_quaternion_mode
+    target_mode = quaternion_mode if target_quaternion_mode is None else target_quaternion_mode
+    source_map = state.tangent_map(
+        quaternion_mode=source_mode, quaternion_order=quaternion_order
     )
-    tangent_pinv = state.tangent_pinv(
-        quaternion_mode=quaternion_mode, quaternion_order=quaternion_order
+    target_pinv = state.tangent_pinv(
+        quaternion_mode=target_mode, quaternion_order=quaternion_order
     )
-    tangent_rate = _tangent_map_rate(
+    target_rate = _tangent_map_rate(
         state,
         np.pad(state_rate, (0, state.full_size - state_rate.size)),
-        quaternion_mode=quaternion_mode,
+        quaternion_mode=target_mode,
         quaternion_order=quaternion_order,
     )
-    return tangent_pinv @ (full @ tangent - tangent_rate)
+    source_to_target = target_pinv @ source_map
+    return target_pinv @ (full @ source_map - target_rate @ source_to_target)
 
 
 def continuous_error_state_model(
@@ -328,33 +343,46 @@ def discretize_process_noise(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Build and Van Loan-discretize the shared attitude process-noise model.
 
-    The returned transition :math:`\\Phi` is chart-local at ``state``.
-    For ``full_quaternion``, pass the propagated ``final_state`` so the initial
-    and final quaternion-normalization differentials are both represented.
+    The dynamics are integrated in ``source_quaternion_mode`` coordinates
+    (falling back to ``quaternion_mode``), then mapped into
+    ``target_quaternion_mode`` coordinates at ``final_state``.  This supports
+    all source/target combinations between reduced attitude charts and the
+    additive full-quaternion chart.
     """
+    source_mode = kwargs.pop(
+        "source_quaternion_mode",
+        kwargs.get("quaternion_mode", State.DEFAULT_QUATERNION_MODE),
+    )
+    target_mode = kwargs.pop("target_quaternion_mode", source_mode)
+    kwargs["quaternion_mode"] = source_mode
+
     transfer, continuous_psd = continuous_error_state_model(
         state, satellite, control, orbital_state, **kwargs
     )
     transition, discrete_psd = van_loan_discretize(transfer, continuous_psd, dt)
 
-    # A normalized four-component quaternion has only three independent
-    # perturbations.  ``expm(F dt)`` is necessarily the identity on F's null
-    # direction, whereas applying an additive quaternion perturbation first
-    # normalizes it and therefore removes that radial component.  Include the
-    # initial normalization differential explicitly so Phi is the Jacobian of
-    # the operation the additive EKF actually performs.
-    if kwargs.get("quaternion_mode", State.DEFAULT_QUATERNION_MODE) == "full_quaternion":
-        if final_state is None:
-            final_state = state
-        if not isinstance(final_state, EstimatorState):
-            raise TypeError(
-                f"final_state must be an EstimatorState, got {type(final_state).__name__}"
-            )
-        if final_state.full_size != state.full_size:
-            raise ValueError("state and final_state must have matching layouts")
+    if final_state is None:
+        final_state = state
+    if not isinstance(final_state, EstimatorState):
+        raise TypeError(
+            f"final_state must be an EstimatorState, got {type(final_state).__name__}"
+        )
+    if final_state.full_size != state.full_size:
+        raise ValueError("state and final_state must have matching layouts")
+
+    if source_mode == "full_quaternion":
         initial_projection = state.normalization_jacobian()
-        final_projection = final_state.normalization_jacobian()
-        transition = final_projection @ transition @ initial_projection
-        discrete_psd = final_projection @ discrete_psd @ final_projection.T
+    else:
+        initial_projection = np.eye(transition.shape[1])
+    final_source_to_target = final_state.tangent_pinv(
+        quaternion_mode=target_mode,
+        quaternion_order=kwargs.get("quaternion_order", State.DEFAULT_QUATERNION_ORDER),
+    ) @ final_state.tangent_map(
+        quaternion_mode=source_mode,
+        quaternion_order=kwargs.get("quaternion_order", State.DEFAULT_QUATERNION_ORDER),
+    )
+
+    transition = final_source_to_target @ transition @ initial_projection
+    discrete_psd = final_source_to_target @ discrete_psd @ final_source_to_target.T
 
     return transition, discrete_psd
