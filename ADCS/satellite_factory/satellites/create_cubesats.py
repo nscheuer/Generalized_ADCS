@@ -452,12 +452,13 @@ def create_brite_austria(estimated: bool = False):
     mtms: List[MTM] = create_gnb_magnetometer(estimate_bias=estimated)
     suns = create_gnb_sun_sensors(estimate_bias=estimated)
     star_trackers = [create_aeroastro_mst(estimate_bias=estimated)]
+    disturbances = _box_environment_disturbances(np.array([0.2, 0.2, 0.2]))
     boresight = np.array([0, 0, 1])
 
     if estimated:
-        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, sensors=gyros+mtms+suns+star_trackers, actuators=rws+mtqs, boresight=boresight)
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=gyros+mtms+suns+star_trackers, actuators=rws+mtqs, boresight=boresight)
     else:
-        return Satellite(mass=mass, COM=COM, J_0=J, sensors=gyros+mtms+suns+star_trackers, actuators=rws+mtqs, boresight=boresight)
+        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=gyros+mtms+suns+star_trackers, actuators=rws+mtqs, boresight=boresight)
 
 
 def create_lightsail2(estimated: bool = False):
@@ -486,12 +487,13 @@ def create_lightsail2(estimated: bool = False):
         + create_intrepid_mainboard_gyros(estimate_bias=estimated)
     )
     suns = create_elmos_sun_sensors(estimate_bias=estimated)
+    disturbances = _environment_disturbances(_lightsail2_geometry_faces())
     boresight = np.array([0, 0, 1])
 
     if estimated:
-        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=rw+mtqs, boresight=boresight)
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=rw+mtqs, boresight=boresight)
     else:
-        return Satellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=rw+mtqs, boresight=boresight)
+        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=disturbances, sensors=mtms+gyros+suns, actuators=rw+mtqs, boresight=boresight)
 
 
 def create_estcube1_cubesat(estimated: bool = False):

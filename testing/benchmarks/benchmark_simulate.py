@@ -374,7 +374,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Benchmark ADCS.simulate.simulate.")
     parser.add_argument("--compare", action="store_true", help="fail if calibrated timings regress versus baseline")
     parser.add_argument("--update-baseline", action="store_true", help="replace the checked-in baseline with this run")
-    parser.add_argument("--samples", type=int, default=3, help="median sample count per benchmark")
+    parser.add_argument("--samples", type=int, default=5, help="median sample count per benchmark")
     parser.add_argument("--output", type=Path, default=RESULT_PATH, help="where to write current benchmark JSON")
     parser.add_argument("--no-color", action="store_true", help="disable colored ratio output")
     return parser.parse_args()

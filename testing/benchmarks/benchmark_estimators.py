@@ -420,7 +420,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Benchmark ADCS estimator paths.")
     parser.add_argument("--compare", action="store_true")
     parser.add_argument("--update-baseline", action="store_true")
-    parser.add_argument("--samples", type=int, default=3)
+    parser.add_argument("--samples", type=int, default=5)
     parser.add_argument("--output", type=Path, default=RESULT_PATH)
     parser.add_argument("--no-color", action="store_true")
     return parser.parse_args()

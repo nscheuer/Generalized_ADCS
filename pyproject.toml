@@ -204,6 +204,13 @@ packages = [
 "ADCS" = ["py.typed"]
 
 [tool.pytest.ini_options]
+testpaths = ["testing"]
+norecursedirs = [
+    ".git",
+    ".pytest_cache",
+    "SALTRO/external",
+    "venv",
+]
 addopts = [
     "-ra",
     "--tb=short",
