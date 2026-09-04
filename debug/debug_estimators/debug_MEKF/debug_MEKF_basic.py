@@ -1,4 +1,4 @@
-"""Run the basic attitude-estimation scenario with the additive EKF."""
+"""Run the basic attitude-estimation scenario with the multiplicative EKF."""
 
 from __future__ import annotations
 
@@ -7,13 +7,14 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.linalg import block_diag
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 import ADCS as ADCS
 from ADCS.helpers.plotting.plot_estimator import plot_error_and_sun
 
 
-class SimulationEKF(ADCS.EKF):
+class SimulationMEKF(ADCS.MEKF):
     """Compatibility shim for the legacy simulation estimator interface."""
 
     def __init__(self, *args, **kwargs) -> None:
@@ -59,11 +60,17 @@ def main() -> None:
     x_hat = ADCS.EstimatorState(
         w=np.zeros(3),
         q=[1.0, 0.0, 0.0, 0.0],
-        cov=np.diag([0.01**2, 0.01**2, 0.01**2, 0.0, 1.0, 1.0, 1.0]),
-        int_cov=np.diag([1.0e-16, 1.0e-16, 1.0e-16, 0.0, 1.0e-8, 1.0e-8, 1.0e-8]),
+        cov=block_diag(
+            np.eye(3) * 0.01**2,
+            np.eye(3),
+        ),
+        int_cov=block_diag(
+            np.eye(3) * 1.0e-16,
+            np.eye(3) * 1.0e-8,
+        ),
     )
 
-    estimator = SimulationEKF(
+    estimator = SimulationMEKF(
         est_satellite,
         x_hat,
         dt=dt,
@@ -91,7 +98,7 @@ def main() -> None:
         results,
         ADCS.plots.AttitudePlot(sources=["real", "estimated"]),
         layout=(1, 1),
-        title="EKF Estimator: Gyro + MTM + SunPair",
+        title="MEKF Estimator: Gyro + MTM + SunPair",
     )
 
     ADCS.plot(
@@ -101,7 +108,7 @@ def main() -> None:
         ADCS.plots.SensorsPlot(title="Sensor Readings", sources=["real", "clean"]),
         ADCS.plots.IlluminationPlot(),
         layout=(2, 2),
-        title="EKF Estimator: Gyro + MTM + SunPair",
+        title="MEKF Estimator: Gyro + MTM + SunPair",
     )
 
     run = results.first()
