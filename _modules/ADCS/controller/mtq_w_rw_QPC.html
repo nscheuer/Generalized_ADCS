@@ -591,7 +591,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Goal</span><span class="p">,</span> <span class="n">No_Goal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller</span><span class="w"> </span><span class="kn">import</span> <span class="n">Controller</span><span class="p">,</span> <span class="n">MTQ_w_RW_LP</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller.helpers.quaternion_math</span><span class="w"> </span><span class="kn">import</span> <span class="n">vector_alignment_error</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.actuators</span><span class="w"> </span><span class="kn">import</span> <span class="n">MTQ</span><span class="p">,</span> <span class="n">RW</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">MTM</span>
@@ -719,7 +719,7 @@
 <span class="sd">        {\|\boldsymbol{\tau}_{\mathrm{des}}\|}\right).</span>
 
 <span class="sd">    :param est_sat: Estimated satellite model providing actuator instances and configuration.</span>
-<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">    :param p_gain: Proportional gain used by the parent controller law.</span>
 <span class="sd">    :type p_gain: float</span>
 <span class="sd">    :param d_gain: Derivative gain used by the parent controller law.</span>
@@ -730,7 +730,7 @@
 <span class="sd">    :type h_target: numpy.ndarray | list</span>
 
 <span class="sd">    """</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">p_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">d_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">c_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_target</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">p_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">d_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">c_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_target</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the constrained QP torque allocator.</span>
 
@@ -741,7 +741,7 @@
 <span class="sd">        :meth:`~ADCS.controller.MTQ_w_RW_QPC.find_u`.</span>
 
 <span class="sd">        :param est_sat: Estimated satellite model providing actuators and configuration.</span>
-<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param p_gain: Proportional gain used by the parent control law.</span>
 <span class="sd">        :type p_gain: float</span>
 <span class="sd">        :param d_gain: Derivative gain used by the parent control law.</span>
@@ -762,7 +762,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span>
         <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-        <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
+        <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span>
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -799,7 +799,7 @@
 <span class="sd">                     MTM readout model.</span>
 <span class="sd">        :type sens: numpy.ndarray</span>
 <span class="sd">        :param est_sat: Estimated satellite model providing actuators, inertia, and boresight.</span>
-<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param os_hat: Estimated orbital state used by goal reference generation and error models.</span>
 <span class="sd">        :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :param goal: Optional goal object providing desired pointing and reference rates.</span>
@@ -946,7 +946,7 @@
 
 <div class="viewcode-block" id="MTQ_w_RW_QPC.allocate_max_torque_in_direction">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_QPC.html#ADCS.controller.mtq_w_rw_QPC.MTQ_w_RW_QPC.allocate_max_torque_in_direction">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">allocate_max_torque_in_direction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_des</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b_body</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">omega</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">allocate_max_torque_in_direction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_des</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b_body</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">omega</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Allocate bounded RW and MTQ commands with a linear power constraint.</span>
 
@@ -1006,7 +1006,7 @@
 <span class="sd">        :param b_body: Body-frame geomagnetic field vector :math:`\boldsymbol{B}` in tesla.</span>
 <span class="sd">        :type b_body: numpy.ndarray</span>
 <span class="sd">        :param est_sat: Estimated satellite model providing actuator instances and limits.</span>
-<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param omega: Body angular velocity vector :math:`\boldsymbol{\omega}` in rad/s used by the power constraint.</span>
 <span class="sd">        :type omega: numpy.ndarray</span>
 <span class="sd">        :param h: Wheel momentum state vector used by the allocator state-dependent constraint terms.</span>

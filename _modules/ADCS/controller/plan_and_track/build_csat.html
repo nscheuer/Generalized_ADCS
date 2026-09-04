@@ -586,7 +586,7 @@
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller.plan_and_track</span><span class="w"> </span><span class="kn">import</span> <span class="n">PlannerSettings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.actuators</span><span class="w"> </span><span class="kn">import</span> <span class="n">Actuator</span><span class="p">,</span> <span class="n">MTQ</span><span class="p">,</span> <span class="n">RW</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller.helpers.optional_dependencies</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_trajectory_planner_modules</span>
 
@@ -808,7 +808,7 @@
 
 <div class="viewcode-block" id="build_cpp_satellite">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.build_cpp_satellite">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">build_cpp_satellite</span><span class="p">(</span><span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pysat</span><span class="o">.</span><span class="n">Satellite</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_cpp_satellite</span><span class="p">(</span><span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pysat</span><span class="o">.</span><span class="n">Satellite</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Construct a C++ planner-compatible satellite model from a Python estimated satellite.</span>
 

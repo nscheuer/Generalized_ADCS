@@ -592,7 +592,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">InitVar</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.disturbances</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dipole_Disturbance</span><span class="p">,</span> <span class="n">Prop_Disturbance</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.SALTRO_pass_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">PassConfig</span>
@@ -690,10 +691,10 @@
 <span class="sd">    and stores associated model coefficients and fixed torques.</span>
 
 <span class="sd">    :param est_sat: Estimated satellite used to initialize disturbance terms.</span>
-<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">    """</span>
 
-    <span class="n">est_sat</span><span class="p">:</span> <span class="n">InitVar</span><span class="p">[</span><span class="n">EstimatedSatellite</span><span class="p">]</span>
+    <span class="n">est_sat</span><span class="p">:</span> <span class="n">InitVar</span><span class="p">[</span><span class="n">Satellite</span><span class="p">]</span>
 
     <span class="n">plan_for_aero</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">plan_for_prop</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
@@ -715,7 +716,7 @@
 <span class="w">        </span><span class="sd">"""Initialize disturbance vectors from the estimated satellite model.</span>
 
 <span class="sd">        :param est_sat: Estimated satellite containing disturbance instances.</span>
-<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
 <span class="sd">        """</span>
@@ -759,7 +760,7 @@
 
 <span class="sd">    :param est_sat: Estimated satellite model used to derive constraints and</span>
 <span class="sd">        disturbance defaults.</span>
-<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">    :param init_traj: Initial trajectory generator settings.</span>
 <span class="sd">    :type init_traj: :class:`InitTrajConfig`</span>
 <span class="sd">    :param tvlqr: TVLQR gain-generation settings.</span>
@@ -768,7 +769,7 @@
 <span class="sd">    :type passes: list[:class:`PassConfig`]</span>
 <span class="sd">    """</span>
 
-    <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span>
+    <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span>
 
     <span class="c1"># Constraints</span>
     <span class="n">constraints</span><span class="p">:</span> <span class="n">ConstraintConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>

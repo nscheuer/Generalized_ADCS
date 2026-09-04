@@ -584,7 +584,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Goal</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.actuators</span><span class="w"> </span><span class="kn">import</span> <span class="n">Actuator</span>
@@ -610,18 +610,25 @@
 <span class="sd">    :meth:`~ADCS.controller.controller.Controller.find_u`.</span>
 
 <span class="sd">    """</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initializes the base controller.</span>
 
 <span class="sd">        This constructor provides a common initialization entry point for all</span>
 <span class="sd">        controller implementations. Derived controllers may extract and store</span>
 <span class="sd">        satellite parameters, actuator layouts, or sensor configurations from</span>
-<span class="sd">        the estimated satellite model.</span>
+<span class="sd">        the satellite model.</span>
 
-<span class="sd">        :param est_sat: Estimated satellite model containing inertia, actuators,</span>
+<span class="sd">        Controllers only read :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
+<span class="sd">        level members (inertia, actuator and sensor layout), so a plain</span>
+<span class="sd">        ``Satellite`` is accepted. Passing one models the perfect-state-knowledge</span>
+<span class="sd">        case, where the control cycle runs without an estimator in the loop.</span>
+<span class="sd">        An :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        is also accepted, since it is a subclass.</span>
+
+<span class="sd">        :param est_sat: Satellite model containing inertia, actuators,</span>
 <span class="sd">                        and sensors</span>
-<span class="sd">        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite</span>
+<span class="sd">        :type est_sat: ~ADCS.satellite_hardware.satellite.satellite.Satellite</span>
 <span class="sd">        :param kwargs: Optional keyword arguments passed to derived controllers</span>
 <span class="sd">        :type kwargs: dict</span>
 <span class="sd">        :return: None</span>
@@ -668,7 +675,7 @@
 
 <div class="viewcode-block" id="Controller.find_u">
 <a class="viewcode-back" href="../../../ADCS.controller.controller.html#ADCS.controller.controller.Controller.find_u">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Computes actuator command inputs that satisfy the control objective.</span>
 
@@ -697,7 +704,7 @@
 <span class="sd">        :param sens: Flattened sensor measurement vector</span>
 <span class="sd">        :type sens: numpy.ndarray</span>
 <span class="sd">        :param est_sat: Estimated satellite model providing hardware properties</span>
-<span class="sd">        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite</span>
+<span class="sd">        :type est_sat: ~ADCS.satellite_hardware.satellite.satellite.Satellite</span>
 <span class="sd">        :param os_hat: Estimated orbital state</span>
 <span class="sd">        :type os_hat: ~ADCS.orbits.orbital_state.Orbital_State</span>
 <span class="sd">        :param goal: Optional mission goal definition</span>

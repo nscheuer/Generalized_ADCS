@@ -646,7 +646,7 @@ with the geomagnetic field:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite model containing inertia properties, actuator
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Estimated satellite model containing inertia properties, actuator
 geometry, and sensor configuration.</p></li>
 <li><p><strong>p_gain</strong> (<em>float</em>) – Proportional gain <span class="math notranslate nohighlight">\(K_p\)</span> applied to the quaternion error.</p></li>
 <li><p><strong>d_gain</strong> (<em>float</em>) – Derivative gain <span class="math notranslate nohighlight">\(K_d\)</span> applied to angular rate error.</p></li>
@@ -716,7 +716,7 @@ M_{\text{rw}} \boldsymbol{\tau}_{\text{rw}}.\]</div>
 quaternion attitude, and reaction wheel momentum states.</p></li>
 <li><p><strong>sens</strong> (<em>numpy.ndarray</em>) – Raw sensor measurement vector used to reconstruct the magnetic
 field via MTM pseudo-inverse mapping.</p></li>
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Satellite model containing inertia and actuator configuration.</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Satellite model containing inertia and actuator configuration.</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Estimated orbital state providing geomagnetic field information.</p></li>
 <li><p><strong>goal</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Goal</span></code>, optional) – Guidance goal object providing reference attitude and angular
 rate.</p></li>

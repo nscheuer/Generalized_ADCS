@@ -750,7 +750,7 @@ the method returns zeros and <span class="math notranslate nohighlight">\(\alpha
 <dd class="field-odd"><p>Estimated satellite providing the RW and MTQ actuator sets and limits.</p>
 </dd>
 <dt class="field-even">type est_sat<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a></p>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a></p>
 </dd>
 <dt class="field-odd">return<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tuple <code class="docutils literal notranslate"><span class="pre">(u_rw_cmd,</span> <span class="pre">u_mtq_cmd,</span> <span class="pre">alpha)</span></code> where <code class="docutils literal notranslate"><span class="pre">u_rw_cmd</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(N_rw,)</span></code>,
@@ -766,7 +766,7 @@ the method returns zeros and <span class="math notranslate nohighlight">\(\alpha
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tau_des</strong> (<em>ndarray</em>)</p></li>
 <li><p><strong>b_body</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -791,7 +791,7 @@ actuator’s <code class="docutils literal notranslate"><span class="pre">u_max<
 <li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a><em> | </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>ADCS.state.EstimatorState</em></a>) – Estimated state containing body rates in <code class="docutils literal notranslate"><span class="pre">w</span></code>, the attitude
 quaternion in <code class="docutils literal notranslate"><span class="pre">q</span></code>, and reaction-wheel momentum in <code class="docutils literal notranslate"><span class="pre">h</span></code>.</p></li>
 <li><p><strong>sens</strong> (<em>numpy.ndarray</em>) – Raw sensor vector used to estimate the body magnetic field via the MTM model.</p></li>
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite object providing hardware configuration and inertia.</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Estimated satellite object providing hardware configuration and inertia.</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Estimated orbital state used by the goal to compute reference vectors and rates.</p></li>
 <li><p><strong>goal</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Goal</span></code> | None) – Pointing goal. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, the controller uses <code class="xref py py-class docutils literal notranslate"><span class="pre">No_Goal</span></code>.</p></li>
 </ul>
@@ -893,7 +893,7 @@ the RW torque-to-command mapping built in the constructor and then saturated to 
 <dd class="field-odd"><p>Estimated satellite object providing actuators and inertia.</p>
 </dd>
 <dt class="field-even">type est_sat<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a></p>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a></p>
 </dd>
 <dt class="field-odd">param os_hat<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Estimated orbital state (not required by the current desaturation logic but included for interface compatibility).</p>
@@ -920,7 +920,7 @@ the RW torque-to-command mapping built in the constructor and then saturated to 
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em> | </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a>)</p></li>
 <li><p><strong>sens</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>)</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
 <li><p><strong>goal</strong> (<a class="reference internal" href="ADCS.CONOPS.goals.goal.html#ADCS.CONOPS.goals.goal.Goal" title="ADCS.CONOPS.goals.goal.Goal"><em>Goal</em></a><em> | </em><em>None</em>)</p></li>
 </ul>
@@ -1019,7 +1019,7 @@ clipping of RW and MTQ channels.</p>
 <dd class="field-odd"><p>Estimated satellite object containing actuators, inertia, and boresight configuration.</p>
 </dd>
 <dt class="field-even">type est_sat<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a></p>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a></p>
 </dd>
 <dt class="field-odd">param os_hat<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Estimated orbital state used by the goal to define reference vectors and rates.</p>
@@ -1047,7 +1047,7 @@ desaturation contribution that fits within remaining authority.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em> | </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a>)</p></li>
 <li><p><strong>sens</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>)</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
 <li><p><strong>goal</strong> (<a class="reference internal" href="ADCS.CONOPS.goals.goal.html#ADCS.CONOPS.goals.goal.Goal" title="ADCS.CONOPS.goals.goal.Goal"><em>Goal</em></a>)</p></li>
 </ul>
@@ -1172,7 +1172,7 @@ the plotting primitive.</p>
 <dd class="field-odd"><p>Estimated satellite providing actuator configuration and limits.</p>
 </dd>
 <dt class="field-even">type est_sat<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a></p>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a></p>
 </dd>
 <dt class="field-odd">return<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1187,7 +1187,7 @@ the plotting primitive.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tau_des</strong> (<em>ndarray</em>)</p></li>
 <li><p><strong>b_body</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1200,7 +1200,7 @@ the plotting primitive.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>)</p></li>
 <li><p><strong>p_gain</strong> (<em>float</em>)</p></li>
 <li><p><strong>d_gain</strong> (<em>float</em>)</p></li>
 <li><p><strong>c_gain</strong> (<em>float</em>)</p></li>

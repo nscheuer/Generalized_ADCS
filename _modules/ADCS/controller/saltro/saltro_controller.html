@@ -612,7 +612,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbit</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.actuators</span><span class="w"> </span><span class="kn">import</span> <span class="n">MTQ</span><span class="p">,</span> <span class="n">RW</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_saltro_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Ensure the SALTRO build directory is available on ``sys.path``.</span>
@@ -666,16 +666,16 @@
 
 <span class="sd">    :param est_sat: Estimated satellite model used for constraints and actuator</span>
 <span class="sd">        definitions.</span>
-<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">    :param planner_settings: SALTRO planner settings bundle.</span>
 <span class="sd">    :type planner_settings: :class:`~ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings`</span>
 <span class="sd">    """</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Construct the SALTRO controller with no active trajectory.</span>
 
 <span class="sd">        :param est_sat: Estimated satellite model used by the planner.</span>
-<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param planner_settings: Planner and constraint settings for SALTRO.</span>
 <span class="sd">        :type planner_settings: :class:`~ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings`</span>
 <span class="sd">        :return: None</span>
@@ -882,7 +882,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span>
         <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-        <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
+        <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span>
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">goal</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Goal</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
@@ -901,7 +901,7 @@
 <span class="sd">        :param sens: Sensor vector (accepted for interface compatibility).</span>
 <span class="sd">        :type sens: numpy.ndarray</span>
 <span class="sd">        :param est_sat: Estimated satellite (accepted for interface compatibility).</span>
-<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param os_hat: Orbital state carrying the current J2000 time.</span>
 <span class="sd">        :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :param goal: Active goal (accepted for interface compatibility).</span>

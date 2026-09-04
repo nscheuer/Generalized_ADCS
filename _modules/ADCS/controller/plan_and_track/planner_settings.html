@@ -585,7 +585,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller.plan_and_track.planner_subsettings</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolverPassConfig</span><span class="p">,</span> <span class="n">CostWeights</span><span class="p">,</span> <span class="n">InitTrajConfig</span><span class="p">,</span> <span class="n">ConvergenceConfig</span><span class="p">,</span> <span class="n">AugLagConfig</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.disturbances</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dipole_Disturbance</span><span class="p">,</span> <span class="n">Prop_Disturbance</span><span class="p">,</span> <span class="n">General_Disturbance</span>
 
 
@@ -756,7 +756,7 @@
 <span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> 
-            <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> 
+            <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> 
             <span class="n">dt_control</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
             <span class="n">pass1_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SolverPassConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">pass2_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SolverPassConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

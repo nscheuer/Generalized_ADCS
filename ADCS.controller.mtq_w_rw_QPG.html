@@ -710,7 +710,7 @@ direction:</p>
 <dd class="field-odd"><p>Estimated satellite model providing actuator instances and configuration.</p>
 </dd>
 <dt class="field-even">type est_sat<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a></p>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a></p>
 </dd>
 <dt class="field-odd">param p_gain<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Proportional gain used by the parent controller law.</p>
@@ -809,7 +809,7 @@ returns an effectiveness scalar</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tau_des</strong> (<em>numpy.ndarray</em>) – Desired body-frame torque vector <span class="math notranslate nohighlight">\(\boldsymbol{\tau}_{\mathrm{des}}\)</span> in N·m.</p></li>
 <li><p><strong>b_body</strong> (<em>numpy.ndarray</em>) – Body-frame geomagnetic field vector <span class="math notranslate nohighlight">\(\boldsymbol{B}\)</span> in tesla.</p></li>
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite model providing actuator instances and limits.</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Estimated satellite model providing actuator instances and limits.</p></li>
 <li><p><strong>omega</strong> (<em>numpy.ndarray</em>) – Body angular velocity vector <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> in rad/s used to form the weighting matrix.</p></li>
 </ul>
 </dd>
@@ -855,7 +855,7 @@ gyroscopically weighted least-squares metric.</p>
 optionally wheel momentum states.</p></li>
 <li><p><strong>sens</strong> (<em>numpy.ndarray</em>) – Sensor measurement vector used to estimate body magnetic field through the
 MTM readout model.</p></li>
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite model providing actuators, inertia, and boresight.</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Estimated satellite model providing actuators, inertia, and boresight.</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Estimated orbital state used by goal reference generation and error models.</p></li>
 <li><p><strong>goal</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Goal</span></code> | None) – Optional goal object providing desired pointing and reference rates.</p></li>
 </ul>
@@ -873,7 +873,7 @@ MTM readout model.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>)</p></li>
 <li><p><strong>p_gain</strong> (<em>float</em>)</p></li>
 <li><p><strong>d_gain</strong> (<em>float</em>)</p></li>
 <li><p><strong>gamma</strong> (<em>float</em>)</p></li>

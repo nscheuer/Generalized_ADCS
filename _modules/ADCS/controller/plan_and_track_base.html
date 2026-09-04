@@ -594,7 +594,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbit</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller.plan_and_track.build_csat</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_cpp_satellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller.helpers.optional_dependencies</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_trajectory_planner_modules</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span>
 
 
@@ -665,7 +665,7 @@
 
 <span class="sd">    """</span>
 
-    <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span>
+    <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span>
     <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span>
     <span class="n">csat</span><span class="p">:</span> <span class="n">pysat</span><span class="o">.</span><span class="n">Satellite</span>
     <span class="n">planner</span><span class="p">:</span> <span class="n">tplaunch</span><span class="o">.</span><span class="n">Planner</span>
@@ -675,7 +675,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_init_planner</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
+        <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span>
         <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span><span class="p">,</span>
         <span class="n">tracking_lqr_formulation</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">quat_to_3vec_mode</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
@@ -716,7 +716,7 @@
 
 <span class="sd">        :param est_sat: Estimated satellite model that defines the state and control</span>
 <span class="sd">            dimensions and contains actuator/sensor configuration.</span>
-<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param planner_settings: Configuration bundle for system and solver settings</span>
 <span class="sd">            used by the C++ planner.</span>
 <span class="sd">        :type planner_settings: :class:`~ADCS.controller.plan_and_track.PlannerSettings`</span>

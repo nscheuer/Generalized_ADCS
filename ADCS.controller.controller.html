@@ -602,7 +602,7 @@ pseudoinverses.</p>
 <a class="reference internal" href="#ADCS.controller.controller.Controller.find_u" title="ADCS.controller.controller.Controller.find_u"><code class="xref py py-meth docutils literal notranslate"><span class="pre">find_u()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p>
+<dd class="field-odd"><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>)</p>
 </dd>
 </dl>
 <dl class="py method">
@@ -781,7 +781,7 @@ measurements, and mission goal. Actuator commands are then computed as</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>ADCS.state.State</em></a><em> | </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>ADCS.state.EstimatorState</em></a>) – Estimated spacecraft state vector</p></li>
 <li><p><strong>sens</strong> (<em>numpy.ndarray</em>) – Flattened sensor measurement vector</p></li>
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>) – Estimated satellite model providing hardware properties</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>) – Estimated satellite model providing hardware properties</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>) – Estimated orbital state</p></li>
 <li><p><strong>goal</strong> (<em>Goal</em><em> or </em><em>None</em>) – Optional mission goal definition</p></li>
 <li><p><strong>kwargs</strong> (<em>dict</em>) – Optional controller-specific parameters</p></li>

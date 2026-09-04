@@ -586,7 +586,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Goal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller</span><span class="w"> </span><span class="kn">import</span> <span class="n">Controller</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller.helpers.quaternion_math</span><span class="w"> </span><span class="kn">import</span> <span class="n">vector_alignment_error</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.actuators</span><span class="w"> </span><span class="kn">import</span> <span class="n">Actuator</span><span class="p">,</span> <span class="n">MTQ</span><span class="p">,</span> <span class="n">RW</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">MTM</span>
@@ -662,7 +662,7 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">    est_sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        Estimated satellite model containing inertia properties, actuator</span>
 <span class="sd">        geometry, and sensor configuration.</span>
 <span class="sd">    p_gain : float</span>
@@ -696,7 +696,7 @@
 <span class="sd">       Original paper: `doi:10.2514/1.G000812 &lt;https://doi.org/10.2514/1.G000812&gt;`__</span>
 
 <span class="sd">    """</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">p_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">d_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">c_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_target</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">p_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">d_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">c_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_target</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the hybrid MTQ and reaction wheel controller.</span>
 
@@ -706,7 +706,7 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        est_sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">            Estimated satellite object providing actuator, sensor, and</span>
 <span class="sd">            inertia configuration.</span>
 <span class="sd">        p_gain : float</span>
@@ -745,7 +745,7 @@
 
 <div class="viewcode-block" id="MTQ_w_RW.find_u">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw.html#ADCS.controller.mtq_w_rw.MTQ_w_RW.find_u">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute actuator command vector for reaction wheels and magnetic torquers.</span>
 
@@ -792,7 +792,7 @@
 <span class="sd">        sens : numpy.ndarray</span>
 <span class="sd">            Raw sensor measurement vector used to reconstruct the magnetic</span>
 <span class="sd">            field via MTM pseudo-inverse mapping.</span>
-<span class="sd">        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        est_sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">            Satellite model containing inertia and actuator configuration.</span>
 <span class="sd">        os_hat : :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">            Estimated orbital state providing geomagnetic field information.</span>

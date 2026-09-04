@@ -591,7 +591,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">InitVar</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_saltro_py</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">"""Import and return the ``saltro_py`` binding module.</span>
@@ -627,7 +627,7 @@
 <span class="sd">    including actuator limits, maximum angular velocity, and sun-angle limits.</span>
 
 <span class="sd">    :param est_sat: Estimated satellite model used to derive actuator limits.</span>
-<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">    :param control_limit_scale: Scale factor applied to actuator ``u_max``.</span>
 <span class="sd">    :type control_limit_scale: float</span>
 <span class="sd">    :param wmax: Maximum angular-velocity magnitude (rad/s).</span>
@@ -636,7 +636,7 @@
 <span class="sd">    :type sun_limit_angle: float</span>
 <span class="sd">    """</span>
 
-    <span class="n">est_sat</span><span class="p">:</span> <span class="n">InitVar</span><span class="p">[</span><span class="n">EstimatedSatellite</span><span class="p">]</span>
+    <span class="n">est_sat</span><span class="p">:</span> <span class="n">InitVar</span><span class="p">[</span><span class="n">Satellite</span><span class="p">]</span>
 
     <span class="n">control_limit_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.75</span>
     <span class="n">rw_momentum_limit_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
@@ -648,7 +648,7 @@
 <span class="w">        </span><span class="sd">"""Initialize derived actuator limits from the estimated satellite.</span>
 
 <span class="sd">        :param est_sat: Estimated satellite model containing actuators.</span>
-<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
 <span class="sd">        """</span>

@@ -592,7 +592,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller.helpers.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trajectory</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.controller.plan_and_track</span><span class="w"> </span><span class="kn">import</span> <span class="n">PlannerSettings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 
 
 <div class="viewcode-block" id="Plan_and_Track_LQR_Disturbed">
@@ -728,7 +728,7 @@
 <span class="sd">    - Unmodeled reaction wheel friction.</span>
 
 <span class="sd">    :param est_sat: Estimated satellite model with actuators and sensors.</span>
-<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">    :param planner_settings: ALTRO trajectory planner configuration bundle.</span>
 <span class="sd">    :type planner_settings: :class:`~ADCS.controller.plan_and_track.PlannerSettings`</span>
 <span class="sd">    :param dist_gain: Scalar gain controlling the disturbance adaptation rate.</span>
@@ -743,7 +743,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
+        <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span>
         <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span><span class="p">,</span>
         <span class="n">dist_gain</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -773,7 +773,7 @@
 <span class="sd">        :meth:`~Plan_and_Track_LQR_Disturbed.find_u`.</span>
 
 <span class="sd">        :param est_sat: Estimated satellite model with actuator and sensor models.</span>
-<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param planner_settings: ALTRO planner configuration settings.</span>
 <span class="sd">        :type planner_settings: :class:`~ADCS.controller.plan_and_track.PlannerSettings`</span>
 <span class="sd">        :param dist_gain: Gain for updating the disturbance estimate from tracking</span>
@@ -794,7 +794,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span>
         <span class="n">sens</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span>
-        <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
+        <span class="n">est_sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span>
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">goal</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Goal</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
@@ -845,7 +845,7 @@
 <span class="sd">        :param sens: Sensor measurement vector. Not directly used.</span>
 <span class="sd">        :type sens: numpy.typing.NDArray[numpy.float64]</span>
 <span class="sd">        :param est_sat: Estimated satellite model.</span>
-<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
+<span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param os_hat: Estimated orbital state providing the current time.</span>
 <span class="sd">        :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :param goal_vector_eci: Goal direction in ECI frame. Not used.</span>
