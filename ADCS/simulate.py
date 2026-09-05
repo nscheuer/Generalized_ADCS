@@ -12,7 +12,7 @@ import ADCS as ADCS
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.controller import Controller
-from ADCS.estimators.attitude_estimators import Attitude_Estimator
+from ADCS.estimators.old_attitude_estimators import Attitude_Estimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.orbits.orbit import Orbit
@@ -86,7 +86,7 @@ def simulate(
         Attitude estimator used to estimate the spacecraft state from sensor
         measurements.
     :type estimator:
-        :class:`~ADCS.estimators.attitude_estimators.Attitude_Estimator` or None
+        :class:`~ADCS.estimators.old_attitude_estimators.Attitude_Estimator` or None
 
     :param orbit_estimator:
         Orbit estimator used to estimate the orbital state from GPS measurements.

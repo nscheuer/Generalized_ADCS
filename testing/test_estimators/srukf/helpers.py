@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from ADCS.estimators.attitude_estimators import SRUAKF
+from ADCS.estimators.old_attitude_estimators import SRUAKF
 from ADCS.state import EstimatorState
 from testing.test_estimators.ukf.helpers import *  # noqa: F401,F403
 

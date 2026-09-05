@@ -30,7 +30,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.estimators.attitude_estimators import UAKF, SRUAKF
+from ADCS.estimators.old_attitude_estimators import UAKF, SRUAKF
 from ADCS.state import State, EstimatorState
 
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison

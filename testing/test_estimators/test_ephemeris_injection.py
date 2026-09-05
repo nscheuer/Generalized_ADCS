@@ -12,7 +12,7 @@ import inspect
 import numpy as np
 import pytest
 
-from ADCS.estimators.attitude_estimators.attitude_estimator import Attitude_Estimator
+from ADCS.estimators.old_attitude_estimators.attitude_estimator import Attitude_Estimator
 from ADCS.orbits.ephemeris import Ephemeris
 
 
@@ -24,7 +24,7 @@ def test_constructor_exposes_an_ephem_parameter():
 
 def test_injected_ephemeris_is_used_instead_of_building_one(monkeypatch):
     """With one supplied, the constructor must not build its own."""
-    from ADCS.estimators.attitude_estimators import SRUAKF
+    from ADCS.estimators.old_attitude_estimators import SRUAKF
     from testing.test_estimators.ukf.helpers import (
         make_estimate_guess, reduced_state_cov, reduced_process_cov,
         make_satellites, make_baseline_sensors,
@@ -39,7 +39,7 @@ def test_injected_ephemeris_is_used_instead_of_building_one(monkeypatch):
         raise AssertionError("constructor built its own Ephemeris despite injection")
 
     monkeypatch.setattr(
-        "ADCS.estimators.attitude_estimators.attitude_estimator.Ephemeris",
+        "ADCS.estimators.old_attitude_estimators.attitude_estimator.Ephemeris",
         _tripwire,
     )
 
@@ -58,7 +58,7 @@ def test_injected_ephemeris_is_used_instead_of_building_one(monkeypatch):
 
 def test_without_injection_it_still_builds_one(monkeypatch):
     """The default path must keep working -- injection is opt-in."""
-    from ADCS.estimators.attitude_estimators import SRUAKF
+    from ADCS.estimators.old_attitude_estimators import SRUAKF
     from testing.test_estimators.ukf.helpers import (
         make_estimate_guess, reduced_state_cov, reduced_process_cov,
         make_satellites, make_baseline_sensors,

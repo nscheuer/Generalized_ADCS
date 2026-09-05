@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import ADCS.estimators.attitude_estimators.attitude_UAKF as uakf_module
+import ADCS.estimators.old_attitude_estimators.attitude_UAKF as uakf_module
 from testing.test_estimators.ukf.helpers import (
     make_baseline_sensors,
     make_orbital_state,

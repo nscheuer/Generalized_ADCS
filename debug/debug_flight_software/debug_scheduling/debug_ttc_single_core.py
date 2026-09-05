@@ -9,7 +9,7 @@ from tqdm import tqdm
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.controller import MTQ_w_RW, BDot
-from ADCS.estimators.attitude_estimators.attitude_SRUAKF import SRUAKF
+from ADCS.estimators.old_attitude_estimators.attitude_SRUAKF import SRUAKF
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris

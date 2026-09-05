@@ -32,6 +32,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from ADCS.estimators.attitude_estimators import EKF, MEKF
 from ADCS.estimators.orbit_estimators import Orbit_EKF, Orbit_GPS
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
@@ -39,6 +40,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.errors import Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite, Satellite
 from ADCS.satellite_hardware.sensors import GPS
+from ADCS.state import EstimatorState
 from testing.test_estimators.srukf.helpers import make_srukf
 from testing.test_estimators.ukf.helpers import make_baseline_sensors, make_estimate_guess, make_mtqs, make_orbital_state, make_rws, make_satellites, make_state, make_ukf
 
@@ -161,6 +163,34 @@ def _uakf_update_reaction_wheels() -> np.ndarray:
     x_hat.h[:] = 0.0
     ukf = make_ukf(_REFERENCE["est_sat_rw"], x_hat=x_hat, dt=5.0, cross_term=False)
     return ukf.update(u=_REFERENCE["u_rw"], sensors=np.array(_REFERENCE["sensors_rw"], copy=True), os=_REFERENCE["os0"])
+
+
+def _mekf_state() -> EstimatorState:
+    return EstimatorState(
+        w=np.zeros(3),
+        q=np.array([1.0, 0.0, 0.0, 0.0]),
+        cov=np.eye(6) * 1.0e-2,
+        int_cov=np.zeros((6, 6)),
+    )
+
+
+def _ekf_state() -> EstimatorState:
+    return EstimatorState(
+        w=np.zeros(3),
+        q=np.array([1.0, 0.0, 0.0, 0.0]),
+        cov=np.eye(7) * 1.0e-2,
+        int_cov=np.zeros((7, 7)),
+    )
+
+
+def _mekf_step_baseline() -> np.ndarray:
+    mekf = MEKF(_REFERENCE["est_sat"], _mekf_state(), dt=5.0, unmodeled_dynamics_psd=1.0e-9)
+    return mekf.step(_REFERENCE["u"], np.array(_REFERENCE["sensors"], copy=True), _REFERENCE["os0"], _REFERENCE["os0"]).as_estimator_array()
+
+
+def _ekf_step_baseline() -> np.ndarray:
+    ekf = EKF(_REFERENCE["est_sat"], _ekf_state(), dt=5.0, unmodeled_dynamics_psd=1.0e-9)
+    return ekf.step(_REFERENCE["u"], np.array(_REFERENCE["sensors"], copy=True), _REFERENCE["os0"], _REFERENCE["os0"]).as_estimator_array()
 
 
 def _srukf_update_baseline() -> np.ndarray:
@@ -303,6 +333,20 @@ def _make_benchmarks() -> list[Benchmark]:
             max_loops=64,
         ),
         Benchmark(
+            name="mekf_step_baseline",
+            func=_mekf_step_baseline,
+            max_regression=1.50,
+            min_seconds=0.025,
+            max_loops=64,
+        ),
+        Benchmark(
+            name="ekf_step_baseline",
+            func=_ekf_step_baseline,
+            max_regression=1.50,
+            min_seconds=0.025,
+            max_loops=64,
+        ),
+        Benchmark(
             name="srukf_update_baseline",
             func=_srukf_update_baseline,
             max_regression=1.50,
@@ -420,7 +464,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Benchmark ADCS estimator paths.")
     parser.add_argument("--compare", action="store_true")
     parser.add_argument("--update-baseline", action="store_true")
-    parser.add_argument("--samples", type=int, default=3)
+    parser.add_argument("--samples", type=int, default=5)
     parser.add_argument("--output", type=Path, default=RESULT_PATH)
     parser.add_argument("--no-color", action="store_true")
     return parser.parse_args()

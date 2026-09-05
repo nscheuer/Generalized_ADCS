@@ -6,7 +6,7 @@ import scipy
 from typing import List, Optional, Sequence
 import time
 
-from ADCS.estimators.attitude_estimators.attitude_estimator import Attitude_Estimator
+from ADCS.estimators.old_attitude_estimators.attitude_estimator import Attitude_Estimator
 from ADCS.state import EstimatorState, State
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.errors import ErrorMode
@@ -30,7 +30,7 @@ class UAKF(Attitude_Estimator):
     This class implements an Unscented Kalman Filter (UKF) for spacecraft attitude
     estimation and associated bias/parameter states. It inherits the augmented-state
     bookkeeping (full-state storage, reduced covariance representation, and satellite
-    synchronization) from :class:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator`.
+    synchronization) from :class:`~ADCS.estimators.old_attitude_estimators.attitude_estimator.Attitude_Estimator`.
 
     The implementation uses an **error-state attitude representation** by default
     (``quat_as_vec=False``), in which the quaternion is stored in the full state
@@ -177,7 +177,7 @@ class UAKF(Attitude_Estimator):
         Initialize the UKF estimator and store UKF scaling parameters.
 
         This constructor initializes the base estimator bookkeeping via
-        :class:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator`,
+        :class:`~ADCS.estimators.old_attitude_estimators.attitude_estimator.Attitude_Estimator`,
         then sets UKF tuning parameters:
 
         .. math::
@@ -264,7 +264,7 @@ class UAKF(Attitude_Estimator):
             [\text{state},\ \text{sensor},\ \text{control},\ \text{process}],
 
         determining whether each covariance block is included in the sigma-point
-        construction in :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.make_pts_and_wts`.
+        construction in :meth:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF.make_pts_and_wts`.
 
         :param state_cov: State covariance matrix :math:`P` (reduced or full according to ``quat_as_vec``).
         :type state_cov: numpy.ndarray
@@ -336,7 +336,7 @@ class UAKF(Attitude_Estimator):
         This method constructs sigma points in an augmented space comprised of
         selected covariance blocks (state, sensor noise, control noise, process noise).
         The inclusion policy is determined by
-        :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.determine_covariances_to_use`.
+        :meth:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF.determine_covariances_to_use`.
 
         Augmented dimension
         -------------------
@@ -381,7 +381,7 @@ class UAKF(Attitude_Estimator):
         yielding :math:`2n` offsets per block.
 
         For the **state block** (error-state), offsets are mapped onto the manifold
-        using :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state`,
+        using :meth:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF.add_to_state`,
         ensuring multiplicative quaternion perturbations when ``quat_as_vec=False``.
 
         For non-state blocks (noise blocks), offsets are inserted into the sigma-point
@@ -702,7 +702,7 @@ class UAKF(Attitude_Estimator):
         error-state coordinates and partitioned into:
 
         - a head portion applied to the dynamic state on the manifold via
-          :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state`,
+          :meth:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF.add_to_state`,
         - a tail portion applied additively to the remaining bias/parameter states.
 
         If ``state_len`` is the satellite dynamic-state length (including quaternion),
@@ -719,7 +719,7 @@ class UAKF(Attitude_Estimator):
         After obtaining the reduced posterior vector ``post_state``, the method
         constructs an auxiliary reference state containing ``quatref`` and then
         re-applies the reduced perturbation using
-        :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state`
+        :meth:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF.add_to_state`
         to produce a full state with a quaternion.
 
         :param pre_rest_state: Bias/parameter states before propagation (assumed constant through dynamics).
@@ -790,9 +790,9 @@ class UAKF(Attitude_Estimator):
 
         1. Determine active sensors from the provided measurement vector (NaN check),
            then expand to an output-level mask via
-           :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF._expand_sensor_mask`.
+           :meth:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF._expand_sensor_mask`.
         2. Build augmented sigma points via
-           :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.make_pts_and_wts`.
+           :meth:`~ADCS.estimators.old_attitude_estimators.attitude_UAKF.UAKF.make_pts_and_wts`.
         3. Propagate each sigma point through nonlinear dynamics using
            :meth:`~ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_rk4`.
         4. Predict measurements for each propagated sigma point using
