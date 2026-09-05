@@ -1,11 +1,8 @@
-# Release-security controls.  `main` branch protection must require code-owner
-# review for these rules to be enforced.
-
-# Prevent this protection from being removed without the repository owner's review.
+# Prevent this protection from being removed without Nic's review
 /.github/CODEOWNERS @nscheuer
 
-# Changes to CI/CD and the PyPI release workflow require the owner's review.
+# Changes to CI/CD and the PyPI release workflow require Nic's review
 /.github/workflows/ @nscheuer
 
-# Package build and publishing metadata require the owner's review.
+# Package build also requires Nic's review
 /pyproject.toml @nscheuer
