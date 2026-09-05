@@ -23,6 +23,8 @@ from .estimators.attitude_estimators import (
     AttitudeEstimator,
     EKF,
     MEKF,
+    SRUKF,
+    UKF,
 )
 from .estimators.old_attitude_estimators import (
     Attitude_Estimator,
@@ -72,6 +74,8 @@ __all__ = [
     "AttitudeEstimator",
     "EKF",
     "MEKF",
+    "SRUKF",
+    "UKF",
     "UAKF",
     "SRUAKF",
     "Orbit_Estimator",

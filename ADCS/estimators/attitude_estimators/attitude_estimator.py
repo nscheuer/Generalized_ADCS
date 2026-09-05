@@ -62,6 +62,7 @@ class AttitudeEstimator:
         )
         self._state = self._normalize_initial_state(state)
         self._diagnostics: dict[str, np.ndarray] = {}
+        self._previous_orbital_state: Any | None = None
 
     @property
     def covariance_coordinates(self) -> str:
@@ -93,6 +94,7 @@ class AttitudeEstimator:
         self._validate_state(state)
         self._state = self._normalize_initial_state(state)
         self._diagnostics = {}
+        self._previous_orbital_state = None
         return self.state
 
     @staticmethod
@@ -343,6 +345,26 @@ class AttitudeEstimator:
             enabled=enabled,
             time_s=time_s,
             epoch_s=epoch_s,
+        )
+
+    def update(self, u: Any, sensors: Any, os: Any) -> EstimatorState:
+        """Adapt ``predict``/``correct`` filters to the simulation update protocol.
+
+        The first sample has no preceding orbital state, so it is corrected in
+        place.  Each later sample is propagated from the preceding orbital
+        state and then corrected at the current one.
+        """
+        if self._previous_orbital_state is None:
+            self._previous_orbital_state = os
+            return self.correct(sensors, os)
+        orbital_state_start = self._previous_orbital_state
+        self._previous_orbital_state = os
+        return self.step(
+            u,
+            sensors,
+            orbital_state_start,
+            os,
+            midpoint_orbital_state=os,
         )
 
     def _normalize_initial_state(self, state: EstimatorState) -> EstimatorState:
