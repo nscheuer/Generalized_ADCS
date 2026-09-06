@@ -1399,8 +1399,21 @@ class Satellite:
         :return: Concatenated measurement vector.
         :rtype: numpy.ndarray
         """
+        # The wheel-momentum measurement must reflect the supplied state: the
+        # ODE integrator advances x without writing back into the actuators,
+        # so each RW's internal h is stale here (stuck at its initial value).
+        # Read the momenta out of x rather than syncing the actuators —
+        # sensor_readings(x) must not mutate hardware (controllers rely on
+        # actuator-stored h as an independent fallback when given a truncated
+        # state).
+        state_RWhs = None
+        if len(self.momentum_inds) and np.size(x) >= self.state_len:
+            state_RWhs = np.ravel(x)[7:7 + len(self.rw_actuators)]
         sensor_readings: List[np.ndarray] = [np.atleast_1d(self.attitude_sensors[j].reading(x=x, os=os, dmode=dmode)) for j in range(len(self.attitude_sensors))]
-        rw_readings: List[np.ndarray] = [np.atleast_1d(self.rw_actuators[j].measure_momentum()) for j in range(len(self.rw_actuators))]
+        rw_readings: List[np.ndarray] = [
+            np.atleast_1d(self.rw_actuators[j].measure_momentum(h=None if state_RWhs is None else state_RWhs[j]))
+            for j in range(len(self.rw_actuators))
+        ]
         combined_readings = sensor_readings + rw_readings
         if not combined_readings:
             return np.array([])
