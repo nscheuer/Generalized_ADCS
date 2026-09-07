@@ -82,11 +82,18 @@ def scale() -> Dict[str, Any]:
     return SCALES[os.environ.get("A_SCALE", "paper")]
 
 
+def context_trials() -> int:
+    """A_CONTEXT_N raises the context-cell count (default 30). At 100 the 3+3 Wilson
+    interval stops overlapping 3+1's, so the success-rate gap resolves; the reruns also
+    persist per-trial series the 8-18 aggregates never kept."""
+    return int(os.environ.get("A_CONTEXT_N", TRIALS_CONTEXT))
+
+
 def trials_for(cell: Dict[str, Any], default: int) -> int:
     """Full count on the cells that carry the argument, reduced on the context cells."""
     if default < TRIALS_CONTEXT:          # fast/smoke scale: honour it verbatim
         return default
-    return TRIALS_FULL if cell["n_rw"] == 1 else TRIALS_CONTEXT
+    return TRIALS_FULL if cell["n_rw"] == 1 else context_trials()
 
 
 def make_pd(sat, config):
@@ -190,7 +197,8 @@ def cells_to_run() -> List[Dict[str, Any]]:
     # 1rw cells carry the saturation artifact).
     only = os.environ.get("A_ONLY_NRW")
     if only is not None:
-        cells = [c for c in cells if c["n_rw"] == int(only)]
+        keep = {int(x) for x in only.replace(",", " ").split()}
+        cells = [c for c in cells if c["n_rw"] in keep]
     return cells
 
 
