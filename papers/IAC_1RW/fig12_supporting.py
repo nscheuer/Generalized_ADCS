@@ -52,7 +52,7 @@ def fig1():
     fig, ax = plt.subplots(figsize=(4.4, 3.3))
     ax.axhspan(0.3, 1.0, color=OI["sky"], alpha=0.13, lw=0)
     ax.axhspan(0.0, 0.1, color=OI["verm"], alpha=0.12, lw=0)
-    ax.text(0.985, 0.62, "restoration-favourable:\nwheel supplies the along-field axis",
+    ax.text(0.985, 0.50, "restoration-favourable:\nwheel supplies the along-field axis",
             fontsize=7, ha="right", color=OI["blue"], transform=ax.get_yaxis_transform())
     ax.text(0.66, 0.048, "dump-favourable: MTQs can cancel the wheel's reaction",
             fontsize=7, ha="center", color=OI["verm"], transform=ax.get_yaxis_transform())
@@ -64,12 +64,10 @@ def fig1():
                     "orbit-normal": "orbit_normal"}[name]]
         assert abs(med - jref["median_sigma"]) < 0.06, (name, med, jref["median_sigma"])
         ax.plot(x, sig, color=col, ls=lsty, lw=1.5,
-                label=f"{name} (median {jref['median_sigma']:.2f})")
-    duties = ", ".join(f"{n} {100*ref[k]['restore_duty']:.1f}%" for n, k in
-                       (("boresight", "boresight"), ("45$^\\circ$", "45deg"),
-                        ("orbit-normal", "orbit_normal")))
-    ax.text(0.02, 0.955, f"restoration duty ($\\sigma>0.3$): {duties}",
-            fontsize=6.8, transform=ax.transAxes, color="0.25", va="top")
+                label=f"{name}: median {jref['median_sigma']:.2f}, "
+                      f"duty {100*jref['restore_duty']:.0f}%")
+    ax.text(0.02, 0.02, "duty = fraction of the orbit with $\\sigma>0.3$",
+            fontsize=6.4, transform=ax.transAxes, color="0.35", va="bottom")
 
     ax.set_xlim(0, 1); ax.set_ylim(0, 1)
     ax.set_xlabel("orbit phase  $t/T_{orb}$")
