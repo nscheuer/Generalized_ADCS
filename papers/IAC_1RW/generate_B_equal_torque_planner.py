@@ -224,6 +224,7 @@ def run_slew(config: Dict[str, Any]) -> Dict[str, Any]:
                           @ (B0 / np.linalg.norm(B0))))
 
         t, t_done, n_fallback, n_plans = 0.0, np.nan, 0, 0
+        h_pk = 0.0
         steps = int(t_max / dt)
         next_replan = 0.0
         use = fb
@@ -260,6 +261,8 @@ def run_slew(config: Dict[str, Any]) -> Dict[str, Any]:
                 u = np.asarray(fb.find_u(x_hat=x, sens=sat.sensor_readings(x=x, os=os_k),
                                          est_sat=sat, os_hat=os_k, goal=goal), float)
 
+            if n_rw:
+                h_pk = max(h_pk, float(abs(x[7])) / 15e-3)
             t += dt
             os_n = orb.get_os(J2000=EPOCH + t * TimeConstants.sec2cent)
             x = solve_ivp(sat.dynamics_for_solver, (0, dt), x, method="RK45",
@@ -271,7 +274,8 @@ def run_slew(config: Dict[str, Any]) -> Dict[str, Any]:
                 "alignment": align, "t_done_s": float(t_done),
                 "completed": bool(np.isfinite(t_done)),
                 "t_done_orbits": float(t_done / T_ORBIT) if np.isfinite(t_done) else np.nan,
-                "n_plans": n_plans, "n_fallback": n_fallback}
+                "n_plans": n_plans, "n_fallback": n_fallback,
+                "h_peak_frac": float(h_pk)}
     except Exception as exc:
         return {"run_id": config["run_id"], "bus": config["bus"],
                 "theta": config["theta"], "m_scale": config["m_scale"],

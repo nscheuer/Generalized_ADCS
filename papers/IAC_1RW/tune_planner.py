@@ -262,6 +262,30 @@ def run_one_pd(kp_mult, seed, task="full", inc_deg=None, save_dir=None,
 _LOCK = os.path.join(OUT, ".tune_lock")
 
 
+def run_one_qp(seed):
+    """Review item 1: MTQ-only reduced trial under the QP allocator, identical
+    dipole feedforward via MRO mixin (FeedforwardLP is super()-cooperative)."""
+    from ADCS.controller.mtq_w_rw_QP import MTQ_w_RW_QP
+    from papers.IAC_1RW._feedforward import FeedforwardLP
+
+    class FeedforwardQP(FeedforwardLP, MTQ_w_RW_QP):
+        pass
+
+    def maker(sat, config):
+        return FeedforwardQP(est_sat=sat, p_gain=PD_KP_BASE, d_gain=PD_KD_BASE,
+                             c_gain=1e-3, h_target=np.zeros(3), mode="dipole")
+    config = dict(make_config(seed, n_rw=0, task="reduced", tf=T_ORBIT, dt=1.0,
+                              seed=seed), controller="pd")
+    r = simulate(config, maker,
+                 disturbances=("gg", "drag", "srp", "dipole", "general"),
+                 bus_kwargs={"tau_w": 2.0e-3, "h_max": 15.0e-3})
+    sd = os.path.join(OUT, "wave", "qp_0rw_reduced")
+    os.makedirs(sd, exist_ok=True)
+    with open(os.path.join(sd, f"qp0rw_s{seed:04d}.pkl"), "wb") as f:
+        pickle.dump(r, f, protocol=pickle.HIGHEST_PROTOCOL)
+    return seed
+
+
 def campaign_running():
     """One job at a time on this box -- STANDING RULE. Stacked launches caused both
     incidents (worker-aging artifacts, and a silent memory-pressure kill of the PD
@@ -615,6 +639,35 @@ def _run_mode(mode):
         txt = "\n".join(lines)
         print(txt)
         with open(os.path.join(OUT, "TUNE_BRIDGE.txt"), "w") as f:
+            f.write(txt + "\n")
+        return 0
+    if mode == "--qpcell":
+        # Review item 1: MTQ-only reduced cell under the QP allocator. The LP's
+        # equality constraint A u = T tau_hat admits ONLY T=0 when tau_des has an
+        # along-field component and no wheel exists (verified in
+        # allocate_max_torque_in_direction) -- so the 0% MTQ-only headline needs the
+        # QP arm. Same seeds/config as the 8-18 context cell; identical dipole
+        # feedforward via MRO mixin.
+        import multiprocessing as mp
+        from papers.IAC_1RW._iac_sim import error_series
+        sd = os.path.join(OUT, "wave", "qp_0rw_reduced")
+        todo = [s for s in range(30)
+                if not os.path.exists(os.path.join(sd, f"qp0rw_s{s:04d}.pkl"))]
+        if todo:
+            with mp.get_context("fork").Pool(min(10, os.cpu_count() - 4),
+                                             maxtasksperchild=1) as p:
+                p.map(run_one_qp, todo)
+        fin = []
+        for s in range(30):
+            with open(os.path.join(sd, f"qp0rw_s{s:04d}.pkl"), "rb") as f:
+                fin.append(float(error_series(pickle.load(f))[-1]))
+        fin = np.asarray(fin)
+        txt = (f"QP 0rw reduced (n=30, paired seeds): conv5 {100*np.mean(fin<=5):.1f}% "
+               f"conv1 {100*np.mean(fin<=1):.1f}% median {np.median(fin):.2f} deg "
+               f"div>30 {100*np.mean(fin>30):.0f}%\nfinals: "
+               + " ".join(f"{v:.1f}" for v in sorted(fin)))
+        print(txt)
+        with open(os.path.join(OUT, "QPCELL_RESULT.txt"), "w") as f:
             f.write(txt + "\n")
         return 0
     if mode == "--lowinc":
