@@ -76,7 +76,7 @@ def main():
     for ax, (task, title) in zip(axes, (("reduced", "(a) Boresight pointing"),
                                         ("full", "(b) Full three-axis attitude"))):
         for thr in (1.0, 5.0, 30.0):
-            ax.axhline(thr, color="#999999", lw=0.8, ls="-", alpha=0.7, zorder=1)
+            ax.axhline(thr, color="#999999", lw=0.6, ls=(0, (4, 3)), alpha=0.55, zorder=1)
             if ax is axes[-1]:
                 ax.text(2.0, thr, f" {thr:.0f}°", fontsize=10, color="#777777",
                         ha="left", va="center", clip_on=False)
