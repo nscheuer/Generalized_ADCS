@@ -75,6 +75,11 @@ def main():
                              constrained_layout=True)
     for ax, (task, title) in zip(axes, (("reduced", "(a) Boresight pointing"),
                                         ("full", "(b) Full three-axis attitude"))):
+        for thr in (1.0, 5.0, 30.0):
+            ax.axhline(thr, color="#999999", lw=0.8, ls="-", alpha=0.7, zorder=1)
+            if ax is axes[-1]:
+                ax.text(2.0, thr, f" {thr:.0f}°", fontsize=10, color="#777777",
+                        ha="left", va="center", clip_on=False)
         ax.axvline(1.0, color="#999999", lw=0.8, ls="-", alpha=0.7)
         ax.text(1.0, 2.6e-2, "once-per-orbit\ndumping", fontsize=10, color="#777777",
                 ha="center", va="bottom")
@@ -93,7 +98,7 @@ def main():
         ax.grid(True, which="major", axis="y")
         ax.set_title(title, loc="left")
         ax.set_xlabel("demand index $D$")
-    axes[0].set_ylabel("pointing error [deg]  (tighter $\\downarrow$)")
+    axes[0].set_ylabel("achieved terminal error [deg]  (tighter $\\downarrow$)")
 
     from matplotlib.lines import Line2D
     handles = [Line2D([], [], color=ARCH[a], marker="s", ls="", ms=8, label=a)

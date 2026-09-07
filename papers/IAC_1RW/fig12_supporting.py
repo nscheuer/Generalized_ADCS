@@ -53,10 +53,12 @@ def fig1():
     ax.axhspan(0.3, 1.0, color=fig_style.BAND_RESTORE, alpha=0.14, lw=0)
     ax.axhspan(0.0, 0.1, color=fig_style.BAND_DUMP, alpha=0.16, lw=0)
     ax.axhspan(0.0, 0.02, color=fig_style.BAND_RANKLOSS, alpha=0.55, lw=0)
-    ax.text(0.5, 0.86, "Better for rank restoration", fontsize=10, ha="center",
-            color="#2A6F97", transform=ax.get_yaxis_transform())
+    back = dict(boxstyle="round,pad=0.15", facecolor="white", edgecolor="none", alpha=0.75)
+    ax.text(0.5, 0.86, "Stronger field-parallel authority", fontsize=10, ha="center",
+            color="#2A6F97", transform=ax.get_yaxis_transform(), bbox=back, zorder=4)
     ax.text(0.72, 0.115, "Better for clean desaturation", fontsize=10, ha="center",
-            va="bottom", color="#9A5B00", transform=ax.get_yaxis_transform())
+            va="bottom", color="#9A5B00", transform=ax.get_yaxis_transform(), bbox=back,
+            zorder=4)
 
     x = ts / T_ORB
     for name, key, sig, lsty, lw in traces:
