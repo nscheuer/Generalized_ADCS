@@ -1,0 +1,82 @@
+{
+  "task": "C_bias",
+  "timestamp": "20260819_143616",
+  "n_trials": 30,
+  "tf_s": 5553.6234130312205,
+  "h_max_Nms": 0.015,
+  "bias_levels": [
+    0.0,
+    0.05,
+    0.15,
+    0.3,
+    0.45,
+    0.6
+  ],
+  "gains": [
+    0.00029,
+    0.008683317338436964,
+    0.001
+  ],
+  "cells": {
+    "0.00": {
+      "h_frac": 0.0,
+      "h0_Nms": 0.0,
+      "n": 30,
+      "median_drift_deg_per_orbit": 0.01755703028411125,
+      "median_rms_deg": 0.13504930460194017,
+      "median_final_deg": 0.15251606345455293,
+      "median_acquire_5deg_s": 274.0,
+      "acquired_frac": 0.9
+    },
+    "0.05": {
+      "h_frac": 0.05,
+      "h0_Nms": 0.00075,
+      "n": 30,
+      "median_drift_deg_per_orbit": 0.00962723049912909,
+      "median_rms_deg": 0.2191946759313519,
+      "median_final_deg": 0.2396393717143323,
+      "median_acquire_5deg_s": 336.0,
+      "acquired_frac": 0.8333333333333334
+    },
+    "0.15": {
+      "h_frac": 0.15,
+      "h0_Nms": 0.00225,
+      "n": 30,
+      "median_drift_deg_per_orbit": -0.13680081079268933,
+      "median_rms_deg": 0.4540290519796226,
+      "median_final_deg": 0.27843367424637755,
+      "median_acquire_5deg_s": 525.0,
+      "acquired_frac": 0.9
+    },
+    "0.30": {
+      "h_frac": 0.3,
+      "h0_Nms": 0.0045,
+      "n": 30,
+      "median_drift_deg_per_orbit": -0.5242917868241551,
+      "median_rms_deg": 1.1278978998781661,
+      "median_final_deg": 0.5472184668993483,
+      "median_acquire_5deg_s": 1600.0,
+      "acquired_frac": 0.8666666666666667
+    },
+    "0.45": {
+      "h_frac": 0.45,
+      "h0_Nms": 0.00675,
+      "n": 30,
+      "median_drift_deg_per_orbit": -21.414839051187364,
+      "median_rms_deg": 21.274269559595638,
+      "median_final_deg": 0.5386896864690629,
+      "median_acquire_5deg_s": 2827.0,
+      "acquired_frac": 0.9
+    },
+    "0.60": {
+      "h_frac": 0.6,
+      "h0_Nms": 0.009,
+      "n": 30,
+      "median_drift_deg_per_orbit": -23.052537128787744,
+      "median_rms_deg": 43.91478569836868,
+      "median_final_deg": 1.5630563855977626,
+      "median_acquire_5deg_s": 3094.0,
+      "acquired_frac": 0.6
+    }
+  }
+}

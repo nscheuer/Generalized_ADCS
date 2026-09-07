@@ -1,0 +1,387 @@
+{
+  "task": "F_altitude",
+  "timestamp": "20260818_174558",
+  "inc_deg": 97.0,
+  "tau_allow_Nm": 2.5e-06,
+  "n_orbits_fit": 6,
+  "wheel_axis": [
+    0.0,
+    0.0,
+    1.0
+  ],
+  "h_max_Nms": 0.015,
+  "m_max": 0.6,
+  "com_offset_m": 0.02,
+  "altitude_unity_margin_km": {
+    "m_res=0.05": 262.2691099421496,
+    "m_res=0.1": 261.01070314683807
+  },
+  "rows_by_case": {
+    "m_res=0.05": [
+      {
+        "alt_km": 300.0,
+        "T_orbit_s": 5431.176277249923,
+        "m_res": 0.05,
+        "cyclic_by_source_Nms": {
+          "GG_Disturbance": 3.187349302565609e-20,
+          "Drag_Disturbance": 1.3826288205826676e-16,
+          "SRP_Disturbance": 2.121121351911802e-06,
+          "Dipole_Disturbance": 0.002430775611108784
+        },
+        "cyclic_total_Nms": 0.0024310245396647954,
+        "reserved_wheel_frac": 0.1620683026443197,
+        "accum_along_wheel_Nms": 0.0010219928843093148,
+        "accum_transverse_Nms": 0.00966757375439916,
+        "orbits_to_saturate_along_a": 14.677205908471006,
+        "profile": "nadir",
+        "median_rho_kg_m3": 2.300000000000002e-11,
+        "median_B_T": 3.905324911659366e-05,
+        "median_tau_mtq_max_Nm": 6.713529922390206e-05,
+        "accum_per_orbit_Nms": 0.009721442884280417,
+        "accum_by_source_Nms": {
+          "GG_Disturbance": 7.940226946149363e-22,
+          "Drag_Disturbance": 0.00984188220201419,
+          "SRP_Disturbance": 2.1979943666409186e-05,
+          "Dipole_Disturbance": 0.0013234799715793732
+        },
+        "capacity_per_orbit_Nms": 0.02323731278419669,
+        "margin": 2.3903152094604647,
+        "orbits_to_saturate": 1.542980828931785
+      },
+      {
+        "alt_km": 400.0,
+        "T_orbit_s": 5553.6234130312205,
+        "m_res": 0.05,
+        "cyclic_by_source_Nms": {
+          "GG_Disturbance": 2.5402630272226763e-20,
+          "Drag_Disturbance": 4.076600170593707e-17,
+          "SRP_Disturbance": 1.40338495593021e-06,
+          "Dipole_Disturbance": 0.0023639261678080935
+        },
+        "cyclic_total_Nms": 0.00236451020905705,
+        "reserved_wheel_frac": 0.1576340139371367,
+        "accum_along_wheel_Nms": 0.0009942170806102216,
+        "accum_transverse_Nms": 0.0014462723992790987,
+        "orbits_to_saturate_along_a": 15.087248340969394,
+        "profile": "nadir",
+        "median_rho_kg_m3": 3.2900000000000048e-12,
+        "median_B_T": 3.742581791042769e-05,
+        "median_tau_mtq_max_Nm": 6.536607681850839e-05,
+        "accum_per_orbit_Nms": 0.0017550417249437783,
+        "accum_by_source_Nms": {
+          "GG_Disturbance": 1.0903886558575046e-21,
+          "Drag_Disturbance": 0.001418318390174933,
+          "SRP_Disturbance": 2.6113241645944068e-05,
+          "Dipole_Disturbance": 0.0012901331302832288
+        },
+        "capacity_per_orbit_Nms": 0.023599563235963638,
+        "margin": 13.446724884401045,
+        "orbits_to_saturate": 8.546805347593953
+      },
+      {
+        "alt_km": 500.0,
+        "T_orbit_s": 5676.977164028287,
+        "m_res": 0.05,
+        "cyclic_by_source_Nms": {
+          "GG_Disturbance": 2.260580366057816e-20,
+          "Drag_Disturbance": 1.4311468680214556e-17,
+          "SRP_Disturbance": 1.4349829290553996e-06,
+          "Dipole_Disturbance": 0.002297498774644372
+        },
+        "cyclic_total_Nms": 0.0022980963573114004,
+        "reserved_wheel_frac": 0.15320642382076002,
+        "accum_along_wheel_Nms": 0.0009670870586693905,
+        "accum_transverse_Nms": 0.0007590144713008921,
+        "orbits_to_saturate_along_a": 15.510496046383263,
+        "profile": "nadir",
+        "median_rho_kg_m3": 6.149999999999995e-13,
+        "median_B_T": 3.592377414419783e-05,
+        "median_tau_mtq_max_Nm": 6.389419081931252e-05,
+        "accum_per_orbit_Nms": 0.0012293739653539055,
+        "accum_by_source_Nms": {
+          "GG_Disturbance": 1.076393279828742e-21,
+          "Drag_Disturbance": 0.00026707497222764535,
+          "SRP_Disturbance": 2.6693052513075675e-05,
+          "Dipole_Disturbance": 0.0012570768719404905
+        },
+        "capacity_per_orbit_Nms": 0.023967997604475898,
+        "margin": 19.496099868664555,
+        "orbits_to_saturate": 12.20133207854445
+      },
+      {
+        "alt_km": 600.0,
+        "T_orbit_s": 5801.230915198522,
+        "m_res": 0.05,
+        "cyclic_by_source_Nms": {
+          "GG_Disturbance": 2.2442354835539957e-20,
+          "Drag_Disturbance": 2.3852447808708057e-18,
+          "SRP_Disturbance": 1.4668303591649791e-06,
+          "Dipole_Disturbance": 0.0022316962624920216
+        },
+        "cyclic_total_Nms": 0.0022323076591574233,
+        "reserved_wheel_frac": 0.1488205106104949,
+        "accum_along_wheel_Nms": 0.000940553863444911,
+        "accum_transverse_Nms": 0.0007454565415993831,
+        "orbits_to_saturate_along_a": 15.948049955438371,
+        "profile": "nadir",
+        "median_rho_kg_m3": 1.3700000000000007e-13,
+        "median_B_T": 3.4461465495083595e-05,
+        "median_tau_mtq_max_Nm": 6.246883692194894e-05,
+        "accum_per_orbit_Nms": 0.0012001445852289885,
+        "accum_by_source_Nms": {
+          "GG_Disturbance": 5.1910472602566624e-21,
+          "Drag_Disturbance": 5.992568104736973e-05,
+          "SRP_Disturbance": 2.727708453511075e-05,
+          "Dipole_Disturbance": 0.0012242955126459073
+        },
+        "capacity_per_orbit_Nms": 0.024323136432512313,
+        "margin": 20.266838455861084,
+        "orbits_to_saturate": 12.498494085308886
+      },
+      {
+        "alt_km": 800.0,
+        "T_orbit_s": 6052.41266643778,
+        "m_res": 0.05,
+        "cyclic_by_source_Nms": {
+          "GG_Disturbance": 2.5984976850294685e-20,
+          "Drag_Disturbance": 9.022224377359063e-20,
+          "SRP_Disturbance": 1.531268675756158e-06,
+          "Dipole_Disturbance": 0.002122071781224698
+        },
+        "cyclic_total_Nms": 0.0021221989549063017,
+        "reserved_wheel_frac": 0.14147993032708678,
+        "accum_along_wheel_Nms": 0.0008891112954745517,
+        "accum_transverse_Nms": 0.0007153879164170201,
+        "orbits_to_saturate_along_a": 16.870778806149282,
+        "profile": "nadir",
+        "median_rho_kg_m3": 1.2100000000000003e-14,
+        "median_B_T": 3.179801892472737e-05,
+        "median_tau_mtq_max_Nm": 5.816490420364308e-05,
+        "accum_per_orbit_Nms": 0.0011411830557346708,
+        "accum_by_source_Nms": {
+          "GG_Disturbance": 5.644070850509304e-21,
+          "Drag_Disturbance": 5.368017313018952e-06,
+          "SRP_Disturbance": 2.845769010491467e-05,
+          "Dipole_Disturbance": 0.0011595545207293892
+        },
+        "capacity_per_orbit_Nms": 0.024970108580578153,
+        "margin": 21.880896719503863,
+        "orbits_to_saturate": 13.144254048131918
+      }
+    ],
+    "m_res=0.1": [
+      {
+        "alt_km": 300.0,
+        "T_orbit_s": 5431.176277249923,
+        "m_res": 0.1,
+        "cyclic_by_source_Nms": {
+          "GG_Disturbance": 3.187349302565609e-20,
+          "Drag_Disturbance": 1.3826288205826676e-16,
+          "SRP_Disturbance": 2.121121351911802e-06,
+          "Dipole_Disturbance": 0.004861551222217568
+        },
+        "cyclic_total_Nms": 0.004861800090471575,
+        "reserved_wheel_frac": 0.32412000603143837,
+        "accum_along_wheel_Nms": 0.0020439857686186296,
+        "accum_transverse_Nms": 0.009564207867520984,
+        "orbits_to_saturate_along_a": 7.338602954235503,
+        "profile": "nadir",
+        "median_rho_kg_m3": 2.300000000000002e-11,
+        "median_B_T": 3.905324911659366e-05,
+        "median_tau_mtq_max_Nm": 6.713529922390206e-05,
+        "accum_per_orbit_Nms": 0.009780181488881776,
+        "accum_by_source_Nms": {
+          "GG_Disturbance": 7.940226946149363e-22,
+          "Drag_Disturbance": 0.00984188220201419,
+          "SRP_Disturbance": 2.1979943666409186e-05,
+          "Dipole_Disturbance": 0.0026469599431587464
+        },
+        "capacity_per_orbit_Nms": 0.02323731278419669,
+        "margin": 2.3759592611459346,
+        "orbits_to_saturate": 1.533713869937094
+      },
+      {
+        "alt_km": 400.0,
+        "T_orbit_s": 5553.6234130312205,
+        "m_res": 0.1,
+        "cyclic_by_source_Nms": {
+          "GG_Disturbance": 2.5402630272226763e-20,
+          "Drag_Disturbance": 4.076600170593707e-17,
+          "SRP_Disturbance": 1.40338495593021e-06,
+          "Dipole_Disturbance": 0.004727852335616187
+        },
+        "cyclic_total_Nms": 0.0047284363576596,
+        "reserved_wheel_frac": 0.31522909051064,
+        "accum_along_wheel_Nms": 0.001988434161220443,
+        "accum_transverse_Nms": 0.0018769352454639568,
+        "orbits_to_saturate_along_a": 7.543624170484697,
+        "profile": "nadir",
+        "median_rho_kg_m3": 3.2900000000000048e-12,
+        "median_B_T": 3.742581791042769e-05,
+        "median_tau_mtq_max_Nm": 6.536607681850839e-05,
+        "accum_per_orbit_Nms": 0.002734365800176211,
+        "accum_by_source_Nms": {
+          "GG_Disturbance": 1.0903886558575046e-21,
+          "Drag_Disturbance": 0.001418318390174933,
+          "SRP_Disturbance": 2.6113241645944068e-05,
+          "Dipole_Disturbance": 0.0025802662605664576
+        },
+        "capacity_per_orbit_Nms": 0.023599563235963638,
+        "margin": 8.630726450148991,
+        "orbits_to_saturate": 5.485732742500419
+      },
+      {
+        "alt_km": 500.0,
+        "T_orbit_s": 5676.977164028287,
+        "m_res": 0.1,
+        "cyclic_by_source_Nms": {
+          "GG_Disturbance": 2.260580366057816e-20,
+          "Drag_Disturbance": 1.4311468680214556e-17,
+          "SRP_Disturbance": 1.4349829290553996e-06,
+          "Dipole_Disturbance": 0.004594997549288744
+        },
+        "cyclic_total_Nms": 0.0045955951113765565,
+        "reserved_wheel_frac": 0.30637300742510376,
+        "accum_along_wheel_Nms": 0.001934174117338781,
+        "accum_transverse_Nms": 0.0015395137065385748,
+        "orbits_to_saturate_along_a": 7.755248023191632,
+        "profile": "nadir",
+        "median_rho_kg_m3": 6.149999999999995e-13,
+        "median_B_T": 3.592377414419783e-05,
+        "median_tau_mtq_max_Nm": 6.389419081931252e-05,
+        "accum_per_orbit_Nms": 0.0024720703810376015,
+        "accum_by_source_Nms": {
+          "GG_Disturbance": 1.076393279828742e-21,
+          "Drag_Disturbance": 0.00026707497222764535,
+          "SRP_Disturbance": 2.6693052513075675e-05,
+          "Dipole_Disturbance": 0.002514153743880981
+        },
+        "capacity_per_orbit_Nms": 0.023967997604475898,
+        "margin": 9.695515867317587,
+        "orbits_to_saturate": 6.067788407263734
+      },
+      {
+        "alt_km": 600.0,
+        "T_orbit_s": 5801.230915198522,
+        "m_res": 0.1,
+        "cyclic_by_source_Nms": {
+          "GG_Disturbance": 2.2442354835539957e-20,
+          "Drag_Disturbance": 2.3852447808708057e-18,
+          "SRP_Disturbance": 1.4668303591649791e-06,
+          "Dipole_Disturbance": 0.004463392524984043
+        },
+        "cyclic_total_Nms": 0.004464003899621262,
+        "reserved_wheel_frac": 0.2976002599747508,
+        "accum_along_wheel_Nms": 0.001881107726889822,
+        "accum_transverse_Nms": 0.0015282618827400108,
+        "orbits_to_saturate_along_a": 7.974024977719186,
+        "profile": "nadir",
+        "median_rho_kg_m3": 1.3700000000000007e-13,
+        "median_B_T": 3.4461465495083595e-05,
+        "median_tau_mtq_max_Nm": 6.246883692194894e-05,
+        "accum_per_orbit_Nms": 0.002423664717406398,
+        "accum_by_source_Nms": {
+          "GG_Disturbance": 5.1910472602566624e-21,
+          "Drag_Disturbance": 5.992568104736973e-05,
+          "SRP_Disturbance": 2.727708453511075e-05,
+          "Dipole_Disturbance": 0.0024485910252918146
+        },
+        "capacity_per_orbit_Nms": 0.024323136432512313,
+        "margin": 10.035685323067659,
+        "orbits_to_saturate": 6.188974857896903
+      },
+      {
+        "alt_km": 800.0,
+        "T_orbit_s": 6052.41266643778,
+        "m_res": 0.1,
+        "cyclic_by_source_Nms": {
+          "GG_Disturbance": 2.5984976850294685e-20,
+          "Drag_Disturbance": 9.022224377359063e-20,
+          "SRP_Disturbance": 1.531268675756158e-06,
+          "Dipole_Disturbance": 0.004244143562449396
+        },
+        "cyclic_total_Nms": 0.004244270735476274,
+        "reserved_wheel_frac": 0.28295138236508494,
+        "accum_along_wheel_Nms": 0.0017782225909491033,
+        "accum_transverse_Nms": 0.00145973147823917,
+        "orbits_to_saturate_along_a": 8.435389403074641,
+        "profile": "nadir",
+        "median_rho_kg_m3": 1.2100000000000003e-14,
+        "median_B_T": 3.179801892472737e-05,
+        "median_tau_mtq_max_Nm": 5.816490420364308e-05,
+        "accum_per_orbit_Nms": 0.002300628516628457,
+        "accum_by_source_Nms": {
+          "GG_Disturbance": 5.644070850509304e-21,
+          "Drag_Disturbance": 5.368017313018952e-06,
+          "SRP_Disturbance": 2.845769010491467e-05,
+          "Dipole_Disturbance": 0.0023191090414587784
+        },
+        "capacity_per_orbit_Nms": 0.024970108580578153,
+        "margin": 10.853603004613515,
+        "orbits_to_saturate": 6.51995743405907
+      }
+    ]
+  },
+  "profile_comparison_400km": {
+    "nadir": {
+      "alt_km": 400.0,
+      "T_orbit_s": 5553.6234130312205,
+      "m_res": 0.05,
+      "cyclic_by_source_Nms": {
+        "GG_Disturbance": 2.5402630272226763e-20,
+        "Drag_Disturbance": 4.076600170593707e-17,
+        "SRP_Disturbance": 1.40338495593021e-06,
+        "Dipole_Disturbance": 0.0023639261678080935
+      },
+      "cyclic_total_Nms": 0.00236451020905705,
+      "reserved_wheel_frac": 0.1576340139371367,
+      "accum_along_wheel_Nms": 0.0009942170806102216,
+      "accum_transverse_Nms": 0.0014462723992790987,
+      "orbits_to_saturate_along_a": 15.087248340969394,
+      "profile": "nadir",
+      "median_rho_kg_m3": 3.2900000000000048e-12,
+      "median_B_T": 3.742581791042769e-05,
+      "median_tau_mtq_max_Nm": 6.536607681850839e-05,
+      "accum_per_orbit_Nms": 0.0017550417249437783,
+      "accum_by_source_Nms": {
+        "GG_Disturbance": 1.0903886558575046e-21,
+        "Drag_Disturbance": 0.001418318390174933,
+        "SRP_Disturbance": 2.6113241645944068e-05,
+        "Dipole_Disturbance": 0.0012901331302832288
+      },
+      "capacity_per_orbit_Nms": 0.023599563235963638,
+      "margin": 13.446724884401045,
+      "orbits_to_saturate": 8.546805347593953
+    },
+    "inertial": {
+      "alt_km": 400.0,
+      "T_orbit_s": 5553.6234130312205,
+      "m_res": 0.05,
+      "cyclic_by_source_Nms": {
+        "GG_Disturbance": 7.145947158393651e-05,
+        "Drag_Disturbance": 0.00022151145219943138,
+        "SRP_Disturbance": 9.919453032412711e-08,
+        "Dipole_Disturbance": 0.0015772460699498868
+      },
+      "cyclic_total_Nms": 0.0016891728865183436,
+      "reserved_wheel_frac": 0.11261152576788958,
+      "accum_along_wheel_Nms": 0.0010893907432043084,
+      "accum_transverse_Nms": 0.0032294548078800125,
+      "orbits_to_saturate_along_a": 13.769164180594514,
+      "profile": "inertial",
+      "median_rho_kg_m3": 3.2900000000000048e-12,
+      "median_B_T": 3.742581791042769e-05,
+      "median_tau_mtq_max_Nm": 3.7961489996927756e-05,
+      "accum_per_orbit_Nms": 0.0034082474305012784,
+      "accum_by_source_Nms": {
+        "GG_Disturbance": 7.082987059682997e-05,
+        "Drag_Disturbance": 1.0686007450236975e-06,
+        "SRP_Disturbance": 2.4838996643608315e-05,
+        "Dipole_Disturbance": 0.0034822109131899086
+      },
+      "capacity_per_orbit_Nms": 0.036365922907530684,
+      "margin": 10.669977356128177,
+      "orbits_to_saturate": 4.401088919120473
+    }
+  }
+}
