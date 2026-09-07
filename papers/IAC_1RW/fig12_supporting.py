@@ -15,6 +15,9 @@ from papers.IAC_1RW._iac_sim import _get_orbit, EPOCH  # noqa: E402
 from ADCS.orbits.universal_constants import TimeConstants  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import fig_style
+fig_style.apply(8.5)
 OUT = os.path.join(HERE, "output_data")
 S2C = TimeConstants.sec2cent
 T_ORB = 5553.6
@@ -51,8 +54,8 @@ def fig1():
     ax.axhspan(0.0, 0.1, color=OI["verm"], alpha=0.12, lw=0)
     ax.text(0.985, 0.62, "restoration-favourable:\nwheel supplies the along-field axis",
             fontsize=7, ha="right", color=OI["blue"], transform=ax.get_yaxis_transform())
-    ax.text(0.985, 0.045, "dump-favourable: MTQs can\ncancel the wheel's reaction",
-            fontsize=7, ha="right", color=OI["verm"], transform=ax.get_yaxis_transform())
+    ax.text(0.66, 0.048, "dump-favourable: MTQs can cancel the wheel's reaction",
+            fontsize=7, ha="center", color=OI["verm"], transform=ax.get_yaxis_transform())
 
     x = ts / T_ORB
     for name, sig, col, lsty in traces:
@@ -65,8 +68,8 @@ def fig1():
     duties = ", ".join(f"{n} {100*ref[k]['restore_duty']:.1f}%" for n, k in
                        (("boresight", "boresight"), ("45$^\\circ$", "45deg"),
                         ("orbit-normal", "orbit_normal")))
-    ax.text(0.02, 0.315, f"restoration duty ($\\sigma>0.3$): {duties}",
-            fontsize=6.8, transform=ax.transAxes, color="0.25")
+    ax.text(0.02, 0.955, f"restoration duty ($\\sigma>0.3$): {duties}",
+            fontsize=6.8, transform=ax.transAxes, color="0.25", va="top")
 
     ax.set_xlim(0, 1); ax.set_ylim(0, 1)
     ax.set_xlabel("orbit phase  $t/T_{orb}$")
@@ -90,9 +93,9 @@ def fig2():
 
     fig, (a, b) = plt.subplots(2, 1, figsize=(4.6, 4.8), sharex=True,
                                constrained_layout=True)
-    a.plot(alt, drag, "-", color=OI["blue"], lw=1.5, label="drag")
-    a.plot(alt, dip, "--", color=OI["orange"], lw=1.5, label="residual dipole")
-    a.plot(alt, tot, "-.", color="0.2", lw=1.4, label="total")
+    a.plot(alt, drag, "-o", ms=3.5, color=OI["blue"], lw=1.5, label="drag")
+    a.plot(alt, dip, "--s", ms=3.2, color=OI["orange"], lw=1.5, label="residual dipole")
+    a.plot(alt, tot, "-.^", ms=3.2, color="0.2", lw=1.4, label="total")
     a.set_yscale("log")
     a.set_ylabel("secular momentum\n[mN·m·s / orbit]")
     a.legend(fontsize=7, loc="upper right", framealpha=0.95)
@@ -101,12 +104,12 @@ def fig2():
                xy=(470, 1.32), xytext=(545, 0.12), fontsize=6.8,
                arrowprops=dict(arrowstyle="->", lw=0.8, color="0.3"))
 
-    b.plot(alt, marg, "-", color=OI["green"], lw=1.6, label="dump capacity / accumulation")
+    b.plot(alt, marg, "-D", ms=3.2, color=OI["green"], lw=1.6)
     b.axhline(1.0, color=OI["verm"], lw=1.2, ls=":")
     b.set_yscale("log")
-    b.set_ylabel("momentum margin")
+    b.set_ylabel("momentum margin\n(dump capacity / accumulation)")
     b.set_xlabel("altitude [km]")
-    b.legend(fontsize=7, loc="lower right", framealpha=0.95)
+    
     # interpolated binding altitude (F sampled from 300 km)
     lo = rows[0]
     # F's own extrapolation (its fit, not a two-point re-derivation here)
@@ -118,8 +121,8 @@ def fig2():
     for ax in (a, b):
         ax.axvline(400, color="0.55", lw=0.9, ls="--")
         ax.grid(alpha=0.15, lw=0.4)
-    a.text(404, a.get_ylim()[1] * 0.4, "reference", fontsize=6.5, color="0.4",
-           rotation=90, va="top")
+    a.text(407, 3.2e-2, "reference altitude", fontsize=6.5, color="0.4",
+           rotation=90, va="bottom")
 
     for ext in ("pdf", "png"):
         fig.savefig(os.path.join(OUT, f"fig2_altitude.{ext}"), dpi=220)

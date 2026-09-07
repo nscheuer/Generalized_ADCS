@@ -17,6 +17,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from papers.IAC_1RW._iac_sim import error_series  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import fig_style
+fig_style.apply(8.5)
 OUT = os.path.join(HERE, "output_data")
 OI = {"blue": "#0072B2", "orange": "#E69F00", "green": "#009E73", "verm": "#D55E00"}
 
@@ -48,19 +51,24 @@ def main():
                      label=f"{name} (final {e[-1]:.1f}°)")
         axes[1].plot(t[:len(hf)], hf, color=col, ls=ls, lw=1.3)
         axes[2].plot(t[:len(sg)], sg, color=col, ls=ls, lw=1.1)
-        axes[3].plot(t[:len(al)], np.clip(al, 0, 1), color=col, ls=ls, lw=1.1)
+        alc = np.clip(al, 0, 1)
+        axes[3].plot(t[:len(alc)], alc, color=col, ls="-", lw=0.5, alpha=0.18)
+        k60 = 61
+        roll = np.convolve(alc, np.ones(k60) / k60, mode="same")
+        axes[3].plot(t[:len(roll)], roll, color=col, ls=ls, lw=1.4)
 
-    axes[0].set_yscale("log"); axes[0].set_ylabel("attitude error [deg]")
+    axes[0].set_yscale("log"); axes[0].set_ylim(3e-2, 2e2)
+    axes[0].set_ylabel("attitude error [deg]")
     axes[0].legend(fontsize=7, loc="lower left", framealpha=0.95)
     axes[1].axhline(1.0, color="0.3", lw=0.9, ls=":")
     axes[1].text(0.995, 1.02, "$h_{max}$", fontsize=7, ha="right",
                  transform=axes[1].get_yaxis_transform())
     axes[1].set_ylabel(r"$|h|/h_{max}$"); axes[1].set_ylim(0, 1.1)
     axes[2].axhline(0.2, color="0.3", lw=0.9, ls=":")
-    axes[2].text(0.995, 0.22, "dwell threshold $\\sigma=0.2$", fontsize=7, ha="right",
+    axes[2].text(0.63, 0.24, "dwell threshold $\\sigma=0.2$", fontsize=7, ha="center",
                  transform=axes[2].get_yaxis_transform())
     axes[2].set_ylabel(r"$\sigma$"); axes[2].set_ylim(0, 1)
-    axes[3].set_ylabel(r"LP scale $\alpha$"); axes[3].set_ylim(-0.05, 1.05)
+    axes[3].set_ylabel(r"LP scale $\alpha$" + "\n(60 s median; raw faint)"); axes[3].set_ylim(-0.05, 1.05)
     axes[3].set_xlabel("time [hr]  (one orbit)")
     fig.suptitle("Seed 8: dump-starved divergence, failure-mode exchange, planner rescue",
                  fontsize=9)
@@ -78,6 +86,11 @@ def main():
     ax.axvline(30, color=OI["verm"], lw=0.9, ls=":")
     ax.text(5, ax.get_ylim()[1]*0.92, " 5°", fontsize=7, color="0.35")
     ax.text(30, ax.get_ylim()[1]*0.92, " 30°", fontsize=7, color=OI["verm"])
+    from matplotlib.ticker import MaxNLocator
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    n_conv = int(np.sum(np.asarray(fin) <= 30)); n_div = len(fin) - n_conv
+    ax.text(0.28, ax.get_ylim()[1]*0.75, f"{n_conv} converged", fontsize=7.5, ha="center", color="0.25")
+    ax.text(75, ax.get_ylim()[1]*0.55, f"{n_div} divergent", fontsize=7.5, ha="center", color="0.25")
     ax.set_xlabel("final pointing error [deg]"); ax.set_ylabel("trials")
     ax.set_title("PD 3+1 reduced, n=100: bimodal outcomes", fontsize=9)
     for ext in ("pdf", "png"):

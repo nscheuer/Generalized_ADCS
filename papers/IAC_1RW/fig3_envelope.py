@@ -16,6 +16,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from papers.IAC_1RW._iac_sim import error_series  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import fig_style
+fig_style.apply(8.5)
 OUT = os.path.join(HERE, "output_data")
 
 T_ORBIT = 5553.6
@@ -94,7 +97,7 @@ def main():
         ok = th_b2 >= cut
         ax.plot(D[ok], th_b2[ok], color=OI["grey"], lw=1.4)
         ax.plot(D[~ok], th_b2[~ok], color=OI["grey"], lw=1.2, ls=":",
-                label="bias-only drift bound (dotted: bias past the\nquadrature ceiling -- unreachable everywhere here)"
+                label="bias-only drift (unreachable:\nquadrature ceiling)"
                 if task.startswith("Bores") else None)
         if task.startswith("Bores"):
             ax.annotate("bias unavailable (quadrature ceiling)",
@@ -118,7 +121,8 @@ def main():
         ax.set_title(task, fontsize=10, pad=26)
         ax.set_xscale("log"); ax.set_yscale("log")
         ax.set_xlim(1e-2, 1e1); ax.set_ylim(1e-2, 1e2)   # tighter DOWN (small theta at bottom)
-        ax.grid(alpha=0.2, which="both", lw=0.4)
+        ax.grid(which="major", alpha=0.12, lw=0.5)
+        ax.grid(which="minor", visible=False)
         ax.set_xlabel(r"$D = |\hat a\cdot\tau_{sec}|\,T_{orb}/h_{max}$")
 
     axes[0].set_ylabel(r"required pointing $\theta_{max}$ [deg]  (tighter $\downarrow$)")
@@ -158,14 +162,14 @@ def main():
         bbox=dict(fc="white", ec="0.7", lw=0.6))
     h_, l_ = axes[0].get_legend_handles_labels()
     axes[1].legend(h_, l_, loc="upper right", fontsize=7.5, framealpha=0.95,
-                   bbox_to_anchor=(0.985, 0.80))
+                   bbox_to_anchor=(0.985, 0.99))
     # the argument, visible: vertical gap from the bias-only line to active control
     a0 = axes[0]
     d_pd = red_pd[0]
     th_line = float(np.degrees(TAU_PERP * T_ORBIT * d_pd / tau_aT))
     a0.annotate("", xy=(d_pd, red_pd[1]), xytext=(d_pd, th_line),
                 arrowprops=dict(arrowstyle="<->", color="0.35", lw=0.9))
-    a0.text(1.35e-1, 1.35e0, "value of active\ncontrol ($\\sim$300$\\times$)",
+    a0.text(1.18e-1, 1.05e0, "value of active\ncontrol ($\\sim$300$\\times$)",
             fontsize=6.8, color="0.25", ha="left")
 
     fig.suptitle("The one-wheel envelope: feasibility is bounded by wheel saturation (D = 1)\n"
