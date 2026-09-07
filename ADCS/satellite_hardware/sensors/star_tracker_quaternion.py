@@ -8,7 +8,7 @@ from ADCS.satellite_hardware.sensors.sensor import Sensor
 from ADCS.environment import StarCatalog, NavigationStar
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.errors import ErrorMode
-from ADCS.helpers.math_helpers import rot_mat
+from ADCS.helpers.math_helpers import rot_mat, quat_mult
 
 from ADCS.orbits.orbital_state import Orbital_State
 
@@ -91,6 +91,10 @@ class StarTrackerQuaternion(Sensor):
         sun_exclusion: float = np.deg2rad(25.0),
         min_stars: int = 2,
         star_catalog: Optional[StarCatalog] = None,
+        earth_limb_exclusion: float = 0.0,
+        max_rate: Optional[float] = None,
+        sigma_cross: Optional[float] = None,
+        sigma_roll: Optional[float] = None,
     ) -> None:
         r"""
         Initialize the quaternion star tracker sensor.
@@ -117,6 +121,24 @@ class StarTrackerQuaternion(Sensor):
         :param star_catalog: Navigation star catalog.  If ``None``, the default
                              :class:`~ADCS.environment.StarCatalog` is used.
         :type star_catalog: :class:`~ADCS.environment.StarCatalog` or None
+        :param earth_limb_exclusion: Boresight keep-out **beyond** the geometric Earth
+            limb [rad]. The catalog already drops individual stars behind the Earth; this
+            is the separate, and usually binding, constraint that the tracker refuses to
+            produce a solution when its boresight is within this margin of the limb
+            (stray light). ``0.0`` reproduces the previous behaviour.
+        :type earth_limb_exclusion: float
+        :param max_rate: Body-rate magnitude above which the tracker drops out [rad/s]
+            (image smear). ``None`` disables the check and reproduces the previous
+            behaviour.
+        :type max_rate: float or None
+        :param sigma_cross: 1-sigma attitude error about the two axes perpendicular to the
+            boresight [rad]. When given (with ``sigma_roll``), the measurement is perturbed
+            by a small rotation rather than by additive quaternion noise, so the
+            cross-boresight/roll anisotropy real trackers quote is represented.
+        :type sigma_cross: float or None
+        :param sigma_roll: 1-sigma attitude error **about** the boresight [rad]. Typically
+            several times ``sigma_cross``.
+        :type sigma_roll: float or None
         :return: None
         :rtype: None
         """
@@ -129,6 +151,30 @@ class StarTrackerQuaternion(Sensor):
         self.fov = float(fov)
         self.sun_exclusion = float(sun_exclusion)
         self.min_stars = int(min_stars)
+        self.earth_limb_exclusion = float(earth_limb_exclusion)
+        self.max_rate = None if max_rate is None else float(max_rate)
+        self.sigma_cross = None if sigma_cross is None else float(sigma_cross)
+        self.sigma_roll = None if sigma_roll is None else float(sigma_roll)
+        if (self.sigma_cross is None) != (self.sigma_roll is None):
+            raise ValueError(
+                "sigma_cross and sigma_roll must be given together (anisotropic mode) "
+                "or both omitted (additive-quaternion-noise mode)."
+            )
+        #: True when the anisotropic small-rotation error model is active.
+        self.anisotropic: bool = self.sigma_cross is not None
+
+        #: Whether the most recent :meth:`clean_reading` produced a solution. Campaigns
+        #: log the per-trial time-average of this as "tracker-available fraction".
+        self.available: bool = False
+
+        # Body-frame triad with the boresight as the third axis, so the anisotropic
+        # perturbation can be drawn in sensor axes and rotated into the body frame.
+        seed = (np.array([1.0, 0.0, 0.0])
+                if abs(self.boresight[0]) < 0.9 else np.array([0.0, 1.0, 0.0]))
+        e1 = np.cross(seed, self.boresight)
+        e1 /= np.linalg.norm(e1)
+        e2 = np.cross(self.boresight, e1)
+        self._sensor_axes = np.column_stack((e1, e2, self.boresight))
 
         self.catalog = star_catalog if star_catalog is not None else StarCatalog()
         self.current_stars: List[NavigationStar] = []
@@ -224,13 +270,43 @@ class StarTrackerQuaternion(Sensor):
         :rtype: numpy.ndarray
         """
         q = x[3:7].copy()
+
+        # Slew-rate dropout: above max_rate the star images smear and the tracker
+        # produces no solution. This is the constraint that couples tracker
+        # availability to agility, so campaigns that sweep slew rate must model it.
+        if self.max_rate is not None and np.size(x) >= 3:
+            if float(np.linalg.norm(np.ravel(x)[0:3])) > self.max_rate:
+                self.current_stars = []
+                self.available = False
+                return np.full(4, np.nan)
+
+        # Boresight Earth-limb keep-out (stray light). The catalog drops individual
+        # stars behind the geometric limb; this is the separate boresight margin.
+        if self.earth_limb_exclusion > 0.0:
+            R = np.asarray(getattr(os, "R", None), dtype=np.float64)
+            if R is not None and R.size == 3:
+                r = float(np.linalg.norm(R))
+                if r > self.catalog.R_EARTH:
+                    nadir = -R / r
+                    b_eci = rot_mat(q) @ self.boresight
+                    limb = np.arcsin(np.clip(self.catalog.R_EARTH / r, -1.0, 1.0))
+                    from_nadir = np.arccos(
+                        np.clip(float(np.dot(b_eci, nadir)), -1.0, 1.0)
+                    )
+                    if from_nadir < limb + self.earth_limb_exclusion:
+                        self.current_stars = []
+                        self.available = False
+                        return np.full(4, np.nan)
+
         stars = self._select_stars(q, os)
 
         if len(stars) < self.min_stars:
             self.current_stars = []
+            self.available = False
             return np.full(4, np.nan)
 
         self.current_stars = stars
+        self.available = True
 
         # Enforce scalar-positive convention
         if q[0] < 0:
@@ -259,7 +335,45 @@ class StarTrackerQuaternion(Sensor):
         :return: Normalized attitude quaternion measurement.
         :rtype: numpy.ndarray
         """
-        measurement = super().reading(x, os, dmode)
+        if self.anisotropic:
+            # Anisotropic mode: perturb by a small rotation in sensor axes rather than
+            # adding noise to the quaternion components. A tracker's error is quoted as
+            # cross-boresight vs about-boresight and the two differ by ~6x; additive
+            # quaternion noise cannot represent that. The roll term lands on the
+            # boresight axis.
+            #
+            # This mirrors the base Sensor.reading() pipeline rather than calling it,
+            # because only the *noise* step changes. dmode must still be honoured:
+            # estimators request clean predictions with add_noise=False, and adding
+            # noise there would corrupt sigma-point propagation.
+            if dmode is None:
+                dmode = ErrorMode(add_bias=True, add_noise=True,
+                                  update_bias=True, update_noise=True)
+
+            measurement = self.clean_reading(x=x, os=os)
+
+            if dmode.update_bias:
+                self.bias._update_bias(os.J2000)
+            if self.bias and dmode.add_bias:
+                measurement = measurement + self.bias.get_bias(os.J2000)
+
+            # Keep the noise process ticking even when the sample is not applied, so
+            # a run's stochastic stream does not depend on how many clean predictions
+            # the estimator happened to ask for.
+            if dmode.update_noise:
+                self.noise._update_noise()
+            if dmode.add_noise and not np.any(np.isnan(measurement)):
+                d = np.array([
+                    self.sigma_cross * np.random.randn(),
+                    self.sigma_cross * np.random.randn(),
+                    self.sigma_roll * np.random.randn(),
+                ])
+                dtheta = self._sensor_axes @ d          # sensor -> body
+                dq = np.concatenate(([1.0], 0.5 * dtheta))
+                dq = dq / np.linalg.norm(dq)
+                measurement = quat_mult(measurement, dq)
+        else:
+            measurement = super().reading(x, os, dmode)
 
         if not np.any(np.isnan(measurement)):
             norm = np.linalg.norm(measurement)
