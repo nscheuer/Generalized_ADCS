@@ -316,7 +316,7 @@ class RW(Actuator):
         return -u_eff
     
 
-    def measure_momentum(self):
+    def measure_momentum(self, h: float = None):
         r"""
         Measure the wheel angular momentum with additive measurement noise.
 
@@ -329,10 +329,16 @@ class RW(Actuator):
         where :math:`\nu_h` is sampled from :attr:`~RW.h_meas_noise`, an instance of
         :class:`~ADCS.satellite_hardware.errors.noise.Noise`.
 
+        :param h: Optional momentum value to measure instead of the stored
+            :attr:`~RW.h` — e.g. the momentum entry of a supplied state vector.
+            The stored momentum is not modified.
+        :type h: float | None
+
         :return: Noisy wheel momentum measurement :math:`\tilde{\mathbf{h}}` [N·m·s], shape ``(3,)``.
         :rtype: numpy.ndarray
         """
-        return self.h + self.h_meas_noise.get_noise()
+        h_true = self.h if h is None else h
+        return h_true + self.h_meas_noise.get_noise()
     
     def measure_momentum_noiseless(self):
         r"""
