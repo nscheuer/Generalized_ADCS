@@ -978,6 +978,40 @@ class UAKF(Attitude_Estimator):
             sensj = satj.sensor_readings(x=post_full_statej[:state_len],os=os, dmode=dmode)
             post_sens[j, :] = sensj[which_outputs] + sens_noise_j
 
+        # A sensor whose availability depends on the state -- a star tracker with sun or
+        # Earth-limb keep-outs, or a slew-rate limit -- can return NaN for individual sigma
+        # points even when the real measurement is perfectly valid, because the sigma points
+        # deliberately explore attitudes the true state is not at. The NaN then propagates
+        # into covyy and the gain solve fails with a bare "matrix is singular".
+        #
+        # The mask above only inspects the ACTUAL reading, so it cannot catch this. Drop any
+        # sensor whose predictions are not finite across every sigma point, and rebuild the
+        # measurement selection consistently. Deactivating the sensor for this step is the
+        # right call: if the filter's own state distribution straddles the sensor's
+        # availability boundary, its predicted measurement is not trustworthy anyway.
+        finite_cols = np.isfinite(post_sens).all(axis=0)
+        if not finite_cols.all():
+            active_output_idx = np.flatnonzero(which_outputs)
+            # Map each active output column back to the sensor that produced it.
+            col_owner = np.empty(active_output_idx.size, dtype=int)
+            cursor = 0
+            out_cursor = 0
+            all_sensors = list(self.est_sat.attitude_sensors) + list(self.est_sat.rw_actuators)
+            for s_idx, sensor in enumerate(all_sensors):
+                width = int(getattr(sensor, "output_length", 1))
+                if which_sensors[s_idx]:
+                    col_owner[out_cursor:out_cursor + width] = s_idx
+                    out_cursor += width
+                cursor += width
+
+            for s_idx in np.unique(col_owner[~finite_cols]):
+                which_sensors[int(s_idx)] = False
+
+            keep = np.array([which_sensors[int(o)] for o in col_owner], dtype=bool)
+            post_sens = post_sens[:, keep]
+            which_outputs = self._expand_sensor_mask(which_sensors)
+            sens_vec_len = int(keep.sum())
+
         # Predicted reduced error state
         state1 = np.dot(wts_m, post_pts)
         dquat1 = vec3_to_quat(state1[3:6], self.vec_mode)
