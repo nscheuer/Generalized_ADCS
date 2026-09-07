@@ -66,11 +66,10 @@ def fig1():
         ax.plot(x, sig, color=col, ls=lsty, lw=1.5,
                 label=f"{name}: median {jref['median_sigma']:.2f}, "
                       f"duty {100*jref['restore_duty']:.0f}%")
-    ax.text(0.02, 0.02, "duty = fraction of the orbit with $\\sigma>0.3$",
-            fontsize=6.4, transform=ax.transAxes, color="0.35", va="bottom")
+
 
     ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-    ax.set_xlabel("orbit phase  $t/T_{orb}$")
+    ax.set_xlabel("orbit phase  $t/T_{orb}$   (duty = fraction of the orbit with $\\sigma>0.3$)")
     ax.set_ylabel(r"$\sigma = |\hat a \cdot \hat B(t)|$")
     ax.legend(loc="center left", fontsize=7, framealpha=0.95)
     ax.grid(alpha=0.15, lw=0.4)
