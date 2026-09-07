@@ -10,7 +10,12 @@ reviewer is right; the QP cell is mandatory.**
 
 QP arm: 3MTQ+0RW reduced PD, n=30, SAME seeds as the context cell, settled bus,
 identical dipole feedforward via MRO mixin (`FeedforwardQP(FeedforwardLP, MTQ_w_RW_QP)`
--- FeedforwardLP is super()-cooperative). Result: [see QPCELL_RESULT.txt / below].
+-- FeedforwardLP is super()-cooperative). Result (paired seeds, one orbit): **conv@5 0.0%, conv@1 0.0%, median 54.3 deg,
+div>30 90%** (best trial 6.0 deg) vs the LP context cell's 0/0/74.0. The QP makes
+progress the LP structurally cannot (median 54 vs 74) and still converges on NOTHING
+within the orbit. **Headline sentence: with either allocator, MTQ-only converges on
+0% within one orbit** -- a timescale result, not an allocator artifact, consistent
+with Campaign B's torque-invariant floor.
 
 ## Item 2 — provenance of the 57% / 32% along-axis shares
 
@@ -79,8 +84,11 @@ JSON.
 
 `fig_seed8_threeway.{pdf,png}` (PD divergence / desaturation-first exchange / planner
 rescue; err log, |h|/h_max with h_max line, sigma with 0.2 threshold, LP alpha) and
-`fig_pd_hist.{pdf,png}` (final-error histogram, log x, 5 and 30 deg lines). Seed 8:
-all three series persisted (reserved-desat rerun 2026-09-07).
+`fig_pd_hist.{pdf,png}` (final-error histogram, log x, 5 and 30 deg lines). Seed 8 finals:
+PD 85.4 deg (wheel pinned at h_max from t~0.2 hr), desaturation-first 124.9 deg
+(h held near ZERO all orbit -- momentum objective met, attitude lost: the exchange),
+planner 0.5 deg (h low AND converged). All three series persisted (reserved-desat
+rerun 2026-09-07).
 
 ## Not run
 
