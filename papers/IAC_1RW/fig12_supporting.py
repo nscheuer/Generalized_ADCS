@@ -17,7 +17,7 @@ from ADCS.orbits.universal_constants import TimeConstants  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import fig_style
-fig_style.apply(8.5)
+fig_style.apply(8.0)
 OUT = os.path.join(HERE, "output_data")
 S2C = TimeConstants.sec2cent
 T_ORB = 5553.6
@@ -49,13 +49,15 @@ def fig1():
               ("45$^\\circ$", np.abs(np.sum(m45 * Bh, axis=1)), OI["orange"], "--"),
               ("orbit-normal", np.abs(np.sum(hh * Bh, axis=1)), OI["green"], "-.")]
 
-    fig, ax = plt.subplots(figsize=(4.4, 3.3))
+    fig, ax = plt.subplots(figsize=(3.5, 3.2), constrained_layout=True)
     ax.axhspan(0.3, 1.0, color=OI["sky"], alpha=0.13, lw=0)
     ax.axhspan(0.0, 0.1, color=OI["verm"], alpha=0.12, lw=0)
-    ax.text(0.985, 0.50, "restoration-favourable:\nwheel supplies the along-field axis",
-            fontsize=7, ha="right", color=OI["blue"], transform=ax.get_yaxis_transform())
-    ax.text(0.66, 0.048, "dump-favourable: MTQs can cancel the wheel's reaction",
-            fontsize=7, ha="center", color=OI["verm"], transform=ax.get_yaxis_transform())
+    ax.text(0.97, 0.52, "restoration-favourable:\nwheel supplies the along-field axis",
+            fontsize=6.5, ha="right", color=OI["blue"], transform=ax.get_yaxis_transform(),
+            bbox=dict(fc="white", ec="none", alpha=0.8, pad=1.5))
+    ax.text(0.60, 0.05, "dump-favourable: MTQs cancel the wheel's reaction",
+            fontsize=6.5, ha="center", color=OI["verm"], transform=ax.get_yaxis_transform(),
+            bbox=dict(fc="white", ec="none", alpha=0.8, pad=1.5))
 
     x = ts / T_ORB
     for name, sig, col, lsty in traces:
@@ -71,9 +73,9 @@ def fig1():
     ax.set_xlim(0, 1); ax.set_ylim(0, 1)
     ax.set_xlabel("orbit phase  $t/T_{orb}$   (duty = fraction of the orbit with $\\sigma>0.3$)")
     ax.set_ylabel(r"$\sigma = |\hat a \cdot \hat B(t)|$")
-    ax.legend(loc="center left", fontsize=7, framealpha=0.95)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, fontsize=6.3,
+              frameon=False, columnspacing=1.0, handlelength=2.2)
     ax.grid(alpha=0.15, lw=0.4)
-    fig.tight_layout()
     for ext in ("pdf", "png"):
         fig.savefig(os.path.join(OUT, f"fig1_sigma.{ext}"), dpi=220)
     print("fig1 medians:", {n: round(float(np.median(s)), 3) for n, s, _, _ in traces})
@@ -88,7 +90,7 @@ def fig2():
     tot = np.array([r["accum_per_orbit_Nms"] for r in rows]) * 1e3
     marg = np.array([r["margin"] for r in rows])
 
-    fig, (a, b) = plt.subplots(2, 1, figsize=(4.6, 4.8), sharex=True,
+    fig, (a, b) = plt.subplots(2, 1, figsize=(3.5, 4.4), sharex=True,
                                constrained_layout=True)
     a.plot(alt, drag, "-o", ms=3.5, color=OI["blue"], lw=1.5, label="drag")
     a.plot(alt, dip, "--s", ms=3.2, color=OI["orange"], lw=1.5, label="residual dipole")
@@ -121,6 +123,9 @@ def fig2():
     a.text(407, 3.2e-2, "reference altitude", fontsize=6.5, color="0.4",
            rotation=90, va="bottom")
 
+    for ax, lab in zip((a, b), "ab"):
+        ax.text(0.015, 0.04, f"({lab})", transform=ax.transAxes, fontsize=8.5,
+                fontweight="bold", va="bottom")
     for ext in ("pdf", "png"):
         fig.savefig(os.path.join(OUT, f"fig2_altitude.{ext}"), dpi=220)
     print(f"fig2: crossover near {alt[i]} km; binding ~{x_bind:.0f} km; "

@@ -19,7 +19,7 @@ from papers.IAC_1RW._iac_sim import error_series  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import fig_style
-fig_style.apply(8.5)
+fig_style.apply(8.0)
 OUT = os.path.join(HERE, "output_data")
 OI = {"blue": "#0072B2", "orange": "#E69F00", "green": "#009E73", "verm": "#D55E00"}
 
@@ -38,7 +38,7 @@ def main():
         ("planner", load(os.path.join(OUT, "A_trials/1rw_reduced_planner_seed0008.pkl")),
          OI["orange"], "-."),
     ]
-    fig, axes = plt.subplots(4, 1, figsize=(5.0, 6.4), sharex=True,
+    fig, axes = plt.subplots(4, 1, figsize=(7.0, 6.2), sharex=True,
                              constrained_layout=True)
     for name, r, col, ls in runs:
         t = np.asarray(r["time"], float) / 3600.0
@@ -65,20 +65,21 @@ def main():
                  transform=axes[1].get_yaxis_transform())
     axes[1].set_ylabel(r"$|h|/h_{max}$"); axes[1].set_ylim(0, 1.1)
     axes[2].axhline(0.2, color="0.3", lw=0.9, ls=":")
-    axes[2].text(0.63, 0.24, "dwell threshold $\\sigma=0.2$", fontsize=7, ha="center",
+    axes[2].text(0.27, 0.24, "dwell threshold $\\sigma=0.2$", fontsize=7, ha="center",
                  transform=axes[2].get_yaxis_transform())
     axes[2].set_ylabel(r"$\sigma$"); axes[2].set_ylim(0, 1)
     axes[3].set_ylabel(r"LP scale $\alpha$" + "\n(60 s median; raw faint)"); axes[3].set_ylim(-0.05, 1.05)
     axes[3].set_xlabel("time [hr]  (one orbit)")
-    fig.suptitle("Seed 8: dump-starved divergence, failure-mode exchange, planner rescue",
-                 fontsize=9)
+    for ax, lab in zip(axes, "abcd"):
+        ax.text(0.01, 0.97, f"({lab})", transform=ax.transAxes, fontsize=8.5,
+                fontweight="bold", va="top")
     for ext in ("pdf", "png"):
         fig.savefig(os.path.join(OUT, f"fig_seed8_threeway.{ext}"), dpi=220)
 
     # histogram of PD-reduced finals, log x
     fin = [float(error_series(load(p))[-1])
            for p in sorted(glob.glob(os.path.join(OUT, "wave/pd_reduced_kp1/*.pkl")))]
-    fig2, ax = plt.subplots(figsize=(4.2, 2.7), constrained_layout=True)
+    fig2, ax = plt.subplots(figsize=(3.5, 2.5), constrained_layout=True)
     bins = np.logspace(np.log10(0.05), np.log10(200), 28)
     ax.hist(fin, bins=bins, color=OI["blue"], alpha=0.85)
     ax.set_xscale("log")
@@ -92,7 +93,6 @@ def main():
     ax.text(0.28, ax.get_ylim()[1]*0.75, f"{n_conv} converged", fontsize=7.5, ha="center", color="0.25")
     ax.text(75, ax.get_ylim()[1]*0.55, f"{n_div} divergent", fontsize=7.5, ha="center", color="0.25")
     ax.set_xlabel("final pointing error [deg]"); ax.set_ylabel("trials")
-    ax.set_title("PD 3+1 reduced, n=100: bimodal outcomes", fontsize=9)
     for ext in ("pdf", "png"):
         fig2.savefig(os.path.join(OUT, f"fig_pd_hist.{ext}"), dpi=220)
     print("finals seed8:", {n: round(float(error_series(r)[-1]), 2) for n, r, _, _ in runs})

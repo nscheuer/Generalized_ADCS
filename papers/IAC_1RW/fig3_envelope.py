@@ -18,7 +18,7 @@ from papers.IAC_1RW._iac_sim import error_series  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import fig_style
-fig_style.apply(8.5)
+fig_style.apply(8.0)
 OUT = os.path.join(HERE, "output_data")
 
 T_ORBIT = 5553.6
@@ -74,7 +74,7 @@ def main():
         hi = (drag6 * area_ratio + dip6 * (0.10 / 0.05)) / hmax_c
         bars[name] = (lo, hi)
 
-    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.6), sharey=True, sharex=True)
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.9), sharey=True, sharex=True)
     D = np.logspace(-2, 1, 200)
     tau_aT = 0.07 * H_MAX                       # reference along-wheel accum per orbit
 
@@ -113,12 +113,12 @@ def main():
         # markers
         for lab, (d, th, dv), mk, col in marks:
             filled = dv < 0.5
-            ax.plot(d, th, mk, ms=8, mfc=col if filled else "none", mec=col,
-                    mew=1.6, label=lab)
+            ax.plot(d, th, mk, ms=7, mfc=col if filled else "none", mec=col,
+                    mew=1.4, label=lab)
             if dv >= 0.5:
                 ax.annotate(f"{dv:.0f}% div.", (d, th), textcoords="offset points",
-                            xytext=(7, 5), fontsize=7, color=col)
-        ax.set_title(task, fontsize=10, pad=26)
+                            xytext=(8, 4) if dv > 5 else (-4, 9), fontsize=7, color=col)
+        ax.set_title(("(a) " if task.startswith("Bores") else "(b) ") + task, fontsize=8.5, loc="left", y=1.13)
         ax.set_xscale("log"); ax.set_yscale("log")
         ax.set_xlim(1e-2, 1e1); ax.set_ylim(1e-2, 1e2)   # tighter DOWN (small theta at bottom)
         ax.grid(which="major", alpha=0.12, lw=0.5)
@@ -172,10 +172,7 @@ def main():
     a0.text(1.18e-1, 1.05e0, "value of active\ncontrol ($\\sim$300$\\times$)",
             fontsize=6.8, color="0.25", ha="left")
 
-    fig.suptitle("The one-wheel envelope: feasibility is bounded by wheel saturation (D = 1)\n"
-                 "bias-only drift shown as reference; on this domain it lies entirely beyond the quadrature ceiling",
-                 fontsize=9)
-    fig.tight_layout(rect=[0, 0, 1, 0.94])
+    fig.tight_layout(rect=[0, 0, 1, 0.97])
     for ext in ("pdf", "png"):
         fig.savefig(os.path.join(OUT, f"fig3_envelope.{ext}"), dpi=220)
     print("markers (D, conv-median, div%):")
