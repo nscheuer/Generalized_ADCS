@@ -120,7 +120,8 @@ def main():
     convonly = ", ".join(
         f"{cfg[0:4]}{cfg[-3:]}-{task[:3]}-{law}: {rr[T_ORBIT]['med_conv']:.2f}"
         for cfg, task, law, rr, _ in cells if not np.isnan(rr[T_ORBIT]["med_conv"]))
-    say(f"- grid medians are ALL-TRIAL; converged-only medians (Fig 3 markers): {convonly}")
+    say(f"- grid medians are ALL-TRIAL, in the table AND on the screening diagram; "
+        f"converged-only medians (no longer plotted anywhere): {convonly}")
     say("")
 
     say("## Table 3 -- ablations")

@@ -1,6 +1,7 @@
-"""Figure (envelope slot): EMPIRICAL PERFORMANCE MAP -- where the tested cells
-landed in (demand index D, converged-only median pointing error). No claimed
-feasible region: D is a demand index, not a boundary.
+"""Figure (screening slot): MISSION SCREENING DIAGRAM -- where the tested cells
+landed in (demand index D, all-trial median terminal error, matching Table 3).
+No claimed feasible region: D is a screening index, not a boundary, and the
+y-axis is achieved error, not required accuracy.
 
 Marker shape = controller (PD circle, planner triangle); colour = architecture
 (house grammar); fill = outcome (filled if <= 2% large-error failures, open
@@ -39,7 +40,9 @@ def cell_stats(pkls):
         dend.append(float(np.asarray(r["h_frac"], float)[-1]))
     fin = np.asarray(fin)
     conv = fin <= 30.0
-    return dict(D=float(np.median(dend)), med=float(np.median(fin[conv])),
+    # all-trial median, matching Table 3 (a converged-only median is undefined for
+    # a cell with no converged trials)
+    return dict(D=float(np.median(dend)), med=float(np.median(fin)),
                 div=float(100 * np.mean(~conv)))
 
 
@@ -81,7 +84,7 @@ def main():
                 ax.text(2.0, thr, f" {thr:.0f}°", fontsize=10, color="#777777",
                         ha="left", va="center", clip_on=False)
         ax.axvline(1.0, color="#999999", lw=0.8, ls="-", alpha=0.7)
-        ax.text(1.0, 2.6e-2, "once-per-orbit\ndumping", fontsize=10, color="#777777",
+        ax.text(1.0, 2.6e-2, "one wheel capacity\nper orbit", fontsize=10, color="#777777",
                 ha="center", va="bottom")
         for arch, ctrl, c in cells[task]:
             filled = c["div"] <= 2.0

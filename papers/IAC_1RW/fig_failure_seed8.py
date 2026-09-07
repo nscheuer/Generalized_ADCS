@@ -61,7 +61,7 @@ def threeway(runs, with_alpha, base):
                  transform=axes[1].get_yaxis_transform())
     axes[1].set_ylabel(r"$|h|/h_{max}$"); axes[1].set_ylim(0, 1.1)
     axes[2].axhline(0.2, color="0.3", lw=0.9, ls=":")
-    axes[2].text(0.27, 0.24, "dwell threshold $\\sigma=0.2$", fontsize=sm, ha="center",
+    axes[2].text(0.34, 0.24, "dump-favorable threshold: $\\sigma=0.2$", fontsize=sm, ha="center",
                  transform=axes[2].get_yaxis_transform())
     axes[2].set_ylabel(r"$\sigma$"); axes[2].set_ylim(0, 1)
     if with_alpha:

@@ -41,7 +41,7 @@
 
 - BOTH-WAYS planner-full (tuned): ALL n=100 94.0/23.0/1.42 (6.5% fallback windows; 78 kills in 32 trials); PURE n=68 92.6/19.1/1.47
 - planner-full BASELINE-weights (Cell E, clean, seed-paired): 72.0/19.0/2.24 (4 kills / 1200 windows)
-- grid medians are ALL-TRIAL; converged-only medians (Fig 3 markers): 3MTQ1RW-red-PD: 0.21, 3MTQ1RW-ful-PD: 0.19, 3MTQ1RW-red-planner: 0.99, 3MTQ1RW-ful-planner: 1.42
+- grid medians are ALL-TRIAL, in the table AND on the screening diagram (2026-09-07: the diagram was switched from converged-only to all-trial so the two agree, and because a converged-only median is undefined for the 3+0 cells, which have no converged trials); converged-only medians, no longer plotted anywhere: 3MTQ1RW-red-PD: 0.21, 3MTQ1RW-ful-PD: 0.19, 3MTQ1RW-red-planner: 0.99, 3MTQ1RW-ful-planner: 1.42
 
 ## Table 3 -- ablations
 ### Campaign B (equalized torque m_max = 31.97 A m^2 at 37.1 uT median; planner, 0 fallbacks)
