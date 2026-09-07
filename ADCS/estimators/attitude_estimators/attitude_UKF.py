@@ -1,4 +1,278 @@
-"""Non-augmented unscented Kalman attitude estimator."""
+r"""
+.. container:: ekf-step ekf-step-input
+
+   **1. Construct the non-augmented tangent-state filter**
+
+   The UKF estimates only the physical state. Its nominal quaternion remains a
+   four-element unit quaternion, while the uncertainty is represented in the
+   right tangent coordinates
+
+   .. math::
+
+      \hat{\mathbf{x}}_k =
+      [\hat{\boldsymbol{\omega}}_k,\hat{\mathbf{q}}_k,\hat{\mathbf{h}}_k]^T,
+      \qquad
+      \delta\mathbf{x}_k =
+      [\delta\boldsymbol{\omega}_k,
+      \delta\boldsymbol{\theta}_k,\delta\mathbf{h}_k]^T
+      \in\mathbb{R}^{6+n_h}.
+
+   No process, control, sensor-bias, actuator-bias, or disturbance variables
+   are appended to the sigma-point state. The covariance is owned by
+   :class:`~ADCS.covariance.Covariance` in tangent coordinates. The chart is
+   selected by ``quaternion_mode`` and is ``quaternion_vector`` by default.
+
+   .. code-block:: python
+
+      super().__init__(
+          satellite, state, dt=dt,
+          covariance_coordinates="tangent",
+          correction_mode=quaternion_mode,
+          measurement_quaternion_mode=quaternion_mode,
+          ...,
+      )
+
+.. container:: ekf-step ekf-step-predict
+
+   **2. Generate tangent sigma points and weights**
+
+   For covariance dimension :math:`n=6+n_h`, define
+
+   .. math::
+
+      \lambda=\alpha^2(n+\kappa)-n,
+      \qquad
+      \gamma=\sqrt{n+\lambda}.
+
+   With :math:`\mathbf{S}` such that
+   :math:`\mathbf{P}=\mathbf{S}^T\mathbf{S}`, the sigma offsets are
+
+   .. math::
+
+      \boldsymbol{\xi}_0=\mathbf{0},
+      \qquad
+      \boldsymbol{\xi}_i=\pm\gamma\,\mathbf{S}_{i,:}^T,
+      \qquad
+      \mathbf{X}_i=\hat{\mathbf{x}}\boxplus\boldsymbol{\xi}_i.
+
+   The mean and covariance weights are
+
+   .. math::
+
+      W_0^{(m)}=\frac{\lambda}{n+\lambda},
+      \quad
+      W_0^{(c)}=W_0^{(m)}+1-\alpha^2+\beta,
+      \quad
+      W_i^{(m)}=W_i^{(c)}=\frac{1}{2(n+\lambda)}.
+
+   .. code-block:: python
+
+      points, offsets, mean_weights, covariance_weights = self._sigma_states(
+          prior
+      )
+
+.. container:: ekf-step ekf-step-linearize
+
+   **3. Propagate sigma points and form the prediction**
+
+   Each sigma state is propagated through the nonlinear spacecraft model with
+   the same control and orbital interval:
+
+   .. math::
+
+      \mathbf{X}_{i,k+1}^- =
+      f(\mathbf{X}_{i,k}^+,\mathbf{u}_k,
+      \mathbf{o}_k,\mathbf{o}_{k+1},\Delta t).
+
+   There is no state Jacobian in this step. The nonlinear model is evaluated at
+   every sigma point, and process noise is added after the propagated-point
+   statistics have been formed.
+
+   .. code-block:: python
+
+      propagated_points = [
+          propagate_state(
+              point, self.satellite, control, step,
+              orbital_state_start, orbital_state_end,
+              midpoint_orbital_state=midpoint_orbital_state,
+          )
+          for point in points
+      ]
+
+   After propagation, compute the manifold state mean and predicted covariance.
+
+   The predicted mean is the weighted manifold mean, found by iterating until
+   the weighted local correction vanishes:
+
+   .. math::
+
+      \hat{\mathbf{x}}_{k+1}^- \text{ satisfies }
+      \sum_i W_i^{(m)}
+      (\mathbf{X}_{i,k+1}^-\boxminus\hat{\mathbf{x}}_{k+1}^-)=\mathbf{0}.
+
+   The sigma deviations and discretized process noise then give
+
+   .. math::
+
+      \mathbf{d}_{i,k}^x=\mathbf{X}_{i,k+1}^-\boxminus\hat{\mathbf{x}}_{k+1}^- ,
+      \qquad
+      \mathbf{P}_{k+1}^- =
+      \sum_i W_i^{(c)}\mathbf{d}_{i,k}^x(\mathbf{d}_{i,k}^x)^T
+      +\mathbf{Q}_{d,k}.
+
+   .. code-block:: python
+
+      predicted = self._state_mean(propagated_points, mean_weights)
+      transition, process_noise = discretize_process_noise(
+          prior, self.satellite, control, orbital_state_start, step,
+          final_state=predicted,
+          quaternion_mode=self.correction_mode,
+          quaternion_order="right",
+          unmodeled_dynamics_psd=self.unmodeled_dynamics_psd,
+      )
+      deviations = np.vstack([
+          point.minus(predicted,
+              quaternion_mode=self.correction_mode,
+              quaternion_order="right")
+          for point in propagated_points
+      ])
+      predicted.covariance = prior.covariance.predicted_unscented(
+          deviations, covariance_weights, process_noise
+      )
+
+.. container:: ekf-step ekf-step-measurement
+
+   **4. Predict measurements and form their statistics**
+
+   The active sources are selected first. Each state sigma point is then passed
+   through the measurement models:
+
+   .. math::
+
+      \mathbf{Z}_{i,k}=h(\mathbf{X}_{i,k}^-,\mathbf{o}_k).
+
+   Additive measurements use a weighted Euclidean mean. Quaternion measurements
+   use the same right-error manifold mean as the state:
+
+   .. math::
+
+      \hat{\mathbf{z}}_k \text{ satisfies }
+      \sum_i W_i^{(m)}
+      (\mathbf{Z}_{i,k}\boxminus\hat{\mathbf{z}}_k)=\mathbf{0}.
+
+   .. code-block:: python
+
+      sigma_measurements = [
+          stack.predict(point, orbital_state, active_mask=active)
+          for point in points
+      ]
+      predicted_measurement = self._measurement_mean(
+          stack, sigma_measurements, active, mean_weights
+      )
+
+   Then form :math:`\mathbf{P}_{zz}` and :math:`\mathbf{P}_{xz}` from the
+   measurement and state deviations.
+
+   The UKF forms measurement deviations in the residual coordinates and state
+   deviations in the tangent coordinates:
+
+   .. math::
+
+      \mathbf{d}_{i,k}^z=\mathbf{Z}_{i,k}\boxminus\hat{\mathbf{z}}_k,
+      \qquad
+      \mathbf{P}_{zz}=\sum_i W_i^{(c)}\mathbf{d}_{i,k}^z
+      (\mathbf{d}_{i,k}^z)^T+\mathbf{R}_k,
+
+   .. math::
+
+      \mathbf{P}_{xz}=\sum_i W_i^{(c)}\mathbf{d}_{i,k}^x
+      (\mathbf{d}_{i,k}^z)^T.
+
+   This is the unscented equivalent of constructing a measurement Jacobian;
+   the UKF does not calculate an explicit :math:`\mathbf{H}`.
+
+   .. code-block:: python
+
+      measurement_deviations = np.vstack([
+          stack.residual(
+              measurement, predicted_measurement, active,
+              quaternion_mode=self.measurement_quaternion_mode,
+          )
+          for measurement in sigma_measurements
+      ])
+      measurement_noise = stack.covariance(
+          prior, active,
+          quaternion_mode=self.measurement_quaternion_mode,
+      )
+
+.. container:: ekf-step ekf-step-update
+
+   **5. Compute the unscented gain and correction**
+
+   The :class:`~ADCS.covariance.Covariance` operation
+   :meth:`~ADCS.covariance.Covariance.updated_unscented` solves the measurement
+   covariance and cross-covariance system:
+
+   .. math::
+
+      \mathbf{K}_k=\mathbf{P}_{xz}\mathbf{P}_{zz}^{-1},
+      \qquad
+      \mathbf{r}_k=\mathbf{z}_k\boxminus\hat{\mathbf{z}}_k,
+      \qquad
+      \delta\mathbf{x}_k=\mathbf{K}_k\mathbf{r}_k.
+
+   The posterior covariance before moving the tangent origin is the weighted
+   state covariance returned by the same operation.
+
+   .. code-block:: python
+
+      gain, posterior_covariance = prior.covariance.updated_unscented(
+          state_deviations,
+          measurement_deviations,
+          covariance_weights,
+          measurement_noise,
+      )
+      innovation = stack.residual(
+          measurements, predicted_measurement, active,
+          quaternion_mode=self.measurement_quaternion_mode,
+      )
+      correction = gain @ innovation
+
+.. container:: ekf-step ekf-step-reset
+
+   **6. Retract the nominal state and reset the covariance**
+
+   The correction is applied in the selected right-error chart:
+
+   .. math::
+
+      \mathbf{x}_k^+=\mathbf{x}_k^-\boxplus\delta\mathbf{x}_k,
+      \qquad
+      \mathbf{q}_k^+=\hat{\mathbf{q}}_k^-
+      \otimes\phi^{-1}(\delta\boldsymbol{\theta}_k).
+
+   Since the local tangent origin has moved, the posterior covariance is
+   transported by the chart-specific reset Jacobian:
+
+   .. math::
+
+      \mathbf{P}_k^+=
+      \mathbf{J}_{reset}\mathbf{P}_{k,raw}^+\mathbf{J}_{reset}^T.
+
+   .. code-block:: python
+
+      corrected = prior.plus(
+          correction,
+          quaternion_mode=self.correction_mode,
+          quaternion_order="right",
+      )
+      corrected.covariance = prior.transport_covariance(
+          posterior_covariance,
+          correction,
+          quaternion_mode=self.correction_mode,
+          quaternion_order="right",
+      )
+"""
 
 from __future__ import annotations
 
