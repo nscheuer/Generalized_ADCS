@@ -17,7 +17,7 @@ from ADCS.orbits.universal_constants import TimeConstants  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import fig_style
-fig_style.apply(8.0)
+fig_style.apply(10.0)
 OUT = os.path.join(HERE, "output_data")
 S2C = TimeConstants.sec2cent
 T_ORB = 5553.6
@@ -45,40 +45,36 @@ def fig1():
     # so the 45deg body axis [0,1,1] maps to (nadir - h_orb)/sqrt(2) in ECI.
     m45 = (nh - hh) / np.linalg.norm(nh - hh, axis=1, keepdims=True)
 
-    traces = [("boresight", np.abs(np.sum(nh * Bh, axis=1)), OI["blue"], "-"),
-              ("45$^\\circ$", np.abs(np.sum(m45 * Bh, axis=1)), OI["orange"], "--"),
-              ("orbit-normal", np.abs(np.sum(hh * Bh, axis=1)), OI["green"], "-.")]
+    traces = [("Boresight", "boresight", np.abs(np.sum(nh * Bh, axis=1)), "-", 2.0),
+              ("45$^\\circ$", "45deg", np.abs(np.sum(m45 * Bh, axis=1)), "--", 1.5),
+              ("Orbit-normal", "orbit_normal", np.abs(np.sum(hh * Bh, axis=1)), ":", 1.6)]
 
-    fig, ax = plt.subplots(figsize=(3.5, 3.2), constrained_layout=True)
-    ax.axhspan(0.3, 1.0, color=OI["sky"], alpha=0.13, lw=0)
-    ax.axhspan(0.0, 0.1, color=OI["verm"], alpha=0.12, lw=0)
-    ax.text(0.97, 0.52, "restoration-favourable:\nwheel supplies the along-field axis",
-            fontsize=6.5, ha="right", color=OI["blue"], transform=ax.get_yaxis_transform(),
-            bbox=dict(fc="white", ec="none", alpha=0.8, pad=1.5))
-    ax.text(0.60, 0.05, "dump-favourable: MTQs cancel the wheel's reaction",
-            fontsize=6.5, ha="center", color=OI["verm"], transform=ax.get_yaxis_transform(),
-            bbox=dict(fc="white", ec="none", alpha=0.8, pad=1.5))
+    fig, ax = plt.subplots(figsize=(3.5, 3.0), constrained_layout=True)
+    ax.axhspan(0.3, 1.0, color=fig_style.BAND_RESTORE, alpha=0.14, lw=0)
+    ax.axhspan(0.0, 0.1, color=fig_style.BAND_DUMP, alpha=0.16, lw=0)
+    ax.axhspan(0.0, 0.02, color=fig_style.BAND_RANKLOSS, alpha=0.55, lw=0)
+    ax.text(0.5, 0.86, "Better for rank restoration", fontsize=10, ha="center",
+            color="#2A6F97", transform=ax.get_yaxis_transform())
+    ax.text(0.72, 0.115, "Better for clean desaturation", fontsize=10, ha="center",
+            va="bottom", color="#9A5B00", transform=ax.get_yaxis_transform())
 
     x = ts / T_ORB
-    for name, sig, col, lsty in traces:
+    for name, key, sig, lsty, lw in traces:
         med = float(np.median(sig))
-        jref = ref[{"boresight": "boresight", "45$^\\circ$": "45deg",
-                    "orbit-normal": "orbit_normal"}[name]]
-        assert abs(med - jref["median_sigma"]) < 0.06, (name, med, jref["median_sigma"])
-        ax.plot(x, sig, color=col, ls=lsty, lw=1.5,
-                label=f"{name}: median {jref['median_sigma']:.2f}, "
-                      f"duty {100*jref['restore_duty']:.0f}%")
-
+        assert abs(med - ref[key]["median_sigma"]) < 0.06, (name, med, ref[key]["median_sigma"])
+        ax.plot(x, sig, color=fig_style.INK, ls=lsty, lw=lw,
+                label=f"{name}, $\\tilde\\sigma$ = {ref[key]['median_sigma']:.2f}")
 
     ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-    ax.set_xlabel("orbit phase  $t/T_{orb}$   (duty = fraction of the orbit with $\\sigma>0.3$)")
-    ax.set_ylabel(r"$\sigma = |\hat a \cdot \hat B(t)|$")
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, fontsize=6.3,
-              frameon=False, columnspacing=1.0, handlelength=2.2)
-    ax.grid(alpha=0.15, lw=0.4)
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
+    ax.set_yticks([0, 0.5, 1.0])
+    ax.set_xlabel("Orbit fraction")
+    ax.set_ylabel(r"$\sigma = |\hat a \cdot \hat B|$")
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=1, handlelength=2.6,
+              labelspacing=0.25, borderaxespad=0.0)
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(OUT, f"fig1_sigma.{ext}"), dpi=220)
-    print("fig1 medians:", {n: round(float(np.median(s)), 3) for n, s, _, _ in traces})
+        fig.savefig(os.path.join(OUT, f"fig1_sigma.{ext}"))
+    print("fig1 medians:", {n: round(float(np.median(s)), 3) for n, _, s, _, _ in traces})
 
 
 def fig2():
@@ -92,44 +88,30 @@ def fig2():
 
     fig, (a, b) = plt.subplots(2, 1, figsize=(3.5, 4.4), sharex=True,
                                constrained_layout=True)
-    a.plot(alt, drag, "-o", ms=3.5, color=OI["blue"], lw=1.5, label="drag")
-    a.plot(alt, dip, "--s", ms=3.2, color=OI["orange"], lw=1.5, label="residual dipole")
-    a.plot(alt, tot, "-.^", ms=3.2, color="0.2", lw=1.4, label="total")
+    a.plot(alt, drag, "-o", ms=4, color=fig_style.INK, lw=1.6, label="drag")
+    a.plot(alt, dip, "--s", ms=3.6, color=fig_style.MUTED, lw=1.5, label="residual dipole")
+    a.plot(alt, tot, "-.^", ms=3.6, color=fig_style.INK, lw=1.0, alpha=0.8, label="total")
     a.set_yscale("log")
-    a.set_ylabel("secular momentum\n[mN·m·s / orbit]")
-    a.legend(fontsize=7, loc="upper right", framealpha=0.95)
-    i = int(np.argmin(np.abs(np.log(drag) - np.log(dip))))
-    a.annotate("dipole floor takes over:\naltitude stops helping",
-               xy=(470, 1.32), xytext=(545, 0.12), fontsize=6.8,
-               arrowprops=dict(arrowstyle="->", lw=0.8, color="0.3"))
-
-    b.plot(alt, marg, "-D", ms=3.2, color=OI["green"], lw=1.6)
-    b.axhline(1.0, color=OI["verm"], lw=1.2, ls=":")
+    a.set_ylabel("secular momentum\n[mN·m·s per orbit]")
+    a.legend(loc="upper right", handlelength=2.4, labelspacing=0.3)
+    b.plot(alt, marg, "-D", ms=3.8, color=fig_style.INK, lw=1.6)
+    b.axhline(1.0, color=fig_style.MUTED, lw=1.0, ls=":")
     b.set_yscale("log")
-    b.set_ylabel("momentum margin\n(dump capacity / accumulation)")
+    b.set_ylabel("momentum margin")
     b.set_xlabel("altitude [km]")
-    
-    # interpolated binding altitude (F sampled from 300 km)
-    lo = rows[0]
-    # F's own extrapolation (its fit, not a two-point re-derivation here)
-    x_bind = float(fj["altitude_unity_margin_km"]["m_res=0.05"])
-    b.annotate(f"margin = 1 at ~{x_bind:.0f} km\n(extrapolated below the\n300 km sample)",
-               xy=(300, float(lo["margin"])), xytext=(335, 0.35), fontsize=6.8,
-               arrowprops=dict(arrowstyle="->", lw=0.8, color="0.3"))
-    b.set_ylim(bottom=0.2)
+    b.set_ylim(bottom=0.3)
     for ax in (a, b):
-        ax.axvline(400, color="0.55", lw=0.9, ls="--")
-        ax.grid(alpha=0.15, lw=0.4)
-    a.text(407, 3.2e-2, "reference altitude", fontsize=6.5, color="0.4",
-           rotation=90, va="bottom")
-
+        ax.axvline(400, color="#BBBBBB", lw=0.9, ls="--")
+        fig_style.log_decades_only(ax, "y")
+        ax.grid(True, which="major", axis="y")
+    a.set_xticks([300, 400, 500, 600, 700, 800])
     for ax, lab in zip((a, b), "ab"):
-        ax.text(0.015, 0.04, f"({lab})", transform=ax.transAxes, fontsize=8.5,
-                fontweight="bold", va="bottom")
+        ax.text(0.015, 0.04, f"({lab})", transform=ax.transAxes, fontweight="bold",
+                va="bottom")
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(OUT, f"fig2_altitude.{ext}"), dpi=220)
-    print(f"fig2: crossover near {alt[i]} km; binding ~{x_bind:.0f} km; "
-          f"margin(400) = {marg[list(alt).index(400)]:.1f}")
+        fig.savefig(os.path.join(OUT, f"fig2_altitude.{ext}"))
+    x_bind = float(fj["altitude_unity_margin_km"]["m_res=0.05"])
+    print(f"fig2: binding ~{x_bind:.0f} km (caption); margin(400) = {marg[list(alt).index(400)]:.1f}")
 
 
 if __name__ == "__main__":
