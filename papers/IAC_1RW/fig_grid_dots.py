@@ -35,13 +35,9 @@ def finals_from_pkls(pattern):
 
 
 def finals_from_json(d, key):
-    """Context cells have no per-trial finals; reconstruct the three fractions and
-    quantiles from what the JSON carries (median + conv fractions). Interval shown
-    only where per-trial data exists."""
-    h = d["cells"][key]["horizons"]["5554"]
-    return dict(med=float(h["median_final_deg"]),
-                f1=h["conv_pct_1deg"] / 100.0, f5=h["conv_pct_5deg"] / 100.0,
-                f30=None, q=None, n=d["cells"][key]["n_completed"])
+    """Context cells: per-trial finals from the aggregate JSON, same statistics as
+    the pkl-backed cells."""
+    return summarize(np.asarray(d["cells"][key]["horizons"]["5554"]["finals_deg"], float))
 
 
 def summarize(fin):
@@ -51,7 +47,7 @@ def summarize(fin):
 
 
 def main():
-    d18 = json.load(open(os.path.join(OUT, "A_baseline_20260818_202627.json")))
+    d18 = json.load(open(os.path.join(OUT, "A_baseline_20260907_184702.json")))
     rows = []   # (task, arch, ctrl, stats)
     for task, key0, key3, pd_pat, pl_pat in (
             ("reduced", "0rw_reduced_pd", "3rw_reduced_pd",

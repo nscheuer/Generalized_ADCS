@@ -47,17 +47,18 @@ def cell_stats(pkls):
 
 
 def main():
-    d18 = json.load(open(os.path.join(OUT, "A_baseline_20260818_202627.json")))
+    d18 = json.load(open(os.path.join(OUT, "A_baseline_20260907_184702.json")))
     fj = json.load(open(os.path.join(OUT, "F_altitude_20260818_174558.json")))
     D_ref = {r["alt_km"]: r for r in fj["rows_by_case"]["m_res=0.05"]}[400.0][
         "accum_along_wheel_Nms"] / H_MAX
 
     def jcell(k, wheel):
         h = d18["cells"][k]["horizons"]["5554"]
-        div = 100.0 - h["conv_pct_5deg"]
+        fin = np.asarray(h["finals_deg"], float)
         D = (float(np.median(np.asarray(h["per_trial_h_frac_end"], float)))
              if wheel else D_ref)          # 3+0: the demand index of the same bus/orbit
-        return dict(D=D, med=float(h["median_final_deg"]), div=max(0.0, div))
+        # same statistics as cell_stats: all-trial median, divergence = finals > 30 deg
+        return dict(D=D, med=float(np.median(fin)), div=float(100 * np.mean(fin > 30.0)))
 
     cells = {
         "reduced": [
