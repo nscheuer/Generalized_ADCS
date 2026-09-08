@@ -65,6 +65,8 @@ Grid cells (Campaign A, one orbit, seeds 0–99 shared across the 3+1 cells):
 | 3+1 full attitude, planner, baseline weights (n = 100, same seeds) | `tune_seed*_wave_planner_full_base.pkl` |
 | 3+0 under the QP allocator, both tasks (n = 100, same seeds) | `wave/qp_0rw_reduced/`, `wave/qp_0rw_full/` |
 | residual-dipole cancellation probe, 3+1 boresight PD (20 seeds; `ff_probe20.py`) | `ff_probe/ffprobe_s*.pkl` |
+| 3+1 full attitude, PD, doubled proportional gain (n = 100, same seeds) | `wave/pd_full_kp2/` |
+| 3+1 boresight, PD, 15° inclination orbit (n = 30) | `lowinc/` |
 | seed 8 under the desaturation-reserving allocator | `seed8_reserved.pkl` |
 
 Campaign outputs: B `B_planner_20260822_113100.json`, `B_topup_alongB_20260822_115023.json`
