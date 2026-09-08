@@ -44,6 +44,7 @@ from ADCS.CONOPS.goals import ECI_Goal, Fixed_Attitude_Goal, Nadir_Goal
 from ADCS.estimators.attitude_estimators import UAKF
 from ADCS.helpers.math_helpers import (normalize, quat_mult, quat_inv,
                                        rot_mat as quat_to_rot)
+from ADCS.satellite_hardware.disturbances import Dipole_Disturbance  # noqa: E402
 from ADCS.mc.monte_carlo_runner import (
     claim_worker_slot,
     release_worker_slot,
@@ -615,8 +616,10 @@ def simulate(config: Dict[str, Any],
                 x_hat = np.asarray(estimator.update(u=u_hist[i - 1] if i else np.zeros(len(sat.actuators)),
                                                     sensors=sens, os=os_gnc), float)
                 est_hist[i, :] = x_hat[:len(x)]
+                # Record the dipole itself, not the last estimable disturbance (the lumped
+                # torque is also estimated and would otherwise overwrite this entry).
                 for d in est_sat.disturbances:
-                    if getattr(d, "estimate_dist", False):
+                    if isinstance(d, Dipole_Disturbance) and getattr(d, "estimate_dist", False):
                         dip_hist[i, :] = np.ravel(d.main_param)[:3]
             else:
                 x_hat = x
