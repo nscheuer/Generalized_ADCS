@@ -139,7 +139,7 @@ def main():
         top.tick_params(labelsize=9, colors=GREY, length=3)
         top.spines["top"].set_visible(True); top.spines["top"].set_color("#BBBBBB")
         top.spines["right"].set_visible(False)
-        top.set_xlabel("wheel capacity placing this bus at $D$ [mN m s]", fontsize=9, color=GREY, labelpad=4)
+        top.set_xlabel("wheel sizing placing this scenario at $D$ [mN m s]", fontsize=9, color=GREY, labelpad=4)
     axes[0].set_ylabel("achieved terminal error [deg]  (tighter $\\downarrow$)")
 
     from matplotlib.lines import Line2D
