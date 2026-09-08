@@ -76,10 +76,10 @@ def main():
     }
     qp = cell_stats(g("wave/qp_0rw_reduced/*.pkl")); qp["D"] = D_ref
     variants = {
-        "reduced": [("3+0", "PD", "QP allocator", qp),
-                    ("3+1", "PD", "$i=15^\\circ$", cell_stats(g("lowinc/*.pkl")))],
-        "full": [("3+1", "PD", "$2k_p$", cell_stats(g("wave/pd_full_kp2/*.pkl"))),
-                 ("3+1", "planner", "untuned weights", cell_stats(g("tune_seed*_wave_planner_full_base.pkl")))],
+        "reduced": [("3+0", "PD", "QP allocator", qp, (8, 0), "left"),
+                    ("3+1", "PD", "$i=15^\\circ$", cell_stats(g("lowinc/*.pkl")), (0, -12), "center")],
+        "full": [("3+1", "PD", "$2k_p$", cell_stats(g("wave/pd_full_kp2/*.pkl")), (0, -12), "center"),
+                 ("3+1", "planner", "untuned weights", cell_stats(g("tune_seed*_wave_planner_full_base.pkl")), (8, 0), "left")],
     }
     # PD settling floor tau_res / k_p: drag+GG (0.42 uN m) to +24% dipole residual (~0.8 uN m)
     floor_lo, floor_hi = np.degrees(0.42e-6 / KP), np.degrees(0.8e-6 / KP)
@@ -98,32 +98,34 @@ def main():
         ax.axhspan(floor_lo, floor_hi, color="#000000", alpha=0.06, lw=0, zorder=0)
         ax.axhspan(know_lo, know_hi, color="#000000", alpha=0.06, lw=0, zorder=0)
         if ax is axes[0]:
-            ax.text(0.022, floor_lo * 0.85, "PD settling floor $\\tau_{\\rm res}/k_p$",
-                    fontsize=9, color=GREY, ha="left", va="top")
-            ax.text(0.85, know_hi * 1.1, "knowledge error", fontsize=9, color=GREY,
-                    ha="right", va="bottom")
+            ax.text(0.072, floor_lo * 0.85, "PD settling floor $\\tau_{\\rm res}/k_p$",
+                    fontsize=8.5, color=GREY, ha="left", va="top")
+            ax.text(0.022, know_hi * 1.15, "knowledge error", fontsize=9, color=GREY,
+                    ha="left", va="bottom")
         # vertical structure
         ax.axvline(1.0, color="#999999", lw=0.8, alpha=0.7, zorder=1)
         ax.axvspan(cap_nadir, cap_inert, color="#E69F00", alpha=0.15, lw=0, zorder=0)
-        ax.text(0.93, 0.06, "one wheel capacity per orbit", fontsize=8.5, color=GREY,
+        ax.text(0.93, 0.06, "one wheel capacity per orbit", fontsize=8, color=GREY,
                 ha="right", va="center", rotation=90)
         ax.text(np.sqrt(cap_nadir * cap_inert), 0.06, "dump capacity per orbit",
-                fontsize=8.5, color="#9A5B00", ha="center", va="center", rotation=90)
+                fontsize=8, color="#9A5B00", ha="center", va="center", rotation=90)
         # variant cells first (behind), then the grid cells
-        for arch, ctrl, label, c in variants[task]:
+        for arch, ctrl, label, c, off, ha in variants[task]:
             col = ARCH[arch]
             ax.plot(c["D"], c["med"], CTRL[ctrl]["marker"], ms=6.5, mfc="white", mec=col,
                     mew=1.2, zorder=3)
             ax.annotate(f"{label} ({c['div']:.0f}%)", (c["D"], c["med"]), textcoords="offset points",
-                        xytext=(7, -9), fontsize=8.5, color=col, va="center")
+                        xytext=off, fontsize=8.5, color=col, va="center", ha=ha)
         for arch, ctrl, c in cells[task]:
             filled = c["div"] <= 2.0
             col = ARCH[arch]
             ax.plot(c["D"], c["med"], CTRL[ctrl]["marker"], ms=9.5,
                     mfc=col if filled else "white", mec=col, mew=1.6, zorder=4)
             if not filled:
+                left = (task == "reduced" and arch == "3+1" and ctrl == "PD")
                 ax.annotate(f"{c['div']:.0f}%", (c["D"], c["med"]), textcoords="offset points",
-                            xytext=(9, -3), fontsize=9.5, color=col, va="center")
+                            xytext=(-9, 0) if left else (9, -3), fontsize=9.5, color=col,
+                            va="center", ha="right" if left else "left")
         ax.set_xscale("log"); ax.set_yscale("log")
         ax.set_xlim(2e-2, 4.0); ax.set_ylim(2e-3, 3e2)
         fig_style.log_decades_only(ax)
@@ -151,7 +153,7 @@ def main():
         fig.savefig(os.path.join(OUT, f"fig3_envelope_v2.{ext}"))
     print(f"D_ref {D_ref:.3f}; dump capacity band {cap_nadir:.2f}-{cap_inert:.2f}; floor {floor_lo:.3f}-{floor_hi:.3f} deg")
     for task in variants:
-        for arch, ctrl, label, c in variants[task]:
+        for arch, ctrl, label, c, *_ in variants[task]:
             print(f"{task:8s} variant {label:16s} D={c['D']:.3f} med={c['med']:.2f} div={c['div']:.0f}%")
     return 0
 
