@@ -120,7 +120,7 @@ def main():
             col = ARCH[arch]
             ax.plot(c["D"], c["med"], CTRL[ctrl]["marker"], ms=9.5,
                     mfc=col if filled else "white", mec=col, mew=1.6, zorder=4)
-            if not filled:
+            if True:
                 left = (task == "reduced" and arch == "3+1" and ctrl == "PD")
                 ax.annotate(f"{c['div']:.0f}%", (c["D"], c["med"]), textcoords="offset points",
                             xytext=(-9, 0) if left else (9, -3), fontsize=9.5, color=col,
