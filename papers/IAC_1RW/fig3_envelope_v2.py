@@ -74,12 +74,13 @@ def main():
                  ("3+1", "planner", cell_stats(g("tune_seed*_wave_planner_full.pkl"))),
                  ("3+3", "PD", jcell("3rw_full_pd", True))],
     }
-    # the manuscript reports the QP cell at n = 30; the n = 100 rerun is in progress
-    qp = cell_stats(sorted(g("wave/qp_0rw_reduced/*.pkl"))[:30]); qp["D"] = D_ref
+    qp = cell_stats(g("wave/qp_0rw_reduced/*.pkl")); qp["D"] = D_ref
+    qpf = cell_stats(g("wave/qp_0rw_full/*.pkl")); qpf["D"] = D_ref
     variants = {
         "reduced": [("3+0", "PD", "QP allocator", qp, (8, 0), "left"),
                     ("3+1", "PD", "$i=15^\\circ$", cell_stats(g("lowinc/*.pkl")), (8, 0), "left")],
-        "full": [("3+1", "PD", "$2k_p$", cell_stats(g("wave/pd_full_kp2/*.pkl")), (0, -12), "center"),
+        "full": [("3+0", "PD", "QP allocator", qpf, (8, -9), "left"),
+                 ("3+1", "PD", "$2k_p$", cell_stats(g("wave/pd_full_kp2/*.pkl")), (0, -12), "center"),
                  ("3+1", "planner", "untuned weights", cell_stats(g("tune_seed*_wave_planner_full_base.pkl")), (8, 0), "left")],
     }
     # PD settling floor tau_res / k_p: drag+GG (0.42 uN m) to +24% dipole residual (~0.8 uN m)
@@ -123,11 +124,12 @@ def main():
                     mfc=col if filled else "white", mec=col, mew=1.6, zorder=4)
             if True:
                 left = (task == "reduced" and arch == "3+1" and ctrl == "PD")
+                up = (task == "full" and arch == "3+0")
                 ax.annotate(f"{c['div']:.0f}%", (c["D"], c["med"]), textcoords="offset points",
-                            xytext=(-9, 0) if left else (9, -3), fontsize=9.5, color=col,
+                            xytext=(-9, 0) if left else ((9, 1) if up else (9, -3)), fontsize=9.5, color=col,
                             va="center", ha="right" if left else "left")
         ax.set_xscale("log"); ax.set_yscale("log")
-        ax.set_xlim(2e-2, 4.0); ax.set_ylim(2e-3, 3e2)
+        ax.set_xlim(2e-2, 4.0); ax.set_ylim(2e-3, 6e2)
         fig_style.log_decades_only(ax)
         ax.grid(True, which="major", axis="y")
         ax.text(0.02, 0.985, title, transform=ax.transAxes, ha="left", va="top", fontsize=10)
