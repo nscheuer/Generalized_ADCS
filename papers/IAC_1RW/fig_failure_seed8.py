@@ -109,7 +109,7 @@ def main():
     fin = np.asarray(fin)
     n_lo = int(np.sum(fin < 5)); n_hi = int(np.sum(fin > 30))
     assert n_lo + n_hi == len(fin), (n_lo, n_hi, len(fin))   # nothing between 5 and 30 deg
-    ax.text(0.28, ax.get_ylim()[1]*0.75, f"{n_lo} below 5°", fontsize=7.5, ha="center", color="0.25")
+    ax.text(1.6, ax.get_ylim()[1]*0.75, f"{n_lo} below 5°", fontsize=7.5, ha="center", color="0.25")
     ax.text(75, ax.get_ylim()[1]*0.55, f"{n_hi} above 30°", fontsize=7.5, ha="center", color="0.25")
     ax.set_xlabel("final pointing error [deg]"); ax.set_ylabel("trials")
     for ext in ("pdf", "png"):
