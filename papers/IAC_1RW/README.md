@@ -54,7 +54,8 @@ Grid cells (Campaign A, one orbit, seeds 0–99 shared across the 3+1 cells):
 
 | cell | data |
 |---|---|
-| 3+0 and 3+3, both tasks, PD (n = 30) | `A_baseline_20260818_202627.json` |
+| 3+0 and 3+3, both tasks, PD (n = 100, seeds 0–99) | `A_trials/{0rw,3rw}_{reduced,full}_pd_seed*.pkl`, aggregate `A_baseline_20260907_184702.json` |
+| the same four cells at n = 30 (seeds 0–29; earlier run, kept because the figure scripts read it) | `A_baseline_20260818_202627.json` |
 | 3+1 boresight, PD (n = 100) | `wave/pd_reduced_kp1/` |
 | 3+1 full attitude, PD (n = 100) | `wave/pd_full_kp1/` |
 | 3+1 boresight, planner (n = 100) | `A_trials/1rw_reduced_planner_seed*.pkl` |
