@@ -22,7 +22,7 @@ figures and the tabulated statistics from the data in `output_data/`.
 | `qp_cells.py` | MTQ-only cells under the QP allocator, both tasks, n = 100 |
 | `ff_probe20.py` | closed-loop residual-dipole cancellation, 20 seeds |
 | `check_environment.py`, `verify_bus.py` | disturbance-environment cross-check and bus verification |
-| `fig12_supporting.py`, `fig3_envelope.py`, `fig_grid_dots.py`, `fig_failure_seed8.py`, `fig_style.py` | figures |
+| `fig12_supporting.py`, `fig3_envelope.py`, `fig3_envelope_v2.py`, `fig_grid_dots.py`, `fig_failure_seed8.py`, `fig_style.py` | figures |
 
 The reference bus, sensor suite and metrics live in the package:
 `ADCS/satellite_factory/satellites/create_iac_6u.py`,
@@ -45,6 +45,7 @@ resumes from disk.
 | `fig1_sigma` | `fig12_supporting.py` | σ(t) from bus geometry; medians checked against `D_sigma_duty_20260818_174554.json` |
 | `fig2_altitude` | `fig12_supporting.py` | `F_altitude_20260818_174558.json` |
 | `fig3_envelope` (mission screening diagram) | `fig3_envelope.py` | grid cells below; 3+0 demand index from `F_altitude_20260818_174558.json` |
+| `fig3_envelope_v2` (screening diagram with analytic floors, dump-capacity band, variant cells; the version in the manuscript) | `fig3_envelope_v2.py` | grid cells, QP cells, `wave/pd_full_kp2/`, `lowinc/`, `tune_seed*_wave_planner_full_base.pkl`, `F_altitude_20260818_174558.json` |
 | `fig_grid_dots` | `fig_grid_dots.py` | grid cells below |
 | `fig_seed8_threeway`, `fig_seed8_threeway_4panel` | `fig_failure_seed8.py` | `wave/pd_reduced_kp1/pd_reduced_kp1_s0008.pkl`, `seed8_reserved.pkl`, `A_trials/1rw_reduced_planner_seed0008.pkl` |
 | `fig_pd_hist` | `fig_failure_seed8.py` | `wave/pd_reduced_kp1/*.pkl` |
