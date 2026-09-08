@@ -139,7 +139,7 @@ def main():
         top.tick_params(labelsize=9, colors=GREY, length=3)
         top.spines["top"].set_visible(True); top.spines["top"].set_color("#BBBBBB")
         top.spines["right"].set_visible(False)
-        top.set_xlabel("wheel sizing placing this scenario at $D=1$ [mN m s]", fontsize=9,
+        top.set_xlabel("equivalent wheel capacity for the reference disturbance [mN m s]", fontsize=9,
                        color=GREY, labelpad=4)
     axes[0].set_ylabel("achieved terminal error [deg]  (tighter $\\downarrow$)")
 
