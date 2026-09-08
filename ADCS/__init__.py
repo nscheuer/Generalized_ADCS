@@ -21,6 +21,8 @@ from .CONOPS import goals
 from .CONOPS.goallist import GoalList
 from .estimators.attitude_estimators import (
     AttitudeEstimator,
+    AugmentedEKF,
+    AugmentedMEKF,
     EKF,
     MEKF,
     SRUKF,
@@ -72,6 +74,8 @@ __all__ = [
     "controller",
     "Attitude_Estimator",
     "AttitudeEstimator",
+    "AugmentedEKF",
+    "AugmentedMEKF",
     "EKF",
     "MEKF",
     "SRUKF",

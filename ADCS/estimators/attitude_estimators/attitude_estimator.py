@@ -25,9 +25,12 @@ _QUATERNION_MODES = tuple(get_args(QuaternionMode))
 class AttitudeEstimator:
     """Shared prediction/correction lifecycle for the first simple filters.
 
-    This generation deliberately estimates only the physical attitude state;
-    estimated hardware biases and disturbance parameters remain future work.
+    The base implementation defaults to the physical attitude state. Filters
+    that explicitly support joint estimation of hardware biases or disturbance
+    parameters can opt in by setting ``supports_augmented_parameters``.
     """
+
+    supports_augmented_parameters = False
 
     def __init__(
         self,
@@ -148,9 +151,12 @@ class AttitudeEstimator:
             sensor_bias=self.satellite.att_sens_bias_len,
             disturbance_parameter=self.satellite.dist_param_len,
         )
-        if state.block_size("estimated_parameters"):
+        if (
+            state.block_size("estimated_parameters")
+            and not self.supports_augmented_parameters
+        ):
             raise NotImplementedError(
-                f"{type(self).__name__} does not yet support estimated biases or "
+                f"{type(self).__name__} does not support estimated biases or "
                 "disturbance parameters"
             )
         expected_size = state.size(coordinates=self.covariance_coordinates)

@@ -239,7 +239,12 @@ class BiasPlot(Subplot):
             for i, ax_i in enumerate(axes):
                 for src in self.sources:
                     B = mats.get(src, None)
-                    if B is None:
+                    # Real and estimated histories may legitimately expose
+                    # different widths. For example, the plant may record
+                    # only active truth biases while the estimator stores all
+                    # configured bias states. Plot the overlapping columns
+                    # instead of indexing past the narrower source matrix.
+                    if B is None or i >= B.shape[1]:
                         continue
                     ax_i.plot(
                         t,
