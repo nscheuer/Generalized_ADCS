@@ -483,19 +483,28 @@ class UKF(AttitudeEstimator):
 
         prior = self._state
         points, offsets, mean_weights, covariance_weights = self._sigma_states(prior)
-        propagated_points = [
-            propagate_state(
-                point,
-                self.satellite,
-                control,
-                step,
-                orbital_state_start,
-                orbital_state_end,
-                midpoint_orbital_state=midpoint_orbital_state,
+        propagated_points = []
+        for point in points:
+            # Augmented hardware/disturbance parameters live in each sigma
+            # point and must be written into the nonlinear model before that
+            # point is propagated. This is the UKF equivalent of the nominal
+            # synchronization used by the EKF-family prediction.
+            if self.supports_augmented_parameters:
+                self.satellite.match_estimate(point, step)
+            propagated_points.append(
+                propagate_state(
+                    point,
+                    self.satellite,
+                    control,
+                    step,
+                    orbital_state_start,
+                    orbital_state_end,
+                    midpoint_orbital_state=midpoint_orbital_state,
+                )
             )
-            for point in points
-        ]
         predicted = self._state_mean(propagated_points, mean_weights)
+        if self.supports_augmented_parameters:
+            self.satellite.match_estimate(predicted, step)
         transition, process_noise = discretize_process_noise(
             prior,
             self.satellite,
