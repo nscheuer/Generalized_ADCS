@@ -74,7 +74,8 @@ def main():
                  ("3+1", "planner", cell_stats(g("tune_seed*_wave_planner_full.pkl"))),
                  ("3+3", "PD", jcell("3rw_full_pd", True))],
     }
-    qp = cell_stats(g("wave/qp_0rw_reduced/*.pkl")); qp["D"] = D_ref
+    # the manuscript reports the QP cell at n = 30; the n = 100 rerun is in progress
+    qp = cell_stats(sorted(g("wave/qp_0rw_reduced/*.pkl"))[:30]); qp["D"] = D_ref
     variants = {
         "reduced": [("3+0", "PD", "QP allocator", qp, (8, 0), "left"),
                     ("3+1", "PD", "$i=15^\\circ$", cell_stats(g("lowinc/*.pkl")), (8, 0), "left")],
@@ -139,9 +140,9 @@ def main():
         top.tick_params(labelsize=9, colors=GREY, length=3)
         top.spines["top"].set_visible(True); top.spines["top"].set_color("#BBBBBB")
         top.spines["right"].set_visible(False)
-        top.set_xlabel("equivalent wheel capacity for the reference disturbance [mN m s]", fontsize=9,
-                       color=GREY, labelpad=4)
     axes[0].set_ylabel("achieved terminal error [deg]  (tighter $\\downarrow$)")
+    fig.suptitle("equivalent wheel capacity for the reference disturbance [mN m s]",
+                 fontsize=9, color=GREY)
 
     from matplotlib.lines import Line2D
     handles = [Line2D([], [], color=ARCH[a], marker="s", ls="", ms=8, label=a) for a in ("3+0", "3+1", "3+3")]
