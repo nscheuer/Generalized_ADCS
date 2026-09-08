@@ -18,7 +18,9 @@ figures and the tabulated statistics from the data in `output_data/`.
 | `generate_D_sigma_duty.py` | Campaign D: σ = \|â·B̂\| duty and dump capacity by wheel mounting |
 | `generate_F_altitude.py` | Campaign F: secular momentum vs altitude, momentum-boundary altitude |
 | `generate_R_reconciliation.py` | Campaign R: reconciliation with the earlier generalized-ACS result (uses `papers/Generalized_ACS/_paper1_sim.py`) |
-| `tune_planner.py` | planner warm-start / cost-weight study, per-task frozen configurations, the 3+1 planner rerun wave, and the QP-allocator MTQ-only cell |
+| `tune_planner.py` | planner warm-start / cost-weight study, per-task frozen configurations, the 3+1 planner rerun wave |
+| `qp_cells.py` | MTQ-only cells under the QP allocator, both tasks, n = 100 |
+| `ff_probe20.py` | closed-loop residual-dipole cancellation, 20 seeds |
 | `check_environment.py`, `verify_bus.py` | disturbance-environment cross-check and bus verification |
 | `fig12_supporting.py`, `fig3_envelope.py`, `fig_grid_dots.py`, `fig_failure_seed8.py`, `fig_style.py` | figures |
 
@@ -60,7 +62,8 @@ Grid cells (Campaign A, one orbit, seeds 0–99 shared across the 3+1 cells):
 | 3+1 boresight, planner (n = 100) | `A_trials/1rw_reduced_planner_seed*.pkl` |
 | 3+1 full attitude, planner, per-task tuned weights (n = 100) | `tune_seed*_wave_planner_full.pkl` |
 | 3+1 full attitude, planner, baseline weights (n = 100, same seeds) | `tune_seed*_wave_planner_full_base.pkl` |
-| 3+0 boresight under the QP allocator (n = 30, same seeds as the context cell) | `wave/qp_0rw_reduced/` |
+| 3+0 under the QP allocator, both tasks (n = 100, same seeds) | `wave/qp_0rw_reduced/`, `wave/qp_0rw_full/` |
+| residual-dipole cancellation probe, 3+1 boresight PD (20 seeds; `ff_probe20.py`) | `ff_probe/ffprobe_s*.pkl` |
 | seed 8 under the desaturation-reserving allocator | `seed8_reserved.pkl` |
 
 Campaign outputs: B `B_planner_20260822_113100.json`, `B_topup_alongB_20260822_115023.json`
