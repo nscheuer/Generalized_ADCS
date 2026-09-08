@@ -10,6 +10,7 @@ from ADCS.estimators.attitude_estimators import AugmentedEKF, AugmentedMEKF
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Bias, Noise
+from ADCS.satellite_hardware.disturbances import Dipole_Disturbance
 from ADCS.satellite_hardware.satellite import EstimatedSatellite, Satellite
 from ADCS.satellite_hardware.sensors import Gyro, MTM, SunPair
 from ADCS.state import EstimatorState, State
@@ -116,3 +117,60 @@ def test_augmented_filters_recover_constant_gyro_biases_in_tracking_regime(filte
     np.testing.assert_allclose(estimate.sens_bias, TRUE_GYRO_BIAS, atol=1.0e-4)
     assert estimate.covariance.dimension == covariance.shape[0]
 
+
+@pytest.mark.parametrize("filter_type", [AugmentedEKF, AugmentedMEKF])
+def test_augmented_filters_recover_active_dipole_disturbance(filter_type):
+    """A nonzero residual dipole is recovered through the dynamics path."""
+    np.random.seed(7)
+    true_dipole = np.array([0.4, -0.3, 0.2])
+    satellite = Satellite(
+        mass=4.0,
+        J_0=np.diag([3.4, 2.9, 1.3]),
+        sensors=_sensors(np.zeros(3), estimate_bias=False),
+        disturbances=[Dipole_Disturbance(true_dipole)],
+    )
+    estimated_satellite = EstimatedSatellite(
+        mass=4.2,
+        J_0=np.diag([3.5, 3.0, 1.4]),
+        sensors=_sensors(np.zeros(3), estimate_bias=False),
+        disturbances=[Dipole_Disturbance(np.zeros(3), estimate_dist=True)],
+    )
+    estimated_satellite.disturbances[0].parameter_std_rate = np.full(3, 1.0e-5)
+
+    truth = State.from_array([0.0012, 0.0008, -0.0018, 0.2588, 0.0, 0.9659, 0.0])
+    quaternion = [np.cos(np.deg2rad(72.5)), 0.0, np.sin(np.deg2rad(72.5)), 0.0]
+    if filter_type is AugmentedEKF:
+        covariance = np.diag([0.01**2] * 3 + [0.15**2] * 4 + [0.5**2] * 3)
+        process_psd = np.array(
+            [1.0e-16 / 10.0] * 3 + [0.0, 1.0e-8 / 10.0, 1.0e-8 / 10.0, 1.0e-8 / 10.0]
+        )
+    else:
+        covariance = block_diag(
+            np.eye(3) * 0.01**2, np.eye(3) * 0.15**2, np.eye(3) * 0.5**2
+        )
+        process_psd = np.array([1.0e-16 / 10.0] * 3 + [1.0e-8 / 10.0] * 3)
+    state = EstimatorState(
+        w=[0.0012, 0.0008, -0.0018], q=quaternion, dist_param=np.zeros(3),
+        cov=covariance, int_cov=np.zeros_like(covariance),
+    )
+    estimator = filter_type(
+        estimated_satellite, state, dt=10.0, unmodeled_dynamics_psd=process_psd
+    )
+    orbital_state = _orbital_state()
+    control = np.empty(0)
+
+    for index in range(200):
+        measurements = satellite.sensor_readings(truth, orbital_state)
+        if index == 0:
+            estimate = estimator.correct(measurements, orbital_state)
+        else:
+            estimate = estimator.step(
+                control, measurements, orbital_state, orbital_state,
+                midpoint_orbital_state=orbital_state,
+            )
+        truth = satellite.noiseless_rk4(
+            truth, control, 10.0, orbital_state, orbital_state, quat_as_vec=True
+        ).normalized()
+
+    np.testing.assert_allclose(estimate.dist_param, true_dipole, atol=0.08)
+    assert estimate.covariance.dimension == covariance.shape[0]

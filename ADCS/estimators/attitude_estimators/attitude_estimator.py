@@ -186,6 +186,16 @@ class AttitudeEstimator:
                 f"control must have shape {expected_control_shape}, got {control.shape}"
             )
         prior = self._state
+        # Augmented actuator/sensor/disturbance blocks are represented in the
+        # estimator state, while the historical spacecraft dynamics object
+        # stores their nominal values on hardware/disturbance instances. Keep
+        # the model synchronized before both nonlinear propagation and the
+        # Jacobian/process-noise construction. Legacy UKF estimators perform
+        # this operation for every sigma point; the EKF-family prediction uses
+        # the current nominal state once.
+        match_estimate = getattr(self.satellite, "match_estimate", None)
+        if match_estimate is not None:
+            match_estimate(prior, step)
         predicted = propagate_state(
             prior,
             self.satellite,
