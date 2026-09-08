@@ -77,7 +77,7 @@ def main():
     qp = cell_stats(g("wave/qp_0rw_reduced/*.pkl")); qp["D"] = D_ref
     variants = {
         "reduced": [("3+0", "PD", "QP allocator", qp, (8, 0), "left"),
-                    ("3+1", "PD", "$i=15^\\circ$", cell_stats(g("lowinc/*.pkl")), (0, -12), "center")],
+                    ("3+1", "PD", "$i=15^\\circ$", cell_stats(g("lowinc/*.pkl")), (8, 0), "left")],
         "full": [("3+1", "PD", "$2k_p$", cell_stats(g("wave/pd_full_kp2/*.pkl")), (0, -12), "center"),
                  ("3+1", "planner", "untuned weights", cell_stats(g("tune_seed*_wave_planner_full_base.pkl")), (8, 0), "left")],
     }
@@ -85,7 +85,7 @@ def main():
     floor_lo, floor_hi = np.degrees(0.42e-6 / KP), np.degrees(0.8e-6 / KP)
     know_lo, know_hi = 0.004, 0.019
 
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 4.0), sharey=True, sharex=True,
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 4.3), sharey=True, sharex=True,
                              constrained_layout=True)
     for ax, (task, title) in zip(axes, (("reduced", "(a) Boresight pointing"),
                                         ("full", "(b) Full three-axis attitude"))):
@@ -97,17 +97,16 @@ def main():
                         va="center", clip_on=False)
         ax.axhspan(floor_lo, floor_hi, color="#000000", alpha=0.06, lw=0, zorder=0)
         ax.axhspan(know_lo, know_hi, color="#000000", alpha=0.06, lw=0, zorder=0)
-        if ax is axes[0]:
-            ax.text(0.072, floor_lo * 0.85, "PD settling floor $\\tau_{\\rm res}/k_p$",
-                    fontsize=8.5, color=GREY, ha="left", va="top")
-            ax.text(0.022, know_hi * 1.15, "knowledge error", fontsize=9, color=GREY,
-                    ha="left", va="bottom")
+        ax.text(0.85, np.sqrt(floor_lo * floor_hi), "PD floor $\\tau_{\\rm res}/k_p$",
+                fontsize=8.5, color=GREY, ha="right", va="center")
+        ax.text(0.85, np.sqrt(know_lo * know_hi), "knowledge error", fontsize=8.5, color=GREY,
+                ha="right", va="center")
         # vertical structure
         ax.axvline(1.0, color="#999999", lw=0.8, alpha=0.7, zorder=1)
         ax.axvspan(cap_nadir, cap_inert, color="#E69F00", alpha=0.15, lw=0, zorder=0)
-        ax.text(0.93, 0.06, "one wheel capacity per orbit", fontsize=8, color=GREY,
-                ha="right", va="center", rotation=90)
-        ax.text(np.sqrt(cap_nadir * cap_inert), 0.06, "dump capacity per orbit",
+        ax.text(0.93, 12.0, "one wheel capacity per orbit", fontsize=8, color=GREY,
+                ha="right", va="center", rotation=90, clip_on=True)
+        ax.text(np.sqrt(cap_nadir * cap_inert), 12.0, "dump capacity per orbit",
                 fontsize=8, color="#9A5B00", ha="center", va="center", rotation=90)
         # variant cells first (behind), then the grid cells
         for arch, ctrl, label, c, off, ha in variants[task]:
@@ -148,7 +147,8 @@ def main():
     handles += [Line2D([], [], color="#444444", marker="o", ls="", ms=8, mfc="white", mew=1.4, label="PD"),
                 Line2D([], [], color="#444444", marker="^", ls="", ms=8, mfc="white", mew=1.4, label="planner"),
                 Line2D([], [], color="#444444", marker="o", ls="", ms=5.5, mfc="white", mew=1.0, label="variant")]
-    axes[1].legend(handles=handles, loc="upper right", handletextpad=0.4, labelspacing=0.35)
+    fig.legend(handles=handles, loc="outside lower center", ncol=6, handletextpad=0.4,
+               columnspacing=1.4)
     for ext in ("pdf", "png"):
         fig.savefig(os.path.join(OUT, f"fig3_envelope_v2.{ext}"))
     print(f"D_ref {D_ref:.3f}; dump capacity band {cap_nadir:.2f}-{cap_inert:.2f}; floor {floor_lo:.3f}-{floor_hi:.3f} deg")
