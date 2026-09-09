@@ -17,7 +17,6 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any, Tuple, Optional
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList

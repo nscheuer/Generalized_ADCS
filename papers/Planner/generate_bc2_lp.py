@@ -5,7 +5,6 @@ from scipy.integrate import solve_ivp
 from typing import Dict, Any, Tuple, Optional
 
 # --- Path Setup ---
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 # --- ADCS Imports ---
 from ADCS.CONOPS.goals import ECI_Goal
