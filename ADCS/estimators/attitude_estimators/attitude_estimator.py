@@ -156,7 +156,7 @@ class AttitudeEstimator:
             and not self.supports_augmented_parameters
         ):
             raise NotImplementedError(
-                f"{type(self).__name__} does not support estimated biases or "
+                f"{type(self).__name__} does not yet support estimated biases or "
                 "disturbance parameters"
             )
         expected_size = state.size(coordinates=self.covariance_coordinates)
