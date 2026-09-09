@@ -155,9 +155,6 @@ def simulate(
 
     x_hat = None
     previous_estimator_os = None
-    staged_estimator = estimator is not None and callable(
-        getattr(type(estimator), "predict", None)
-    )
     if estimator is not None:
         x_hat = None
 
@@ -242,23 +239,18 @@ def simulate(
             os_for_gnc = os_k
 
         if estimator is not None:
-            if staged_estimator:
-                if previous_estimator_os is None:
-                    estimator.step(y, os_for_gnc)
-                else:
-                    estimator.predict(
-                        u,
-                        previous_estimator_os,
-                        os_for_gnc,
-                        midpoint_orbital_state=os_for_gnc,
-                    )
-                    estimator.step(y, os_for_gnc)
-                x_hat = estimator.update()
-                previous_estimator_os = os_for_gnc
+            if previous_estimator_os is None:
+                estimator.step(y, os_for_gnc)
             else:
-                # Temporary compatibility path for legacy estimators while
-                # callers migrate to the staged predict/step/update contract.
-                x_hat = estimator.update(u=u, sensors=y, os=os_for_gnc)
+                estimator.predict(
+                    u,
+                    previous_estimator_os,
+                    os_for_gnc,
+                    midpoint_orbital_state=os_for_gnc,
+                )
+                estimator.step(y, os_for_gnc)
+            x_hat = estimator.update()
+            previous_estimator_os = os_for_gnc
             x_for_ctrl = x_hat
         else:
             x_for_ctrl = x
@@ -305,7 +297,7 @@ def simulate(
         est_sens_bias_snapshot = None
 
         if estimator is not None and x_hat is not None and est_satellite is not None:
-            # State layout per Attitude_Estimator doc:
+            # State layout per EstimatorState:
             # [w(3), q(4), h_rw(n_rw), b_act(n_ab), b_sens(n_sb), theta_dist(n_dp)]
             n_rw = getattr(est_satellite, "number_RW", 0)
             n_ab = getattr(est_satellite, "act_bias_len", 0)

@@ -74,7 +74,7 @@ def main() -> None:
         cov=np.diag([0.01**2] * 3 + [0.15**2] * 4 + [0.05**2] * 3),
         int_cov=np.diag([1.0e-16] * 3 + [0.0, 1.0e-8, 1.0e-8, 1.0e-8] + [1.0e-12] * 3),
     )
-    # Match the legacy UAKF example: Q_w=1e-16 and Q_attitude=1e-8 per
+    # Match the established tuning: Q_w=1e-16 and Q_attitude=1e-8 per
     # timestep. The new filters take continuous PSDs, so divide by dt.
     estimator = SimulationAugmentedEKF(
         est_satellite,

@@ -1,8 +1,7 @@
 """Shared base class for new-generation Kalman attitude estimators.
 
-The EKF and MEKF compose the filter-neutral ``State``, ``Covariance``, process-model, and
-``MeasurementStack`` operations. They intentionally do not inherit behavior
-from the legacy UKF-era ``Attitude_Estimator`` class.
+All attitude filters compose the filter-neutral ``State``, ``Covariance``,
+process-model, and ``MeasurementStack`` operations through this base class.
 """
 
 from __future__ import annotations

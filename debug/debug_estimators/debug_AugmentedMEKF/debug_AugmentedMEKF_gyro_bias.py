@@ -75,7 +75,7 @@ def main() -> None:
         cov=block_diag(np.eye(3) * 0.01**2, np.eye(3) * 0.15**2, np.eye(3) * 0.05**2),
         int_cov=block_diag(np.eye(3) * 1.0e-16, np.eye(3) * 1.0e-8, np.eye(3) * 1.0e-12),
     )
-    # Match the legacy UAKF example: Q_w=1e-16 and Q_attitude=1e-8 per
+    # Match the established tuning: Q_w=1e-16 and Q_attitude=1e-8 per
     # timestep. The new filters take continuous PSDs, so divide by dt.
     estimator = SimulationAugmentedMEKF(
         est_satellite,
