@@ -3,8 +3,9 @@ r"""
 
    **1. Construct the square-root tangent-state filter**
 
-   SRUKF uses the same non-augmented physical state and right tangent attitude
-   error as :class:`~ADCS.estimators.attitude_estimators.attitude_UKF.UKF`:
+   SRUKF uses the same physical state, right tangent attitude error, and
+   automatic actuator-noise prediction augmentation as
+   :class:`~ADCS.estimators.attitude_estimators.attitude_UKF.UKF`:
 
    .. math::
 
@@ -289,12 +290,13 @@ __all__ = ["SRUKF"]
 
 
 class SRUKF(UKF):
-    r"""Non-augmented UKF that stores its state covariance as an upper factor.
+    r"""UKF with square-root covariance storage.
 
-    This filter uses the same tangent-state sigma points, manifold means, and
-    additive process and measurement noise as :class:`UKF`. Its covariance is
-    always retained in ``Covariance(form="sqrt")`` form, so the shared
-    unscented covariance operations use square-root QR updates.
+    This filter uses the same tangent-state and automatic control-noise sigma
+    points, manifold means, and additive process and measurement noise as
+    :class:`UKF`. Its covariance is always retained in
+    ``Covariance(form="sqrt")`` form, so the shared unscented covariance
+    operations use square-root QR updates.
     """
 
     def __init__(

@@ -17,8 +17,10 @@ r"""
       \delta\boldsymbol{\theta}_k,\delta\mathbf{h}_k]^T
       \in\mathbb{R}^{6+n_h}.
 
-   No process, control, sensor-bias, actuator-bias, or disturbance variables
-   are appended to the sigma-point state. The covariance is owned by
+   Process, sensor-bias, actuator-bias, and disturbance variables are not
+   appended to the sigma-point state.  When actuator input noise is nonzero,
+   its non-perfect command channels are appended only for prediction. The
+   covariance is owned by
    :class:`~ADCS.covariance.Covariance` in tangent coordinates. The chart is
    selected by ``quaternion_mode`` and is ``quaternion_vector`` by default.
 
@@ -75,18 +77,19 @@ r"""
 
    **3. Propagate sigma points and form the prediction**
 
-   Each sigma state is propagated through the nonlinear spacecraft model with
-   the same control and orbital interval:
+   Each sigma state is propagated through the nonlinear spacecraft model.  If
+   actuator input noise is configured, control-noise sigma points use a
+   perturbed command; otherwise every point uses the nominal control:
 
    .. math::
 
       \mathbf{X}_{i,k+1}^- =
-      f(\mathbf{X}_{i,k}^+,\mathbf{u}_k,
+      f(\mathbf{X}_{i,k}^+,\mathbf{u}_k+\delta\mathbf{u}_i,
       \mathbf{o}_k,\mathbf{o}_{k+1},\Delta t).
 
    There is no state Jacobian in this step. The nonlinear model is evaluated at
-   every sigma point, and process noise is added after the propagated-point
-   statistics have been formed.
+   every sigma point, and remaining additive process noise is added after the
+   propagated-point statistics have been formed.
 
    .. code-block:: python
 
@@ -293,13 +296,14 @@ __all__ = ["UKF"]
 
 
 class UKF(AttitudeEstimator):
-    r"""Right-error, non-augmented unscented Kalman attitude estimator.
+    r"""Right-error unscented Kalman attitude estimator.
 
-    Sigma points span only the tangent state covariance.  Continuous process
-    noise is discretized and added after state propagation, while measurement
-    noise is added after transforming the sigma-point measurements.  In
-    particular, this filter does not augment the state with process, control,
-    sensor, bias, or disturbance variables.
+    Sigma points always span the tangent state covariance.  When an actuator
+    has nonzero input-noise covariance, prediction additionally augments the
+    sigma points with that actuator-input error and propagates each point with
+    ``control + control_error``.  Perfect actuator channels are omitted from
+    the augmented dimension.  Continuous state/process noise remains additive
+    after propagation, as do measurement-noise covariances.
     """
 
     def __init__(
@@ -347,10 +351,12 @@ class UKF(AttitudeEstimator):
         return self.alpha**2 * (dimension + self.kappa)
 
     def _weights(
-        self, state: EstimatorState
+        self, state: EstimatorState, *, dimension: int | None = None
     ) -> tuple[float, np.ndarray, np.ndarray]:
         """Return chart-valid sigma spread and standard unscented weights."""
-        dimension = state.covariance.dimension
+        dimension = state.covariance.dimension if dimension is None else int(dimension)
+        if dimension < state.covariance.dimension:
+            raise ValueError("UKF sigma-point dimension cannot be smaller than state dimension")
         scale = self._scale(dimension)
         if scale <= 0.0 or not np.isfinite(scale):
             raise ValueError("alpha and kappa must give a finite positive UKF scale")
@@ -387,6 +393,75 @@ class UKF(AttitudeEstimator):
             for offset in offsets
         ]
         return points, offsets, mean_weights, covariance_weights
+
+    def _control_noise_covariance(self) -> tuple[np.ndarray, np.ndarray]:
+        """Return non-perfect command channels and their input covariance.
+
+        The satellite owns actuator uncertainty.  Retaining only channels with
+        nonzero marginal variance avoids adding duplicate, zero-offset sigma
+        points for perfect actuators while preserving every nonzero covariance
+        block (including correlated noisy channels).
+        """
+        covariance = self.satellite.control_covariance().as_matrix()
+        expected = (self.satellite.control_len, self.satellite.control_len)
+        if covariance.shape != expected:
+            raise ValueError(
+                "satellite control covariance must have shape "
+                f"{expected}, got {covariance.shape}"
+            )
+        active = np.flatnonzero(np.diag(covariance) > 0.0)
+        return active, covariance[np.ix_(active, active)]
+
+    def _prediction_sigma_points(
+        self, state: EstimatorState, control: np.ndarray
+    ) -> tuple[
+        list[EstimatorState], np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+    ]:
+        """Build state/control sigma points for one prediction.
+
+        State and control errors are independent, so their joint covariance is
+        block diagonal.  Control offsets are embedded only in noisy command
+        channels; this is equivalent to a full augmented UKF with zero-noise
+        channels removed.
+        """
+        active_controls, control_covariance = self._control_noise_covariance()
+        state_dimension = state.covariance.dimension
+        augmented_dimension = state_dimension + active_controls.size
+        gamma, mean_weights, covariance_weights = self._weights(
+            state, dimension=augmented_dimension
+        )
+
+        state_offsets = state.covariance.sigma_offsets(gamma)
+        points = [state] + [
+            state.plus(
+                offset,
+                quaternion_mode=self.correction_mode,
+                quaternion_order="right",
+            )
+            for offset in state_offsets
+        ]
+        controls = [control.copy() for _ in points]
+
+        if active_controls.size:
+            control_offsets = Covariance(
+                control_covariance, coordinates="control"
+            ).sigma_offsets(gamma)
+            for offset in control_offsets:
+                perturbed_control = control.copy()
+                perturbed_control[active_controls] += offset
+                points.append(state)
+                controls.append(perturbed_control)
+        else:
+            control_offsets = np.zeros((0, 0))
+
+        return (
+            points,
+            np.asarray(controls),
+            state_offsets,
+            control_offsets,
+            mean_weights,
+            covariance_weights,
+        )
 
     def _state_mean(
         self, points: list[EstimatorState], weights: np.ndarray
@@ -482,26 +557,26 @@ class UKF(AttitudeEstimator):
             )
 
         prior = self._state
-        points, offsets, mean_weights, covariance_weights = self._sigma_states(prior)
-        propagated_points = []
-        for point in points:
-            # Augmented hardware/disturbance parameters live in each sigma
-            # point and must be written into the nonlinear model before that
-            # point is propagated. This is the UKF equivalent of the nominal
-            # synchronization used by the EKF-family prediction.
-            if self.supports_augmented_parameters:
-                self.satellite.match_estimate(point, step)
-            propagated_points.append(
-                propagate_state(
-                    point,
-                    self.satellite,
-                    control,
-                    step,
-                    orbital_state_start,
-                    orbital_state_end,
-                    midpoint_orbital_state=midpoint_orbital_state,
-                )
+        (
+            points,
+            sigma_controls,
+            offsets,
+            control_offsets,
+            mean_weights,
+            covariance_weights,
+        ) = self._prediction_sigma_points(prior, control)
+        propagated_points = [
+            propagate_state(
+                point,
+                self.satellite,
+                sigma_control,
+                step,
+                orbital_state_start,
+                orbital_state_end,
+                midpoint_orbital_state=midpoint_orbital_state,
             )
+            for point, sigma_control in zip(points, sigma_controls)
+        ]
         predicted = self._state_mean(propagated_points, mean_weights)
         if self.supports_augmented_parameters:
             self.satellite.match_estimate(predicted, step)
@@ -540,6 +615,12 @@ class UKF(AttitudeEstimator):
             transition=transition,
             process_noise=process_noise,
             sigma_offsets=offsets,
+            control_noise_covariance=self._control_noise_covariance()[1],
+            active_control_indices=np.flatnonzero(
+                np.diag(self.satellite.control_covariance().as_matrix()) > 0.0
+            ),
+            control_noise_offsets=control_offsets,
+            prediction_sigma_controls=sigma_controls,
             sigma_weights_mean=mean_weights,
             sigma_weights_covariance=covariance_weights,
             predicted_sigma_deviations=deviations,
