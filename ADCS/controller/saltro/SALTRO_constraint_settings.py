@@ -83,7 +83,9 @@ class ConstraintConfig:
         saltro_py = _get_saltro_py()
         cpp_constraints = saltro_py.ConstraintConfig()
         cpp_constraints.control_limit_scale = self.control_limit_scale
-        cpp_constraints.rw_momentum_limit_scale = self.rw_momentum_limit_scale
+        # Older SALTRO bindings predate this optional constraint field.
+        if hasattr(cpp_constraints, "rw_momentum_limit_scale"):
+            cpp_constraints.rw_momentum_limit_scale = self.rw_momentum_limit_scale
         cpp_constraints.u_max = self.u_max
         cpp_constraints.wmax = self.wmax
         cpp_constraints.sun_limit_angle = self.sun_limit_angle
