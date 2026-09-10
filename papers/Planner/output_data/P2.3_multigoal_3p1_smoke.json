@@ -1,0 +1,97 @@
+{
+  "task": "P2.3_multigoal",
+  "config": "3+1",
+  "timestamp": "smoke",
+  "n_trials": 2,
+  "windows": [
+    "A",
+    "B",
+    "C"
+  ],
+  "active_w": 500.0,
+  "coast_w": 200.0,
+  "tf": 1900.0,
+  "conv_threshold_deg": 5.0,
+  "aggregate": {
+    "A": {
+      "conv_pct": 0.0,
+      "acquired_pct": 100.0,
+      "mean_final_deg": 25.21459554710333,
+      "median_final_deg": 25.21459554710333
+    },
+    "B": {
+      "conv_pct": 0.0,
+      "acquired_pct": 100.0,
+      "mean_final_deg": 14.67892577718267,
+      "median_final_deg": 14.67892577718267
+    },
+    "C": {
+      "conv_pct": 100.0,
+      "acquired_pct": 100.0,
+      "mean_final_deg": 0.04045003399531176,
+      "median_final_deg": 0.04045003399531176
+    },
+    "all_goals": {
+      "conv_pct": 0.0
+    }
+  },
+  "representative_trial": 0,
+  "per_trial": [
+    {
+      "trial": 0,
+      "windows": {
+        "A": {
+          "final_in_window_deg": 20.139549033793717,
+          "min_in_window_deg": 1.091435404322697,
+          "converged": false,
+          "acquired": true
+        },
+        "B": {
+          "final_in_window_deg": 11.731102827027794,
+          "min_in_window_deg": 0.0333998794083917,
+          "converged": false,
+          "acquired": true
+        },
+        "C": {
+          "final_in_window_deg": 0.03642396810131657,
+          "min_in_window_deg": 0.002417143417780204,
+          "converged": true,
+          "acquired": true
+        }
+      },
+      "rw_h_max": 0.0002885839644209957,
+      "rw_h_final": [
+        -0.0002626039567110285
+      ],
+      "mtq_effort": 71.03002213979434
+    },
+    {
+      "trial": 1,
+      "windows": {
+        "A": {
+          "final_in_window_deg": 30.28964206041294,
+          "min_in_window_deg": 0.2247532743393701,
+          "converged": false,
+          "acquired": true
+        },
+        "B": {
+          "final_in_window_deg": 17.626748727337546,
+          "min_in_window_deg": 0.0005862335886684713,
+          "converged": false,
+          "acquired": true
+        },
+        "C": {
+          "final_in_window_deg": 0.04447609988930695,
+          "min_in_window_deg": 0.002652109002862851,
+          "converged": true,
+          "acquired": true
+        }
+      },
+      "rw_h_max": 0.0003397169406460193,
+      "rw_h_final": [
+        0.00018339137905919154
+      ],
+      "mtq_effort": 73.5910112801027
+    }
+  ]
+}

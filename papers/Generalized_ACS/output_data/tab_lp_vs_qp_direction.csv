@@ -1,0 +1,3 @@
+config,n_req,n_boundary,LP_mean,LP_p95,LP_max,QP_int_mean,QP_int_p95,QP_int_max,QP_bdry_mean,QP_bdry_p95,QP_bdry_max
+3MTQ+0RW,704,700,0.0010,0.0000,0.1699,0.0675,0.0797,0.0797,32.728,71.769,87.728
+3MTQ+1RW,2100,700,0.0015,0.0000,0.4150,0.0036,0.0000,1.0726,11.550,25.553,38.680

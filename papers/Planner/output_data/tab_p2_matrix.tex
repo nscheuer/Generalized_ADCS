@@ -1,0 +1,17 @@
+% Paper 2 -- 2x2x2 planner-vs-PD comparison.
+% Diagonal (3+0/reduced, 3+1/full) = controllability-appropriate task.
+% Cell: convergence% (<5deg) and mean final pointing error [deg].
+\begin{tabular}{llcc}
+\toprule
+ & & \multicolumn{2}{c}{Goal formulation} \\
+\cmidrule(lr){3-4}
+Config & Controller & Reduced attitude & Full attitude \\
+\midrule
+3+0 & ALTRO & \textbf{84\% / 3.85$^\circ$} & {18\% / 18.31$^\circ$} \\
+3+0 & Lovera & \textbf{27\% / 21.54$^\circ$} & {0\% / 85.17$^\circ$} \\
+\addlinespace
+3+1 & ALTRO & {99\% / 0.26$^\circ$} & \textbf{94\% / 1.19$^\circ$} \\
+3+1 & LP & {97\% / 1.58$^\circ$} & \textbf{90\% / 9.06$^\circ$} \\
+\addlinespace
+\bottomrule
+\end{tabular}

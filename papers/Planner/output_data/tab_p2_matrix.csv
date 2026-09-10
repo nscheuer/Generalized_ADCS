@@ -1,0 +1,9 @@
+config,goal,role,controller,n,converged_pct,mean_deg,p95_deg,n_steps,horizon_s,regression
+3+0,reduced,planner,ALTRO,100,84.0,3.847,18.336,1000,999,OK
+3+0,reduced,pd,Lovera,100,27.0,21.542,91.737,1000,999,OK
+3+0,full,planner,ALTRO,100,18.0,18.310,46.917,1000,999,n/a
+3+0,full,pd,Lovera,100,0.0,85.168,156.428,1000,999,n/a
+3+1,reduced,planner,ALTRO,100,99.0,0.258,0.548,1000,999,n/a
+3+1,reduced,pd,LP,100,97.0,1.583,1.493,1000,999,n/a
+3+1,full,planner,ALTRO,100,94.0,1.191,10.096,1000,999,OK
+3+1,full,pd,LP,100,90.0,9.056,74.791,1000,999,OK

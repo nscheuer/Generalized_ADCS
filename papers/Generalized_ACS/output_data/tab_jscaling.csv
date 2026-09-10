@@ -1,0 +1,4 @@
+inertia,trace,gain_scale,conv_scaled,mean_scaled,1ma_scaled,conv_unscaled,mean_unscaled
+J1 (ref),0.04800,1.000,100.0,0.007,0.000,100.0,0.007
+J2 (BeaverCube),0.07550,1.573,100.0,0.005,0.000,100.0,0.007
+J3 (20x J1),0.96000,20.000,100.0,0.001,0.000,1.0,27.317

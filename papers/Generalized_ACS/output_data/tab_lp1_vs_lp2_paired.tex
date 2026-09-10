@@ -1,0 +1,21 @@
+% Relative-paired LP1 vs LP2 comparison.  Intrinsic metrics only.
+% Delta_mean = LP1 mean err - LP2 mean err (paired seeds);
+% (1 - alpha) = realized saturation fraction (gyro-shortfall proxy).
+% Absolute convergence% and absolute mean err are omitted because the
+% testbed gains (kp=5e-5, kd=1e-3) differ from the Paper 2 MC framework.
+\begin{tabular}{llcccc}
+\toprule
+Config & $h_0/h_{\max}$ & $1-\bar\alpha$ (LP1) & $1-\bar\alpha$ (LP2) & $\Delta_{\text{mean}}$ (deg) & verdict \\
+\midrule
+3+1 & 0.0 & 0.832 & 0.857 & -7.93 & LP1 better \\
+3+1 & 0.3 & 0.864 & 0.885 & -11.95 & LP1 better \\
+3+1 & 0.6 & 0.877 & 0.879 & -5.33 & LP1 better \\
+3+1 & 0.9 & 0.869 & 0.869 & -3.29 & LP1 better \\
+\addlinespace
+3+3 & 0.0 & 0.000 & 0.023 & -0.00 & tie \\
+3+3 & 0.3 & 0.000 & 0.070 & -0.00 & tie \\
+3+3 & 0.6 & 0.000 & 0.020 & +0.00 & tie \\
+3+3 & 0.9 & 0.006 & 0.006 & -4.63 & LP1 better \\
+\addlinespace
+\bottomrule
+\end{tabular}
