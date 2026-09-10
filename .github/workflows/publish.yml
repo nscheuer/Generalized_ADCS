@@ -21,7 +21,6 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:        # manual re-run without moving a tag
 
 jobs:
   build:
