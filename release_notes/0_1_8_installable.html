@@ -176,7 +176,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -577,7 +577,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
@@ -590,7 +590,49 @@
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">generalized</span><span class="o">-</span><span class="n">adcs</span>
 </pre></div>
 </div>
-<p>Bug-fixes:</p>
+<p>The package can then be imported like any other Python dependency:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ADCS</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</pre></div>
+</div>
+<section id="generalized-control-allocation">
+<h2>Generalized control allocation<a class="headerlink" href="#generalized-control-allocation" title="Link to this heading">¶</a></h2>
+<p>This release adds generalized control allocation for spacecraft with different
+actuator combinations and constraints. The allocation interfaces support
+mapping requested control effort to available actuators, including mixed
+magnetorquer and reaction-wheel systems.</p>
+<p>The control-allocation methods and their application to small-spacecraft
+attitude control are described in the <a class="reference internal" href="../ssc26/paper.html"><span class="doc">SSC26 paper</span></a>.</p>
+</section>
+<section id="state-class">
+<h2>State class<a class="headerlink" href="#state-class" title="Link to this heading">¶</a></h2>
+<p>Spacecraft states are represented by <code class="docutils literal notranslate"><span class="pre">ADCS.State</span></code> objects containing angular
+velocity <code class="docutils literal notranslate"><span class="pre">w</span></code>, attitude quaternion <code class="docutils literal notranslate"><span class="pre">q</span></code>, and reaction-wheel momentum <code class="docutils literal notranslate"><span class="pre">h</span></code>.
+Use explicit conversions at numerical-library boundaries:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ADCS</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># Established ordering: [w(3), q(4), h(n_rw)]</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.01</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>                 <span class="c1"># angular velocity</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>                 <span class="c1"># body-to-ECI quaternion</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">h</span><span class="p">)</span>                 <span class="c1"># reaction-wheel momentum</span>
+<span class="n">state_vector</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span> <span class="c1"># convert back to a NumPy array</span>
+</pre></div>
+</div>
+<p>The class also provides quaternion-aware state operations, including normalized
+copies and manifold-consistent error calculations:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">normalized_state</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">normalized</span><span class="p">()</span>
+<span class="n">error</span> <span class="o">=</span> <span class="n">normalized_state</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="n">reconstructed_state</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="bug-fixes">
+<h2>Bug fixes<a class="headerlink" href="#bug-fixes" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Added missing runtime dependencies to the package metadata.</p></li>
 <li><p>Replaced a non-PyPI dependency with an in-tree Cholesky update helper.</p></li>
@@ -598,8 +640,11 @@
 <li><p>Relaxed runtime dependency pins to improve compatibility with existing
 environments.</p></li>
 </ul>
-<p>This release also ships package metadata for Python type checkers and keeps
-runtime dependencies installable from standard PyPI packages.</p>
+<p>This release also ships package metadata for Python type checkers, keeps
+runtime dependencies installable from standard PyPI packages, and includes
+general bug fixes and compatibility improvements across the simulation,
+control, and packaging interfaces.</p>
+</section>
 </section>
 
         </article>
@@ -645,8 +690,29 @@ runtime dependencies installable from standard PyPI packages.</p>
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">0.1.8 Available on PyPI (2026-08-19)</a><ul>
+<li><a class="reference internal" href="#generalized-control-allocation">Generalized control allocation</a></li>
+<li><a class="reference internal" href="#state-class">State class</a></li>
+<li><a class="reference internal" href="#bug-fixes">Bug fixes</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
