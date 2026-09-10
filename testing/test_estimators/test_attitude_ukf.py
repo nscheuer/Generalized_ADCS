@@ -9,6 +9,7 @@ from ADCS.estimators.attitude_estimators import SRUKF, UKF
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Noise
+from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import Gyro, StarTrackerQuaternion
 from ADCS.state import EstimatorState
@@ -37,6 +38,20 @@ def _state() -> EstimatorState:
         q=[1.0, 0.0, 0.0, 0.0],
         cov=np.eye(6) * 0.1,
         int_cov=np.zeros((6, 6)),
+    )
+
+
+def _actuated_satellite(control_std: list[float]) -> EstimatedSatellite:
+    return EstimatedSatellite(
+        J_0=np.diag([0.5, 0.8, 1.2]),
+        actuators=[
+            MTQ(
+                axis=np.eye(3)[index],
+                max_torque=1.0,
+                noise=Noise(std_noise=control_std[index]),
+            )
+            for index in range(3)
+        ],
     )
 
 
@@ -129,3 +144,65 @@ def test_srukf_converts_and_retains_square_root_covariance(orbital_state):
     assert corrected.covariance.form == "sqrt"
     assert corrected.process_noise.form == "sqrt"
     assert np.linalg.eigvalsh(corrected.cov).min() >= -1.0e-12
+
+
+@pytest.mark.parametrize("filter_type", [UKF, SRUKF])
+def test_perfect_actuators_do_not_augment_prediction_sigma_points(
+    filter_type, orbital_state
+):
+    estimator = filter_type(_actuated_satellite([0.0, 0.0, 0.0]), _state(), dt=0.1)
+    control = np.array([0.2, -0.1, 0.05])
+
+    estimator.predict(control, orbital_state, orbital_state)
+    diagnostics = estimator.diagnostics
+
+    assert diagnostics["sigma_weights_mean"].shape == (13,)
+    assert diagnostics["active_control_indices"].size == 0
+    assert diagnostics["control_noise_offsets"].shape == (0, 0)
+    np.testing.assert_allclose(
+        diagnostics["prediction_sigma_controls"],
+        np.repeat(control[None, :], 13, axis=0),
+    )
+
+
+@pytest.mark.parametrize("filter_type", [UKF, SRUKF])
+def test_noisy_actuators_are_augmented_and_propagated_through_control_sigma_points(
+    filter_type, orbital_state
+):
+    estimator = filter_type(_actuated_satellite([0.03, 0.02, 0.01]), _state(), dt=0.1)
+    control = np.array([0.2, -0.1, 0.05])
+
+    estimator.predict(control, orbital_state, orbital_state)
+    diagnostics = estimator.diagnostics
+    sigma_controls = diagnostics["prediction_sigma_controls"]
+
+    assert diagnostics["sigma_weights_mean"].shape == (19,)
+    np.testing.assert_array_equal(diagnostics["active_control_indices"], [0, 1, 2])
+    np.testing.assert_allclose(
+        diagnostics["control_noise_covariance"],
+        np.diag(np.square([0.03, 0.02, 0.01])),
+    )
+    assert np.any(np.abs(sigma_controls[13:] - control) > 0.0)
+    assert np.any(
+        np.abs(diagnostics["predicted_sigma_deviations"][13:]) > 1.0e-14
+    )
+    assert np.linalg.eigvalsh(estimator.state.cov).min() >= -1.0e-12
+
+
+@pytest.mark.parametrize("filter_type", [UKF, SRUKF])
+def test_only_noisy_actuator_channels_expand_the_prediction(filter_type, orbital_state):
+    estimator = filter_type(_actuated_satellite([0.0, 0.02, 0.0]), _state(), dt=0.1)
+    control = np.array([0.2, -0.1, 0.05])
+
+    estimator.predict(control, orbital_state, orbital_state)
+    diagnostics = estimator.diagnostics
+    sigma_controls = diagnostics["prediction_sigma_controls"]
+
+    # Six tangent-state dimensions plus precisely one noisy command channel.
+    assert diagnostics["sigma_weights_mean"].shape == (15,)
+    np.testing.assert_array_equal(diagnostics["active_control_indices"], [1])
+    np.testing.assert_allclose(
+        sigma_controls[13:, [0, 2]],
+        np.repeat(control[[0, 2]][None, :], 2, axis=0),
+    )
+    assert np.any(np.abs(sigma_controls[13:, 1] - control[1]) > 0.0)
