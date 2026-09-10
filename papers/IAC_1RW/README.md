@@ -17,7 +17,7 @@ figures and the tabulated statistics from the data in `output_data/`.
 | `generate_C_bias.py` | Campaign C: stored-momentum bias sweep |
 | `generate_D_sigma_duty.py` | Campaign D: σ = \|â·B̂\| duty and dump capacity by wheel mounting |
 | `generate_F_altitude.py` | Campaign F: secular momentum vs altitude, momentum-boundary altitude |
-| `generate_R_reconciliation.py` | Campaign R: reconciliation with the earlier generalized-ACS result (uses `papers/Generalized_ACS/_paper1_sim.py`) |
+| `generate_R_reconciliation.py` | Campaign R: reconciliation with the earlier generalized-ACS result (uses `papers/Generalized_ACS/_paper1_sim.py` and `generate_p1.2_same_pd.py`, the only two files kept from that paper) |
 | `tune_planner.py` | planner warm-start / cost-weight study, per-task frozen configurations, the 3+1 planner rerun wave |
 | `qp_cells.py` | MTQ-only cells under the QP allocator, both tasks, n = 100 |
 | `ff_probe20.py` | closed-loop residual-dipole cancellation, 20 seeds |

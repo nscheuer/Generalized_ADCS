@@ -1,62 +1,52 @@
-# 🚀 Generalized ADCS
+# One Wheel Is Enough — IAC-26 paper artifact
 
-<p>
-  <img src="docs/source/_static/starlab_logo.svg" alt="STARLab Logo" height="100">
-  <img src="docs/source/_static/ssc_logo.png" alt="Small Satellite Collaborative Logo" height="100">
-</p>
+Code and data for **"One Wheel Is Enough: Control Strategies for the 3+1
+Actuator Architecture Across Small Satellite Mission Profiles"**
+(IAC-26,B4,6A,2,x109468), presented at the 77th International Astronautical
+Congress.
 
-<strong>Generalized ADCS</strong> is a Python framework for satellite attitude determination
-and control (ADCS), designed for **research, prototyping, and flight-software development**.
-The framework emphasizes generality, modularity, and transparency for modern spacecraft
-control and estimation workflows.
+> ### ➡️  Everything the paper reports is in [`papers/IAC_1RW/`](papers/IAC_1RW/)
+> Start with **[`papers/IAC_1RW/README.md`](papers/IAC_1RW/README.md)**. It maps
+> every figure and every table in the manuscript to the script that produces it
+> and the data it reads.
 
-<p align="center">
-  <a href="https://nscheuer.github.io/Generalized_ADCS/index.html">🛠 Documentation</a> •
-  <a href="https://nscheuer.github.io/Generalized_ADCS/installation/index.html">📘 Installation</a> •
-  <a href="https://nscheuer.github.io/Generalized_ADCS/tutorials/index.html">🧪 Tutorials</a> •
-  <a href="https://nscheuer.github.io/Generalized_ADCS/contributing/index.html">🤝 Contributing</a>
-</p>
+This branch is a frozen snapshot: the simulation framework as it stood for the
+campaign, plus the paper's own harness, campaign data, and figure scripts. It is
+not the framework's development branch. The tag `iac26-submission` marks the
+state the manuscript was written from.
 
+## Layout
 
-## ✨ Key Features
+| path | what it is |
+|---|---|
+| [`papers/IAC_1RW/`](papers/IAC_1RW/) | **the paper**: simulation harness, campaign generators, figure scripts, and `output_data/` with the per-trial results behind every reported number |
+| `papers/Generalized_ACS/_paper1_sim.py` | the earlier generalized-ACS harness, kept because the paper's Campaign R reconciles against it |
+| `ADCS/` | the attitude determination and control framework the campaign runs on |
+| `testing/`, `examples/`, `docs/` | the framework's own tests, examples, and documentation |
 
-<p align="center">
-  <img src="docs/source/_static/ground_tracking.png"
-       alt="Tracking a ground target"
-       height="300">
-</p>
+## Running it
 
-- ✅ Fully generalized 6-DOF spacecraft attitude dynamics (RK4 integration)
-- ✅ Fully generalized orbit propagation
-- ✅ Estimation frameworks:
-  UKF, SRUKF, UAKF, SRUAKF, orbital estimators, and custom filters
-- ✅ Controller frameworks:
-  PD, LQR, ALTRO, and user-defined controllers
-- ✅ Sensor modeling:
-  magnetometers, gyroscopes, sun sensors, GPS
-- ✅ Actuator modeling:
-  reaction wheels and magnetorquers
-- ✅ Growing catalog of CubeSat-scale sensors and actuators
-- ✅ Designed for underactuated and overactuated systems
+```bash
+pip install -e .
+python papers/IAC_1RW/fig_grid_dots.py     # prints the Table 3 statistics
+```
 
-Optional add-ons:
-- trajectory_planner (tplaunch/pysat) and SALTRO (saltro_py) are optional C++ extensions.
-- Core ADCS functionality works without them.
-- Build instructions are in docs/Install_WSL.md and docs/Install_Windows.md.
+Run scripts from the repository root. Each puts the repository root first on
+`sys.path`, so the `ADCS` package in this checkout is the one that executes.
+See `papers/IAC_1RW/README.md` for per-script detail and runtimes.
 
-## 📚 Academic Background
+**Clone size.** `papers/IAC_1RW/output_data/` holds about 1.8 GB of per-trial
+results, which is what makes the campaign statistics re-derivable without
+re-running it. To skip the data and take only the code:
 
-This project is based on the PhD research of **Patrick McKeen**:
+```bash
+git clone --filter=blob:none --no-checkout <url> && cd Generalized_ADCS
+git sparse-checkout set --no-cone '/*' '!papers/IAC_1RW/output_data'
+git checkout paper/iac-1rw-clean
+```
 
-- 🔗 Source Code:  
-  https://github.com/patrickmckeen/PhD_Dissertation_Code
-- 📄 Dissertation:  
-  *Computational Methods to Improve Satellite Attitude Determination and Control
-  with a Focus on Autonomy, Generalizability, and Underactuation*  
-  https://dspace.mit.edu/handle/1721.1/158874
+## Framework and license
 
-See the release paper:
-
-- 📄 *A Modular Open-Source ADCS Framework for Small Satellite Development and Testing*  
-  https://smallsateurope.com/paper/a-modular-open-source-adcs-framework-for-small-satellite-development-and-testing/
-
+The underlying framework is open source and developed separately; this branch
+carries a snapshot of it, not its latest state. See `LICENSE`, `CONTRIBUTING.md`,
+and `docs/` for the framework itself.
