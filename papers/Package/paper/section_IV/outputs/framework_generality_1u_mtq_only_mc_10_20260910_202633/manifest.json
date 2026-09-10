@@ -1,0 +1,20 @@
+{
+  "created": "2026-09-10T20:26:33",
+  "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+  "numpy": "2.5.3",
+  "directory": "/home/nicla/Generalized_ADCS/papers/Package/paper/section_IV/outputs/framework_generality_1u_mtq_only_mc_10_20260910_202633",
+  "items": [
+    {
+      "label": "obj0",
+      "var_name": "results",
+      "kind": "pickle",
+      "file": "objects.pkl",
+      "key": "obj0",
+      "info": {
+        "type": "list",
+        "len": 10,
+        "elem_type": "dict"
+      }
+    }
+  ]
+}

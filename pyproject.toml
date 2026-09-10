@@ -5,12 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Generalized_ADCS"
-# NOTE: this had drifted. docs/source/release_notes/ documents releases through
-# 0.1.7 (remote execution, benchmarks) while pyproject still said 0.1.5, so the
-# first PyPI upload went out as 0.1.5 -- two behind the documented state, and
-# built before the choldate removal. PyPI versions are immutable, so this moves
-# forward past the documented 0.1.7 rather than trying to reuse a number.
-version = "0.1.8"
+version = "0.2.0"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
     { name = "Patrick McKeen", email = "pmckeen@mit.edu" },
@@ -30,8 +25,6 @@ keywords = [
     "reaction wheel", "control allocation", "Kalman filter", "orbit",
 ]
 
-# Without these the PyPI page carries no facets at all, so the project is
-# invisible to searches filtered by Python version, licence, audience or topic.
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -50,16 +43,6 @@ classifiers = [
     "Natural Language :: English",
 ]
 
-# Runtime dependencies.
-#
-# This list is exactly what ``import ADCS`` needs, with compatible ranges
-# rather than exact pins so the package can be installed into an existing
-# environment. Transitive dependencies (matplotlib's contourpy/pillow/...,
-# skyfield's sgp4/jplephem/certifi, ...) are resolved by pip and are
-# deliberately NOT restated here.
-#
-# For bit-reproducible paper campaigns use the exact pins instead:
-#     pip install -r requirements-repro.txt
 dependencies = [
     "numpy>=1.26",
     "scipy>=1.10",
