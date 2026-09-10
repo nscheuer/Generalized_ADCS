@@ -16,6 +16,8 @@ import numpy as np
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+OUTPUT_DIR = SCRIPT_DIR / "outputs"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 import ADCS  # noqa: E402
@@ -35,7 +37,9 @@ GRID_COLOR = "#C7CDD3"
 # A +90 degree rotation about body Y maps the +Z boresight to inertial +X.
 Q_REFERENCE = np.array([np.sqrt(0.5), 0.0, np.sqrt(0.5), 0.0])
 VECTOR_REFERENCE = np.array([1.0, 0.0, 0.0])
-INITIAL_STATE = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+INITIAL_STATE = ADCS.State(
+    w=np.zeros(3), q=np.array([1.0, 0.0, 0.0, 0.0]), h=np.zeros(0)
+)
 
 
 def make_satellite() -> ADCS.Satellite:
@@ -84,7 +88,8 @@ def run_case(goal) -> ADCS.SimulationResults:
 
 def quaternion_error_deg(results: ADCS.SimulationResults) -> np.ndarray:
     """Return the minimal full-attitude rotation error."""
-    quaternions = np.asarray(results.first().state_hist, dtype=float)[:, 3:7]
+    states = np.asarray([state.as_array() for state in results.first().state_hist])
+    quaternions = states[:, 3:7]
     errors = []
     for quaternion in quaternions:
         error_quaternion = quat_diff(quaternion, Q_REFERENCE)
@@ -96,7 +101,8 @@ def quaternion_error_deg(results: ADCS.SimulationResults) -> np.ndarray:
 def vector_error_deg(results: ADCS.SimulationResults) -> np.ndarray:
     """Return the body-boresight to inertial-vector angular error."""
     run = results.first()
-    quaternions = np.asarray(run.state_hist, dtype=float)[:, 3:7]
+    states = np.asarray([state.as_array() for state in run.state_hist])
+    quaternions = states[:, 3:7]
     boresights = np.asarray(run.boresight_hist, dtype=float)
     targets = np.asarray(run.target_hist, dtype=float)[:, 1:4]
 
@@ -218,7 +224,7 @@ def save_plot(
     ax.spines[["top", "right"]].set_visible(False)
     ax.legend(loc="upper right", frameon=False)
 
-    output_path = SCRIPT_DIR / "alignment_error.pdf"
+    output_path = OUTPUT_DIR / "alignment_error.pdf"
     fig.savefig(output_path, transparent=True)
     plt.close(fig)
     return output_path

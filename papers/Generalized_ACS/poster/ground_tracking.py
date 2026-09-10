@@ -17,6 +17,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+OUTPUT_DIR = SCRIPT_DIR / "outputs"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 import ADCS  # noqa: E402
@@ -65,8 +67,10 @@ def run_case(goal) -> ADCS.SimulationResults:
         c_gain=1.0e-3,
         h_target=np.zeros(3),
     )
-    initial_state = np.array(
-        [0.01, -0.02, 0.01, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    initial_state = ADCS.State(
+        w=np.array([0.01, -0.02, 0.01]),
+        q=np.array([1.0, 0.0, 0.0, 0.0]),
+        h=np.zeros(3),
     )
     return ADCS.simulate(
         x=initial_state,
@@ -82,7 +86,7 @@ def run_case(goal) -> ADCS.SimulationResults:
 def tracking_error_deg(results: ADCS.SimulationResults) -> np.ndarray:
     """Return boresight-to-target angular error for every recorded sample."""
     run = results.first()
-    states = np.asarray(run.state_hist, dtype=float)
+    states = np.asarray([state.as_array() for state in run.state_hist])
     targets = np.asarray(run.target_hist, dtype=float)[:, 1:4]
     boresights = np.asarray(run.boresight_hist, dtype=float)
 
@@ -162,8 +166,8 @@ def save_tracking_error_plot(
         color="#30343B",
     )
 
-    png_path = SCRIPT_DIR / "ground_tracking_error.png"
-    pdf_path = SCRIPT_DIR / "ground_tracking_error.pdf"
+    png_path = OUTPUT_DIR / "ground_tracking_error.png"
+    pdf_path = OUTPUT_DIR / "ground_tracking_error.pdf"
     fig.savefig(png_path, dpi=600, transparent=True)
     fig.savefig(pdf_path, transparent=True)
     plt.close(fig)
@@ -221,9 +225,9 @@ def save_animation_snapshot(
     goal: ADCS.goals.Coordinate_Goal,
 ) -> tuple[Path, Path]:
     """Save the final frame from the framework's AnimationPlot."""
-    png_path = SCRIPT_DIR / "ground_tracking_3d.png"
-    pdf_path = SCRIPT_DIR / "ground_tracking_3d.pdf"
-    raw_path = SCRIPT_DIR / ".ground_tracking_3d_full.png"
+    png_path = OUTPUT_DIR / "ground_tracking_3d.png"
+    pdf_path = OUTPUT_DIR / "ground_tracking_3d.pdf"
+    raw_path = OUTPUT_DIR / ".ground_tracking_3d_full.png"
     animation = ADCS.plots.AnimationPlot(
         goal=goal,
         title="",
@@ -234,11 +238,6 @@ def save_animation_snapshot(
         show_env_vectors=False,
         axis_scale_body=0.22,
         axis_scale_goal=0.55,
-        satellite_marker_scale=0.009,
-        goal_marker_scale=0.025,
-        camera_zoom=1.15,
-        background_color="white",
-        text_color="black",
     )
     animation.save_snapshot(results, raw_path, frame_index=-1)
     crop_satellite_quadrant(raw_path, png_path)
