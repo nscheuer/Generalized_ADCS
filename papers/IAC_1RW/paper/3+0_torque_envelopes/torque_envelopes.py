@@ -2,6 +2,7 @@
 """Create compact 3-MTQ dipole and torque-envelope illustrations."""
 
 from pathlib import Path
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,6 +10,11 @@ from matplotlib.colors import to_rgba
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from plot_style import BLUE, ORANGE, PURPLE, RED, configure_ieee_style
+
+configure_ieee_style()
 
 
 OUT_DIR = Path(__file__).resolve().parent / "outputs"
@@ -83,13 +89,13 @@ def setup(title, labels=True):
     if labels:
         for setter, label in zip((ax.set_xlabel, ax.set_ylabel, ax.set_zlabel),
                                   (r"$x$", r"$y$", r"$z$")):
-            setter(label, labelpad=-5, fontsize=5.5)
-    ax.set_title(title, pad=0, fontsize=7.5)
+            setter(label, labelpad=-5, fontsize=6.5)
+    ax.set_title(title, pad=0, fontsize=8.0)
     ax.view_init(elev=24, azim=-43)
     ax.grid(True, alpha=0.12)
-    ax.tick_params(axis="both", labelsize=5.5, pad=-5)
+    ax.tick_params(axis="both", labelsize=6.0, pad=-5)
     for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
-        axis.get_offset_text().set_fontsize(5.5)
+        axis.get_offset_text().set_fontsize(6.0)
     return figure, ax
 
 
@@ -99,7 +105,7 @@ def save(figure, stem):
     plt.close(figure)
 
 
-def add_plane(ax, b_field, color="#2878B5", alpha=0.22, linewidth=1.0):
+def add_plane(ax, b_field, color=BLUE, alpha=0.22, linewidth=0.8):
     polygon = torque_plane(b_field)
     ax.add_collection3d(Poly3DCollection([polygon], facecolor=to_rgba(color, alpha),
                                           edgecolor=color, linewidth=linewidth))
@@ -131,7 +137,7 @@ def plot_m_b_plane():
     ax.add_collection3d(Poly3DCollection(faces, facecolor=to_rgba("#7E3F98", 0.12),
                                          edgecolor="#7E3F98", linewidth=0.6))
     add_plane(ax, B_NOW)
-    add_vector(ax, B_NOW, "#C0392B", label=r"$B$ direction")
+    add_vector(ax, B_NOW, RED, label=r"$B$ direction")
     ax.legend(loc="upper left", bbox_to_anchor=(-0.01, 1), frameon=False, fontsize=5.5,
               handlelength=0.9, labelspacing=0.12)
     save(figure, "02_m_b_torque_plane")
@@ -140,7 +146,7 @@ def plot_m_b_plane():
 def plot_b_plane():
     figure, ax = setup("3 MTQ: torque plane")
     add_plane(ax, B_NOW)
-    add_vector(ax, B_NOW, "#C0392B", label=r"$B$ direction")
+    add_vector(ax, B_NOW, RED, label=r"$B$ direction")
     ax.legend(loc="upper left", bbox_to_anchor=(-0.01, 1), frameon=False, fontsize=5.5,
               handlelength=0.9)
     save(figure, "03_b_torque_plane")

@@ -2,6 +2,7 @@
 """Plot the torque authority of a 3-MTQ + 3-RW actuator cluster."""
 
 from pathlib import Path
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,6 +11,11 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import ConvexHull
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from plot_style import BLUE, ORANGE, configure_ieee_style
+
+configure_ieee_style()
 
 
 OUT_DIR = Path(__file__).resolve().parent / "outputs"
@@ -88,17 +94,17 @@ def setup(title):
     ax.set_box_aspect((1, 1, 1))
     for setter, label in zip((ax.set_xlabel, ax.set_ylabel, ax.set_zlabel),
                              (r"$\tau_x$ [N m]", r"$\tau_y$ [N m]", r"$\tau_z$ [N m]")):
-        setter(label, labelpad=-5, fontsize=5.5)
-    ax.set_title(title, pad=0, fontsize=7.5)
+        setter(label, labelpad=-5, fontsize=6.5)
+    ax.set_title(title, pad=0, fontsize=8.0)
     ax.view_init(elev=24, azim=-43)
     ax.grid(True, alpha=0.12)
-    ax.tick_params(axis="both", labelsize=5.5, pad=-5)
+    ax.tick_params(axis="both", labelsize=6.0, pad=-5)
     for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
-        axis.get_offset_text().set_fontsize(5.5)
+        axis.get_offset_text().set_fontsize(6.0)
     return figure, ax
 
 
-def add_plane(ax, b_field, color="#2878B5", alpha=0.24):
+def add_plane(ax, b_field, color=BLUE, alpha=0.24):
     plane = mtq_plane(b_field)
     ax.add_collection3d(Poly3DCollection([plane], facecolor=to_rgba(color, alpha),
                                           edgecolor=color, linewidth=0.9))
@@ -106,7 +112,7 @@ def add_plane(ax, b_field, color="#2878B5", alpha=0.24):
     ax.plot(*closed.T, color=color, linewidth=0.9)
 
 
-def add_volume(ax, b_field, color="#2878B5", alpha=0.22):
+def add_volume(ax, b_field, color=BLUE, alpha=0.22):
     hull = ConvexHull(minkowski_points(b_field))
     points = minkowski_points(b_field)
     triangles = [[points[index] for index in simplex] for simplex in hull.simplices]
@@ -123,11 +129,11 @@ def save(figure, stem):
 def plot_cube_and_plane():
     figure, ax = setup("3 MTQ + 3 RW: instant authority")
     _, faces = rw_cube()
-    ax.add_collection3d(Poly3DCollection(faces, facecolor=to_rgba("#D97706", 0.20),
-                                         edgecolor="#92400E", linewidth=0.8))
+    ax.add_collection3d(Poly3DCollection(faces, facecolor=to_rgba(ORANGE, 0.20),
+                                         edgecolor=ORANGE, linewidth=0.7))
     add_plane(ax, B_NOW)
-    ax.legend([Patch(facecolor=to_rgba("#D97706", 0.20), edgecolor="#92400E"),
-               Patch(facecolor=to_rgba("#2878B5", 0.24), edgecolor="#2878B5")],
+    ax.legend([Patch(facecolor=to_rgba(ORANGE, 0.20), edgecolor=ORANGE),
+               Patch(facecolor=to_rgba(BLUE, 0.24), edgecolor=BLUE)],
               ["RW torque cube", "MTQ torque plane"], loc="upper left",
               bbox_to_anchor=(-0.01, 1), frameon=False, fontsize=5.5,
               handlelength=0.9, labelspacing=0.12)
@@ -137,7 +143,7 @@ def plot_cube_and_plane():
 def plot_combined():
     figure, ax = setup("3 MTQ + 3 RW: combined authority")
     add_volume(ax, B_NOW)
-    ax.legend([Patch(facecolor=to_rgba("#2878B5", 0.22), edgecolor="#2878B5")],
+    ax.legend([Patch(facecolor=to_rgba(BLUE, 0.22), edgecolor=BLUE)],
               ["RW cube $\u2295$ MTQ plane"], loc="upper left", bbox_to_anchor=(-0.01, 1),
               frameon=False, fontsize=5.5, handlelength=0.9)
     save(figure, "02_minkowski_sum")

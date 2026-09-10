@@ -2,11 +2,18 @@
 """Generate the compact 3-MTQ torque-envelope figure."""
 
 from pathlib import Path
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import to_rgba
 from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from plot_style import BLUE, PURPLE, RED, configure_ieee_style
+
+configure_ieee_style()
 
 
 OUT_DIR = Path(__file__).resolve().parent / "outputs"
@@ -67,26 +74,26 @@ def make_plot():
     ax = figure.add_subplot(111, projection="3d")
     ax.set_facecolor("white")
     figure.patch.set_facecolor("white")
-    polygon = Poly3DCollection([torque], facecolor="#2878B5", alpha=0.22,
-                                edgecolor="#155E75", linewidth=1.0)
+    polygon = Poly3DCollection([torque], facecolor=to_rgba(BLUE, 0.22),
+                                edgecolor=BLUE, linewidth=0.8)
     ax.add_collection3d(polygon)
-    ax.plot(*np.vstack((torque, torque[0])).T, color="#155E75", linewidth=1.0)
+    ax.plot(*np.vstack((torque, torque[0])).T, color=BLUE, linewidth=0.8)
     ax.quiver(0, 0, 0, *b_field / np.linalg.norm(b_field) * 1.1e-5,
-              color="#C0392B", linewidth=1.4, arrow_length_ratio=0.12)
+              color=RED, linewidth=1.2, arrow_length_ratio=0.12)
     limit = 1.5e-5
     ax.set(xlim=(-limit, limit), ylim=(-limit, limit), zlim=(-limit, limit))
     ax.set_box_aspect((1, 1, 1))
     for axis, label in zip((ax.set_xlabel, ax.set_ylabel, ax.set_zlabel),
                            (r"$\tau_x$ [N m]", r"$\tau_y$ [N m]", r"$\tau_z$ [N m]")):
-        axis(label, labelpad=-5, fontsize=5.5)
-    ax.set_title("3 MTQ: available torque", pad=0, fontsize=7.5)
+        axis(label, labelpad=-5, fontsize=6.5)
+    ax.set_title("3 MTQ: available torque", pad=0, fontsize=8.0)
     ax.view_init(elev=24, azim=-43)
     ax.grid(True, alpha=0.12)
-    ax.tick_params(axis="both", labelsize=5.5, pad=-5)
+    ax.tick_params(axis="both", labelsize=6.0, pad=-5)
     for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
-        axis.get_offset_text().set_fontsize(5.5)
-    ax.legend([Line2D([0], [0], color="#2878B5", linewidth=4),
-               Line2D([0], [0], color="#C0392B", linewidth=1.4)],
+        axis.get_offset_text().set_fontsize(6.0)
+    ax.legend([Line2D([0], [0], color=BLUE, linewidth=3),
+               Line2D([0], [0], color=RED, linewidth=1.2)],
               ["MTQ torque envelope", r"$B$ direction"], loc="upper left",
               bbox_to_anchor=(-0.01, 1), frameon=False, fontsize=5.5,
               handlelength=0.9, labelspacing=0.12)
