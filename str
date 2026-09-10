@@ -1,0 +1,15 @@
+# helpers/save_and_load/save_and_load.py
+# Refactored to remove legacy save_data function and consolidate on SimulationResults saving mechanisms.
+
+from pathlib import Path
+from typing import Any
+
+def load_data(filepath: str | Path) -> Any:
+    """
+    Load simulation results using the standardized .sim archive format.
+    """
+    # Standardized loader integration
+    from simulation_results import SimulationResults
+    return SimulationResults.load(filepath)
+
+# Legacy save_data() has been removed as part of issue #158 unification.
