@@ -1,0 +1,8 @@
+# Prevent this protection from being removed without Nic's review
+/.github/CODEOWNERS @nscheuer
+
+# Changes to CI/CD and the PyPI release workflow require Nic's review
+/.github/workflows/ @nscheuer
+
+# Package build also requires Nic's review
+/pyproject.toml @nscheuer
