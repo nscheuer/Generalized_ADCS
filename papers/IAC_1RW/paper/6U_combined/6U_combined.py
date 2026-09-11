@@ -1,4 +1,4 @@
-"""Run all nine 6U Monte Carlo campaigns consecutively."""
+"""Run all twelve 6U Monte Carlo campaigns consecutively."""
 
 import os
 import subprocess
@@ -19,6 +19,9 @@ RUNS = [
     PAPER_DIR / "6U_noestimator_nodisturbance" / "run_mc_3mtq_0rw_qp.py",
     PAPER_DIR / "6U_noestimator_nodisturbance" / "run_mc_3mtq_1rw_lp.py",
     PAPER_DIR / "6U_noestimator_nodisturbance" / "run_mc_3mtq_3rw_lp.py",
+    PAPER_DIR / "6U_noestimator_disturbance" / "run_mc_3mtq_0rw_qp.py",
+    PAPER_DIR / "6U_noestimator_disturbance" / "run_mc_3mtq_1rw_lp.py",
+    PAPER_DIR / "6U_noestimator_disturbance" / "run_mc_3mtq_3rw_lp.py",
 ]
 
 
