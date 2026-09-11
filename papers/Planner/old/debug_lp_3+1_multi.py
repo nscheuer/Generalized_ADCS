@@ -5,7 +5,6 @@ from scipy.integrate import solve_ivp
 from typing import List, Union, Tuple
 from tqdm import tqdm
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.CONOPS.goals import Goal, ECI_Goal, No_Goal

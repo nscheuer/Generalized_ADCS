@@ -8,11 +8,17 @@ sun sensors (SunPair on two solar panels), reaction wheel, magnetorquers,
 and disturbances (gravity gradient, drag, SRP). Eclipse is handled
 automatically — sun sensors return NaN when the spacecraft is in shadow.
 """
-import os, sys, time
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
+import os
+import time
 import numpy as np
 from scipy.linalg import block_diag
 import ADCS
+
+if ADCS.__version__ != "0.1.8":
+    raise RuntimeError(
+        "This frozen paper script requires Generalized_ADCS==0.1.8; "
+        f"loaded {ADCS.__version__!r}"
+    )
 
 # ── Spacecraft (true and estimated) ───────────────────────────────────
 # True satellite from factory (includes sensor noise, disturbances, sun sensors).
@@ -70,7 +76,7 @@ t_start = time.perf_counter()
 results = ADCS.simulate(
     x=x_0, satellite=sat, est_satellite=est_sat,
     controller=controller, estimator=estimator,
-    goal=goal, os0=os0, dt=dt, tf=5400.0
+    goal=goal, os0=os0, dt=dt, tf=float(os.getenv("ADCS_PAPER_TF", "5400.0"))
 )
 elapsed = time.perf_counter() - t_start
 print(f"ADCS Framework (with estimation) — elapsed: {elapsed:.2f} s  (sim time: 5400 s)")

@@ -24,7 +24,7 @@ import numpy as np
 
 from ADCS.CONOPS.goals import ECI_Goal, Goal, No_Goal
 from ADCS.controller.controller import Controller
-from ADCS.estimators.old_attitude_estimators import Attitude_Estimator
+from ADCS.estimators.attitude_estimators import AttitudeEstimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbital_state import Ephemeris, Orbital_State
@@ -342,7 +342,7 @@ class RemoteControllerService:
 class RemoteAttitudeEstimatorService:
     """Server-side RPC endpoint for attitude-estimator `update` calls."""
 
-    def __init__(self, estimator: Attitude_Estimator) -> None:
+    def __init__(self, estimator: AttitudeEstimator) -> None:
         self.estimator = estimator
 
     def ping(self) -> bool:
@@ -433,7 +433,7 @@ class RemoteCompositeService:
     def __init__(
         self,
         controller: Controller | None = None,
-        estimator: Attitude_Estimator | None = None,
+        estimator: AttitudeEstimator | None = None,
         orbit_estimator: Orbit_Estimator | None = None,
     ) -> None:
         self.controller = controller
@@ -846,7 +846,7 @@ class RemoteOrbitEstimatorProxy:
 def serve_remote_components(
     *,
     controller: Controller | None = None,
-    estimator: Attitude_Estimator | None = None,
+    estimator: AttitudeEstimator | None = None,
     orbit_estimator: Orbit_Estimator | None = None,
     host: str = "0.0.0.0",
     port: int = 5000,
@@ -861,7 +861,7 @@ def serve_remote_components(
     :param estimator:
         Optional attitude estimator handling attitude ``update`` requests.
     :type estimator:
-        :class:`~ADCS.estimators.old_attitude_estimators.Attitude_Estimator` or None
+        :class:`~ADCS.estimators.attitude_estimators.AttitudeEstimator` or None
 
     :param orbit_estimator:
         Optional orbit estimator handling orbit ``update`` requests.
@@ -928,7 +928,7 @@ def serve_remote_component(component: Any, *, host: str = "0.0.0.0", port: int =
     if isinstance(component, Controller):
         serve_remote_components(controller=component, host=host, port=port)
         return
-    elif isinstance(component, Attitude_Estimator):
+    elif isinstance(component, AttitudeEstimator):
         serve_remote_components(estimator=component, host=host, port=port)
         return
     elif isinstance(component, Orbit_Estimator):
@@ -936,7 +936,7 @@ def serve_remote_component(component: Any, *, host: str = "0.0.0.0", port: int =
         return
     else:
         raise TypeError(
-            "Unsupported remote component type. Expected a Controller, Attitude_Estimator, or Orbit_Estimator."
+            "Unsupported remote component type. Expected a Controller, AttitudeEstimator, or Orbit_Estimator."
         )
 
 

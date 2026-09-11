@@ -128,6 +128,7 @@ objects intentionally do not support NumPy indexing or implicit conversion.
    contributing/testing
    contributing/documentation
    contributing/citations
+   contributing/about
 
 Indices and tables
 ==================

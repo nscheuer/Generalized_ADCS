@@ -21,15 +21,14 @@ from .CONOPS import goals
 from .CONOPS.goallist import GoalList
 from .estimators.attitude_estimators import (
     AttitudeEstimator,
+    AugmentedEKF,
+    AugmentedMEKF,
+    AugmentedUKF,
+    AugmentedSRUKF,
     EKF,
     MEKF,
     SRUKF,
     UKF,
-)
-from .estimators.old_attitude_estimators import (
-    Attitude_Estimator,
-    SRUAKF,
-    UAKF,
 )
 from .estimators.orbit_estimators import Orbit_EKF, Orbit_Estimator, Orbit_GPS
 from .helpers import plot as plots
@@ -70,14 +69,15 @@ __all__ = [
     "Bias",
     "Noise",
     "controller",
-    "Attitude_Estimator",
     "AttitudeEstimator",
+    "AugmentedEKF",
+    "AugmentedMEKF",
+    "AugmentedUKF",
+    "AugmentedSRUKF",
     "EKF",
     "MEKF",
     "SRUKF",
     "UKF",
-    "UAKF",
-    "SRUAKF",
     "Orbit_Estimator",
     "Orbit_EKF",
     "Orbit_GPS",

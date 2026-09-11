@@ -22,8 +22,8 @@ rotation per row, each annihilating a component of ``x`` into the factor. It is
 **One deliberate difference from choldate.** On a downdate whose result is not
 positive definite, ``choldate`` neither raises nor returns NaN -- it silently
 computes :math:`\sqrt{|r^2|}` and returns a plausible-looking but wrong factor.
-This implementation writes NaN instead, which is what the SRUAKF's existing
-``np.any(np.isnan(...))`` guard was already written to catch.
+This implementation writes NaN instead, which is appropriate for the existing
+``np.any(np.isnan(...))`` guard.
 """
 
 __all__ = ["cholupdate", "choldowndate"]

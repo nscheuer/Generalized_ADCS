@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple, Optional
 from glob import glob
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 from ADCS.helpers.save_and_load.save_and_load import load_data
 from ADCS.helpers.math_helpers import rot_mat, normalize, quat_mult, quat_conj

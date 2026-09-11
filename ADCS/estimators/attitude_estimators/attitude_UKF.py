@@ -578,6 +578,8 @@ class UKF(AttitudeEstimator):
             for point, sigma_control in zip(points, sigma_controls)
         ]
         predicted = self._state_mean(propagated_points, mean_weights)
+        if self.supports_augmented_parameters:
+            self.satellite.match_estimate(predicted, step)
         transition, process_noise = discretize_process_noise(
             prior,
             self.satellite,

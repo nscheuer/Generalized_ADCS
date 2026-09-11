@@ -18,7 +18,6 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
 
 import ADCS  # noqa: E402
 from ADCS.helpers.math_helpers import rot_mat  # noqa: E402

@@ -3,7 +3,6 @@ Generalized ADCS Framework — 3U CubeSat nadir-pointing simulation.
 Scenario: 3U CubeSat, 3 MTQ + 1 RW, nadir pointing, ISS orbit, 1 orbit.
 """
 import os, sys, time
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 import numpy as np
 import ADCS
 
