@@ -131,6 +131,31 @@ def plot_qp():
     save(figure, "02_qp_nearest")
 
 
+def plot_lp_qp_combined():
+    """Overlay the colinear LP and nearest-point QP solutions."""
+    tau_lp = ray_boundary(np.zeros(2), TAU_REF, ENVELOPE)
+    tau_qp = closest_point_in_polygon(TAU_REF, ENVELOPE)
+    figure, ax = setup("LP and QP allocators: solution comparison")
+    ax.plot([0.0, TAU_REF[0]], [0.0, TAU_REF[1]], color="#666666", linestyle=":",
+            linewidth=1.35, zorder=2)
+    arrow(ax, tau_lp, BLUE, r"$\tau_{\mathrm{LP}}$")
+    arrow(ax, tau_qp, ORANGE, r"$\tau_{\mathrm{QP}}$")
+    ax.scatter(*tau_lp, color=BLUE, s=14, zorder=6)
+    ax.scatter(*tau_qp, color=ORANGE, s=14, zorder=6)
+    ax.annotate(r"$\tau_{\mathrm{LP}}$", tau_lp, xytext=(5, -12),
+                textcoords="offset points", fontsize=8, color=BLUE)
+    ax.annotate(r"$\tau_{\mathrm{QP}}$", tau_qp, xytext=(-31, 5),
+                textcoords="offset points", fontsize=8, color=ORANGE)
+    ax.legend([Patch(facecolor=to_rgba(BLUE, 0.16), edgecolor=BLUE),
+               Line2D([0], [0], color=BLUE, linewidth=1.4),
+               Line2D([0], [0], color=ORANGE, linewidth=1.4),
+               Line2D([0], [0], color="#666666", linestyle=":", linewidth=1.35)],
+              ["Torque envelope", r"$\tau_{\mathrm{LP}}$",
+               r"$\tau_{\mathrm{QP}}$", r"$\tau_{\mathrm{ref}}$ direction"],
+              loc="lower left", frameon=False, fontsize=7, handlelength=1.2)
+    save(figure, "05_lp_qp_combined")
+
+
 def plot_perfect(allocator, stem):
     """Plot an attainable reference, for which LP and QP are both exact."""
     figure, ax = setup(f"{allocator} allocator: perfect solution", TAU_REF_INSIDE,
@@ -156,6 +181,7 @@ def main():
     plot_qp()
     plot_perfect("LP", "03_lp_perfect")
     plot_perfect("QP", "04_qp_perfect")
+    plot_lp_qp_combined()
 
 
 if __name__ == "__main__":

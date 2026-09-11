@@ -34,6 +34,7 @@ from _6u_mc_common import (
 
 OUTPUT_DIR = Path(__file__).resolve().parent / "outputs"
 CAMPAIGN_NAME = "6u_mode_switching_disturbance_representative"
+REPRESENTATIVE_DURATION_MIN = 1440.0
 DESAT_ENTRY = 0.75
 DESAT_EXIT = 0.25
 
@@ -131,7 +132,10 @@ def _plot(results: ADCS.SimulationResults, mode_controller: HystereticModeContro
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tf", type=float, default=18000.0, help="Simulation duration in seconds.")
+    parser.add_argument(
+        "--tf", type=float, default=REPRESENTATIVE_DURATION_MIN * 60.0,
+        help=f"Simulation duration in seconds (default: {REPRESENTATIVE_DURATION_MIN:g} min).",
+    )
     parser.add_argument("--seed", type=int, default=20260911, help="Random scenario seed.")
     args = parser.parse_args()
 
