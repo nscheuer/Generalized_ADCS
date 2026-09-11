@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ADCS.estimators.attitude_estimators import SRUAKF, UAKF
+from ADCS.estimators.old_attitude_estimators import SRUAKF, UAKF
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, GG_Disturbance

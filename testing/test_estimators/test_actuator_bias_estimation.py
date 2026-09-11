@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ADCS.estimators.attitude_estimators import SRUAKF, UAKF
+from ADCS.estimators.old_attitude_estimators import SRUAKF, UAKF
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import ADCS.estimators.attitude_estimators.attitude_SRUAKF as srukf_module
+import ADCS.estimators.old_attitude_estimators.attitude_SRUAKF as srukf_module
 from testing.test_estimators.srukf.helpers import (
     make_baseline_sensors,
     make_orbital_state,

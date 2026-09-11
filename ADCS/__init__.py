@@ -19,7 +19,18 @@ from . import orbits
 from . import satellite_factory
 from .CONOPS import goals
 from .CONOPS.goallist import GoalList
-from .estimators.attitude_estimators import Attitude_Estimator, SRUAKF, UAKF
+from .estimators.attitude_estimators import (
+    AttitudeEstimator,
+    EKF,
+    MEKF,
+    SRUKF,
+    UKF,
+)
+from .estimators.old_attitude_estimators import (
+    Attitude_Estimator,
+    SRUAKF,
+    UAKF,
+)
 from .estimators.orbit_estimators import Orbit_EKF, Orbit_Estimator, Orbit_GPS
 from .helpers import plot as plots
 from .helpers.plot import plot
@@ -60,6 +71,11 @@ __all__ = [
     "Noise",
     "controller",
     "Attitude_Estimator",
+    "AttitudeEstimator",
+    "EKF",
+    "MEKF",
+    "SRUKF",
+    "UKF",
     "UAKF",
     "SRUAKF",
     "Orbit_Estimator",

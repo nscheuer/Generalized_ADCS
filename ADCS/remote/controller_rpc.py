@@ -24,7 +24,7 @@ import numpy as np
 
 from ADCS.CONOPS.goals import ECI_Goal, Goal, No_Goal
 from ADCS.controller.controller import Controller
-from ADCS.estimators.attitude_estimators import Attitude_Estimator
+from ADCS.estimators.old_attitude_estimators import Attitude_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbital_state import Ephemeris, Orbital_State
@@ -861,7 +861,7 @@ def serve_remote_components(
     :param estimator:
         Optional attitude estimator handling attitude ``update`` requests.
     :type estimator:
-        :class:`~ADCS.estimators.attitude_estimators.Attitude_Estimator` or None
+        :class:`~ADCS.estimators.old_attitude_estimators.Attitude_Estimator` or None
 
     :param orbit_estimator:
         Optional orbit estimator handling orbit ``update`` requests.

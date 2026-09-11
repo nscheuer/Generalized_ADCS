@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from ADCS.estimators.attitude_estimators import SRUAKF
+from ADCS.estimators.old_attitude_estimators import SRUAKF
 from testing.test_estimators.ukf.scenarios import (
     SimulationResult,
     make_baseline_sensors,

@@ -49,7 +49,9 @@ def _calibration_work(iterations: int = 2_000) -> float:
     return float(a[0, 0])
 
 
-def _measure_calibration() -> tuple[float, int]:
+def _measure_calibration(samples: int = 5) -> tuple[float, int]:
+    timings = []
+    loops_used = 1
     loops = 1
     while True:
         start = time.perf_counter()
@@ -58,9 +60,19 @@ def _measure_calibration() -> tuple[float, int]:
         elapsed = time.perf_counter() - start
         if result is None:
             raise RuntimeError("calibration returned None")
-        if elapsed >= 0.025 or loops >= 64:
-            return elapsed / loops, loops
+        if elapsed >= 0.15 or loops >= 256:
+            loops_used = loops
+            break
         loops *= 2
+    for _ in range(samples):
+        start = time.perf_counter()
+        for _ in range(loops_used):
+            result = _calibration_work()
+        elapsed = time.perf_counter() - start
+        if result is None:
+            raise RuntimeError("calibration returned None")
+        timings.append(elapsed / loops_used)
+    return statistics.median(timings), loops_used
 
 
 def _time(func: Callable[[], object], samples: int) -> tuple[float, int]:
@@ -106,13 +118,33 @@ def run_benchmarks(samples: int) -> dict:
     ukf = make_ukf(est_sat)
     augmented = ukf.x_hat.as_estimator_array()
     manifold_delta = np.zeros(ukf.x_hat.cov.shape[0])
+    reset_delta = np.zeros(estimated.tangent_size)
+    reset_delta[estimated.slice("attitude", coordinates="tangent")] = np.array([0.8, -0.55, 0.35])
 
     cases = {
         "construct": lambda: State(w=state.w, q=state.q, h=state.h),
         "field_access": lambda: (state.w, state.q, state.h),
+        "full_size": lambda: estimated.full_size,
+        "tangent_size": lambda: estimated.tangent_size,
+        "full_slices": lambda: estimated.slices(coordinates="full"),
+        "tangent_slices": lambda: estimated.slices(coordinates="tangent"),
         "copy": state.copy,
         "physical_conversion": state.as_array,
         "augmented_conversion": estimated.as_estimator_array,
+        "tangent_map": estimated.tangent_map,
+        "tangent_pinv": estimated.tangent_pinv,
+        "retraction_jacobian_quaternion_vector": lambda: estimated.retraction_jacobian(
+            reset_delta,
+            quaternion_mode="quaternion_vector",
+        ),
+        "retraction_jacobian_rotation_vector": lambda: estimated.retraction_jacobian(
+            reset_delta,
+            quaternion_mode="rotation_vector",
+        ),
+        "retraction_jacobian_mrp_fallback": lambda: estimated.retraction_jacobian(
+            reset_delta,
+            quaternion_mode="mrp",
+        ),
         "stack_128": lambda: State.stack(states),
         "rk4_propagation": lambda: satellite.noiseless_rk4(
             State(w=state.w, q=state.q),

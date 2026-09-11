@@ -150,6 +150,7 @@ packages = [
     "ADCS.environment",
     "ADCS.estimators",
     "ADCS.estimators.attitude_estimators",
+    "ADCS.estimators.old_attitude_estimators",
     "ADCS.estimators.estimator_helpers",
     "ADCS.estimators.orbit_estimators",
     "ADCS.flight_software",
@@ -203,6 +204,13 @@ packages = [
 "ADCS" = ["py.typed"]
 
 [tool.pytest.ini_options]
+testpaths = ["testing"]
+norecursedirs = [
+    ".git",
+    ".pytest_cache",
+    "SALTRO/external",
+    "venv",
+]
 addopts = [
     "-ra",
     "--tb=short",

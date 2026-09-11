@@ -393,30 +393,52 @@ class MeasurementStack:
         active_mask: Any,
         *,
         quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
+        coordinates: str = "tangent",
     ) -> np.ndarray:
-        r"""Return the active right-error EKF Jacobian ``H`` in tangent coordinates."""
+        r"""Return the active right-error measurement Jacobian ``H``.
+
+        ``coordinates="tangent"`` returns the minimal attitude-error Jacobian
+        used by a MEKF. ``coordinates="full"`` returns the Jacobian with
+        respect to normalized additive quaternion coordinates for a conventional
+        quaternion EKF. Measurement residuals remain minimal in both cases.
+        """
         self._validate_state(state)
         active = self._entry_mask(active_mask)
         rows: list[np.ndarray] = []
-        tangent_map = state.tangent_map(
-            quaternion_mode=quaternion_mode,
-            quaternion_order="right",
-        )
+        # Let State own validation and the one authoritative dimension rule.
+        coordinate_size = state.size(coordinates=coordinates)
+        if coordinates == "full":
+            coordinate_map = state.normalization_jacobian()
+        else:
+            coordinate_map = state.tangent_map(
+                quaternion_mode=quaternion_mode,
+                quaternion_order="right",
+            )
         base_size = state.slice("physical", coordinates="full").stop
-        wheel_tangent = state.slice("wheel_momentum", coordinates="tangent")
-        attitude_tangent = state.slice("attitude", coordinates="tangent")
+        wheel_coordinates = state.slice("wheel_momentum", coordinates=coordinates)
+        attitude_coordinates = state.slice("attitude", coordinates=coordinates)
 
         for entry, selected in zip(self._entries, active):
             if not selected:
                 continue
             if entry.sensor_index is None:
-                row = np.zeros((1, state.tangent_size))
-                row[0, wheel_tangent.start + entry.wheel_index] = 1.0
+                row = np.zeros((1, coordinate_size))
+                row[0, wheel_coordinates.start + entry.wheel_index] = 1.0
                 rows.append(row)
                 continue
             if entry.is_quaternion_attitude:
-                row = np.zeros((3, state.tangent_size))
-                row[:, attitude_tangent] = np.eye(3)
+                row = np.zeros((3, coordinate_size))
+                if coordinates == "tangent":
+                    row[:, attitude_coordinates] = np.eye(3)
+                else:
+                    attitude_tangent = state.slice("attitude", coordinates="tangent")
+                    attitude_full = state.slice("attitude", coordinates="full")
+                    row[:, attitude_full] = state.tangent_pinv(
+                        quaternion_mode=quaternion_mode,
+                        quaternion_order="right",
+                    )[attitude_tangent, attitude_full] @ coordinate_map[
+                        attitude_full, attitude_full
+                    ]
                 rows.append(row)
                 continue
 
@@ -445,8 +467,8 @@ class MeasurementStack:
                         f"{expected_bias_shape}, got {bias_jacobian.shape}"
                     )
                 full[:, bias] = bias_jacobian.T
-            rows.append(full @ tangent_map)
-        return np.vstack(rows) if rows else np.zeros((0, state.tangent_size))
+            rows.append(full @ coordinate_map)
+        return np.vstack(rows) if rows else np.zeros((0, coordinate_size))
 
     def _sensor_bias(self, state: EstimatorState, sensor_index: int) -> np.ndarray | None:
         bias_slice = self.satellite.sensor_bias_slice(sensor_index)
