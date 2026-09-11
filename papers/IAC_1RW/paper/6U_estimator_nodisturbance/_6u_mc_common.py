@@ -34,7 +34,7 @@ MTQ_DIPOLE_MAX = 0.6
 KP = 2.9e-4
 KD = 8.7e-3
 MOMENTUM_GAIN = 1.0e-3
-TUNED_3MTQ_0RW_KP = 2.0e-6
+TUNED_3MTQ_0RW_KP = 1.0e-6
 TUNED_3MTQ_0RW_KD = 2.0e-3
 
 # Lovera reference configuration from
@@ -164,12 +164,26 @@ def _random_quaternion(rng: np.random.Generator) -> np.ndarray:
     return normalize(rng.standard_normal(4))
 
 
-def make_mc_config(number_rw: int) -> ADCS.MCConfig:
+def make_goal(goal_type: str, rng: np.random.Generator) -> ADCS.goals.Goal:
+    """Create a randomized inertial pointing goal of the requested type.
+
+    ``quaternion`` constrains the complete attitude.  ``vector`` aligns the
+    spacecraft +z boresight with one inertially fixed direction, leaving roll
+    about that vector unconstrained.
+    """
+    if goal_type == "quaternion":
+        return ADCS.goals.Fixed_Attitude_Goal(_random_quaternion(rng))
+    if goal_type == "vector":
+        return ADCS.goals.ECI_Goal(normalize(rng.standard_normal(3)))
+    raise ValueError("goal_type must be 'quaternion' or 'vector'.")
+
+
+def make_mc_config(number_rw: int, *, goal_type: str = "quaternion") -> ADCS.MCConfig:
     baseline_h = np.full(number_rw, WHEEL_BASELINE_MOMENTUM)
     return ADCS.MCConfig(
         q=_random_quaternion,
         h=lambda _rng: baseline_h.copy(),
-        goal=lambda rng: ADCS.goals.Fixed_Attitude_Goal(_random_quaternion(rng)),
+        goal=lambda rng: make_goal(goal_type, rng),
         orbit=random_400km_97deg_orbit,
     )
 
@@ -279,7 +293,7 @@ def save_diagnostics(results: ADCS.SimulationResults, label: str, *, use_estimat
     )
 
 
-def run_diagnostic(*, number_rw: int, allocator: str, label: str, use_estimator: bool = True, campaign_prefix: str = "6u_estimator_nodisturbance", output_dir: Path = OUTPUT_DIR, controller_law: str = "allocator", default_kp: float | None = None, default_kd: float | None = None, disturbances: bool = False) -> None:
+def run_diagnostic(*, number_rw: int, allocator: str, label: str, use_estimator: bool = True, campaign_prefix: str = "6u_estimator_nodisturbance", output_dir: Path = OUTPUT_DIR, controller_law: str = "allocator", default_kp: float | None = None, default_kd: float | None = None, disturbances: bool = False, goal_type: str = "quaternion") -> None:
     """Run one seeded closed-loop simulation and save diagnostics; no MC is launched."""
     parser = argparse.ArgumentParser(description=f"Run one 6U {label} diagnostic simulation.")
     parser.add_argument("--tf", type=float, default=ORBIT_PERIOD_S, help="Simulation duration in seconds.")
@@ -309,7 +323,7 @@ def run_diagnostic(*, number_rw: int, allocator: str, label: str, use_estimator:
         est_satellite=est_satellite,
         controller=controller_for(allocator, est_satellite, number_rw, kp=args.kp, kd=args.kd, c_gain=args.c_gain, controller_law=controller_law),
         estimator=make_estimator(est_satellite, number_rw, q_hat=q_initial) if use_estimator else None,
-        goal=ADCS.goals.Fixed_Attitude_Goal(_random_quaternion(rng)),
+        goal=make_goal(goal_type, rng),
         os0=random_400km_97deg_orbit(rng),
         dt=DT_S,
         tf=args.tf,
@@ -351,7 +365,7 @@ def load_diagnostic(*, number_rw: int, allocator: str, label: str, use_estimator
     plt.show(block=True)
 
 
-def run_monte_carlo(*, number_rw: int, allocator: str, label: str, use_estimator: bool, campaign_prefix: str, output_dir: Path, default_kp: float, default_kd: float, disturbances: bool = False) -> None:
+def run_monte_carlo(*, number_rw: int, allocator: str, label: str, use_estimator: bool, campaign_prefix: str, output_dir: Path, default_kp: float, default_kd: float, disturbances: bool = False, goal_type: str = "quaternion") -> None:
     """Run and save a 10-trial randomized campaign for one architecture."""
     parser = argparse.ArgumentParser(description=f"Run the 6U {label} Monte Carlo campaign.")
     parser.add_argument("--runs", type=int, default=10, help="Monte Carlo trials (default: 10).")
@@ -365,6 +379,9 @@ def run_monte_carlo(*, number_rw: int, allocator: str, label: str, use_estimator
         raise ValueError("--runs, --tf, and --workers must be positive.")
     workers = min(args.workers, 12)
 
+    if goal_type not in {"quaternion", "vector"}:
+        raise ValueError("goal_type must be 'quaternion' or 'vector'.")
+
     satellite = make_satellite(number_rw, estimated=False, disturbances=disturbances)
     est_satellite = make_satellite(number_rw, estimated=True, disturbances=disturbances)
     state = ADCS.State(
@@ -377,17 +394,17 @@ def run_monte_carlo(*, number_rw: int, allocator: str, label: str, use_estimator
         est_satellite=est_satellite,
         controller=controller_for(allocator, est_satellite, number_rw, kp=args.kp, kd=args.kd),
         estimator=make_estimator(est_satellite, number_rw) if use_estimator else None,
-        goal=ADCS.goals.Fixed_Attitude_Goal(np.array([1.0, 0.0, 0.0, 0.0])),
+        goal=make_goal(goal_type, np.random.default_rng(args.seed)),
         os0=random_400km_97deg_orbit(np.random.default_rng(args.seed)),
         dt=DT_S,
         tf=args.tf,
-        mc_config=make_mc_config(number_rw),
+        mc_config=make_mc_config(number_rw, goal_type=goal_type),
         num_runs=args.runs,
         max_workers=workers,
         base_seed=args.seed,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
-    stem = f"{campaign_prefix}_3mtq_{number_rw}rw_{allocator}_mc_{args.runs}"
+    stem = f"{campaign_prefix}_{goal_type}_3mtq_{number_rw}rw_{allocator}_mc_{args.runs}"
     path = results.save(stem, out_dir=output_dir)
     save_diagnostics(results, stem, use_estimator=use_estimator, output_dir=output_dir)
     print(f"Saved {len(results)} runs to {path} using {workers} workers")
