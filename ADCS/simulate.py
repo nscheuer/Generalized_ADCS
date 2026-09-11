@@ -268,6 +268,8 @@ def simulate(
         else:
             u[:] = 0.0
 
+        u = satellite.limit_momentum_commands(x, u)
+
         env_local_time_s = time.perf_counter() - env_t0
 
         dyn_t0 = time.perf_counter()
@@ -282,6 +284,12 @@ def simulate(
         )
         dynamics_time_s = time.perf_counter() - dyn_t0
         x = State.from_array(out.y[:, -1])
+        if getattr(satellite, "enforce_hard_momentum_limits", False) and satellite.number_RW:
+            h_max = np.asarray(
+                [satellite.actuators[j].h_max for j in satellite.momentum_inds],
+                dtype=float,
+            )
+            x.h = np.clip(x.h, -h_max, h_max)
         x = x.normalized()
 
         target, w_target = active_goal.to_ref(os_for_gnc) 

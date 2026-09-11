@@ -545,6 +545,28 @@ class Satellite:
         if not isinstance(state, State):
             raise TypeError(f"state must be a State, got {type(state).__name__}")
         return state.h
+
+    def limit_momentum_commands(self, x: State, u: np.ndarray) -> np.ndarray:
+        """Apply the optional one-sided torque rule at wheel saturation.
+
+        At positive momentum saturation, positive wheel-axis torque reduces
+        stored momentum because ``storage_torque = -u``.  At negative
+        saturation the allowed sign is reversed.  Commands that would drive
+        the wheel farther into saturation are removed; all other actuator
+        commands are preserved.
+        """
+        command = np.asarray(u, dtype=float).copy()
+        if not getattr(self, "enforce_hard_momentum_limits", False) or self.number_RW == 0:
+            return command
+        h_max = np.asarray(
+            [self.actuators[j].h_max for j in self.momentum_inds], dtype=float
+        )
+        for i, actuator_index in enumerate(self.momentum_inds):
+            if x.h[i] >= h_max[i]:
+                command[actuator_index] = max(command[actuator_index], 0.0)
+            elif x.h[i] <= -h_max[i]:
+                command[actuator_index] = min(command[actuator_index], 0.0)
+        return command
     
     def dynamics_core(self, x: State, u: np.ndarray, orbital_state: Orbital_State, dmode: Optional[ErrorMode] = None, verbose: bool = False) -> np.ndarray:
         r"""
@@ -635,6 +657,7 @@ class Satellite:
         """
         if not isinstance(x, State):
             raise TypeError(f"x must be a State, got {type(x).__name__}")
+        u = self.limit_momentum_commands(x, u)
         w = x.w
         q = x.q
         h = x.h
@@ -672,6 +695,23 @@ class Satellite:
             u_RW = np.array(storage_torques)
             wdot = _wdot_rw_kernel(w, h, total_torque, J, invJ_noRW, RWaxes)
             RW_hdot = _rw_hdot_kernel(u_RW, wdot, RWaxes, RWjs)
+
+            # Optional physical momentum barrier.  The default remains
+            # unchanged for backwards compatibility, but campaigns that set
+            # this flag cannot propagate a wheel farther into saturation.
+            if getattr(self, "enforce_hard_momentum_limits", False):
+                h_max = np.asarray(
+                    [self.actuators[j].h_max for j in self.momentum_inds],
+                    dtype=float,
+                ).reshape(-1)
+                at_upper_limit = h >= h_max
+                at_lower_limit = h <= -h_max
+                RW_hdot = np.where(
+                    ((at_upper_limit) & (RW_hdot > 0.0))
+                    | ((at_lower_limit) & (RW_hdot < 0.0)),
+                    0.0,
+                    RW_hdot,
+                )
 
             result = np.concatenate([wdot,qdot,RW_hdot])
 

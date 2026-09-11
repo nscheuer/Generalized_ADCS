@@ -225,6 +225,8 @@ def _simulate_with_precomputed_orbit(
         else:
             u[:] = 0.0
 
+        u = satellite.limit_momentum_commands(x, u)
+
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0, dt),
@@ -235,6 +237,12 @@ def _simulate_with_precomputed_orbit(
             atol=1e-7,
         )
         x = State.from_array(out.y[:, -1])
+        if getattr(satellite, "enforce_hard_momentum_limits", False) and satellite.number_RW:
+            h_max = np.asarray(
+                [satellite.actuators[j].h_max for j in satellite.momentum_inds],
+                dtype=float,
+            )
+            x.h = np.clip(x.h, -h_max, h_max)
         x = x.normalized()
 
         target, w_target = active_goal.to_ref(os_for_gnc)
