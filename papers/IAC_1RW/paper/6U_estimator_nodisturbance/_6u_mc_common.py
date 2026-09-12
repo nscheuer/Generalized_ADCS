@@ -370,14 +370,14 @@ def run_monte_carlo(*, number_rw: int, allocator: str, label: str, use_estimator
     parser = argparse.ArgumentParser(description=f"Run the 6U {label} Monte Carlo campaign.")
     parser.add_argument("--runs", type=int, default=10, help="Monte Carlo trials (default: 10).")
     parser.add_argument("--tf", type=float, default=ORBIT_PERIOD_S, help="Simulation duration in seconds.")
-    parser.add_argument("--workers", type=int, default=12, help="Parallel worker count, capped at 12 (default: 12).")
+    parser.add_argument("--workers", type=int, default=12, help="Parallel worker count, capped at 20 (default: 12).")
     parser.add_argument("--seed", type=int, default=20260911, help="Base random seed.")
     parser.add_argument("--kp", type=float, default=default_kp, help=f"Proportional gain (default: {default_kp:g}).")
     parser.add_argument("--kd", type=float, default=default_kd, help=f"Derivative gain (default: {default_kd:g}).")
     args = parser.parse_args()
     if args.runs <= 0 or args.tf <= 0.0 or args.workers <= 0:
         raise ValueError("--runs, --tf, and --workers must be positive.")
-    workers = min(args.workers, 12)
+    workers = min(args.workers, 20)
 
     if goal_type not in {"quaternion", "vector"}:
         raise ValueError("goal_type must be 'quaternion' or 'vector'.")

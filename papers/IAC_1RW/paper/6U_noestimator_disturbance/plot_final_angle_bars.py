@@ -51,12 +51,12 @@ def _final_angle_error_deg(run) -> float:
     return float(np.rad2deg(2.0 * np.arccos(cosine)))
 
 
-def _summary(number_rw: int, allocator: str, goal_type: str) -> tuple[float, float, Path]:
+def _summary(number_rw: int, allocator: str, goal_type: str) -> tuple[float, float, Path, int]:
     path = _latest_sim(number_rw, allocator, goal_type)
     results = ADCS.SimulationResults.load(path)
     final_errors = np.asarray([_final_angle_error_deg(run) for run in results.runs])
     sigma = float(np.std(final_errors, ddof=1)) if len(final_errors) > 1 else 0.0
-    return float(np.mean(final_errors)), sigma, path
+    return float(np.mean(final_errors)), sigma, path, len(results.runs)
 
 
 def _plot() -> Path:
@@ -71,7 +71,7 @@ def _plot() -> Path:
             ((goal, alloc) for goal in GOAL_TYPES for alloc in ALLOCATORS), offsets):
         means, sigmas = [], []
         for number_rw, label in ARCHITECTURES:
-            mean, sigma, path = _summary(number_rw, allocator, goal_type)
+            mean, sigma, path, _ = _summary(number_rw, allocator, goal_type)
             means.append(mean)
             sigmas.append(sigma)
             print(f"{goal_type:10s} {label} {allocator.upper()}: {path.name}")
@@ -105,13 +105,13 @@ def _write_summary() -> Path:
     for goal_type in GOAL_TYPES:
         for number_rw, architecture in ARCHITECTURES:
             for allocator in ALLOCATORS:
-                mean, sigma, path = _summary(number_rw, allocator, goal_type)
+                mean, sigma, path, run_count = _summary(number_rw, allocator, goal_type)
                 rows.append({
                     "goal_type": goal_type,
                     "architecture": architecture,
                     "number_reaction_wheels": number_rw,
                     "allocator": allocator.upper(),
-                    "runs": 10,
+                    "runs": run_count,
                     "final_angle_error_mean_deg": mean,
                     "final_angle_error_std_dev_deg": sigma,
                     "one_sigma_lower_deg": max(0.0, mean - sigma),
