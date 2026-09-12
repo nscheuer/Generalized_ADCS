@@ -22,6 +22,7 @@ import ADCS
 from ADCS.CONOPS.goals import No_Goal
 from ADCS.helpers.math_helpers import normalize
 from plot_style import configure_ieee_style
+from plot_mode_switching_mc import plot_results
 from _6u_mc_common import (
     KP,
     KD,
@@ -196,7 +197,12 @@ def main() -> None:
         base_seed=args.seed,
     )
     sim_path = results.save(CAMPAIGN_NAME, out_dir=OUTPUT_DIR)
-    figure_path = _plot(results)
+    # Plot one selected run while using all ten runs for the population-fraction bars.
+    figure_path = plot_results(
+        results,
+        run_index=0,
+        output_path=OUTPUT_DIR / f"{CAMPAIGN_NAME}.png",
+    )
     print(f"Saved simulation: {sim_path}")
     print(f"Saved figure: {figure_path}")
     for run_id, run in zip(results.run_ids or range(len(results.runs)), results.runs):

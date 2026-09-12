@@ -1,0 +1,4 @@
+method,runs,mean_time_in_5deg_percent,std_time_in_5deg_percent,mean_time_in_1deg_percent,std_time_in_1deg_percent
+Reactive 75/25,10,71.933494,16.285612,55.906326,22.500993
+Co-allocation \gamma=0.5,10,82.213988,5.596594,30.319592,15.994749
+Feasibility-aware planner,10,86.443364,6.280654,55.526742,12.078013

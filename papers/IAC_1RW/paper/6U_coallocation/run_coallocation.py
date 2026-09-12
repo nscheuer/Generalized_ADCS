@@ -48,18 +48,45 @@ class CoallocationController:
     actuator limits, their convex combination does too.
     """
 
-    def __init__(self, pointing_controller, desaturation_controller, gamma: float) -> None:
+    def __init__(
+        self,
+        pointing_controller,
+        desaturation_controller,
+        saturated_pointing_controller,
+        saturated_desaturation_controller,
+        gamma: float,
+    ) -> None:
         if not 0.0 <= gamma <= 1.0:
             raise ValueError("gamma must be in [0, 1].")
         self.pointing_controller = pointing_controller
         self.desaturation_controller = desaturation_controller
+        self.saturated_pointing_controller = saturated_pointing_controller
+        self.saturated_desaturation_controller = saturated_desaturation_controller
         self.gamma = float(gamma)
 
     def find_u(self, *, x_hat, sens, est_sat, os_hat, goal):
-        u_pointing = self.pointing_controller.find_u_pointing(
+        rw_limits = np.asarray([
+            actuator.h_max for actuator in est_sat.actuators
+            if isinstance(actuator, ADCS.RW)
+        ], dtype=float)
+        momentum = np.abs(np.asarray(x_hat.h, dtype=float).reshape(-1))
+        wheel_saturated = (
+            rw_limits.size > 0
+            and momentum.size >= rw_limits.size
+            and np.any(momentum[:rw_limits.size] >= rw_limits - 1e-12)
+        )
+        pointing_controller = (
+            self.saturated_pointing_controller
+            if wheel_saturated else self.pointing_controller
+        )
+        desaturation_controller = (
+            self.saturated_desaturation_controller
+            if wheel_saturated else self.desaturation_controller
+        )
+        u_pointing = pointing_controller.find_u_pointing(
             x_hat=x_hat, sens=sens, est_sat=est_sat, os_hat=os_hat, goal=goal
         )
-        u_desaturation = self.desaturation_controller.find_u_desaturate(
+        u_desaturation = desaturation_controller.find_u_desaturate(
             x_hat=x_hat, sens=sens, est_sat=est_sat, os_hat=os_hat, goal=No_Goal()
         )
         return (1.0 - self.gamma) * u_pointing + self.gamma * u_desaturation
@@ -74,7 +101,19 @@ def make_controller(satellite, gamma: float) -> CoallocationController:
     desaturation = controller_for(
         "lp", satellite, 1, kp=KP, kd=KD, c_gain=MOMENTUM_GAIN
     )
-    return CoallocationController(pointing, desaturation, gamma)
+    saturated_pointing = controller_for(
+        "qp", satellite, 1, kp=KP, kd=KD, c_gain=0.0
+    )
+    saturated_desaturation = controller_for(
+        "qp", satellite, 1, kp=KP, kd=KD, c_gain=MOMENTUM_GAIN
+    )
+    return CoallocationController(
+        pointing,
+        desaturation,
+        saturated_pointing,
+        saturated_desaturation,
+        gamma,
+    )
 
 
 def make_mc_config() -> ADCS.MCConfig:

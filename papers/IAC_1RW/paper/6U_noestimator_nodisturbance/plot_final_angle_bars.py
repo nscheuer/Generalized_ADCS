@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
 
@@ -90,10 +91,40 @@ def _plot(goal_type: str) -> Path:
     return path
 
 
+def _write_summary() -> Path:
+    """Save the final-angle bar values and their one-sigma bounds as JSON."""
+    rows = []
+    for goal_type in GOAL_TYPES:
+        for number_rw, architecture in ARCHITECTURES:
+            for allocator in ALLOCATORS:
+                mean, sigma, path = _summary(number_rw, allocator, goal_type)
+                rows.append({
+                    "goal_type": goal_type,
+                    "architecture": architecture,
+                    "number_reaction_wheels": number_rw,
+                    "allocator": allocator.upper(),
+                    "runs": 10,
+                    "final_angle_error_mean_deg": mean,
+                    "final_angle_error_std_dev_deg": sigma,
+                    "one_sigma_lower_deg": max(0.0, mean - sigma),
+                    "one_sigma_upper_deg": mean + sigma,
+                    "source_simulation": path.name,
+                })
+    path = OUTPUT_DIR / f"{CAMPAIGN_PREFIX}_final_angle_error_bars_mc_summary.json"
+    path.write_text(json.dumps({
+        "metric": "final angle error",
+        "units": "deg",
+        "one_sigma_bounds": "mean ± sample standard deviation; lower bound is clipped to zero degrees",
+        "results": rows,
+    }, indent=2) + "\n")
+    return path
+
+
 def main() -> None:
     configure_ieee_style()
     for goal_type in GOAL_TYPES:
         print(f"Saved {_plot(goal_type)}")
+    print(f"Saved {_write_summary()}")
 
 
 if __name__ == "__main__":

@@ -11,12 +11,14 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import FancyArrowPatch, Patch, Polygon
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from plot_style import BLUE, ORANGE, configure_ieee_style
+from plot_style import BLUE, configure_ieee_style
 
 configure_ieee_style()
 
 OUT_DIR = Path(__file__).resolve().parent / "outputs"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
+REFERENCE_COLOR = "#666666"
+QP_ORANGE = "#D55E00"
 
 # A representative bounded torque envelope, expressed in normalized torque units.
 ENVELOPE = np.array([
@@ -74,10 +76,10 @@ def setup(title, tau_ref=TAU_REF, annotate_ref=True):
     ax.set_facecolor("white")
     ax.add_patch(Polygon(ENVELOPE, closed=True, facecolor=BLUE, alpha=0.16,
                          edgecolor=BLUE, linewidth=1.15, zorder=1))
-    ax.scatter(*tau_ref, color=ORANGE, s=19, zorder=7)
+    ax.scatter(*tau_ref, color=REFERENCE_COLOR, s=19, zorder=7)
     if annotate_ref:
         ax.annotate(r"$\tau_{\mathrm{ref}}$", tau_ref, xytext=(5, 4),
-                    textcoords="offset points", fontsize=8, color=ORANGE)
+                    textcoords="offset points", fontsize=8, color=REFERENCE_COLOR)
     ax.set_xlim(-1.65, 2.15)
     ax.set_ylim(-1.50, 1.75)
     ax.set_aspect("equal", adjustable="box")
@@ -100,7 +102,7 @@ def save(figure, stem):
 def plot_lp():
     tau_lp = ray_boundary(np.zeros(2), TAU_REF, ENVELOPE)
     figure, ax = setup("LP allocator: colinear solution")
-    ax.plot([0.0, TAU_REF[0]], [0.0, TAU_REF[1]], color=ORANGE, linestyle=":",
+    ax.plot([0.0, TAU_REF[0]], [0.0, TAU_REF[1]], color=REFERENCE_COLOR, linestyle=":",
             linewidth=1.5, zorder=2)
     arrow(ax, tau_lp, BLUE, r"$\tau_{\mathrm{LP}}$")
     ax.scatter(*tau_lp, color=BLUE, s=14, zorder=6)
@@ -108,7 +110,7 @@ def plot_lp():
                 textcoords="offset points", fontsize=8, color=BLUE)
     ax.legend([Patch(facecolor=to_rgba(BLUE, 0.16), edgecolor=BLUE),
                Line2D([0], [0], color=BLUE, linewidth=1.4),
-               Line2D([0], [0], color=ORANGE, linestyle=":", linewidth=1.5)],
+               Line2D([0], [0], color=REFERENCE_COLOR, linestyle=":", linewidth=1.5)],
               ["Torque envelope", r"$\tau_{\mathrm{LP}}$", r"$\tau_{\mathrm{ref}}$ direction"],
               loc="lower left", frameon=False, fontsize=7, handlelength=1.2)
     save(figure, "01_lp_colinear")
@@ -117,15 +119,15 @@ def plot_lp():
 def plot_qp():
     tau_qp = closest_point_in_polygon(TAU_REF, ENVELOPE)
     figure, ax = setup("QP allocator: nearest solution")
-    ax.plot([0.0, TAU_REF[0]], [0.0, TAU_REF[1]], color=ORANGE, linestyle=":",
+    ax.plot([0.0, TAU_REF[0]], [0.0, TAU_REF[1]], color=REFERENCE_COLOR, linestyle=":",
             linewidth=1.5, zorder=2)
-    arrow(ax, tau_qp, BLUE, r"$\tau_{\mathrm{QP}}$")
-    ax.scatter(*tau_qp, color=BLUE, s=14, zorder=6)
+    arrow(ax, tau_qp, QP_ORANGE, r"$\tau_{\mathrm{QP}}$")
+    ax.scatter(*tau_qp, color=QP_ORANGE, s=14, zorder=6)
     ax.annotate(r"$\tau_{\mathrm{QP}}$", tau_qp, xytext=(-31, 5),
-                textcoords="offset points", fontsize=8, color=BLUE)
+                textcoords="offset points", fontsize=8, color=QP_ORANGE)
     ax.legend([Patch(facecolor=to_rgba(BLUE, 0.16), edgecolor=BLUE),
                Line2D([0], [0], color=BLUE, linewidth=1.4),
-               Line2D([0], [0], color=ORANGE, linestyle=":", linewidth=1.5)],
+               Line2D([0], [0], color=REFERENCE_COLOR, linestyle=":", linewidth=1.5)],
               ["Torque envelope", r"$\tau_{\mathrm{QP}}$", r"$\tau_{\mathrm{ref}}$ direction"],
               loc="lower left", frameon=False, fontsize=7, handlelength=1.2)
     save(figure, "02_qp_nearest")
@@ -139,16 +141,16 @@ def plot_lp_qp_combined():
     ax.plot([0.0, TAU_REF[0]], [0.0, TAU_REF[1]], color="#666666", linestyle=":",
             linewidth=1.35, zorder=2)
     arrow(ax, tau_lp, BLUE, r"$\tau_{\mathrm{LP}}$")
-    arrow(ax, tau_qp, ORANGE, r"$\tau_{\mathrm{QP}}$")
+    arrow(ax, tau_qp, QP_ORANGE, r"$\tau_{\mathrm{QP}}$")
     ax.scatter(*tau_lp, color=BLUE, s=14, zorder=6)
-    ax.scatter(*tau_qp, color=ORANGE, s=14, zorder=6)
+    ax.scatter(*tau_qp, color=QP_ORANGE, s=14, zorder=6)
     ax.annotate(r"$\tau_{\mathrm{LP}}$", tau_lp, xytext=(5, -12),
                 textcoords="offset points", fontsize=8, color=BLUE)
     ax.annotate(r"$\tau_{\mathrm{QP}}$", tau_qp, xytext=(-31, 5),
-                textcoords="offset points", fontsize=8, color=ORANGE)
+                textcoords="offset points", fontsize=8, color=QP_ORANGE)
     ax.legend([Patch(facecolor=to_rgba(BLUE, 0.16), edgecolor=BLUE),
                Line2D([0], [0], color=BLUE, linewidth=1.4),
-               Line2D([0], [0], color=ORANGE, linewidth=1.4),
+               Line2D([0], [0], color=QP_ORANGE, linewidth=1.4),
                Line2D([0], [0], color="#666666", linestyle=":", linewidth=1.35)],
               ["Torque envelope", r"$\tau_{\mathrm{LP}}$",
                r"$\tau_{\mathrm{QP}}$", r"$\tau_{\mathrm{ref}}$ direction"],
@@ -160,16 +162,17 @@ def plot_perfect(allocator, stem):
     """Plot an attainable reference, for which LP and QP are both exact."""
     figure, ax = setup(f"{allocator} allocator: perfect solution", TAU_REF_INSIDE,
                        annotate_ref=False)
-    arrow(ax, TAU_REF_INSIDE, BLUE, rf"$\tau_{{\mathrm{{{allocator}}}}}$")
-    ax.plot([0.0, TAU_REF_INSIDE[0]], [0.0, TAU_REF_INSIDE[1]], color=ORANGE,
+    solution_color = BLUE if allocator == "LP" else QP_ORANGE
+    arrow(ax, TAU_REF_INSIDE, solution_color, rf"$\tau_{{\mathrm{{{allocator}}}}}$")
+    ax.plot([0.0, TAU_REF_INSIDE[0]], [0.0, TAU_REF_INSIDE[1]], color=REFERENCE_COLOR,
             linestyle=":", linewidth=1.5, zorder=2)
-    ax.scatter(*TAU_REF_INSIDE, color=ORANGE, s=14, zorder=6)
+    ax.scatter(*TAU_REF_INSIDE, color=REFERENCE_COLOR, s=14, zorder=6)
     ax.annotate(r"$\tau_{\mathrm{ref}}=\tau_{\mathrm{" + allocator + r"}}$",
                 TAU_REF_INSIDE, xytext=(5, 5), textcoords="offset points",
-                fontsize=8, color=ORANGE)
+                fontsize=8, color=REFERENCE_COLOR)
     ax.legend([Patch(facecolor=to_rgba(BLUE, 0.16), edgecolor=BLUE),
-               Line2D([0], [0], color=BLUE, linewidth=1.4),
-               Line2D([0], [0], color=ORANGE, linestyle=":", linewidth=1.5)],
+               Line2D([0], [0], color=solution_color, linewidth=1.4),
+               Line2D([0], [0], color=REFERENCE_COLOR, linestyle=":", linewidth=1.5)],
               ["Torque envelope", rf"$\tau_{{\mathrm{{{allocator}}}}}$",
                r"$\tau_{\mathrm{ref}}$ direction"], loc="lower left", frameon=False,
               fontsize=7, handlelength=1.2)

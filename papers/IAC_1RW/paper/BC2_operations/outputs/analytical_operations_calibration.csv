@@ -1,0 +1,4 @@
+method,mean_settle_s,mean_peak_delta_h_mNms,time_in_5deg_percent,successful_slews,total_slews,desat_75_to_25_mean_s,desat_episodes
+6U reactive 75/25,7711.000,6.980114,71.933494,10,10,10165.312,16
+6U co-allocation \gamma=0.5,1920.000,5.046310,82.213988,10,10,10165.312,16
+6U feasibility-aware planner,669.800,0.541023,86.443364,10,10,10165.312,16

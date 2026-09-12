@@ -160,7 +160,7 @@ def main() -> None:
         GAMMAS,
         pointing_means,
         c=100.0 * np.asarray(momentum_means),
-        cmap="magma_r",
+        cmap="RdYlGn_r",
         s=35,
         edgecolor="black",
         linewidth=0.45,

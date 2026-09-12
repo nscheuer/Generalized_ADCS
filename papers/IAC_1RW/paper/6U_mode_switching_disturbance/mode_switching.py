@@ -22,9 +22,9 @@ from ADCS.CONOPS.goals import No_Goal
 from ADCS.helpers.math_helpers import normalize
 from plot_style import configure_ieee_style
 from _6u_mc_common import (
-    DT_S,
     KP,
     KD,
+    MOMENTUM_GAIN,
     WHEEL_MOMENTUM_MAX,
     controller_for,
     make_satellite,
@@ -34,7 +34,8 @@ from _6u_mc_common import (
 
 OUTPUT_DIR = Path(__file__).resolve().parent / "outputs"
 CAMPAIGN_NAME = "6u_mode_switching_disturbance_representative"
-REPRESENTATIVE_DURATION_MIN = 1440.0
+REPRESENTATIVE_DURATION_MIN = 1500.0
+DT_S = 5.0
 DESAT_ENTRY = 0.75
 DESAT_EXIT = 0.25
 
@@ -151,7 +152,9 @@ def main() -> None:
         h=np.array([0.70 * WHEEL_MOMENTUM_MAX]),
     )
     goal = ADCS.goals.Fixed_Attitude_Goal(np.array([1.0, 0.0, 0.0, 0.0]))
-    base_controller = controller_for("lp", est_satellite, 1, kp=KP, kd=KD)
+    base_controller = controller_for(
+        "lp", est_satellite, 1, kp=KP, kd=KD, c_gain=MOMENTUM_GAIN
+    )
     mode_controller = HystereticModeController(base_controller, momentum_max=WHEEL_MOMENTUM_MAX)
 
     results = ADCS.simulate(

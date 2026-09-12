@@ -7,6 +7,8 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import to_rgba
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import ConvexHull
 
@@ -111,44 +113,70 @@ def add_combined(ax, b_field, number_rw, color=BLUE, alpha=0.20):
                                           edgecolor=color, linewidth=0.28))
 
 
-def setup(ax, title):
+def setup(title):
+    figure = plt.figure(figsize=(2.55, 2.15), constrained_layout=True)
+    ax = figure.add_subplot(111, projection="3d")
+    figure.patch.set_facecolor("white")
+    ax.set_facecolor("white")
     ax.set(xlim=(-AXIS_LIMIT, AXIS_LIMIT), ylim=(-AXIS_LIMIT, AXIS_LIMIT),
            zlim=(-AXIS_LIMIT, AXIS_LIMIT))
     ax.set_box_aspect((1, 1, 1))
-    ax.set_title(title, pad=0, fontsize=7)
+    for setter, label in zip((ax.set_xlabel, ax.set_ylabel, ax.set_zlabel),
+                             (r"$\tau_x$ [N m]", r"$\tau_y$ [N m]", r"$\tau_z$ [N m]")):
+        setter(label, labelpad=-5, fontsize=6.5)
+    ax.set_title(title, pad=0, fontsize=8.0)
     ax.view_init(elev=24, azim=-43)
-    ax.grid(True, alpha=0.10)
-    ax.tick_params(axis="both", labelsize=4.5, pad=-4)
+    ax.grid(True, alpha=0.12)
+    ax.tick_params(axis="both", labelsize=6.0, pad=-5)
     for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
-        axis.get_offset_text().set_fontsize(4.5)
+        axis.get_offset_text().set_fontsize(6.0)
+    return figure, ax
+
+
+def save(figure, stem):
+    for extension in ("png", "pdf"):
+        figure.savefig(OUT_DIR / f"{stem}.{extension}", dpi=300, bbox_inches="tight")
+    plt.close(figure)
+
+
+def separate_legend(number_rw):
+    handles = [Patch(facecolor=to_rgba(BLUE, 0.24), edgecolor=BLUE)]
+    labels = ["MTQ torque plane"]
+    if number_rw == 1:
+        handles.append(Line2D([0], [0], color=RED, linewidth=1.6))
+        labels.append("RW torque line")
+    elif number_rw == 3:
+        handles.append(Patch(facecolor=to_rgba(ORANGE, 0.16), edgecolor=ORANGE))
+        labels.append("RW torque box")
+    return handles, labels
+
+
+def plot_separate(name, number_rw):
+    figure, ax = setup(f"{name}: separate actuator authority")
+    add_polygon(ax, mtq_plane(B_NOW))
+    add_rw(ax, number_rw)
+    handles, labels = separate_legend(number_rw)
+    ax.legend(handles, labels, loc="upper left", bbox_to_anchor=(-0.01, 1),
+              frameon=False, fontsize=5.5, handlelength=0.9, labelspacing=0.12)
+    save(figure, f"{name.replace('+', 'p')}_separate")
+
+
+def plot_combined(name, number_rw, b_field, stem, field_label):
+    figure, ax = setup(f"{name}: combined authority ({field_label})")
+    add_combined(ax, b_field, number_rw)
+    ax.legend([Patch(facecolor=to_rgba(BLUE, 0.20), edgecolor=BLUE)],
+              ["MTQ plane $\u2295$ RW authority"], loc="upper left",
+              bbox_to_anchor=(-0.01, 1), frameon=False, fontsize=5.5,
+              handlelength=0.9, labelspacing=0.12)
+    save(figure, f"{name.replace('+', 'p')}_combined_{stem}")
 
 
 def make_plot():
     configurations = (("3+0", 0), ("3+1", 1), ("3+3", 3))
-    figure = plt.figure(figsize=(7.0, 6.5), constrained_layout=True)
-    figure.patch.set_facecolor("white")
-
-    for column, (name, number_rw) in enumerate(configurations):
-        # Row 1: the individual actuator authorities.
-        ax = figure.add_subplot(3, 3, column + 1, projection="3d")
-        setup(ax, name)
-        add_polygon(ax, mtq_plane(B_NOW))
-        add_rw(ax, number_rw)
-
-        # Rows 2 and 3: the combined authority at two field states.
-        for row, b_field in ((1, B_NOW), (2, B_NEXT)):
-            ax = figure.add_subplot(3, 3, row * 3 + column + 1, projection="3d")
-            setup(ax, name)
-            add_combined(ax, b_field, number_rw)
-
-    figure.text(0.01, 0.67, "Separate", rotation=90, va="center", fontsize=8)
-    figure.text(0.01, 0.39, "Instant 1", rotation=90, va="center", fontsize=8)
-    figure.text(0.01, 0.12, "Instant 2", rotation=90, va="center", fontsize=8)
-    figure.text(0.5, 0.01, r"Torque coordinates [N m]", ha="center", fontsize=8)
-    for extension in ("png", "pdf"):
-        figure.savefig(OUT_DIR / f"torque_envelopes_3x3.{extension}", dpi=300,
-                       bbox_inches="tight")
-    plt.close(figure)
+    for name, number_rw in configurations:
+        plot_separate(name, number_rw)
+        plot_combined(name, number_rw, B_NOW, "now", "now")
+        plot_combined(name, number_rw, B_NEXT, "next", "next")
 
 
 if __name__ == "__main__":
