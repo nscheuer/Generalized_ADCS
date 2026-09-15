@@ -233,20 +233,27 @@ def simulate(
         if orbit_estimator is not None:
             gps = satellite.GPS_readings(x=x, os=os_k)
             os_hat = orbit_estimator.update(GPS_measurements=gps, J2000=J2000_k)
-            os_for_gnc = os_hat if os_hat is not None else os_k
+            # Downstream consumers (attitude estimator, controller, goals) need an
+            # Orbital_State; the estimate wrapper only carries one as .os.
+            os_for_gnc = os_hat.os if os_hat is not None else os_k
         else:
             os_hat = None
             os_for_gnc = os_k
 
         if estimator is not None:
-            if previous_estimator_os is None:
+            if not hasattr(estimator, "step"):
+                # A remote proxy or another one-call estimator: it only speaks
+                # update(u, sensors, os).
+                x_hat = estimator.update(u, y, os_for_gnc)
+            elif previous_estimator_os is None:
                 estimator.step(y, os_for_gnc)
             else:
                 # No midpoint on purpose: the propagation averages the two
                 # orbital states, which is what the integrator stages need.
                 estimator.predict(u, previous_estimator_os, os_for_gnc)
                 estimator.step(y, os_for_gnc)
-            x_hat = estimator.update()
+            if hasattr(estimator, "step"):
+                x_hat = estimator.update()
             previous_estimator_os = os_for_gnc
             x_for_ctrl = x_hat
         else:
@@ -379,7 +386,9 @@ def simulate(
                     if orbit_estimator is not None else None),
             state=x,
             est_state=x_hat,
-            state_cov=(getattr(getattr(estimator, "x_hat", None), "cov", None)
+            # The new-generation filters expose their estimate as .state; the
+            # returned x_hat carries the covariance directly.
+            state_cov=(getattr(x_hat, "cov", getattr(getattr(estimator, "x_hat", None), "cov", None))
                        if estimator is not None else None),
 
             # --- real biases (existing) ---

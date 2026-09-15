@@ -199,7 +199,7 @@ def _simulate_with_precomputed_orbit(
         if orbit_estimator is not None:
             gps = satellite.GPS_readings(x=x, os=os_k)
             os_hat = orbit_estimator.update(GPS_measurements=gps, J2000=J2000_k)
-            os_for_gnc = os_hat if os_hat is not None else os_k
+            os_for_gnc = os_hat.os if os_hat is not None else os_k
         else:
             os_hat = None
             os_for_gnc = os_k
@@ -297,7 +297,7 @@ def _simulate_with_precomputed_orbit(
             os_cov=(getattr(getattr(orbit_estimator, "os_hat", None), "P", None) if orbit_estimator is not None else None),
             state=x,
             est_state=x_hat,
-            state_cov=(getattr(getattr(estimator, "x_hat", None), "cov", None) if estimator is not None else None),
+            state_cov=(getattr(x_hat, "cov", getattr(getattr(estimator, "x_hat", None), "cov", None)) if estimator is not None else None),
             actuator_bias=(
                 np.array([np.atleast_1d(act.bias.bias) for act in satellite.actuators], dtype=object)
                 if getattr(satellite, "actuators", None) else None
