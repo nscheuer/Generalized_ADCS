@@ -143,7 +143,10 @@ def _skew(vector: np.ndarray) -> np.ndarray:
 def _rotation_vector_reset_jacobian(vector: np.ndarray, order: QuaternionOrder) -> np.ndarray:
     theta = float(np.linalg.norm(vector))
     theta_sq = theta * theta
-    if theta < 1.0e-8:
+    # Below 1e-3 the closed forms (1 - cos)/theta^2 and (theta - sin)/theta^3
+    # lose everything to cancellation (both were exactly zero at 1e-8); the
+    # two-term series is accurate to ~3e-15 there.
+    if theta < 1.0e-3:
         a = 0.5 - theta_sq / 24.0
         b = 1.0 / 6.0 - theta_sq / 120.0
     else:
