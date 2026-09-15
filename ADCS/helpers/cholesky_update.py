@@ -77,6 +77,18 @@ def _choldowndate_impl(R: np.ndarray, x: np.ndarray) -> None:
             x[i] = c * x[i] - s * R[k, i]
 
 
+def _checked(R: np.ndarray, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Validate shapes before entering the bounds-check-free compiled kernels."""
+    if not isinstance(R, np.ndarray) or R.ndim != 2 or R.shape[0] != R.shape[1]:
+        raise ValueError("R must be a square 2-D numpy array")
+    if R.dtype != np.float64:
+        raise TypeError(f"R must have dtype float64, got {R.dtype}")
+    x = np.ascontiguousarray(x, dtype=np.float64)
+    if x.shape != (R.shape[0],):
+        raise ValueError(f"x must have shape ({R.shape[0]},), got {x.shape}")
+    return R, x.copy()
+
+
 def cholupdate(R: np.ndarray, x: np.ndarray) -> None:
     r"""Rank-1 update: overwrite ``R`` with the factor of :math:`A + x x^\top`.
 
@@ -87,7 +99,7 @@ def cholupdate(R: np.ndarray, x: np.ndarray) -> None:
     :return: None
     :rtype: None
     """
-    _cholupdate_impl(R, np.ascontiguousarray(x, dtype=np.float64).copy())
+    _cholupdate_impl(*_checked(R, x))
 
 
 def choldowndate(R: np.ndarray, x: np.ndarray) -> None:
@@ -103,4 +115,4 @@ def choldowndate(R: np.ndarray, x: np.ndarray) -> None:
     :return: None
     :rtype: None
     """
-    _choldowndate_impl(R, np.ascontiguousarray(x, dtype=np.float64).copy())
+    _choldowndate_impl(*_checked(R, x))
