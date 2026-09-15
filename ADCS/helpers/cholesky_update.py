@@ -40,11 +40,18 @@ def _cholupdate_impl(R: np.ndarray, x: np.ndarray) -> None:
         xk = x[k]
         r = np.sqrt(Rkk * Rkk + xk * xk)
         if Rkk == 0.0:
-            # Degenerate factor: the rotation is undefined. Propagate NaN
-            # rather than dividing by zero silently.
-            for i in range(k, n):
-                R[k, i] = np.nan
-            return
+            # A structurally zero row. With x_k == 0 the Givens rotation is the
+            # identity; with x_k != 0 it is the swap (c = 0, s = sign(x_k)).
+            # Both are well defined, so do not propagate NaN.
+            if xk == 0.0:
+                continue
+            sign = 1.0 if xk > 0.0 else -1.0
+            R[k, k] = abs(xk)
+            for i in range(k + 1, n):
+                previous = R[k, i]
+                R[k, i] = sign * x[i]
+                x[i] = -sign * previous
+            continue
         c = r / Rkk
         s = xk / Rkk
         R[k, k] = r
@@ -60,6 +67,9 @@ def _choldowndate_impl(R: np.ndarray, x: np.ndarray) -> None:
         Rkk = R[k, k]
         xk = x[k]
         r2 = Rkk * Rkk - xk * xk
+        if Rkk == 0.0 and xk == 0.0:
+            # A structurally zero row that the downdate does not touch.
+            continue
         if Rkk == 0.0 or r2 <= 0.0:
             # A - x x^T is not positive definite; there is no real factor.
             # Fill with NaN so callers' finite-checks trip instead of
