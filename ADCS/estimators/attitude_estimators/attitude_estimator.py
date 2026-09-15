@@ -387,6 +387,15 @@ class AttitudeEstimator:
         form remains accepted and performs both stages.
         """
         if orbital_state_start is None and orbital_state_end is None:
+            if not hasattr(orbital_state_or_measurements, "J2000"):
+                # A legacy step(control, measurements) call with matching lengths
+                # would otherwise be corrected as if the control were the
+                # measurement and the measurement the orbital state, silently.
+                raise TypeError(
+                    "step(measurements, orbital_state) needs an Orbital_State as its "
+                    "second argument; the combined form is "
+                    "step(control, measurements, orbital_state_start, orbital_state_end)"
+                )
             return self.correct(
                 measurements_or_control,
                 orbital_state_or_measurements,
@@ -428,7 +437,7 @@ class AttitudeEstimator:
         """
         if u is None and sensors is None and os is None:
             return self.state
-        if sensors is None or os is None:
+        if u is None or sensors is None or os is None:
             raise TypeError("update requires u, sensors, and os when called with arguments")
         if self._previous_orbital_state is None:
             self._previous_orbital_state = os
