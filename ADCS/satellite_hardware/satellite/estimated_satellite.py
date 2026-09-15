@@ -323,13 +323,16 @@ class EstimatedSatellite(Satellite):
         ind = 0
         for j in self.dist_param_inds:
             dist = self.disturbances[j]
+            # Every estimated disturbance owns a block in the state vector (the
+            # same order dist_torques_jacobian / dynJacCore stack), so the index
+            # must advance whether or not the disturbance is currently active.
+            l = int(dist.estimated_vector_length)
             if getattr(dist, "active", True):  # Only update active ones
-                l = dist.main_param.size
                 dist.main_param = dist_param[ind : ind + l]
                 dist.std = np.sqrt(
                     np.diag(dist_param_ic[ind : ind + l, ind : ind + l])
                 )
-                ind += l
+            ind += l
 
     def dist_torques_jacobian(self, x: State, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
         r"""

@@ -207,7 +207,7 @@ class MTQ(Actuator):
             dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
 
         if self.bias and dmode.add_bias:
-            u += self.bias.get_bias(j2000=os.J2000)
+            u = u + self.bias.get_bias(j2000=os.J2000)
         if dmode.update_bias:
             self.bias._update_bias(j2000=os.J2000)
 

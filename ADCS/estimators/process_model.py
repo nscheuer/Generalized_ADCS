@@ -31,7 +31,10 @@ def propagate_state(
 ) -> State:
     r"""Return deterministic propagation without mutating ``state``.
 
-    The physical state is propagated by ``satellite.noiseless_rk4``. For an
+    The physical state is propagated by ``satellite.noiseless_rk4``, whose
+    default error mode applies the actuator biases currently held by the
+    actuator objects (an estimator synchronizes its estimated biases there via
+    ``EstimatedSatellite.match_estimate``) and adds no noise. For an
     :class:`EstimatorState`, wheel momentum is propagated while estimated bias
     and disturbance blocks, covariance, and process noise are copied unchanged.
     Those nominal parameter blocks are constant under this deterministic model;

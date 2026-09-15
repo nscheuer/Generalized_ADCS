@@ -228,7 +228,7 @@ def error_state_transfer(
                 np.asarray(control, dtype=float),
                 orbital_state,
                 dmode=ErrorMode(
-                    add_bias=False,
+                    add_bias=True,
                     add_noise=False,
                     update_bias=False,
                     update_noise=False,

@@ -1230,7 +1230,7 @@ class Satellite:
         return [[ddxdot__dxdx,ddxdot__dxdu],[ddxdot__dxdu.T,ddxdot__dudu]]
 
 
-    def noiseless_rk4(self, x: State, u: np.ndarray, dt: float, orbital_state0: Orbital_State, orbital_state1: Orbital_State, verbose: bool=False,mid_orbital_state: Optional[Orbital_State] = None, quat_as_vec: bool = True, give_err_est = False) -> State:
+    def noiseless_rk4(self, x: State, u: np.ndarray, dt: float, orbital_state0: Orbital_State, orbital_state1: Orbital_State, verbose: bool=False,mid_orbital_state: Optional[Orbital_State] = None, quat_as_vec: bool = True, give_err_est = False, dmode: Optional[ErrorMode] = None) -> State:
         r"""
         Propagate the state forward one step using RK4 (and optional embedded error estimate).
 
@@ -1258,8 +1258,16 @@ class Satellite:
 
         **Noise/bias behavior**
 
-        This routine enforces a deterministic propagation by using an
-        :class:`~ADCS.satellite_hardware.errors.ErrorMode` with all noise/bias additions disabled.
+        This routine is deterministic: no noise is added and neither the bias
+        random walks nor the noise realizations are advanced. The configured
+        actuator biases *are* applied (``add_bias=True``) so that the nominal
+        model matches the linearization returned by :meth:`dynJacCore`, which
+        evaluates the actuator Jacobians at the biased command ``u + b``. An
+        estimator that carries actuator-bias states writes its current estimate
+        into the actuator ``Bias`` objects (``EstimatedSatellite.match_estimate``)
+        and therefore propagates its mean with the estimated bias. Pass ``dmode``
+        explicitly to override this (for example ``add_bias=False`` for a
+        bias-free nominal model).
 
         :param x: Current state vector, shape ``(state_len,)``.
         :type x: ADCS.state.State
@@ -1289,6 +1297,10 @@ class Satellite:
         :param give_err_est: If ``True``, return ``(x_next, err_est)`` using an embedded lower-order estimate.
         :type give_err_est: bool
 
+        :param dmode: Error mode used for every stage evaluation. Defaults to
+            ``ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)``.
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None
+
         :return: Next state, or ``(next_state, error_estimate)`` if ``give_err_est=True``.
         :rtype: numpy.ndarray | tuple[numpy.ndarray, numpy.ndarray]
 
@@ -1298,8 +1310,10 @@ class Satellite:
         if not isinstance(x, State):
             raise TypeError(f"x must be a State, got {type(x).__name__}")
         x_array = x.normalized().as_array()
-        # Use no noise, no bias, no updates to either
-        dmode = ErrorMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
+        if dmode is None:
+            # Deterministic nominal model: configured/estimated bias applied, no
+            # noise, and no random-walk or noise-realization updates.
+            dmode = ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
         if quat_as_vec:
             if mid_orbital_state is None:
                 mid_orbital_state = orbital_state0.average(orbital_state1)

@@ -253,6 +253,15 @@ class RW(Actuator):
         # (e.g. ``.item()``); casting to float would change the public type.
         u_cmd = np.clip(u, -self.u_max, self.u_max)
 
+        # When the bias is applied but not random-walked here, its value is set
+        # externally (an estimator rewrites ``self.bias`` between propagations,
+        # per step or per sigma point, at an unchanged (J2000, u)); the cached
+        # realization must not outlive that rewrite, so the value joins the key.
+        held_bias = (
+            tuple(np.atleast_1d(self.bias.bias).tolist())
+            if (dmode.add_bias and not dmode.update_bias)
+            else None
+        )
         key = (
             os.J2000,
             u_cmd,
@@ -260,6 +269,7 @@ class RW(Actuator):
             dmode.add_noise,
             dmode.update_bias,
             dmode.update_noise,
+            held_bias,
         )
         if self._eff_cmd_key == key:
             # Same step/state: reuse the already-drawn realization so that the
