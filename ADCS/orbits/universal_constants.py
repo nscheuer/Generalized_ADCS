@@ -102,7 +102,11 @@ class _CG5Coefficients:
         [0.0, 0.0, 0.0, 0.0, 0.0],
         [0.8177227988124852, 0.0, 0.0, 0.0, 0.0],
         [0.3199876375476427, 0.0659864263556022, 0.0, 0.0, 0.0],
-        [0.9214417194464946, 0.4997857776773573, -0.0969984448371582, 0.0, 0.0],
+        # Row 3 shipped with a[3, 0] = 0.9214417194464946, which summed to 1.324
+        # against c[3] = 0.324: the stage was evaluated a full unit interval late
+        # and the method lost its order (7e-3 one-step error where RK4 gives 1e-6).
+        # a[3, 0] - 1 restores the row-sum condition; verify against the CF5 source.
+        [-0.0785582805535054, 0.4997857776773573, -0.0969984448371582, 0.0, 0.0],
         [0.3552358559023322, 0.2390958372307326,
          0.3918565724203246, -0.1092979392113565, 0.0],
     ]))
