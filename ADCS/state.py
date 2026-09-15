@@ -76,15 +76,19 @@ def _quat_delta_from_vector(value: Any, mode: str) -> np.ndarray:
 
     if mode == "rotation_vector":
         return rot_exp(vector)
-    helper_mode = {"mrp": 1, "two_mrp": 6, "cayley": 2}[mode]
+    # The same helper mode must be used in both directions: mode 6 forces a
+    # non-negative scalar on the way in while mode 5 (used on the way out) does
+    # not, which made two_mrp sign-discontinuous at 180 degrees and folded any
+    # larger rotation back onto the shadow set.
+    helper_mode = {"mrp": 1, "two_mrp": 5, "cayley": 2}[mode]
     return vec3_to_quat(vector, helper_mode)
 
 
 def _quat_delta_to_vector(value: Any, mode: str, *, shortest: bool) -> np.ndarray:
-    q = _unit_quaternion(value, name="quaternion delta")
     mode = _quaternion_mode(mode)
     if mode == "full_quaternion":
         raise ValueError("full_quaternion does not convert to a three-element attitude vector")
+    q = _unit_quaternion(value, name="quaternion delta")
     if shortest and q[0] < 0.0:
         q = -q
     if mode == "quaternion_vector":
@@ -94,6 +98,18 @@ def _quat_delta_to_vector(value: Any, mode: str, *, shortest: bool) -> np.ndarra
         if vector_norm < 1e-15:
             return 2.0 * q[1:]
         return (2.0 * np.arctan2(vector_norm, q[0]) / vector_norm) * q[1:]
+    # The chart singularities used to surface as a bare numba ZeroDivisionError
+    # from math_helpers; name them instead.
+    if mode == "cayley" and abs(float(q[0])) < 1.0e-12:
+        raise ValueError(
+            "cayley chart is singular at 180 degrees (the relative quaternion has "
+            "no scalar part); use rotation_vector or mrp for this rotation"
+        )
+    if mode in ("mrp", "two_mrp") and float(q[0]) <= -1.0 + 1.0e-12:
+        raise ValueError(
+            f"{mode} chart is singular for a relative quaternion with scalar part -1; "
+            "pass shortest=True or use rotation_vector"
+        )
 
     from ADCS.helpers.math_helpers import quat_to_vec3
 
