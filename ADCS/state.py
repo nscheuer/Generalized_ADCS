@@ -884,9 +884,11 @@ class State:
             if not np.isfinite(total) or abs(total) < np.finfo(float).eps:
                 raise ValueError("weights must have a finite, non-zero sum")
             weight_array = weight_array / total
-        current = values[0].copy() if reference is None else reference.copy()
-        if type(current) is not cls:
+        if not np.isfinite(tolerance) or tolerance <= 0.0:
+            raise ValueError("tolerance must be a positive finite number")
+        if reference is not None and type(reference) is not cls:
             raise TypeError(f"reference must be a {cls.__name__}")
+        current = values[0].copy() if reference is None else reference.copy()
         local_size = (
             current.full_size
             if _quaternion_mode(quaternion_mode) == "full_quaternion"
@@ -904,12 +906,22 @@ class State:
                 ),
                 np.zeros(local_size),
             )
-            current = current.plus(
+            updated = current.plus(
                 step,
                 quaternion_mode=quaternion_mode,
                 quaternion_order=quaternion_order,
             )
-            if float(np.linalg.norm(step)) <= tolerance:
+            # Judge convergence by how far the iterate actually moved on the
+            # manifold. In the full_quaternion chart the retraction normalizes,
+            # so the radial part of the raw step never shrinks and the raw test
+            # could not converge; in the reduced charts the two are identical.
+            progress = updated.minus(
+                current,
+                quaternion_mode=quaternion_mode,
+                quaternion_order=quaternion_order,
+            )
+            current = updated
+            if float(np.linalg.norm(progress)) <= tolerance:
                 return current
         raise RuntimeError(f"state mean did not converge within {max_iterations} iterations")
 
