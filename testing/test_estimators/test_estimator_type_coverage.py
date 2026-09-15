@@ -173,7 +173,11 @@ def actuator_group(kind: str, *, estimate_bias: bool = False) -> list:
                     bias=_bias(1) if estimate_bias else None,
                     estimate_bias=estimate_bias) for a in AXES]
     if kind == "RW":
-        return [RW(axis=AXES[0], max_torque=0.02, J=1.0e-3, h=0.0, h_max=1.0)]
+        # A real tachometer: the default h_meas_noise is exactly zero, which
+        # makes the wheel-momentum measurement perfect, collapses that variance
+        # to zero after one correction and leaves the next innovation singular.
+        return [RW(axis=AXES[0], max_torque=0.02, J=1.0e-3, h=0.0, h_max=1.0,
+                   h_meas_noise=Noise(std_noise=1.0e-5))]
     raise AssertionError(f"unknown actuator kind {kind}")
 
 
@@ -495,21 +499,14 @@ def _full_flight_disturbances():
     return [disturbance("GG"), disturbance("Dipole"), disturbance("Torque")]
 
 
-MEKF_INTERACTION = pytest.mark.xfail(
-    strict=True,
-    reason="MEKF loses most of its correction only in the full combination "
-           "(MTM+gyro+sun pair+tracker, MTQ+RW, three disturbances): 6.0 -> 5.2 deg "
-           "in 15 steps where the EKF reaches 1.3 and the UKF 0.001; every element "
-           "passes alone. Cause not yet identified; see the estimator audit.",
-)
-
-
-@pytest.mark.parametrize("cls", [
-    EKF, pytest.param(MEKF, marks=MEKF_INTERACTION), UKF, SRUKF,
-    AugmentedEKF, pytest.param(AugmentedMEKF, marks=MEKF_INTERACTION), AugmentedUKF, AugmentedSRUKF,
-])
+@pytest.mark.parametrize("cls", ALL_FILTERS)
 def test_full_flight_configuration(cls):
-    """A realistic bus: 3 sensor types, 2 actuator types, 3 disturbance types."""
+    """A realistic bus: 3 sensor types, 2 actuator types, 3 disturbance types.
+
+    Before the audit fixes the MEKF kept 87% of the initial error in this
+    combination while every element passed alone; with actuator command noise
+    in the linearized prediction it converges like the others.
+    """
     est_sat = EstimatedSatellite(J_0=J_0, sensors=_full_flight_sensors(),
                                  actuators=_full_flight_actuators(),
                                  disturbances=_full_flight_disturbances())

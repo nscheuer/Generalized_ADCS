@@ -101,7 +101,10 @@ def _safe_upper_cholesky(
             and float(eigenvalues[0]) < -tolerance
         ):
             raise ValueError("covariance has no real square-root factor") from None
-        eigenvalues = np.maximum(eigenvalues, 0.0)
+        # eigh reports +-1e-16 noise for zero eigenvalues; keeping the positive
+        # half gives the factor 1e-8 rows in null directions, which later makes
+        # downdates of rank-deficient factors fail at random. Zero them.
+        eigenvalues = np.where(eigenvalues > tolerance, eigenvalues, 0.0)
         root = eigenvectors * np.sqrt(eigenvalues)
         _, upper = np.linalg.qr(root.T)
         return _normalize_factor(upper)
