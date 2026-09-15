@@ -242,12 +242,9 @@ def simulate(
             if previous_estimator_os is None:
                 estimator.step(y, os_for_gnc)
             else:
-                estimator.predict(
-                    u,
-                    previous_estimator_os,
-                    os_for_gnc,
-                    midpoint_orbital_state=os_for_gnc,
-                )
+                # No midpoint on purpose: the propagation averages the two
+                # orbital states, which is what the integrator stages need.
+                estimator.predict(u, previous_estimator_os, os_for_gnc)
                 estimator.step(y, os_for_gnc)
             x_hat = estimator.update()
             previous_estimator_os = os_for_gnc
