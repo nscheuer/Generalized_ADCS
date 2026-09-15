@@ -187,6 +187,7 @@ class AttitudeEstimator:
         step = self.dt if dt is None else float(dt)
         if not np.isfinite(step) or step < 0.0:
             raise ValueError("dt must be finite and non-negative")
+        self._check_step_against_orbit(step, orbital_state_start, orbital_state_end)
         control = np.array(control, dtype=float, copy=True)
         expected_control_shape = (self.satellite.control_len,)
         if control.shape != expected_control_shape:
@@ -448,6 +449,32 @@ class AttitudeEstimator:
             self.predict(u, orbital_state_start, os, midpoint_orbital_state=os)
             self.correct(sensors, os)
         return self.state
+
+    @staticmethod
+    def _check_step_against_orbit(step: float, start: Any, end: Any) -> None:
+        """Warn when ``dt`` disagrees with the time between the two orbital states.
+
+        A filter built with one ``dt`` and driven by a simulation running at
+        another integrates the wrong interval and nothing else notices (a 10x
+        mismatch took a 16 degree mean error to 47). Two identical orbital
+        states (the static-orbit test pattern) carry no time information and
+        are left alone.
+        """
+        start_time = getattr(start, "J2000", None)
+        end_time = getattr(end, "J2000", None)
+        if start_time is None or end_time is None:
+            return
+        gap = (float(end_time) - float(start_time)) * 86400.0
+        if gap <= 0.0 or step <= 0.0:
+            return
+        if abs(gap - step) > 0.1 * step:
+            warnings.warn(
+                f"predict() integrates dt = {step:g} s but the orbital states are "
+                f"{gap:g} s apart; pass dt= or build the estimator with the "
+                "simulation step",
+                UserWarning,
+                stacklevel=3,
+            )
 
     def _normalize_initial_state(self, state: EstimatorState) -> EstimatorState:
         normalized = state.normalized()
