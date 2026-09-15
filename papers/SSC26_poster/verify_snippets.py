@@ -17,10 +17,17 @@ Run:  python papers/SSC26_poster/verify_snippets.py
 
 import sys
 import os
+from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+# Running this file directly (as CI and the poster instructions do) places
+# ``papers/SSC26_poster`` on sys.path, not the repository root.  Bootstrap the
+# local checkout before importing the package; the printed snippets below are
+# intentionally left verbatim.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from ADCS.pipeline import PipelineController
 from ADCS.pipeline.control_law import ControlLaw, LawInterface, PD_Law, Lovera_Law

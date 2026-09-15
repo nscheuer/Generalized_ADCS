@@ -12,7 +12,7 @@ import ADCS as ADCS
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.controller import Controller
-from ADCS.estimators.old_attitude_estimators import Attitude_Estimator
+from ADCS.estimators.attitude_estimators import AttitudeEstimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.orbits.orbit import Orbit
@@ -36,7 +36,7 @@ def simulate(
     satellite: Satellite,
     est_satellite: Optional[EstimatedSatellite] = None,
     controller: Optional[Controller] = None,
-    estimator: Optional[Attitude_Estimator] = None,
+    estimator: Optional[AttitudeEstimator] = None,
     orbit_estimator: Optional[Orbit_Estimator] = None,
     goal: Optional[Goal | GoalList] = None,
     os0: Optional[Orbital_State] = None,
@@ -86,7 +86,7 @@ def simulate(
         Attitude estimator used to estimate the spacecraft state from sensor
         measurements.
     :type estimator:
-        :class:`~ADCS.estimators.old_attitude_estimators.Attitude_Estimator` or None
+        :class:`~ADCS.estimators.attitude_estimators.AttitudeEstimator` or None
 
     :param orbit_estimator:
         Orbit estimator used to estimate the orbital state from GPS measurements.
@@ -154,6 +154,7 @@ def simulate(
         est_satellite = EstimatedSatellite.from_satellite(satellite)
 
     x_hat = None
+    previous_estimator_os = None
     if estimator is not None:
         x_hat = None
 
@@ -238,7 +239,18 @@ def simulate(
             os_for_gnc = os_k
 
         if estimator is not None:
-            x_hat = estimator.update(u=u, sensors=y, os=os_for_gnc)
+            if previous_estimator_os is None:
+                estimator.step(y, os_for_gnc)
+            else:
+                estimator.predict(
+                    u,
+                    previous_estimator_os,
+                    os_for_gnc,
+                    midpoint_orbital_state=os_for_gnc,
+                )
+                estimator.step(y, os_for_gnc)
+            x_hat = estimator.update()
+            previous_estimator_os = os_for_gnc
             x_for_ctrl = x_hat
         else:
             x_for_ctrl = x
@@ -285,7 +297,7 @@ def simulate(
         est_sens_bias_snapshot = None
 
         if estimator is not None and x_hat is not None and est_satellite is not None:
-            # State layout per Attitude_Estimator doc:
+            # State layout per EstimatorState:
             # [w(3), q(4), h_rw(n_rw), b_act(n_ab), b_sens(n_sb), theta_dist(n_dp)]
             n_rw = getattr(est_satellite, "number_RW", 0)
             n_ab = getattr(est_satellite, "act_bias_len", 0)

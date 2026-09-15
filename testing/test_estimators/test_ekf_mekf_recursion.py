@@ -1,4 +1,4 @@
-"""Recursive behaviour of the EKF/MEKF and agreement with the legacy UAKF.
+"""Recursive behaviour of the modern EKF and MEKF.
 
 The unit tests in ``test_ekf_mekf.py`` exercise single ``predict``/``correct``
 calls. These tests run the filters as a recursion, which is where a wrong
@@ -13,7 +13,6 @@ from scipy.linalg import block_diag
 
 import ADCS
 from ADCS.estimators.attitude_estimators import EKF, MEKF
-from ADCS.estimators.old_attitude_estimators import UAKF
 from ADCS.estimators.process_model import propagate_state
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
@@ -153,45 +152,3 @@ def _cross_check_scenario():
 def _attitude_error_history_deg(run) -> np.ndarray:
     truth, estimate = run.state_hist, run.est_state_hist
     return np.array([_attitude_error_deg(truth[i], estimate[i]) for i in range(len(run.time_s))])
-
-
-def test_ekf_and_mekf_agree_with_legacy_uakf_given_equivalent_process_noise():
-    """Same truth, same seed, same discrete process noise: all three filters
-    must converge to a few degrees and agree with each other.
-
-    The legacy UAKF takes a *discrete* per-step Q; the new filters take a
-    *continuous* PSD, so ``psd * dt`` is matched to the UAKF's diagonal. The
-    EKF keeps a four-component quaternion block, but in the quaternion_vector
-    chart the vector part of the error quaternion *is* the tangent coordinate,
-    so the per-component PSD carries over unscaled (the scalar component is
-    projected out by the normalization sandwich).
-    """
-    dt, tf = 20.0, 2000.0
-    P6 = block_diag(np.eye(3) * 0.01**2, np.eye(3))
-    Q6 = block_diag(np.eye(3) * 1.0e-16, np.eye(3) * 1.0e-8)
-    psd_tangent = np.concatenate((np.full(3, 1.0e-16 / dt), np.full(3, 1.0e-8 / dt)))
-    psd_full = np.concatenate((np.full(3, 1.0e-16 / dt), np.full(4, 1.0e-8 / dt)))
-
-    results = {}
-
-    np.random.seed(0)
-    satellite, est_satellite, x_0, os0 = _cross_check_scenario()
-    ukf = UAKF(est_sat=est_satellite, J2000=0.22, x_hat=EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0]), P_hat=P6, Q_hat=Q6, dt=dt, cross_term=True, quat_as_vec=False)
-    results["uakf"] = _attitude_error_history_deg(ADCS.simulate(x=x_0, satellite=satellite, est_satellite=est_satellite, estimator=ukf, os0=os0, dt=dt, tf=tf).first())
-
-    np.random.seed(0)
-    satellite, est_satellite, x_0, os0 = _cross_check_scenario()
-    mekf_state = EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], cov=P6, int_cov=np.zeros((6, 6)))
-    results["mekf"] = _attitude_error_history_deg(ADCS.simulate(x=x_0, satellite=satellite, est_satellite=est_satellite, estimator=_StepAdapter(MEKF(est_satellite, mekf_state, dt=dt, unmodeled_dynamics_psd=psd_tangent)), os0=os0, dt=dt, tf=tf).first())
-
-    np.random.seed(0)
-    satellite, est_satellite, x_0, os0 = _cross_check_scenario()
-    ekf_state = EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], cov=np.diag([1.0e-4, 1.0e-4, 1.0e-4, 0.0, 1.0, 1.0, 1.0]), int_cov=np.zeros((7, 7)))
-    results["ekf"] = _attitude_error_history_deg(ADCS.simulate(x=x_0, satellite=satellite, est_satellite=est_satellite, estimator=_StepAdapter(EKF(est_satellite, ekf_state, dt=dt, unmodeled_dynamics_psd=psd_full)), os0=os0, dt=dt, tf=tf).first())
-
-    tails = {name: float(np.mean(err[-10:])) for name, err in results.items()}
-    for name, tail in tails.items():
-        assert tail < 5.0, f"{name} settled at {tail:.2f} deg"
-    assert abs(tails["mekf"] - tails["uakf"]) < 1.5, tails
-    assert abs(tails["ekf"] - tails["uakf"]) < 1.5, tails
-    assert abs(tails["ekf"] - tails["mekf"]) < 1.0, tails

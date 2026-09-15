@@ -1,6 +1,5 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
 from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc, plot_convergence_histogram_mc

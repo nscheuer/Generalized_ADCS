@@ -11,7 +11,6 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any, Tuple, Optional
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 from ADCS.CONOPS.goals import Fixed_Attitude_Goal
 from ADCS.controller import MTQ_w_RW_LP

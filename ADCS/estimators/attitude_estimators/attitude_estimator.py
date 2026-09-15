@@ -1,8 +1,7 @@
 """Shared base class for new-generation Kalman attitude estimators.
 
-The EKF and MEKF compose the filter-neutral ``State``, ``Covariance``, process-model, and
-``MeasurementStack`` operations. They intentionally do not inherit behavior
-from the legacy UKF-era ``Attitude_Estimator`` class.
+All attitude filters compose the filter-neutral ``State``, ``Covariance``,
+process-model, and ``MeasurementStack`` operations through this base class.
 """
 
 from __future__ import annotations
@@ -25,9 +24,12 @@ _QUATERNION_MODES = tuple(get_args(QuaternionMode))
 class AttitudeEstimator:
     """Shared prediction/correction lifecycle for the first simple filters.
 
-    This generation deliberately estimates only the physical attitude state;
-    estimated hardware biases and disturbance parameters remain future work.
+    The base implementation defaults to the physical attitude state. Filters
+    that explicitly support joint estimation of hardware biases or disturbance
+    parameters can opt in by setting ``supports_augmented_parameters``.
     """
+
+    supports_augmented_parameters = False
 
     def __init__(
         self,
@@ -148,7 +150,10 @@ class AttitudeEstimator:
             sensor_bias=self.satellite.att_sens_bias_len,
             disturbance_parameter=self.satellite.dist_param_len,
         )
-        if state.block_size("estimated_parameters"):
+        if (
+            state.block_size("estimated_parameters")
+            and not self.supports_augmented_parameters
+        ):
             raise NotImplementedError(
                 f"{type(self).__name__} does not yet support estimated biases or "
                 "disturbance parameters"
@@ -180,6 +185,16 @@ class AttitudeEstimator:
                 f"control must have shape {expected_control_shape}, got {control.shape}"
             )
         prior = self._state
+        # Augmented actuator/sensor/disturbance blocks are represented in the
+        # estimator state, while the historical spacecraft dynamics object
+        # stores their nominal values on hardware/disturbance instances. Keep
+        # the model synchronized before both nonlinear propagation and the
+        # Jacobian/process-noise construction. Legacy UKF estimators perform
+        # this operation for every sigma point; the EKF-family prediction uses
+        # the current nominal state once.
+        match_estimate = getattr(self.satellite, "match_estimate", None)
+        if match_estimate is not None:
+            match_estimate(prior, step)
         predicted = propagate_state(
             prior,
             self.satellite,
@@ -320,10 +335,10 @@ class AttitudeEstimator:
 
     def step(
         self,
-        control: Any,
-        measurements: Any,
-        orbital_state_start: Any,
-        orbital_state_end: Any,
+        measurements_or_control: Any,
+        orbital_state_or_measurements: Any,
+        orbital_state_start: Any | None = None,
+        orbital_state_end: Any | None = None,
         *,
         dt: float | None = None,
         midpoint_orbital_state: Any | None = None,
@@ -331,41 +346,66 @@ class AttitudeEstimator:
         time_s: float | None = None,
         epoch_s: float = 0.0,
     ) -> EstimatorState:
-        """Run prediction to ``orbital_state_end`` followed by correction there."""
+        """Run the measurement stage, or preserve the old combined step call.
+
+        The staged contract calls ``step(measurements, orbital_state)`` after
+        :meth:`predict`. During migration, the historical
+        ``step(control, measurements, orbital_state_start, orbital_state_end)``
+        form remains accepted and performs both stages.
+        """
+        if orbital_state_start is None and orbital_state_end is None:
+            return self.correct(
+                measurements_or_control,
+                orbital_state_or_measurements,
+                enabled=enabled,
+                time_s=time_s,
+                epoch_s=epoch_s,
+            )
+        if orbital_state_end is None:
+            raise TypeError(
+                "combined estimator.step requires both orbital_state_start and "
+                "orbital_state_end"
+            )
         self.predict(
-            control,
+            measurements_or_control,
             orbital_state_start,
             orbital_state_end,
             dt=dt,
             midpoint_orbital_state=midpoint_orbital_state,
         )
         return self.correct(
-            measurements,
+            orbital_state_or_measurements,
             orbital_state_end,
             enabled=enabled,
             time_s=time_s,
             epoch_s=epoch_s,
         )
 
-    def update(self, u: Any, sensors: Any, os: Any) -> EstimatorState:
-        """Adapt ``predict``/``correct`` filters to the simulation update protocol.
+    def update(
+        self,
+        u: Any | None = None,
+        sensors: Any | None = None,
+        os: Any | None = None,
+    ) -> EstimatorState:
+        """Return the posterior state, with a compatibility update adapter.
 
-        The first sample has no preceding orbital state, so it is corrected in
-        place.  Each later sample is propagated from the preceding orbital
-        state and then corrected at the current one.
+        The staged simulation contract calls zero-argument ``update()`` after
+        ``predict()`` and ``step()``. The argument-bearing form remains as a
+        temporary adapter for callers that still use the old one-call protocol.
         """
+        if u is None and sensors is None and os is None:
+            return self.state
+        if sensors is None or os is None:
+            raise TypeError("update requires u, sensors, and os when called with arguments")
         if self._previous_orbital_state is None:
             self._previous_orbital_state = os
-            return self.correct(sensors, os)
-        orbital_state_start = self._previous_orbital_state
-        self._previous_orbital_state = os
-        return self.step(
-            u,
-            sensors,
-            orbital_state_start,
-            os,
-            midpoint_orbital_state=os,
-        )
+            self.correct(sensors, os)
+        else:
+            orbital_state_start = self._previous_orbital_state
+            self._previous_orbital_state = os
+            self.predict(u, orbital_state_start, os, midpoint_orbital_state=os)
+            self.correct(sensors, os)
+        return self.state
 
     def _normalize_initial_state(self, state: EstimatorState) -> EstimatorState:
         normalized = state.normalized()

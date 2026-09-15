@@ -15,7 +15,7 @@ from scipy.integrate import solve_ivp
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller import Controller
-from ADCS.estimators.old_attitude_estimators import Attitude_Estimator
+from ADCS.estimators.attitude_estimators import AttitudeEstimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -128,7 +128,7 @@ def _simulate_with_precomputed_orbit(
     satellite: Satellite,
     est_satellite: Optional[EstimatedSatellite],
     controller: Optional[Controller],
-    estimator: Optional[Attitude_Estimator],
+    estimator: Optional[AttitudeEstimator],
     orbit_estimator: Optional[Orbit_Estimator],
     goal: Optional[Union[Goal, GoalList]],
     os_seq: List[Orbital_State],
@@ -413,7 +413,7 @@ def simulate_mc(
     satellite: Satellite,
     est_satellite: Optional[EstimatedSatellite] = None,
     controller: Optional[Controller] = None,
-    estimator: Optional[Attitude_Estimator] = None,
+    estimator: Optional[AttitudeEstimator] = None,
     orbit_estimator: Optional[Orbit_Estimator] = None,
     goal: Optional[Goal | GoalList] = None,
     os0: Optional[Orbital_State] = None,
@@ -483,7 +483,7 @@ def simulate_mc(
         Attitude estimator used to estimate spacecraft state from sensor
         measurements. If provided, it must be picklable.
     :type estimator:
-        :class:`~ADCS.estimators.old_attitude_estimators.Attitude_Estimator` or None
+        :class:`~ADCS.estimators.attitude_estimators.AttitudeEstimator` or None
 
     :param orbit_estimator:
         Orbit estimator used to estimate orbital state from GPS measurements.

@@ -106,6 +106,26 @@ def test_ukf_update_corrects_the_first_sample_then_steps(orbital_state):
     assert estimator.diagnostics["process_noise"].shape == (6, 6)
 
 
+def test_ukf_staged_predict_step_update_contract(orbital_state):
+    estimator = UKF(_satellite(), _state(), dt=0.1)
+    measurements = estimator.satellite.measurement_stack.predict(
+        estimator.state, orbital_state
+    )
+
+    predicted = estimator.predict(
+        np.empty(0), orbital_state, orbital_state,
+        midpoint_orbital_state=orbital_state,
+    )
+    corrected = estimator.step(measurements, orbital_state)
+    committed = estimator.update()
+
+    assert predicted.covariance.shape == (6, 6)
+    assert corrected.covariance.shape == (6, 6)
+    np.testing.assert_allclose(
+        committed.as_estimator_array(), corrected.as_estimator_array()
+    )
+
+
 def test_ukf_rejects_augmented_and_invalid_unscented_layouts():
     satellite = EstimatedSatellite(
         sensors=[

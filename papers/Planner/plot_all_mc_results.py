@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 from ADCS.helpers.save_and_load.save_and_load import load_data
 from ADCS.helpers.math_helpers import rot_mat, quat_mult, quat_inv
