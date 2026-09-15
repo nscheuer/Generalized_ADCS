@@ -74,9 +74,9 @@ def _symmetric_psd(matrix: Any, *, policy: PSDPolicy) -> np.ndarray:
 
 def _normalize_factor(factor: np.ndarray) -> np.ndarray:
     factor = np.triu(np.array(factor, dtype=float, copy=True))
-    for i in range(factor.shape[0]):
-        if factor[i, i] < 0.0:
-            factor[i] *= -1.0
+    if factor.size:
+        signs = np.where(np.diag(factor) < 0.0, -1.0, 1.0)
+        factor *= signs[:, None]
     return factor
 
 
@@ -105,6 +105,52 @@ def _safe_upper_cholesky(
         root = eigenvectors * np.sqrt(eigenvalues)
         _, upper = np.linalg.qr(root.T)
         return _normalize_factor(upper)
+
+
+def _upper_factor_from_rows(rows: np.ndarray, dimension: int) -> np.ndarray:
+    r"""Return upper :math:`R` with :math:`R^TR=A^TA` for stacked rows :math:`A`.
+
+    A QR factorization; when ``rows`` has fewer rows than ``dimension`` the
+    trapezoidal factor is padded with zero rows, so the result is always a
+    square ``dimension x dimension`` upper-triangular factor.
+    """
+    if dimension == 0:
+        return np.zeros((0, 0))
+    rows = np.asarray(rows, dtype=float)
+    if rows.shape[0] == 0:
+        return np.zeros((dimension, dimension))
+    factor = np.linalg.qr(rows, mode="r")
+    if factor.shape[0] < dimension:
+        factor = np.vstack((factor, np.zeros((dimension - factor.shape[0], dimension))))
+    return _normalize_factor(factor)
+
+
+def _downdated_factor(factor: np.ndarray, rows: np.ndarray) -> np.ndarray:
+    r"""Return the upper factor of :math:`S^TS-A^TA` by rank-one downdates.
+
+    ``factor`` must already be a trusted upper factor. Raises
+    :class:`numpy.linalg.LinAlgError` when some downdate has no real factor.
+    """
+    from ADCS.helpers.cholesky_update import choldowndate
+
+    updated = np.array(factor, dtype=float, copy=True, order="C")
+    for row in np.asarray(rows, dtype=float):
+        choldowndate(updated, row)
+        if not np.all(np.isfinite(updated)):
+            raise np.linalg.LinAlgError("square-root downdate produced no real factor")
+    return _normalize_factor(updated)
+
+
+def _noise_factor(noise: Covariance | Any, matrix: np.ndarray, *, policy: PSDPolicy) -> np.ndarray:
+    """Upper factor of a noise covariance.
+
+    A :class:`Covariance` operand was validated on construction, so its own
+    factor is reused (a copy in square-root form, one Cholesky otherwise);
+    raw matrices are validated under ``policy`` first.
+    """
+    if isinstance(noise, Covariance):
+        return noise.upper_factor()
+    return _safe_upper_cholesky(matrix, policy=policy)
 
 
 def _as_covariance_matrix(value: Covariance | Any, *, name: str) -> np.ndarray:
@@ -189,6 +235,18 @@ class Covariance:
         result._psd_policy = _policy(psd_policy)
         factor = _normalize_factor(factor)
         result._data = factor if result._form == "sqrt" else factor.T @ factor
+        return result
+
+    @classmethod
+    def _from_trusted_factor(
+        cls, factor: np.ndarray, *, coordinates: str, psd_policy: PSDPolicy
+    ) -> Covariance:
+        """Wrap an internally built, already normalized upper factor without re-validation."""
+        result = cls.__new__(cls)
+        result._form = "sqrt"
+        result._coordinates = str(coordinates)
+        result._psd_policy = psd_policy
+        result._data = factor
         return result
 
     @classmethod
@@ -432,11 +490,22 @@ class Covariance:
         jacobian = np.asarray(jacobian, dtype=float)
         if jacobian.ndim != 2 or jacobian.shape[1] != self.dimension:
             raise ValueError("jacobian column count must match covariance dimension")
+        target_coordinates = self.coordinates if coordinates is None else coordinates
+        if self.form == "sqrt":
+            # S J^T = Q R  =>  R^T R = J S^T S J^T.  Never forms P; exact for
+            # rank-deficient S and for non-square J (zero-row padding).
+            if not np.all(np.isfinite(jacobian)):
+                raise ValueError("jacobian must contain only finite values")
+            return Covariance._from_trusted_factor(
+                _upper_factor_from_rows(self._data @ jacobian.T, jacobian.shape[0]),
+                coordinates=target_coordinates,
+                psd_policy=self._psd_policy,
+            )
         result = jacobian @ self.as_matrix() @ jacobian.T
         return Covariance(
             result,
             form=self.form,
-            coordinates=self.coordinates if coordinates is None else coordinates,
+            coordinates=target_coordinates,
             psd_policy=self._psd_policy,
         )
 
@@ -659,6 +728,8 @@ class Covariance:
         r = _as_covariance_matrix(measurement_noise, name="measurement noise covariance")
         if r.shape != (h.shape[0], h.shape[0]):
             raise ValueError("measurement noise dimension must match measurement jacobian")
+        if self.form == "sqrt":
+            return self._updated_linear_sqrt(h, measurement_noise, r, joseph=joseph)
         p = self.as_matrix()
         innovation = Covariance(h @ p @ h.T + r, psd_policy=self._psd_policy)
         gain = innovation.solve(h @ p).T
@@ -674,6 +745,58 @@ class Covariance:
             form=self.form,
             coordinates=self.coordinates,
             psd_policy=self._psd_policy,
+        )
+
+    def _updated_linear_sqrt(
+        self,
+        h: np.ndarray,
+        measurement_noise: Covariance | Any,
+        r: np.ndarray,
+        *,
+        joseph: bool,
+    ) -> tuple[np.ndarray, Covariance]:
+        r"""Square-root Kalman update that never forms :math:`P`.
+
+        With :math:`V=SH^T` (so :math:`P H^T=S^TV`) the innovation factor
+        :math:`S_\Sigma` is the triangular factor of :math:`[V;S_R]` and
+
+        .. math::
+
+            U=S_\Sigma^{-T}V^TS=S_\Sigma K^T,\qquad
+            K^T=S_\Sigma^{-1}U,\qquad
+            U^TU=K\Sigma K^T.
+
+        ``joseph=True`` takes :math:`S^+` from the QR factorization of
+        :math:`[S(I-KH)^T;\,S_RK^T]`, which is real and positive semidefinite
+        by construction (also for rank-deficient :math:`S`). ``joseph=False``
+        applies :math:`m` rank-one downdates of :math:`S` by the rows of
+        :math:`U`; when a downdate has no real factor (rounding on a nearly
+        singular posterior, or a structurally singular :math:`S`) the Joseph
+        QR form is used instead, so the result is always real.
+        """
+        n = self.dimension
+        m = h.shape[0]
+        s = self._data
+        if m == 0:
+            return np.zeros((n, 0)), self.copy()
+        s_r = _noise_factor(measurement_noise, r, policy=self._psd_policy)
+        v = s @ h.T
+        s_innovation = _upper_factor_from_rows(np.vstack((v, s_r)), m)
+        u = solve_triangular(s_innovation.T, v.T, lower=True, check_finite=False) @ s
+        gain_t = solve_triangular(s_innovation, u, lower=False, check_finite=False)
+        gain = np.ascontiguousarray(gain_t.T)
+        if n == 0:
+            return gain, self.copy()
+        factor: np.ndarray | None = None
+        if not joseph:
+            try:
+                factor = _downdated_factor(s, u)
+            except np.linalg.LinAlgError:
+                factor = None
+        if factor is None:
+            factor = _upper_factor_from_rows(np.vstack((s - v @ gain_t, s_r @ gain_t)), n)
+        return gain, Covariance._from_trusted_factor(
+            factor, coordinates=self.coordinates, psd_policy=self._psd_policy
         )
 
     @staticmethod
@@ -732,6 +855,25 @@ class Covariance:
             coordinates="measurement",
             psd_policy=self._psd_policy,
         )
+        if self.form == "sqrt" and innovation.form == "sqrt":
+            # U = S_yy^{-T} P_xy^T = S_yy K^T satisfies U^T U = K P_yy K^T, so
+            # S^+ follows from m rank-one downdates of S without forming P.
+            s_innovation = innovation._data
+            u = solve_triangular(s_innovation.T, cross.T, lower=True, check_finite=False)
+            gain = np.ascontiguousarray(
+                solve_triangular(s_innovation, u, lower=False, check_finite=False).T
+            )
+            try:
+                factor = _downdated_factor(self._data, u)
+            except np.linalg.LinAlgError:
+                factor = None
+            if factor is not None:
+                return gain, Covariance._from_trusted_factor(
+                    factor, coordinates=self.coordinates, psd_policy=self._psd_policy
+                )
+            # No real downdate (rounding on a singular posterior, or a
+            # rank-deficient S): fall back to the dense path, whose PSD
+            # handling is governed by ``psd_policy`` exactly as before.
         gain = innovation.solve(cross.T).T
         if self.form == "sqrt":
             downdate_vectors = (gain @ innovation.upper_factor().T).T

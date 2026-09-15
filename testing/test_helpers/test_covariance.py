@@ -162,7 +162,8 @@ def test_linear_prediction_and_joseph_update(form):
         + expected_gain @ r.as_matrix() @ expected_gain.T
     )
 
-    np.testing.assert_allclose(gain, expected_gain)
+    # the second gain entry is analytically zero; compare round-off with a floor
+    np.testing.assert_allclose(gain, expected_gain, atol=1.0e-15)
     np.testing.assert_allclose(posterior.as_matrix(), expected_posterior)
     assert posterior.form == form
 
