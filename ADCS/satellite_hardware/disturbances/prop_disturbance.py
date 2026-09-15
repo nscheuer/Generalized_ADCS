@@ -93,13 +93,26 @@ class Prop_Disturbance(Disturbance):
         :return: None
         :rtype: None
         """
-        self.torque_nominal = torque_nominal
+        self.torque_nominal = np.asarray(torque_nominal, dtype=float).reshape(3).copy()
         if noise:
             self.noise = noise
         else:
             self.noise = Noise()
         self.current_torque = self.torque_nominal.copy()
-        super().__init__(estimate_dist=estimate_dist)
+        # The nominal torque is the estimable parameter vector, exactly as for
+        # Torque_Disturbance; without estimated_vector_length the disturbance
+        # lands in dist_param_inds with zero width and the first predict raises.
+        super().__init__(estimate_dist=estimate_dist, estimated_vector_length=3)
+
+    @property
+    def main_param(self) -> np.ndarray:
+        """Nominal propulsion torque, the vector an augmented filter estimates."""
+        return self.torque_nominal.copy()
+
+    @main_param.setter
+    def main_param(self, value) -> None:
+        self.torque_nominal = np.asarray(value, dtype=float).reshape(3).copy()
+        self.current_torque = self.torque_nominal.copy()
 
     def update(self) -> None:
         r"""
@@ -203,3 +216,12 @@ class Prop_Disturbance(Disturbance):
         """
         return np.zeros((3, 4, 4))
 
+    def torque_valjac(self, *args, **kwargs) -> np.ndarray:
+        """Jacobian of the torque with respect to the estimated nominal torque."""
+        return np.eye(3)
+
+    def torque_qvalhess(self, *args, **kwargs) -> np.ndarray:
+        return np.zeros((4, 3, 3))
+
+    def torque_valvalhess(self, *args, **kwargs) -> np.ndarray:
+        return np.zeros((3, 3, 3))
