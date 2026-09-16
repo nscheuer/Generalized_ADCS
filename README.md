@@ -50,7 +50,8 @@ campaign results, see `requirements-repro.txt` in the repository.
 - ✅ Fully generalized 6-DOF spacecraft attitude dynamics (RK4 integration)
 - ✅ Fully generalized orbit propagation
 - ✅ Estimation frameworks:
-  UKF, SRUKF, UAKF, SRUAKF, orbital estimators, and custom filters
+  EKF, MEKF, UKF, SRUKF, augmented EKF/MEKF/UKF/SRUKF, orbital estimators,
+  and custom filters
 - ✅ Controller frameworks:
   PD, LQR, ALTRO, and user-defined controllers
 - ✅ Sensor modeling:
