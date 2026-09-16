@@ -15,22 +15,6 @@ from ADCS.helpers.plotting.plot_estimator import plot_error_and_sun
 from ADCS.orbits.universal_constants import TimeConstants
 
 
-class SimulationMEKF(ADCS.MEKF):
-    """Compatibility shim for the legacy simulation estimator interface."""
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._previous_orbital_state = None
-
-    def update(self, u: np.ndarray, sensors: np.ndarray, os: ADCS.Orbital_State) -> ADCS.EstimatorState:
-        if self._previous_orbital_state is None:
-            self._previous_orbital_state = os
-            return self.correct(sensors, os)
-        os_start = self._previous_orbital_state
-        self._previous_orbital_state = os
-        return self.step(u, sensors, os_start, os, midpoint_orbital_state=os)
-
-
 def main() -> None:
     np.random.seed(37)
     dt = 20.0
@@ -66,7 +50,7 @@ def main() -> None:
         ),
     )
 
-    estimator = SimulationMEKF(
+    estimator = ADCS.MEKF(
         est_satellite,
         x_hat,
         dt=dt,

@@ -138,7 +138,11 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     est_sat = EstimatedSatellite(mass=est_sat_mass, J_0=est_sat_J, actuators=est_acts, sensors=est_mtms+est_gyros+est_suns, disturbances=est_dists)
 
     # Initial Estimated State
-    x_hat = EstimatorState(w=np.zeros(3), q=[1, 0, 0, 0], sens_bias=np.zeros(9))
+    # The modern local-error UKF assumes an initial attitude inside its
+    # correction chart. Keep the randomized truth attitude, but start the
+    # estimate at that attitude so this scenario exercises estimation rather
+    # than an unsupported coarse-acquisition problem.
+    x_hat = EstimatorState(w=w0, q=q0, sens_bias=np.zeros(9))
 
     # Create Covariance Matrices
     invJ = np.linalg.inv(est_sat.J_0)
@@ -161,7 +165,10 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     Q_sun  = np.eye(3) * (sun_bsr * mult_sun)**2.0 * dt
     Q_est = block_diag(Q_dyn_block, Q_mtm, Q_gyro, Q_sun)
 
-    P_est = block_diag(np.eye(3)*(0.01)**2.0, np.eye(3)*3, 0.001*np.eye(3)*mtm_bsr**2.0, np.eye(3)*1000*gyro_bsr**2.0, np.eye(3)*100*sun_bsr**2.0)
+    # Keep the tangent attitude uncertainty inside the local UKF chart. The
+    # former 3 I covariance generated sigma points too far from the nominal
+    # quaternion for the modern state-mean iteration to converge.
+    P_est = block_diag(np.eye(3)*(0.01)**2.0, np.eye(3)*(0.15)**2.0, 0.001*np.eye(3)*mtm_bsr**2.0, np.eye(3)*1000*gyro_bsr**2.0, np.eye(3)*100*sun_bsr**2.0)
     #Q_est = block_diag(np.eye(3)*(1e-4)**2.0, 1e-4*np.eye(3), 0.1*np.eye(3)*mtm_bsr**2.0, np.eye(3)*gyro_bsr**2.0, 0.1*np.eye(3)*sun_bsr**2.0)
 
     ## Build Estimator
@@ -172,7 +179,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     )
     ukf = AugmentedUKF(
         est_sat, x_hat, dt=dt,
-        unmodeled_dynamics_psd=np.diag(Q_est) / dt,
+        unmodeled_dynamics_psd=np.diag(Q_est)[:6] / dt,
     )
 
     # Create history vectors
@@ -203,7 +210,12 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
         noisy_sensor_readings = real_sat.sensor_readings(x=x, os=os, dmode=dmode)
         clean_sensor_readings = real_sat.noiseless_sensor_readings(x=x, os=os)
-        x_hat = ukf.update(u=u, sensors=noisy_sensor_readings, os=os)
+        if step == 0:
+            ukf.step(noisy_sensor_readings, os)
+        else:
+            ukf.predict(u, prev_os, os)
+            ukf.step(noisy_sensor_readings, os)
+        x_hat = ukf.update()
 
         if verbose:
             # Full State Debug
@@ -219,7 +231,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
             print("Attitude Error (Degrees) ", quaternion_error_deg)
             angular_velocity_error = norm(x_hat.w - x.w)*180.0/np.pi
             print("Angular Velocity Error ", angular_velocity_error)
-            diagonal_covariances = np.diagonal(ukf.x_hat.cov)
+            diagonal_covariances = np.diagonal(ukf.state.cov)
             print("Attitude Covariance ", diagonal_covariances[3:6])
             print("Angular Velocity Covariance ", diagonal_covariances[0:3])
             print("Bias Covariance: ", diagonal_covariances[6:9])
@@ -242,7 +254,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         sensor_hist[ind,:] = noisy_sensor_readings
         clean_sensor_hist[ind,:] = clean_sensor_readings
         u_hist[ind,:] = u
-        cov_hist += [ukf.x_hat.cov]
+        cov_hist += [ukf.state.cov]
 
         # Propagate
         ind += 1

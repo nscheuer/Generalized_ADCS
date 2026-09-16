@@ -5,7 +5,6 @@ from __future__ import annotations
 import numpy as np
 
 import ADCS
-from debug.debug_estimators.augmented_disturbance_scenario import SimulationAugmentedEstimator
 
 
 def _orbital_state():
@@ -51,8 +50,8 @@ def run_basic(filter_type, title):
         sensors=_sensors(np.zeros(3), estimate_bias=False),
         disturbances=[ADCS.disturbances.GG_Disturbance()],
     )
-    estimator = SimulationAugmentedEstimator(
-        filter_type, estimated, _state(filter_type), dt=dt,
+    estimator = filter_type(
+        estimated, _state(filter_type), dt=dt,
         unmodeled_dynamics_psd=np.array([1e-16 / dt] * 3 + [1e-8 / dt] * 3),
     )
     return _simulate(satellite, estimated, estimator, title, dt)
@@ -71,8 +70,8 @@ def run_gyro_bias(filter_type, title):
         sensors=_sensors(np.zeros(3), estimate_bias=True),
         disturbances=[ADCS.disturbances.GG_Disturbance()],
     )
-    estimator = SimulationAugmentedEstimator(
-        filter_type, estimated, _state(filter_type, bias=True), dt=dt,
+    estimator = filter_type(
+        estimated, _state(filter_type, bias=True), dt=dt,
         unmodeled_dynamics_psd=np.array([1e-16 / dt] * 3 + [1e-8 / dt] * 3),
     )
     results = _simulate(satellite, estimated, estimator, title, dt)

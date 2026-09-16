@@ -13,20 +13,6 @@ import ADCS as ADCS
 from ADCS.helpers.plotting.plot_estimator import plot_error_and_sun
 
 
-class SimulationAugmentedEKF(ADCS.AugmentedEKF):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._previous_orbital_state = None
-
-    def update(self, u, sensors, os):
-        if self._previous_orbital_state is None:
-            self._previous_orbital_state = os
-            return self.correct(sensors, os)
-        start = self._previous_orbital_state
-        self._previous_orbital_state = os
-        return self.step(u, sensors, start, os, midpoint_orbital_state=os)
-
-
 def _sensors(mtm_noise, gyro_noise, sun_noise, gyro_bias, *, estimate_bias):
     sensors = [ADCS.MTM(axis, noise=mtm_noise.copy()) for axis in np.eye(3)]
     sensors += [
@@ -76,7 +62,7 @@ def main() -> None:
     )
     # Match the established tuning: Q_w=1e-16 and Q_attitude=1e-8 per
     # timestep. The new filters take continuous PSDs, so divide by dt.
-    estimator = SimulationAugmentedEKF(
+    estimator = ADCS.AugmentedEKF(
         est_satellite,
         x_hat,
         dt=dt,

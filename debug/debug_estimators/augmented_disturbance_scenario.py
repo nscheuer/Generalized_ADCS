@@ -14,25 +14,6 @@ import ADCS as ADCS
 from ADCS.helpers.plotting.plot_estimator import plot_error_and_sun
 
 
-class SimulationAugmentedEstimator:
-    """Adapt a new estimator to the simulation update protocol."""
-
-    def __init__(self, estimator_type, *args, **kwargs) -> None:
-        self.estimator = estimator_type(*args, **kwargs)
-        self._previous_orbital_state = None
-
-    def __getattr__(self, name):
-        return getattr(self.estimator, name)
-
-    def update(self, u: np.ndarray, sensors: np.ndarray, os: ADCS.Orbital_State) -> ADCS.EstimatorState:
-        if self._previous_orbital_state is None:
-            self._previous_orbital_state = os
-            return self.estimator.correct(sensors, os)
-        os_start = self._previous_orbital_state
-        self._previous_orbital_state = os
-        return self.estimator.step(u, sensors, os_start, os, midpoint_orbital_state=os)
-
-
 def run(estimator_type, title: str, *, direct_torque: bool = False):
     np.random.seed(7)
     dt = 10.0
@@ -98,8 +79,8 @@ def run(estimator_type, title: str, *, direct_torque: bool = False):
         )
         process_psd = np.array([1.0e-16 / dt] * 3 + [1.0e-8 / dt] * 3)
 
-    estimator = SimulationAugmentedEstimator(
-        estimator_type, est_satellite, x_hat, dt=dt, unmodeled_dynamics_psd=process_psd
+    estimator = estimator_type(
+        est_satellite, x_hat, dt=dt, unmodeled_dynamics_psd=process_psd
     )
     os0 = ADCS.Orbital_State(
         ephem=ADCS.Ephemeris(), J2000=0.22,
