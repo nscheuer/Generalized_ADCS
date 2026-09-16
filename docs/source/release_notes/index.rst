@@ -4,6 +4,8 @@ Release Notes
 .. toctree::
   :maxdepth: 1
   :caption: Getting Started
+
+  2_0_estimation_framework
   
   0_1_8_installable
   0_1_7_benchmark

@@ -18,6 +18,14 @@ Latest Release Notes
 .. raw:: html
 
    <div class="release-grid">
+     <a class="release-card release-card-featured" href="release_notes/2_0_estimation_framework.html">
+       <div class="release-card-copy">
+         <div class="release-card-kicker">Release 2.0</div>
+         <h3>New Estimation Framework</h3>
+         <p>Named state and covariance classes, a canonical measurement stack, shared process models and noise, a new attitude-estimator base, and eight new attitude estimators.</p>
+         <span>Explore release note 2.0</span>
+       </div>
+     </a>
      <a class="release-card release-card-featured" href="ssc26/index.html">
        <img src="_static/release_notes/0_1_8_smallsat_logo.png" alt="SmallSat 2026 logo">
        <div class="release-card-copy">
