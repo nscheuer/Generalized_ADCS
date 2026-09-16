@@ -14,7 +14,16 @@ Read it
 
 - **Paper page** — https://digitalcommons.usu.edu/smallsat/2026/all2026/253/
 - **Proceedings page** — https://digitalcommons.usu.edu/smallsat/2026/all2026/253/
-- **Contact the authors** — :doc:`../ssc26/contact`
+- **Contact the authors** — mailto:pmckeen@mit.edu
+
+SSC26 resources
+---------------
+
+- `Run the quickstart in Google Colab <https://colab.research.google.com/github/nscheuer/Generalized_ADCS/blob/main/papers/SSC26_poster/SSC26_quickstart.ipynb>`__
+- `Source repository <https://github.com/nscheuer/Generalized_ADCS>`__
+- `Contact form <https://formspree.io/f/mkjwqeqy>`__
+- `GitHub issues <https://github.com/nscheuer/Generalized_ADCS/issues>`__
+- `GitHub discussions <https://github.com/nscheuer/Generalized_ADCS/discussions>`__
 
 Abstract
 --------
@@ -55,15 +64,3 @@ Cite it
      address   = {Salt Lake City, UT},
      url       = {https://digitalcommons.usu.edu/smallsat/2026/all2026/253/},
    }
-
-Related pages
--------------
-
-.. toctree::
-   :maxdepth: 1
-
-   SSC26 Overview <../ssc26/index>
-   SSC26 The Paper <../ssc26/paper>
-   SSC26 Run in Browser <../ssc26/run>
-   SSC26 Code <../ssc26/code>
-   SSC26 Contact <../ssc26/contact>
