@@ -10,7 +10,7 @@ name = "Generalized_ADCS"
 # first PyPI upload went out as 0.1.5 -- two behind the documented state, and
 # built before the choldate removal. PyPI versions are immutable, so this moves
 # forward past the documented 0.1.7 rather than trying to reuse a number.
-version = "0.1.8"
+version = "0.2.0"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
     { name = "Patrick McKeen", email = "pmckeen@mit.edu" },
