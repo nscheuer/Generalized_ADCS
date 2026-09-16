@@ -6,6 +6,11 @@ estimation. The new APIs make state layouts, uncertainty representations,
 measurements, and process models explicit while keeping the estimator
 implementations interchangeable.
 
+.. image:: ../_static/release_notes/0_2_0_advanced_MEKF.png
+   :alt: Advanced MEKF gyro-bias and lumped-disturbance estimation results.
+   :width: 800px
+   :align: center
+
 State class
 -----------
 
@@ -82,34 +87,27 @@ The following estimators are available from the top-level ``ADCS`` package:
 Documentation and examples
 --------------------------
 
-The estimation tutorials and their runnable source scripts are now linked
-directly from the release documentation:
+The estimation tutorials and runnable estimator examples are linked directly
+from the release documentation:
 
-* :doc:`Tutorial 1: Underactuated control <../tutorials/01_underactuated_control>`
-  — `Tutorial 1 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_1_underactuated_control.py>`_.
-* :doc:`Tutorial 2: Noisy control <../tutorials/02_noisy_control>`
-  — `Tutorial 2 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_2_noisy_control.py>`_.
 * :doc:`Tutorial 3: Simple estimation <../tutorials/03_simple_estimation>`
   — `Tutorial 3 augmented source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_3_simple_estimation_augmented.py>`_.
 * :doc:`Tutorial 4: Complex estimation <../tutorials/04_complex_estimation>`
   — `Tutorial 4 augmented source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_4_complex_estimation_augmented.py>`_.
-* :doc:`Tutorial 5: Orbit estimation <../tutorials/05_orbit_estimation>`
-  — `Tutorial 5 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_5_orbit_estimation.py>`_.
-* :doc:`Tutorial 6: Trajectory planner <../tutorials/06_trajectory_planner>`
-  — `Tutorial 6 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_6_trajectory_planner.py>`_.
-* :doc:`Tutorial 7: SALTRO <../tutorials/07_SALTRO>`
-  — `Tutorial 7 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_7_SALTRO.py>`_.
-* :doc:`Tutorial 8: Remote execution <../tutorials/08_remote_execution>`
-  — `Tutorial 8 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_8_remote_execution.py>`_.
 
-Estimator-focused examples were consolidated into one standalone example for
-each regular attitude estimator:
+Regular estimator examples:
 
 * `EKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_ekf.py>`_.
 * `MEKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_mekf.py>`_.
 * `UKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_ukf.py>`_.
 * `SRUKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_srukf.py>`_.
-* `Augmented remote estimator example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/remote/run_remote_universal_augmented.py>`_.
 
-See the :doc:`full API documentation <../ADCS>` for the new state,
-covariance, and estimator interfaces.
+Advanced estimator examples:
+
+* `Advanced EKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_advanced_EKF.py>`_.
+* `Advanced MEKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_advanced_MEKF.py>`_.
+* `Advanced UKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_advanced_UKF.py>`_.
+* `Advanced SRUKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_advanced_SRUKF.py>`_.
+
+* `Estimator examples folder <https://github.com/nscheuer/Generalized_ADCS/tree/main/examples/estimators>`_.
+* `Debug scripts folder <https://github.com/nscheuer/Generalized_ADCS/tree/main/debug>`_.
