@@ -104,10 +104,10 @@ On the main PC, use the IP printed by the Raspberry Pi terminal:
   source venv/bin/activate
   export ADCS_REMOTE_HOST=<raspberry-pi-ip>
   export ADCS_REMOTE_PORT=5000
-  python examples/tutorials/08_remote_execution.py
+  python examples/tutorials/tutorial_8_remote_execution.py
 
 This tutorial script is available at:
-`examples/tutorials/08_remote_execution.py <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/08_remote_execution.py>`_.
+`examples/tutorials/tutorial_8_remote_execution.py <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_8_remote_execution.py>`_.
 
 The script mirrors the remote debug workflow and defaults to controller-only remote
 execution, while leaving environmental effects and propagation local.

@@ -86,21 +86,21 @@ The estimation tutorials and their runnable source scripts are now linked
 directly from the release documentation:
 
 * :doc:`Tutorial 1: Underactuated control <../tutorials/01_underactuated_control>`
-  — `Tutorial 1 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/01_underactuated_control.py>`_.
+  — `Tutorial 1 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_1_underactuated_control.py>`_.
 * :doc:`Tutorial 2: Noisy control <../tutorials/02_noisy_control>`
-  — `Tutorial 2 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/02_noisy_control.py>`_.
+  — `Tutorial 2 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_2_noisy_control.py>`_.
 * :doc:`Tutorial 3: Simple estimation <../tutorials/03_simple_estimation>`
-  — `Tutorial 3 augmented source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/03_simple_estimation_augmented.py>`_.
+  — `Tutorial 3 augmented source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_3_simple_estimation_augmented.py>`_.
 * :doc:`Tutorial 4: Complex estimation <../tutorials/04_complex_estimation>`
-  — `Tutorial 4 augmented source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/04_complex_estimation_augmented.py>`_.
+  — `Tutorial 4 augmented source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_4_complex_estimation_augmented.py>`_.
 * :doc:`Tutorial 5: Orbit estimation <../tutorials/05_orbit_estimation>`
-  — `Tutorial 5 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/05_orbit_estimation.py>`_.
+  — `Tutorial 5 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_5_orbit_estimation.py>`_.
 * :doc:`Tutorial 6: Trajectory planner <../tutorials/06_trajectory_planner>`
-  — `Tutorial 6 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/06_trajectory_planner.py>`_.
+  — `Tutorial 6 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_6_trajectory_planner.py>`_.
 * :doc:`Tutorial 7: SALTRO <../tutorials/07_SALTRO>`
-  — `Tutorial 7 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/07_SALTRO.py>`_.
+  — `Tutorial 7 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_7_SALTRO.py>`_.
 * :doc:`Tutorial 8: Remote execution <../tutorials/08_remote_execution>`
-  — `Tutorial 8 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/08_remote_execution.py>`_.
+  — `Tutorial 8 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_8_remote_execution.py>`_.
 
 Estimator-focused examples were updated as well, including the basic,
 bias-augmented, and reaction-wheel-augmented UKF examples:
