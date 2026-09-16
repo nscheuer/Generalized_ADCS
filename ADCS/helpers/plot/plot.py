@@ -79,6 +79,11 @@ def plot(
     for ax, subplot in zip(axes, subplots):
         subplot.plot(ax, sim)
 
+    # A caller may request a convenient rectangular layout with more cells
+    # than plot objects.  Do not leave those cells looking like missing plots.
+    for ax in axes[n:]:
+        ax.set_visible(False)
+
     if title:
         fig.suptitle(title)
         

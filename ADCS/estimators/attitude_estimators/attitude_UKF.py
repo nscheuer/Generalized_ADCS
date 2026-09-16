@@ -565,8 +565,13 @@ class UKF(AttitudeEstimator):
             mean_weights,
             covariance_weights,
         ) = self._prediction_sigma_points(prior, control)
-        propagated_points = [
-            propagate_state(
+
+        def propagate_sigma_point(
+            point: EstimatorState, sigma_control: np.ndarray
+        ) -> EstimatorState:
+            if self.supports_augmented_parameters:
+                self.satellite.match_estimate(point, step)
+            return propagate_state(
                 point,
                 self.satellite,
                 sigma_control,
@@ -575,6 +580,9 @@ class UKF(AttitudeEstimator):
                 orbital_state_end,
                 midpoint_orbital_state=midpoint_orbital_state,
             )
+
+        propagated_points = [
+            propagate_sigma_point(point, sigma_control)
             for point, sigma_control in zip(points, sigma_controls)
         ]
         predicted = self._state_mean(propagated_points, mean_weights)
@@ -637,8 +645,10 @@ class UKF(AttitudeEstimator):
         time_s: float | None = None,
         epoch_s: float = 0.0,
     ) -> EstimatorState:
-        """Apply a non-augmented unscented measurement update."""
+        """Apply the unscented measurement update."""
         stack = self.satellite.measurement_stack
+        if self.supports_augmented_parameters:
+            self.satellite.match_estimate(self._state, self.dt)
         candidate = stack.active_mask(
             measurements, enabled=enabled, time_s=time_s, epoch_s=epoch_s
         )
@@ -669,9 +679,12 @@ class UKF(AttitudeEstimator):
             return self.state
 
         points, offsets, mean_weights, covariance_weights = self._sigma_states(prior)
-        sigma_measurements = [
-            stack.predict(point, orbital_state, active_mask=active) for point in points
-        ]
+        def predict_sigma_measurement(point: EstimatorState) -> np.ndarray:
+            if self.supports_augmented_parameters:
+                self.satellite.match_estimate(point, self.dt)
+            return stack.predict(point, orbital_state, active_mask=active)
+
+        sigma_measurements = [predict_sigma_measurement(point) for point in points]
         predicted_measurement = self._measurement_mean(
             stack, sigma_measurements, active, mean_weights
         )
@@ -739,6 +752,8 @@ class UKF(AttitudeEstimator):
             quaternion_order="right",
         )
         self._state = corrected
+        if self.supports_augmented_parameters:
+            self.satellite.match_estimate(corrected, self.dt)
         self._diagnostics.update(
             active_mask=active,
             predicted_measurement=predicted_measurement,

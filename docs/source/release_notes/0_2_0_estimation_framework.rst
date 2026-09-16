@@ -102,12 +102,13 @@ directly from the release documentation:
 * :doc:`Tutorial 8: Remote execution <../tutorials/08_remote_execution>`
   — `Tutorial 8 source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_8_remote_execution.py>`_.
 
-Estimator-focused examples were updated as well, including the basic,
-bias-augmented, and reaction-wheel-augmented UKF examples:
+Estimator-focused examples were consolidated into one standalone example for
+each regular attitude estimator:
 
-* `Basic augmented UKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_ukf_basic_augmented.py>`_.
-* `Bias-augmented UKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_ukf_bias_augmented.py>`_.
-* `Reaction-wheel-augmented UKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_ukf_reaction_wheels_augmented.py>`_.
+* `EKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_ekf.py>`_.
+* `MEKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_mekf.py>`_.
+* `UKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_ukf.py>`_.
+* `SRUKF example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/estimators/example_srukf.py>`_.
 * `Augmented remote estimator example <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/remote/run_remote_universal_augmented.py>`_.
 
 See the :doc:`full API documentation <../ADCS>` for the new state,

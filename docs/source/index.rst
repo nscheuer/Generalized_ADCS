@@ -18,7 +18,7 @@ Latest Release Notes
 .. raw:: html
 
    <div class="release-grid">
-     <a class="release-card release-card-featured" href="release_notes/2_0_estimation_framework.html">
+     <a class="release-card release-card-featured" href="release_notes/0_2_0_estimation_framework.html">
        <div class="release-card-copy">
          <div class="release-card-kicker">Release 2.0</div>
          <h3>New Estimation Framework</h3>

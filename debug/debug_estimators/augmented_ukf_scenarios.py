@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 import ADCS
+from ADCS.helpers.plotting.plot_estimator import plot_error_and_sun
 
 
 def _orbital_state():
@@ -54,7 +56,9 @@ def run_basic(filter_type, title):
         estimated, _state(filter_type), dt=dt,
         unmodeled_dynamics_psd=np.array([1e-16 / dt] * 3 + [1e-8 / dt] * 3),
     )
-    return _simulate(satellite, estimated, estimator, title, dt)
+    results = _simulate(satellite, estimated, estimator, title, dt)
+    plt.show()
+    return results
 
 
 def run_gyro_bias(filter_type, title):
@@ -79,6 +83,9 @@ def run_gyro_bias(filter_type, title):
     print("true gyro bias:", true_bias)
     print("final estimated gyro bias:", final)
     np.testing.assert_allclose(final, true_bias, atol=1e-4)
+
+    _plot_gyro_bias_diagnostics(results, title)
+    plt.show()
     return results
 
 
@@ -89,3 +96,29 @@ def _simulate(satellite, estimated, estimator, title, dt):
     ADCS.plot(results, ADCS.plots.AttitudePlot(sources=["real", "estimated"]),
               layout=(1, 1), title=title)
     return results
+
+
+def _plot_gyro_bias_diagnostics(results, title):
+    """Create the diagnostic plots used by the EKF/MEKF gyro-bias scripts."""
+    run = results.first()
+
+    ADCS.plot(
+        results,
+        ADCS.plots.QuaternionPlot(sources=["real", "estimated"]),
+        ADCS.plots.AngularVelocityPlotCombined(sources=["real", "estimated"]),
+        ADCS.plots.SensorsPlot(title="Sensor Readings", sources=["real", "clean"]),
+        ADCS.plots.BiasPlot(
+            kind="sensor",
+            sources=["real", "estimated"],
+            title="Estimated Biases",
+        ),
+        ADCS.plots.IlluminationPlot(),
+        layout=(2, 3),
+        title=title,
+    )
+    plot_error_and_sun(
+        run.time_s,
+        run.state_hist,
+        run.est_state_hist,
+        run.os_hist,
+    )
