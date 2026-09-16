@@ -95,7 +95,7 @@ def main() -> None:
         ADCS.plots.BiasPlot(
             kind="sensor",
             sources=["real", "estimated"],
-            title="Estimated Gyro Biases",
+            title="Estimated Biases",
         ),
         ADCS.plots.IlluminationPlot(), layout=(3, 3),
         title="Augmented MEKF: Gyro Bias",

@@ -265,12 +265,12 @@ def _simulate_with_precomputed_orbit(
                 act_parts = []
                 ai = 0
                 for act in getattr(satellite, "actuators", []) or []:
-                    if hasattr(act, "bias") and bool(act.bias):
-                        dim = int(np.atleast_1d(act.bias.bias).size)
+                    dim = int(np.atleast_1d(act.bias.bias).size) if hasattr(act, "bias") else 0
+                    if hasattr(act, "bias") and bool(act.bias) and ai + dim <= b_act_hat.size:
                         act_parts.append(b_act_hat[ai:ai + dim].copy())
                         ai += dim
                     else:
-                        act_parts.append(None)
+                        act_parts.append(np.full(dim, np.nan))
 
                 if act_parts:
                     est_act_bias_snapshot = np.array(act_parts, dtype=object)
@@ -278,12 +278,12 @@ def _simulate_with_precomputed_orbit(
                 sens_parts = []
                 si = 0
                 for sens in getattr(satellite, "sensors", []) or []:
-                    if hasattr(sens, "bias") and bool(sens.bias):
-                        dim = int(np.atleast_1d(sens.bias.bias).size)
+                    dim = int(np.atleast_1d(sens.bias.bias).size) if hasattr(sens, "bias") else 0
+                    if hasattr(sens, "bias") and bool(sens.bias) and si + dim <= b_sens_hat.size:
                         sens_parts.append(b_sens_hat[si:si + dim].copy())
                         si += dim
                     else:
-                        sens_parts.append(None)
+                        sens_parts.append(np.full(dim, np.nan))
 
                 if sens_parts:
                     est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
