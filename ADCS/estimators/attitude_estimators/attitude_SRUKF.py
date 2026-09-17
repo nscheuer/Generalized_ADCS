@@ -296,7 +296,8 @@ class SRUKF(UKF):
     points, manifold means, and additive process and measurement noise as
     :class:`UKF`. Its covariance is always retained in
     ``Covariance(form="sqrt")`` form, so the shared unscented covariance
-    operations use square-root QR updates.
+    operations use square-root QR factorizations and Cholesky
+    updates/downdates.
     """
 
     def __init__(
