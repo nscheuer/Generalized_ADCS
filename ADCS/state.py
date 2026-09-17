@@ -939,9 +939,11 @@ class EstimatorState(State):
     :meth:`~ADCS.state.EstimatorState.covariance_to_reduced`.
 
     :attr:`covariance` and :attr:`process_noise` are authoritative
-    :class:`~ADCS.covariance.Covariance` objects. The ``cov`` and ``int_cov``
-    properties retain the legacy full-matrix interface during estimator
-    migration.
+    :class:`~ADCS.covariance.Covariance` objects. ``process_noise`` is the
+    discrete, per-prediction-step covariance :math:`Q_d` supplied by the
+    caller; modern attitude estimators add it to any process noise generated
+    from their continuous model. The ``cov`` and ``int_cov`` properties retain
+    the legacy full-matrix interface during estimator migration.
     """
 
     act_bias: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))

@@ -88,8 +88,9 @@ r"""
       \mathbf{o}_k,\mathbf{o}_{k+1},\Delta t).
 
    There is no state Jacobian in this step. The nonlinear model is evaluated at
-   every sigma point, and remaining additive process noise is added after the
-   propagated-point statistics have been formed.
+   every sigma point, and model-generated plus caller-supplied discrete
+   additive process noise is added after the propagated-point statistics have
+   been formed.
 
    .. code-block:: python
 
@@ -121,7 +122,7 @@ r"""
       \qquad
       \mathbf{P}_{k+1}^- =
       \sum_i W_i^{(c)}\mathbf{d}_{i,k}^x(\mathbf{d}_{i,k}^x)^T
-      +\mathbf{Q}_{d,k}.
+      +\mathbf{Q}_{d,k}^{model}+\mathbf{Q}_{d,k}^{state}.
 
    .. code-block:: python
 
@@ -599,6 +600,7 @@ class UKF(AttitudeEstimator):
             quaternion_mode=self.correction_mode,
             quaternion_order="right",
         )
+        process_noise = self._add_state_process_noise(process_noise)
         deviations = np.vstack(
             [
                 point.minus(

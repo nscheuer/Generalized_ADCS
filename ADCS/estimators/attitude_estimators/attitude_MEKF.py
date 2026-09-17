@@ -101,6 +101,9 @@ r"""
       \int_0^{\Delta t}e^{\mathbf{F}_k\tau}
       \mathbf{Q}_{c,k}e^{\mathbf{F}_k^T\tau}\,d\tau.
 
+   A caller-supplied discrete covariance in ``EstimatorState.int_cov`` is
+   added to this Van Loan result during prediction.
+
    .. code-block:: python
 
       transition, process_noise = discretize_process_noise(
@@ -123,7 +126,7 @@ r"""
 
       \mathbf{P}_{k+1}^- =
       \mathbf{\Phi}_k\mathbf{P}_k^+\mathbf{\Phi}_k^T
-      +\mathbf{Q}_{d,k}.
+      +\mathbf{Q}_{d,k}^{model}+\mathbf{Q}_{d,k}^{state}.
 
    No four-element quaternion covariance is constructed during this step.
 

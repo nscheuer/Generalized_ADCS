@@ -115,7 +115,7 @@ r"""
 
       \mathbf{P}_{k+1}^- =
       \sum_i W_i^{(c)}\mathbf{d}_{i,k}^x(\mathbf{d}_{i,k}^x)^T
-      +\mathbf{Q}_{d,k}.
+      +\mathbf{Q}_{d,k}^{model}+\mathbf{Q}_{d,k}^{state}.
 
    In SRUKF, :class:`~ADCS.covariance.Covariance` forms its upper factor using
    QR factorization and rank updates/downdates, preserving

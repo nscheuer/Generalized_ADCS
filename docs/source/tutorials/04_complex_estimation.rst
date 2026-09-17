@@ -121,7 +121,6 @@ This time, sensors will have biases that must be actively estimated and accounte
     )
     estimator = ADCS.AugmentedSRUKF(
         est_satellite, x_hat, dt=dt,
-        unmodeled_dynamics_psd=np.diag(Q_hat)[:6] / dt,
     )
 
     os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(), J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, -7.5, 0]))

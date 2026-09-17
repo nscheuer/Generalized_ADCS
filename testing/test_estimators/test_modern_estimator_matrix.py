@@ -169,6 +169,73 @@ def test_estimator_public_contract_and_reset_are_owned(filter_type, covariance_s
 
 
 @pytest.mark.parametrize("filter_type, covariance_size", FILTERS)
+def test_discrete_state_process_noise_is_added_to_prediction(
+    filter_type, covariance_size
+):
+    """The legacy ``int_cov`` Q is retained and added to model process noise.
+
+    This intentionally performs one prediction per comparison state.  It is a
+    small, deterministic regression test for every modern estimator variant,
+    including square-root and augmented filters.
+    """
+    orbital_state = _orbital_state()
+    state_noise = np.diag(np.linspace(1.0e-5, 8.0e-5, covariance_size))
+
+    model_only = filter_type(
+        EstimatedSatellite(sensors=[_tracker_quaternion()]),
+        _state(covariance_size),
+        dt=0.1,
+        unmodeled_dynamics_psd=1.0e-6,
+    ).predict(np.empty(0), orbital_state, orbital_state)
+
+    with_state_noise = _state(covariance_size)
+    with_state_noise.int_cov = state_noise
+    state_noise_estimator = filter_type(
+        EstimatedSatellite(sensors=[_tracker_quaternion()]),
+        with_state_noise,
+        dt=0.1,
+        unmodeled_dynamics_psd=1.0e-6,
+    )
+    input_state_noise = state_noise_estimator.state.process_noise.as_matrix()
+    state_noise_prediction = state_noise_estimator.predict(
+        np.empty(0), orbital_state, orbital_state
+    )
+
+    # EKF normalizes full-quaternion covariance/noise on construction, so use
+    # the estimator-owned Q as the expected coordinate-space matrix.
+    expected_process_noise = model_only.process_noise.as_matrix() + input_state_noise
+    np.testing.assert_allclose(
+        state_noise_prediction.process_noise.as_matrix(),
+        expected_process_noise,
+        atol=1.0e-14,
+    )
+    np.testing.assert_allclose(
+        state_noise_prediction.covariance.as_matrix()
+        - model_only.covariance.as_matrix(),
+        input_state_noise,
+        atol=1.0e-14,
+    )
+
+    # The total Q exposed by one prediction must not become the configured
+    # input Q for the next prediction.
+    persistent_noise_state = _state(covariance_size)
+    persistent_noise_state.int_cov = state_noise
+    persistent_noise_estimator = filter_type(
+        EstimatedSatellite(sensors=[_tracker_quaternion()]),
+        persistent_noise_state,
+        dt=0.1,
+    )
+    first = persistent_noise_estimator.predict(
+        np.empty(0), orbital_state, orbital_state
+    )
+    second = persistent_noise_estimator.predict(
+        np.empty(0), orbital_state, orbital_state
+    )
+    np.testing.assert_allclose(first.process_noise.as_matrix(), input_state_noise)
+    np.testing.assert_allclose(second.process_noise.as_matrix(), input_state_noise)
+
+
+@pytest.mark.parametrize("filter_type, covariance_size", FILTERS)
 @pytest.mark.parametrize("sensor_factory", SENSOR_SETS)
 def test_each_sensor_type_contributes_a_nonzero_correction(
     filter_type, covariance_size, sensor_factory: SensorFactory

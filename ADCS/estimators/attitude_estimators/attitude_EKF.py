@@ -88,6 +88,9 @@ r"""
       \int_0^{\Delta t}e^{\mathbf{F}_k\tau}
       \mathbf{Q}_{c,k}e^{\mathbf{F}_k^T\tau}\,d\tau.
 
+   A caller may also provide an independent discrete covariance through
+   ``EstimatorState.int_cov``. Prediction adds it to the Van Loan result.
+
    .. code-block:: python
 
       transition, process_noise = discretize_process_noise(
@@ -109,7 +112,7 @@ r"""
 
       \mathbf{P}_{k+1}^- =
       \mathbf{\Phi}_k\mathbf{P}_k^+\mathbf{\Phi}_k^T
-      +\mathbf{Q}_{d,k}.
+      +\mathbf{Q}_{d,k}^{model}+\mathbf{Q}_{d,k}^{state}.
 
    The result is assigned to the predicted
    :class:`~ADCS.state.EstimatorState`, and the discrete process noise is kept

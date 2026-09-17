@@ -70,7 +70,7 @@ x_hat = ADCS.EstimatorState(
     w=x_hat.w, q=x_hat.q, sens_bias=x_hat.sens_bias, cov=P_hat, int_cov=Q_hat
 )
 estimator = ADCS.AugmentedSRUKF(
-    est_satellite, x_hat, dt=dt, unmodeled_dynamics_psd=np.diag(Q_hat)[:6] / dt
+    est_satellite, x_hat, dt=dt
 )
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(), J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, -7.5, 0]))

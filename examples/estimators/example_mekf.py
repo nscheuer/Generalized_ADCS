@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -32,7 +36,7 @@ def main():
         int_cov=np.diag([1.0e-16] * 3 + [1.0e-8] * 3),
     )
     estimator = ADCS.MEKF(
-        estimated, x_hat, dt=dt, unmodeled_dynamics_psd=1.0e-16,
+        estimated, x_hat, dt=dt,
     )
     os0 = ADCS.Orbital_State(
         ephem=ADCS.Ephemeris(), J2000=0.22,
@@ -58,4 +62,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
