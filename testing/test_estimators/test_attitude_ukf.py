@@ -74,13 +74,94 @@ def test_ukf_limits_quaternion_vector_sigma_points_to_the_chart_domain(
     orbital_state,
 ):
     state = _state()
-    state.cov[3:6, 3:6] = np.eye(3)
+    covariance = state.cov
+    covariance[3:6, 3:6] = np.eye(3)
+    state.cov = covariance
     estimator = UKF(_satellite(), state, dt=0.1)
 
     estimator.predict(np.empty(0), orbital_state, orbital_state)
 
     attitude_offsets = estimator.diagnostics["sigma_offsets"][:, 3:6]
     assert np.linalg.norm(attitude_offsets, axis=1).max() <= 1.9 + 1.0e-12
+
+
+@pytest.mark.parametrize("filter_type", [UKF, SRUKF])
+@pytest.mark.parametrize("variance", [1.0, 2.0, 4.0, 9.0])
+def test_large_quaternion_vector_prior_predicts_without_losing_covariance(
+    filter_type, variance, orbital_state
+):
+    state = _state()
+    state.cov = np.diag([1.0e-6] * 3 + [variance] * 3)
+    estimator = filter_type(_satellite(), state, dt=1.0)
+    predicted = estimator.predict(np.empty(0), orbital_state, orbital_state)
+    diagnostics = estimator.diagnostics
+
+    assert np.isclose(np.linalg.norm(predicted.q), 1.0)
+    assert np.linalg.norm(diagnostics["sigma_offsets"][:, 3:6], axis=1).max() <= 1.9 + 1e-12
+    np.testing.assert_allclose(
+        diagnostics["sigma_weights_mean"] @ diagnostics["predicted_sigma_deviations"],
+        0.0, atol=2e-12,
+    )
+    assert np.linalg.eigvalsh(predicted.cov).min() >= -1e-12
+    # Free rigid-body propagation preserves the initial attitude spread; the
+    # tiny rate uncertainty adds only a small positive contribution.
+    np.testing.assert_allclose(np.trace(predicted.cov[3:6, 3:6]), 3 * variance, rtol=1e-5)
+    truth = predicted.plus([0, 0, 0, 0.25, -0.1, 0.05], quaternion_mode="rotation_vector")
+    corrected = estimator.correct(truth.q, orbital_state)
+    assert np.linalg.norm(truth.minus(corrected, quaternion_mode="rotation_vector")) < (
+        np.linalg.norm(truth.minus(predicted, quaternion_mode="rotation_vector"))
+    )
+    assert np.isclose(np.linalg.norm(corrected.q), 1.0)
+    assert np.trace(corrected.cov[3:6, 3:6]) < np.trace(predicted.cov[3:6, 3:6])
+    assert np.linalg.eigvalsh(corrected.cov).min() >= -1e-12
+    assert corrected.covariance.form == ("sqrt" if filter_type is SRUKF else "full")
+
+
+@pytest.mark.parametrize("filter_type", [UKF, SRUKF])
+def test_cayley_prediction_has_zero_weighted_residual(filter_type, orbital_state):
+    state = _state()
+    state.cov = np.diag([0.1] * 3 + [1.0] * 3)
+    estimator = filter_type(_satellite(), state, dt=1.0, quaternion_mode="cayley")
+    predicted = estimator.predict(np.empty(0), orbital_state, orbital_state)
+    diagnostics = estimator.diagnostics
+    np.testing.assert_allclose(
+        diagnostics["sigma_weights_mean"] @ diagnostics["predicted_sigma_deviations"],
+        0.0, atol=2e-12,
+    )
+    assert np.isclose(np.linalg.norm(predicted.q), 1.0)
+    assert np.linalg.eigvalsh(predicted.cov).min() >= -1e-12
+
+
+@pytest.mark.parametrize("filter_type", [UKF, SRUKF])
+def test_state_and_measurement_means_allow_signed_weights_outside_retraction_domain(filter_type):
+    estimator = filter_type(_satellite(), _state(), dt=1.0)
+    weights = np.array([-9.0, 5.0, 5.0])
+    points = [
+        _state().plus([0, 0, 0, angle, 0, 0], quaternion_mode="rotation_vector")
+        for angle in [0.0, 1.0, 0.0]
+    ]
+    values = np.vstack([point.q for point in points])
+    # The old mean's first correction exceeded the quaternion-vector norm 2.
+    assert np.linalg.norm(weights @ (2.0 * values[:, 1:])) > 2.0
+    expected = weights @ values
+    expected /= np.linalg.norm(expected)
+    state_mean = estimator._state_mean(points, weights)
+    measurement_mean = estimator._measurement_mean(
+        estimator.satellite.measurement_stack, [point.q for point in points],
+        np.array([True]), weights,
+    )
+    np.testing.assert_allclose(state_mean.q, expected, atol=1e-12)
+    np.testing.assert_allclose(measurement_mean, expected, atol=1e-12)
+
+
+def test_clamped_sigma_weights_use_effective_alpha():
+    state = _state()
+    state.cov = np.diag([1e-6] * 3 + [4.0] * 3)
+    estimator = UKF(_satellite(), state, dt=1.0)
+    gamma, mean_weights, covariance_weights = estimator._weights(state)
+    np.testing.assert_allclose(
+        covariance_weights[0] - mean_weights[0], 1 - gamma**2 / 6 + estimator.beta
+    )
 
 
 def test_ukf_correction_reduces_attitude_error(orbital_state):

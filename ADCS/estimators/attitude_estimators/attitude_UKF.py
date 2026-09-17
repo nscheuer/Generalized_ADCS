@@ -105,8 +105,9 @@ r"""
 
    After propagation, compute the manifold state mean and predicted covariance.
 
-   The predicted mean is the weighted manifold mean, found by iterating until
-   the weighted local correction vanishes:
+   The predicted mean is the weighted manifold mean, found by a safeguarded
+   Newton solve until the weighted chart residual vanishes. Solver steps use
+   rotation vectors, while residuals and covariance retain the selected chart:
 
    .. math::
 
@@ -287,7 +288,7 @@ import numpy as np
 from ADCS.covariance import Covariance
 from ADCS.estimators.process_model import propagate_state
 from ADCS.estimators.process_noise import discretize_process_noise
-from ADCS.helpers.math_helpers import quat_diff, quat_mult
+from ADCS.estimators.quaternion_mean import quaternion_mean
 from ADCS.state import EstimatorState, State
 
 from .attitude_estimator import AttitudeEstimator
@@ -305,6 +306,13 @@ class UKF(AttitudeEstimator):
     ``control + control_error``.  Perfect actuator channels are omitted from
     the augmented dimension.  Continuous state/process noise remains additive
     after propagation, as do measurement-noise covariances.
+
+    Attitude means solve for a zero weighted residual in the selected chart,
+    using bounded rotation-vector Newton steps and backtracking. Charts still
+    describe local distributions: Cayley is singular at 180 degrees, and a
+    broad or multimodal attitude prior need not have a unique local mean.
+    Chart-coordinate variances are not interchangeable between modes (only
+    ``quaternion_vector`` and ``rotation_vector`` agree to first order in radians).
     """
 
     def __init__(
@@ -377,7 +385,8 @@ class UKF(AttitudeEstimator):
         mean = np.full(2 * dimension + 1, 0.5 / scale)
         covariance = mean.copy()
         mean[0] = lam / scale
-        covariance[0] = mean[0] + 1.0 - self.alpha**2 + self.beta
+        effective_alpha_squared = scale / (dimension + self.kappa)
+        covariance[0] = mean[0] + 1.0 - effective_alpha_squared + self.beta
         return gamma, mean, covariance
 
     def _sigma_states(
@@ -467,27 +476,15 @@ class UKF(AttitudeEstimator):
     def _state_mean(
         self, points: list[EstimatorState], weights: np.ndarray
     ) -> EstimatorState:
-        mean = points[0]
-        for _ in range(32):
-            deviations = np.vstack(
-                [
-                    point.minus(
-                        mean,
-                        quaternion_mode=self.correction_mode,
-                        quaternion_order="right",
-                    )
-                    for point in points
-                ]
-            )
-            correction = weights @ deviations
-            if np.linalg.norm(correction) <= 1.0e-12:
-                return mean
-            mean = mean.plus(
-                correction,
-                quaternion_mode=self.correction_mode,
-                quaternion_order="right",
-            )
-        raise RuntimeError("UKF state mean did not converge")
+        mean = points[0].copy()
+        # These blocks are Euclidean and need no iterative manifold solve.
+        for name in ("w", "h", "act_bias", "sens_bias", "dist_param"):
+            values = np.vstack([getattr(point, name) for point in points])
+            setattr(mean, name, weights @ values)
+        mean.q = quaternion_mean(
+            np.vstack([point.q for point in points]), weights, mode=self.correction_mode
+        )
+        return mean
 
     def _measurement_mean(
         self,
@@ -511,30 +508,9 @@ class UKF(AttitudeEstimator):
                 mean[entry.raw_slice] = weights @ values
                 continue
 
-            quaternion = values[0]
-            for _ in range(32):
-                deviations = np.vstack(
-                    [
-                        State.quaternion_delta_to_vector(
-                            quat_diff(quaternion, value),
-                            mode=self.measurement_quaternion_mode,
-                        )
-                        for value in values
-                    ]
-                )
-                correction = weights @ deviations
-                if np.linalg.norm(correction) <= 1.0e-12:
-                    break
-                quaternion = quat_mult(
-                    quaternion,
-                    State.quaternion_delta_from_vector(
-                        correction, mode=self.measurement_quaternion_mode
-                    ),
-                )
-                quaternion = quaternion / np.linalg.norm(quaternion)
-            else:
-                raise RuntimeError(f"UKF measurement mean for {entry.name} did not converge")
-            mean[entry.raw_slice] = quaternion
+            mean[entry.raw_slice] = quaternion_mean(
+                values, weights, mode=self.measurement_quaternion_mode
+            )
         return mean
 
     def predict(
