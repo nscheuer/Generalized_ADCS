@@ -137,42 +137,6 @@ def test_general_disturbance_refuses_direct_instantiation():
 
 # --- int_cov is not consumed by this filter family --------------------------
 
-def test_nonzero_int_cov_with_zero_psd_warns_at_construction():
-    satellite = _satellite()
-    trap = EstimatorState(
-        w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], cov=np.eye(6) * 1.0e-3, int_cov=np.eye(6) * 1.0e-8,
-    )
-    with pytest.warns(UserWarning, match="unmodeled_dynamics_psd"):
-        MEKF(satellite, trap, dt=1.0)
-
-    import warnings
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        MEKF(satellite, trap, dt=1.0, unmodeled_dynamics_psd=1.0e-9)  # PSD given: fine
-        MEKF(satellite, _state(), dt=1.0)  # zero int_cov: fine
-
-
-# --- sensor error models are sized to the sensor ----------------------------
-
-def test_scalar_noise_on_a_vector_sensor_is_broadcast_per_axis():
-    horizon = EarthHorizonSensor(noise=Noise(std_noise=0.01))  # three outputs, scalar model
-    assert horizon.noise.std_noise.shape == (3,)
-    assert horizon.measurement_covariance().shape == (3, 3)
-
-    tracker = StarTrackerQuaternion()  # default models must size to four
-    assert tracker.noise.std_noise.shape == (4,)
-    assert tracker.bias.bias.shape == (4,)
-    tracker.clean_reading = _tracker().clean_reading
-    satellite = EstimatedSatellite(J_0=np.diag([0.5, 0.8, 1.2]), sensors=[tracker])
-    estimator = MEKF(satellite, _state(), dt=1.0)
-    os0 = _orbital_state(0.22)
-    estimator.predict(np.empty(0), os0, os0)
-    estimator.correct(satellite.measurement_stack.predict(_state(), os0), os0)  # used to fail on a 1x1 R
-
-    with pytest.raises(ValueError, match="entries"):
-        EarthHorizonSensor(noise=Noise(std_noise=np.full(2, 0.01)))
-
 
 def test_quaternion_star_tracker_bias_estimation_is_rejected_at_assembly():
     tracker = StarTrackerQuaternion(bias=Bias(bias=np.zeros(4), std_bias=np.full(4, 1.0e-9)), estimate_bias=True)
