@@ -1,0 +1,151 @@
+{
+  "metric": "final angle error",
+  "units": "deg",
+  "one_sigma_bounds": "mean \u00b1 sample standard deviation; lower bound is clipped to zero degrees",
+  "results": [
+    {
+      "goal_type": "quaternion",
+      "architecture": "3+0",
+      "number_reaction_wheels": 0,
+      "allocator": "LP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 100.45933834822033,
+      "final_angle_error_std_dev_deg": 43.80644619404678,
+      "one_sigma_lower_deg": 56.65289215417355,
+      "one_sigma_upper_deg": 144.2657845422671,
+      "source_simulation": "6u_noestimator_nodisturbance_quaternion_3mtq_0rw_lp_mc_10_20260911_182948.sim"
+    },
+    {
+      "goal_type": "quaternion",
+      "architecture": "3+0",
+      "number_reaction_wheels": 0,
+      "allocator": "QP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 31.672779539347307,
+      "final_angle_error_std_dev_deg": 15.453363294658624,
+      "one_sigma_lower_deg": 16.21941624468868,
+      "one_sigma_upper_deg": 47.12614283400593,
+      "source_simulation": "6u_noestimator_nodisturbance_quaternion_3mtq_0rw_qp_mc_10_20260911_183236.sim"
+    },
+    {
+      "goal_type": "quaternion",
+      "architecture": "3+1",
+      "number_reaction_wheels": 1,
+      "allocator": "LP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 0.17006868227602037,
+      "final_angle_error_std_dev_deg": 0.15399041256529664,
+      "one_sigma_lower_deg": 0.016078269710723736,
+      "one_sigma_upper_deg": 0.324059094841317,
+      "source_simulation": "6u_noestimator_nodisturbance_quaternion_3mtq_1rw_lp_mc_10_20260911_183528.sim"
+    },
+    {
+      "goal_type": "quaternion",
+      "architecture": "3+1",
+      "number_reaction_wheels": 1,
+      "allocator": "QP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 0.15521922790578213,
+      "final_angle_error_std_dev_deg": 0.09849015867130778,
+      "one_sigma_lower_deg": 0.05672906923447435,
+      "one_sigma_upper_deg": 0.2537093865770899,
+      "source_simulation": "6u_noestimator_nodisturbance_quaternion_3mtq_1rw_qp_mc_10_20260911_183828.sim"
+    },
+    {
+      "goal_type": "quaternion",
+      "architecture": "3+3",
+      "number_reaction_wheels": 3,
+      "allocator": "LP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 0.0003560213957643436,
+      "final_angle_error_std_dev_deg": 2.8882341004131015e-05,
+      "one_sigma_lower_deg": 0.0003271390547602126,
+      "one_sigma_upper_deg": 0.0003849037367684746,
+      "source_simulation": "6u_noestimator_nodisturbance_quaternion_3mtq_3rw_lp_mc_10_20260911_184123.sim"
+    },
+    {
+      "goal_type": "quaternion",
+      "architecture": "3+3",
+      "number_reaction_wheels": 3,
+      "allocator": "QP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 0.00035759250457833484,
+      "final_angle_error_std_dev_deg": 2.8565150268527793e-05,
+      "one_sigma_lower_deg": 0.00032902735430980704,
+      "one_sigma_upper_deg": 0.00038615765484686264,
+      "source_simulation": "6u_noestimator_nodisturbance_quaternion_3mtq_3rw_qp_mc_10_20260911_184427.sim"
+    },
+    {
+      "goal_type": "vector",
+      "architecture": "3+0",
+      "number_reaction_wheels": 0,
+      "allocator": "LP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 65.97408315737785,
+      "final_angle_error_std_dev_deg": 23.324726560657197,
+      "one_sigma_lower_deg": 42.64935659672065,
+      "one_sigma_upper_deg": 89.29880971803505,
+      "source_simulation": "6u_noestimator_nodisturbance_vector_3mtq_0rw_lp_mc_10_20260911_183116.sim"
+    },
+    {
+      "goal_type": "vector",
+      "architecture": "3+0",
+      "number_reaction_wheels": 0,
+      "allocator": "QP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 18.692943759926894,
+      "final_angle_error_std_dev_deg": 8.353032505432857,
+      "one_sigma_lower_deg": 10.339911254494037,
+      "one_sigma_upper_deg": 27.04597626535975,
+      "source_simulation": "6u_noestimator_nodisturbance_vector_3mtq_0rw_qp_mc_10_20260911_183400.sim"
+    },
+    {
+      "goal_type": "vector",
+      "architecture": "3+1",
+      "number_reaction_wheels": 1,
+      "allocator": "LP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 0.5793106132283914,
+      "final_angle_error_std_dev_deg": 1.1006100468288476,
+      "one_sigma_lower_deg": 0.0,
+      "one_sigma_upper_deg": 1.679920660057239,
+      "source_simulation": "6u_noestimator_nodisturbance_vector_3mtq_1rw_lp_mc_10_20260911_183701.sim"
+    },
+    {
+      "goal_type": "vector",
+      "architecture": "3+1",
+      "number_reaction_wheels": 1,
+      "allocator": "QP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 0.18069298021377458,
+      "final_angle_error_std_dev_deg": 0.15714414755439599,
+      "one_sigma_lower_deg": 0.0235488326593786,
+      "one_sigma_upper_deg": 0.33783712776817054,
+      "source_simulation": "6u_noestimator_nodisturbance_vector_3mtq_1rw_qp_mc_10_20260911_183955.sim"
+    },
+    {
+      "goal_type": "vector",
+      "architecture": "3+3",
+      "number_reaction_wheels": 3,
+      "allocator": "LP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 0.0003210839205742627,
+      "final_angle_error_std_dev_deg": 4.5610272268999717e-05,
+      "one_sigma_lower_deg": 0.00027547364830526297,
+      "one_sigma_upper_deg": 0.00036669419284326245,
+      "source_simulation": "6u_noestimator_nodisturbance_vector_3mtq_3rw_lp_mc_10_20260911_184256.sim"
+    },
+    {
+      "goal_type": "vector",
+      "architecture": "3+3",
+      "number_reaction_wheels": 3,
+      "allocator": "QP",
+      "runs": 10,
+      "final_angle_error_mean_deg": 0.00031891340688953323,
+      "final_angle_error_std_dev_deg": 4.916941777211386e-05,
+      "one_sigma_lower_deg": 0.0002697439891174194,
+      "one_sigma_upper_deg": 0.00036808282466164707,
+      "source_simulation": "6u_noestimator_nodisturbance_vector_3mtq_3rw_qp_mc_10_20260911_184556.sim"
+    }
+  ]
+}
