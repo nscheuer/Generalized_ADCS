@@ -1,0 +1,7 @@
+ADCS.estimators.attitude\_estimators.attitude\_AugmentedMEKF module
+===================================================================
+
+.. automodule:: ADCS.estimators.attitude_estimators.attitude_AugmentedMEKF
+   :members:
+   :show-inheritance:
+   :undoc-members:

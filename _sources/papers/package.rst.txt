@@ -14,7 +14,7 @@ Read it
 
 - **Paper page** — https://smallsateurope.com/paper/a-modular-open-source-adcs-framework-for-small-satellite-development-and-testing/
 - **Technical paper PDF** — https://smallsateurope.com/wp-admin/admin-ajax.php?action=jfp_download_paper&paper_id=721&attachment_id=3789
-- **Contact the authors** — :doc:`../ssc26/contact`
+- **Contact the authors** — mailto:pmckeen@mit.edu
 
 Abstract
 --------

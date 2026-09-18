@@ -331,6 +331,47 @@ table.sortable-factory th.factory-sort-active.factory-sort-desc::after {
     border-radius: 6px;
 }
 
+/* Attitude EKF algorithm walkthrough. */
+.ekf-step {
+    margin: 1.5rem 0;
+    padding: 1.15rem 1.25rem 1.25rem;
+    border: 1px solid var(--color-background-border);
+    border-left: 5px solid var(--color-brand-primary);
+    border-radius: 6px;
+    background: var(--color-background-secondary);
+}
+
+.ekf-step > p:first-child {
+    margin-top: 0;
+    font-size: 1.08rem;
+}
+
+.ekf-step .highlight {
+    margin: 1rem 0 0;
+    border: 1px solid var(--color-background-border);
+    border-radius: 4px;
+}
+
+.ekf-step-input {
+    border-left-color: #7b61a8;
+}
+
+.ekf-step-predict,
+.ekf-step-linearize,
+.ekf-step-covariance {
+    border-left-color: #267a7b;
+}
+
+.ekf-step-measurement,
+.ekf-step-jacobian {
+    border-left-color: #b26a1f;
+}
+
+.ekf-step-update,
+.ekf-step-reset {
+    border-left-color: #2f7d45;
+}
+
 @media (max-width: 600px) {
     .paper-pdf-preview object {
         height: 56vh;

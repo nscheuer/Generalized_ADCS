@@ -1,0 +1,7 @@
+ADCS.estimators.old\_attitude\_estimators.attitude\_UAKF module
+===============================================================
+
+.. automodule:: ADCS.estimators.old_attitude_estimators.attitude_UAKF
+   :members:
+   :show-inheritance:
+   :undoc-members:

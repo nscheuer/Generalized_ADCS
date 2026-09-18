@@ -170,4 +170,4 @@ Then run:
 
 .. code-block:: bash
 
-  python examples/tutorials/06_trajectory_planner.py
+  python examples/tutorials/tutorial_6_trajectory_planner.py

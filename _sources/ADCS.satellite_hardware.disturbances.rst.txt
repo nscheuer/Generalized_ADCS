@@ -22,6 +22,7 @@ Submodules
    ADCS.satellite_hardware.disturbances.gg_disturbance
    ADCS.satellite_hardware.disturbances.prop_disturbance
    ADCS.satellite_hardware.disturbances.srp_disturbance
+   ADCS.satellite_hardware.disturbances.torque_disturbance
 
 Module contents
 ---------------

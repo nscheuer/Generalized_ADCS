@@ -14,7 +14,7 @@ Read it
 
 - **Paper page** — https://digitalcommons.usu.edu/smallsat/2026/all2026/227/
 - **Proceedings page** — https://digitalcommons.usu.edu/smallsat/2026/all2026/227/
-- **Contact the authors** — :doc:`../ssc26/contact`
+- **Contact the authors** — mailto:pmckeen@mit.edu
 
 Abstract
 --------

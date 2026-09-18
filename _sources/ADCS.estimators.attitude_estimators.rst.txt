@@ -7,8 +7,14 @@ Submodules
 .. toctree::
    :maxdepth: 1
 
-   ADCS.estimators.attitude_estimators.attitude_SRUAKF
-   ADCS.estimators.attitude_estimators.attitude_UAKF
+   ADCS.estimators.attitude_estimators.attitude_AugmentedEKF
+   ADCS.estimators.attitude_estimators.attitude_AugmentedMEKF
+   ADCS.estimators.attitude_estimators.attitude_AugmentedSRUKF
+   ADCS.estimators.attitude_estimators.attitude_AugmentedUKF
+   ADCS.estimators.attitude_estimators.attitude_EKF
+   ADCS.estimators.attitude_estimators.attitude_MEKF
+   ADCS.estimators.attitude_estimators.attitude_SRUKF
+   ADCS.estimators.attitude_estimators.attitude_UKF
    ADCS.estimators.attitude_estimators.attitude_estimator
 
 Module contents

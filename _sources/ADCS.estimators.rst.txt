@@ -9,6 +9,7 @@ Subpackages
 
    ADCS.estimators.attitude_estimators
    ADCS.estimators.estimator_helpers
+   ADCS.estimators.old_attitude_estimators
    ADCS.estimators.orbit_estimators
 
 Submodules
@@ -21,6 +22,7 @@ Submodules
    ADCS.estimators.measurement_stack
    ADCS.estimators.process_model
    ADCS.estimators.process_noise
+   ADCS.estimators.quaternion_mean
 
 Module contents
 ---------------

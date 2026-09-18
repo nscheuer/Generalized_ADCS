@@ -8,6 +8,7 @@ Submodules
    :maxdepth: 1
 
    ADCS.helpers.plot.sensors.biasplot
+   ADCS.helpers.plot.sensors.disturbanceplot
    ADCS.helpers.plot.sensors.sensorsplot
 
 Module contents

@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.estimators.estimator_helpers package" href="ADCS.estimators.estimator_helpers.html"><link rel="prev" title="ADCS.estimators.attitude_estimators.attitude_UAKF module" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html">
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.estimators.estimator_helpers package" href="ADCS.estimators.estimator_helpers.html"><link rel="prev" title="ADCS.estimators.attitude_estimators.attitude_UKF module" href="ADCS.estimators.attitude_estimators.attitude_UKF.html">
         <link rel="canonical" href="https://nscheuer.github.io/Generalized_ADCS/ADCS.estimators.attitude_estimators.attitude_estimator.html">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
@@ -13,7 +13,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=326e7d2b" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4f7aa7b9" />
     
     
 
@@ -230,6 +230,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_0_estimation_framework.html">2.0 New Estimation Framework</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_8_installable.html">0.1.8 Available on PyPI (2026-08-19)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
@@ -246,32 +247,25 @@
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="papers/index.html">Papers</a><input aria-label="Toggle navigation of Papers" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="papers/package.html">A Modular Open-Source ADCS Framework for Small Satellite Development and Testing</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="papers/generalized_acs.html">Generalized Attitude Control for Small Spacecraft</a><input aria-label="Toggle navigation of Generalized Attitude Control for Small Spacecraft" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="ssc26/index.html">SSC26 Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ssc26/paper.html">SSC26 The Paper</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ssc26/run.html">SSC26 Run in Browser</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ssc26/code.html">SSC26 Code</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ssc26/contact.html">SSC26 Contact</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="papers/generalized_acs.html">Generalized Attitude Control for Small Spacecraft</a></li>
 <li class="toctree-l2"><a class="reference internal" href="papers/planner.html">A Feasibility-Aware Attitude Trajectory Planner for Small Satellites</a></li>
 </ul>
 </li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Function Documentation</span></p>
 <ul class="current">
-<li class="toctree-l1 current has-children"><a class="reference internal" href="ADCS.html">ADCS package</a><input aria-label="Toggle navigation of ADCS package" checked="" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.CONOPS.html">ADCS.CONOPS package</a><input aria-label="Toggle navigation of ADCS.CONOPS package" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goallist.html">ADCS.CONOPS.goallist package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goallist package" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="ADCS.html">ADCS package</a><input aria-label="Toggle navigation of ADCS package" checked="" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.CONOPS.html">ADCS.CONOPS package</a><input aria-label="Toggle navigation of ADCS.CONOPS package" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goallist.html">ADCS.CONOPS.goallist package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goallist package" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.CONOPS.goallist.goallist.html">ADCS.CONOPS.goallist.goallist module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.html">ADCS.CONOPS.goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals package" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.html">ADCS.CONOPS.goals.attitude_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.attitude_goals package" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.html">ADCS.CONOPS.goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals package" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.html">ADCS.CONOPS.goals.attitude_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.attitude_goals package" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal.html">ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal module</a></li>
 </ul>
 </li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.html">ADCS.CONOPS.goals.vector_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.vector_goals package" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.html">ADCS.CONOPS.goals.vector_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.vector_goals package" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antibfield_goal.html">ADCS.CONOPS.goals.vector_goals.antibfield_goal module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antisun_goal.html">ADCS.CONOPS.goals.vector_goals.antisun_goal module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antivelocity_goal.html">ADCS.CONOPS.goals.vector_goals.antivelocity_goal module</a></li>
@@ -294,22 +288,22 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.controller.html">ADCS.controller package</a><input aria-label="Toggle navigation of ADCS.controller package" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.helpers.html">ADCS.controller.helpers package</a><input aria-label="Toggle navigation of ADCS.controller.helpers package" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.controller.html">ADCS.controller package</a><input aria-label="Toggle navigation of ADCS.controller package" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.helpers.html">ADCS.controller.helpers package</a><input aria-label="Toggle navigation of ADCS.controller.helpers package" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.optional_dependencies.html">ADCS.controller.helpers.optional_dependencies module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.quaternion_math.html">ADCS.controller.helpers.quaternion_math module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.trajectory.html">ADCS.controller.helpers.trajectory module</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.controller.neo_planner.html">ADCS.controller.neo_planner package</a></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.plan_and_track.html">ADCS.controller.plan_and_track package</a><input aria-label="Toggle navigation of ADCS.controller.plan_and_track package" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.plan_and_track.html">ADCS.controller.plan_and_track package</a><input aria-label="Toggle navigation of ADCS.controller.plan_and_track package" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.build_csat.html">ADCS.controller.plan_and_track.build_csat module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.debug_planner.html">ADCS.controller.plan_and_track.debug_planner module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.planner_settings.html">ADCS.controller.plan_and_track.planner_settings module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.planner_subsettings.html">ADCS.controller.plan_and_track.planner_subsettings module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.saltro.html">ADCS.controller.saltro package</a><input aria-label="Toggle navigation of ADCS.controller.saltro package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.saltro.html">ADCS.controller.saltro package</a><input aria-label="Toggle navigation of ADCS.controller.saltro package" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.saltro.SALTRO_constraint_settings.html">ADCS.controller.saltro.SALTRO_constraint_settings module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.saltro.SALTRO_pass_settings.html">ADCS.controller.saltro.SALTRO_pass_settings module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.saltro.SALTRO_planner_settings.html">ADCS.controller.saltro.SALTRO_planner_settings module</a></li>
@@ -332,19 +326,31 @@
 <li class="toctree-l3"><a class="reference internal" href="ADCS.controller.plan_and_track_lqr_disturbed.html">ADCS.controller.plan_and_track_lqr_disturbed module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current has-children"><a class="reference internal" href="ADCS.estimators.html">ADCS.estimators package</a><input aria-label="Toggle navigation of ADCS.estimators package" checked="" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l3 current has-children"><a class="reference internal" href="ADCS.estimators.attitude_estimators.html">ADCS.estimators.attitude_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.attitude_estimators package" checked="" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_SRUAKF.html">ADCS.estimators.attitude_estimators.attitude_SRUAKF module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html">ADCS.estimators.attitude_estimators.attitude_UAKF module</a></li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="ADCS.estimators.html">ADCS.estimators package</a><input aria-label="Toggle navigation of ADCS.estimators package" checked="" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 current has-children"><a class="reference internal" href="ADCS.estimators.attitude_estimators.html">ADCS.estimators.attitude_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.attitude_estimators package" checked="" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_AugmentedEKF.html">ADCS.estimators.attitude_estimators.attitude_AugmentedEKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_AugmentedMEKF.html">ADCS.estimators.attitude_estimators.attitude_AugmentedMEKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_AugmentedSRUKF.html">ADCS.estimators.attitude_estimators.attitude_AugmentedSRUKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_AugmentedUKF.html">ADCS.estimators.attitude_estimators.attitude_AugmentedUKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_EKF.html">ADCS.estimators.attitude_estimators.attitude_EKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_MEKF.html">ADCS.estimators.attitude_estimators.attitude_MEKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_SRUKF.html">ADCS.estimators.attitude_estimators.attitude_SRUKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UKF.html">ADCS.estimators.attitude_estimators.attitude_UKF module</a></li>
 <li class="toctree-l4 current current-page"><a class="current reference internal" href="#">ADCS.estimators.attitude_estimators.attitude_estimator module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.estimator_helpers.html">ADCS.estimators.estimator_helpers package</a><input aria-label="Toggle navigation of ADCS.estimators.estimator_helpers package" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.estimator_helpers.html">ADCS.estimators.estimator_helpers package</a><input aria-label="Toggle navigation of ADCS.estimators.estimator_helpers package" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html">ADCS.estimators.estimator_helpers.estimator_helpers module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.old_attitude_estimators.html">ADCS.estimators.old_attitude_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.old_attitude_estimators package" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.old_attitude_estimators.attitude_SRUAKF.html">ADCS.estimators.old_attitude_estimators.attitude_SRUAKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.old_attitude_estimators.attitude_UAKF.html">ADCS.estimators.old_attitude_estimators.attitude_UAKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.old_attitude_estimators.attitude_estimator.html">ADCS.estimators.old_attitude_estimators.attitude_estimator module</a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.orbit_estimators.html">ADCS.estimators.orbit_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.orbit_estimators package" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -357,6 +363,7 @@
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -390,6 +397,7 @@
 </li>
 <li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plot.sensors.html">ADCS.helpers.plot.sensors package</a><input aria-label="Toggle navigation of ADCS.helpers.plot.sensors package" class="toctree-checkbox" id="toctree-checkbox-30" name="toctree-checkbox-30" role="switch" type="checkbox"/><label for="toctree-checkbox-30"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.sensors.biasplot.html">ADCS.helpers.plot.sensors.biasplot module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.sensors.disturbanceplot.html">ADCS.helpers.plot.sensors.disturbanceplot module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.sensors.sensorsplot.html">ADCS.helpers.plot.sensors.sensorsplot module</a></li>
 </ul>
 </li>
@@ -490,6 +498,7 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.gg_disturbance.html">ADCS.satellite_hardware.disturbances.gg_disturbance module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.prop_disturbance.html">ADCS.satellite_hardware.disturbances.prop_disturbance module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.srp_disturbance.html">ADCS.satellite_hardware.disturbances.srp_disturbance module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.torque_disturbance.html">ADCS.satellite_hardware.disturbances.torque_disturbance module</a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.errors.html">ADCS.satellite_hardware.errors package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.errors package" class="toctree-checkbox" id="toctree-checkbox-47" name="toctree-checkbox-47" role="switch" type="checkbox"/><label for="toctree-checkbox-47"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -546,6 +555,7 @@
 <li class="toctree-l1"><a class="reference internal" href="contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/documentation.html">Documentation Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/citations.html">Citations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/about.html">About</a></li>
 </ul>
 
 </div></div>
@@ -584,475 +594,42 @@
         <article role="main" id="furo-main-content">
           <section id="module-ADCS.estimators.attitude_estimators.attitude_estimator">
 <span id="adcs-estimators-attitude-estimators-attitude-estimator-module"></span><h1>ADCS.estimators.attitude_estimators.attitude_estimator module<a class="headerlink" href="#module-ADCS.estimators.attitude_estimators.attitude_estimator" title="Link to this heading">¶</a></h1>
+<p>Shared base class for new-generation Kalman attitude estimators.</p>
+<p>All attitude filters compose the filter-neutral <code class="docutils literal notranslate"><span class="pre">State</span></code>, <code class="docutils literal notranslate"><span class="pre">Covariance</span></code>,
+process-model, and <code class="docutils literal notranslate"><span class="pre">MeasurementStack</span></code> operations through this base class.</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.estimators.attitude_estimators.attitude_estimator.</span></span><span class="sig-name descname"><span class="pre">Attitude_Estimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cross_term</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quat_as_vec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ephem</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#Attitude_Estimator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.estimators.attitude_estimators.attitude_estimator.</span></span><span class="sig-name descname"><span class="pre">AttitudeEstimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">covariance_coordinates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">correction_mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">measurement_quaternion_mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unmodeled_dynamics_psd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#AttitudeEstimator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Abstract base class for spacecraft attitude and bias estimators.</p>
-<p>This base class provides shared bookkeeping and interfaces for estimators
-operating on an <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>
-model, including:</p>
-<ul class="simple">
-<li><p>storage of the <strong>full augmented state vector</strong>,</p></li>
-<li><p>storage of covariance and process-noise matrices in a <strong>reduced attitude space</strong>
-(3-DOF attitude error instead of a 4-parameter quaternion),</p></li>
-<li><p>synchronization of the internal satellite model via
-<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">match_estimate()</span></code></a>.</p></li>
-</ul>
-<section id="augmented-state-definition">
-<h2>Augmented state definition<a class="headerlink" href="#augmented-state-definition" title="Link to this heading">¶</a></h2>
-<p>The estimator maintains an augmented state of the form</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\begin{split}\mathbf{x} =
-\begin{bmatrix}
-    \boldsymbol{\omega} \\
-    \mathbf{q} \\
-    \mathbf{h}_{RW} \\
-    \mathbf{b}_{act} \\
-    \mathbf{b}_{sens} \\
-    \boldsymbol{\theta}_{dist}
-\end{bmatrix}
-\in \mathbb{R}^{N},\end{split}\]</div>
-</div>
-<p>where:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\boldsymbol{\omega} \in \mathbb{R}^3,\quad
-\mathbf{q} \in \mathbb{R}^4,\quad
-\mathbf{h}_{RW} \in \mathbb{R}^{n_{RW}},\quad
-\mathbf{b}_{act} \in \mathbb{R}^{n_{ab}},\quad
-\mathbf{b}_{sens} \in \mathbb{R}^{n_{sb}},\quad
-\boldsymbol{\theta}_{dist} \in \mathbb{R}^{n_{dp}}.\]</div>
-</div>
-<p>Hence the total augmented dimension is</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[N = 7 + n_{RW} + n_{ab} + n_{sb} + n_{dp}.\]</div>
-</div>
-</section>
-<section id="reduced-covariance-representation">
-<h2>Reduced covariance representation<a class="headerlink" href="#reduced-covariance-representation" title="Link to this heading">¶</a></h2>
-<p>The state contains a quaternion <span class="math notranslate nohighlight">\(\mathbf{q}\in\mathbb{R}^4\)</span>, but the
-covariance is typically stored in a <strong>minimal 3-DOF attitude-error space</strong>
-to avoid the unit-norm constraint in the covariance representation. Thus,
-the covariance and process noise live in</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathbb{R}^{(N-1)\times(N-1)}\]</div>
-</div>
-<p>where one quaternion component is dropped and replaced by a 3-parameter
-attitude error (e.g., error-angle vector). Subclasses (e.g., MEKF, SRUKF)
-define the mapping between the full state and this reduced covariance space.</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">quat_as_vec=True</span></code>, then the covariance and process noise are stored
-in the <strong>full</strong> space (no reduction), i.e. shape <span class="math notranslate nohighlight">\(N\times N\)</span>.</p>
-<p class="rubric">References</p>
-<ul class="simple">
-<li><p>Satellite model synchronization is performed with
-<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">match_estimate()</span></code></a>.</p></li>
-<li><p>Reduced covariance sub-selection is performed with
-<a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.square_mat_sections" title="ADCS.helpers.math_helpers.square_mat_sections"><code class="xref py py-func docutils literal notranslate"><span class="pre">square_mat_sections()</span></code></a>.</p></li>
-</ul>
-<dl class="py method">
-<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.cov_use">
-<span class="sig-name descname"><span class="pre">cov_use</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#Attitude_Estimator.cov_use"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.cov_use" title="Link to this definition">¶</a></dt>
-<dd><p>Return a boolean mask for the reduced covariance state.</p>
-<p>The attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">use</span></code> is a boolean mask over the <strong>full</strong> augmented
-state <span class="math notranslate nohighlight">\(\mathbf{x}\in\mathbb{R}^{N}\)</span>. The covariance is stored in a
-reduced attitude-error space of dimension <span class="math notranslate nohighlight">\(N-1\)</span>, where the quaternion
-is represented minimally.</p>
-<p>This method converts the full-state mask into a reduced-state mask by
-deleting the entry corresponding to the dropped quaternion component
-(index 3 in the full state vector ordering).</p>
-<section id="quaternion-reduction-convention">
-<h3>Quaternion reduction convention<a class="headerlink" href="#quaternion-reduction-convention" title="Link to this heading">¶</a></h3>
-<p>If the full state begins as</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\begin{split}\mathbf{x} =
-\begin{bmatrix}
-    \omega_x \\ \omega_y \\ \omega_z \\
-    q_0 \\ q_1 \\ q_2 \\ q_3 \\
-    \vdots
-\end{bmatrix},\end{split}\]</div>
-</div>
-<p>then index 3 corresponds to the first quaternion component in the full
-storage convention and is removed to obtain a mask compatible with the
-reduced covariance representation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">param<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
-</dd>
-<dt class="field-even">type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-<dt class="field-odd">return<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Boolean mask of length <span class="math notranslate nohighlight">\(N-1\)</span> compatible with the reduced covariance matrices.</p>
-</dd>
-<dt class="field-even">rtype<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</section>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><em>ndarray</em></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.initialize_estimate">
-<span class="sig-name descname"><span class="pre">initialize_estimate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gyro_readings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtm_readings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sunpair_readings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sunsensor_readings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B_ECI</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S_ECI</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#Attitude_Estimator.initialize_estimate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.initialize_estimate" title="Link to this definition">¶</a></dt>
-<dd><p>Robust initial attitude and bias estimation.</p>
-<p>This routine builds an initial attitude quaternion (and optionally a
-gyro bias / angular rate guess) from a subset of available sensor
-measurements. Any measurement may be omitted by passing <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
-<section id="attitude-initialization-via-wahba-s-problem">
-<h3>Attitude initialization via Wahba’s problem<a class="headerlink" href="#attitude-initialization-via-wahba-s-problem" title="Link to this heading">¶</a></h3>
-<p>If an initial quaternion <code class="docutils literal notranslate"><span class="pre">q</span></code> is not provided, this method estimates it
-by solving Wahba’s problem using all available vector observations.</p>
-<p>Given body-frame measurements <span class="math notranslate nohighlight">\(\mathbf{v}_{b,i}\)</span> and their inertial
-references <span class="math notranslate nohighlight">\(\mathbf{v}_{I,i}\)</span>, we seek the rotation <span class="math notranslate nohighlight">\(\mathbf{R}\)</span>
-(or quaternion <span class="math notranslate nohighlight">\(\mathbf{q}\)</span>) minimizing</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[J(\mathbf{R}) = \sum_{i=1}^{m} w_i \left\lVert \mathbf{v}_{b,i} - \mathbf{R}\,\mathbf{v}_{I,i} \right\rVert^2,\]</div>
-</div>
-<p>with weights <span class="math notranslate nohighlight">\(w_i&gt;0\)</span>. The solution is computed using
-<a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.wahbas_svd" title="ADCS.helpers.math_helpers.wahbas_svd"><code class="xref py py-func docutils literal notranslate"><span class="pre">wahbas_svd()</span></code></a>.</p>
-</section>
-<section id="measurement-weighting">
-<h3>Measurement weighting<a class="headerlink" href="#measurement-weighting" title="Link to this heading">¶</a></h3>
-<p>Each available vector observation is weighted by an inverse-variance-like
-term combining sensor noise and current prior bias uncertainty:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[w_i = \frac{1}{\sigma_i^2 + P_{\text{bias},i}},\]</div>
-</div>
-<p>where <span class="math notranslate nohighlight">\(\sigma_i^2\)</span> is the sensor noise variance and
-<span class="math notranslate nohighlight">\(P_{\text{bias},i}\)</span> is the corresponding scalar bias variance
-extracted from the current covariance <code class="xref py py-attr docutils literal notranslate"><span class="pre">x_hat.cov</span></code> at the sensor’s
-bias index.</p>
-<p>Sensors used (when available) are:</p>
-<ul class="simple">
-<li><p>Magnetometer (body) with reference <span class="math notranslate nohighlight">\(\mathbf{B}_{ECI}\)</span>,</p></li>
-<li><p>Sun sensor (body) with reference <span class="math notranslate nohighlight">\(\mathbf{S}_{ECI}\)</span>,</p></li>
-<li><p>Sun sensor pair (body) with reference <span class="math notranslate nohighlight">\(\mathbf{S}_{ECI}\)</span>.</p></li>
-</ul>
-</section>
-<section id="gyro-bias-and-angular-rate-guess-optional">
-<h3>Gyro bias and angular-rate guess (optional)<a class="headerlink" href="#gyro-bias-and-angular-rate-guess-optional" title="Link to this heading">¶</a></h3>
-<p>If a gyroscope reading <span class="math notranslate nohighlight">\(\tilde{\boldsymbol{\omega}}\)</span> is available,
-the method forms a simple linear estimator using:</p>
-<ul class="simple">
-<li><p>gyro bias covariance block <span class="math notranslate nohighlight">\(P_b\)</span>,</p></li>
-<li><p>gyro measurement noise <span class="math notranslate nohighlight">\(R_g\)</span>,</p></li>
-<li><p>rate covariance <span class="math notranslate nohighlight">\(Q_\omega\)</span>.</p></li>
-</ul>
-<p>A typical structure consistent with the implementation is</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\hat{\mathbf{b}}_g
-= (R_g + P_b + Q_\omega)^{-1} P_b \,\tilde{\boldsymbol{\omega}}.\]</div>
-</div>
-<p>The method then constructs an approximate rate guess
-<span class="math notranslate nohighlight">\(\hat{\boldsymbol{\omega}}\)</span> from the bias and covariance blocks.</p>
-</section>
-<section id="satellite-synchronization">
-<h3>Satellite synchronization<a class="headerlink" href="#satellite-synchronization" title="Link to this heading">¶</a></h3>
-<p>The updated augmented state is committed into <code class="xref py py-attr docutils literal notranslate"><span class="pre">x_hat.as_estimator_array()</span></code> and then
-pushed to the internal satellite model via
-<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">match_estimate()</span></code></a>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">param gyro_readings<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Gyroscope measurement in the body frame, shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.
-If <code class="docutils literal notranslate"><span class="pre">None</span></code>, gyro bias and rate are not updated.</p>
-</dd>
-<dt class="field-even">type gyro_readings<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray or None</p>
-</dd>
-<dt class="field-odd">param mtm_readings<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Magnetometer measurement in the body frame, shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
-</dd>
-<dt class="field-even">type mtm_readings<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray or None</p>
-</dd>
-<dt class="field-odd">param sunpair_readings<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Sun sensor pair measurement in the body frame, shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
-</dd>
-<dt class="field-even">type sunpair_readings<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray or None</p>
-</dd>
-<dt class="field-odd">param sunsensor_readings<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Sun sensor measurement in the body frame, shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
-</dd>
-<dt class="field-even">type sunsensor_readings<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray or None</p>
-</dd>
-<dt class="field-odd">param B_ECI<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Reference magnetic field vector in ECI (or inertial) frame, shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
-</dd>
-<dt class="field-even">type B_ECI<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray or None</p>
-</dd>
-<dt class="field-odd">param S_ECI<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Reference sun direction vector in ECI (or inertial) frame, shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
-</dd>
-<dt class="field-even">type S_ECI<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray or None</p>
-</dd>
-<dt class="field-odd">param os<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Current orbital state (included for interface consistency).</p>
-</dd>
-<dt class="field-even">type os<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a></p>
-</dd>
-<dt class="field-odd">param q<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Optional initial quaternion, shape <code class="docutils literal notranslate"><span class="pre">(4,)</span></code>. If provided, Wahba’s problem is skipped.</p>
-</dd>
-<dt class="field-even">type q<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray or None</p>
-</dd>
-<dt class="field-odd">raises RuntimeError<span class="colon">:</span></dt>
-<dd class="field-odd"><p>If no valid vector measurements are available for Wahba initialization.</p>
-</dd>
-<dt class="field-even">return<span class="colon">:</span></dt>
-<dd class="field-even"><p>Updated full augmented state vector (same length as <code class="xref py py-attr docutils literal notranslate"><span class="pre">x_hat.as_estimator_array()</span></code>).</p>
-</dd>
-<dt class="field-odd">rtype<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</section>
+<p>Shared prediction/correction lifecycle for the first simple filters.</p>
+<p>The base implementation defaults to the physical attitude state. Filters
+that explicitly support joint estimation of hardware biases or disturbance
+parameters can opt in by setting <code class="docutils literal notranslate"><span class="pre">supports_augmented_parameters</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>gyro_readings</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>mtm_readings</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>sunpair_readings</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>sunsensor_readings</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>B_ECI</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>S_ECI</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
-<li><p><strong>q</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.reset">
-<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">J2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cross_term</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#Attitude_Estimator.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.reset" title="Link to this definition">¶</a></dt>
-<dd><p>Reset the estimator state, covariance, and process noise.</p>
-<p>This method validates dimensional consistency between the full augmented
-state vector <span class="math notranslate nohighlight">\(\mathbf{x}\in\mathbb{R}^N\)</span> and the covariance/process-noise
-matrices, stores the result into <a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>
-containers, and synchronizes the internal satellite model via
-<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">match_estimate()</span></code></a>.</p>
-<section id="dimension-consistency">
-<h3>Dimension consistency<a class="headerlink" href="#dimension-consistency" title="Link to this heading">¶</a></h3>
-<p>The expected state length is</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[N = 7 + n_{RW} + n_{ab} + n_{sb} + n_{dp},\]</div>
-</div>
-<p>where the counts are taken from the supplied
-<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>.</p>
-<p>Covariance representation follows one of two conventions:</p>
-<ol class="arabic">
-<li><p>Reduced attitude space (default, <code class="docutils literal notranslate"><span class="pre">quat_as_vec=False</span></code>):</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[P,\;Q \in \mathbb{R}^{(N-1)\times(N-1)}.\]</div>
-</div>
-</li>
-<li><p>Full quaternion space (<code class="docutils literal notranslate"><span class="pre">quat_as_vec=True</span></code>):</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[P,\;Q \in \mathbb{R}^{N\times N}.\]</div>
-</div>
-</li>
-</ol>
-<p>After validation, the reset procedure:</p>
-<ul class="simple">
-<li><p>creates <a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a> instances
-for <code class="xref py py-attr docutils literal notranslate"><span class="pre">x0_hat</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">x_hat</span></code>,</p></li>
-<li><p>sets <code class="xref py py-attr docutils literal notranslate"><span class="pre">use</span></code> to all <code class="docutils literal notranslate"><span class="pre">True</span></code> (all states active),</p></li>
-<li><p>calls <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">match_estimate()</span></code></a>
-to push the reset estimate into the satellite model.</p></li>
-</ul>
-<dl class="field-list simple">
-<dt class="field-odd">param J2000<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Time in seconds since J2000 corresponding to the new reset.</p>
-</dd>
-<dt class="field-even">type J2000<span class="colon">:</span></dt>
-<dd class="field-even"><p>float</p>
-</dd>
-<dt class="field-odd">param x_hat<span class="colon">:</span></dt>
-<dd class="field-odd"><p>New augmented state estimate <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> of length <span class="math notranslate nohighlight">\(N\)</span>.</p>
-</dd>
-<dt class="field-even">type x_hat<span class="colon">:</span></dt>
-<dd class="field-even"><p>ADCS.state.EstimatorState</p>
-</dd>
-<dt class="field-odd">param P_hat<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Covariance matrix, reduced or full depending on <code class="docutils literal notranslate"><span class="pre">quat_as_vec</span></code>.</p>
-</dd>
-<dt class="field-even">type P_hat<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-<dt class="field-odd">param Q_hat<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Process-noise covariance matrix, same shape convention as <code class="docutils literal notranslate"><span class="pre">P_hat</span></code>.</p>
-</dd>
-<dt class="field-even">type Q_hat<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-<dt class="field-odd">param dt<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Propagation time step <span class="math notranslate nohighlight">\(\Delta t\)</span> in seconds used for satellite model synchronization.</p>
-</dd>
-<dt class="field-even">type dt<span class="colon">:</span></dt>
-<dd class="field-even"><p>float</p>
-</dd>
-<dt class="field-odd">param cross_term<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Whether the estimator should preserve cross-covariance blocks
-between bias/parameter groups in <a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update" title="ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a>.</p>
-</dd>
-<dt class="field-even">type cross_term<span class="colon">:</span></dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-<dt class="field-odd">raises ValueError<span class="colon">:</span></dt>
-<dd class="field-odd"><p>If <code class="docutils literal notranslate"><span class="pre">x_hat</span></code> length is inconsistent with the satellite model.</p>
-</dd>
-<dt class="field-even">raises ValueError<span class="colon">:</span></dt>
-<dd class="field-even"><p>If <code class="docutils literal notranslate"><span class="pre">P_hat</span></code> or <code class="docutils literal notranslate"><span class="pre">Q_hat</span></code> shapes do not match the required convention.</p>
-</dd>
-<dt class="field-odd">return<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
-</dd>
-<dt class="field-even">rtype<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</section>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>J2000</strong> (<em>float</em>)</p></li>
-<li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a>)</p></li>
-<li><p><strong>P_hat</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>Q_hat</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>satellite</strong> (<em>Any</em>)</p></li>
+<li><p><strong>state</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a>)</p></li>
 <li><p><strong>dt</strong> (<em>float</em>)</p></li>
-<li><p><strong>cross_term</strong> (<em>bool</em>)</p></li>
+<li><p><strong>covariance_coordinates</strong> (<em>str</em>)</p></li>
+<li><p><strong>correction_mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>measurement_quaternion_mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>unmodeled_dynamics_psd</strong> (<em>Any</em>)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
 </dl>
-</dd></dl>
-
 <dl class="py method">
-<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update">
-<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#Attitude_Estimator.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update" title="Link to this definition">¶</a></dt>
-<dd><p>High-level estimator update wrapper.</p>
-<p>This method delegates the actual filtering step to a subclass-defined
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">update_core()</span></code>, optionally enforces a block-structured covariance,
-updates the stored estimate <code class="xref py py-attr docutils literal notranslate"><span class="pre">x_hat</span></code>, and synchronizes the satellite
-model via <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">match_estimate()</span></code></a>.</p>
-<section id="delegation-to-subclass-filter">
-<h3>Delegation to subclass filter<a class="headerlink" href="#delegation-to-subclass-filter" title="Link to this heading">¶</a></h3>
-<p>Subclasses must implement <code class="docutils literal notranslate"><span class="pre">update_core</span></code> and return an
-<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>
-containing:</p>
-<ul class="simple">
-<li><p>full augmented state <span class="math notranslate nohighlight">\(\hat{\mathbf{x}}\)</span>,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cov</span></code>: covariance in reduced coordinates (unless <code class="docutils literal notranslate"><span class="pre">quat_as_vec=True</span></code>),</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">int_cov</span></code>: process-noise covariance (often unchanged).</p></li>
-</ul>
-</section>
-<section id="previous-orbital-state-handling">
-<h3>Previous orbital state handling<a class="headerlink" href="#previous-orbital-state-handling" title="Link to this heading">¶</a></h3>
-<p>If <code class="xref py py-attr docutils literal notranslate"><span class="pre">prev_os</span></code> has not been initialized (<code class="docutils literal notranslate"><span class="pre">prev_os.J2000</span> <span class="pre">==</span> <span class="pre">0</span></code>),
-it is set to the provided <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>
-<code class="docutils literal notranslate"><span class="pre">os</span></code> on the first call.</p>
-</section>
-<section id="optional-covariance-block-zeroing">
-<h3>Optional covariance block-zeroing<a class="headerlink" href="#optional-covariance-block-zeroing" title="Link to this heading">¶</a></h3>
-<p>If <code class="xref py py-attr docutils literal notranslate"><span class="pre">cross_term</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, this method zeros cross-covariance
-blocks between selected groups to enforce a block structure. Let the
-reduced covariance be partitioned as</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\begin{split}P =
-\begin{bmatrix}
-    P_{xx} &amp; P_{x,a} &amp; P_{x,s} &amp; P_{x,d} \\
-    P_{a,x} &amp; P_{aa} &amp; P_{a,s} &amp; P_{a,d} \\
-    P_{s,x} &amp; P_{s,a} &amp; P_{ss} &amp; P_{s,d} \\
-    P_{d,x} &amp; P_{d,a} &amp; P_{d,s} &amp; P_{dd}
-\end{bmatrix},\end{split}\]</div>
-</div>
-<p>where:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">a</span></code> denotes actuator-bias states,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">s</span></code> denotes attitude-sensor-bias states,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">d</span></code> denotes disturbance parameters.</p></li>
-</ul>
-<p>Then the enforced structure is:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[P_{a,s}=P_{s,a}^\top=\mathbf{0},\quad
-P_{a,d}=P_{d,a}^\top=\mathbf{0},\quad
-P_{s,d}=P_{d,s}^\top=\mathbf{0}.\]</div>
-</div>
-<p>The index ranges are derived from:</p>
-<ul class="simple">
-<li><p><code class="xref py py-attr docutils literal notranslate"><span class="pre">state_len</span></code>,</p></li>
-<li><p><code class="xref py py-attr docutils literal notranslate"><span class="pre">act_bias_len</span></code>,</p></li>
-<li><p><code class="xref py py-attr docutils literal notranslate"><span class="pre">att_sens_bias_len</span></code>,</p></li>
-<li><p><code class="xref py py-attr docutils literal notranslate"><span class="pre">dist_param_len</span></code>.</p></li>
-</ul>
-</section>
-<section id="committing-the-estimate">
-<h3>Committing the estimate<a class="headerlink" href="#committing-the-estimate" title="Link to this heading">¶</a></h3>
-<p>The new estimate is written back into <code class="xref py py-attr docutils literal notranslate"><span class="pre">x_hat</span></code> using a mask over the
-reduced covariance space returned by
-<a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.cov_use" title="ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.cov_use"><code class="xref py py-meth docutils literal notranslate"><span class="pre">cov_use()</span></code></a>.
-Subselection and reinsertion of covariance/process-noise blocks relies on
-<a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.square_mat_sections" title="ADCS.helpers.math_helpers.square_mat_sections"><code class="xref py py-func docutils literal notranslate"><span class="pre">square_mat_sections()</span></code></a>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">param u<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Control input vector applied to the satellite (e.g., RW commands).</p>
-</dd>
-<dt class="field-even">type u<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-<dt class="field-odd">param sensors<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Collection of sensor measurement vectors used by the estimator.
-The stacking/order convention is defined by the subclass and the satellite model.</p>
-</dd>
-<dt class="field-even">type sensors<span class="colon">:</span></dt>
-<dd class="field-even"><p>list[numpy.ndarray]</p>
-</dd>
-<dt class="field-odd">param os<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Current orbital/environmental state used for propagation and prediction.</p>
-</dd>
-<dt class="field-even">type os<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a></p>
-</dd>
-<dt class="field-odd">return<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Updated estimator state container.</p>
-</dd>
-<dt class="field-even">rtype<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a></p>
-</dd>
-</dl>
-</section>
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.correct">
+<span class="sig-name descname"><span class="pre">correct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">measurements</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#AttitudeEstimator.correct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.correct" title="Link to this definition">¶</a></dt>
+<dd><p>Apply all selected finite measurements at the current state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>u</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>sensors</strong> (<em>Sequence</em><em>[</em><em>ndarray</em><em>]</em>)</p></li>
-<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+<li><p><strong>measurements</strong> (<em>Any</em>)</p></li>
+<li><p><strong>orbital_state</strong> (<em>Any</em>)</p></li>
+<li><p><strong>enabled</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>time_s</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>epoch_s</strong> (<em>float</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1061,22 +638,131 @@ The stacking/order convention is defined by the subclass and the satellite model
 </dl>
 </dd></dl>
 
-</section>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">control</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state_end</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">midpoint_orbital_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#AttitudeEstimator.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.predict" title="Link to this definition">¶</a></dt>
+<dd><p>Propagate the nominal state and covariance one deterministic step.</p>
+<p>The model-generated discrete process covariance and the prior state’s
+discrete <code class="docutils literal notranslate"><span class="pre">process_noise</span></code> (legacy <code class="docutils literal notranslate"><span class="pre">int_cov</span></code>) are additive.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
-<li><p><strong>J2000</strong> (<em>float</em>)</p></li>
-<li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a>)</p></li>
-<li><p><strong>P_hat</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>Q_hat</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>dt</strong> (<em>float</em>)</p></li>
-<li><p><strong>cross_term</strong> (<em>bool</em>)</p></li>
-<li><p><strong>quat_as_vec</strong> (<em>bool</em>)</p></li>
-<li><p><strong>ephem</strong> (<a class="reference internal" href="ADCS.orbits.ephemeris.html#ADCS.orbits.ephemeris.Ephemeris" title="ADCS.orbits.ephemeris.Ephemeris"><em>Ephemeris</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>control</strong> (<em>Any</em>)</p></li>
+<li><p><strong>orbital_state_start</strong> (<em>Any</em>)</p></li>
+<li><p><strong>orbital_state_end</strong> (<em>Any</em>)</p></li>
+<li><p><strong>dt</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>midpoint_orbital_state</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
 </ul>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a></p>
+</dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#AttitudeEstimator.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Replace the estimate after validating this filter’s layout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">measurements_or_control</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state_or_measurements</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state_end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">midpoint_orbital_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#AttitudeEstimator.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.step" title="Link to this definition">¶</a></dt>
+<dd><p>Run the measurement stage, or preserve the old combined step call.</p>
+<p>The staged contract calls <code class="docutils literal notranslate"><span class="pre">step(measurements,</span> <span class="pre">orbital_state)</span></code> after
+<a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.predict" title="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.predict"><code class="xref py py-meth docutils literal notranslate"><span class="pre">predict()</span></code></a>. During migration, the historical
+<code class="docutils literal notranslate"><span class="pre">step(control,</span> <span class="pre">measurements,</span> <span class="pre">orbital_state_start,</span> <span class="pre">orbital_state_end)</span></code>
+form remains accepted and performs both stages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>measurements_or_control</strong> (<em>Any</em>)</p></li>
+<li><p><strong>orbital_state_or_measurements</strong> (<em>Any</em>)</p></li>
+<li><p><strong>orbital_state_start</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>orbital_state_end</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>dt</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>midpoint_orbital_state</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>enabled</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>time_s</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>epoch_s</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#AttitudeEstimator.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.update" title="Link to this definition">¶</a></dt>
+<dd><p>Return the posterior state, with a compatibility update adapter.</p>
+<p>The staged simulation contract calls zero-argument <code class="docutils literal notranslate"><span class="pre">update()</span></code> after
+<code class="docutils literal notranslate"><span class="pre">predict()</span></code> and <code class="docutils literal notranslate"><span class="pre">step()</span></code>. The argument-bearing form remains as a
+temporary adapter for callers that still use the old one-call protocol.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>sensors</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>os</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.correction_mode">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">correction_mode</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.correction_mode" title="Link to this definition">¶</a></dt>
+<dd><p>Attitude chart used for the transition matrix, the correction, and the reset.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.covariance_coordinates">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">covariance_coordinates</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.covariance_coordinates" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;full&quot;</span></code> (EKF) or <code class="docutils literal notranslate"><span class="pre">&quot;tangent&quot;</span></code> (MEKF).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Coordinates the covariance is kept in</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.diagnostics">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">diagnostics</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.diagnostics" title="Link to this definition">¶</a></dt>
+<dd><p>Return owned matrices and vectors from the latest operations.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.measurement_quaternion_mode">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">measurement_quaternion_mode</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.measurement_quaternion_mode" title="Link to this definition">¶</a></dt>
+<dd><p>Attitude chart used for quaternion residuals and their Jacobians.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.state">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">state</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><span class="pre">EstimatorState</span></a></span><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.state" title="Link to this definition">¶</a></dt>
+<dd><p>Return an owned snapshot of the current estimate.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.supports_augmented_parameters">
+<span class="sig-name descname"><span class="pre">supports_augmented_parameters</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.supports_augmented_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </section>
@@ -1095,14 +781,14 @@ The stacking/order convention is defined by the subclass and the satellite model
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html">
+          <a class="prev-page" href="ADCS.estimators.attitude_estimators.attitude_UKF.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">ADCS.estimators.attitude_estimators.attitude_UAKF module</div>
+                <div class="title">ADCS.estimators.attitude_estimators.attitude_UKF module</div>
                 
               </div>
             </a>
@@ -1134,7 +820,6 @@ The stacking/order convention is defined by the subclass and the satellite model
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

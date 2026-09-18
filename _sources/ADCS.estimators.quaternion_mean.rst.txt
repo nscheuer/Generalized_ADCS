@@ -1,0 +1,7 @@
+ADCS.estimators.quaternion\_mean module
+=======================================
+
+.. automodule:: ADCS.estimators.quaternion_mean
+   :members:
+   :show-inheritance:
+   :undoc-members:

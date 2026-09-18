@@ -1,0 +1,7 @@
+ADCS.estimators.old\_attitude\_estimators.attitude\_SRUAKF module
+=================================================================
+
+.. automodule:: ADCS.estimators.old_attitude_estimators.attitude_SRUAKF
+   :members:
+   :show-inheritance:
+   :undoc-members:

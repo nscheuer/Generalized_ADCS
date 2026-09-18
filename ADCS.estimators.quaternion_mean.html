@@ -3,17 +3,17 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.estimators.attitude_estimators.attitude_UAKF module" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html"><link rel="prev" title="ADCS.estimators.attitude_estimators package" href="ADCS.estimators.attitude_estimators.html">
-        <link rel="canonical" href="https://nscheuer.github.io/Generalized_ADCS/ADCS.estimators.attitude_estimators.attitude_SRUAKF.html">
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.flight_software package" href="ADCS.flight_software.html"><link rel="prev" title="ADCS.estimators.process_noise module" href="ADCS.estimators.process_noise.html">
+        <link rel="canonical" href="https://nscheuer.github.io/Generalized_ADCS/ADCS.estimators.quaternion_mean.html">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>ADCS.estimators.attitude_estimators.attitude_SRUAKF module - Generalized ADCS 2026 documentation</title>
+        <title>ADCS.estimators.quaternion_mean module - Generalized ADCS 2026 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=326e7d2b" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4f7aa7b9" />
     
     
 
@@ -230,6 +230,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_0_estimation_framework.html">2.0 New Estimation Framework</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_8_installable.html">0.1.8 Available on PyPI (2026-08-19)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
@@ -246,32 +247,25 @@
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="papers/index.html">Papers</a><input aria-label="Toggle navigation of Papers" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="papers/package.html">A Modular Open-Source ADCS Framework for Small Satellite Development and Testing</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="papers/generalized_acs.html">Generalized Attitude Control for Small Spacecraft</a><input aria-label="Toggle navigation of Generalized Attitude Control for Small Spacecraft" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="ssc26/index.html">SSC26 Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ssc26/paper.html">SSC26 The Paper</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ssc26/run.html">SSC26 Run in Browser</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ssc26/code.html">SSC26 Code</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ssc26/contact.html">SSC26 Contact</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="papers/generalized_acs.html">Generalized Attitude Control for Small Spacecraft</a></li>
 <li class="toctree-l2"><a class="reference internal" href="papers/planner.html">A Feasibility-Aware Attitude Trajectory Planner for Small Satellites</a></li>
 </ul>
 </li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Function Documentation</span></p>
 <ul class="current">
-<li class="toctree-l1 current has-children"><a class="reference internal" href="ADCS.html">ADCS package</a><input aria-label="Toggle navigation of ADCS package" checked="" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.CONOPS.html">ADCS.CONOPS package</a><input aria-label="Toggle navigation of ADCS.CONOPS package" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goallist.html">ADCS.CONOPS.goallist package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goallist package" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="ADCS.html">ADCS package</a><input aria-label="Toggle navigation of ADCS package" checked="" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.CONOPS.html">ADCS.CONOPS package</a><input aria-label="Toggle navigation of ADCS.CONOPS package" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goallist.html">ADCS.CONOPS.goallist package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goallist package" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.CONOPS.goallist.goallist.html">ADCS.CONOPS.goallist.goallist module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.html">ADCS.CONOPS.goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals package" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.html">ADCS.CONOPS.goals.attitude_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.attitude_goals package" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.html">ADCS.CONOPS.goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals package" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.html">ADCS.CONOPS.goals.attitude_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.attitude_goals package" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal.html">ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal module</a></li>
 </ul>
 </li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.html">ADCS.CONOPS.goals.vector_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.vector_goals package" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.html">ADCS.CONOPS.goals.vector_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.vector_goals package" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antibfield_goal.html">ADCS.CONOPS.goals.vector_goals.antibfield_goal module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antisun_goal.html">ADCS.CONOPS.goals.vector_goals.antisun_goal module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antivelocity_goal.html">ADCS.CONOPS.goals.vector_goals.antivelocity_goal module</a></li>
@@ -294,22 +288,22 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.controller.html">ADCS.controller package</a><input aria-label="Toggle navigation of ADCS.controller package" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.helpers.html">ADCS.controller.helpers package</a><input aria-label="Toggle navigation of ADCS.controller.helpers package" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.controller.html">ADCS.controller package</a><input aria-label="Toggle navigation of ADCS.controller package" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.helpers.html">ADCS.controller.helpers package</a><input aria-label="Toggle navigation of ADCS.controller.helpers package" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.optional_dependencies.html">ADCS.controller.helpers.optional_dependencies module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.quaternion_math.html">ADCS.controller.helpers.quaternion_math module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.trajectory.html">ADCS.controller.helpers.trajectory module</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.controller.neo_planner.html">ADCS.controller.neo_planner package</a></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.plan_and_track.html">ADCS.controller.plan_and_track package</a><input aria-label="Toggle navigation of ADCS.controller.plan_and_track package" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.plan_and_track.html">ADCS.controller.plan_and_track package</a><input aria-label="Toggle navigation of ADCS.controller.plan_and_track package" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.build_csat.html">ADCS.controller.plan_and_track.build_csat module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.debug_planner.html">ADCS.controller.plan_and_track.debug_planner module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.planner_settings.html">ADCS.controller.plan_and_track.planner_settings module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.planner_subsettings.html">ADCS.controller.plan_and_track.planner_subsettings module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.saltro.html">ADCS.controller.saltro package</a><input aria-label="Toggle navigation of ADCS.controller.saltro package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.saltro.html">ADCS.controller.saltro package</a><input aria-label="Toggle navigation of ADCS.controller.saltro package" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.saltro.SALTRO_constraint_settings.html">ADCS.controller.saltro.SALTRO_constraint_settings module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.saltro.SALTRO_pass_settings.html">ADCS.controller.saltro.SALTRO_pass_settings module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.saltro.SALTRO_planner_settings.html">ADCS.controller.saltro.SALTRO_planner_settings module</a></li>
@@ -332,19 +326,31 @@
 <li class="toctree-l3"><a class="reference internal" href="ADCS.controller.plan_and_track_lqr_disturbed.html">ADCS.controller.plan_and_track_lqr_disturbed module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current has-children"><a class="reference internal" href="ADCS.estimators.html">ADCS.estimators package</a><input aria-label="Toggle navigation of ADCS.estimators package" checked="" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l3 current has-children"><a class="reference internal" href="ADCS.estimators.attitude_estimators.html">ADCS.estimators.attitude_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.attitude_estimators package" checked="" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l4 current current-page"><a class="current reference internal" href="#">ADCS.estimators.attitude_estimators.attitude_SRUAKF module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html">ADCS.estimators.attitude_estimators.attitude_UAKF module</a></li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="ADCS.estimators.html">ADCS.estimators package</a><input aria-label="Toggle navigation of ADCS.estimators package" checked="" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.attitude_estimators.html">ADCS.estimators.attitude_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.attitude_estimators package" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_AugmentedEKF.html">ADCS.estimators.attitude_estimators.attitude_AugmentedEKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_AugmentedMEKF.html">ADCS.estimators.attitude_estimators.attitude_AugmentedMEKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_AugmentedSRUKF.html">ADCS.estimators.attitude_estimators.attitude_AugmentedSRUKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_AugmentedUKF.html">ADCS.estimators.attitude_estimators.attitude_AugmentedUKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_EKF.html">ADCS.estimators.attitude_estimators.attitude_EKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_MEKF.html">ADCS.estimators.attitude_estimators.attitude_MEKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_SRUKF.html">ADCS.estimators.attitude_estimators.attitude_SRUKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UKF.html">ADCS.estimators.attitude_estimators.attitude_UKF module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_estimator.html">ADCS.estimators.attitude_estimators.attitude_estimator module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.estimator_helpers.html">ADCS.estimators.estimator_helpers package</a><input aria-label="Toggle navigation of ADCS.estimators.estimator_helpers package" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.estimator_helpers.html">ADCS.estimators.estimator_helpers package</a><input aria-label="Toggle navigation of ADCS.estimators.estimator_helpers package" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html">ADCS.estimators.estimator_helpers.estimator_helpers module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.old_attitude_estimators.html">ADCS.estimators.old_attitude_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.old_attitude_estimators package" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.old_attitude_estimators.attitude_SRUAKF.html">ADCS.estimators.old_attitude_estimators.attitude_SRUAKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.old_attitude_estimators.attitude_UAKF.html">ADCS.estimators.old_attitude_estimators.attitude_UAKF module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.old_attitude_estimators.attitude_estimator.html">ADCS.estimators.old_attitude_estimators.attitude_estimator module</a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.orbit_estimators.html">ADCS.estimators.orbit_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.orbit_estimators package" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -357,6 +363,7 @@
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">ADCS.estimators.quaternion_mean module</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -390,6 +397,7 @@
 </li>
 <li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plot.sensors.html">ADCS.helpers.plot.sensors package</a><input aria-label="Toggle navigation of ADCS.helpers.plot.sensors package" class="toctree-checkbox" id="toctree-checkbox-30" name="toctree-checkbox-30" role="switch" type="checkbox"/><label for="toctree-checkbox-30"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.sensors.biasplot.html">ADCS.helpers.plot.sensors.biasplot module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.sensors.disturbanceplot.html">ADCS.helpers.plot.sensors.disturbanceplot module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.sensors.sensorsplot.html">ADCS.helpers.plot.sensors.sensorsplot module</a></li>
 </ul>
 </li>
@@ -490,6 +498,7 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.gg_disturbance.html">ADCS.satellite_hardware.disturbances.gg_disturbance module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.prop_disturbance.html">ADCS.satellite_hardware.disturbances.prop_disturbance module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.srp_disturbance.html">ADCS.satellite_hardware.disturbances.srp_disturbance module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.torque_disturbance.html">ADCS.satellite_hardware.disturbances.torque_disturbance module</a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.errors.html">ADCS.satellite_hardware.errors package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.errors package" class="toctree-checkbox" id="toctree-checkbox-47" name="toctree-checkbox-47" role="switch" type="checkbox"/><label for="toctree-checkbox-47"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -546,6 +555,7 @@
 <li class="toctree-l1"><a class="reference internal" href="contributing/testing.html">Testing Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/documentation.html">Documentation Guidelines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing/citations.html">Citations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing/about.html">About</a></li>
 </ul>
 
 </div></div>
@@ -564,7 +574,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="_sources/ADCS.estimators.attitude_estimators.attitude_SRUAKF.rst.txt" title="View this page">
+  <a class="muted-link" href="_sources/ADCS.estimators.quaternion_mean.rst.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -582,497 +592,29 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="module-ADCS.estimators.attitude_estimators.attitude_SRUAKF">
-<span id="adcs-estimators-attitude-estimators-attitude-sruakf-module"></span><h1>ADCS.estimators.attitude_estimators.attitude_SRUAKF module<a class="headerlink" href="#module-ADCS.estimators.attitude_estimators.attitude_SRUAKF" title="Link to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.estimators.attitude_estimators.attitude_SRUAKF.</span></span><span class="sig-name descname"><span class="pre">SRUAKF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cross_term</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quat_as_vec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ephem</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_SRUAKF.html#SRUAKF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF" title="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF"><code class="xref py py-class docutils literal notranslate"><span class="pre">UAKF</span></code></a></p>
-<p>Square Root Unscented Kalman Filter (SR-UKF) using <code class="docutils literal notranslate"><span class="pre">choldate</span></code> rank-1 updates.</p>
-<p>This class implements a numerically stable Square Root UKF (SR-UKF) for
-spacecraft attitude estimation with an augmented state and reduced attitude
-error representation inherited from <a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF" title="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF"><code class="xref py py-class docutils literal notranslate"><span class="pre">UAKF</span></code></a>.</p>
-<p>Instead of propagating the covariance matrix <span class="math notranslate nohighlight">\(P\)</span>, this filter
-propagates an <strong>upper-triangular</strong> Cholesky factor <span class="math notranslate nohighlight">\(S\)</span> such that</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[P = S^\top S,\]</div>
-</div>
-<p>which improves numerical stability and helps keep <span class="math notranslate nohighlight">\(P\)</span> symmetric
-positive semi-definite under finite precision arithmetic.</p>
-<p>This implementation uses the external C-extension <code class="docutils literal notranslate"><span class="pre">choldate</span></code> for fast
-rank-1 Cholesky updates and downdates, which is particularly important
-for the SR-UKF because the 0th sigma point can carry a negative covariance
-weight <span class="math notranslate nohighlight">\(W_0^{(c)} &lt; 0\)</span>, requiring a Cholesky <strong>downdate</strong>.</p>
-<section id="state-and-reduced-error-representation">
-<h2>State and reduced error representation<a class="headerlink" href="#state-and-reduced-error-representation" title="Link to this heading">¶</a></h2>
-<p>Let the (possibly augmented) estimator state be <span class="math notranslate nohighlight">\(\mathbf{x}\)</span>. In the
-common reduced-attitude-error formulation, the quaternion is not directly
-included as 4 DOF in the covariance; instead, a 3-parameter error vector
-<span class="math notranslate nohighlight">\(\delta\boldsymbol{\theta}\in\mathbb{R}^3\)</span> is used, so the reduced
-covariance dimension is <span class="math notranslate nohighlight">\(L_x = N-1\)</span> (unless <code class="docutils literal notranslate"><span class="pre">quat_as_vec=True</span></code>).</p>
-<p>Process noise is represented by a covariance <span class="math notranslate nohighlight">\(Q\)</span> with square root
-<span class="math notranslate nohighlight">\(S_Q\)</span>:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[Q = S_Q^\top S_Q.\]</div>
-</div>
-<p>See also:
-- <a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF" title="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF"><code class="xref py py-class docutils literal notranslate"><span class="pre">UAKF</span></code></a>
-- <a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>
-- <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.make_pts_and_wts">
-<span class="sig-name descname"><span class="pre">make_pts_and_wts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pt0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">which_sensors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_SRUAKF.html#SRUAKF.make_pts_and_wts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.make_pts_and_wts" title="Link to this definition">¶</a></dt>
-<dd><p>Generate augmented sigma points using the stored square root covariance.</p>
-<p>This method generates sigma points for a UKF-style estimator, while
-exploiting the persistently tracked square-root factor <span class="math notranslate nohighlight">\(S\)</span> of the
-reduced covariance for efficiency.</p>
-<p>It produces the standard UKF outputs:</p>
-<ul class="simple">
-<li><p>augmented dimension <span class="math notranslate nohighlight">\(L\)</span>,</p></li>
-<li><p>sigma point container list <code class="docutils literal notranslate"><span class="pre">pts</span></code> of length <span class="math notranslate nohighlight">\(2L+1\)</span>,</p></li>
-<li><p>mean weights <span class="math notranslate nohighlight">\(W_i^{(m)}\)</span>,</p></li>
-<li><p>covariance weights <span class="math notranslate nohighlight">\(W_i^{(c)}\)</span>,</p></li>
-<li><p>state-only sigma points array <code class="docutils literal notranslate"><span class="pre">sig0</span></code> aligned with <code class="docutils literal notranslate"><span class="pre">pts</span></code>.</p></li>
-</ul>
-<section id="unscented-transform-weights">
-<h3>Unscented transform weights<a class="headerlink" href="#unscented-transform-weights" title="Link to this heading">¶</a></h3>
-<p>Let <span class="math notranslate nohighlight">\(L\)</span> be the augmented dimension. With standard UKF parameters
-<span class="math notranslate nohighlight">\(\alpha\)</span>, <span class="math notranslate nohighlight">\(\beta\)</span>, <span class="math notranslate nohighlight">\(\kappa\)</span> (stored in the base class),
-define</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\lambda = \alpha^2 (L + \kappa) - L,\qquad
-\gamma = \sqrt{L + \lambda}.\]</div>
-</div>
-<p>The weights are</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[W_0^{(m)} = \frac{\lambda}{L+\lambda},\qquad
-W_0^{(c)} = \frac{\lambda}{L+\lambda} + (1-\alpha^2+\beta),\]</div>
-</div>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[W_i^{(m)} = W_i^{(c)} = \frac{1}{2(L+\lambda)},\quad i=1,\ldots,2L.\]</div>
-</div>
-</section>
-<section id="sigma-point-construction-with-square-root-factor">
-<h3>Sigma point construction with square root factor<a class="headerlink" href="#sigma-point-construction-with-square-root-factor" title="Link to this heading">¶</a></h3>
-<p>For the (reduced) state block of size <span class="math notranslate nohighlight">\(L_x\)</span>, the covariance is</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[P_x = S^\top S,\]</div>
-</div>
-<p>where <span class="math notranslate nohighlight">\(S\)</span> is <strong>upper-triangular</strong>. If <span class="math notranslate nohighlight">\(L_x = \dim(\mathbf{x})\)</span>
-in the reduced space, sigma-point offsets are formed from the rows of
-<span class="math notranslate nohighlight">\(S\)</span> scaled by <span class="math notranslate nohighlight">\(\gamma\)</span>:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\Delta X = \gamma S.\]</div>
-</div>
-<p>These offsets are applied to the mean state <span class="math notranslate nohighlight">\(\bar{\mathbf{x}}\)</span>
-using the estimator-specific state addition (which must respect quaternion
-error composition), via the inherited method
-<a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state" title="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_to_state()</span></code></a>.</p>
-</section>
-<section id="augmentation-blocks">
-<h3>Augmentation blocks<a class="headerlink" href="#augmentation-blocks" title="Link to this heading">¶</a></h3>
-<p>The method supports an augmented space including:</p>
-<ul class="simple">
-<li><p>state error block (from <span class="math notranslate nohighlight">\(S\)</span>),</p></li>
-<li><p>control/process noise block (from <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov"><code class="xref py py-meth docutils literal notranslate"><span class="pre">control_cov()</span></code></a>),</p></li>
-<li><p>sensor noise block (shape tracked but treated as zero contribution in this architecture),</p></li>
-<li><p>integration noise block (shape tracked but treated as zero contribution here).</p></li>
-</ul>
-<p>For the control/process noise block with covariance <span class="math notranslate nohighlight">\(Q_u\)</span>, sigma
-offsets are formed from a Cholesky factor <span class="math notranslate nohighlight">\(L_u\)</span> such that
-<span class="math notranslate nohighlight">\(Q_u = L_u L_u^\top\)</span>.</p>
-</section>
-<section id="output-alignment">
-<h3>Output alignment<a class="headerlink" href="#output-alignment" title="Link to this heading">¶</a></h3>
-<p>The returned <code class="docutils literal notranslate"><span class="pre">pts</span></code> list stores each sigma point as a 4-list:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[[\text{full\_state},\; \text{sens\_noise},\; \text{control\_noise},\; \text{int\_noise}].\]</div>
-</div>
-<p>The array <code class="docutils literal notranslate"><span class="pre">sig0</span></code> is a stacked view of the state component only, aligned
-in order with <code class="docutils literal notranslate"><span class="pre">pts</span></code>; sigma points whose perturbation is purely in noise
-blocks are padded with the mean state.</p>
-<dl class="field-list simple">
-<dt class="field-odd">param pt0<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Current mean full state vector (augmented state representation).</p>
-</dd>
-<dt class="field-even">type pt0<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-<dt class="field-odd">param which_sensors<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Boolean mask indicating which sensors are active.</p>
-</dd>
-<dt class="field-even">type which_sensors<span class="colon">:</span></dt>
-<dd class="field-even"><p>list[bool]</p>
-</dd>
-<dt class="field-odd">return<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple <code class="docutils literal notranslate"><span class="pre">(L,</span> <span class="pre">pts,</span> <span class="pre">wts_m,</span> <span class="pre">wts_c,</span> <span class="pre">sig0)</span></code> where:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">L</span></code> is the augmented dimension,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">pts</span></code> is the sigma point list,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">wts_m</span></code> are mean weights,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">wts_c</span></code> are covariance weights,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">sig0</span></code> is the stacked state-only sigma point array.</p></li>
-</ul>
-</dd>
-<dt class="field-even">rtype<span class="colon">:</span></dt>
-<dd class="field-even"><p>tuple[int, list, numpy.ndarray, numpy.ndarray, numpy.ndarray]</p>
-</dd>
-</dl>
-</section>
+          <section id="module-ADCS.estimators.quaternion_mean">
+<span id="adcs-estimators-quaternion-mean-module"></span><h1>ADCS.estimators.quaternion_mean module<a class="headerlink" href="#module-ADCS.estimators.quaternion_mean" title="Link to this heading">¶</a></h1>
+<p>Chart-consistent quaternion means for unscented attitude filters.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.estimators.quaternion_mean.quaternion_mean">
+<span class="sig-prename descclassname"><span class="pre">ADCS.estimators.quaternion_mean.</span></span><span class="sig-name descname"><span class="pre">quaternion_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/quaternion_mean.html#quaternion_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.quaternion_mean.quaternion_mean" title="Link to this definition">¶</a></dt>
+<dd><p>Solve sum(w_i * chart(q^-1 q_i)) = 0, including signed UKF weights.</p>
+<p>Newton steps use rotation vectors, so the solver never retracts an
+out-of-domain quaternion-vector correction. Backtracking limits each step
+and reduces the residual, unlike the undamped chart fixed point. Both
+state and measurement means use this same definition; covariance errors
+remain in the requested chart. The analytic 3x3 Jacobian avoids repeated
+state copies and numerical differentiation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>pt0</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>which_sensors</strong> (<em>Sequence</em><em>[</em><em>bool</em><em>]</em>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.update_core">
-<span class="sig-name descname"><span class="pre">update_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_SRUAKF.html#SRUAKF.update_core"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.update_core" title="Link to this definition">¶</a></dt>
-<dd><p>Perform one SR-UKF predict/update cycle using QR factorization and Cholesky downdates.</p>
-<p>This method executes a full SR-UKF cycle in square-root form:</p>
-<ol class="arabic simple">
-<li><p><strong>Time update (prediction)</strong>: propagate sigma points through dynamics and
-compute the predicted mean and predicted square-root covariance <span class="math notranslate nohighlight">\(S^-\)</span>.</p></li>
-<li><p><strong>Measurement update</strong>: predict measurements, compute innovation covariance
-square root <span class="math notranslate nohighlight">\(S_{yy}\)</span>, compute the Kalman gain, update the mean.</p></li>
-<li><p><strong>Square-root covariance update</strong>: apply sequential Cholesky downdates using
-<code class="xref py py-func docutils literal notranslate"><span class="pre">choldate.choldowndate()</span></code> via <a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate" title="ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">weighted_cholupdate()</span></code></a>.</p></li>
-</ol>
-<p>The method returns an <a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>
-containing the updated full state and a reconstructed covariance <span class="math notranslate nohighlight">\(P^+\)</span>.</p>
-<section id="notation">
-<h3>Notation<a class="headerlink" href="#notation" title="Link to this heading">¶</a></h3>
-<p>Let sigma points be <span class="math notranslate nohighlight">\(\chi_i\)</span> with weights <span class="math notranslate nohighlight">\(W_i^{(m)}\)</span>, <span class="math notranslate nohighlight">\(W_i^{(c)}\)</span>.
-Let the propagated sigma points be <span class="math notranslate nohighlight">\(\chi_i^-\)</span> and the predicted mean be
-<span class="math notranslate nohighlight">\(\bar{\mathbf{x}}^-\)</span>.</p>
-<p>Let measurement sigma points be <span class="math notranslate nohighlight">\(\gamma_i^- = h(\chi_i^-)\)</span> with predicted
-mean <span class="math notranslate nohighlight">\(\bar{\mathbf{y}}^-\)</span>.</p>
-</section>
-<section id="sigma-point-propagation">
-<h3>Sigma point propagation<a class="headerlink" href="#sigma-point-propagation" title="Link to this heading">¶</a></h3>
-<p>Dynamics propagation is performed using the satellite model RK4 integrator:</p>
-<ul class="simple">
-<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">noiseless_rk4()</span></code></p></li>
-</ul>
-<p>for each sigma point, with control perturbations applied where relevant.</p>
-</section>
-<section id="predicted-mean">
-<h3>Predicted mean<a class="headerlink" href="#predicted-mean" title="Link to this heading">¶</a></h3>
-<p>The predicted reduced mean is formed by the unscented transform:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\bar{\mathbf{x}}^- = \sum_{i=0}^{2L} W_i^{(m)} \chi_i^-.\]</div>
-</div>
-</section>
-<section id="quaternion-handling">
-<h3>Quaternion handling<a class="headerlink" href="#quaternion-handling" title="Link to this heading">¶</a></h3>
-<p>In reduced attitude-error mode (<code class="docutils literal notranslate"><span class="pre">quat_as_vec=False</span></code>), sigma points encode
-a 3-vector attitude error <span class="math notranslate nohighlight">\(\delta\boldsymbol{\theta}\)</span> (stored in the
-reduced state) which is mapped to a quaternion increment via
-<a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.vec3_to_quat" title="ADCS.helpers.math_helpers.vec3_to_quat"><code class="xref py py-func docutils literal notranslate"><span class="pre">vec3_to_quat()</span></code></a> and composed with the
-propagated reference quaternion using <a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.quat_mult" title="ADCS.helpers.math_helpers.quat_mult"><code class="xref py py-func docutils literal notranslate"><span class="pre">quat_mult()</span></code></a>:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\delta\mathbf{q} = \operatorname{vec3\_to\_quat}(\delta\boldsymbol{\theta}),\qquad
-\mathbf{q} = \mathbf{q}_{ref} \otimes \delta\mathbf{q}.\]</div>
-</div>
-</section>
-<section id="predicted-square-root-covariance-via-qr">
-<h3>Predicted square-root covariance via QR<a class="headerlink" href="#predicted-square-root-covariance-via-qr" title="Link to this heading">¶</a></h3>
-<p>Let deviations be</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathbf{X}_i = \chi_i^- - \bar{\mathbf{x}}^-.\]</div>
-</div>
-<p>Form the weighted deviation matrix excluding the 0th point:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[A = \begin{bmatrix}
-    \sqrt{W_1^{(c)}}\,\mathbf{X}_1 &amp; \cdots &amp; \sqrt{W_{2L}^{(c)}}\,\mathbf{X}_{2L}
-\end{bmatrix}^\top.\]</div>
-</div>
-<p>Augment with the process-noise square root (transposed to align shapes)
-and compute an upper-triangular factor via QR:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\begin{bmatrix} A &amp; S_Q^\top \end{bmatrix}
-= QR,\qquad S^- \leftarrow R.\]</div>
-</div>
-<p>Because <span class="math notranslate nohighlight">\(W_0^{(c)}\)</span> may be negative, the 0th point is incorporated
-via a rank-1 update/downdate:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[S^- \leftarrow \operatorname{cholop}\!\left(S^-, \mathbf{X}_0, W_0^{(c)}\right),\]</div>
-</div>
-<p>where <span class="math notranslate nohighlight">\(\operatorname{cholop}\)</span> is implemented by
-<a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate" title="ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">weighted_cholupdate()</span></code></a>.</p>
-</section>
-<section id="measurement-square-root-covariance">
-<h3>Measurement square-root covariance<a class="headerlink" href="#measurement-square-root-covariance" title="Link to this heading">¶</a></h3>
-<p>Similarly, with measurement deviations</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathbf{Y}_i = \gamma_i^- - \bar{\mathbf{y}}^-,\]</div>
-</div>
-<p>and sensor noise covariance <span class="math notranslate nohighlight">\(R = S_R^\top S_R\)</span>, compute</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\begin{bmatrix}
-    \sqrt{W_1^{(c)}}\,\mathbf{Y}_1 &amp; \cdots &amp; \sqrt{W_{2L}^{(c)}}\,\mathbf{Y}_{2L} &amp; S_R^\top
-\end{bmatrix}
-= QR,\qquad S_{yy} \leftarrow R,\]</div>
-</div>
-<p>then incorporate <span class="math notranslate nohighlight">\(\mathbf{Y}_0\)</span> with the weighted rank-1 operation.</p>
-</section>
-<section id="cross-covariance-and-kalman-gain">
-<h3>Cross-covariance and Kalman gain<a class="headerlink" href="#cross-covariance-and-kalman-gain" title="Link to this heading">¶</a></h3>
-<p>The cross-covariance is computed as</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[P_{y x} = \sum_{i=0}^{2L} W_i^{(c)}\, \mathbf{Y}_i\,\mathbf{X}_i^\top.\]</div>
-</div>
-<p>The Kalman gain is obtained by solving</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[K = P_{x y}\, P_{y y}^{-1},\]</div>
-</div>
-<p>without explicitly forming <span class="math notranslate nohighlight">\(P_{yy}\)</span> by using triangular solves with
-<span class="math notranslate nohighlight">\(S_{yy}\)</span> (upper-triangular):</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[P_{yy} = S_{yy}^\top S_{yy},\]</div>
-</div>
-<p>and for each right-hand side using forward/backward substitution. In code,
-this corresponds to calls equivalent to
-<code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.linalg.solve_triangular()</span></code>.</p>
-</section>
-<section id="innovation-and-mean-update">
-<h3>Innovation and mean update<a class="headerlink" href="#innovation-and-mean-update" title="Link to this heading">¶</a></h3>
-<p>With measurement <span class="math notranslate nohighlight">\(\mathbf{y}\)</span>, innovation</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\boldsymbol{\nu} = \mathbf{y} - \bar{\mathbf{y}}^-,\]</div>
-</div>
-<p>and mean update</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\bar{\mathbf{x}}^+ = \bar{\mathbf{x}}^- + K\,\boldsymbol{\nu}.\]</div>
-</div>
-</section>
-<section id="square-root-covariance-update-downdate-form">
-<h3>Square-root covariance update (downdate form)<a class="headerlink" href="#square-root-covariance-update-downdate-form" title="Link to this heading">¶</a></h3>
-<p>The SR-UKF covariance update can be expressed in square-root downdate form.
-Let</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[U = S_{yy}\,K^\top.\]</div>
-</div>
-<p>Then</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[P^+ = P^- - K P_{yy} K^\top
-    = S^{-\top} S^- - U^\top U.\]</div>
-</div>
-<p>In square-root form, this is implemented by sequential Cholesky downdates:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[S^+ \leftarrow \operatorname{choldowndate}(S^-, U).\]</div>
-</div>
-<p>This method performs that operation via
-<a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate" title="ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">weighted_cholupdate()</span></code></a>
-with a negative weight.</p>
-</section>
-<section id="reconstruction-and-compatibility">
-<h3>Reconstruction and compatibility<a class="headerlink" href="#reconstruction-and-compatibility" title="Link to this heading">¶</a></h3>
-<p>For compatibility with other estimator infrastructure, the method
-reconstructs a covariance matrix</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[P^+ = S^{+\top} S^+,\]</div>
-</div>
-<p>symmetrizes it, and returns it in the resulting
-<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a>.</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">quat_as_vec=True</span></code>, the quaternion is renormalized using
-<a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.normalize" title="ADCS.helpers.math_helpers.normalize"><code class="xref py py-func docutils literal notranslate"><span class="pre">normalize()</span></code></a> and covariance is transformed
-with the normalization Jacobian from <a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.state_norm_jac" title="ADCS.helpers.math_helpers.state_norm_jac"><code class="xref py py-func docutils literal notranslate"><span class="pre">state_norm_jac()</span></code></a>.</p>
-</section>
-<section id="sensor-activation-logic">
-<h3>Sensor activation logic<a class="headerlink" href="#sensor-activation-logic" title="Link to this heading">¶</a></h3>
-<p>Active attitude sensors are inferred from the <em>actual</em> measurement vector
-by checking each sensor output slice for NaNs. The sensor-output mask is
-expanded using the inherited helper method
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">_expand_sensor_mask()</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">param u<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Control input vector.</p>
-</dd>
-<dt class="field-even">type u<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-<dt class="field-odd">param sensors<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Stacked array of actual sensor measurements.</p>
-</dd>
-<dt class="field-even">type sensors<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-<dt class="field-odd">param os<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Current orbital environment state.</p>
-</dd>
-<dt class="field-even">type os<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a></p>
-</dd>
-<dt class="field-odd">raises numpy.linalg.LinAlgError<span class="colon">:</span></dt>
-<dd class="field-odd"><p>If the innovation covariance square root is singular
-during triangular solves.</p>
-</dd>
-<dt class="field-even">return<span class="colon">:</span></dt>
-<dd class="field-even"><p>Updated estimate container with fields:</p>
-<ul class="simple">
-<li><p>full augmented state,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cov</span></code>: reconstructed reduced covariance <span class="math notranslate nohighlight">\(P^+\)</span>,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">int_cov</span></code>: unchanged (inherited from internal state).</p></li>
-</ul>
-</dd>
-<dt class="field-odd">rtype<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatorState</span></code></a></p>
-</dd>
-</dl>
-</section>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>u</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>sensors</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate">
-<span class="sig-name descname"><span class="pre">weighted_cholupdate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_SRUAKF.html#SRUAKF.weighted_cholupdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate" title="Link to this definition">¶</a></dt>
-<dd><p>Perform a weighted rank-1 Cholesky update/downdate using <code class="docutils literal notranslate"><span class="pre">choldate</span></code>.</p>
-<p>This method updates an <strong>upper-triangular</strong> Cholesky factor <span class="math notranslate nohighlight">\(S\)</span>
-(named <code class="docutils literal notranslate"><span class="pre">mat</span></code>) to reflect adding or subtracting a weighted outer product
-of a vector <span class="math notranslate nohighlight">\(\mathbf{v}\)</span>:</p>
-<ul>
-<li><p>For <span class="math notranslate nohighlight">\(wt \ge 0\)</span> (update):</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[S_{\text{new}}^\top S_{\text{new}}
-=
-S^\top S + wt\, \mathbf{v}\mathbf{v}^\top.\]</div>
-</div>
-</li>
-<li><p>For <span class="math notranslate nohighlight">\(wt &lt; 0\)</span> (downdate):</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[S_{\text{new}}^\top S_{\text{new}}
-=
-S^\top S - |wt|\, \mathbf{v}\mathbf{v}^\top.\]</div>
-</div>
-</li>
-</ul>
-<section id="implementation-detail">
-<h3>Implementation detail<a class="headerlink" href="#implementation-detail" title="Link to this heading">¶</a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">choldate</span></code> routines operate in-place on the Cholesky factor and
-accept the scaled vector <span class="math notranslate nohighlight">\(\sqrt{|wt|}\,\mathbf{v}\)</span>.</p>
-<p>This wrapper provides:</p>
-<ul class="simple">
-<li><p>sign logic: <code class="xref py py-func docutils literal notranslate"><span class="pre">choldate.cholupdate()</span></code> if <span class="math notranslate nohighlight">\(wt\ge 0\)</span>,
-<code class="xref py py-func docutils literal notranslate"><span class="pre">choldate.choldowndate()</span></code> if <span class="math notranslate nohighlight">\(wt &lt; 0\)</span>,</p></li>
-<li><p>handling of matrix inputs <code class="docutils literal notranslate"><span class="pre">vec</span></code> (multiple vectors) by applying
-sequential rank-1 operations.</p></li>
-</ul>
-</section>
-<section id="matrix-input-semantics">
-<h3>Matrix input semantics<a class="headerlink" href="#matrix-input-semantics" title="Link to this heading">¶</a></h3>
-<p>If <code class="docutils literal notranslate"><span class="pre">vec</span></code> is a 2D array with multiple vectors, the method applies</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[S \leftarrow \operatorname{cholop}(S, \mathbf{v}_1, wt),\;
-S \leftarrow \operatorname{cholop}(S, \mathbf{v}_2, wt),\;\ldots\]</div>
-</div>
-<p>where <span class="math notranslate nohighlight">\(\operatorname{cholop}\)</span> is an update or downdate depending on
-the sign of <span class="math notranslate nohighlight">\(wt\)</span>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">param mat<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Upper-triangular Cholesky factor <span class="math notranslate nohighlight">\(S\)</span> to be modified.</p>
-</dd>
-<dt class="field-even">type mat<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-<dt class="field-odd">param vec<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Update vector <span class="math notranslate nohighlight">\(\mathbf{v}\)</span> (shape <code class="docutils literal notranslate"><span class="pre">(n,)</span></code>) or a matrix
-of vectors (shape <code class="docutils literal notranslate"><span class="pre">(k,n)</span></code> or <code class="docutils literal notranslate"><span class="pre">(n,k)</span></code>) to be applied sequentially.</p>
-</dd>
-<dt class="field-even">type vec<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-<dt class="field-odd">param wt<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Scalar weight controlling update (nonnegative) or downdate (negative).</p>
-</dd>
-<dt class="field-even">type wt<span class="colon">:</span></dt>
-<dd class="field-even"><p>float</p>
-</dd>
-<dt class="field-odd">raises ValueError<span class="colon">:</span></dt>
-<dd class="field-odd"><p>If <code class="docutils literal notranslate"><span class="pre">vec</span></code> has more than 2 dimensions.</p>
-</dd>
-<dt class="field-even">raises numpy.linalg.LinAlgError<span class="colon">:</span></dt>
-<dd class="field-even"><p>If NaN/Inf appears in the updated factor.</p>
-</dd>
-<dt class="field-odd">return<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Updated upper-triangular Cholesky factor <span class="math notranslate nohighlight">\(S_{\text{new}}\)</span>.</p>
-</dd>
-<dt class="field-even">rtype<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</section>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>mat</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>vec</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>wt</strong> (<em>float</em>)</p></li>
+<li><p><strong>values</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>weights</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>mode</strong> (<em>str</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>ndarray</em></p>
-</dd>
-</dl>
-</dd></dl>
-
-</section>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
-<li><p><strong>J2000</strong> (<em>float</em>)</p></li>
-<li><p><strong>x_hat</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>P_hat</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>Q_hat</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>dt</strong> (<em>float</em>)</p></li>
-<li><p><strong>cross_term</strong> (<em>bool</em>)</p></li>
-<li><p><strong>quat_as_vec</strong> (<em>bool</em>)</p></li>
-<li><p><strong>ephem</strong> (<a class="reference internal" href="ADCS.orbits.ephemeris.html#ADCS.orbits.ephemeris.Ephemeris" title="ADCS.orbits.ephemeris.Ephemeris"><em>Ephemeris</em></a><em> | </em><em>None</em>)</p></li>
-</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -1084,23 +626,23 @@ of vectors (shape <code class="docutils literal notranslate"><span class="pre">(
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html">
+          <a class="next-page" href="ADCS.flight_software.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">ADCS.estimators.attitude_estimators.attitude_UAKF module</div>
+                <div class="title">ADCS.flight_software package</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="ADCS.estimators.attitude_estimators.html">
+          <a class="prev-page" href="ADCS.estimators.process_noise.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">ADCS.estimators.attitude_estimators package</div>
+                <div class="title">ADCS.estimators.process_noise module</div>
                 
               </div>
             </a>
@@ -1132,7 +674,6 @@ of vectors (shape <code class="docutils literal notranslate"><span class="pre">(
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>
