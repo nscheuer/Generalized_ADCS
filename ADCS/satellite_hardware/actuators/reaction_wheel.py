@@ -328,7 +328,14 @@ class RW(Actuator):
         return -u_eff
     
 
-    def measure_momentum(self):
+    def update_errors(self, j2000: float) -> None:
+        super().update_errors(j2000)
+        # The held effective command was drawn with the previous realization;
+        # the next torque evaluation must not be served from that cache.
+        self._eff_cmd_key = None
+        self._eff_cmd_val = None
+
+    def measure_momentum(self, dmode: Optional[ErrorMode] = None):
         r"""
         Measure the wheel angular momentum with additive measurement noise.
 
@@ -341,10 +348,23 @@ class RW(Actuator):
         where :math:`\nu_h` is sampled from :attr:`~RW.h_meas_noise`, an instance of
         :class:`~ADCS.satellite_hardware.errors.noise.Noise`.
 
+        Like :meth:`~ADCS.satellite_hardware.sensors.sensor.Sensor.reading`, a
+        fresh noise sample is drawn for each measurement unless ``dmode``
+        disables it, so consecutive readings carry independent noise.
+
+        :param dmode: Error mode; ``add_noise`` and ``update_noise`` are honoured.
+                      If ``None``, the noise is drawn and added.
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None
         :return: Noisy wheel momentum measurement :math:`\tilde{\mathbf{h}}` [N·m·s], shape ``(3,)``.
         :rtype: numpy.ndarray
         """
-        return self.h + self.h_meas_noise.get_noise()
+        if dmode is None:
+            dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
+        if self.h_meas_noise and dmode.update_noise:
+            self.h_meas_noise._update_noise()
+        if self.h_meas_noise and dmode.add_noise:
+            return self.h + self.h_meas_noise.get_noise()
+        return self.h + 0.0
     
     def measure_momentum_noiseless(self):
         r"""

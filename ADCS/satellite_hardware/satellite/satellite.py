@@ -494,6 +494,24 @@ class Satellite:
         """
         return np.array([self.actuators[j].h for j in self.momentum_inds])
 
+    def update_actuator_errors(self, j2000: float) -> None:
+        r"""
+        Advance every actuator's stochastic error models by one plant step.
+
+        Calls :meth:`~ADCS.satellite_hardware.actuators.actuator.Actuator.update_errors`
+        on each actuator: the bias random walks move to ``j2000`` and a fresh
+        noise sample is drawn, to be held over the following integration step.
+        :func:`~ADCS.simulate.simulate` calls this once per step before
+        integrating the plant.
+
+        :param j2000: Current epoch in Julian centuries since J2000.
+        :type j2000: float
+        :return: None
+        :rtype: None
+        """
+        for actuator in self.actuators:
+            actuator.update_errors(j2000)
+
     def update_RWhs(self,state_or_RWhs) -> None:
         r"""
         Update stored wheel momentum values in each :class:`~ADCS.satellite_hardware.actuators.RW`.
@@ -1407,7 +1425,7 @@ class Satellite:
         :rtype: numpy.ndarray
         """
         sensor_readings: List[np.ndarray] = [np.atleast_1d(self.attitude_sensors[j].reading(x=x, os=os, dmode=dmode)) for j in range(len(self.attitude_sensors))]
-        rw_readings: List[np.ndarray] = [np.atleast_1d(self.rw_actuators[j].measure_momentum()) for j in range(len(self.rw_actuators))]
+        rw_readings: List[np.ndarray] = [np.atleast_1d(self.rw_actuators[j].measure_momentum(dmode=dmode)) for j in range(len(self.rw_actuators))]
         combined_readings = sensor_readings + rw_readings
         if not combined_readings:
             return np.array([])

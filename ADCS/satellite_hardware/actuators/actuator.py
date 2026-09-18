@@ -144,6 +144,26 @@ class Actuator:
         """Return the continuous PSD of this actuator's bias random walk."""
         return self.bias.process_psd(form=form)
 
+    def update_errors(self, j2000: float) -> None:
+        r"""
+        Advance the actuator's stochastic error models by one plant step.
+
+        Walks the bias random walk to ``j2000`` and draws a fresh noise
+        sample. The plant then holds both over the following integration step
+        (the dynamics are evaluated with ``update_bias=False`` and
+        ``update_noise=False``), which is the zero-order-hold model the
+        estimators assume for actuator command noise.
+
+        :param j2000: Current epoch in Julian centuries since J2000.
+        :type j2000: float
+        :return: None
+        :rtype: None
+        """
+        if self.bias:
+            self.bias._update_bias(j2000)
+        if self.noise:
+            self.noise._update_noise()
+
     def torque(self, u: float, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""
         Compute the body-frame torque produced by the actuator.

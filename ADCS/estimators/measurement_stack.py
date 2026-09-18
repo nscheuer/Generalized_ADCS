@@ -227,7 +227,7 @@ class MeasurementStack:
         readings = [
             np.atleast_1d(entry.source.reading(state, orbital_state, dmode=dmode))
             if entry.sensor_index is not None
-            else np.atleast_1d(entry.source.measure_momentum())
+            else np.atleast_1d(entry.source.measure_momentum(dmode=dmode))
             for entry in self._entries
         ]
         return np.concatenate(readings) if readings else np.empty(0)

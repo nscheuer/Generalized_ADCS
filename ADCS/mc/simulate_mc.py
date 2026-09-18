@@ -225,6 +225,9 @@ def _simulate_with_precomputed_orbit(
         else:
             u[:] = 0.0
 
+        # Draw this step's actuator noise samples and walk the actuator biases;
+        # the integrator below holds them for the whole step (zero-order hold).
+        satellite.update_actuator_errors(J2000_k)
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0, dt),
