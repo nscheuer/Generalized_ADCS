@@ -10,7 +10,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ
-from ADCS.satellite_hardware.errors import Bias, Noise
+from ADCS.satellite_hardware.errors import Bias, ErrorMode, Noise
 from ADCS.satellite_hardware.satellite import Satellite
 from ADCS.state import State
 
@@ -216,10 +216,9 @@ def _expected_seeded_torques(
     last_bias_time = None
 
     for time in times:
-        torque = _torque_scale(case) * (case.u + (bias_curr if bias_active else 0.0))
-        if noise_active:
-            torque = torque + noise_curr
-        expected.append(torque)
+        # Bias and noise both perturb the realized dipole command.
+        command = case.u + (bias_curr if bias_active else 0.0) + (noise_curr if noise_active else 0.0)
+        expected.append(_torque_scale(case) * command)
 
         if last_bias_time is None:
             last_bias_time = time
@@ -548,3 +547,42 @@ def test_mtq_bias_and_noise_updates_follow_seeded_samples() -> None:
     )
 
     np.testing.assert_allclose(actual, expected)
+
+
+def test_mtq_noise_enters_through_the_dipole_command() -> None:
+    """A held noise sample shifts the command: same torque as commanding u + n cleanly."""
+    case = _make_case(21)
+    mtq = _make_mtq(case, noise=Noise(noise=0.0, std_noise=0.05))
+    command = 0.5 * mtq.u_max
+    np.random.seed(2024)
+    mtq.noise._update_noise()
+    sample = float(mtq.noise.get_noise())
+    assert sample != 0.0 and abs(sample) < 0.5 * mtq.u_max
+    hold = ErrorMode(add_bias=False, add_noise=True, update_bias=False, update_noise=False)
+    clean = ErrorMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
+    noisy = mtq.torque(u=command, x=case.x, os=case.orbital_state, dmode=hold)
+    shifted = mtq.torque(u=command + sample, x=case.x, os=case.orbital_state, dmode=clean)
+    nominal = mtq.torque(u=command, x=case.x, os=case.orbital_state, dmode=clean)
+    np.testing.assert_allclose(noisy, shifted, rtol=1e-12, atol=1e-18)
+    # Dipole noise cannot produce torque along the magnetic field.
+    b_body = case.orbital_state.get_state_vector(x=case.x)["b"]
+    assert abs(np.dot(noisy - nominal, b_body)) <= 1e-12 * np.linalg.norm(noisy - nominal) * np.linalg.norm(b_body)
+
+
+def test_mtq_control_covariance_describes_the_torque_spread() -> None:
+    """The plant's torque covariance is g Q_u g^T with g the torque per unit command."""
+    case = _make_case(22)
+    std = 0.02
+    mtq = _make_mtq(case, noise=Noise(noise=0.0, std_noise=std))
+    command = 0.25 * mtq.u_max
+    hold = ErrorMode(add_bias=False, add_noise=True, update_bias=False, update_noise=False)
+    np.random.seed(7)
+    samples = []
+    for _ in range(4000):
+        mtq.noise._update_noise()
+        samples.append(mtq.torque(u=command, x=case.x, os=case.orbital_state, dmode=hold))
+    empirical = np.cov(np.asarray(samples).T)
+    gain = _torque_scale(case)
+    predicted = np.outer(gain, gain) * float(mtq.control_covariance().as_matrix()[0, 0])
+    np.testing.assert_allclose(predicted, np.outer(gain, gain) * std**2)
+    np.testing.assert_allclose(empirical, predicted, rtol=0.1)

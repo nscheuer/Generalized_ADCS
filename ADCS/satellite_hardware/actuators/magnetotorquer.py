@@ -49,16 +49,19 @@ class MTQ(Actuator):
 
     .. math::
 
-        \mathbf{m} = \mathbf{a}\,(u + b).
+        \mathbf{m} = \mathbf{a}\,(u + b + n).
 
     Combining the two gives the actuation model used by :meth:`~ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.torque`:
 
     .. math::
 
         \boldsymbol{\tau}_{\mathrm{MTQ}}
-        = -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u+b) + \mathbf{n},
+        = -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u + b + n),
 
-    where :math:`\mathbf{n}` is an additive noise term (if enabled).
+    where :math:`n` is an additive dipole-command noise term (if enabled): the noise
+    torque lies along :math:`\mathbf{B}_{\mathcal{B}} \times \mathbf{a}` like the command's,
+    and :meth:`~ADCS.satellite_hardware.actuators.actuator.Actuator.control_covariance`
+    (dipole units) describes it.
 
     Symbols
     --------
@@ -79,8 +82,8 @@ class MTQ(Actuator):
          - Commanded dipole magnitude [A·m²]
        * - :math:`b`
          - Bias in the commanded dipole (modeled by :class:`~ADCS.satellite_hardware.errors.bias.Bias`)
-       * - :math:`\mathbf{n}`
-         - Additive actuator torque noise (modeled by :class:`~ADCS.satellite_hardware.errors.noise.Noise`)
+       * - :math:`n`
+         - Additive dipole-command noise [A·m²] (modeled by :class:`~ADCS.satellite_hardware.errors.noise.Noise`)
 
     State dependence
     -----------------
@@ -108,7 +111,8 @@ class MTQ(Actuator):
     :param bias: Bias model representing constant or slowly varying dipole offset.
     :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` | None
 
-    :param noise: Noise model representing stochastic actuation uncertainty.
+    :param noise: Noise model for the realized dipole command [A·m²]; the same object
+        defines :meth:`~ADCS.satellite_hardware.actuators.actuator.Actuator.control_covariance`.
     :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` | None
 
     :param estimate_bias: If ``True``, includes this actuator's bias term in the estimator state vector.
@@ -166,7 +170,7 @@ class MTQ(Actuator):
         .. math::
 
             \boldsymbol{\tau}
-            = -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u + b) + \mathbf{n}
+            = -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u + b + n)
 
         where the magnetic field and its derivatives are obtained from
         :class:`~ADCS.orbits.orbital_state.Orbital_State`.
@@ -206,10 +210,19 @@ class MTQ(Actuator):
         if dmode is None:
             dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
 
+        # Bias and noise both perturb the realized dipole command, so the
+        # torque they produce lies along B x a like the command's own torque
+        # and Actuator.control_covariance() (dipole units) describes the plant.
+        # ``u = u + ...`` rather than ``+=`` so a caller's array is never
+        # mutated in place.
         if self.bias and dmode.add_bias:
-            u += self.bias.get_bias(j2000=os.J2000)
+            u = u + self.bias.get_bias(j2000=os.J2000)
         if dmode.update_bias:
             self.bias._update_bias(j2000=os.J2000)
+        if self.noise and dmode.add_noise:
+            u = u + self.noise.get_noise()
+        if dmode.update_noise:
+            self.noise._update_noise()
 
         # Keep the JIT fast path for scalar-like commands; fall back for
         # array-valued finite-difference probes used by some tests.
@@ -218,12 +231,6 @@ class MTQ(Actuator):
             torque = _mtq_torque_kernel(b_body, self.axis, float(u_arr.reshape(-1)[0]))
         else:
             torque = -np.cross(b_body, self.axis) * u_arr
-
-        if self.noise and dmode.add_noise:
-            torque += self.noise.get_noise()
-        if dmode.update_noise:
-            self.noise._update_noise()
-
         return torque
     
     def storage_torque(self, u: float, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
