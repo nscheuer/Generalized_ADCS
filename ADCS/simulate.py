@@ -226,6 +226,10 @@ def simulate(
         J2000_kp1 = start_time + (k + 1) * dt * TimeConstants.sec2cent
         os_kp1 = orb.get_os(J2000=J2000_kp1)
         os_kp1._skip_jacobians = _skip_jac
+        # Draw this step's plant error realizations (actuator noise and bias walks,
+        # wheel tachometer samples) before measuring and integrating; the
+        # integrator holds them for the whole step (zero-order hold).
+        satellite.update_actuator_errors(J2000_k)
 
         y = satellite.sensor_readings(x=x, os=os_k)
         y_clean = satellite.noiseless_sensor_readings(x=x, os=os_k)
@@ -271,9 +275,6 @@ def simulate(
         env_local_time_s = time.perf_counter() - env_t0
 
         dyn_t0 = time.perf_counter()
-        # Draw this step's actuator noise samples and walk the actuator biases;
-        # the integrator below holds them for the whole step (zero-order hold).
-        satellite.update_actuator_errors(J2000_k)
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0, dt),

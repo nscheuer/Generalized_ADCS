@@ -5,8 +5,8 @@ actuator's ``Noise`` or advanced its ``Bias`` random walk (the dynamics run
 with ``update_noise=False``/``update_bias=False`` so the sample is held over
 the integration step, which is right, but no one drew the sample), so the
 noise stayed at its initial zero value for the whole run. Wheel momentum
-measurements had the same problem: ``measure_momentum()`` never redrew
-``h_meas_noise``.
+measurements had the same problem: ``h_meas_noise`` was never redrawn, so the
+readings were exactly ``h``.
 """
 
 from __future__ import annotations
@@ -80,14 +80,24 @@ def test_satellite_update_actuator_errors_reaches_every_actuator():
     assert all(float(np.max(np.abs(actuator.noise.get_noise()))) != 0.0 for actuator in satellite.actuators)
 
 
-def test_rw_momentum_measurement_noise_is_drawn_per_reading():
+def test_rw_momentum_measurement_noise_is_drawn_per_step():
     np.random.seed(9)
     rw = _wheel(h=0.1, h_meas_noise=Noise(noise=0.0, std_noise=1.0e-3))
-    readings = [float(rw.measure_momentum()) for _ in range(3)]
-    assert len(set(np.round(readings, 12))) == 3 and all(reading != 0.1 for reading in readings)
+    assert float(rw.measure_momentum()) == 0.1  # nothing drawn yet
+    rw.update_errors(0.22)
+    first = float(rw.measure_momentum())
+    assert first != 0.1
+    assert float(rw.measure_momentum()) == first  # held within the step
+    rw.update_errors(0.22 + 10.0 * TimeConstants.sec2cent)
+    assert float(rw.measure_momentum()) != first  # fresh sample for the next step
     assert float(rw.measure_momentum(dmode=CLEAN)) == 0.1
     assert float(rw.measure_momentum_noiseless()) == 0.1
+    held = float(rw.measure_momentum())
+    redraw = ErrorMode(add_bias=True, add_noise=True, update_bias=False, update_noise=True)
+    fresh = float(rw.measure_momentum(dmode=redraw))  # explicit redraw replaces the held sample
+    assert fresh != held and float(rw.measure_momentum()) == fresh
     satellite = Satellite(J_0=np.diag([0.5, 0.8, 1.2]), actuators=[rw])
+    satellite.update_actuator_errors(0.23)
     state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
     orbital_state = _orbital_state()
     assert satellite.noiseless_sensor_readings(state, orbital_state)[-1] == 0.1

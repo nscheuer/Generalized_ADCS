@@ -330,6 +330,11 @@ class RW(Actuator):
 
     def update_errors(self, j2000: float) -> None:
         super().update_errors(j2000)
+        # Draw this step's momentum-measurement sample too: measure_momentum()
+        # adds the held sample, so every reading within the step sees the same
+        # realization and the hot path stays a single addition.
+        if self.h_meas_noise:
+            self.h_meas_noise._update_noise()
         # The held effective command was drawn with the previous realization;
         # the next torque evaluation must not be served from that cache.
         self._eff_cmd_key = None
@@ -348,24 +353,29 @@ class RW(Actuator):
         where :math:`\nu_h` is sampled from :attr:`~RW.h_meas_noise`, an instance of
         :class:`~ADCS.satellite_hardware.errors.noise.Noise`.
 
-        Like :meth:`~ADCS.satellite_hardware.sensors.sensor.Sensor.reading`, a
-        fresh noise sample is drawn for each measurement unless ``dmode``
-        disables it, so consecutive readings carry independent noise.
+        The sample is drawn once per plant step by :meth:`update_errors` (the
+        plant calls it through
+        :meth:`~ADCS.satellite_hardware.satellite.satellite.Satellite.update_actuator_errors`)
+        and held, so readings taken within one step share a realization and
+        consecutive steps carry independent noise. Pass an
+        :class:`~ADCS.satellite_hardware.errors.ErrorMode` with
+        ``add_noise=False`` for the noiseless value, or ``update_noise=True``
+        to draw a fresh sample for this reading.
 
         :param dmode: Error mode; ``add_noise`` and ``update_noise`` are honoured.
-                      If ``None``, the noise is drawn and added.
+                      ``None`` adds the held sample without redrawing.
         :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None
         :return: Noisy wheel momentum measurement :math:`\tilde{\mathbf{h}}` [N·m·s], shape ``(3,)``.
         :rtype: numpy.ndarray
         """
         if dmode is None:
-            dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
-        if self.h_meas_noise and dmode.update_noise:
+            return self.h + self.h_meas_noise.get_noise()
+        if dmode.update_noise and self.h_meas_noise:
             self.h_meas_noise._update_noise()
-        if self.h_meas_noise and dmode.add_noise:
+        if dmode.add_noise:
             return self.h + self.h_meas_noise.get_noise()
         return self.h + 0.0
-    
+
     def measure_momentum_noiseless(self):
         r"""
         Measure the wheel angular momentum without measurement noise.

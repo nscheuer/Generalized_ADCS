@@ -192,6 +192,10 @@ def _simulate_with_precomputed_orbit(
         os_k = os_seq[k]
         os_kp1 = os_seq[k + 1]
         J2000_k = os_k.J2000
+        # Draw this step's plant error realizations (actuator noise and bias walks,
+        # wheel tachometer samples) before measuring and integrating; the
+        # integrator holds them for the whole step (zero-order hold).
+        satellite.update_actuator_errors(J2000_k)
 
         y = satellite.sensor_readings(x=x, os=os_k)
         y_clean = satellite.noiseless_sensor_readings(x=x, os=os_k)
@@ -225,9 +229,6 @@ def _simulate_with_precomputed_orbit(
         else:
             u[:] = 0.0
 
-        # Draw this step's actuator noise samples and walk the actuator biases;
-        # the integrator below holds them for the whole step (zero-order hold).
-        satellite.update_actuator_errors(J2000_k)
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0, dt),
