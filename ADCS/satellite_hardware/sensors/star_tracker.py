@@ -236,6 +236,17 @@ class StarTracker(Sensor):
         :rtype: :class:`~ADCS.environment.NavigationStar` or None
         """
 
+        # Memoize on the exact (attitude, orbital state) so clean_reading and
+        # basestate_jac evaluated at the same state share one catalog query,
+        # while a different state always re-selects.
+        key = (
+            np.asarray(q, dtype=float).tobytes(),
+            float(os.J2000),
+            np.asarray(os.R, dtype=float).tobytes(),
+        )
+        cached = getattr(self, "_star_selection", None)
+        if cached is not None and cached[0] == key:
+            return cached[1]
         A = rot_mat(q)
         boresight_eci = A @ self.boresight
         r_sat_eci = os.R
@@ -251,10 +262,9 @@ class StarTracker(Sensor):
             sun_exclusion_rad=self.sun_exclusion
         )
 
-        if not visible:
-            return None
-
-        return min(visible, key=lambda s: s.vmag)
+        star = min(visible, key=lambda s: s.vmag) if visible else None
+        self._star_selection = (key, star)
+        return star
 
     def clean_reading(self, x: NDArray[np.float64], os: Orbital_State) -> NDArray[np.float64]:
         r"""
@@ -349,11 +359,16 @@ class StarTracker(Sensor):
         :return: Base-state Jacobian stacked as ``[ω; q]``, shape ``(7, 3)``.
         :rtype: numpy.ndarray
         """
-        if self.current_star is None:
-            return np.zeros((7, self.output_length))
-
+        # Derive the star from (x, os) rather than from whatever the previous
+        # clean_reading() call left in ``current_star``: the Jacobian must
+        # describe the measurement at *this* state, and a state where no
+        # star is visible has no finite Jacobian (NaN, not zeros, so an
+        # estimator cannot silently use a stale mask with it).
         q = x.q
-        s_eci = self.current_star.s_eci
+        star = self._select_star(q, os)
+        if star is None:
+            return np.full((7, self.output_length), np.nan)
+        s_eci = star.s_eci
         db_dq = drotmatTvecdq(q, s_eci)
 
         J = np.zeros((7, self.output_length))

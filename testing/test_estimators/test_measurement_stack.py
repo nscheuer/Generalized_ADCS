@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from ADCS.estimators.measurement_stack import MeasurementStack
 from ADCS.satellite_hardware.actuators import RW
@@ -318,3 +319,42 @@ def test_accumulated_decimal_time_remains_due_in_seconds():
 def test_satellite_caches_measurement_stack():
     satellite = EstimatedSatellite(sensors=[_VectorSensor()])
     assert satellite.measurement_stack is satellite.measurement_stack
+
+
+class _UnavailableJacobianSensor(Sensor):
+    """Unavailable (NaN) below w[0] = 0, with a NaN Jacobian there as well."""
+
+    def __init__(self):
+        super().__init__(output_length=1, noise=Noise(std_noise=0.2))
+
+    def clean_reading(self, x, os):
+        return np.nan if x.w[0] < 0.0 else x.w[0]
+
+    def basestate_jac(self, x, os):
+        if x.w[0] < 0.0:
+            return np.full((7, 1), np.nan)
+        jacobian = np.zeros((7, 1))
+        jacobian[0, 0] = 1.0
+        return jacobian
+
+
+def test_jacobian_and_covariance_enforce_the_finite_prediction_contract():
+    stack = MeasurementStack(EstimatedSatellite(sensors=[_UnavailableJacobianSensor()]))
+    state = EstimatorState(w=[-0.1, 0.0, 0.0], q=[1.0, 0.0, 0.0, 0.0])
+    measured = np.array([0.3])
+    stale = stack.active_mask(measured)  # first pass: the measurement itself is finite
+    predicted = stack.predict(state, None, active_mask=stale)
+    with pytest.raises(ValueError, match="Jacobian is non-finite"):
+        stack.jacobian(state, None, stale)
+    with pytest.raises(ValueError, match="recompute active_mask"):
+        stack.jacobian(state, None, stale, predicted=predicted)
+    with pytest.raises(ValueError, match="recompute active_mask"):
+        stack.covariance(state, stale, predicted=predicted)
+    effective = stack.active_mask(measured, predicted=predicted)
+    assert stack.jacobian(state, None, effective, predicted=predicted).shape[0] == 0
+    assert stack.covariance(state, effective, predicted=predicted).shape == (0, 0)
+    # available state: everything is finite and the optional argument is inert
+    available = EstimatorState(w=[0.1, 0.0, 0.0], q=[1.0, 0.0, 0.0, 0.0])
+    predicted = stack.predict(available, None, active_mask=stale)
+    np.testing.assert_allclose(stack.jacobian(available, None, stale, predicted=predicted), stack.jacobian(available, None, stale))
+    assert stack.covariance(available, stale, predicted=predicted).shape == (1, 1)

@@ -359,14 +359,23 @@ class MeasurementStack:
         *,
         form: str = "full",
         quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
+        predicted: Any | None = None,
     ) -> Covariance:
-        """Return active residual covariance ``R`` using right-error coordinates."""
+        """Return active residual covariance ``R`` using right-error coordinates.
+
+        When ``predicted`` (the raw prediction from :meth:`predict`) is given,
+        an active entry with a non-finite prediction raises, the same contract
+        :meth:`residual` enforces, so a stale first-pass mask cannot produce a
+        covariance whose dimension disagrees with the residual.
+        """
         self._validate_state(state)
         active = self._entry_mask(active_mask)
+        predicted_values = self._predicted_values(predicted)
         blocks: list[np.ndarray] = []
         for entry, selected in zip(self._entries, active):
             if not selected:
                 continue
+            self._check_prediction(entry, predicted_values)
             if entry.sensor_index is None:
                 block = entry.source.momentum_measurement_covariance().as_matrix()
             else:
@@ -394,8 +403,14 @@ class MeasurementStack:
         *,
         quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
         coordinates: str = "tangent",
+        predicted: Any | None = None,
     ) -> np.ndarray:
         r"""Return the active right-error measurement Jacobian ``H``.
+
+        An active entry whose sensor Jacobian is non-finite at the estimate
+        (the measurement is unavailable there) raises with the entry name;
+        passing ``predicted`` additionally applies the finite-prediction
+        contract of :meth:`residual`.
 
         ``coordinates="tangent"`` returns the minimal attitude-error Jacobian
         used by a MEKF. ``coordinates="full"`` returns the Jacobian with
@@ -404,6 +419,7 @@ class MeasurementStack:
         """
         self._validate_state(state)
         active = self._entry_mask(active_mask)
+        predicted_values = self._predicted_values(predicted)
         rows: list[np.ndarray] = []
         # Let State own validation and the one authoritative dimension rule.
         coordinate_size = state.size(coordinates=coordinates)
@@ -421,6 +437,7 @@ class MeasurementStack:
         for entry, selected in zip(self._entries, active):
             if not selected:
                 continue
+            self._check_prediction(entry, predicted_values)
             if entry.sensor_index is None:
                 row = np.zeros((1, coordinate_size))
                 row[0, wheel_coordinates.start + entry.wheel_index] = 1.0
@@ -443,6 +460,12 @@ class MeasurementStack:
                 continue
 
             legacy = np.asarray(entry.source.basestate_jac(state, orbital_state), dtype=float)
+            if not np.all(np.isfinite(legacy)):
+                raise ValueError(
+                    f"{entry.name} is active but its Jacobian is non-finite at the estimate "
+                    "(the measurement is unavailable there); "
+                    "recompute active_mask(..., predicted=predicted)"
+                )
             output_size = entry.raw_slice.stop - entry.raw_slice.start
             expected = (base_size, output_size)
             # Older sensor models that do not depend on wheel momentum expose
@@ -461,6 +484,8 @@ class MeasurementStack:
                     entry.source.bias_jac(state, orbital_state), dtype=float
                 )
                 expected_bias_shape = (bias.stop - bias.start, output_size)
+                if not np.all(np.isfinite(bias_jacobian)):
+                    raise ValueError(f"{entry.name}.bias_jac() returned non-finite values")
                 if bias_jacobian.shape != expected_bias_shape:
                     raise ValueError(
                         f"{entry.name}.bias_jac() must have shape "
@@ -469,6 +494,22 @@ class MeasurementStack:
                 full[:, bias] = bias_jacobian.T
             rows.append(full @ coordinate_map)
         return np.vstack(rows) if rows else np.zeros((0, coordinate_size))
+
+    def _predicted_values(self, predicted: Any | None) -> np.ndarray | None:
+        """Raw predicted measurements when supplied, validated once."""
+        if predicted is None:
+            return None
+        return self._raw_measurements(predicted, name="predicted")
+
+    def _check_prediction(self, entry: MeasurementSource, predicted_values: np.ndarray | None) -> None:
+        """Apply the finite-prediction contract of residual() when a prediction is given."""
+        if predicted_values is None:
+            return
+        if not np.all(np.isfinite(predicted_values[entry.raw_slice])):
+            raise ValueError(
+                f"{entry.name} is active but its prediction is non-finite; "
+                "recompute active_mask(..., predicted=predicted)"
+            )
 
     def _sensor_bias(self, state: EstimatorState, sensor_index: int) -> np.ndarray | None:
         bias_slice = self.satellite.sensor_bias_slice(sensor_index)

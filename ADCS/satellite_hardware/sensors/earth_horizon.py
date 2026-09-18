@@ -192,13 +192,26 @@ class EarthHorizonSensor(Sensor):
                  outside the sensor FOV.
         :rtype: numpy.ndarray
         """
+        nadir_eci, nadir_body, visible = self._nadir_geometry(x, os)
+        self._nadir_eci = nadir_eci if visible else None
+        if not visible:
+            return np.full(3, np.nan)
+        return nadir_body
+
+    def _nadir_geometry(self, x: NDArray[np.float64], os: Orbital_State):
+        r"""
+        Return ``(nadir_eci, nadir_body, visible)`` for the state ``x`` at ``os``.
+
+        Shared by :meth:`clean_reading` and :meth:`basestate_jac` so both
+        describe the same geometry at the same state; nothing is carried over
+        from a previous call.
+        """
         q = x.q
         r_sat = os.R  # ECI position [km]
         r_norm = np.linalg.norm(r_sat)
 
         # Nadir direction in ECI
         nadir_eci = -r_sat / r_norm
-        self._nadir_eci = nadir_eci
 
         # Earth angular radius
         self._earth_angular_radius = np.arcsin(
@@ -212,11 +225,7 @@ class EarthHorizonSensor(Sensor):
         # FOV visibility check
         cos_angle = np.dot(self.boresight, nadir_body)
         angle = np.arccos(np.clip(cos_angle, -1.0, 1.0))
-        if angle > self.fov:
-            self._nadir_eci = None
-            return np.full(3, np.nan)
-
-        return nadir_body
+        return nadir_eci, nadir_body, bool(angle <= self.fov)
 
     def reading(
         self,
@@ -278,11 +287,14 @@ class EarthHorizonSensor(Sensor):
         :return: Base-state Jacobian of shape ``(7, 3)``.
         :rtype: numpy.ndarray
         """
-        if self._nadir_eci is None:
-            return np.zeros((7, self.output_length))
-
+        # Evaluate the geometry at (x, os) rather than reusing the previous
+        # clean_reading() call's nadir; outside the field of view there is no
+        # finite Jacobian (NaN rather than zeros).
+        nadir_eci, _, visible = self._nadir_geometry(x, os)
+        if not visible:
+            return np.full((7, self.output_length), np.nan)
         q = x.q
-        db_dq = drotmatTvecdq(q, self._nadir_eci)
+        db_dq = drotmatTvecdq(q, nadir_eci)
 
         J = np.zeros((7, self.output_length))
         J[3:7, :] = db_dq
