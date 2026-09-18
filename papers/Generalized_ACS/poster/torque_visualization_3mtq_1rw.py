@@ -19,7 +19,8 @@ from matplotlib.patches import Patch
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
-OUT_DIR = Path(__file__).resolve().parent
+OUT_DIR = Path(__file__).resolve().parent / "outputs"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
 BODY_FONT_SIZE = 5.5
 TITLE_FONT_SIZE = 7.5
 AXIS_LIMIT = 1.5e-5
