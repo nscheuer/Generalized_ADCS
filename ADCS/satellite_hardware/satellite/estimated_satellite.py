@@ -596,7 +596,14 @@ class EstimatedSatellite(Satellite):
 
         ddist_torq__dx,ddist_torq__ddmp = self.dist_torques_jacobian(x,vecs)
         dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],x,orbital_state) for j in range(len(self.actuators))],np.zeros((7,3)))
-        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],x,orbital_state) for j in range(len(self.actuators))])
+        dact_torq__du = (
+            np.vstack([
+                actuator.dtorq__du(u[j], x, orbital_state)
+                for j, actuator in enumerate(self.actuators)
+            ])
+            if self.actuators
+            else np.zeros((0, 3))
+        )
 
         dxdot__dx = np.zeros((self.state_len,self.state_len))
         dxdot__du = np.zeros((self.control_len,self.state_len))

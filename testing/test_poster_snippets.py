@@ -16,6 +16,7 @@ exercises what a user actually receives.
 
 import subprocess
 import sys
+import os
 from pathlib import Path
 
 import pytest
@@ -35,9 +36,15 @@ def test_verify_snippets_script_exists():
 
 def test_poster_snippets_still_run():
     """Every code block printed on the poster executes against this tree."""
+    environment = os.environ.copy()
+    existing_pythonpath = environment.get("PYTHONPATH")
+    environment["PYTHONPATH"] = str(REPO_ROOT) + (
+        os.pathsep + existing_pythonpath if existing_pythonpath else ""
+    )
     proc = subprocess.run(
         [sys.executable, str(SNIPPETS)],
         cwd=REPO_ROOT,
+        env=environment,
         capture_output=True,
         text=True,
         timeout=900,

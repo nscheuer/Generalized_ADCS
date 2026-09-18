@@ -15,6 +15,9 @@ When adding a new paper-derived algorithm or reusable model, include the
 documentation page where the model is described and cite the source used for the
 equations, assumptions, or parameter values.
 
+Project information and the usage disclaimer are available on the
+:doc:`About page <about>`.
+
 Control Laws
 ------------
 

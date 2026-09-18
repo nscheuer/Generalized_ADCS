@@ -181,7 +181,8 @@ class SensorsPlot(Subplot):
             self._plot_no_data(ax)
             return
 
-        # Format each subplot + clean legend (sources only)
+        # Format each subplot.  The source legend belongs to the complete
+        # sensor grid, not to every individual channel.
         for i, ax_i in enumerate(axes):
             ylabel = f"{labels[i]} [{self.units}]" if self.units else labels[i]
             ax_i.set_ylabel(ylabel)
@@ -191,14 +192,6 @@ class SensorsPlot(Subplot):
 
             ax_i.grid(True, which="both")
 
-            # legend only shows sources
-            if len(self.sources) > 1:
-                handles, labs = [], []
-                for src in self.sources:
-                    handles.append(ax_i.plot([], [], linestyle=style[src], color="k")[0])
-                    labs.append(src)
-                ax_i.legend(handles, labs)
-
         # hide unused cells
         for j in range(n_sens, nrows * ncols):
             r, c = divmod(j, ncols)
@@ -207,6 +200,20 @@ class SensorsPlot(Subplot):
 
         for ax_i in axes[-ncols:]:
             ax_i.set_xlabel("Time [s]")
+
+        if len(self.sources) > 1:
+            handles = [
+                ax.plot([], [], linestyle=style[src], color="k")[0]
+                for src in self.sources
+            ]
+            ax.figure.legend(
+                handles,
+                list(self.sources),
+                loc="lower center",
+                bbox_to_anchor=(0.5, 1.0),
+                bbox_transform=ax.transAxes,
+                ncol=len(self.sources),
+            )
 
         axes[0].set_title(self.title, loc="left", pad=10)
 

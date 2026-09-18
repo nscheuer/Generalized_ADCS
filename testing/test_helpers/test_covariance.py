@@ -246,6 +246,72 @@ def test_unscented_prediction_and_update(form):
     )
 
 
+def test_sqrt_unscented_update_downdates_factor_without_reconstructing_covariance(
+    monkeypatch,
+):
+    state_deviations = np.array(
+        [
+            [1.0, 0.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, -1.0],
+        ]
+    )
+    weights = np.full(state_deviations.shape[0], 1.0 / state_deviations.shape[0])
+    prior_matrix = np.array(
+        [
+            [2.0, 0.2, 0.1],
+            [0.2, 1.5, -0.1],
+            [0.1, -0.1, 1.2],
+        ]
+    )
+    prior = Covariance(prior_matrix, form="sqrt", coordinates="state_tangent")
+    measurement_deviations = state_deviations @ np.array(
+        [[1.0, 0.2], [0.3, -0.4], [-0.2, 0.8]]
+    )
+    measurement_noise = np.diag([0.4, 0.6])
+
+    cross = Covariance.cross_covariance(
+        state_deviations, measurement_deviations, weights
+    )
+    innovation_matrix = (
+        np.einsum(
+            "i,ij,ik->jk",
+            weights,
+            measurement_deviations,
+            measurement_deviations,
+        )
+        + measurement_noise
+    )
+    expected_gain = cross @ np.linalg.inv(innovation_matrix)
+    expected_posterior = (
+        prior_matrix
+        - expected_gain @ innovation_matrix @ expected_gain.T
+    )
+
+    def fail(*args, **kwargs):
+        raise AssertionError("square-root unscented update reconstructed a covariance")
+
+    monkeypatch.setattr(Covariance, "as_matrix", fail)
+    gain, posterior = prior.updated_unscented(
+        state_deviations,
+        measurement_deviations,
+        weights,
+        measurement_noise,
+    )
+
+    np.testing.assert_allclose(gain, expected_gain, atol=1e-12)
+    posterior_factor = posterior.upper_factor()
+    np.testing.assert_allclose(
+        posterior_factor.T @ posterior_factor,
+        expected_posterior,
+        atol=1e-12,
+    )
+    assert posterior.form == "sqrt"
+
+
 def test_estimator_state_owns_covariance_and_preserves_legacy_matrix_api():
     state_covariance = Covariance.identity(6, scale=2.0, form="sqrt")
     process_noise = Covariance.identity(6, scale=0.1, form="sqrt")

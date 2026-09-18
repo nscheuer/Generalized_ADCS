@@ -239,7 +239,12 @@ class BiasPlot(Subplot):
             for i, ax_i in enumerate(axes):
                 for src in self.sources:
                     B = mats.get(src, None)
-                    if B is None:
+                    # Real and estimated histories may legitimately expose
+                    # different widths. For example, the plant may record
+                    # only active truth biases while the estimator stores all
+                    # configured bias states. Plot the overlapping columns
+                    # instead of indexing past the narrower source matrix.
+                    if B is None or i >= B.shape[1]:
                         continue
                     ax_i.plot(
                         t,
@@ -249,21 +254,14 @@ class BiasPlot(Subplot):
                         label=None,
                     )
 
-        # Ax formatting + clean legends
+        # Ax formatting.  The source legend belongs to the complete bias
+        # grid, not to every individual component.
         for i, ax_i in enumerate(axes):
             ylabel = f"{labels[i]} [{self.units}]" if self.units else labels[i]
             ax_i.set_ylabel(ylabel)
             if self.log_y:
                 ax_i.set_yscale("log")
             ax_i.grid(True, which="both")
-
-            # One legend per subplot (sources only)
-            handles, labs = [], []
-            for src in self.sources:
-                handles.append(ax_i.plot([], [], linestyle=style[src], color="k")[0])
-                labs.append(src)
-            if len(self.sources) > 1:
-                ax_i.legend(handles, labs)
 
         # Turn off unused slots
         for j in range(n_bias, nrows * ncols):
@@ -273,6 +271,20 @@ class BiasPlot(Subplot):
 
         for ax_i in axes[-ncols:]:
             ax_i.set_xlabel("Time [s]")
+
+        if len(self.sources) > 1:
+            handles = [
+                ax.plot([], [], linestyle=style[src], color="k")[0]
+                for src in self.sources
+            ]
+            ax.figure.legend(
+                handles,
+                list(self.sources),
+                loc="lower center",
+                bbox_to_anchor=(0.5, 1.0),
+                bbox_transform=ax.transAxes,
+                ncol=len(self.sources),
+            )
 
         axes[0].set_title(self.title, loc="left", pad=10)
 

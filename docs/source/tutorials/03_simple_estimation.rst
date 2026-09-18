@@ -42,7 +42,7 @@ Consider the TRMM (Tropical Rainfall Measuring Mission) satellite, launched by N
        and an attitude represented by quaternion  
        :math:`[1, 0, 0, 0]`.
    * - **Estimator**
-     - SRUAKF (Square Root Unscented Kalman Filter) with tuned initial covariance and process noise matrices.
+     - :class:`~ADCS.AugmentedSRUKF` (augmented Square Root Unscented Kalman Filter) with tuned initial covariance and process noise matrices.
    * - **Orbital State**
      - The initial position and velocity of the spacecraft in orbit.
    * - **Disturbances**
@@ -97,7 +97,10 @@ Consider the TRMM (Tropical Rainfall Measuring Mission) satellite, launched by N
       np.eye(3)*(1e-8)**2.0, 
       1e-8*np.eye(3)
   )
-  estimator = ADCS.SRUAKF(J2000=0.22, est_sat=est_satellite, x_hat=x_hat, P_hat=P_hat, Q_hat=Q_hat, dt=dt, cross_term=True, quat_as_vec=False)
+  x_hat = ADCS.EstimatorState(w=x_hat.w, q=x_hat.q, cov=P_hat, int_cov=Q_hat)
+  estimator = ADCS.AugmentedSRUKF(
+      est_satellite, x_hat, dt=dt,
+  )
 
   os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(), J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, -7.5, 0]))
 

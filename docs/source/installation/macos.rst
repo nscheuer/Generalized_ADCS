@@ -116,4 +116,4 @@ macOS uses LLDB (not GDB)::
 
 .. code-block:: bash
 
-   lldb -- python examples/tutorials/06_trajectory_planner.py
+   lldb -- python examples/tutorials/tutorial_6_trajectory_planner.py

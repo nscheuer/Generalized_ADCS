@@ -138,6 +138,31 @@ def test_error_state_transfer_converts_jacobian_orientation_and_reduces_quaterni
     np.testing.assert_allclose(transfer[4, 0], 0.0)
 
 
+def test_error_state_transfer_supports_full_and_tangent_coordinate_pairs():
+    state = EstimatorState(
+        w=np.array([0.01, -0.02, 0.03]),
+        q=np.array([0.9, 0.2, -0.3, 0.1]) / np.linalg.norm([0.9, 0.2, -0.3, 0.1]),
+        act_bias=[0.0],
+    )
+    modes = {
+        "quaternion_vector": state.tangent_size,
+        "full_quaternion": state.full_size,
+    }
+
+    for source_mode, source_size in modes.items():
+        for target_mode, target_size in modes.items():
+            transfer = error_state_transfer(
+                state,
+                _LinearSatellite(),
+                np.empty(0),
+                None,
+                source_quaternion_mode=source_mode,
+                target_quaternion_mode=target_mode,
+            )
+
+            assert transfer.shape == (target_size, source_size)
+
+
 def test_van_loan_discretization_matches_random_walk_and_first_order_transition():
     transfer = np.array([[-2.0]])
     transition, covariance = van_loan_discretize(transfer, np.array([[3.0]]), 0.5)
@@ -244,3 +269,45 @@ def test_discretize_process_noise_runs_on_wheel_and_bias_satellite():
     assert transition.shape == covariance.shape == (state.tangent_size,) * 2
     np.testing.assert_allclose(covariance, covariance.T, atol=1e-20)
     assert np.linalg.eigvalsh(covariance).min() >= -1e-18
+
+
+def test_discretize_process_noise_supports_full_and_tangent_coordinate_pairs():
+    satellite = EstimatedSatellite(J_0=np.diag([0.5, 0.8, 1.2]))
+    state = EstimatorState(
+        w=np.array([0.02, -0.015, 0.01]),
+        q=np.array([0.9, 0.2, -0.3, 0.1]) / np.linalg.norm([0.9, 0.2, -0.3, 0.1]),
+    )
+    orbital_state = Orbital_State(
+        ephem=Ephemeris(),
+        J2000=0.22,
+        R=np.array([7000.0, 0.0, 0.0]),
+        V=np.array([0.0, 8.0, 0.0]),
+        B=np.array([1.0e-5, 0.0, 0.0]),
+        fast=True,
+    )
+    final_state = state.copy()
+    final_state.q = np.array([0.88, 0.22, -0.32, 0.12])
+    final_state = final_state.normalized()
+    modes = {
+        "quaternion_vector": state.tangent_size,
+        "full_quaternion": state.full_size,
+    }
+
+    for source_mode, source_size in modes.items():
+        for target_mode, target_size in modes.items():
+            transition, covariance = discretize_process_noise(
+                state,
+                satellite,
+                np.zeros(satellite.control_len),
+                orbital_state,
+                0.1,
+                final_state=final_state,
+                source_quaternion_mode=source_mode,
+                target_quaternion_mode=target_mode,
+                unmodeled_dynamics_psd=1.0e-8,
+            )
+
+            assert transition.shape == (target_size, source_size)
+            assert covariance.shape == (target_size, target_size)
+            np.testing.assert_allclose(covariance, covariance.T, atol=1e-20)
+            assert np.linalg.eigvalsh(covariance).min() >= -1e-18

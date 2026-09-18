@@ -138,4 +138,4 @@ Then run:
 
 .. code-block:: bash
 
-  python examples/tutorials/07_SALTRO.py
+  python examples/tutorials/tutorial_7_SALTRO.py

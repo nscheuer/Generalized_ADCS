@@ -7,7 +7,6 @@ from typing import List, Union
 from tqdm import tqdm
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
 from ADCS.controller import MTQ_Lovera
 from ADCS.orbits.ephemeris import Ephemeris

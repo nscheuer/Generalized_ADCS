@@ -1,5 +1,17 @@
 {
   "benchmarks": {
+    "ekf_step_baseline": {
+      "loops": 16,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.6804239147746723,
+      "seconds": 0.0018958098735311069
+    },
+    "mekf_step_baseline": {
+      "loops": 32,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.48657174158987143,
+      "seconds": 0.0013556953126681037
+    },
     "orbit_ekf_predict_only": {
       "loops": 2,
       "max_regression": 1.5,

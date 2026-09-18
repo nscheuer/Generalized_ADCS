@@ -50,7 +50,8 @@ campaign results, see `requirements-repro.txt` in the repository.
 - ✅ Fully generalized 6-DOF spacecraft attitude dynamics (RK4 integration)
 - ✅ Fully generalized orbit propagation
 - ✅ Estimation frameworks:
-  UKF, SRUKF, UAKF, SRUAKF, orbital estimators, and custom filters
+  EKF, MEKF, UKF, SRUKF, augmented EKF/MEKF/UKF/SRUKF, orbital estimators,
+  and custom filters
 - ✅ Controller frameworks:
   PD, LQR, ALTRO, and user-defined controllers
 - ✅ Sensor modeling:
@@ -59,12 +60,6 @@ campaign results, see `requirements-repro.txt` in the repository.
   reaction wheels and magnetorquers
 - ✅ Growing catalog of CubeSat-scale sensors and actuators
 - ✅ Designed for underactuated and overactuated systems
-
-Spacecraft attitude states are represented by `ADCS.State` (`w`, `q`, and
-reaction-wheel momentum `h`). Estimators use `ADCS.EstimatorState` for the
-physical state, estimated parameters, and covariance. Explicit `from_array()`
-and `as_array()` conversions preserve the established numerical ordering at
-SciPy and native-planner boundaries.
 
 Optional add-ons:
 - trajectory_planner (tplaunch/pysat) and SALTRO (saltro_py) are optional C++ extensions.

@@ -1,0 +1,5 @@
+architecture,settled_runs,mean_settle_min,tail_compliance_pct,tail_rms_deg,one_orbit_uptime_pct,momentum_headroom_pct
+3+3 LP,10,2.6767,100.0000,0.609358,97.1084,86.1443
+3+2 LP,10,3.6517,100.0000,0.621482,96.0551,84.0393
+3+1 LP,10,5.2900,100.0000,0.700107,94.2852,77.6714
+3+0 QP,0,92.5500,0.0000,96.918075,0.0000,

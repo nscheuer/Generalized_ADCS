@@ -120,14 +120,14 @@ does not add a Boost include path itself.
 
 ## Run trajectory planner examples
 
-- Tutorial 06 script: [examples/tutorials/06_trajectory_planner.py](../examples/tutorials/06_trajectory_planner.py)
-- SALTRO tutorial script: [examples/tutorials/07_SALTRO.py](../examples/tutorials/07_SALTRO.py)
+- Tutorial 06 script: [examples/tutorials/tutorial_6_trajectory_planner.py](../examples/tutorials/tutorial_6_trajectory_planner.py)
+- SALTRO tutorial script: [examples/tutorials/tutorial_7_SALTRO.py](../examples/tutorials/tutorial_7_SALTRO.py)
 
 Run from repository root with your virtual environment active:
 
 ```bash
-python examples/tutorials/06_trajectory_planner.py
-python examples/tutorials/07_SALTRO.py
+python examples/tutorials/tutorial_6_trajectory_planner.py
+python examples/tutorials/tutorial_7_SALTRO.py
 ```
 
 ## SALTRO installation and usage

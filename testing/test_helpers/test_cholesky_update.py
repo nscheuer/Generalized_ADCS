@@ -1,6 +1,6 @@
 r"""Tests for the in-tree rank-1 Cholesky update/downdate.
 
-These replace the external ``choldate`` C extension, which the SRUAKF depends
+These provide the in-tree rank-1 operations used by square-root filters
 on for every sigma-point covariance update, so they are held to the defining
 identity rather than to a reference implementation:
 
@@ -244,7 +244,7 @@ def test_identity_matrix_update():
 def test_non_positive_definite_downdate_yields_nan():
     """choldate silently returns a wrong factor here; we must produce NaN.
 
-    ``A - x x^T`` is indefinite, so no real Cholesky factor exists. The SRUAKF
+    ``A - x x^T`` is indefinite, so no real Cholesky factor exists. The
     already guards on ``np.any(np.isnan(...))``; that guard only fires if the
     downdate reports failure this way.
     """
@@ -305,7 +305,7 @@ def test_very_large_and_very_small_magnitudes():
 
 
 def test_accepts_non_contiguous_and_integer_input_vectors():
-    """SRUAKF slices rows out of 2-D arrays, so x is often a view."""
+    """Square-root filters slice rows out of 2-D arrays, so x is often a view."""
     rng = np.random.default_rng(SEED + 1200)
     A = _random_spd(4, rng)
 
