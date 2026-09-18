@@ -503,9 +503,11 @@ def _full_flight_disturbances():
 def test_full_flight_configuration(cls):
     """A realistic bus: 3 sensor types, 2 actuator types, 3 disturbance types.
 
-    Before the audit fixes the MEKF kept 87% of the initial error in this
-    combination while every element passed alone; with actuator command noise
-    in the linearized prediction it converges like the others.
+    With the reaction wheel's default zero tachometer noise (a perfect
+    momentum measurement) the EKF stopped at 1.3 degrees and the MEKF at 5.2
+    in this combination while every element passed alone; with realistic wheel
+    noise all eight filters converge to 0.005 degrees. The degenerate perfect
+    measurement, not the filters, was the cause.
     """
     est_sat = EstimatedSatellite(J_0=J_0, sensors=_full_flight_sensors(),
                                  actuators=_full_flight_actuators(),
