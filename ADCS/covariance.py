@@ -837,11 +837,6 @@ class Covariance:
             K=P_{xy}P_{yy}^{-1},\qquad
             P^+=P^- - KP_{yy}K^T.
 
-        In square-root form, the innovation factor is used to sequentially
-        downdate the prior factor with the columns of
-        :math:`K S_{yy}^T`, where :math:`P_{yy}=S_{yy}^T S_{yy}`.  This avoids
-        reconstructing either covariance for the posterior update.
-
         State and measurement deviations must already be expressed relative
         to their respective means.
         """
@@ -878,18 +873,11 @@ class Covariance:
             # rank-deficient S): fall back to the dense path, whose PSD
             # handling is governed by ``psd_policy`` exactly as before.
         gain = innovation.solve(cross.T).T
-        if self.form == "sqrt":
-            downdate_vectors = (gain @ innovation.upper_factor().T).T
-            posterior = self.rank_updated(downdate_vectors, weight=-1.0)
-        else:
-            posterior_matrix = self.as_matrix() - (
-                gain @ innovation.as_matrix() @ gain.T
-            )
-            posterior_matrix = (posterior_matrix + posterior_matrix.T) / 2.0
-            posterior = Covariance(
-                posterior_matrix,
-                form=self.form,
-                coordinates=self.coordinates,
-                psd_policy=self._psd_policy,
-            )
-        return gain, posterior
+        posterior = self.as_matrix() - gain @ innovation.as_matrix() @ gain.T
+        posterior = (posterior + posterior.T) / 2.0
+        return gain, Covariance(
+            posterior,
+            form=self.form,
+            coordinates=self.coordinates,
+            psd_policy=self._psd_policy,
+        )
