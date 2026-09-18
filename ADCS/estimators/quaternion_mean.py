@@ -6,6 +6,9 @@ from ADCS.helpers.math_helpers import quat_mult
 from ADCS.state import State
 
 
+__all__ = ["quaternion_mean"]
+
+
 def _skew(vectors: np.ndarray) -> np.ndarray:
     matrices = np.zeros((len(vectors), 3, 3))
     x, y, z = vectors.T
