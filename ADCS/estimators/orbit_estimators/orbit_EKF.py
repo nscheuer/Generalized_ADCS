@@ -83,6 +83,7 @@ class Orbit_EKF(Orbit_Estimator):
         if Q_hat.shape != (6, 6):
             raise ValueError(f"Q must be 6×6, got {Q_hat.shape}")
         self.os_hat = EstimatedOrbital_State(os=os_hat, P=P_hat, Q=Q_hat)
+        self._has_updated = False
 
         gps_sensors = self.est_sat.GPS_sensors
         blocks = []

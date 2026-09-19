@@ -100,3 +100,24 @@ def test_orbit_ekf_first_update_at_its_own_epoch_does_not_propagate():
     second = estimator.update(GPS_measurements=[], J2000=later)
     # the near-zero gain still moved the posterior by ~1e-5 km, which propagates
     np.testing.assert_allclose(second.os.R, _truth().propagate_orbit_rk4(dt=DT, zonal_J=2, fast=True).R, rtol=0.0, atol=1.0e-3)
+
+
+def test_orbit_ekf_reset_does_not_propagate_first_update_at_reset_epoch():
+    P0 = np.diag([0.1**2] * 3 + [0.001**2] * 3)
+    estimator = _filter(std=1.0e3, P0=P0, Q0=np.zeros((6, 6)))
+    estimator.update(GPS_measurements=[], J2000=J2000_0 + DT * TimeConstants.sec2cent)
+
+    reset_epoch = J2000_0 + 2.0 * DT * TimeConstants.sec2cent
+    reset_state = _truth(j2000=reset_epoch)
+    estimator.reset(
+        est_sat=estimator.est_sat,
+        J2000=reset_epoch,
+        os_hat=reset_state,
+        P_hat=P0,
+        Q_hat=np.zeros((6, 6)),
+        dt=DT,
+    )
+
+    updated = estimator.update(GPS_measurements=[], J2000=reset_epoch)
+    np.testing.assert_allclose(updated.os.R, reset_state.R)
+    np.testing.assert_allclose(updated.os.V, reset_state.V)
