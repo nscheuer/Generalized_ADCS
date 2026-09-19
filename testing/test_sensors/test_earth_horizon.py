@@ -120,11 +120,18 @@ def test_basestate_jacobian_has_zero_omega_block():
     np.testing.assert_allclose(jacobian[0:3, :], np.zeros((3, 3)), atol=1e-15)
 
 
-def test_basestate_jacobian_is_zero_when_measurement_is_nan():
+def test_basestate_jacobian_is_nan_when_nadir_outside_fov():
+    """No finite Jacobian exists where the measurement is unavailable.
+
+    Zeros would let a stale active mask keep the entry with no state
+    sensitivity; NaN makes the measurement stack raise with the entry name.
+    """
     sensor = make_sensor(fov_deg=10.0, boresight=np.array([0.0, 0.0, 1.0]))
     state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
-    jacobian = sensor.basestate_jac(state, make_orbital_state())
-    np.testing.assert_allclose(jacobian, np.zeros((7, 3)), atol=1e-15)
+    orbital_state = make_orbital_state()
+    assert np.all(np.isnan(sensor.clean_reading(state, orbital_state)))
+    jacobian = sensor.basestate_jac(state, orbital_state)
+    assert jacobian.shape == (7, 3) and np.all(np.isnan(jacobian))
 
 
 def test_bias_jacobian_is_empty_without_bias_estimation():
@@ -189,3 +196,17 @@ def test_generic_earth_horizon_factory_normalizes_custom_boresight():
     boresight = np.array([1.0, 0.0, 0.0])
     sensor = create_generic_earth_horizon(boresight=boresight)
     np.testing.assert_allclose(sensor.boresight, boresight / np.linalg.norm(boresight), rtol=1e-10)
+
+
+def test_basestate_jacobian_is_independent_of_the_previous_reading():
+    """The Jacobian describes the state it is asked about, not the last clean_reading()."""
+    sensor = make_sensor(fov_deg=180.0)
+    orbital_state = make_orbital_state()
+    q_a = np.array([0.9, 0.2, 0.3, 0.1]); q_a = q_a / np.linalg.norm(q_a)
+    q_b = np.array([0.1, -0.7, 0.2, 0.6]); q_b = q_b / np.linalg.norm(q_b)
+    state_a, state_b = State(w=np.zeros(3), q=q_a), State(w=np.zeros(3), q=q_b)
+    reference = make_sensor(fov_deg=180.0).basestate_jac(state_a, orbital_state)  # never read anything
+    sensor.clean_reading(state_b, orbital_state)  # a different attitude first
+    np.testing.assert_allclose(sensor.basestate_jac(state_a, orbital_state), reference, atol=1e-15)
+    numeric = central_difference_jacobian(sensor, state_a, orbital_state)
+    np.testing.assert_allclose(reference[3:7, :], numeric[3:7, :], rtol=1e-4, atol=1e-8)

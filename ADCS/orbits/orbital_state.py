@@ -1107,16 +1107,18 @@ class Orbital_State:
         # Jacobians/Hessians are only needed when an estimator is in the loop.
         # Skip them when _skip_jacobians is set to avoid ~25% overhead.
         if getattr(self, '_skip_jacobians', False):
-            _z3x4 = np.zeros((3, 4))
-            _z3x4x4 = np.zeros((3, 4, 4))
-            dR_B__dq = _z3x4
-            dB_B__dq = _z3x4
-            dV_B__dq = _z3x4
-            dS_B__dq = _z3x4
-            ddR_B__dqdq = _z3x4x4
-            ddB_B__dqdq = _z3x4x4
-            ddV_B__dqdq = _z3x4x4
-            ddS_B__dqdq = _z3x4x4
+            # Same shapes as drotmatTvecdq (4, 3) and ddrotmatTvecdqdq (4, 4, 3)
+            # so a sensor Jacobian assembled from them is a zero of the right size.
+            _z4x3 = np.zeros((4, 3))
+            _z4x4x3 = np.zeros((4, 4, 3))
+            dR_B__dq = _z4x3
+            dB_B__dq = _z4x3
+            dV_B__dq = _z4x3
+            dS_B__dq = _z4x3
+            ddR_B__dqdq = _z4x4x3
+            ddB_B__dqdq = _z4x4x3
+            ddV_B__dqdq = _z4x4x3
+            ddS_B__dqdq = _z4x4x3
         else:
             dR_B__dq = drotmatTvecdq(q0, R)
             dB_B__dq = drotmatTvecdq(q0, B)

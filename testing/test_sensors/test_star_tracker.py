@@ -230,3 +230,47 @@ def test_star_tracker_noise_covariance_eigenvalues_match_for_rotated_boresight()
     tracker = make_tracker(boresight=np.array([1.0, 0.0, 0.0]), fov_deg=20.0, std_cross=1e-4, std_roll=5e-4)
     expected_eigenvalues = np.sort([1e-4**2, 1e-4**2, 5e-4**2])
     np.testing.assert_allclose(np.sort(np.linalg.eigvalsh(tracker.noise_covariance)), expected_eigenvalues, rtol=1e-10)
+
+
+def test_basestate_jacobian_is_independent_of_the_previous_reading():
+    """The Jacobian selects the star for the state it is asked about, not the last clean_reading()."""
+    tracker = make_tracker()
+    orbital_state = make_orbital_state()
+    q_a = np.array([0.9, 0.2, 0.3, 0.1]); q_a = q_a / np.linalg.norm(q_a)
+    q_b = np.array([0.1, -0.7, 0.2, 0.6]); q_b = q_b / np.linalg.norm(q_b)
+    state_a, state_b = State(w=np.zeros(3), q=q_a), State(w=np.zeros(3), q=q_b)
+    star = tracker._select_star(q_a, orbital_state)
+    if star is None:
+        pytest.skip("no navigation star visible at the test attitude")
+    reference = make_tracker().basestate_jac(state_a, orbital_state)  # never read anything
+    tracker.clean_reading(state_b, orbital_state)  # a different attitude (possibly a different star) first
+    np.testing.assert_allclose(tracker.basestate_jac(state_a, orbital_state), reference, atol=1e-15)
+    numeric = central_difference_jacobian(tracker, state_a, orbital_state, star.s_eci)
+    np.testing.assert_allclose(reference[3:7, :], numeric[3:7, :], rtol=1e-4, atol=1e-8)
+
+
+def test_basestate_jacobian_is_nan_when_no_star_is_visible():
+    tracker = make_tracker(boresight=np.array([1.0, 0.0, 0.0]), fov_deg=0.001, sun_exclusion_deg=25.0)
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
+    jacobian = tracker.basestate_jac(state, make_orbital_state())
+    assert jacobian.shape == (7, 3) and np.all(np.isnan(jacobian))
+
+
+def test_star_selection_is_memoized_per_state():
+    tracker = make_tracker()
+    orbital_state = make_orbital_state()
+    q = np.array([0.9, 0.2, 0.3, 0.1]); q = q / np.linalg.norm(q)
+    calls = {"n": 0}
+    original = tracker.catalog.get_visible_stars
+
+    def counting(*args, **kwargs):
+        calls["n"] += 1
+        return original(*args, **kwargs)
+
+    tracker.catalog.get_visible_stars = counting
+    state = State(w=np.zeros(3), q=q)
+    tracker.clean_reading(state, orbital_state)
+    tracker.basestate_jac(state, orbital_state)   # same state: served from the memo
+    assert calls["n"] == 1
+    tracker.basestate_jac(State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0]), orbital_state)  # new state: re-selected
+    assert calls["n"] == 2
