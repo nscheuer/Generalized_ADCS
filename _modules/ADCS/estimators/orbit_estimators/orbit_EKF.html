@@ -594,6 +594,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.estimator_helpers.estimator_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedOrbital_State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.orbit_estimators</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbit_Estimator</span>
 
@@ -637,7 +638,7 @@
 <span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">est_sat</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">GPS_sensors</span><span class="p">:</span>
-            <span class="k">return</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Satellite must have at least one GPS sensor!"</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Satellite must have at least one GPS sensor!"</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">est_sat</span><span class="p">,</span> <span class="n">J2000</span><span class="o">=</span><span class="n">J2000</span><span class="p">,</span> <span class="n">os_hat</span><span class="o">=</span><span class="n">os_hat</span><span class="p">,</span> <span class="n">P_hat</span><span class="o">=</span><span class="n">P_hat</span><span class="p">,</span> <span class="n">Q_hat</span><span class="o">=</span><span class="n">Q_hat</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
 
@@ -674,6 +675,7 @@
         <span class="k">if</span> <span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Q must be 6×6, got </span><span class="si">{</span><span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">os_hat</span> <span class="o">=</span> <span class="n">EstimatedOrbital_State</span><span class="p">(</span><span class="n">os</span><span class="o">=</span><span class="n">os_hat</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_hat</span><span class="p">,</span> <span class="n">Q</span><span class="o">=</span><span class="n">Q_hat</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_has_updated</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="n">gps_sensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">GPS_sensors</span>
         <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
@@ -720,29 +722,46 @@
 <span class="sd">        :return: The updated :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State`.</span>
 <span class="sd">        """</span>
 
-        <span class="c1"># --- 1. Propagate the orbital state ---</span>
+        <span class="c1"># --- 1. Propagate the orbital state over the elapsed time ---</span>
         <span class="n">os0</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">os_hat</span><span class="o">.</span><span class="n">os</span>
-
-        <span class="n">os_pred</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">propagate_orbit_rk4</span><span class="p">(</span>
-            <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
-            <span class="n">zonal_J</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-            <span class="n">fast</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">r_pred</span><span class="p">,</span> <span class="n">v_pred</span> <span class="o">=</span> <span class="n">os_pred</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">os_pred</span><span class="o">.</span><span class="n">V</span>
-        <span class="n">x_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">r_pred</span><span class="p">,</span> <span class="n">v_pred</span><span class="p">])</span>   <span class="c1"># (6,)</span>
-
-        <span class="c1"># Dynamics Jacobian Fk</span>
-        <span class="n">dr_dr0</span><span class="p">,</span> <span class="n">dr_dv0</span><span class="p">,</span> <span class="n">dv_dr0</span><span class="p">,</span> <span class="n">dv_dv0</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">orbit_dynamics_jacobians</span><span class="p">(</span>
-            <span class="n">zonal_J</span><span class="o">=</span><span class="mi">2</span>
-        <span class="p">)</span>
-        <span class="n">Fk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([</span>
-            <span class="p">[</span><span class="n">dr_dr0</span><span class="p">,</span> <span class="n">dr_dv0</span><span class="p">],</span>
-            <span class="p">[</span><span class="n">dv_dr0</span><span class="p">,</span> <span class="n">dv_dv0</span><span class="p">],</span>
-        <span class="p">])</span>  <span class="c1"># (6×6)</span>
-
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">J2000</span><span class="p">)</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">os0</span><span class="o">.</span><span class="n">J2000</span><span class="p">))</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">elapsed</span><span class="p">)</span> <span class="ow">and</span> <span class="n">elapsed</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="n">elapsed</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_has_updated"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="c1"># A measurement taken at the epoch the estimate already sits at (the</span>
+            <span class="c1"># first sample) needs no prediction. Propagating a full dt here used</span>
+            <span class="c1"># to inject |v| dt (about 140 km) of error into the first innovation.</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># A caller that does not advance J2000 still gets the configured step.</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
         <span class="n">P0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">os_hat</span><span class="o">.</span><span class="n">P</span>      <span class="c1"># 6×6</span>
         <span class="n">Q0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">os_hat</span><span class="o">.</span><span class="n">Q</span>      <span class="c1"># 6×6</span>
-        <span class="n">P_pred</span> <span class="o">=</span> <span class="n">Fk</span> <span class="o">@</span> <span class="n">P0</span> <span class="o">@</span> <span class="n">Fk</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">Q0</span>
+        <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">os_pred</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">propagate_orbit_rk4</span><span class="p">(</span>
+                <span class="n">dt</span><span class="o">=</span><span class="n">step</span><span class="p">,</span>
+                <span class="n">zonal_J</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">fast</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># The discrete state-transition matrix over the step, not the</span>
+            <span class="c1"># continuous Jacobian A = d(xdot)/dx that used to stand in for it:</span>
+            <span class="c1"># with A the position block received the velocity variance and the</span>
+            <span class="c1"># filter was overconfident by orders of magnitude (NEES ~ 1e9).</span>
+            <span class="n">dr_dr0</span><span class="p">,</span> <span class="n">dr_dv0</span><span class="p">,</span> <span class="n">dv_dr0</span><span class="p">,</span> <span class="n">dv_dv0</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">propagate_jacobians_rk4</span><span class="p">(</span>
+                <span class="n">dt</span><span class="o">=</span><span class="n">step</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="mi">2</span>
+            <span class="p">)</span>
+            <span class="n">Fk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([</span>
+                <span class="p">[</span><span class="n">dr_dr0</span><span class="p">,</span> <span class="n">dr_dv0</span><span class="p">],</span>
+                <span class="p">[</span><span class="n">dv_dr0</span><span class="p">,</span> <span class="n">dv_dv0</span><span class="p">],</span>
+            <span class="p">])</span>  <span class="c1"># (6×6)</span>
+            <span class="n">P_pred</span> <span class="o">=</span> <span class="n">Fk</span> <span class="o">@</span> <span class="n">P0</span> <span class="o">@</span> <span class="n">Fk</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">Q0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">os_pred</span> <span class="o">=</span> <span class="n">os0</span>
+            <span class="n">Fk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+            <span class="n">P_pred</span> <span class="o">=</span> <span class="n">P0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_has_updated</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">r_pred</span><span class="p">,</span> <span class="n">v_pred</span> <span class="o">=</span> <span class="n">os_pred</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">os_pred</span><span class="o">.</span><span class="n">V</span>
+        <span class="n">x_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">r_pred</span><span class="p">,</span> <span class="n">v_pred</span><span class="p">])</span>   <span class="c1"># (6,)</span>
 
         <span class="c1"># --- 2. If no measurements, just return prediction ---</span>
         <span class="k">if</span> <span class="n">GPS_measurements</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">GPS_measurements</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
