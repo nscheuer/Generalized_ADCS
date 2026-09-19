@@ -639,16 +639,19 @@
 
 <span class="sd">    .. math::</span>
 
-<span class="sd">        \mathbf{m} = \mathbf{a}\,(u + b).</span>
+<span class="sd">        \mathbf{m} = \mathbf{a}\,(u + b + n).</span>
 
 <span class="sd">    Combining the two gives the actuation model used by :meth:`~ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.torque`:</span>
 
 <span class="sd">    .. math::</span>
 
 <span class="sd">        \boldsymbol{\tau}_{\mathrm{MTQ}}</span>
-<span class="sd">        = -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u+b) + \mathbf{n},</span>
+<span class="sd">        = -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u + b + n),</span>
 
-<span class="sd">    where :math:`\mathbf{n}` is an additive noise term (if enabled).</span>
+<span class="sd">    where :math:`n` is an additive dipole-command noise term (if enabled): the noise</span>
+<span class="sd">    torque lies along :math:`\mathbf{B}_{\mathcal{B}} \times \mathbf{a}` like the command's,</span>
+<span class="sd">    and :meth:`~ADCS.satellite_hardware.actuators.actuator.Actuator.control_covariance`</span>
+<span class="sd">    (dipole units) describes it.</span>
 
 <span class="sd">    Symbols</span>
 <span class="sd">    --------</span>
@@ -669,8 +672,8 @@
 <span class="sd">         - Commanded dipole magnitude [A·m²]</span>
 <span class="sd">       * - :math:`b`</span>
 <span class="sd">         - Bias in the commanded dipole (modeled by :class:`~ADCS.satellite_hardware.errors.bias.Bias`)</span>
-<span class="sd">       * - :math:`\mathbf{n}`</span>
-<span class="sd">         - Additive actuator torque noise (modeled by :class:`~ADCS.satellite_hardware.errors.noise.Noise`)</span>
+<span class="sd">       * - :math:`n`</span>
+<span class="sd">         - Additive dipole-command noise [A·m²] (modeled by :class:`~ADCS.satellite_hardware.errors.noise.Noise`)</span>
 
 <span class="sd">    State dependence</span>
 <span class="sd">    -----------------</span>
@@ -698,7 +701,8 @@
 <span class="sd">    :param bias: Bias model representing constant or slowly varying dipole offset.</span>
 <span class="sd">    :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` | None</span>
 
-<span class="sd">    :param noise: Noise model representing stochastic actuation uncertainty.</span>
+<span class="sd">    :param noise: Noise model for the realized dipole command [A·m²]; the same object</span>
+<span class="sd">        defines :meth:`~ADCS.satellite_hardware.actuators.actuator.Actuator.control_covariance`.</span>
 <span class="sd">    :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` | None</span>
 
 <span class="sd">    :param estimate_bias: If ``True``, includes this actuator's bias term in the estimator state vector.</span>
@@ -758,7 +762,7 @@
 <span class="sd">        .. math::</span>
 
 <span class="sd">            \boldsymbol{\tau}</span>
-<span class="sd">            = -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u + b) + \mathbf{n}</span>
+<span class="sd">            = -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u + b + n)</span>
 
 <span class="sd">        where the magnetic field and its derivatives are obtained from</span>
 <span class="sd">        :class:`~ADCS.orbits.orbital_state.Orbital_State`.</span>
@@ -798,10 +802,19 @@
         <span class="k">if</span> <span class="n">dmode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+        <span class="c1"># Bias and noise both perturb the realized dipole command, so the</span>
+        <span class="c1"># torque they produce lies along B x a like the command's own torque</span>
+        <span class="c1"># and Actuator.control_covariance() (dipole units) describes the plant.</span>
+        <span class="c1"># ``u = u + ...`` rather than ``+=`` so a caller's array is never</span>
+        <span class="c1"># mutated in place.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">add_bias</span><span class="p">:</span>
-            <span class="n">u</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">get_bias</span><span class="p">(</span><span class="n">j2000</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">get_bias</span><span class="p">(</span><span class="n">j2000</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">dmode</span><span class="o">.</span><span class="n">update_bias</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">_update_bias</span><span class="p">(</span><span class="n">j2000</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">add_noise</span><span class="p">:</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">dmode</span><span class="o">.</span><span class="n">update_noise</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">_update_noise</span><span class="p">()</span>
 
         <span class="c1"># Keep the JIT fast path for scalar-like commands; fall back for</span>
         <span class="c1"># array-valued finite-difference probes used by some tests.</span>
@@ -810,12 +823,6 @@
             <span class="n">torque</span> <span class="o">=</span> <span class="n">_mtq_torque_kernel</span><span class="p">(</span><span class="n">b_body</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">u_arr</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">torque</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">b_body</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">)</span> <span class="o">*</span> <span class="n">u_arr</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">add_noise</span><span class="p">:</span>
-            <span class="n">torque</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">dmode</span><span class="o">.</span><span class="n">update_noise</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">_update_noise</span><span class="p">()</span>
-
         <span class="k">return</span> <span class="n">torque</span></div>
 
     

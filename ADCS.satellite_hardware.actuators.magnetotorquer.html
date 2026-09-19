@@ -616,15 +616,18 @@ field.</p>
 commanded with a scalar magnitude <span class="math notranslate nohighlight">\(u\)</span> (with optional scalar bias <span class="math notranslate nohighlight">\(b\)</span>):</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[\mathbf{m} = \mathbf{a}\,(u + b).\]</div>
+\[\mathbf{m} = \mathbf{a}\,(u + b + n).\]</div>
 </div>
 <p>Combining the two gives the actuation model used by <a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.torque" title="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.torque"><code class="xref py py-meth docutils literal notranslate"><span class="pre">torque()</span></code></a>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\boldsymbol{\tau}_{\mathrm{MTQ}}
-= -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u+b) + \mathbf{n},\]</div>
+= -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u + b + n),\]</div>
 </div>
-<p>where <span class="math notranslate nohighlight">\(\mathbf{n}\)</span> is an additive noise term (if enabled).</p>
+<p>where <span class="math notranslate nohighlight">\(n\)</span> is an additive dipole-command noise term (if enabled): the noise
+torque lies along <span class="math notranslate nohighlight">\(\mathbf{B}_{\mathcal{B}} \times \mathbf{a}\)</span> like the command’s,
+and <a class="reference internal" href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.control_covariance" title="ADCS.satellite_hardware.actuators.actuator.Actuator.control_covariance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">control_covariance()</span></code></a>
+(dipole units) describes it.</p>
 </section>
 <section id="symbols">
 <h2>Symbols<a class="headerlink" href="#symbols" title="Link to this heading">¶</a></h2>
@@ -655,8 +658,8 @@ commanded with a scalar magnitude <span class="math notranslate nohighlight">\(u
 <tr class="row-even"><td><p><span class="math notranslate nohighlight">\(b\)</span></p></td>
 <td><p>Bias in the commanded dipole (modeled by <a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><code class="xref py py-class docutils literal notranslate"><span class="pre">Bias</span></code></a>)</p></td>
 </tr>
-<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mathbf{n}\)</span></p></td>
-<td><p>Additive actuator torque noise (modeled by <a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><code class="xref py py-class docutils literal notranslate"><span class="pre">Noise</span></code></a>)</p></td>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(n\)</span></p></td>
+<td><p>Additive dipole-command noise [A·m²] (modeled by <a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><code class="xref py py-class docutils literal notranslate"><span class="pre">Noise</span></code></a>)</p></td>
 </tr>
 </tbody>
 </table>
@@ -696,7 +699,8 @@ saturation limit).</p>
 <dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.errors.bias.html#ADCS.satellite_hardware.errors.bias.Bias" title="ADCS.satellite_hardware.errors.bias.Bias"><code class="xref py py-class docutils literal notranslate"><span class="pre">Bias</span></code></a> | None</p>
 </dd>
 <dt class="field-odd">param noise<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Noise model representing stochastic actuation uncertainty.</p>
+<dd class="field-odd"><p>Noise model for the realized dipole command [A·m²]; the same object
+defines <a class="reference internal" href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.control_covariance" title="ADCS.satellite_hardware.actuators.actuator.Actuator.control_covariance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">control_covariance()</span></code></a>.</p>
 </dd>
 <dt class="field-even">type noise<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><code class="xref py py-class docutils literal notranslate"><span class="pre">Noise</span></code></a> | None</p>
@@ -1140,7 +1144,7 @@ always returns an empty vector.</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\boldsymbol{\tau}
-= -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u + b) + \mathbf{n}\]</div>
+= -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u + b + n)\]</div>
 </div>
 <p>where the magnetic field and its derivatives are obtained from
 <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>.</p>
