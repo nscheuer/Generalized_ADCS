@@ -3,51 +3,51 @@
     "earth_horizon_reading": {
       "loops": 512,
       "max_regression": 1.5,
-      "normalized_seconds": 0.005869716562369283,
-      "seconds": 5.319003906256725e-05
+      "normalized_seconds": 0.007049824634369217,
+      "seconds": 4.605582226613336e-05
     },
     "gps_reading": {
       "loops": 1024,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0030711388257702163,
-      "seconds": 2.782996289063533e-05
+      "normalized_seconds": 0.0034699830394672106,
+      "seconds": 2.2669063476143947e-05
     },
     "gyro_clean_reading": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.00010201138924297156,
-      "seconds": 9.244040527350839e-07
+      "normalized_seconds": 8.779504251085147e-05,
+      "seconds": 5.735565185571723e-07
     },
     "mtm_clean_reading": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.00040825525860021237,
-      "seconds": 3.6995164794939583e-06
+      "normalized_seconds": 0.0003826795045033427,
+      "seconds": 2.5000081786963335e-06
     },
     "star_tracker_quaternion_reading": {
       "loops": 16,
       "max_regression": 1.5,
-      "normalized_seconds": 0.238429478700945,
-      "seconds": 0.0021605938124977797
+      "normalized_seconds": 0.27823939723694285,
+      "seconds": 0.0018177110625003934
     },
     "star_tracker_reading": {
-      "loops": 16,
+      "loops": 1024,
       "max_regression": 1.5,
-      "normalized_seconds": 0.2363901771760048,
-      "seconds": 0.002142114125000205
+      "normalized_seconds": 0.0057398911150854425,
+      "seconds": 3.7498153320658645e-05
     },
     "sunpair_clean_reading": {
-      "loops": 4096,
+      "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0006071364743025939,
-      "seconds": 5.501732910154211e-06
+      "normalized_seconds": 0.0005855829321531281,
+      "seconds": 3.82555664063533e-06
     }
   },
   "calibration_loops": 8,
-  "calibration_seconds": 0.009061773000006212,
+  "calibration_seconds": 0.006532903250047184,
   "description": "Sensors fast benchmark results normalized by calibration_seconds.",
-  "platform": "Linux-6.17.0-1020-azure-x86_64-with-glibc2.39",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
   "processor": "x86_64",
-  "python": "3.12.13",
+  "python": "3.12.3",
   "schema_version": 1
 }
