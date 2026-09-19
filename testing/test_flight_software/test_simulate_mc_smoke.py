@@ -13,6 +13,32 @@ from ADCS.state import State
 UNIT_VECTORS = MathConstants.unitvecs
 
 
+def test_simulate_mc_fast_smoke():
+    """Exercise the public Monte Carlo path with one cheap simulation step."""
+    satellite = Satellite(J_0=np.eye(3))
+    orbital_state = Orbital_State(
+        ephem=Ephemeris(),
+        J2000=0.22,
+        R=np.array([7000.0, 0.0, 0.0]),
+        V=np.array([0.0, 7.5, 0.0]),
+    )
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
+
+    result = simulate_mc(
+        x=state,
+        satellite=satellite,
+        os0=orbital_state,
+        dt=1.0,
+        tf=1.0,
+        num_runs=1,
+        max_workers=1,
+        base_seed=0,
+    )
+
+    assert len(result.runs) == 1
+    assert len(result.runs[0].state_hist) == 1
+
+
 @pytest.fixture(scope="module")
 def mc_result():
     satellite = Satellite(
