@@ -1906,7 +1906,7 @@
 
 <div class="viewcode-block" id="Satellite.noiseless_rk4">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_rk4">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">noiseless_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">orbital_state0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">orbital_state1</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">mid_orbital_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">give_err_est</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">noiseless_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">orbital_state0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">orbital_state1</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">mid_orbital_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">give_err_est</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ErrorMode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Propagate the state forward one step using RK4 (and optional embedded error estimate).</span>
 
@@ -1934,8 +1934,16 @@
 
 <span class="sd">        **Noise/bias behavior**</span>
 
-<span class="sd">        This routine enforces a deterministic propagation by using an</span>
-<span class="sd">        :class:`~ADCS.satellite_hardware.errors.ErrorMode` with all noise/bias additions disabled.</span>
+<span class="sd">        This routine is deterministic: no noise is added and neither the bias</span>
+<span class="sd">        random walks nor the noise realizations are advanced. The configured</span>
+<span class="sd">        actuator biases *are* applied (``add_bias=True``) so that the nominal</span>
+<span class="sd">        model matches the linearization returned by :meth:`dynJacCore`, which</span>
+<span class="sd">        evaluates the actuator Jacobians at the biased command ``u + b``. An</span>
+<span class="sd">        estimator that carries actuator-bias states writes its current estimate</span>
+<span class="sd">        into the actuator ``Bias`` objects (``EstimatedSatellite.match_estimate``)</span>
+<span class="sd">        and therefore propagates its mean with the estimated bias. Pass ``dmode``</span>
+<span class="sd">        explicitly to override this (for example ``add_bias=False`` for a</span>
+<span class="sd">        bias-free nominal model).</span>
 
 <span class="sd">        :param x: Current state vector, shape ``(state_len,)``.</span>
 <span class="sd">        :type x: ADCS.state.State</span>
@@ -1965,6 +1973,10 @@
 <span class="sd">        :param give_err_est: If ``True``, return ``(x_next, err_est)`` using an embedded lower-order estimate.</span>
 <span class="sd">        :type give_err_est: bool</span>
 
+<span class="sd">        :param dmode: Error mode used for every stage evaluation. Defaults to</span>
+<span class="sd">            ``ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)``.</span>
+<span class="sd">        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None</span>
+
 <span class="sd">        :return: Next state, or ``(next_state, error_estimate)`` if ``give_err_est=True``.</span>
 <span class="sd">        :rtype: numpy.ndarray | tuple[numpy.ndarray, numpy.ndarray]</span>
 
@@ -1974,8 +1986,10 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">x_array</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">normalized</span><span class="p">()</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
-        <span class="c1"># Use no noise, no bias, no updates to either</span>
-        <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dmode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Deterministic nominal model: configured/estimated bias applied, no</span>
+            <span class="c1"># noise, and no random-walk or noise-realization updates.</span>
+            <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">quat_as_vec</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">mid_orbital_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">mid_orbital_state</span> <span class="o">=</span> <span class="n">orbital_state0</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">orbital_state1</span><span class="p">)</span>

@@ -621,7 +621,10 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""Return deterministic propagation without mutating ``state``.</span>
 
-<span class="sd">    The physical state is propagated by ``satellite.noiseless_rk4``. For an</span>
+<span class="sd">    The physical state is propagated by ``satellite.noiseless_rk4``, whose</span>
+<span class="sd">    default error mode applies the actuator biases currently held by the</span>
+<span class="sd">    actuator objects (an estimator synchronizes its estimated biases there via</span>
+<span class="sd">    ``EstimatedSatellite.match_estimate``) and adds no noise. For an</span>
 <span class="sd">    :class:`EstimatorState`, wheel momentum is propagated while estimated bias</span>
 <span class="sd">    and disturbance blocks, covariance, and process noise are copied unchanged.</span>
 <span class="sd">    Those nominal parameter blocks are constant under this deterministic model;</span>

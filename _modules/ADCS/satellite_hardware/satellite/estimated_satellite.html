@@ -909,13 +909,16 @@
         <span class="n">ind</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_inds</span><span class="p">:</span>
             <span class="n">dist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disturbances</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="c1"># Every estimated disturbance owns a block in the state vector (the</span>
+            <span class="c1"># same order dist_torques_jacobian / dynJacCore stack), so the index</span>
+            <span class="c1"># must advance whether or not the disturbance is currently active.</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dist</span><span class="o">.</span><span class="n">estimated_vector_length</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="s2">"active"</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>  <span class="c1"># Only update active ones</span>
-                <span class="n">l</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">main_param</span><span class="o">.</span><span class="n">size</span>
                 <span class="n">dist</span><span class="o">.</span><span class="n">main_param</span> <span class="o">=</span> <span class="n">dist_param</span><span class="p">[</span><span class="n">ind</span> <span class="p">:</span> <span class="n">ind</span> <span class="o">+</span> <span class="n">l</span><span class="p">]</span>
                 <span class="n">dist</span><span class="o">.</span><span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
                     <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">dist_param_ic</span><span class="p">[</span><span class="n">ind</span> <span class="p">:</span> <span class="n">ind</span> <span class="o">+</span> <span class="n">l</span><span class="p">,</span> <span class="n">ind</span> <span class="p">:</span> <span class="n">ind</span> <span class="o">+</span> <span class="n">l</span><span class="p">])</span>
                 <span class="p">)</span>
-                <span class="n">ind</span> <span class="o">+=</span> <span class="n">l</span></div>
+            <span class="n">ind</span> <span class="o">+=</span> <span class="n">l</span></div>
 
 
 <div class="viewcode-block" id="EstimatedSatellite.dist_torques_jacobian">

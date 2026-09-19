@@ -849,6 +849,15 @@
         <span class="c1"># (e.g. ``.item()``); casting to float would change the public type.</span>
         <span class="n">u_cmd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">u_max</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span><span class="p">)</span>
 
+        <span class="c1"># When the bias is applied but not random-walked here, its value is set</span>
+        <span class="c1"># externally (an estimator rewrites ``self.bias`` between propagations,</span>
+        <span class="c1"># per step or per sigma point, at an unchanged (J2000, u)); the cached</span>
+        <span class="c1"># realization must not outlive that rewrite, so the value joins the key.</span>
+        <span class="n">held_bias</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">dmode</span><span class="o">.</span><span class="n">add_bias</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">dmode</span><span class="o">.</span><span class="n">update_bias</span><span class="p">)</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
         <span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">,</span>
             <span class="n">u_cmd</span><span class="p">,</span>
@@ -856,6 +865,7 @@
             <span class="n">dmode</span><span class="o">.</span><span class="n">add_noise</span><span class="p">,</span>
             <span class="n">dmode</span><span class="o">.</span><span class="n">update_bias</span><span class="p">,</span>
             <span class="n">dmode</span><span class="o">.</span><span class="n">update_noise</span><span class="p">,</span>
+            <span class="n">held_bias</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eff_cmd_key</span> <span class="o">==</span> <span class="n">key</span><span class="p">:</span>
             <span class="c1"># Same step/state: reuse the already-drawn realization so that the</span>
