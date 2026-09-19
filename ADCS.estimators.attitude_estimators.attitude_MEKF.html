@@ -679,12 +679,23 @@ Van Loan discretization produces</p>
 <div class="math notranslate nohighlight">
 \[\mathbf{\Phi}_k\approx e^{\mathbf{F}_k\Delta t},
 \qquad
-\mathbf{Q}_{d,k}=
+\mathbf{Q}_{d,k}^{\mathrm{VL}}=
 \int_0^{\Delta t}e^{\mathbf{F}_k\tau}
 \mathbf{Q}_{c,k}e^{\mathbf{F}_k^T\tau}\,d\tau.\]</div>
 </div>
+<p>Held actuator-command noise contributes the zero-order-hold term</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{Q}_{d,k}^{u}=\mathbf{\Gamma}_k\mathbf{Q}_{u,k}\mathbf{\Gamma}_k^T,
+\qquad
+\mathbf{\Gamma}_k=\int_0^{\Delta t}e^{\mathbf{F}_k\tau}
+\mathbf{B}_k\,d\tau,
+\qquad
+\mathbf{Q}_{d,k}^{\mathrm{model}}=
+\mathbf{Q}_{d,k}^{\mathrm{VL}}+\mathbf{Q}_{d,k}^{u}.\]</div>
+</div>
 <p>A caller-supplied discrete covariance in <code class="docutils literal notranslate"><span class="pre">EstimatorState.int_cov</span></code> is
-added to this Van Loan result during prediction.</p>
+added to <span class="math notranslate nohighlight">\(\mathbf{Q}_{d,k}^{\mathrm{model}}\)</span> during prediction.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">transition</span><span class="p">,</span> <span class="n">process_noise</span> <span class="o">=</span> <span class="n">discretize_process_noise</span><span class="p">(</span>
     <span class="n">prior</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="p">,</span> <span class="n">control</span><span class="p">,</span> <span class="n">orbital_state_start</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span>
     <span class="n">final_state</span><span class="o">=</span><span class="n">predicted</span><span class="p">,</span>

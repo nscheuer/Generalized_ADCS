@@ -666,18 +666,28 @@
 <span class="sd">   spacecraft dynamics Jacobian and assembles :math:`\mathbf{Q}_{c,k}` from</span>
 <span class="sd">   configured hardware noise plus ``unmodeled_dynamics_psd``. Van Loan</span>
 <span class="sd">   discretization returns the transition matrix :math:`\mathbf{\Phi}_k` and</span>
-<span class="sd">   discrete noise :math:`\mathbf{Q}_{d,k}`:</span>
+<span class="sd">   discrete noise :math:`\mathbf{Q}_{d,k}^{\mathrm{VL}}`. Held actuator-command</span>
+<span class="sd">   noise adds</span>
 
 <span class="sd">   .. math::</span>
 
 <span class="sd">      \mathbf{\Phi}_k \approx e^{\mathbf{F}_k\Delta t},</span>
 <span class="sd">      \qquad</span>
-<span class="sd">      \mathbf{Q}_{d,k} =</span>
+<span class="sd">      \mathbf{Q}_{d,k}^{\mathrm{VL}} =</span>
 <span class="sd">      \int_0^{\Delta t}e^{\mathbf{F}_k\tau}</span>
 <span class="sd">      \mathbf{Q}_{c,k}e^{\mathbf{F}_k^T\tau}\,d\tau.</span>
 
+<span class="sd">      \mathbf{Q}_{d,k}^{u}=\mathbf{\Gamma}_k\mathbf{Q}_{u,k}\mathbf{\Gamma}_k^T,</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \mathbf{\Gamma}_k=\int_0^{\Delta t}e^{\mathbf{F}_k\tau}</span>
+<span class="sd">      \mathbf{B}_k\,d\tau,</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \mathbf{Q}_{d,k}^{\mathrm{model}}=</span>
+<span class="sd">      \mathbf{Q}_{d,k}^{\mathrm{VL}}+\mathbf{Q}_{d,k}^{u}.</span>
+
 <span class="sd">   A caller may also provide an independent discrete covariance through</span>
-<span class="sd">   ``EstimatorState.int_cov``. Prediction adds it to the Van Loan result.</span>
+<span class="sd">   ``EstimatorState.int_cov``. Prediction adds it to</span>
+<span class="sd">   :math:`\mathbf{Q}_{d,k}^{\mathrm{model}}`.</span>
 
 <span class="sd">   .. code-block:: python</span>
 

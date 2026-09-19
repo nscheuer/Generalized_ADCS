@@ -662,17 +662,25 @@ while copying the empty parameter blocks and uncertainty containers.</p>
 spacecraft dynamics Jacobian and assembles <span class="math notranslate nohighlight">\(\mathbf{Q}_{c,k}\)</span> from
 configured hardware noise plus <code class="docutils literal notranslate"><span class="pre">unmodeled_dynamics_psd</span></code>. Van Loan
 discretization returns the transition matrix <span class="math notranslate nohighlight">\(\mathbf{\Phi}_k\)</span> and
-discrete noise <span class="math notranslate nohighlight">\(\mathbf{Q}_{d,k}\)</span>:</p>
+discrete noise <span class="math notranslate nohighlight">\(\mathbf{Q}_{d,k}^{\mathrm{VL}}\)</span>. Held actuator-command
+noise adds</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[\mathbf{\Phi}_k \approx e^{\mathbf{F}_k\Delta t},
+\[ \begin{align}\begin{aligned}\mathbf{\Phi}_k \approx e^{\mathbf{F}_k\Delta t},
 \qquad
-\mathbf{Q}_{d,k} =
+\mathbf{Q}_{d,k}^{\mathrm{VL}} =
 \int_0^{\Delta t}e^{\mathbf{F}_k\tau}
-\mathbf{Q}_{c,k}e^{\mathbf{F}_k^T\tau}\,d\tau.\]</div>
+\mathbf{Q}_{c,k}e^{\mathbf{F}_k^T\tau}\,d\tau.\\\mathbf{Q}_{d,k}^{u}=\mathbf{\Gamma}_k\mathbf{Q}_{u,k}\mathbf{\Gamma}_k^T,
+\qquad
+\mathbf{\Gamma}_k=\int_0^{\Delta t}e^{\mathbf{F}_k\tau}
+\mathbf{B}_k\,d\tau,
+\qquad
+\mathbf{Q}_{d,k}^{\mathrm{model}}=
+\mathbf{Q}_{d,k}^{\mathrm{VL}}+\mathbf{Q}_{d,k}^{u}.\end{aligned}\end{align} \]</div>
 </div>
 <p>A caller may also provide an independent discrete covariance through
-<code class="docutils literal notranslate"><span class="pre">EstimatorState.int_cov</span></code>. Prediction adds it to the Van Loan result.</p>
+<code class="docutils literal notranslate"><span class="pre">EstimatorState.int_cov</span></code>. Prediction adds it to
+<span class="math notranslate nohighlight">\(\mathbf{Q}_{d,k}^{\mathrm{model}}\)</span>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">transition</span><span class="p">,</span> <span class="n">process_noise</span> <span class="o">=</span> <span class="n">discretize_process_noise</span><span class="p">(</span>
     <span class="n">prior</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="p">,</span> <span class="n">control</span><span class="p">,</span> <span class="n">orbital_state_start</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span>
     <span class="n">final_state</span><span class="o">=</span><span class="n">predicted</span><span class="p">,</span>

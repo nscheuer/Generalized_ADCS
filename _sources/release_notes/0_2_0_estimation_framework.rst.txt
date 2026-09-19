@@ -49,8 +49,10 @@ The new estimator process model centralizes deterministic state propagation in
 :func:`~ADCS.estimators.process_model.propagate_state`. The process-noise
 utilities assemble continuous-time noise from unmodeled dynamics and
 configured hardware random walks, construct the local error-state model, and
-discretize the result with the Van Loan method. This keeps the physical model
-independent of the filter that consumes it.
+discretize it with the Van Loan method; held actuator-command noise is handled
+separately. UKF/SRUKF propagate it through control sigma points, while
+linearized filters include it in the discrete process covariance.
+This keeps the physical model independent of the filter.
 
 New ``AttitudeEstimator`` base
 ------------------------------

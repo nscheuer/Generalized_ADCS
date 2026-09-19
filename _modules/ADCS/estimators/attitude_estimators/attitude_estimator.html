@@ -808,6 +808,9 @@
             <span class="n">orbital_state_end</span><span class="p">,</span>
             <span class="n">midpoint_orbital_state</span><span class="o">=</span><span class="n">midpoint_orbital_state</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="c1"># Linearized prediction: the discrete process noise must include the</span>
+        <span class="c1"># actuator command-noise term (zero-order hold through B = dxdot/du);</span>
+        <span class="c1"># sigma-point filters carry it through control sigma points instead.</span>
         <span class="n">transition</span><span class="p">,</span> <span class="n">process_noise</span> <span class="o">=</span> <span class="n">discretize_process_noise</span><span class="p">(</span>
             <span class="n">prior</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="p">,</span>
@@ -815,6 +818,7 @@
             <span class="n">orbital_state_start</span><span class="p">,</span>
             <span class="n">step</span><span class="p">,</span>
             <span class="n">final_state</span><span class="o">=</span><span class="n">predicted</span><span class="p">,</span>
+            <span class="n">include_control_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">unmodeled_dynamics_psd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unmodeled_dynamics_psd</span><span class="p">,</span>
             <span class="n">quaternion_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">correction_mode</span><span class="p">,</span>
             <span class="n">quaternion_order</span><span class="o">=</span><span class="s2">"right"</span><span class="p">,</span>

@@ -586,12 +586,12 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.estimators.process_noise</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Shared continuous-time process-noise construction for attitude estimators.</span>
+<span></span><span class="sd">"""Shared process-noise construction for attitude estimators.</span>
 
-<span class="sd">The functions in this module deliberately operate on ``EstimatorState``'s</span>
-<span class="sd">named layout.  They are filter-neutral: an EKF can use the returned error-state</span>
-<span class="sd">Jacobian directly, while any future sigma-point estimator can reuse the same</span>
-<span class="sd">Van Loan covariance discretization.</span>
+<span class="sd">The functions operate on ``EstimatorState``'s named layout. Linearized</span>
+<span class="sd">filters use the returned error-state model and zero-order-hold actuator-noise</span>
+<span class="sd">term; sigma-point filters propagate actuator noise through control sigma points</span>
+<span class="sd">and disable that additive term.</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -609,7 +609,9 @@
     <span class="s2">"assemble_continuous_process_psd"</span><span class="p">,</span>
     <span class="s2">"error_state_transfer"</span><span class="p">,</span>
     <span class="s2">"continuous_error_state_model"</span><span class="p">,</span>
+    <span class="s2">"control_input_matrix"</span><span class="p">,</span>
     <span class="s2">"van_loan_discretize"</span><span class="p">,</span>
+    <span class="s2">"discretize_control_noise"</span><span class="p">,</span>
     <span class="s2">"discretize_process_noise"</span><span class="p">,</span>
 <span class="p">]</span>
 
@@ -853,8 +855,50 @@
 
 
 
+<div class="viewcode-block" id="control_input_matrix">
+<a class="viewcode-back" href="../../../ADCS.estimators.process_noise.html#ADCS.estimators.process_noise.control_input_matrix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">control_input_matrix</span><span class="p">(</span>
+    <span class="n">state</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">,</span>
+    <span class="n">satellite</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">control</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+    <span class="n">quaternion_order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Return the local control-input matrix :math:`B = G^\dagger\,\partial\dot x/\partial u`.</span>
+
+<span class="sd">    ``dynJacCore`` stores the control block with commands in rows and state</span>
+<span class="sd">    derivatives in columns.  This converts it to the conventional column</span>
+<span class="sd">    form, pads the augmented bias/disturbance rows with zeros (commands do not</span>
+<span class="sd">    drive those random walks), and maps the result into the requested attitude</span>
+<span class="sd">    chart: ``G^+ B`` for a reduced chart, ``N B`` for ``full_quaternion``.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"state must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">control</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">control</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">blocks</span> <span class="o">=</span> <span class="n">satellite</span><span class="o">.</span><span class="n">dynJacCore</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">control</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">blocks</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"dynJacCore must return five state, control, and estimated-parameter blocks"</span>
+        <span class="p">)</span>
+    <span class="n">dxdot_du</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">blocks</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="s2">"physical"</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="s2">"full"</span><span class="p">)</span><span class="o">.</span><span class="n">stop</span>
+    <span class="k">if</span> <span class="n">dxdot_du</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">control</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"dynJacCore control block must have shape </span><span class="si">{</span><span class="p">(</span><span class="n">control</span><span class="o">.</span><span class="n">size</span><span class="p">,</span><span class="w"> </span><span class="n">base</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">state</span><span class="o">.</span><span class="n">full_size</span><span class="p">,</span> <span class="n">control</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">full</span><span class="p">[:</span><span class="n">base</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">dxdot_du</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">if</span> <span class="n">quaternion_mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">normalization_jacobian</span><span class="p">()</span> <span class="o">@</span> <span class="n">full</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">tangent_pinv</span><span class="p">(</span><span class="n">quaternion_mode</span><span class="o">=</span><span class="n">quaternion_mode</span><span class="p">,</span> <span class="n">quaternion_order</span><span class="o">=</span><span class="n">quaternion_order</span><span class="p">)</span>
 <div class="viewcode-block" id="continuous_error_state_model">
 <a class="viewcode-back" href="../../../ADCS.estimators.process_noise.html#ADCS.estimators.process_noise.continuous_error_state_model">[docs]</a>
+        <span class="o">@</span> <span class="n">full</span>
+    <span class="p">)</span></div>
+
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">continuous_error_state_model</span><span class="p">(</span>
     <span class="n">state</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">,</span>
     <span class="n">satellite</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -931,6 +975,64 @@
 
 
 
+<div class="viewcode-block" id="discretize_control_noise">
+<a class="viewcode-back" href="../../../ADCS.estimators.process_noise.html#ADCS.estimators.process_noise.discretize_control_noise">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">discretize_control_noise</span><span class="p">(</span>
+    <span class="n">transfer</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">input_matrix</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">control_covariance</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Discrete covariance injected by zero-order-hold actuator command noise.</span>
+
+<span class="sd">    Actuator ``Noise`` objects draw one command error :math:`w\sim N(0,Q_u)`</span>
+<span class="sd">    per step and hold it over ``dt``; the UKF models exactly this with its</span>
+<span class="sd">    control sigma points.  For the linearized error model</span>
+<span class="sd">    :math:`\delta\dot x = F\delta x + B w` the held error enters through</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \Gamma = \int_0^{\Delta t} e^{F\tau} B\,d\tau,</span>
+<span class="sd">        \qquad</span>
+<span class="sd">        Q_u^{d} = \Gamma Q_u \Gamma^T,</span>
+
+<span class="sd">    where :math:`\Gamma` is the top-right block of</span>
+<span class="sd">    :math:`\exp([[F, B], [0, 0]]\,\Delta t)`.  (A white-noise treatment</span>
+<span class="sd">    through :func:`van_loan_discretize` with ``noise_input=B`` and</span>
+<span class="sd">    ``continuous_psd=Q_u dt`` differs from this by :math:`O(|F|\Delta t)`,</span>
+<span class="sd">    33% at ``dt=10`` s on a CubeSat, and does not match the UKF.)</span>
+<span class="sd">    """</span>
+    <span class="n">transfer</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">transfer</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">input_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">input_matrix</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">control_covariance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">control_covariance</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">transfer</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">transfer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">transfer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"transfer must be square"</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">transfer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">input_matrix</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">input_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">n</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"input_matrix must have </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> rows"</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">input_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">control_covariance</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"control_covariance must have shape </span><span class="si">{</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">m</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">transfer</span><span class="p">))</span>
+        <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">input_matrix</span><span class="p">))</span>
+        <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">control_covariance</span><span class="p">))</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"transfer, input_matrix, and control_covariance must be finite"</span><span class="p">)</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">or</span> <span class="n">dt</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"dt must be finite and non-negative"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">control_covariance</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="n">m</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">block</span><span class="p">[:</span><span class="n">n</span><span class="p">,</span> <span class="p">:</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">transfer</span>
+    <span class="n">block</span><span class="p">[:</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">:]</span> <span class="o">=</span> <span class="n">input_matrix</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="n">expm</span><span class="p">(</span><span class="n">block</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)[:</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">:]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">gamma</span> <span class="o">@</span> <span class="n">control_covariance</span> <span class="o">@</span> <span class="n">gamma</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">result</span> <span class="o">+</span> <span class="n">result</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span></div>
+
+
+
 <div class="viewcode-block" id="discretize_process_noise">
 <a class="viewcode-back" href="../../../ADCS.estimators.process_noise.html#ADCS.estimators.process_noise.discretize_process_noise">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">discretize_process_noise</span><span class="p">(</span>
@@ -941,6 +1043,7 @@
     <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">final_state</span><span class="p">:</span> <span class="n">EstimatorState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">include_control_noise</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Build and Van Loan-discretize the shared attitude process-noise model.</span>
@@ -950,6 +1053,14 @@
 <span class="sd">    ``target_quaternion_mode`` coordinates at ``final_state``.  This supports</span>
 <span class="sd">    all source/target combinations between reduced attitude charts and the</span>
 <span class="sd">    additive full-quaternion chart.</span>
+
+<span class="sd">    ``include_control_noise`` adds the zero-order-hold actuator command-noise</span>
+<span class="sd">    covariance :func:`discretize_control_noise` built from</span>
+<span class="sd">    ``satellite.control_covariance()``.  Linearized filters (EKF/MEKF) must</span>
+<span class="sd">    keep the default ``True``; sigma-point filters that already propagate</span>
+<span class="sd">    control-noise sigma points (UKF/SRUKF) must pass ``False`` so the term is</span>
+<span class="sd">    not counted twice.  Satellites without ``control_covariance`` (lightweight</span>
+<span class="sd">    Jacobian providers) contribute no control noise.</span>
 <span class="sd">    """</span>
     <span class="n">source_mode</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span>
         <span class="s2">"source_quaternion_mode"</span><span class="p">,</span>
@@ -962,6 +1073,19 @@
         <span class="n">state</span><span class="p">,</span> <span class="n">satellite</span><span class="p">,</span> <span class="n">control</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">)</span>
     <span class="n">transition</span><span class="p">,</span> <span class="n">discrete_psd</span> <span class="o">=</span> <span class="n">van_loan_discretize</span><span class="p">(</span><span class="n">transfer</span><span class="p">,</span> <span class="n">continuous_psd</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+    <span class="n">control_covariance</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="s2">"control_covariance"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">include_control_noise</span> <span class="ow">and</span> <span class="n">control_covariance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">input_matrix</span> <span class="o">=</span> <span class="n">control_input_matrix</span><span class="p">(</span>
+            <span class="n">state</span><span class="p">,</span>
+            <span class="n">satellite</span><span class="p">,</span>
+            <span class="n">control</span><span class="p">,</span>
+            <span class="n">orbital_state</span><span class="p">,</span>
+            <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">source_mode</span><span class="p">,</span>
+            <span class="n">quaternion_order</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"quaternion_order"</span><span class="p">,</span> <span class="n">State</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_ORDER</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">discrete_psd</span> <span class="o">=</span> <span class="n">discrete_psd</span> <span class="o">+</span> <span class="n">discretize_control_noise</span><span class="p">(</span>
+            <span class="n">transfer</span><span class="p">,</span> <span class="n">input_matrix</span><span class="p">,</span> <span class="n">control_covariance</span><span class="p">()</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">(),</span> <span class="n">dt</span>
+        <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">final_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">final_state</span> <span class="o">=</span> <span class="n">state</span>

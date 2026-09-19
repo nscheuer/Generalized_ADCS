@@ -594,11 +594,11 @@
         <article role="main" id="furo-main-content">
           <section id="module-ADCS.estimators.process_noise">
 <span id="adcs-estimators-process-noise-module"></span><h1>ADCS.estimators.process_noise module<a class="headerlink" href="#module-ADCS.estimators.process_noise" title="Link to this heading">¶</a></h1>
-<p>Shared continuous-time process-noise construction for attitude estimators.</p>
-<p>The functions in this module deliberately operate on <code class="docutils literal notranslate"><span class="pre">EstimatorState</span></code>’s
-named layout.  They are filter-neutral: an EKF can use the returned error-state
-Jacobian directly, while any future sigma-point estimator can reuse the same
-Van Loan covariance discretization.</p>
+<p>Shared process-noise construction for attitude estimators.</p>
+<p>The functions operate on <code class="docutils literal notranslate"><span class="pre">EstimatorState</span></code>’s named layout. Linearized
+filters use the returned error-state model and zero-order-hold actuator-noise
+term; sigma-point filters propagate actuator noise through control sigma points
+and disable that additive term.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="ADCS.estimators.process_noise.assemble_continuous_process_psd">
 <span class="sig-prename descclassname"><span class="pre">ADCS.estimators.process_noise.</span></span><span class="sig-name descname"><span class="pre">assemble_continuous_process_psd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">unmodeled_dynamics_psd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/process_noise.html#assemble_continuous_process_psd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.process_noise.assemble_continuous_process_psd" title="Link to this definition">¶</a></dt>
@@ -646,14 +646,81 @@ coordinates match <code class="docutils literal notranslate"><span class="pre">q
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="ADCS.estimators.process_noise.control_input_matrix">
+<span class="sig-prename descclassname"><span class="pre">ADCS.estimators.process_noise.</span></span><span class="sig-name descname"><span class="pre">control_input_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'quaternion_vector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quaternion_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/process_noise.html#control_input_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.process_noise.control_input_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Return the local control-input matrix <span class="math notranslate nohighlight">\(B = G^\dagger\,\partial\dot x/\partial u\)</span>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">dynJacCore</span></code> stores the control block with commands in rows and state
+derivatives in columns.  This converts it to the conventional column
+form, pads the augmented bias/disturbance rows with zeros (commands do not
+drive those random walks), and maps the result into the requested attitude
+chart: <code class="docutils literal notranslate"><span class="pre">G^+</span> <span class="pre">B</span></code> for a reduced chart, <code class="docutils literal notranslate"><span class="pre">N</span> <span class="pre">B</span></code> for <code class="docutils literal notranslate"><span class="pre">full_quaternion</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a>)</p></li>
+<li><p><strong>satellite</strong> (<em>Any</em>)</p></li>
+<li><p><strong>control</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>orbital_state</strong> (<em>Any</em>)</p></li>
+<li><p><strong>quaternion_mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>quaternion_order</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.estimators.process_noise.discretize_control_noise">
+<span class="sig-prename descclassname"><span class="pre">ADCS.estimators.process_noise.</span></span><span class="sig-name descname"><span class="pre">discretize_control_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transfer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control_covariance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/process_noise.html#discretize_control_noise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.process_noise.discretize_control_noise" title="Link to this definition">¶</a></dt>
+<dd><p>Discrete covariance injected by zero-order-hold actuator command noise.</p>
+<p>Actuator <code class="docutils literal notranslate"><span class="pre">Noise</span></code> objects draw one command error <span class="math notranslate nohighlight">\(w\sim N(0,Q_u)\)</span>
+per step and hold it over <code class="docutils literal notranslate"><span class="pre">dt</span></code>; the UKF models exactly this with its
+control sigma points.  For the linearized error model
+<span class="math notranslate nohighlight">\(\delta\dot x = F\delta x + B w\)</span> the held error enters through</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\Gamma = \int_0^{\Delta t} e^{F\tau} B\,d\tau,
+\qquad
+Q_u^{d} = \Gamma Q_u \Gamma^T,\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\Gamma\)</span> is the top-right block of
+<span class="math notranslate nohighlight">\(\exp([[F, B], [0, 0]]\,\Delta t)\)</span>.  (A white-noise treatment
+through <a class="reference internal" href="#ADCS.estimators.process_noise.van_loan_discretize" title="ADCS.estimators.process_noise.van_loan_discretize"><code class="xref py py-func docutils literal notranslate"><span class="pre">van_loan_discretize()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">noise_input=B</span></code> and
+<code class="docutils literal notranslate"><span class="pre">continuous_psd=Q_u</span> <span class="pre">dt</span></code> differs from this by <span class="math notranslate nohighlight">\(O(|F|\Delta t)\)</span>,
+33% at <code class="docutils literal notranslate"><span class="pre">dt=10</span></code> s on a CubeSat, and does not match the UKF.)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transfer</strong> (<em>Any</em>)</p></li>
+<li><p><strong>input_matrix</strong> (<em>Any</em>)</p></li>
+<li><p><strong>control_covariance</strong> (<em>Any</em>)</p></li>
+<li><p><strong>dt</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="ADCS.estimators.process_noise.discretize_process_noise">
-<span class="sig-prename descclassname"><span class="pre">ADCS.estimators.process_noise.</span></span><span class="sig-name descname"><span class="pre">discretize_process_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">final_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/process_noise.html#discretize_process_noise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.process_noise.discretize_process_noise" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">ADCS.estimators.process_noise.</span></span><span class="sig-name descname"><span class="pre">discretize_process_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">final_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_control_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/process_noise.html#discretize_process_noise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.process_noise.discretize_process_noise" title="Link to this definition">¶</a></dt>
 <dd><p>Build and Van Loan-discretize the shared attitude process-noise model.</p>
 <p>The dynamics are integrated in <code class="docutils literal notranslate"><span class="pre">source_quaternion_mode</span></code> coordinates
 (falling back to <code class="docutils literal notranslate"><span class="pre">quaternion_mode</span></code>), then mapped into
 <code class="docutils literal notranslate"><span class="pre">target_quaternion_mode</span></code> coordinates at <code class="docutils literal notranslate"><span class="pre">final_state</span></code>.  This supports
 all source/target combinations between reduced attitude charts and the
 additive full-quaternion chart.</p>
+<p><code class="docutils literal notranslate"><span class="pre">include_control_noise</span></code> adds the zero-order-hold actuator command-noise
+covariance <a class="reference internal" href="#ADCS.estimators.process_noise.discretize_control_noise" title="ADCS.estimators.process_noise.discretize_control_noise"><code class="xref py py-func docutils literal notranslate"><span class="pre">discretize_control_noise()</span></code></a> built from
+<code class="docutils literal notranslate"><span class="pre">satellite.control_covariance()</span></code>.  Linearized filters (EKF/MEKF) must
+keep the default <code class="docutils literal notranslate"><span class="pre">True</span></code>; sigma-point filters that already propagate
+control-noise sigma points (UKF/SRUKF) must pass <code class="docutils literal notranslate"><span class="pre">False</span></code> so the term is
+not counted twice.  Satellites without <code class="docutils literal notranslate"><span class="pre">control_covariance</span></code> (lightweight
+Jacobian providers) contribute no control noise.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -663,6 +730,7 @@ additive full-quaternion chart.</p>
 <li><p><strong>orbital_state</strong> (<em>Any</em>)</p></li>
 <li><p><strong>dt</strong> (<em>float</em>)</p></li>
 <li><p><strong>final_state</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>include_control_noise</strong> (<em>bool</em>)</p></li>
 <li><p><strong>kwargs</strong> (<em>Any</em>)</p></li>
 </ul>
 </dd>

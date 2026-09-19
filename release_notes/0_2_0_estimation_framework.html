@@ -634,8 +634,10 @@ consistently include sensor-bias terms.</p>
 <a class="reference internal" href="../ADCS.estimators.process_model.html#ADCS.estimators.process_model.propagate_state" title="ADCS.estimators.process_model.propagate_state"><code class="xref py py-func docutils literal notranslate"><span class="pre">propagate_state()</span></code></a>. The process-noise
 utilities assemble continuous-time noise from unmodeled dynamics and
 configured hardware random walks, construct the local error-state model, and
-discretize the result with the Van Loan method. This keeps the physical model
-independent of the filter that consumes it.</p>
+discretize it with the Van Loan method; held actuator-command noise is handled
+separately. UKF/SRUKF propagate it through control sigma points, while
+linearized filters include it in the discrete process covariance.
+This keeps the physical model independent of the filter.</p>
 </section>
 <section id="new-attitudeestimator-base">
 <h2>New <code class="docutils literal notranslate"><span class="pre">AttitudeEstimator</span></code> base<a class="headerlink" href="#new-attitudeestimator-base" title="Link to this heading">¶</a></h2>

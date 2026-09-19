@@ -685,12 +685,24 @@
 
 <span class="sd">      \mathbf{\Phi}_k\approx e^{\mathbf{F}_k\Delta t},</span>
 <span class="sd">      \qquad</span>
-<span class="sd">      \mathbf{Q}_{d,k}=</span>
+<span class="sd">      \mathbf{Q}_{d,k}^{\mathrm{VL}}=</span>
 <span class="sd">      \int_0^{\Delta t}e^{\mathbf{F}_k\tau}</span>
 <span class="sd">      \mathbf{Q}_{c,k}e^{\mathbf{F}_k^T\tau}\,d\tau.</span>
 
+<span class="sd">   Held actuator-command noise contributes the zero-order-hold term</span>
+
+<span class="sd">   .. math::</span>
+
+<span class="sd">      \mathbf{Q}_{d,k}^{u}=\mathbf{\Gamma}_k\mathbf{Q}_{u,k}\mathbf{\Gamma}_k^T,</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \mathbf{\Gamma}_k=\int_0^{\Delta t}e^{\mathbf{F}_k\tau}</span>
+<span class="sd">      \mathbf{B}_k\,d\tau,</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \mathbf{Q}_{d,k}^{\mathrm{model}}=</span>
+<span class="sd">      \mathbf{Q}_{d,k}^{\mathrm{VL}}+\mathbf{Q}_{d,k}^{u}.</span>
+
 <span class="sd">   A caller-supplied discrete covariance in ``EstimatorState.int_cov`` is</span>
-<span class="sd">   added to this Van Loan result during prediction.</span>
+<span class="sd">   added to :math:`\mathbf{Q}_{d,k}^{\mathrm{model}}` during prediction.</span>
 
 <span class="sd">   .. code-block:: python</span>
 
