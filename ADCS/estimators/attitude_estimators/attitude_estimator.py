@@ -213,6 +213,9 @@ class AttitudeEstimator:
             orbital_state_end,
             midpoint_orbital_state=midpoint_orbital_state,
         )
+        # Linearized prediction: the discrete process noise must include the
+        # actuator command-noise term (zero-order hold through B = dxdot/du);
+        # sigma-point filters carry it through control sigma points instead.
         transition, process_noise = discretize_process_noise(
             prior,
             self.satellite,
@@ -220,6 +223,7 @@ class AttitudeEstimator:
             orbital_state_start,
             step,
             final_state=predicted,
+            include_control_noise=True,
             unmodeled_dynamics_psd=self.unmodeled_dynamics_psd,
             quaternion_mode=self.correction_mode,
             quaternion_order="right",

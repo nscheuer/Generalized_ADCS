@@ -1,9 +1,9 @@
-"""Shared continuous-time process-noise construction for attitude estimators.
+"""Shared process-noise construction for attitude estimators.
 
-The functions in this module deliberately operate on ``EstimatorState``'s
-named layout.  They are filter-neutral: an EKF can use the returned error-state
-Jacobian directly, while any future sigma-point estimator can reuse the same
-Van Loan covariance discretization.
+The functions operate on ``EstimatorState``'s named layout. Linearized
+filters use the returned error-state model and zero-order-hold actuator-noise
+term; sigma-point filters propagate actuator noise through control sigma points
+and disable that additive term.
 """
 
 from __future__ import annotations
@@ -21,7 +21,9 @@ __all__ = [
     "assemble_continuous_process_psd",
     "error_state_transfer",
     "continuous_error_state_model",
+    "control_input_matrix",
     "van_loan_discretize",
+    "discretize_control_noise",
     "discretize_process_noise",
 ]
 
@@ -259,6 +261,45 @@ def error_state_transfer(
     return target_pinv @ (full @ source_map - target_rate @ source_to_target)
 
 
+def control_input_matrix(
+    state: EstimatorState,
+    satellite: Any,
+    control: np.ndarray,
+    orbital_state: Any,
+    *,
+    quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
+    quaternion_order: str = State.DEFAULT_QUATERNION_ORDER,
+) -> np.ndarray:
+    r"""Return the local control-input matrix :math:`B = G^\dagger\,\partial\dot x/\partial u`.
+
+    ``dynJacCore`` stores the control block with commands in rows and state
+    derivatives in columns.  This converts it to the conventional column
+    form, pads the augmented bias/disturbance rows with zeros (commands do not
+    drive those random walks), and maps the result into the requested attitude
+    chart: ``G^+ B`` for a reduced chart, ``N B`` for ``full_quaternion``.
+    """
+    if not isinstance(state, EstimatorState):
+        raise TypeError(f"state must be an EstimatorState, got {type(state).__name__}")
+    control = np.asarray(control, dtype=float)
+    blocks = satellite.dynJacCore(state, control, orbital_state)
+    if len(blocks) != 5:
+        raise ValueError(
+            "dynJacCore must return five state, control, and estimated-parameter blocks"
+        )
+    dxdot_du = np.asarray(blocks[1], dtype=float)
+    base = state.slice("physical", coordinates="full").stop
+    if dxdot_du.shape != (control.size, base):
+        raise ValueError(f"dynJacCore control block must have shape {(control.size, base)}")
+    full = np.zeros((state.full_size, control.size), dtype=float)
+    full[:base, :] = dxdot_du.T
+    if quaternion_mode == "full_quaternion":
+        return state.normalization_jacobian() @ full
+    return (
+        state.tangent_pinv(quaternion_mode=quaternion_mode, quaternion_order=quaternion_order)
+        @ full
+    )
+
+
 def continuous_error_state_model(
     state: EstimatorState,
     satellite: Any,
@@ -331,6 +372,61 @@ def van_loan_discretize(
     return transition, (discrete_psd + discrete_psd.T) / 2.0
 
 
+def discretize_control_noise(
+    transfer: Any,
+    input_matrix: Any,
+    control_covariance: Any,
+    dt: float,
+) -> np.ndarray:
+    r"""Discrete covariance injected by zero-order-hold actuator command noise.
+
+    Actuator ``Noise`` objects draw one command error :math:`w\sim N(0,Q_u)`
+    per step and hold it over ``dt``; the UKF models exactly this with its
+    control sigma points.  For the linearized error model
+    :math:`\delta\dot x = F\delta x + B w` the held error enters through
+
+    .. math::
+
+        \Gamma = \int_0^{\Delta t} e^{F\tau} B\,d\tau,
+        \qquad
+        Q_u^{d} = \Gamma Q_u \Gamma^T,
+
+    where :math:`\Gamma` is the top-right block of
+    :math:`\exp([[F, B], [0, 0]]\,\Delta t)`.  (A white-noise treatment
+    through :func:`van_loan_discretize` with ``noise_input=B`` and
+    ``continuous_psd=Q_u dt`` differs from this by :math:`O(|F|\Delta t)`,
+    33% at ``dt=10`` s on a CubeSat, and does not match the UKF.)
+    """
+    transfer = np.asarray(transfer, dtype=float)
+    input_matrix = np.asarray(input_matrix, dtype=float)
+    control_covariance = np.asarray(control_covariance, dtype=float)
+    if transfer.ndim != 2 or transfer.shape[0] != transfer.shape[1]:
+        raise ValueError("transfer must be square")
+    n = transfer.shape[0]
+    if input_matrix.ndim != 2 or input_matrix.shape[0] != n:
+        raise ValueError(f"input_matrix must have {n} rows")
+    m = input_matrix.shape[1]
+    if control_covariance.shape != (m, m):
+        raise ValueError(f"control_covariance must have shape {(m, m)}")
+    if not (
+        np.all(np.isfinite(transfer))
+        and np.all(np.isfinite(input_matrix))
+        and np.all(np.isfinite(control_covariance))
+    ):
+        raise ValueError("transfer, input_matrix, and control_covariance must be finite")
+    dt = float(dt)
+    if not np.isfinite(dt) or dt < 0.0:
+        raise ValueError("dt must be finite and non-negative")
+    if m == 0 or not np.any(control_covariance):
+        return np.zeros((n, n), dtype=float)
+    block = np.zeros((n + m, n + m), dtype=float)
+    block[:n, :n] = transfer
+    block[:n, n:] = input_matrix
+    gamma = expm(block * dt)[:n, n:]
+    result = gamma @ control_covariance @ gamma.T
+    return (result + result.T) / 2.0
+
+
 def discretize_process_noise(
     state: EstimatorState,
     satellite: Any,
@@ -339,6 +435,7 @@ def discretize_process_noise(
     dt: float,
     *,
     final_state: EstimatorState | None = None,
+    include_control_noise: bool = True,
     **kwargs: Any,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Build and Van Loan-discretize the shared attitude process-noise model.
@@ -348,6 +445,14 @@ def discretize_process_noise(
     ``target_quaternion_mode`` coordinates at ``final_state``.  This supports
     all source/target combinations between reduced attitude charts and the
     additive full-quaternion chart.
+
+    ``include_control_noise`` adds the zero-order-hold actuator command-noise
+    covariance :func:`discretize_control_noise` built from
+    ``satellite.control_covariance()``.  Linearized filters (EKF/MEKF) must
+    keep the default ``True``; sigma-point filters that already propagate
+    control-noise sigma points (UKF/SRUKF) must pass ``False`` so the term is
+    not counted twice.  Satellites without ``control_covariance`` (lightweight
+    Jacobian providers) contribute no control noise.
     """
     source_mode = kwargs.pop(
         "source_quaternion_mode",
@@ -360,6 +465,19 @@ def discretize_process_noise(
         state, satellite, control, orbital_state, **kwargs
     )
     transition, discrete_psd = van_loan_discretize(transfer, continuous_psd, dt)
+    control_covariance = getattr(satellite, "control_covariance", None)
+    if include_control_noise and control_covariance is not None:
+        input_matrix = control_input_matrix(
+            state,
+            satellite,
+            control,
+            orbital_state,
+            quaternion_mode=source_mode,
+            quaternion_order=kwargs.get("quaternion_order", State.DEFAULT_QUATERNION_ORDER),
+        )
+        discrete_psd = discrete_psd + discretize_control_noise(
+            transfer, input_matrix, control_covariance().as_matrix(), dt
+        )
 
     if final_state is None:
         final_state = state
