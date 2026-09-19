@@ -827,13 +827,19 @@
         <span class="k">if</span> <span class="n">orbit_estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">gps</span> <span class="o">=</span> <span class="n">satellite</span><span class="o">.</span><span class="n">GPS_readings</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os_k</span><span class="p">)</span>
             <span class="n">os_hat</span> <span class="o">=</span> <span class="n">orbit_estimator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">GPS_measurements</span><span class="o">=</span><span class="n">gps</span><span class="p">,</span> <span class="n">J2000</span><span class="o">=</span><span class="n">J2000_k</span><span class="p">)</span>
-            <span class="n">os_for_gnc</span> <span class="o">=</span> <span class="n">os_hat</span> <span class="k">if</span> <span class="n">os_hat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">os_k</span>
+            <span class="c1"># Downstream consumers (attitude estimator, controller, goals) need an</span>
+            <span class="c1"># Orbital_State; the estimate wrapper only carries one as .os.</span>
+            <span class="n">os_for_gnc</span> <span class="o">=</span> <span class="n">os_hat</span><span class="o">.</span><span class="n">os</span> <span class="k">if</span> <span class="n">os_hat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">os_k</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">os_hat</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">os_for_gnc</span> <span class="o">=</span> <span class="n">os_k</span>
 
         <span class="k">if</span> <span class="n">estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">previous_estimator_os</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="s2">"step"</span><span class="p">):</span>
+                <span class="c1"># A remote proxy or another one-call estimator: it only speaks</span>
+                <span class="c1"># update(u, sensors, os).</span>
+                <span class="n">x_hat</span> <span class="o">=</span> <span class="n">estimator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">os_for_gnc</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">previous_estimator_os</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">estimator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">os_for_gnc</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">estimator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
@@ -843,7 +849,8 @@
                     <span class="n">midpoint_orbital_state</span><span class="o">=</span><span class="n">os_for_gnc</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">estimator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">os_for_gnc</span><span class="p">)</span>
-            <span class="n">x_hat</span> <span class="o">=</span> <span class="n">estimator</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="s2">"step"</span><span class="p">):</span>
+                <span class="n">x_hat</span> <span class="o">=</span> <span class="n">estimator</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
             <span class="n">previous_estimator_os</span> <span class="o">=</span> <span class="n">os_for_gnc</span>
             <span class="n">x_for_ctrl</span> <span class="o">=</span> <span class="n">x_hat</span>
         <span class="k">else</span><span class="p">:</span>
@@ -976,7 +983,9 @@
                     <span class="k">if</span> <span class="n">orbit_estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">state</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
             <span class="n">est_state</span><span class="o">=</span><span class="n">x_hat</span><span class="p">,</span>
-            <span class="n">state_cov</span><span class="o">=</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="s2">"x_hat"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">"cov"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="c1"># The new-generation filters expose their estimate as .state; the</span>
+            <span class="c1"># returned x_hat carries the covariance directly.</span>
+            <span class="n">state_cov</span><span class="o">=</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">x_hat</span><span class="p">,</span> <span class="s2">"cov"</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="s2">"x_hat"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">"cov"</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
                        <span class="k">if</span> <span class="n">estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
 
             <span class="c1"># --- real biases (existing) ---</span>
