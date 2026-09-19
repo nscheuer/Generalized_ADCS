@@ -154,6 +154,13 @@ class Actuator:
         ``update_noise=False``), which is the zero-order-hold model the
         estimators assume for actuator command noise.
 
+        Actuator torque is evaluated repeatedly by ``solve_ivp`` during one
+        integration step. Updating the stochastic errors inside every solver
+        evaluation would therefore produce a different realization at each
+        Runge--Kutta sub-step. The simulator calls this method once before
+        integration, then evaluates the dynamics with the error updates
+        disabled so the realization is held for the complete plant step.
+
         :param j2000: Current epoch in Julian centuries since J2000.
         :type j2000: float
         :return: None
