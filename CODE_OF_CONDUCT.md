@@ -74,7 +74,7 @@ Consequence: A permanent ban from any sort of public interaction within the proj
 
 ## Reporting a Violation
 
-To report a violation of the Code of Conduct, e-mail nscheuer@mit.edu.
+To report a violation of this Code of Conduct or ask any questions, please contact [William.Goldman@tufts.edu](mailto:William.Goldman@tufts.edu).
 
 ## Attribution
 
