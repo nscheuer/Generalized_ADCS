@@ -6,6 +6,7 @@ from scipy.linalg import block_diag
 
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedOrbital_State
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 
@@ -47,7 +48,7 @@ class Orbit_EKF(Orbit_Estimator):
         """
         super().__init__(est_sat=est_sat, dt=dt)
         if not self.est_sat.GPS_sensors:
-            return ValueError("Satellite must have at least one GPS sensor!")
+            raise ValueError("Satellite must have at least one GPS sensor!")
 
         self.reset(est_sat=est_sat, J2000=J2000, os_hat=os_hat, P_hat=P_hat, Q_hat=Q_hat, dt=dt)
 
@@ -82,6 +83,7 @@ class Orbit_EKF(Orbit_Estimator):
         if Q_hat.shape != (6, 6):
             raise ValueError(f"Q must be 6×6, got {Q_hat.shape}")
         self.os_hat = EstimatedOrbital_State(os=os_hat, P=P_hat, Q=Q_hat)
+        self._has_updated = False
 
         gps_sensors = self.est_sat.GPS_sensors
         blocks = []
@@ -125,29 +127,46 @@ class Orbit_EKF(Orbit_Estimator):
         :return: The updated :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State`.
         """
 
-        # --- 1. Propagate the orbital state ---
+        # --- 1. Propagate the orbital state over the elapsed time ---
         os0: Orbital_State = self.os_hat.os
-
-        os_pred: Orbital_State = os0.propagate_orbit_rk4(
-            dt=self.dt,
-            zonal_J=2,
-            fast=True,
-        )
-        r_pred, v_pred = os_pred.R, os_pred.V
-        x_pred = np.hstack([r_pred, v_pred])   # (6,)
-
-        # Dynamics Jacobian Fk
-        dr_dr0, dr_dv0, dv_dr0, dv_dv0 = os0.orbit_dynamics_jacobians(
-            zonal_J=2
-        )
-        Fk = np.block([
-            [dr_dr0, dr_dv0],
-            [dv_dr0, dv_dv0],
-        ])  # (6×6)
-
+        elapsed = (float(J2000) - float(os0.J2000)) * TimeConstants.cent2sec
+        if np.isfinite(elapsed) and elapsed > 0.0:
+            step = elapsed
+        elif not getattr(self, "_has_updated", False):
+            # A measurement taken at the epoch the estimate already sits at (the
+            # first sample) needs no prediction. Propagating a full dt here used
+            # to inject |v| dt (about 140 km) of error into the first innovation.
+            step = 0.0
+        else:
+            # A caller that does not advance J2000 still gets the configured step.
+            step = self.dt
         P0 = self.os_hat.P      # 6×6
         Q0 = self.os_hat.Q      # 6×6
-        P_pred = Fk @ P0 @ Fk.T + Q0
+        if step > 0.0:
+            os_pred: Orbital_State = os0.propagate_orbit_rk4(
+                dt=step,
+                zonal_J=2,
+                fast=True,
+            )
+            # The discrete state-transition matrix over the step, not the
+            # continuous Jacobian A = d(xdot)/dx that used to stand in for it:
+            # with A the position block received the velocity variance and the
+            # filter was overconfident by orders of magnitude (NEES ~ 1e9).
+            dr_dr0, dr_dv0, dv_dr0, dv_dv0 = os0.propagate_jacobians_rk4(
+                dt=step, zonal_J=2
+            )
+            Fk = np.block([
+                [dr_dr0, dr_dv0],
+                [dv_dr0, dv_dv0],
+            ])  # (6×6)
+            P_pred = Fk @ P0 @ Fk.T + Q0
+        else:
+            os_pred = os0
+            Fk = np.eye(6)
+            P_pred = P0.copy()
+        self._has_updated = True
+        r_pred, v_pred = os_pred.R, os_pred.V
+        x_pred = np.hstack([r_pred, v_pred])   # (6,)
 
         # --- 2. If no measurements, just return prediction ---
         if GPS_measurements is None or len(GPS_measurements) == 0:
