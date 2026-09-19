@@ -572,6 +572,7 @@ class UKF(AttitudeEstimator):
             orbital_state_start,
             step,
             final_state=predicted,
+            include_control_noise=False,
             unmodeled_dynamics_psd=self.unmodeled_dynamics_psd,
             quaternion_mode=self.correction_mode,
             quaternion_order="right",

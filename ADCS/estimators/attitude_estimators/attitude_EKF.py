@@ -78,18 +78,28 @@ r"""
    spacecraft dynamics Jacobian and assembles :math:`\mathbf{Q}_{c,k}` from
    configured hardware noise plus ``unmodeled_dynamics_psd``. Van Loan
    discretization returns the transition matrix :math:`\mathbf{\Phi}_k` and
-   discrete noise :math:`\mathbf{Q}_{d,k}`:
+   discrete noise :math:`\mathbf{Q}_{d,k}^{\mathrm{VL}}`. Held actuator-command
+   noise adds
 
    .. math::
 
       \mathbf{\Phi}_k \approx e^{\mathbf{F}_k\Delta t},
       \qquad
-      \mathbf{Q}_{d,k} =
+      \mathbf{Q}_{d,k}^{\mathrm{VL}} =
       \int_0^{\Delta t}e^{\mathbf{F}_k\tau}
       \mathbf{Q}_{c,k}e^{\mathbf{F}_k^T\tau}\,d\tau.
 
+      \mathbf{Q}_{d,k}^{u}=\mathbf{\Gamma}_k\mathbf{Q}_{u,k}\mathbf{\Gamma}_k^T,
+      \qquad
+      \mathbf{\Gamma}_k=\int_0^{\Delta t}e^{\mathbf{F}_k\tau}
+      \mathbf{B}_k\,d\tau,
+      \qquad
+      \mathbf{Q}_{d,k}^{\mathrm{model}}=
+      \mathbf{Q}_{d,k}^{\mathrm{VL}}+\mathbf{Q}_{d,k}^{u}.
+
    A caller may also provide an independent discrete covariance through
-   ``EstimatorState.int_cov``. Prediction adds it to the Van Loan result.
+   ``EstimatorState.int_cov``. Prediction adds it to
+   :math:`\mathbf{Q}_{d,k}^{\mathrm{model}}`.
 
    .. code-block:: python
 
