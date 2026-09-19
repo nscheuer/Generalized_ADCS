@@ -1,9 +1,9 @@
-"""Shared continuous-time process-noise construction for attitude estimators.
+"""Shared process-noise construction for attitude estimators.
 
-The functions in this module deliberately operate on ``EstimatorState``'s
-named layout.  They are filter-neutral: an EKF can use the returned error-state
-Jacobian directly, while any future sigma-point estimator can reuse the same
-Van Loan covariance discretization.
+The functions operate on ``EstimatorState``'s named layout. Linearized
+filters use the returned error-state model and zero-order-hold actuator-noise
+term; sigma-point filters propagate actuator noise through control sigma points
+and disable that additive term.
 """
 
 from __future__ import annotations

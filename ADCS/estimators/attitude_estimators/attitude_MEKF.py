@@ -97,12 +97,24 @@ r"""
 
       \mathbf{\Phi}_k\approx e^{\mathbf{F}_k\Delta t},
       \qquad
-      \mathbf{Q}_{d,k}=
+      \mathbf{Q}_{d,k}^{\mathrm{VL}}=
       \int_0^{\Delta t}e^{\mathbf{F}_k\tau}
       \mathbf{Q}_{c,k}e^{\mathbf{F}_k^T\tau}\,d\tau.
 
+   Held actuator-command noise contributes the zero-order-hold term
+
+   .. math::
+
+      \mathbf{Q}_{d,k}^{u}=\mathbf{\Gamma}_k\mathbf{Q}_{u,k}\mathbf{\Gamma}_k^T,
+      \qquad
+      \mathbf{\Gamma}_k=\int_0^{\Delta t}e^{\mathbf{F}_k\tau}
+      \mathbf{B}_k\,d\tau,
+      \qquad
+      \mathbf{Q}_{d,k}^{\mathrm{model}}=
+      \mathbf{Q}_{d,k}^{\mathrm{VL}}+\mathbf{Q}_{d,k}^{u}.
+
    A caller-supplied discrete covariance in ``EstimatorState.int_cov`` is
-   added to this Van Loan result during prediction.
+   added to :math:`\mathbf{Q}_{d,k}^{\mathrm{model}}` during prediction.
 
    .. code-block:: python
 
