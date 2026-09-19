@@ -237,6 +237,23 @@ def test_identity_matrix_update():
     assert np.allclose(_gram(R), np.eye(3) + np.outer(x, x), atol=1e-13)
 
 
+@pytest.mark.parametrize("fn", [cholupdate, choldowndate])
+@pytest.mark.parametrize(
+    "R, x, error, message",
+    [
+        (np.ones(3), np.ones(3), ValueError, "square 2-D"),
+        (np.ones((2, 3)), np.ones(2), ValueError, "square 2-D"),
+        (np.ones((2, 2), dtype=np.float32), np.ones(2), TypeError, "float64"),
+        (np.eye(2), np.ones(1), ValueError, r"shape \(2,\)"),
+        (np.eye(2), np.ones((2, 1)), ValueError, r"shape \(2,\)"),
+    ],
+)
+def test_rejects_invalid_inputs_before_entering_kernel(R, x, error, message, fn):
+    """Invalid inputs fail cheaply and predictably in the Python wrapper."""
+    with pytest.raises(error, match=message):
+        fn(R, x)
+
+
 # ---------------------------------------------------------------------------
 # Failure detection -- the behaviour that differs from choldate
 # ---------------------------------------------------------------------------

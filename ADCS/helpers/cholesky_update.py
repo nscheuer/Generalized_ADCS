@@ -40,11 +40,18 @@ def _cholupdate_impl(R: np.ndarray, x: np.ndarray) -> None:
         xk = x[k]
         r = np.sqrt(Rkk * Rkk + xk * xk)
         if Rkk == 0.0:
-            # Degenerate factor: the rotation is undefined. Propagate NaN
-            # rather than dividing by zero silently.
-            for i in range(k, n):
-                R[k, i] = np.nan
-            return
+            # A structurally zero row. With x_k == 0 the Givens rotation is the
+            # identity; with x_k != 0 it is the swap (c = 0, s = sign(x_k)).
+            # Both are well defined, so do not propagate NaN.
+            if xk == 0.0:
+                continue
+            sign = 1.0 if xk > 0.0 else -1.0
+            R[k, k] = abs(xk)
+            for i in range(k + 1, n):
+                previous = R[k, i]
+                R[k, i] = sign * x[i]
+                x[i] = -sign * previous
+            continue
         c = r / Rkk
         s = xk / Rkk
         R[k, k] = r
@@ -60,6 +67,9 @@ def _choldowndate_impl(R: np.ndarray, x: np.ndarray) -> None:
         Rkk = R[k, k]
         xk = x[k]
         r2 = Rkk * Rkk - xk * xk
+        if Rkk == 0.0 and xk == 0.0:
+            # A structurally zero row that the downdate does not touch.
+            continue
         if Rkk == 0.0 or r2 <= 0.0:
             # A - x x^T is not positive definite; there is no real factor.
             # Fill with NaN so callers' finite-checks trip instead of
@@ -77,6 +87,18 @@ def _choldowndate_impl(R: np.ndarray, x: np.ndarray) -> None:
             x[i] = c * x[i] - s * R[k, i]
 
 
+def _checked(R: np.ndarray, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Validate shapes before entering the bounds-check-free compiled kernels."""
+    if not isinstance(R, np.ndarray) or R.ndim != 2 or R.shape[0] != R.shape[1]:
+        raise ValueError("R must be a square 2-D numpy array")
+    if R.dtype != np.float64:
+        raise TypeError(f"R must have dtype float64, got {R.dtype}")
+    x = np.ascontiguousarray(x, dtype=np.float64)
+    if x.shape != (R.shape[0],):
+        raise ValueError(f"x must have shape ({R.shape[0]},), got {x.shape}")
+    return R, x.copy()
+
+
 def cholupdate(R: np.ndarray, x: np.ndarray) -> None:
     r"""Rank-1 update: overwrite ``R`` with the factor of :math:`A + x x^\top`.
 
@@ -87,7 +109,7 @@ def cholupdate(R: np.ndarray, x: np.ndarray) -> None:
     :return: None
     :rtype: None
     """
-    _cholupdate_impl(R, np.ascontiguousarray(x, dtype=np.float64).copy())
+    _cholupdate_impl(*_checked(R, x))
 
 
 def choldowndate(R: np.ndarray, x: np.ndarray) -> None:
@@ -103,4 +125,4 @@ def choldowndate(R: np.ndarray, x: np.ndarray) -> None:
     :return: None
     :rtype: None
     """
-    _choldowndate_impl(R, np.ascontiguousarray(x, dtype=np.float64).copy())
+    _choldowndate_impl(*_checked(R, x))
