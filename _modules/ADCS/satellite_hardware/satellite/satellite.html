@@ -1117,6 +1117,27 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">actuators</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">h</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">momentum_inds</span><span class="p">])</span></div>
 
 
+<div class="viewcode-block" id="Satellite.update_actuator_errors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_actuator_errors">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_actuator_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">j2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Advance every actuator's stochastic error models by one plant step.</span>
+
+<span class="sd">        Calls :meth:`~ADCS.satellite_hardware.actuators.actuator.Actuator.update_errors`</span>
+<span class="sd">        on each actuator: the bias random walks move to ``j2000`` and a fresh</span>
+<span class="sd">        noise sample is drawn, to be held over the following integration step.</span>
+<span class="sd">        :func:`~ADCS.simulate.simulate` calls this once per step before</span>
+<span class="sd">        integrating the plant.</span>
+
+<span class="sd">        :param j2000: Current epoch in Julian centuries since J2000.</span>
+<span class="sd">        :type j2000: float</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        :rtype: None</span>
+<span class="sd">        """</span>
+        <span class="k">for</span> <span class="n">actuator</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">actuators</span><span class="p">:</span>
+            <span class="n">actuator</span><span class="o">.</span><span class="n">update_errors</span><span class="p">(</span><span class="n">j2000</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="Satellite.update_RWhs">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_RWhs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">state_or_RWhs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -2065,7 +2086,7 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        """</span>
         <span class="n">sensor_readings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attitude_sensors</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">reading</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attitude_sensors</span><span class="p">))]</span>
-        <span class="n">rw_readings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rw_actuators</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">measure_momentum</span><span class="p">())</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rw_actuators</span><span class="p">))]</span>
+        <span class="n">rw_readings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rw_actuators</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">measure_momentum</span><span class="p">(</span><span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rw_actuators</span><span class="p">))]</span>
         <span class="n">combined_readings</span> <span class="o">=</span> <span class="n">sensor_readings</span> <span class="o">+</span> <span class="n">rw_readings</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">combined_readings</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>

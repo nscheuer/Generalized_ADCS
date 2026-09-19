@@ -780,6 +780,10 @@
         <span class="n">os_k</span> <span class="o">=</span> <span class="n">os_seq</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
         <span class="n">os_kp1</span> <span class="o">=</span> <span class="n">os_seq</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
         <span class="n">J2000_k</span> <span class="o">=</span> <span class="n">os_k</span><span class="o">.</span><span class="n">J2000</span>
+        <span class="c1"># Draw this step's plant error realizations (actuator noise and bias walks,</span>
+        <span class="c1"># wheel tachometer samples) before measuring and integrating; the</span>
+        <span class="c1"># integrator holds them for the whole step (zero-order hold).</span>
+        <span class="n">satellite</span><span class="o">.</span><span class="n">update_actuator_errors</span><span class="p">(</span><span class="n">J2000_k</span><span class="p">)</span>
 
         <span class="n">y</span> <span class="o">=</span> <span class="n">satellite</span><span class="o">.</span><span class="n">sensor_readings</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os_k</span><span class="p">)</span>
         <span class="n">y_clean</span> <span class="o">=</span> <span class="n">satellite</span><span class="o">.</span><span class="n">noiseless_sensor_readings</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os_k</span><span class="p">)</span>

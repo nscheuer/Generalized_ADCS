@@ -1705,6 +1705,28 @@ wheel momentum vector directly.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.update_actuator_errors">
+<span class="sig-name descname"><span class="pre">update_actuator_errors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">j2000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.update_actuator_errors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.update_actuator_errors" title="Link to this definition">¶</a></dt>
+<dd><p>Advance every actuator’s stochastic error models by one plant step.</p>
+<p>Calls <a class="reference internal" href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.update_errors" title="ADCS.satellite_hardware.actuators.actuator.Actuator.update_errors"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_errors()</span></code></a>
+on each actuator: the bias random walks move to <code class="docutils literal notranslate"><span class="pre">j2000</span></code> and a fresh
+noise sample is drawn, to be held over the following integration step.
+<a class="reference internal" href="ADCS.simulate.html#ADCS.simulate.simulate" title="ADCS.simulate.simulate"><code class="xref py py-func docutils literal notranslate"><span class="pre">simulate()</span></code></a> calls this once per step before
+integrating the plant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>j2000</strong> (<em>float</em>) – Current epoch in Julian centuries since J2000.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>

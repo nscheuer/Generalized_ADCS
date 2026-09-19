@@ -1221,7 +1221,7 @@ u_{\mathrm{eff}} = u + b(t) + n(t),\]</div>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum">
-<span class="sig-name descname"><span class="pre">measure_momentum</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.measure_momentum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">measure_momentum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.measure_momentum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum" title="Link to this definition">¶</a></dt>
 <dd><p>Measure the wheel angular momentum with additive measurement noise.</p>
 <p>The measurement model is</p>
 <div class="math-wrapper docutils container">
@@ -1230,12 +1230,24 @@ u_{\mathrm{eff}} = u + b(t) + n(t),\]</div>
 </div>
 <p>where <span class="math notranslate nohighlight">\(\nu_h\)</span> is sampled from <code class="xref py py-attr docutils literal notranslate"><span class="pre">h_meas_noise</span></code>, an instance of
 <a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise" title="ADCS.satellite_hardware.errors.noise.Noise"><code class="xref py py-class docutils literal notranslate"><span class="pre">Noise</span></code></a>.</p>
+<p>The sample is drawn once per plant step by <a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.update_errors" title="ADCS.satellite_hardware.actuators.reaction_wheel.RW.update_errors"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_errors()</span></code></a> (the
+plant calls it through
+<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_actuator_errors" title="ADCS.satellite_hardware.satellite.satellite.Satellite.update_actuator_errors"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_actuator_errors()</span></code></a>)
+and held, so readings taken within one step share a realization and
+consecutive steps carry independent noise. Pass an
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ErrorMode</span></code> with
+<code class="docutils literal notranslate"><span class="pre">add_noise=False</span></code> for the noiseless value, or <code class="docutils literal notranslate"><span class="pre">update_noise=True</span></code>
+to draw a fresh sample for this reading.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Noisy wheel momentum measurement <span class="math notranslate nohighlight">\(\tilde{\mathbf{h}}\)</span> [N·m·s], shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dmode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ErrorMode</span></code> | None) – Error mode; <code class="docutils literal notranslate"><span class="pre">add_noise</span></code> and <code class="docutils literal notranslate"><span class="pre">update_noise</span></code> are honoured.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> adds the held sample without redrawing.</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Noisy wheel momentum measurement <span class="math notranslate nohighlight">\(\tilde{\mathbf{h}}\)</span> [N·m·s], shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1341,6 +1353,34 @@ additive bias <span class="math notranslate nohighlight">\(b(t)\)</span> and noi
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.update_errors">
+<span class="sig-name descname"><span class="pre">update_errors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">j2000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.update_errors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.update_errors" title="Link to this definition">¶</a></dt>
+<dd><p>Advance the actuator’s stochastic error models by one plant step.</p>
+<p>Walks the bias random walk to <code class="docutils literal notranslate"><span class="pre">j2000</span></code> and draws a fresh noise
+sample. The plant then holds both over the following integration step
+(the dynamics are evaluated with <code class="docutils literal notranslate"><span class="pre">update_bias=False</span></code> and
+<code class="docutils literal notranslate"><span class="pre">update_noise=False</span></code>), which is the zero-order-hold model the
+estimators assume for actuator command noise.</p>
+<p>Actuator torque is evaluated repeatedly by <code class="docutils literal notranslate"><span class="pre">solve_ivp</span></code> during one
+integration step. Updating the stochastic errors inside every solver
+evaluation would therefore produce a different realization at each
+Runge–Kutta sub-step. The simulator calls this method once before
+integration, then evaluates the dynamics with the error updates
+disabled so the realization is held for the complete plant step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>j2000</strong> (<em>float</em>) – Current epoch in Julian centuries since J2000.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>

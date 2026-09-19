@@ -743,6 +743,36 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">process_psd</span><span class="p">(</span><span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="Actuator.update_errors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.update_errors">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">j2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Advance the actuator's stochastic error models by one plant step.</span>
+
+<span class="sd">        Walks the bias random walk to ``j2000`` and draws a fresh noise</span>
+<span class="sd">        sample. The plant then holds both over the following integration step</span>
+<span class="sd">        (the dynamics are evaluated with ``update_bias=False`` and</span>
+<span class="sd">        ``update_noise=False``), which is the zero-order-hold model the</span>
+<span class="sd">        estimators assume for actuator command noise.</span>
+
+<span class="sd">        Actuator torque is evaluated repeatedly by ``solve_ivp`` during one</span>
+<span class="sd">        integration step. Updating the stochastic errors inside every solver</span>
+<span class="sd">        evaluation would therefore produce a different realization at each</span>
+<span class="sd">        Runge--Kutta sub-step. The simulator calls this method once before</span>
+<span class="sd">        integration, then evaluates the dynamics with the error updates</span>
+<span class="sd">        disabled so the realization is held for the complete plant step.</span>
+
+<span class="sd">        :param j2000: Current epoch in Julian centuries since J2000.</span>
+<span class="sd">        :type j2000: float</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        :rtype: None</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">_update_bias</span><span class="p">(</span><span class="n">j2000</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">_update_noise</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="Actuator.torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ErrorMode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>

@@ -927,9 +927,24 @@
 
     
 
+<div class="viewcode-block" id="RW.update_errors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.update_errors">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">j2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update_errors</span><span class="p">(</span><span class="n">j2000</span><span class="p">)</span>
+        <span class="c1"># Draw this step's momentum-measurement sample too: measure_momentum()</span>
+        <span class="c1"># adds the held sample, so every reading within the step sees the same</span>
+        <span class="c1"># realization and the hot path stays a single addition.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_meas_noise</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_meas_noise</span><span class="o">.</span><span class="n">_update_noise</span><span class="p">()</span>
+        <span class="c1"># The held effective command was drawn with the previous realization;</span>
+        <span class="c1"># the next torque evaluation must not be served from that cache.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_eff_cmd_key</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_eff_cmd_val</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
 <div class="viewcode-block" id="RW.measure_momentum">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">measure_momentum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">measure_momentum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ErrorMode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Measure the wheel angular momentum with additive measurement noise.</span>
 
@@ -942,12 +957,30 @@
 <span class="sd">        where :math:`\nu_h` is sampled from :attr:`~RW.h_meas_noise`, an instance of</span>
 <span class="sd">        :class:`~ADCS.satellite_hardware.errors.noise.Noise`.</span>
 
+<span class="sd">        The sample is drawn once per plant step by :meth:`update_errors` (the</span>
+<span class="sd">        plant calls it through</span>
+<span class="sd">        :meth:`~ADCS.satellite_hardware.satellite.satellite.Satellite.update_actuator_errors`)</span>
+<span class="sd">        and held, so readings taken within one step share a realization and</span>
+<span class="sd">        consecutive steps carry independent noise. Pass an</span>
+<span class="sd">        :class:`~ADCS.satellite_hardware.errors.ErrorMode` with</span>
+<span class="sd">        ``add_noise=False`` for the noiseless value, or ``update_noise=True``</span>
+<span class="sd">        to draw a fresh sample for this reading.</span>
+
+<span class="sd">        :param dmode: Error mode; ``add_noise`` and ``update_noise`` are honoured.</span>
+<span class="sd">                      ``None`` adds the held sample without redrawing.</span>
+<span class="sd">        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None</span>
 <span class="sd">        :return: Noisy wheel momentum measurement :math:`\tilde{\mathbf{h}}` [N·m·s], shape ``(3,)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        """</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_meas_noise</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span></div>
+        <span class="k">if</span> <span class="n">dmode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_meas_noise</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">dmode</span><span class="o">.</span><span class="n">update_noise</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_meas_noise</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_meas_noise</span><span class="o">.</span><span class="n">_update_noise</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">dmode</span><span class="o">.</span><span class="n">add_noise</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_meas_noise</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">+</span> <span class="mf">0.0</span></div>
 
-    
+
 <div class="viewcode-block" id="RW.measure_momentum_noiseless">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum_noiseless">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">measure_momentum_noiseless</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
