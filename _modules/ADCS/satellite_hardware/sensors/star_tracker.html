@@ -826,6 +826,17 @@
 <span class="sd">        :rtype: :class:`~ADCS.environment.NavigationStar` or None</span>
 <span class="sd">        """</span>
 
+        <span class="c1"># Memoize on the exact (attitude, orbital state) so clean_reading and</span>
+        <span class="c1"># basestate_jac evaluated at the same state share one catalog query,</span>
+        <span class="c1"># while a different state always re-selects.</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">(),</span>
+            <span class="nb">float</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_star_selection"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cached</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">key</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">A</span> <span class="o">=</span> <span class="n">rot_mat</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
         <span class="n">boresight_eci</span> <span class="o">=</span> <span class="n">A</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">boresight</span>
         <span class="n">r_sat_eci</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">R</span>
@@ -841,10 +852,9 @@
             <span class="n">sun_exclusion_rad</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sun_exclusion</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">visible</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span>
-
-        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">visible</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">vmag</span><span class="p">)</span>
+        <span class="n">star</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">visible</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">vmag</span><span class="p">)</span> <span class="k">if</span> <span class="n">visible</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_star_selection</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">star</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">star</span>
 
 <div class="viewcode-block" id="StarTracker.clean_reading">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.clean_reading">[docs]</a>
@@ -947,11 +957,16 @@
 <span class="sd">        :return: Base-state Jacobian stacked as ``[ω; q]``, shape ``(7, 3)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        """</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_star</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span>
-
+        <span class="c1"># Derive the star from (x, os) rather than from whatever the previous</span>
+        <span class="c1"># clean_reading() call left in ``current_star``: the Jacobian must</span>
+        <span class="c1"># describe the measurement at *this* state, and a state where no</span>
+        <span class="c1"># star is visible has no finite Jacobian (NaN, not zeros, so an</span>
+        <span class="c1"># estimator cannot silently use a stale mask with it).</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
-        <span class="n">s_eci</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_star</span><span class="o">.</span><span class="n">s_eci</span>
+        <span class="n">star</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_star</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">os</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">star</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">s_eci</span> <span class="o">=</span> <span class="n">star</span><span class="o">.</span><span class="n">s_eci</span>
         <span class="n">db_dq</span> <span class="o">=</span> <span class="n">drotmatTvecdq</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">s_eci</span><span class="p">)</span>
 
         <span class="n">J</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span>

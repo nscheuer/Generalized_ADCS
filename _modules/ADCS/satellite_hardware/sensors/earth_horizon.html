@@ -784,13 +784,27 @@
 <span class="sd">                 outside the sensor FOV.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        """</span>
+        <span class="n">nadir_eci</span><span class="p">,</span> <span class="n">nadir_body</span><span class="p">,</span> <span class="n">visible</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nadir_geometry</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nadir_eci</span> <span class="o">=</span> <span class="n">nadir_eci</span> <span class="k">if</span> <span class="n">visible</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">visible</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nadir_body</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_nadir_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Return ``(nadir_eci, nadir_body, visible)`` for the state ``x`` at ``os``.</span>
+
+<span class="sd">        Shared by :meth:`clean_reading` and :meth:`basestate_jac` so both</span>
+<span class="sd">        describe the same geometry at the same state; nothing is carried over</span>
+<span class="sd">        from a previous call.</span>
+<span class="sd">        """</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
         <span class="n">r_sat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">R</span>  <span class="c1"># ECI position [km]</span>
         <span class="n">r_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">r_sat</span><span class="p">)</span>
 
         <span class="c1"># Nadir direction in ECI</span>
         <span class="n">nadir_eci</span> <span class="o">=</span> <span class="o">-</span><span class="n">r_sat</span> <span class="o">/</span> <span class="n">r_norm</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_nadir_eci</span> <span class="o">=</span> <span class="n">nadir_eci</span>
 
         <span class="c1"># Earth angular radius</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_earth_angular_radius</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span>
@@ -804,12 +818,7 @@
         <span class="c1"># FOV visibility check</span>
         <span class="n">cos_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boresight</span><span class="p">,</span> <span class="n">nadir_body</span><span class="p">)</span>
         <span class="n">angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">cos_angle</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">angle</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">fov</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_nadir_eci</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">nadir_body</span></div>
-
+        <span class="k">return</span> <span class="n">nadir_eci</span><span class="p">,</span> <span class="n">nadir_body</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="n">angle</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fov</span><span class="p">)</span>
 
 <div class="viewcode-block" id="EarthHorizonSensor.reading">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor.reading">[docs]</a>
@@ -876,11 +885,14 @@
 <span class="sd">        :return: Base-state Jacobian of shape ``(7, 3)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        """</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nadir_eci</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span>
-
+        <span class="c1"># Evaluate the geometry at (x, os) rather than reusing the previous</span>
+        <span class="c1"># clean_reading() call's nadir; outside the field of view there is no</span>
+        <span class="c1"># finite Jacobian (NaN rather than zeros).</span>
+        <span class="n">nadir_eci</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">visible</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nadir_geometry</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">visible</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
-        <span class="n">db_dq</span> <span class="o">=</span> <span class="n">drotmatTvecdq</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nadir_eci</span><span class="p">)</span>
+        <span class="n">db_dq</span> <span class="o">=</span> <span class="n">drotmatTvecdq</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">nadir_eci</span><span class="p">)</span>
 
         <span class="n">J</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span>
         <span class="n">J</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">db_dq</span>

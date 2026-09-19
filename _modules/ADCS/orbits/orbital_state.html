@@ -1750,16 +1750,18 @@
         <span class="c1"># Jacobians/Hessians are only needed when an estimator is in the loop.</span>
         <span class="c1"># Skip them when _skip_jacobians is set to avoid ~25% overhead.</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">'_skip_jacobians'</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
-            <span class="n">_z3x4</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
-            <span class="n">_z3x4x4</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
-            <span class="n">dR_B__dq</span> <span class="o">=</span> <span class="n">_z3x4</span>
-            <span class="n">dB_B__dq</span> <span class="o">=</span> <span class="n">_z3x4</span>
-            <span class="n">dV_B__dq</span> <span class="o">=</span> <span class="n">_z3x4</span>
-            <span class="n">dS_B__dq</span> <span class="o">=</span> <span class="n">_z3x4</span>
-            <span class="n">ddR_B__dqdq</span> <span class="o">=</span> <span class="n">_z3x4x4</span>
-            <span class="n">ddB_B__dqdq</span> <span class="o">=</span> <span class="n">_z3x4x4</span>
-            <span class="n">ddV_B__dqdq</span> <span class="o">=</span> <span class="n">_z3x4x4</span>
-            <span class="n">ddS_B__dqdq</span> <span class="o">=</span> <span class="n">_z3x4x4</span>
+            <span class="c1"># Same shapes as drotmatTvecdq (4, 3) and ddrotmatTvecdqdq (4, 4, 3)</span>
+            <span class="c1"># so a sensor Jacobian assembled from them is a zero of the right size.</span>
+            <span class="n">_z4x3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+            <span class="n">_z4x4x3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+            <span class="n">dR_B__dq</span> <span class="o">=</span> <span class="n">_z4x3</span>
+            <span class="n">dB_B__dq</span> <span class="o">=</span> <span class="n">_z4x3</span>
+            <span class="n">dV_B__dq</span> <span class="o">=</span> <span class="n">_z4x3</span>
+            <span class="n">dS_B__dq</span> <span class="o">=</span> <span class="n">_z4x3</span>
+            <span class="n">ddR_B__dqdq</span> <span class="o">=</span> <span class="n">_z4x4x3</span>
+            <span class="n">ddB_B__dqdq</span> <span class="o">=</span> <span class="n">_z4x4x3</span>
+            <span class="n">ddV_B__dqdq</span> <span class="o">=</span> <span class="n">_z4x4x3</span>
+            <span class="n">ddS_B__dqdq</span> <span class="o">=</span> <span class="n">_z4x4x3</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">dR_B__dq</span> <span class="o">=</span> <span class="n">drotmatTvecdq</span><span class="p">(</span><span class="n">q0</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
             <span class="n">dB_B__dq</span> <span class="o">=</span> <span class="n">drotmatTvecdq</span><span class="p">(</span><span class="n">q0</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>

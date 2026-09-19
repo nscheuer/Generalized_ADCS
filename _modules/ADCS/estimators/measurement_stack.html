@@ -984,14 +984,23 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">form</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"full"</span><span class="p">,</span>
         <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
+        <span class="n">predicted</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Covariance</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Return active residual covariance ``R`` using right-error coordinates."""</span>
+<span class="w">        </span><span class="sd">"""Return active residual covariance ``R`` using right-error coordinates.</span>
+
+<span class="sd">        When ``predicted`` (the raw prediction from :meth:`predict`) is given,</span>
+<span class="sd">        an active entry with a non-finite prediction raises, the same contract</span>
+<span class="sd">        :meth:`residual` enforces, so a stale first-pass mask cannot produce a</span>
+<span class="sd">        covariance whose dimension disagrees with the residual.</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
         <span class="n">active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_mask</span><span class="p">(</span><span class="n">active_mask</span><span class="p">)</span>
+        <span class="n">predicted_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predicted_values</span><span class="p">(</span><span class="n">predicted</span><span class="p">)</span>
         <span class="n">blocks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">entry</span><span class="p">,</span> <span class="n">selected</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">selected</span><span class="p">:</span>
                 <span class="k">continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_check_prediction</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">predicted_values</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">sensor_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">block</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">momentum_measurement_covariance</span><span class="p">()</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
@@ -1022,8 +1031,14 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">quaternion_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_MODE</span><span class="p">,</span>
         <span class="n">coordinates</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"tangent"</span><span class="p">,</span>
+        <span class="n">predicted</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""Return the active right-error measurement Jacobian ``H``.</span>
+
+<span class="sd">        An active entry whose sensor Jacobian is non-finite at the estimate</span>
+<span class="sd">        (the measurement is unavailable there) raises with the entry name;</span>
+<span class="sd">        passing ``predicted`` additionally applies the finite-prediction</span>
+<span class="sd">        contract of :meth:`residual`.</span>
 
 <span class="sd">        ``coordinates="tangent"`` returns the minimal attitude-error Jacobian</span>
 <span class="sd">        used by a MEKF. ``coordinates="full"`` returns the Jacobian with</span>
@@ -1032,6 +1047,7 @@
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
         <span class="n">active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entry_mask</span><span class="p">(</span><span class="n">active_mask</span><span class="p">)</span>
+        <span class="n">predicted_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predicted_values</span><span class="p">(</span><span class="n">predicted</span><span class="p">)</span>
         <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="c1"># Let State own validation and the one authoritative dimension rule.</span>
         <span class="n">coordinate_size</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">coordinates</span><span class="o">=</span><span class="n">coordinates</span><span class="p">)</span>
@@ -1049,6 +1065,7 @@
         <span class="k">for</span> <span class="n">entry</span><span class="p">,</span> <span class="n">selected</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">selected</span><span class="p">:</span>
                 <span class="k">continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_check_prediction</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">predicted_values</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">sensor_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">row</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">coordinate_size</span><span class="p">))</span>
                 <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">wheel_coordinates</span><span class="o">.</span><span class="n">start</span> <span class="o">+</span> <span class="n">entry</span><span class="o">.</span><span class="n">wheel_index</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
@@ -1071,6 +1088,12 @@
                 <span class="k">continue</span>
 
             <span class="n">legacy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">basestate_jac</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">legacy</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is active but its Jacobian is non-finite at the estimate "</span>
+                    <span class="s2">"(the measurement is unavailable there); "</span>
+                    <span class="s2">"recompute active_mask(..., predicted=predicted)"</span>
+                <span class="p">)</span>
             <span class="n">output_size</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">raw_slice</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="n">entry</span><span class="o">.</span><span class="n">raw_slice</span><span class="o">.</span><span class="n">start</span>
             <span class="n">expected</span> <span class="o">=</span> <span class="p">(</span><span class="n">base_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
             <span class="c1"># Older sensor models that do not depend on wheel momentum expose</span>
@@ -1089,6 +1112,8 @@
                     <span class="n">entry</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">bias_jac</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span>
                 <span class="p">)</span>
                 <span class="n">expected_bias_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">bias</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="n">bias</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">bias_jacobian</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.bias_jac() returned non-finite values"</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">bias_jacobian</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">expected_bias_shape</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.bias_jac() must have shape "</span>
@@ -1098,6 +1123,22 @@
             <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full</span> <span class="o">@</span> <span class="n">coordinate_map</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="k">if</span> <span class="n">rows</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">coordinate_size</span><span class="p">))</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_predicted_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predicted</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Raw predicted measurements when supplied, validated once."""</span>
+        <span class="k">if</span> <span class="n">predicted</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_measurements</span><span class="p">(</span><span class="n">predicted</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"predicted"</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_prediction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">MeasurementSource</span><span class="p">,</span> <span class="n">predicted_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Apply the finite-prediction contract of residual() when a prediction is given."""</span>
+        <span class="k">if</span> <span class="n">predicted_values</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">predicted_values</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">raw_slice</span><span class="p">])):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is active but its prediction is non-finite; "</span>
+                <span class="s2">"recompute active_mask(..., predicted=predicted)"</span>
+            <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_sensor_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sensor_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">bias_slice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">sensor_bias_slice</span><span class="p">(</span><span class="n">sensor_index</span><span class="p">)</span>
