@@ -660,8 +660,11 @@
 <span class="sd">        noise matrix :math:`\mathbf{R}` based on the standard deviation of the </span>
 <span class="sd">        onboard GPS sensors.</span>
 
-<span class="sd">        .. math::</span>
-<span class="sd">            \mathbf{R} = \text{block\_diag}(\sigma_{GPS,1}^2 \mathbf{I}, \dots)</span>
+<span class="sd">        Each GPS sensor provides standard deviations in ECEF axes. A sensor's</span>
+<span class="sd">        covariance is first represented as a 6x6 diagonal ECEF covariance; the</span>
+<span class="sd">        corresponding blocks are rotated into ECI at update time before being</span>
+<span class="sd">        used in the innovation covariance. The resulting ECI blocks are</span>
+<span class="sd">        generally dense when the per-axis standard deviations differ.</span>
 
 <span class="sd">        :param est_sat: Satellite hardware model.</span>
 <span class="sd">        :param J2000: Current J2000 epoch.</span>
@@ -680,7 +683,17 @@
         <span class="n">gps_sensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">GPS_sensors</span>
         <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">gps</span> <span class="ow">in</span> <span class="n">gps_sensors</span><span class="p">:</span>
-            <span class="n">std</span> <span class="o">=</span> <span class="n">gps</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">std_noise</span>
+            <span class="c1"># GPS noise may be supplied as a flat [position, velocity] vector</span>
+            <span class="c1"># or as a (2, 3) position/velocity array. Normalize both forms to</span>
+            <span class="c1"># the six axes expected by the EKF's block layout.</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">gps</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">std_noise</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">std</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">std</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">std</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"Each GPS noise specification must contain 1 or 6 "</span>
+                    <span class="sa">f</span><span class="s2">"standard deviations, got shape </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">gps</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">std_noise</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
             <span class="n">R_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">std</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
             <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">R_i</span><span class="p">)</span>
 
@@ -813,19 +826,20 @@
         <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">h_single</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sens</span><span class="p">)])</span>  <span class="c1"># (m_total,)</span>
         <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">H_i</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sens</span><span class="p">)])</span>            <span class="c1"># (m_total × 6)</span>
 
-        <span class="c1"># --- 5. Measurement noise covariance R (already built in reset) ---</span>
-        <span class="k">if</span> <span class="n">m_i</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="n">n_gps</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">GPS_sensors</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">6</span> <span class="o">*</span> <span class="n">n_gps</span><span class="p">,</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">n_gps</span><span class="p">):</span>
-                <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sens</span><span class="p">):</span>
-                    <span class="n">start</span> <span class="o">=</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">i</span>
-                    <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="mi">3</span><span class="p">,</span> <span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="mi">3</span><span class="p">])</span>
-                <span class="n">R</span> <span class="o">=</span> <span class="n">block_diag</span><span class="p">(</span><span class="o">*</span><span class="n">blocks</span><span class="p">)</span>
+        <span class="c1"># --- 5. Measurement noise covariance R ---</span>
+        <span class="c1"># self.R holds each sensor's noise in its own (ECEF) axes; the innovation</span>
+        <span class="c1"># is in ECI, so rotate every 3x3 block with this epoch's ECEF-to-ECI</span>
+        <span class="c1"># rotation before it is used.</span>
+        <span class="n">rotation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">os_pred</span><span class="o">.</span><span class="n">ecef_to_eci</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span> <span class="k">for</span> <span class="n">axis</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)])</span>
+        <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sens</span><span class="p">):</span>
+            <span class="n">sensor_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">[</span><span class="mi">6</span> <span class="o">*</span> <span class="n">i</span> <span class="p">:</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">i</span> <span class="p">:</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">6</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">m_i</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rotation</span> <span class="o">@</span> <span class="n">sensor_block</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">@</span> <span class="n">rotation</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
+                <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block_diag</span><span class="p">(</span><span class="n">rotation</span> <span class="o">@</span> <span class="n">sensor_block</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">@</span> <span class="n">rotation</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                                         <span class="n">rotation</span> <span class="o">@</span> <span class="n">sensor_block</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span> <span class="o">@</span> <span class="n">rotation</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">block_diag</span><span class="p">(</span><span class="o">*</span><span class="n">blocks</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">R</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">m_total</span><span class="p">,</span> <span class="n">m_total</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"R must be </span><span class="si">{</span><span class="n">m_total</span><span class="si">}</span><span class="s2">×</span><span class="si">{</span><span class="n">m_total</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">R</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 

@@ -753,6 +753,12 @@ otherwise an empty <code class="docutils literal notranslate"><span class="pre">
 </div>
 <p>where <span class="math notranslate nohighlight">\(C_{\mathrm{ECI}\rightarrow\mathrm{ECEF}}\)</span> is the coordinate
 transformation matrix from the inertial to Earth-fixed frame.</p>
+<p>Note that this is the <em>inertial</em> velocity expressed in ECEF axes. A real
+receiver reports the velocity relative to the rotating Earth, which
+differs by <span class="math notranslate nohighlight">\(\boldsymbol{\omega}_\oplus \times \mathbf{r}\)</span> (about
+0.5 km/s in low Earth orbit). The orbit estimators in this package invert
+this same convention, so simulated data is self-consistent; recorded
+receiver data must have that term added before it is fed to them.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

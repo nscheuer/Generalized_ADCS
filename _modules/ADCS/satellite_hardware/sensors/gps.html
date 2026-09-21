@@ -724,6 +724,13 @@
 <span class="sd">        where :math:`C_{\mathrm{ECI}\rightarrow\mathrm{ECEF}}` is the coordinate</span>
 <span class="sd">        transformation matrix from the inertial to Earth-fixed frame.</span>
 
+<span class="sd">        Note that this is the *inertial* velocity expressed in ECEF axes. A real</span>
+<span class="sd">        receiver reports the velocity relative to the rotating Earth, which</span>
+<span class="sd">        differs by :math:`\boldsymbol{\omega}_\oplus \times \mathbf{r}` (about</span>
+<span class="sd">        0.5 km/s in low Earth orbit). The orbit estimators in this package invert</span>
+<span class="sd">        this same convention, so simulated data is self-consistent; recorded</span>
+<span class="sd">        receiver data must have that term added before it is fed to them.</span>
+
 <span class="sd">        :param x: Full system state vector. This argument is unused by the GPS model.</span>
 <span class="sd">        :type x: ADCS.state.State</span>
 <span class="sd">        :param os: Orbital state providing position, velocity, and frame transforms.</span>

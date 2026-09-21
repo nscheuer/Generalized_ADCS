@@ -656,10 +656,11 @@ and covariance <span class="math notranslate nohighlight">\(\mathbf{P}\)</span>.
 <p>Initializes the estimate <span class="math notranslate nohighlight">\(\hat{\mathbf{x}}\)</span> and constructs the measurement
 noise matrix <span class="math notranslate nohighlight">\(\mathbf{R}\)</span> based on the standard deviation of the
 onboard GPS sensors.</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathbf{R} = \text{block\_diag}(\sigma_{GPS,1}^2 \mathbf{I}, \dots)\]</div>
-</div>
+<p>Each GPS sensor provides standard deviations in ECEF axes. A sensor’s
+covariance is first represented as a 6x6 diagonal ECEF covariance; the
+corresponding blocks are rotated into ECI at update time before being
+used in the innovation covariance. The resulting ECI blocks are
+generally dense when the per-axis standard deviations differ.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
