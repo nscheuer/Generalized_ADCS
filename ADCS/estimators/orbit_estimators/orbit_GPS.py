@@ -9,6 +9,22 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedOrbital_State
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 
+
+def _sensor_axes_to_eci(covariance: np.ndarray, os: Orbital_State) -> np.ndarray:
+    """Rotate a 6x6 covariance given in ECEF axes into ECI axes.
+
+    A GPS receiver reports its noise per ECEF axis. The estimate lives in ECI,
+    so each 3x3 block (position, velocity) is rotated with the ECEF-to-ECI
+    rotation of the epoch, C P C^T. Without this an anisotropic receiver
+    specification is attached to the wrong axes and the estimate's stated
+    uncertainty is inconsistent with its actual error.
+    """
+    rotation = np.column_stack([os.ecef_to_eci(axis) for axis in np.eye(3)])
+    rotated = np.zeros((6, 6))
+    for block in (slice(0, 3), slice(3, 6)):
+        rotated[block, block] = rotation @ covariance[block, block] @ rotation.T
+    return 0.5 * (rotated + rotated.T)
+
 class Orbit_GPS(Orbit_Estimator):
     r"""
     Pass-through GPS-based orbit estimator.
@@ -142,11 +158,11 @@ class Orbit_GPS(Orbit_Estimator):
         if not gps_sensors:
             raise ValueError("Orbit_GPS requires at least one GPS sensor.")
             
-        blocks = []
-        for gps in gps_sensors:
-            std = gps.noise.std_noise
-
-            self.gps_std = std
+        # One noise vector per sensor, in the order of est_sat.GPS_sensors. The
+        # update consumes GPS_measurements[0], so the first sensor's noise is the
+        # one that describes it (the loop used to keep the last sensor's).
+        self.gps_stds = [np.asarray(gps.noise.std_noise, dtype=float).reshape(-1) for gps in gps_sensors]
+        self.gps_std = self.gps_stds[0]
 
     def update(
         self,
@@ -250,6 +266,7 @@ class Orbit_GPS(Orbit_Estimator):
             std_vel = 1000.0  # High uncertainty for unmeasured velocity
             P = np.diag(np.concatenate([std_pos ** 2,
                                         np.full(3, std_vel ** 2)]))
+            P = _sensor_axes_to_eci(P, temp_os)
 
         elif m.size == 6:
             # Position + Velocity
@@ -262,7 +279,7 @@ class Orbit_GPS(Orbit_Estimator):
             std = np.asarray(self.gps_std, dtype=float).reshape(-1)
             if std.size == 1:
                 std = np.repeat(std, 6)
-            P = np.diag(std[:6] ** 2)
+            P = _sensor_axes_to_eci(np.diag(std[:6] ** 2), temp_os)
             
         else:
             raise ValueError(f"Unknown GPS measurement size: {m.size}")

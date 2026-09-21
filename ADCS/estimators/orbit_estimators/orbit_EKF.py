@@ -218,19 +218,20 @@ class Orbit_EKF(Orbit_Estimator):
         h = np.concatenate([h_single for _ in range(n_sens)])  # (m_total,)
         H = np.vstack([H_i for _ in range(n_sens)])            # (m_total × 6)
 
-        # --- 5. Measurement noise covariance R (already built in reset) ---
-        if m_i == 3:
-            n_gps = len(self.est_sat.GPS_sensors)
-            if self.R.shape == (6 * n_gps, 6 * n_gps):
-                blocks = []
-                for i in range(n_sens):
-                    start = 6 * i
-                    blocks.append(self.R[start : start + 3, start : start + 3])
-                R = block_diag(*blocks)
+        # --- 5. Measurement noise covariance R ---
+        # self.R holds each sensor's noise in its own (ECEF) axes; the innovation
+        # is in ECI, so rotate every 3x3 block with this epoch's ECEF-to-ECI
+        # rotation before it is used.
+        rotation = np.column_stack([os_pred.ecef_to_eci(axis) for axis in np.eye(3)])
+        blocks = []
+        for i in range(n_sens):
+            sensor_block = self.R[6 * i : 6 * i + 6, 6 * i : 6 * i + 6]
+            if m_i == 3:
+                blocks.append(rotation @ sensor_block[0:3, 0:3] @ rotation.T)
             else:
-                R = self.R
-        else:
-            R = self.R
+                blocks.append(block_diag(rotation @ sensor_block[0:3, 0:3] @ rotation.T,
+                                         rotation @ sensor_block[3:6, 3:6] @ rotation.T))
+        R = block_diag(*blocks)
         if R.shape != (m_total, m_total):
             raise ValueError(f"R must be {m_total}×{m_total}, got {R.shape}")
 
