@@ -672,6 +672,43 @@ equations, assumptions, or parameter values.</p>
 </table>
 </div>
 </section>
+<section id="orbits">
+<h2>Orbits<a class="headerlink" href="#orbits" title="Link to this heading">¶</a></h2>
+<p>The orbit environment models use the following external Python libraries for
+planetary ephemerides and geomagnetic-field calculations.</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 35.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Documentation</p></th>
+<th class="head"><p>Original citation</p></th>
+<th class="head"><p>Reference</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Planetary ephemeris and celestial-body positions</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ADCS.orbits.ephemeris.Ephemeris</span></code></p></td>
+<td><ol class="upperalpha simple" start="2">
+<li><p>Rhodes, “Skyfield: High precision research-grade positions for planets and Earth satellites in Python,” 2019, ASCL: <a class="reference external" href="https://ascl.net/1907.024">ascl:1907.024</a>.</p></li>
+</ol>
+</td>
+<td><p><a class="reference external" href="https://rhodesmill.org/skyfield/">Skyfield documentation</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>IGRF geomagnetic field</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ADCS.orbits.orbital_state.Orbital_State</span></code></p></td>
+<td><p>IAGA-VMOD, <em>ppigrf: Pure Python IGRF</em>, together with P. Alken et al., “International Geomagnetic Reference Field: the thirteenth generation,” <em>Earth, Planets and Space</em>, Vol. 73, Article 49, 2021.</p></td>
+<td><p><a class="reference external" href="https://github.com/IAGA-VMOD/ppigrf">ppigrf</a>; <a class="reference external" href="https://doi.org/10.1186/s40623-020-01288-x">doi:10.1186/s40623-020-01288-x</a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
 <section id="estimators">
 <h2>Estimators<a class="headerlink" href="#estimators" title="Link to this heading">¶</a></h2>
 <p>Estimator citations should be added here when an estimator implementation is
@@ -736,6 +773,7 @@ derived from a specific paper or validated against a published formulation.</p>
             <ul>
 <li><a class="reference internal" href="#">Citations</a><ul>
 <li><a class="reference internal" href="#control-laws">Control Laws</a></li>
+<li><a class="reference internal" href="#orbits">Orbits</a></li>
 <li><a class="reference internal" href="#estimators">Estimators</a></li>
 </ul>
 </li>
