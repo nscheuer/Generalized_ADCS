@@ -664,6 +664,37 @@ class UKF(AttitudeEstimator):
             return stack.predict(point, orbital_state, active_mask=active)
 
         sigma_measurements = [predict_sigma_measurement(point) for point in points]
+        # A sensor can be unavailable at some sample points even though it is
+        # available at the estimate (a narrow field of view with a wide
+        # attitude uncertainty, an eclipse boundary). Its prediction is then
+        # non-finite there. Drop such sensors from this update instead of
+        # aborting it; they return as soon as every sample point sees them.
+        dropped = [
+            entry.name
+            for entry, enabled in zip(stack.entries, active)
+            if enabled and not all(
+                np.all(np.isfinite(measurement[entry.raw_slice]))
+                for measurement in sigma_measurements
+            )
+        ]
+        if dropped:
+            active = active & np.array(
+                [entry.name not in dropped for entry in stack.entries], dtype=bool
+            )
+            if not np.any(active):
+                self._diagnostics.update(
+                    active_mask=active,
+                    predicted_measurement=nominal_measurement,
+                    innovation=np.empty(0),
+                    measurement_noise=np.zeros((0, 0)),
+                    innovation_covariance=np.zeros((0, 0)),
+                    kalman_gain=np.zeros((covariance_size, 0)),
+                    correction=np.zeros(covariance_size),
+                    reset_jacobian=np.eye(covariance_size),
+                    corrected_covariance=prior.covariance.as_matrix(),
+                    dropped_entries=dropped,
+                )
+                return self.state
         predicted_measurement = self._measurement_mean(
             stack, sigma_measurements, active, mean_weights
         )
@@ -735,6 +766,7 @@ class UKF(AttitudeEstimator):
             self.satellite.match_estimate(corrected, self.dt)
         self._diagnostics.update(
             active_mask=active,
+            dropped_entries=dropped,
             predicted_measurement=predicted_measurement,
             innovation=innovation,
             measurement_noise=measurement_noise.as_matrix(),
