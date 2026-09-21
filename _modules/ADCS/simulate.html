@@ -842,12 +842,9 @@
             <span class="k">elif</span> <span class="n">previous_estimator_os</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">estimator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">os_for_gnc</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">estimator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
-                    <span class="n">u</span><span class="p">,</span>
-                    <span class="n">previous_estimator_os</span><span class="p">,</span>
-                    <span class="n">os_for_gnc</span><span class="p">,</span>
-                    <span class="n">midpoint_orbital_state</span><span class="o">=</span><span class="n">os_for_gnc</span><span class="p">,</span>
-                <span class="p">)</span>
+                <span class="c1"># No midpoint on purpose: the propagation averages the two</span>
+                <span class="c1"># orbital states, which is what the integrator stages need.</span>
+                <span class="n">estimator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">previous_estimator_os</span><span class="p">,</span> <span class="n">os_for_gnc</span><span class="p">)</span>
                 <span class="n">estimator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">os_for_gnc</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="s2">"step"</span><span class="p">):</span>
                 <span class="n">x_hat</span> <span class="o">=</span> <span class="n">estimator</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>

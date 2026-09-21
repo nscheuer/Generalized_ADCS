@@ -1040,7 +1040,10 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">orbital_state_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_previous_orbital_state</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_previous_orbital_state</span> <span class="o">=</span> <span class="n">os</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state_start</span><span class="p">,</span> <span class="n">os</span><span class="p">,</span> <span class="n">midpoint_orbital_state</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
+            <span class="c1"># No midpoint is passed on purpose: the propagation then averages the</span>
+            <span class="c1"># two orbital states, which is what the RK4 stages need. Passing the</span>
+            <span class="c1"># end state biased every stage toward the end of the interval.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">orbital_state_start</span><span class="p">,</span> <span class="n">os</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">correct</span><span class="p">(</span><span class="n">sensors</span><span class="p">,</span> <span class="n">os</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span></div>
 
