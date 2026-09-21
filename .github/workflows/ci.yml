@@ -11,6 +11,12 @@ on:
   # every one of them merges without ever having been tested.
   pull_request:
 
+permissions:
+  contents: read
+  checks: write
+  issues: write
+  pull-requests: write
+
 jobs:
   check_all_pytests:
     runs-on: ubuntu-latest
@@ -33,6 +39,7 @@ jobs:
         run: |
           source .venv/bin/activate
           pip install -r requirements.txt
+          pip install pytest-cov
           pip uninstall -y cmake
           
       - name: 🧪 Run Pytest
@@ -44,7 +51,23 @@ jobs:
             -m "not vslow" \
             --durations=0 \
             --durations-min=0.0 \
+            --cov=ADCS \
+            --cov-report=term-missing \
+            --cov-report=xml:testing/artifacts/coverage.xml \
             --junitxml=testing/artifacts/pytest.xml
+
+      - name: 📊 Generate Coverage Summary
+        if: always()
+        run: |
+          source .venv/bin/activate
+          {
+            echo "## Coverage"
+            echo
+            echo '```text'
+            coverage report -m || true
+            echo '```'
+          } > testing/artifacts/coverage.md
+          cat testing/artifacts/coverage.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: 📦 Upload Pytest JUnit XML
         if: always()
@@ -53,8 +76,56 @@ jobs:
           name: pytest-junit-report
           path: testing/artifacts/pytest.xml
 
-      - name: 📋 Publish Test Summary
+      - name: 📦 Upload Coverage XML
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            testing/artifacts/coverage.xml
+            testing/artifacts/coverage.md
+
+      - name: 📋 Publish Test Summary
+        if: always() && !cancelled()
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: testing/artifacts/pytest.xml
+
+      - name: 💬 Add Coverage to PR Test Summary
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coverageMarker = '<!-- generalized-adcs-coverage -->';
+            const coverage = fs.readFileSync('testing/artifacts/coverage.md', 'utf8').trim();
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+
+            const testComment = comments.find((comment) =>
+              comment.user.type === 'Bot' && comment.body.includes('Test Results')
+            );
+
+            if (!testComment) {
+              core.warning('The test-results comment was not found; coverage remains in the job summary and artifact.');
+              return;
+            }
+
+            const markerIndex = testComment.body.indexOf(coverageMarker);
+            const testResults = markerIndex >= 0
+              ? testComment.body.slice(0, markerIndex).trimEnd()
+              : testComment.body.trimEnd();
+
+            await github.rest.issues.updateComment({
+              owner,
+              repo,
+              comment_id: testComment.id,
+              body: `${testResults}\n\n${coverageMarker}\n${coverage}`,
+            });
