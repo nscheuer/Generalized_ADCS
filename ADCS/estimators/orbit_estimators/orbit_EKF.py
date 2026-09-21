@@ -68,8 +68,11 @@ class Orbit_EKF(Orbit_Estimator):
         noise matrix :math:`\mathbf{R}` based on the standard deviation of the 
         onboard GPS sensors.
 
-        .. math::
-            \mathbf{R} = \text{block\_diag}(\sigma_{GPS,1}^2 \mathbf{I}, \dots)
+        Each GPS sensor provides standard deviations in ECEF axes. A sensor's
+        covariance is first represented as a 6x6 diagonal ECEF covariance; the
+        corresponding blocks are rotated into ECI at update time before being
+        used in the innovation covariance. The resulting ECI blocks are
+        generally dense when the per-axis standard deviations differ.
 
         :param est_sat: Satellite hardware model.
         :param J2000: Current J2000 epoch.
@@ -88,7 +91,17 @@ class Orbit_EKF(Orbit_Estimator):
         gps_sensors = self.est_sat.GPS_sensors
         blocks = []
         for gps in gps_sensors:
-            std = gps.noise.std_noise
+            # GPS noise may be supplied as a flat [position, velocity] vector
+            # or as a (2, 3) position/velocity array. Normalize both forms to
+            # the six axes expected by the EKF's block layout.
+            std = np.asarray(gps.noise.std_noise, dtype=float).reshape(-1)
+            if std.size == 1:
+                std = np.repeat(std, 6)
+            if std.size != 6:
+                raise ValueError(
+                    "Each GPS noise specification must contain 1 or 6 "
+                    f"standard deviations, got shape {np.asarray(gps.noise.std_noise).shape}"
+                )
             R_i = np.diag(std**2)
             blocks.append(R_i)
 

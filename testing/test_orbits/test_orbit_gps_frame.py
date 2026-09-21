@@ -35,7 +35,7 @@ def _rotation(os: Orbital_State) -> np.ndarray:
 
 
 def _satellite(*stds) -> EstimatedSatellite:
-    return EstimatedSatellite(sensors=[GPS(noise=Noise(noise=np.zeros(6), std_noise=np.asarray(std, float))) for std in (stds or [STD])])
+    return EstimatedSatellite(sensors=[GPS(noise=Noise(noise=np.zeros_like(np.asarray(std, float)), std_noise=np.asarray(std, float))) for std in (stds or [STD])])
 
 
 def _ecef_measurement(os: Orbital_State, rng=None) -> np.ndarray:
@@ -97,3 +97,19 @@ def test_orbit_ekf_rotates_the_measurement_noise_before_the_update():
     np.testing.assert_allclose(estimate.P, 0.5 * (expected_P + expected_P.T), rtol=1e-9, atol=1e-15)
     unrotated_P = (np.eye(6) - P0 @ np.linalg.inv(P0 + np.diag(STD ** 2))) @ P0
     assert not np.allclose(estimate.P, unrotated_P, rtol=1e-3)  # the test can tell the two apart
+
+
+def test_orbit_ekf_flattens_matrix_shaped_gps_noise():
+    truth = _truth()
+    estimator = Orbit_EKF(
+        est_sat=_satellite(STD.reshape(2, 3)),
+        J2000=J2000,
+        os_hat=truth,
+        P_hat=np.eye(6),
+        Q_hat=np.zeros((6, 6)),
+        dt=10.0,
+    )
+
+    np.testing.assert_allclose(estimator.R, np.diag(STD**2))
+    estimate = estimator.update([_ecef_measurement(truth)], J2000)
+    assert estimate.P.shape == (6, 6)

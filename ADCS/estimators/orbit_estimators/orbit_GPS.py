@@ -182,22 +182,23 @@ class Orbit_GPS(Orbit_Estimator):
            :class:`~ADCS.orbits.orbital_state.Orbital_State` is created at the
            current epoch to enable frame transformations.
         2. The GPS measurement is transformed from ECEF to ECI coordinates.
-        3. A covariance matrix :math:`\mathbf{P}` is constructed assuming
-           independent measurement noise:
+        3. A covariance matrix :math:`\mathbf{P}` is constructed from the
+           independent ECEF-axis measurement noise and rotated into ECI. The
+           covariance is diagonal in ECEF, but generally has off-diagonal terms
+           in ECI when the per-axis standard deviations differ:
 
            .. math::
 
-               \mathbf{P}
+               \mathbf{P}_{ECI}
                =
-               \mathrm{diag}
-               \left(
-               \sigma_{r}^2,
-               \sigma_{r}^2,
-               \sigma_{r}^2,
-               \sigma_{v}^2,
-               \sigma_{v}^2,
-               \sigma_{v}^2
-               \right)
+               T_{ECEF\rightarrow ECI}
+               \mathbf{P}_{ECEF}
+               T_{ECEF\rightarrow ECI}^{T}
+
+           where :math:`\mathbf{P}_{ECEF}` contains separate diagonal 3x3
+           position and velocity blocks. Rotation does not introduce
+           position/velocity cross-covariance; it can introduce off-diagonal
+           terms within each block.
 
         If only position is measured, the velocity is either inherited from the
         previous estimate or set to zero, with a deliberately large velocity
