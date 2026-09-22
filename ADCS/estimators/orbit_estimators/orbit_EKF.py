@@ -68,8 +68,11 @@ class Orbit_EKF(Orbit_Estimator):
         noise matrix :math:`\mathbf{R}` based on the standard deviation of the 
         onboard GPS sensors.
 
-        .. math::
-            \mathbf{R} = \text{block\_diag}(\sigma_{GPS,1}^2 \mathbf{I}, \dots)
+        Each GPS sensor provides standard deviations in ECEF axes. A sensor's
+        covariance is first represented as a 6x6 diagonal ECEF covariance; the
+        corresponding blocks are rotated into ECI at update time before being
+        used in the innovation covariance. The resulting ECI blocks are
+        generally dense when the per-axis standard deviations differ.
 
         :param est_sat: Satellite hardware model.
         :param J2000: Current J2000 epoch.
@@ -88,7 +91,17 @@ class Orbit_EKF(Orbit_Estimator):
         gps_sensors = self.est_sat.GPS_sensors
         blocks = []
         for gps in gps_sensors:
-            std = gps.noise.std_noise
+            # GPS noise may be supplied as a flat [position, velocity] vector
+            # or as a (2, 3) position/velocity array. Normalize both forms to
+            # the six axes expected by the EKF's block layout.
+            std = np.asarray(gps.noise.std_noise, dtype=float).reshape(-1)
+            if std.size == 1:
+                std = np.repeat(std, 6)
+            if std.size != 6:
+                raise ValueError(
+                    "Each GPS noise specification must contain 1 or 6 "
+                    f"standard deviations, got shape {np.asarray(gps.noise.std_noise).shape}"
+                )
             R_i = np.diag(std**2)
             blocks.append(R_i)
 
@@ -218,19 +231,20 @@ class Orbit_EKF(Orbit_Estimator):
         h = np.concatenate([h_single for _ in range(n_sens)])  # (m_total,)
         H = np.vstack([H_i for _ in range(n_sens)])            # (m_total × 6)
 
-        # --- 5. Measurement noise covariance R (already built in reset) ---
-        if m_i == 3:
-            n_gps = len(self.est_sat.GPS_sensors)
-            if self.R.shape == (6 * n_gps, 6 * n_gps):
-                blocks = []
-                for i in range(n_sens):
-                    start = 6 * i
-                    blocks.append(self.R[start : start + 3, start : start + 3])
-                R = block_diag(*blocks)
+        # --- 5. Measurement noise covariance R ---
+        # self.R holds each sensor's noise in its own (ECEF) axes; the innovation
+        # is in ECI, so rotate every 3x3 block with this epoch's ECEF-to-ECI
+        # rotation before it is used.
+        rotation = np.column_stack([os_pred.ecef_to_eci(axis) for axis in np.eye(3)])
+        blocks = []
+        for i in range(n_sens):
+            sensor_block = self.R[6 * i : 6 * i + 6, 6 * i : 6 * i + 6]
+            if m_i == 3:
+                blocks.append(rotation @ sensor_block[0:3, 0:3] @ rotation.T)
             else:
-                R = self.R
-        else:
-            R = self.R
+                blocks.append(block_diag(rotation @ sensor_block[0:3, 0:3] @ rotation.T,
+                                         rotation @ sensor_block[3:6, 3:6] @ rotation.T))
+        R = block_diag(*blocks)
         if R.shape != (m_total, m_total):
             raise ValueError(f"R must be {m_total}×{m_total}, got {R.shape}")
 

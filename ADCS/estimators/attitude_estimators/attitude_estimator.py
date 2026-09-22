@@ -436,7 +436,10 @@ class AttitudeEstimator:
         else:
             orbital_state_start = self._previous_orbital_state
             self._previous_orbital_state = os
-            self.predict(u, orbital_state_start, os, midpoint_orbital_state=os)
+            # No midpoint is passed on purpose: the propagation then averages the
+            # two orbital states, which is what the RK4 stages need. Passing the
+            # end state biased every stage toward the end of the interval.
+            self.predict(u, orbital_state_start, os)
             self.correct(sensors, os)
         return self.state
 
