@@ -128,9 +128,10 @@ def test_predict_warns_when_dt_disagrees_with_the_orbital_state_gap():
 
 def test_legacy_estimator_package_is_gone():
     """0.2.x ships UKF/SRUKF only; the pre-2.0 UAKF/SRUAKF stubs were removed."""
-    import importlib.util
+    import importlib
 
     for name in ("ADCS.estimators.old_attitude_estimators.attitude_UAKF",
                  "ADCS.estimators.old_attitude_estimators.attitude_SRUAKF",
                  "ADCS.estimators.old_attitude_estimators.attitude_estimator"):
-        assert importlib.util.find_spec(name) is None, name
+        with pytest.raises(ModuleNotFoundError):
+            importlib.import_module(name)
