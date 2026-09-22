@@ -20,13 +20,14 @@ from ADCS.estimators.attitude_estimators import MEKF, UKF
 from ADCS.estimators.attitude_estimators.attitude_UKF import _CHART_LIMIT_ANGLE, _CHART_OFFSET_LIMIT
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.errors import Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import Gyro, StarTrackerQuaternion
 from ADCS.state import EstimatorState, State
 
 OS0 = Orbital_State(ephem=Ephemeris(), J2000=0.22, R=np.array([7000.0, 0.0, 0.0]), V=np.array([0.0, 7.5, 0.0]), fast=True)
-OS1 = Orbital_State(ephem=Ephemeris(), J2000=0.22 + 10.0 / 86400.0, R=np.array([7000.0, 0.0, 0.0]), V=np.array([0.0, 7.5, 0.0]), fast=True)
+OS1 = Orbital_State(ephem=Ephemeris(), J2000=0.22 + 10.0 * TimeConstants.sec2cent, R=np.array([7000.0, 0.0, 0.0]), V=np.array([0.0, 7.5, 0.0]), fast=True)
 
 
 def _satellite() -> EstimatedSatellite:

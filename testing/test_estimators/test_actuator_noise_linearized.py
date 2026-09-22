@@ -16,6 +16,7 @@ import pytest
 from ADCS.estimators.attitude_estimators import EKF, MEKF, SRUKF, UKF
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.errors import Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite
@@ -24,7 +25,7 @@ from ADCS.state import EstimatorState
 
 DT = 10.0
 OS0 = Orbital_State(ephem=Ephemeris(), J2000=0.22, R=np.array([7000.0, 0.0, 0.0]), V=np.array([0.0, 7.5, 0.0]), fast=True)
-OS1 = Orbital_State(ephem=Ephemeris(), J2000=0.22 + DT / 86400.0, R=np.array([7000.0, 0.0, 0.0]), V=np.array([0.0, 7.5, 0.0]), fast=True)
+OS1 = Orbital_State(ephem=Ephemeris(), J2000=0.22 + DT * TimeConstants.sec2cent, R=np.array([7000.0, 0.0, 0.0]), V=np.array([0.0, 7.5, 0.0]), fast=True)
 COMMAND = np.array([1.0e-3, -2.0e-3, 5.0e-4, 0.01, -0.02, 0.005])  # inside every actuator limit: no one-sided clipping of sigma points
 MTQ_NOISE = 0.005
 RW_NOISE = 1.0e-4

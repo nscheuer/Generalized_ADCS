@@ -15,6 +15,7 @@ import numpy as np
 from ADCS.covariance import Covariance
 from ADCS.estimators.process_model import propagate_state
 from ADCS.estimators.process_noise import discretize_process_noise
+from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.state import EstimatorState, QuaternionMode
 
 
@@ -389,7 +390,12 @@ class AttitudeEstimator:
         ``step(control, measurements, orbital_state_start, orbital_state_end)``
         form remains accepted and performs both stages.
         """
-        if orbital_state_start is None and orbital_state_end is None:
+        if (orbital_state_start is None) != (orbital_state_end is None):
+            raise TypeError(
+                "combined estimator.step requires both orbital_state_start and "
+                "orbital_state_end, or neither"
+            )
+        if orbital_state_start is None:
             if not hasattr(orbital_state_or_measurements, "J2000"):
                 # A legacy step(control, measurements) call with matching lengths
                 # would otherwise be corrected as if the control were the
@@ -405,11 +411,6 @@ class AttitudeEstimator:
                 enabled=enabled,
                 time_s=time_s,
                 epoch_s=epoch_s,
-            )
-        if orbital_state_end is None:
-            raise TypeError(
-                "combined estimator.step requires both orbital_state_start and "
-                "orbital_state_end"
             )
         self.predict(
             measurements_or_control,
@@ -469,10 +470,10 @@ class AttitudeEstimator:
         end_time = getattr(end, "J2000", None)
         if start_time is None or end_time is None:
             return
-        gap = (float(end_time) - float(start_time)) * 86400.0
-        if gap <= 0.0 or step <= 0.0:
+        gap = (float(end_time) - float(start_time)) * TimeConstants.cent2sec
+        if gap <= 0.0:
             return
-        if abs(gap - step) > 0.1 * step:
+        if step <= 0.0 or abs(gap - step) > 0.1 * step:
             warnings.warn(
                 f"predict() integrates dt = {step:g} s but the orbital states are "
                 f"{gap:g} s apart; pass dt= or build the estimator with the "

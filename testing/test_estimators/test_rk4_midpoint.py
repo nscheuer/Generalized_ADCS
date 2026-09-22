@@ -17,6 +17,7 @@ import pytest
 from ADCS.estimators.attitude_estimators import MEKF, AugmentedMEKF
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware import disturbances as D
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite
@@ -71,7 +72,7 @@ def test_update_adapter_propagates_with_an_averaged_midpoint():
     """
     satellite = _satellite(disturbances=[D.GG_Disturbance()])
     os_start = _orbital_state(0.22)
-    os_end = _orbital_state(0.22 + 60.0 / 86400.0, along_track_s=60.0)
+    os_end = _orbital_state(0.22 + 60.0 * TimeConstants.sec2cent, along_track_s=60.0)
     truth = _state()
     z_start = satellite.measurement_stack.predict(truth, os_start)
     z_end = satellite.measurement_stack.predict(truth, os_end)
