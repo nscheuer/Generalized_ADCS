@@ -75,9 +75,10 @@ def two_body_run(request):
     start = make_state(R, V)
     start_elements = orbital_elements(R, V)
     period = 2.0 * np.pi * np.sqrt(start_elements["a"] ** 3 / MU)
-    # One period with 64 RK4 steps exposes integration regressions without
-    # turning this into a long-run accuracy experiment.
-    orbit = propagate_batch(start, period, 64, zonal_J=0)
+    # Three periods with 256 RK4 steps per period retain sensitivity to
+    # accumulated integration error while remaining cheap through the batch
+    # API.  This is substantially shorter than the former 3 x 500-step loop.
+    orbit = propagate_batch(start, 3.0 * period, 3 * 256, zonal_J=0)
     finish = orbit.states[orbit.times[-1]]
     return start, start_elements, finish, name
 
@@ -86,31 +87,31 @@ def test_two_body_specific_energy_is_conserved(two_body_run):
     _, initial, finish, name = two_body_run
     final = orbital_elements(finish.R, finish.V)
     relative_drift = abs(final["energy"] - initial["energy"]) / abs(initial["energy"])
-    assert relative_drift < 1e-4, f"{name}: specific-energy drift {relative_drift:.2e}"
+    assert relative_drift < 1e-6, f"{name}: specific-energy drift {relative_drift:.2e}"
 
 
 def test_two_body_angular_momentum_is_conserved(two_body_run):
     _, initial, finish, name = two_body_run
     final = orbital_elements(finish.R, finish.V)
     relative_drift = np.linalg.norm(final["h"] - initial["h"]) / np.linalg.norm(initial["h"])
-    assert relative_drift < 2e-5, f"{name}: |h| drift {relative_drift:.2e}"
+    assert relative_drift < 1e-7, f"{name}: |h| drift {relative_drift:.2e}"
 
 
 def test_two_body_eccentricity_vector_is_conserved(two_body_run):
     _, initial, finish, name = two_body_run
     final = orbital_elements(finish.R, finish.V)
     drift = np.linalg.norm(final["e_vec"] - initial["e_vec"])
-    assert drift < 2e-4, f"{name}: eccentricity-vector drift {drift:.2e}"
+    assert drift < 2e-6, f"{name}: eccentricity-vector drift {drift:.2e}"
 
 
-def test_orbit_closes_in_position_after_kepler_period(two_body_run):
+def test_orbit_closes_in_position_after_three_kepler_periods(two_body_run):
     start, _, finish, _ = two_body_run
-    assert np.linalg.norm(finish.R - start.R) < 12.0
+    assert np.linalg.norm(finish.R - start.R) < 0.25
 
 
-def test_orbit_closes_in_velocity_after_kepler_period(two_body_run):
+def test_orbit_closes_in_velocity_after_three_kepler_periods(two_body_run):
     start, _, finish, _ = two_body_run
-    assert np.linalg.norm(finish.V - start.V) < 1.2e-2
+    assert np.linalg.norm(finish.V - start.V) < 2.5e-4
 
 
 @pytest.fixture(scope="module")
