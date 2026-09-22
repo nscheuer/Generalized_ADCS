@@ -1281,6 +1281,42 @@
             <span class="k">return</span> <span class="n">stack</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">,</span> <span class="n">active_mask</span><span class="o">=</span><span class="n">active</span><span class="p">)</span>
 
         <span class="n">sigma_measurements</span> <span class="o">=</span> <span class="p">[</span><span class="n">predict_sigma_measurement</span><span class="p">(</span><span class="n">point</span><span class="p">)</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">points</span><span class="p">]</span>
+        <span class="c1"># A sensor can be unavailable at some sample points even though it is</span>
+        <span class="c1"># available at the estimate (a narrow field of view with a wide</span>
+        <span class="c1"># attitude uncertainty, an eclipse boundary); its prediction is then</span>
+        <span class="c1"># non-finite there. Such sensors leave the active mask for this update</span>
+        <span class="c1"># instead of aborting it, and return once every sample point sees them.</span>
+        <span class="n">seen_by_every_point</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="nb">all</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">measurement</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">raw_slice</span><span class="p">]))</span>
+                    <span class="k">for</span> <span class="n">measurement</span> <span class="ow">in</span> <span class="n">sigma_measurements</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">stack</span><span class="o">.</span><span class="n">entries</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">was_active</span> <span class="o">=</span> <span class="n">active</span>
+        <span class="n">active</span> <span class="o">=</span> <span class="n">active</span> <span class="o">&amp;</span> <span class="n">seen_by_every_point</span>
+        <span class="n">dropped</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">entry</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">for</span> <span class="n">entry</span><span class="p">,</span> <span class="n">before</span><span class="p">,</span> <span class="n">after</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">stack</span><span class="o">.</span><span class="n">entries</span><span class="p">,</span> <span class="n">was_active</span><span class="p">,</span> <span class="n">active</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">before</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">after</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">active</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_diagnostics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="n">active_mask</span><span class="o">=</span><span class="n">active</span><span class="p">,</span>
+                <span class="n">predicted_measurement</span><span class="o">=</span><span class="n">nominal_measurement</span><span class="p">,</span>
+                <span class="n">innovation</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                <span class="n">measurement_noise</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                <span class="n">innovation_covariance</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                <span class="n">kalman_gain</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">covariance_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                <span class="n">correction</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">covariance_size</span><span class="p">),</span>
+                <span class="n">reset_jacobian</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">covariance_size</span><span class="p">),</span>
+                <span class="n">corrected_covariance</span><span class="o">=</span><span class="n">prior</span><span class="o">.</span><span class="n">covariance</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">(),</span>
+                <span class="n">dropped_entries</span><span class="o">=</span><span class="n">dropped</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span>
         <span class="n">predicted_measurement</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_measurement_mean</span><span class="p">(</span>
             <span class="n">stack</span><span class="p">,</span> <span class="n">sigma_measurements</span><span class="p">,</span> <span class="n">active</span><span class="p">,</span> <span class="n">mean_weights</span>
         <span class="p">)</span>
@@ -1352,6 +1388,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">match_estimate</span><span class="p">(</span><span class="n">corrected</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_diagnostics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
             <span class="n">active_mask</span><span class="o">=</span><span class="n">active</span><span class="p">,</span>
+            <span class="n">dropped_entries</span><span class="o">=</span><span class="n">dropped</span><span class="p">,</span>
             <span class="n">predicted_measurement</span><span class="o">=</span><span class="n">predicted_measurement</span><span class="p">,</span>
             <span class="n">innovation</span><span class="o">=</span><span class="n">innovation</span><span class="p">,</span>
             <span class="n">measurement_noise</span><span class="o">=</span><span class="n">measurement_noise</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">(),</span>
