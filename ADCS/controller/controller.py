@@ -55,9 +55,6 @@ class Controller():
         :rtype: None
 
         """
-        # The remote controller service reads controller.est_sat; only two
-        # subclasses used to set it.
-        self.est_sat = est_sat
         pass
 
     @staticmethod
