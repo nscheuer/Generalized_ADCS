@@ -1,7 +1,0 @@
-ADCS.estimators.old\_attitude\_estimators.attitude\_estimator module
-====================================================================
-
-.. automodule:: ADCS.estimators.old_attitude_estimators.attitude_estimator
-   :members:
-   :show-inheritance:
-   :undoc-members:

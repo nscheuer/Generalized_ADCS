@@ -60,9 +60,10 @@ New ``AttitudeEstimator`` base
 The new :class:`~ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator`
 base class defines the shared estimator lifecycle: state validation,
 prediction, measurement updates, diagnostics, covariance handling, and
-quaternion-chart conventions. The existing legacy
-``old_attitude_estimators.Attitude_Estimator`` remains available for backwards
-compatibility, while new filters use the new base.
+quaternion-chart conventions. The legacy ``Attitude_Estimator``, ``UAKF`` and
+``SRUAKF`` are gone; their callers move to ``AttitudeEstimator``, ``UKF`` and
+``SRUKF``, whose constructors take the estimated satellite, the initial
+:class:`~ADCS.state.EstimatorState` and ``dt``.
 
 Eight new attitude estimators
 -----------------------------

@@ -9,7 +9,6 @@ Subpackages
 
    ADCS.estimators.attitude_estimators
    ADCS.estimators.estimator_helpers
-   ADCS.estimators.old_attitude_estimators
    ADCS.estimators.orbit_estimators
 
 Submodules
