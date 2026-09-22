@@ -688,35 +688,40 @@ class UKF(AttitudeEstimator):
         sigma_measurements = [predict_sigma_measurement(point) for point in points]
         # A sensor can be unavailable at some sample points even though it is
         # available at the estimate (a narrow field of view with a wide
-        # attitude uncertainty, an eclipse boundary). Its prediction is then
-        # non-finite there. Drop such sensors from this update instead of
-        # aborting it; they return as soon as every sample point sees them.
+        # attitude uncertainty, an eclipse boundary); its prediction is then
+        # non-finite there. Such sensors leave the active mask for this update
+        # instead of aborting it, and return once every sample point sees them.
+        seen_by_every_point = np.array(
+            [
+                all(
+                    np.all(np.isfinite(measurement[entry.raw_slice]))
+                    for measurement in sigma_measurements
+                )
+                for entry in stack.entries
+            ],
+            dtype=bool,
+        )
+        was_active = active
+        active = active & seen_by_every_point
         dropped = [
             entry.name
-            for entry, enabled in zip(stack.entries, active)
-            if enabled and not all(
-                np.all(np.isfinite(measurement[entry.raw_slice]))
-                for measurement in sigma_measurements
-            )
+            for entry, before, after in zip(stack.entries, was_active, active)
+            if before and not after
         ]
-        if dropped:
-            active = active & np.array(
-                [entry.name not in dropped for entry in stack.entries], dtype=bool
+        if not np.any(active):
+            self._diagnostics.update(
+                active_mask=active,
+                predicted_measurement=nominal_measurement,
+                innovation=np.empty(0),
+                measurement_noise=np.zeros((0, 0)),
+                innovation_covariance=np.zeros((0, 0)),
+                kalman_gain=np.zeros((covariance_size, 0)),
+                correction=np.zeros(covariance_size),
+                reset_jacobian=np.eye(covariance_size),
+                corrected_covariance=prior.covariance.as_matrix(),
+                dropped_entries=dropped,
             )
-            if not np.any(active):
-                self._diagnostics.update(
-                    active_mask=active,
-                    predicted_measurement=nominal_measurement,
-                    innovation=np.empty(0),
-                    measurement_noise=np.zeros((0, 0)),
-                    innovation_covariance=np.zeros((0, 0)),
-                    kalman_gain=np.zeros((covariance_size, 0)),
-                    correction=np.zeros(covariance_size),
-                    reset_jacobian=np.eye(covariance_size),
-                    corrected_covariance=prior.covariance.as_matrix(),
-                    dropped_entries=dropped,
-                )
-                return self.state
+            return self.state
         predicted_measurement = self._measurement_mean(
             stack, sigma_measurements, active, mean_weights
         )
