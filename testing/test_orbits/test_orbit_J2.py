@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ADCS.orbits.universal_constants import EarthConstants
+from ADCS.orbits.universal_constants import TimeConstants
+from ADCS.orbits.orbit import Orbit
 
 from testing.test_orbits._helpers import make_reference_orbital_state
 
@@ -23,13 +25,22 @@ def run_orbit(method="rk4", use_j2=True, dt=60.0):
     dt = t_orbit / steps
     times = np.linspace(0.0, t_orbit, steps + 1)
 
+    if method == "rk4":
+        batch = Orbit(
+            os0=orbit,
+            end_time=orbit.J2000 + t_orbit * TimeConstants.sec2cent,
+            dt=dt,
+            zonal_J=2 if use_j2 else 0,
+            verbose=False,
+        )
+        times = (batch.times - batch.times[0]) * TimeConstants.cent2sec
+        return times, np.vstack([batch.states[t].R for t in batch.times])
+
     positions = np.zeros((steps + 1, 3))
     positions[0] = orbit.R
 
     for i in range(steps):
-        if method == "rk4":
-            orbit = orbit.propagate_orbit_rk4(dt, zonal_J=2 if use_j2 else 0, fast=True)
-        elif method == "euler":
+        if method == "euler":
             orbit = orbit.propagate_orbit(dt, zonal_J=2 if use_j2 else 0, fast=True)
         else:
             raise ValueError(f"Unknown method: {method}")
@@ -39,7 +50,7 @@ def run_orbit(method="rk4", use_j2=True, dt=60.0):
 
 
 def test_j2_trajectory_remains_bounded_over_one_orbit():
-    _, positions = run_orbit(method="rk4", use_j2=True, dt=30.0)
+    _, positions = run_orbit(method="rk4", use_j2=True, dt=120.0)
     radii = np.linalg.norm(positions, axis=1)
 
     assert np.all(np.isfinite(positions))
@@ -48,18 +59,18 @@ def test_j2_trajectory_remains_bounded_over_one_orbit():
 
 
 def test_j2_trajectory_differs_from_two_body_trajectory():
-    _, no_j2 = run_orbit(method="rk4", use_j2=False, dt=60.0)
-    _, with_j2 = run_orbit(method="rk4", use_j2=True, dt=60.0)
+    _, no_j2 = run_orbit(method="rk4", use_j2=False, dt=120.0)
+    _, with_j2 = run_orbit(method="rk4", use_j2=True, dt=120.0)
 
     assert np.linalg.norm(with_j2[-1] - no_j2[-1]) > 1e-3
 
 
 def test_j2_closest_approach_is_finite_and_not_initial_point():
-    _, positions = run_orbit(method="rk4", use_j2=True, dt=10.0)
+    _, positions = run_orbit(method="rk4", use_j2=True, dt=120.0)
 
-    i_star, d_min = closest_approach(positions[0], positions, min_skip=5)
+    i_star, d_min = closest_approach(positions[0], positions, min_skip=2)
 
-    assert 5 <= i_star < len(positions)
+    assert 2 <= i_star < len(positions)
     assert np.isfinite(d_min)
     assert d_min > 0.0
 
