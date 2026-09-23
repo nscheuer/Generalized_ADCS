@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any, get_args
 
+import warnings
+
 import numpy as np
 
 from ADCS.covariance import Covariance
@@ -187,6 +189,7 @@ class AttitudeEstimator:
         step = self.dt if dt is None else float(dt)
         if not np.isfinite(step) or step < 0.0:
             raise ValueError("dt must be finite and non-negative")
+        self._check_step_against_orbit(step, orbital_state_start, orbital_state_end)
         control = np.array(control, dtype=float, copy=True)
         expected_control_shape = (self.satellite.control_len,)
         if control.shape != expected_control_shape:
@@ -387,6 +390,15 @@ class AttitudeEstimator:
         form remains accepted and performs both stages.
         """
         if orbital_state_start is None and orbital_state_end is None:
+            if not hasattr(orbital_state_or_measurements, "J2000"):
+                # A legacy step(control, measurements) call with matching lengths
+                # would otherwise be corrected as if the control were the
+                # measurement and the measurement the orbital state, silently.
+                raise TypeError(
+                    "step(measurements, orbital_state) needs an Orbital_State as its "
+                    "second argument; the combined form is "
+                    "step(control, measurements, orbital_state_start, orbital_state_end)"
+                )
             return self.correct(
                 measurements_or_control,
                 orbital_state_or_measurements,
@@ -428,7 +440,7 @@ class AttitudeEstimator:
         """
         if u is None and sensors is None and os is None:
             return self.state
-        if sensors is None or os is None:
+        if u is None or sensors is None or os is None:
             raise TypeError("update requires u, sensors, and os when called with arguments")
         if self._previous_orbital_state is None:
             self._previous_orbital_state = os
@@ -439,6 +451,32 @@ class AttitudeEstimator:
             self.predict(u, orbital_state_start, os, midpoint_orbital_state=os)
             self.correct(sensors, os)
         return self.state
+
+    @staticmethod
+    def _check_step_against_orbit(step: float, start: Any, end: Any) -> None:
+        """Warn when ``dt`` disagrees with the time between the two orbital states.
+
+        A filter built with one ``dt`` and driven by a simulation running at
+        another integrates the wrong interval and nothing else notices (a 10x
+        mismatch took a 16 degree mean error to 47). Two identical orbital
+        states (the static-orbit test pattern) carry no time information and
+        are left alone.
+        """
+        start_time = getattr(start, "J2000", None)
+        end_time = getattr(end, "J2000", None)
+        if start_time is None or end_time is None:
+            return
+        gap = (float(end_time) - float(start_time)) * 86400.0
+        if gap <= 0.0 or step <= 0.0:
+            return
+        if abs(gap - step) > 0.1 * step:
+            warnings.warn(
+                f"predict() integrates dt = {step:g} s but the orbital states are "
+                f"{gap:g} s apart; pass dt= or build the estimator with the "
+                "simulation step",
+                UserWarning,
+                stacklevel=3,
+            )
 
     def _normalize_initial_state(self, state: EstimatorState) -> EstimatorState:
         normalized = state.normalized()

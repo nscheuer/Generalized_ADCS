@@ -286,6 +286,7 @@ from typing import Any
 import numpy as np
 
 from ADCS.covariance import Covariance
+from ADCS.estimators.numba_kernels import weighted_row_mean
 from ADCS.estimators.process_model import propagate_state
 from ADCS.estimators.process_noise import discretize_process_noise
 from ADCS.estimators.quaternion_mean import quaternion_mean
@@ -480,7 +481,7 @@ class UKF(AttitudeEstimator):
         # These blocks are Euclidean and need no iterative manifold solve.
         for name in ("w", "h", "act_bias", "sens_bias", "dist_param"):
             values = np.vstack([getattr(point, name) for point in points])
-            setattr(mean, name, weights @ values)
+            setattr(mean, name, weighted_row_mean(values, weights))
         mean.q = quaternion_mean(
             np.vstack([point.q for point in points]), weights, mode=self.correction_mode
         )
@@ -505,7 +506,7 @@ class UKF(AttitudeEstimator):
                     f"UKF sigma-point prediction for {entry.name} contains non-finite values"
                 )
             if not entry.is_quaternion_attitude:
-                mean[entry.raw_slice] = weights @ values
+                mean[entry.raw_slice] = weighted_row_mean(values, weights)
                 continue
 
             mean[entry.raw_slice] = quaternion_mean(
