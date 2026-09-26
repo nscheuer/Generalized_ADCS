@@ -69,6 +69,7 @@ dependencies = [
     "skyfield>=1.45",
     "tqdm>=4.60",
     "rich>=13.0",
+    "graphviz>=0.20",
 ]
 
 # Optional extras
