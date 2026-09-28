@@ -524,6 +524,7 @@ class UKF(AttitudeEstimator):
         midpoint_orbital_state: Any | None = None,
     ) -> EstimatorState:
         """Propagate tangent-state sigma points and add discretized process noise."""
+        self._require_initialized("state to propagate")
         step = self.dt if dt is None else float(dt)
         if not np.isfinite(step) or step < 0.0:
             raise ValueError("dt must be finite and non-negative")
@@ -626,6 +627,8 @@ class UKF(AttitudeEstimator):
         epoch_s: float = 0.0,
     ) -> EstimatorState:
         """Apply the unscented measurement update."""
+        if self._warm_start is not None:
+            return self._initialize_from_readings(measurements, orbital_state)
         stack = self.satellite.measurement_stack
         if self.supports_augmented_parameters:
             self.satellite.match_estimate(self._state, self.dt)

@@ -282,6 +282,7 @@ from __future__ import annotations
 from typing import Any
 
 from ADCS.state import EstimatorState, State
+from ADCS.estimators.initialization import WarmStart
 
 from .attitude_UKF import UKF
 
@@ -325,8 +326,10 @@ class SRUKF(UKF):
 
     @staticmethod
     def _square_root_state(state: EstimatorState) -> EstimatorState:
+        if isinstance(state, WarmStart):
+            return state  # the base class builds the state on the first readings and resets with it
         if not isinstance(state, EstimatorState):
-            raise TypeError(f"state must be an EstimatorState, got {type(state).__name__}")
+            raise TypeError(f"state must be an EstimatorState or a WarmStart, got {type(state).__name__}")
         result = state.copy()
         result.covariance = state.covariance.copy(form="sqrt")
         result.process_noise = state.process_noise.copy(form="sqrt")

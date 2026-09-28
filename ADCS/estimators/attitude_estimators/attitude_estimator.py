@@ -15,6 +15,9 @@ import numpy as np
 from ADCS.covariance import Covariance
 from ADCS.estimators.process_model import propagate_state
 from ADCS.estimators.process_noise import discretize_process_noise
+from ADCS.estimators import initialization as _initialization
+from ADCS.estimators.attitude_determination import AttitudeSolution
+from ADCS.estimators.initialization import WarmStart
 from ADCS.state import EstimatorState, QuaternionMode
 
 
@@ -44,8 +47,10 @@ class AttitudeEstimator:
         measurement_quaternion_mode: str,
         unmodeled_dynamics_psd: Any = 0.0,
     ) -> None:
-        if not isinstance(state, EstimatorState):
-            raise TypeError(f"state must be an EstimatorState, got {type(state).__name__}")
+        if not isinstance(state, (EstimatorState, WarmStart)):
+            raise TypeError(
+                f"state must be an EstimatorState or a WarmStart, got {type(state).__name__}"
+            )
         dt = float(dt)
         if not np.isfinite(dt) or dt < 0.0:
             raise ValueError("dt must be finite and non-negative")
@@ -60,6 +65,14 @@ class AttitudeEstimator:
         self._covariance_coordinates = covariance_coordinates
         self._correction_mode = correction_mode
         self._measurement_quaternion_mode = measurement_quaternion_mode
+        # A WarmStart is a recipe, not a state: the state is built from the
+        # first measurement vector (see correct). Until then a placeholder of
+        # the right layout keeps the constructors' checks meaningful.
+        self._warm_start: WarmStart | None = None
+        self.warm_start_attitude: AttitudeSolution | None = None
+        if isinstance(state, WarmStart):
+            self._warm_start = state
+            state = self._placeholder_state()
         self._validate_state(state)
         self.unmodeled_dynamics_psd = np.array(
             unmodeled_dynamics_psd, dtype=float, copy=True
@@ -89,7 +102,12 @@ class AttitudeEstimator:
 
     @property
     def state(self) -> EstimatorState:
-        """Return an owned snapshot of the current estimate."""
+        """Return an owned snapshot of the current estimate.
+
+        A filter built from a :class:`~ADCS.estimators.initialization.WarmStart`
+        has none until its first readings arrive.
+        """
+        self._require_initialized("state")
         return self._state.copy()
 
     @property
@@ -100,11 +118,76 @@ class AttitudeEstimator:
     def reset(self, state: EstimatorState) -> EstimatorState:
         """Replace the estimate after validating this filter's layout."""
         self._validate_state(state)
+        self._warm_start = None  # a given state replaces a pending warm start
         self._state = self._normalize_initial_state(state)
         self._configured_process_noise = self._state.process_noise.copy()
         self._diagnostics = {}
         self._previous_orbital_state = None
         return self.state
+
+    def _require_initialized(self, what: str) -> None:
+        if self._warm_start is not None:
+            raise RuntimeError(
+                f"the estimator has no {what} yet: it starts from its first readings, so call "
+                "step(measurements, orbital_state) or update(control, measurements, orbital_state) first"
+            )
+
+    def _placeholder_state(self) -> EstimatorState:
+        """A state of this filter's layout, standing in until the warm start runs."""
+        satellite = self.satellite
+        layout = EstimatorState(
+            w=np.zeros(3),
+            q=[1.0, 0.0, 0.0, 0.0],
+            h=np.zeros(len(satellite.rw_actuators)),
+            act_bias=np.zeros(satellite.act_bias_len),
+            sens_bias=np.zeros(satellite.att_sens_bias_len),
+            dist_param=np.zeros(satellite.dist_param_len),
+        )
+        size = layout.size(coordinates=self.covariance_coordinates)
+        return EstimatorState(
+            w=layout.w, q=layout.q, h=layout.h, act_bias=layout.act_bias,
+            sens_bias=layout.sens_bias, dist_param=layout.dist_param,
+            cov=np.eye(size), int_cov=np.zeros((size, size)),
+        )
+
+    def _initialize_from_readings(self, measurements: Any, orbital_state: Any) -> EstimatorState:
+        """Build the state from the first readings, which are consumed rather than corrected on."""
+        chart = (
+            self.correction_mode
+            if self.covariance_coordinates == "tangent"
+            else EstimatorState.DEFAULT_QUATERNION_MODE
+        )
+        state, solution = _initialization._initial_state(
+            self.satellite, measurements, orbital_state, self._warm_start,
+            covariance_coordinates=self.covariance_coordinates, quaternion_mode=chart,
+        )
+        previous = self._previous_orbital_state  # the update() adapter records it before correcting
+        self.reset(state)
+        self._previous_orbital_state = previous
+        self.warm_start_attitude = solution
+        return self.state
+
+    @classmethod
+    def from_readings(
+        cls,
+        satellite: Any,
+        readings: Any,
+        orbital_state: Any,
+        *,
+        dt: float,
+        warm_start: WarmStart | None = None,
+        **filter_options: Any,
+    ):
+        """Build the filter and initialise it from one measurement vector.
+
+        The same as constructing it with a
+        :class:`~ADCS.estimators.initialization.WarmStart` as its state and
+        calling ``step(readings, orbital_state)``. ``filter_options`` are the
+        filter's own keyword arguments (``quaternion_mode``, ``alpha``, ...).
+        """
+        estimator = cls(satellite, warm_start or WarmStart(), dt=dt, **filter_options)
+        estimator.step(readings, orbital_state)
+        return estimator
 
     @staticmethod
     def _validate_charts(
@@ -186,6 +269,7 @@ class AttitudeEstimator:
         The model-generated discrete process covariance and the prior state's
         discrete ``process_noise`` (legacy ``int_cov``) are additive.
         """
+        self._require_initialized("state to propagate")
         step = self.dt if dt is None else float(dt)
         if not np.isfinite(step) or step < 0.0:
             raise ValueError("dt must be finite and non-negative")
@@ -280,6 +364,8 @@ class AttitudeEstimator:
         epoch_s: float = 0.0,
     ) -> EstimatorState:
         """Apply all selected finite measurements at the current state."""
+        if self._warm_start is not None:
+            return self._initialize_from_readings(measurements, orbital_state)
         stack = self.satellite.measurement_stack
         candidate = stack.active_mask(
             measurements,
