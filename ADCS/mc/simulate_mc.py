@@ -111,11 +111,16 @@ def _orbit_seq_from_orbit_obj(orb: Orbit, start_J2000: float, dt: float, tf: flo
     return out
 
 
-def _orbit_seq_from_os0(os0: Orbital_State, dt: float, tf: float, zonal_J: int, fast: bool) -> List[Orbital_State]:
+def _orbit_seq_from_os0(
+    os0: Orbital_State, dt: float, tf: float, zonal_J: int, fast: bool, magnetic_model: Optional[str]
+) -> List[Orbital_State]:
     sec2cent = TimeConstants.sec2cent
     N = int(tf / dt)
     end_time = os0.J2000 + tf * sec2cent
-    orb = Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=zonal_J, fast=fast, verbose=False)
+    orb = Orbit(
+        os0=os0, end_time=end_time, dt=dt, zonal_J=zonal_J, fast=fast, verbose=False,
+        magnetic_model=magnetic_model,
+    )
     out: List[Orbital_State] = []
     for k in range(N + 1):
         out.append(orb.get_os(J2000=os0.J2000 + k * dt * sec2cent))
@@ -334,8 +339,10 @@ def _get_ephem() -> Ephemeris:
     return _EPHEM
 
 
-def _cache_key(*, os0_payload: Dict[str, Any], dt: float, tf: float, zonal_J: int, fast: bool, slot_id: int) -> str:
-    b = pickle.dumps((slot_id, os0_payload, float(dt), float(tf), int(zonal_J), bool(fast)))
+def _cache_key(
+    *, os0_payload: Dict[str, Any], dt: float, tf: float, zonal_J: int, fast: bool, magnetic_model: Optional[str], slot_id: int
+) -> str:
+    b = pickle.dumps((slot_id, os0_payload, float(dt), float(tf), int(zonal_J), bool(fast), magnetic_model))
     return hashlib.blake2b(b, digest_size=16).hexdigest()
 
 
@@ -363,6 +370,9 @@ def _simulate_mc_worker(cfg: Dict[str, Any]) -> Dict[str, Any]:
 
         orbit_mode = cfg.get("orbit_mode", "os0")
         zonal_J = int(cfg.get("orbit_zonal_J", 2))
+        # None: the orbit uses the model recorded in os0 (Orbital_State.to_dict
+        # stores it), so this key is only needed to override that.
+        magnetic_model = cfg.get("orbit_magnetic_model")
         fast = bool(cfg.get("orbit_fast", False))
 
         if orbit_mode == "seq":
@@ -372,11 +382,16 @@ def _simulate_mc_worker(cfg: Dict[str, Any]) -> Dict[str, Any]:
             os_seq = _thaw_os_hist(os_seq_payload, ephem=ephem)
         else:
             os0_payload = cfg["os0_payload"]
-            key = _cache_key(os0_payload=os0_payload, dt=dt, tf=tf, zonal_J=zonal_J, fast=fast, slot_id=slot_id)
+            key = _cache_key(
+                os0_payload=os0_payload, dt=dt, tf=tf, zonal_J=zonal_J, fast=fast,
+                magnetic_model=magnetic_model, slot_id=slot_id,
+            )
             os_seq = _ORBIT_CACHE.get(key)
             if os_seq is None:
                 os0 = _thaw_os0(os0_payload, ephem=ephem)
-                os_seq = _orbit_seq_from_os0(os0=os0, dt=dt, tf=tf, zonal_J=zonal_J, fast=fast)
+                os_seq = _orbit_seq_from_os0(
+                    os0=os0, dt=dt, tf=tf, zonal_J=zonal_J, fast=fast, magnetic_model=magnetic_model
+                )
                 _ORBIT_CACHE[key] = os_seq
 
         with suppress_output():
