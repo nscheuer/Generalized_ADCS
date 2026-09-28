@@ -20,7 +20,7 @@ from ADCS.estimators.attitude_estimators import (
     UKF,
 )
 from ADCS.estimators.initialization import WarmStart, attitude_from_readings, initial_state_from_readings
-from ADCS.helpers.math_helpers import normalize
+from ADCS.helpers.math_helpers import normalize, quat_mult
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
@@ -400,32 +400,37 @@ def test_bad_state_types_are_rejected():
 
 
 def test_simulate_runs_a_warm_started_filter_and_it_beats_an_identity_start():
-    truth = Satellite(J_0=INERTIA, sensors=_sensors(), actuators=_wheels())
-    estimated = _satellite()
+    # A spherical satellite without wheels or torques spins at a constant rate
+    # about a fixed body axis, so the truth at every recorded time is analytic
+    # and the comparison does not depend on how simulate() records its histories.
+    rate = np.array([0.02, -0.01, 0.015])
+    start = normalize(np.array([0.9, 0.2, -0.3, 0.1]))
+    truth = Satellite(J_0=np.eye(3), sensors=_sensors())
+    estimated = EstimatedSatellite(J_0=np.eye(3), sensors=_sensors())
     os = _orbital_state()
     dt, tf = 10.0, 60.0
-    process_noise = np.diag([1.0e-10] * 3 + [1.0e-8] * 3 + [1.0e-12])
+    process_noise = np.diag([1.0e-10] * 3 + [1.0e-8] * 3)
+
+    def truth_at(seconds):
+        angle = np.linalg.norm(rate) * seconds
+        return quat_mult(start, np.concatenate([[np.cos(angle / 2.0)], np.sin(angle / 2.0) * rate / np.linalg.norm(rate)]))
 
     def run(estimator):
         np.random.seed(11)
         results = ADCS.simulate(
-            x=State(w=TRUTH.w, q=TRUTH.q, h=TRUTH.h), satellite=truth, est_satellite=estimated,
+            x=State(w=rate, q=start), satellite=truth, est_satellite=estimated,
             estimator=estimator, os0=os, dt=dt, tf=tf,
         ).first()
-        # results.state_hist[k] is the real state after step k's propagation, while
-        # results.est_state_hist[k] is the estimate from the readings taken at the
-        # start of step k, so the real state it should match is the previous one.
-        reals = [State(w=TRUTH.w, q=TRUTH.q, h=TRUTH.h)] + list(results.state_hist[:-1])
         return [
-            np.linalg.norm(attitude_error(estimate.q, real.q))
-            for estimate, real in zip(results.est_state_hist, reals)
+            np.linalg.norm(attitude_error(estimate.q, truth_at(seconds)))
+            for estimate, seconds in zip(results.est_state_hist, results.time_s)
         ]
 
     warm = run(MEKF(estimated, WarmStart(process_noise=process_noise), dt=dt))
     cold = run(MEKF(
         estimated,
-        EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=[0.0],
-                       cov=np.diag([1.0e-2] * 3 + [1.0] * 3 + [1.0e-2]), int_cov=process_noise),
+        EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0],
+                       cov=np.diag([1.0e-2] * 3 + [1.0] * 3), int_cov=process_noise),
         dt=dt,
     ))
     assert len(warm) == len(cold) >= 5
