@@ -184,3 +184,36 @@ def test_the_more_precise_direction_dominates_the_optimal_solution():
     solution = quest(corrupted, r, np.array([1e-6, 0.3]))
     predicted_first = rot_mat(solution.quaternion).T @ r[0]
     assert np.arccos(np.clip(predicted_first @ b[0], -1.0, 1.0)) < 1e-4  # the precise direction is honoured
+
+
+@pytest.mark.parametrize("solver", [quest, q_method])
+def test_lopsided_weights_are_solved_to_machine_precision(solver):
+    # One direction known a million times better than the other (a weight
+    # ratio of 1e12). The closed forms alone lose most of their accuracy here;
+    # the Gauss-Newton polish restores it.
+    rng = np.random.default_rng(0)
+    reference = np.vstack([[1.0, 0.0, 0.0], [np.cos(0.75), np.sin(0.75), 0.0]])
+    for sigma_ratio in (1.0e-2, 1.0e-4, 1.0e-6):
+        sigma = np.array([1.0e-2, 1.0e-2 * sigma_ratio])
+        for _ in range(10):
+            truth = rng.normal(size=4)
+            truth /= np.linalg.norm(truth)
+            body = reference @ rot_mat(truth)
+            solution = solver(body, reference, sigma)
+            assert np.linalg.norm(attitude_error(solution.quaternion, truth)) < 1.0e-10
+            assert solution.loss < 1.0e-12
+
+
+def test_textbook_quest_degrades_with_lopsided_weights():
+    # Documents why the polish exists: the same problems without it.
+    rng = np.random.default_rng(0)
+    reference = np.vstack([[1.0, 0.0, 0.0], [np.cos(0.75), np.sin(0.75), 0.0]])
+    sigma = np.array([1.0e-2, 1.0e-7])
+    worst = 0.0
+    for _ in range(10):
+        truth = rng.normal(size=4)
+        truth /= np.linalg.norm(truth)
+        body = reference @ rot_mat(truth)
+        raw = quest(body, reference, sigma, refine_steps=0)
+        worst = max(worst, np.linalg.norm(attitude_error(raw.quaternion, truth)))
+    assert worst > 1.0e-6

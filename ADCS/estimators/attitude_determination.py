@@ -147,6 +147,49 @@ def _rotation_from_davenport_quaternion(vector: np.ndarray, scalar: float) -> np
     return (scalar**2 - vector @ vector) * np.eye(3) + 2.0 * np.outer(vector, vector) - 2.0 * scalar * skew
 
 
+def _skew(vector: np.ndarray) -> np.ndarray:
+    return np.array([[0.0, -vector[2], vector[1]], [vector[2], 0.0, -vector[0]], [-vector[1], vector[0], 0.0]])
+
+
+def _rotation_matrix(vector: np.ndarray) -> np.ndarray:
+    """Rotation matrix of a rotation vector (Rodrigues); the inverse of :func:`_rotation_vector`."""
+    angle = float(np.linalg.norm(vector))
+    cross = _skew(vector)
+    if angle < 1.0e-8:
+        return np.eye(3) + cross + 0.5 * cross @ cross
+    return np.eye(3) + np.sin(angle) / angle * cross + (1.0 - np.cos(angle)) / angle**2 * cross @ cross
+
+
+def _refine(attitude: np.ndarray, body: np.ndarray, reference: np.ndarray, weights: np.ndarray, steps: int) -> np.ndarray:
+    """Gauss-Newton steps on the Wahba cost, starting from ``attitude`` (reference -> body).
+
+    The closed-form solutions (QUEST, q-method) lose accuracy when one
+    direction is weighted much more heavily than the rest: the optimum is
+    then an eigenvector whose eigenvalue almost coincides with the next one,
+    and no eigen-solver locates such an eigenvector precisely (with weights
+    1e6 apart QUEST was off by 3e-5 rad on exact data, with 1e8 by 6e-4). A
+    Gauss-Newton step instead solves the linearised least-squares problem by
+    orthogonal factorisation, where the weight ratio only enters as its
+    square root, so a few steps recover the optimum to machine precision.
+    """
+    root_weights = np.sqrt(weights)
+    for _ in range(int(steps)):
+        predicted = reference @ attitude.T  # rows: attitude @ r_i, the directions the estimate expects in the body frame
+        residual = ((body - predicted) * root_weights[:, None]).reshape(-1)
+        jacobian = np.vstack([weight * _skew(direction) for weight, direction in zip(root_weights, predicted)])
+        step = np.linalg.lstsq(jacobian, residual, rcond=None)[0]
+        attitude = _rotation_matrix(step).T @ attitude
+        if float(np.linalg.norm(step)) < 1.0e-14:
+            break
+    return attitude
+
+
+def _loss(attitude: np.ndarray, body: np.ndarray, reference: np.ndarray, weights: np.ndarray) -> float:
+    """Wahba loss of ``attitude`` (reference -> body) with weights that sum to one."""
+    predicted = reference @ attitude.T
+    return max(0.0, 1.0 - float(np.sum(weights * np.sum(body * predicted, axis=1))))
+
+
 # ----------------------------------------------------------------------------
 # loss and covariances
 
@@ -176,7 +219,7 @@ def wahba_covariance(body: np.ndarray, sigma: np.ndarray | float) -> np.ndarray:
     for direction, weight in zip(body, weights):
         information += weight * (np.eye(3) - np.outer(direction, direction))
     eigenvalues = np.linalg.eigvalsh(information)
-    if eigenvalues[0] <= 1.0e-12 * eigenvalues[-1]:
+    if eigenvalues[0] <= 1.0e-14 * eigenvalues[-1]:  # below the numerical resolution of the sum
         raise ValueError(
             "the attitude is not observable from these directions: the rotation about "
             "their common axis is undetermined (at least two non-parallel directions are needed)"
@@ -260,11 +303,13 @@ def triad(
     return AttitudeSolution(quaternion=quaternion, covariance=covariance, loss=loss, method="triad")
 
 
-def q_method(body: np.ndarray, reference: np.ndarray, sigma: np.ndarray | float) -> AttitudeSolution:
+def q_method(body: np.ndarray, reference: np.ndarray, sigma: np.ndarray | float, *, refine_steps: int = 8) -> AttitudeSolution:
     """Davenport's q-method: the exact Wahba optimum from the 4x4 eigenproblem.
 
-    Slower than :func:`quest` in principle but exact and free of special cases;
-    QUEST is checked against it in the tests.
+    Slower than :func:`quest` in principle and free of special cases; QUEST
+    is checked against it in the tests. Like QUEST it is polished by
+    ``refine_steps`` Gauss-Newton steps, because the eigenvector of the 4x4
+    matrix is itself imprecise when one direction dominates the weights.
     """
     body = _unit_rows(body, "body")
     reference = _unit_rows(reference, "reference")
@@ -284,11 +329,12 @@ def q_method(body: np.ndarray, reference: np.ndarray, sigma: np.ndarray | float)
     eigenvalues, eigenvectors = np.linalg.eigh(davenport)
     optimum = eigenvectors[:, -1]
     attitude = _rotation_from_davenport_quaternion(optimum[:3], optimum[3])  # reference -> body
+    attitude = _refine(attitude, body, reference, weights, refine_steps)
     quaternion = quaternion_from_rotation_matrix(attitude.T)
     return AttitudeSolution(
         quaternion=quaternion,
         covariance=wahba_covariance(body, sigmas),
-        loss=max(0.0, 1.0 - float(eigenvalues[-1])),
+        loss=_loss(attitude, body, reference, weights),
         method="q_method",
     )
 
@@ -326,6 +372,7 @@ def quest(
     *,
     tolerance: float = 1.0e-12,
     max_iterations: int = 50,
+    refine_steps: int = 8,
 ) -> AttitudeSolution:
     """QUEST (Shuster and Oh 1981): the Wahba optimum without an eigen-solver.
 
@@ -335,6 +382,12 @@ def quest(
     rotation the Gibbs vector is singular; the reference directions are then
     rotated by 180 degrees about a body axis (the "sequential rotations" of
     the original paper), the problem solved there, and the rotation undone.
+
+    ``refine_steps`` Gauss-Newton steps (at most; they stop once a step is
+    below 1e-14 rad) polish the closed-form answer. They matter when one
+    direction is weighted far more heavily than the others, where the
+    closed form loses accuracy (see :func:`_refine`); 0 gives the textbook
+    algorithm.
     """
     body = _unit_rows(body, "body")
     reference = _unit_rows(reference, "reference")
@@ -361,10 +414,11 @@ def quest(
     _, vector, scalar, lam, rotation = best
     attitude_rotated = _rotation_from_davenport_quaternion(vector, scalar)  # rotated reference -> body
     attitude = attitude_rotated @ rotation  # reference -> body
+    attitude = _refine(attitude, body, reference, weights, refine_steps)
     quaternion = quaternion_from_rotation_matrix(attitude.T)
     return AttitudeSolution(
         quaternion=quaternion,
         covariance=wahba_covariance(body, sigmas),
-        loss=max(0.0, 1.0 - float(lam)),
+        loss=_loss(attitude, body, reference, weights),
         method="quest",
     )
