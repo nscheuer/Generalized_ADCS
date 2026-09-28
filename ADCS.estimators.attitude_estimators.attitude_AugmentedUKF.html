@@ -593,31 +593,97 @@
 <p><strong>1. Construct the augmented tangent-state estimate</strong></p>
 <p>Validate the physical, bias, and disturbance-parameter blocks and retain the
 right-error tangent covariance.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\mathbf{x}}_a =
+[\hat{\boldsymbol{\omega}},\hat{\mathbf{q}},\hat{\mathbf{h}},
+\hat{\mathbf{b}}_a,\hat{\mathbf{b}}_s,\hat{\mathbf{d}}]^T,
+\qquad
+\delta\mathbf{x}_a =
+[\delta\boldsymbol{\omega},\delta\boldsymbol{\theta},\delta\mathbf{h},
+\delta\mathbf{b}_a,\delta\mathbf{b}_s,\delta\mathbf{d}]^T
+\in\mathbb{R}^{n_a},
+\qquad
+n_a=6+n_h+n_{b_a}+n_{b_s}+n_d.\]</div>
+</div>
+<p>The covariance is in tangent coordinates; the nominal quaternion stays on
+<span class="math notranslate nohighlight">\(\mathbb{S}^{3}\)</span>.</p>
 </div>
 <div class="ekf-step ekf-step-predict docutils container">
 <p><strong>2. Generate and propagate augmented sigma points</strong></p>
 <p>Each sigma point carries its own parameter realization; those values are
 synchronized into <code class="docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code> before nonlinear propagation.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\lambda=\alpha^2(n_a+\kappa)-n_a,\qquad
+\gamma=\sqrt{n_a+\lambda},\qquad
+\mathbf{P}_a=\mathbf{S}^{T}\mathbf{S},\\\boldsymbol{\xi}_0=\mathbf{0},\qquad
+\boldsymbol{\xi}_i=\pm\gamma\mathbf{S}_{i,:}^{T},\qquad
+\mathbf{X}_{i,k}^{+}=\hat{\mathbf{x}}_{a,k}^{+}
+\boxplus\boldsymbol{\xi}_i.\end{aligned}\end{align} \]</div>
+</div>
+<p>The standard unscented mean and covariance weights
+<span class="math notranslate nohighlight">\(W_i^{(m)}\)</span> and <span class="math notranslate nohighlight">\(W_i^{(c)}\)</span> are computed with this augmented
+tangent dimension.</p>
 </div>
 <div class="ekf-step ekf-step-linearize docutils container">
 <p><strong>3. Form the unscented process statistics</strong></p>
 <p>Compute the weighted manifold mean and sigma deviations, then discretize and
 add the augmented process noise.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{X}_{i,k+1}^{-}=
+f_a(\mathbf{X}_{i,k}^{+},\mathbf{u}_k,\mathbf{o}_k,\mathbf{o}_{k+1},\Delta t),
+\qquad
+\sum_iW_i^{(m)}
+(\mathbf{X}_{i,k+1}^{-}\boxminus\hat{\mathbf{x}}_{a,k+1}^{-})=\mathbf{0}.\\\mathbf{d}_{i,k}^{x}=\mathbf{X}_{i,k+1}^{-}
+\boxminus\hat{\mathbf{x}}_{a,k+1}^{-},\qquad
+\mathbf{P}_{a,k+1}^{-}=
+\sum_iW_i^{(c)}\mathbf{d}_{i,k}^{x}(\mathbf{d}_{i,k}^{x})^{T}
++\mathbf{Q}_{d,a,k}^{model}+\mathbf{Q}_{d,a,k}^{state}.\end{aligned}\end{align} \]</div>
+</div>
+<p>The augmented parameter values are held by each deterministic propagation;
+their uncertainty enters through the state and model process covariances.</p>
 </div>
 <div class="ekf-step ekf-step-measurement docutils container">
 <p><strong>4. Predict measurements for every sigma point</strong></p>
 <p>Transform sigma points through the shared measurement stack and form
 measurement and state cross-covariances.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{Z}_{i,k}=h(\mathbf{X}_{i,k}^{-},\mathbf{o}_k),\qquad
+\mathbf{d}_{i,k}^{z}=\mathbf{Z}_{i,k}\boxminus\hat{\mathbf{z}}_k,\\\mathbf{P}_{zz}=\sum_iW_i^{(c)}\mathbf{d}_{i,k}^{z}
+(\mathbf{d}_{i,k}^{z})^{T}+\mathbf{R}_k,\qquad
+\mathbf{P}_{xz}=\sum_iW_i^{(c)}\mathbf{d}_{i,k}^{x}
+(\mathbf{d}_{i,k}^{z})^{T}.\end{aligned}\end{align} \]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-update docutils container">
 <p><strong>5. Apply the unscented correction</strong></p>
 <p>Compute the gain, update the physical state and augmented parameters, and
 transport the posterior covariance.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{K}_k=\mathbf{P}_{xz}\mathbf{P}_{zz}^{-1},\qquad
+\mathbf{r}_k=\mathbf{z}_k\boxminus\hat{\mathbf{z}}_k,\qquad
+\delta\mathbf{x}_{a,k}=\mathbf{K}_k\mathbf{r}_k,\\\mathbf{P}_{a,k,raw}^{+}=\mathbf{P}_{a,k}^{-}-
+\mathbf{K}_k\mathbf{P}_{zz}\mathbf{K}_k^{T}.\end{aligned}\end{align} \]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-reset docutils container">
 <p><strong>6. Retract the attitude and retain the augmented estimate</strong></p>
 <p>Keep the right-error tangent chart and preserve all bias and disturbance
 parameter blocks for the next sigma-point generation.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{x}_{a,k}^{+}=\mathbf{x}_{a,k}^{-}\boxplus\delta\mathbf{x}_{a,k},
+\qquad
+\mathbf{q}_k^{+}=\hat{\mathbf{q}}_k^{-}
+\otimes\phi^{-1}(\delta\boldsymbol{\theta}_k),
+\qquad
+\mathbf{P}_{a,k}^{+}=\mathbf{J}_{reset}\mathbf{P}_{a,k,raw}^{+}
+\mathbf{J}_{reset}^{T}.\]</div>
+</div>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_AugmentedUKF.AugmentedUKF">
@@ -700,6 +766,7 @@ parameter blocks for the next sigma-point generation.</p>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

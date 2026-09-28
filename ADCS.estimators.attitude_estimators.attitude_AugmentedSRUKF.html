@@ -593,30 +593,92 @@
 <p><strong>1. Construct the augmented square-root estimate</strong></p>
 <p>Validate the augmented tangent-state layout and store its covariance as an
 upper square-root factor.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\hat{\mathbf{x}}_a =
+[\hat{\boldsymbol{\omega}},\hat{\mathbf{q}},\hat{\mathbf{h}},
+\hat{\mathbf{b}}_a,\hat{\mathbf{b}}_s,\hat{\mathbf{d}}]^T,
+\qquad
+\delta\mathbf{x}_a\in\mathbb{R}^{n_a},
+\qquad
+n_a=6+n_h+n_{b_a}+n_{b_s}+n_d,\\\mathbf{P}_a=\mathbf{S}_a^{T}\mathbf{S}_a.\end{aligned}\end{align} \]</div>
+</div>
+<p>The nominal quaternion is retained separately from its three-coordinate
+right-attitude error in <span class="math notranslate nohighlight">\(\delta\mathbf{x}_a\)</span>.</p>
 </div>
 <div class="ekf-step ekf-step-predict docutils container">
 <p><strong>2. Generate and propagate augmented sigma points</strong></p>
 <p>Synchronize each sigma point’s bias and disturbance parameters into
 <code class="docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code> before nonlinear propagation.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\lambda=\alpha^2(n_a+\kappa)-n_a,\qquad
+\gamma=\sqrt{n_a+\lambda},\qquad
+\boldsymbol{\xi}_i=\pm\gamma\mathbf{S}_{a,i,:}^{T},
+\qquad
+\mathbf{X}_{i,k}^{+}=\hat{\mathbf{x}}_{a,k}^{+}
+\boxplus\boldsymbol{\xi}_i.\]</div>
+</div>
+<p>The central point has <span class="math notranslate nohighlight">\(\boldsymbol{\xi}_0=\mathbf{0}\)</span> and all weights
+use the augmented dimension <span class="math notranslate nohighlight">\(n_a\)</span>.</p>
 </div>
 <div class="ekf-step ekf-step-linearize docutils container">
 <p><strong>3. Form square-root process statistics</strong></p>
 <p>Compute the weighted manifold mean and use QR/rank updates to incorporate
 augmented process noise into the predicted square-root covariance.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{X}_{i,k+1}^{-}=
+f_a(\mathbf{X}_{i,k}^{+},\mathbf{u}_k,\mathbf{o}_k,\mathbf{o}_{k+1},\Delta t),
+\qquad
+\sum_iW_i^{(m)}
+(\mathbf{X}_{i,k+1}^{-}\boxminus\hat{\mathbf{x}}_{a,k+1}^{-})=\mathbf{0}.\\\mathbf{P}_{a,k+1}^{-}=
+\sum_iW_i^{(c)}\mathbf{d}_{i,k}^{x}(\mathbf{d}_{i,k}^{x})^{T}
++\mathbf{Q}_{d,a,k}^{model}+\mathbf{Q}_{d,a,k}^{state},
+\qquad
+\mathbf{P}_{a,k+1}^{-}=\mathbf{S}_{a,k+1}^{-T}\mathbf{S}_{a,k+1}^{-}.\end{aligned}\end{align} \]</div>
+</div>
+<p>QR factorization and Cholesky rank updates/downdates construct
+<span class="math notranslate nohighlight">\(\mathbf{S}_{a,k+1}^{-}\)</span> without storing a full posterior covariance.</p>
 </div>
 <div class="ekf-step ekf-step-measurement docutils container">
 <p><strong>4. Predict sigma-point measurements</strong></p>
 <p>Form measurement deviations and state cross-covariances through the shared
 measurement stack.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{Z}_{i,k}=h(\mathbf{X}_{i,k}^{-},\mathbf{o}_k),\qquad
+\mathbf{d}_{i,k}^{z}=\mathbf{Z}_{i,k}\boxminus\hat{\mathbf{z}}_k,\\\mathbf{P}_{zz}=\sum_iW_i^{(c)}\mathbf{d}_{i,k}^{z}
+(\mathbf{d}_{i,k}^{z})^{T}+\mathbf{R}_k,\qquad
+\mathbf{P}_{xz}=\sum_iW_i^{(c)}\mathbf{d}_{i,k}^{x}
+(\mathbf{d}_{i,k}^{z})^{T}.\end{aligned}\end{align} \]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-update docutils container">
 <p><strong>5. Apply the square-root unscented correction</strong></p>
 <p>Compute the gain and update the physical and augmented state blocks while
 preserving the square-root covariance representation.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{K}_k=\mathbf{P}_{xz}\mathbf{P}_{zz}^{-1},\qquad
+\delta\mathbf{x}_{a,k}=\mathbf{K}_k
+(\mathbf{z}_k\boxminus\hat{\mathbf{z}}_k),\\\mathbf{P}_{a,k,raw}^{+}=\mathbf{P}_{a,k}^{-}-
+\mathbf{K}_k\mathbf{P}_{zz}\mathbf{K}_k^{T}
+=\mathbf{S}_{a,k,raw}^{+T}\mathbf{S}_{a,k,raw}^{+}.\end{aligned}\end{align} \]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-reset docutils container">
 <p><strong>6. Retract the attitude and retain the augmented estimate</strong></p>
 <p>Keep the tangent chart and the square-root covariance for the next cycle.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{x}_{a,k}^{+}=\mathbf{x}_{a,k}^{-}\boxplus\delta\mathbf{x}_{a,k},
+\qquad
+\mathbf{q}_k^{+}=\hat{\mathbf{q}}_k^{-}
+\otimes\phi^{-1}(\delta\boldsymbol{\theta}_k),\\\mathbf{P}_{a,k}^{+}=\mathbf{J}_{reset}\mathbf{P}_{a,k,raw}^{+}
+\mathbf{J}_{reset}^{T}
+=\mathbf{S}_{a,k}^{+T}\mathbf{S}_{a,k}^{+}.\end{aligned}\end{align} \]</div>
+</div>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_AugmentedSRUKF.AugmentedSRUKF">
@@ -699,6 +761,7 @@ preserving the square-root covariance representation.</p>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

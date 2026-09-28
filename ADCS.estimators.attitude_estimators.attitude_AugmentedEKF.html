@@ -594,39 +594,122 @@
 <p>Validate the physical state and append the configured actuator-bias,
 sensor-bias, and disturbance-parameter blocks to the full-quaternion
 covariance layout.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\mathbf{x}}_a =
+[\hat{\boldsymbol{\omega}},\hat{\mathbf{q}},\hat{\mathbf{h}},
+\hat{\mathbf{b}}_a,\hat{\mathbf{b}}_s,\hat{\mathbf{d}}]^T,
+\qquad
+\mathbf{P}_a\in\mathbb{R}^{n_a\times n_a},
+\qquad
+n_a=7+n_h+n_{b_a}+n_{b_s}+n_d.\]</div>
+</div>
+<p>The additive covariance retains all four quaternion coefficients.</p>
 </div>
 <div class="ekf-step ekf-step-predict docutils container">
 <p><strong>2. Propagate the augmented nominal state</strong></p>
 <p>Synchronize the nominal augmented parameters into <code class="docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code>
 and propagate the spacecraft state through the nonlinear dynamics.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\hat{\mathbf{x}}_{p,k+1}^{-} =
+f(\hat{\mathbf{x}}_{p,k}^{+},\hat{\mathbf{b}}_{a,k}^{+},
+\hat{\mathbf{d}}_k^{+},\mathbf{u}_k,\mathbf{o}_k,\mathbf{o}_{k+1},\Delta t),
+\qquad
+\begin{bmatrix}\hat{\mathbf{b}}_a\\\hat{\mathbf{b}}_s\\\hat{\mathbf{d}}\end{bmatrix}_{k+1}^{-}
+=
+\begin{bmatrix}\hat{\mathbf{b}}_a\\\hat{\mathbf{b}}_s\\\hat{\mathbf{d}}\end{bmatrix}_{k}^{+}.\end{split}\]</div>
+</div>
+<p>Here <span class="math notranslate nohighlight">\(\mathbf{x}_p=[\boldsymbol{\omega},\mathbf{q},\mathbf{h}]^T\)</span>;
+the deterministic model holds parameter values constant.</p>
 </div>
 <div class="ekf-step ekf-step-linearize docutils container">
 <p><strong>3. Linearize the augmented process model</strong></p>
 <p>Build the physical, bias, and disturbance-parameter couplings and discretize
 the continuous process noise.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\delta\dot{\mathbf{x}}_a=\mathbf{F}_{a,k}\delta\mathbf{x}_a+
+\mathbf{w}_{a,k},\qquad
+\mathbf{F}_{a,k}=
+\begin{bmatrix}
+\mathbf{F}_{pp} &amp; \mathbf{F}_{p b_a} &amp; \mathbf{0} &amp; \mathbf{F}_{p d}\\
+\mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0}\\
+\mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0}\\
+\mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0}
+\end{bmatrix}.\end{split}\]</div>
+</div>
+<p>The zero lower rows implement random walks; their configured spectral
+densities are included in <span class="math notranslate nohighlight">\(\mathbf{Q}_{c,a}\)</span> before discretization.</p>
 </div>
 <div class="ekf-step ekf-step-covariance docutils container">
 <p><strong>4. Predict the full covariance</strong></p>
 <p>Apply <span class="math notranslate nohighlight">\(P^- = \\Phi P^+ \\Phi^T + Q_d\)</span> in full quaternion coordinates.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{P}_{a,k+1}^{-}=
+\mathbf{\Phi}_{a,k}\mathbf{P}_{a,k}^{+}\mathbf{\Phi}_{a,k}^{T}
++\mathbf{Q}_{d,a,k}^{model}+\mathbf{Q}_{d,a,k}^{state}.\]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-measurement docutils container">
 <p><strong>5. Predict measurements and form the innovation</strong></p>
 <p>Use the shared measurement stack, including bias terms in the augmented
 measurement model.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\mathbf{z}}_k=h(\hat{\mathbf{x}}_{p,k}^{-},\mathbf{o}_k)
++\mathbf{D}_{s,k}\hat{\mathbf{b}}_{s,k}^{-},
+\qquad
+\mathbf{r}_k=\mathbf{z}_k-\hat{\mathbf{z}}_k.\]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-jacobian docutils container">
 <p><strong>6. Form the augmented measurement Jacobian</strong></p>
 <p>Include derivatives with respect to the physical state, sensor biases, and
 disturbance parameters.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{H}_{a,k}=
+\begin{bmatrix}
+\dfrac{\partial h}{\partial\mathbf{x}_p} &amp;
+\dfrac{\partial h}{\partial\mathbf{b}_a} &amp;
+\mathbf{D}_{s,k} &amp;
+\dfrac{\partial h}{\partial\mathbf{d}}
+\end{bmatrix}_{\hat{\mathbf{x}}_{a,k}^{-}},
+\qquad
+\mathbf{R}_k=\mathbb{E}[\mathbf{v}_k\mathbf{v}_k^T].\]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-update docutils container">
 <p><strong>7. Apply the Kalman correction</strong></p>
 <p>Update the complete augmented estimate and covariance.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{S}_k=\mathbf{H}_{a,k}\mathbf{P}_{a,k}^{-}\mathbf{H}_{a,k}^{T}+
+\mathbf{R}_k,\qquad
+\mathbf{K}_k=\mathbf{P}_{a,k}^{-}\mathbf{H}_{a,k}^{T}\mathbf{S}_k^{-1},
+\qquad
+\delta\mathbf{x}_{a,k}=\mathbf{K}_k\mathbf{r}_k.\\\mathbf{P}_{a,k,raw}^{+}=(\mathbf{I}-\mathbf{K}_k\mathbf{H}_{a,k})
+\mathbf{P}_{a,k}^{-}(\mathbf{I}-\mathbf{K}_k\mathbf{H}_{a,k})^T+
+\mathbf{K}_k\mathbf{R}_k\mathbf{K}_k^T.\end{aligned}\end{align} \]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-reset docutils container">
 <p><strong>8. Normalize and retain the augmented state</strong></p>
 <p>Normalize the quaternion and retain the estimated parameter blocks for the
 next prediction.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{x}_{a,k}^{+}=\mathbf{x}_{a,k}^{-}\boxplus\delta\mathbf{x}_{a,k},
+\qquad
+\mathbf{q}_k^{+}=
+\frac{\hat{\mathbf{q}}_k^{-}+\delta\mathbf{q}_k}
+{\lVert\hat{\mathbf{q}}_k^{-}+\delta\mathbf{q}_k\rVert},
+\qquad
+\mathbf{P}_{a,k}^{+}=\mathbf{J}_{reset}\mathbf{P}_{a,k,raw}^{+}
+\mathbf{J}_{reset}^{T}.\]</div>
+</div>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_AugmentedEKF.AugmentedEKF">

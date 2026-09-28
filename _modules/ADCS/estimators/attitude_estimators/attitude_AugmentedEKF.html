@@ -590,12 +590,37 @@
 <span class="sd">   sensor-bias, and disturbance-parameter blocks to the full-quaternion</span>
 <span class="sd">   covariance layout.</span>
 
+<span class="sd">   .. math::</span>
+
+<span class="sd">      \hat{\mathbf{x}}_a =</span>
+<span class="sd">      [\hat{\boldsymbol{\omega}},\hat{\mathbf{q}},\hat{\mathbf{h}},</span>
+<span class="sd">      \hat{\mathbf{b}}_a,\hat{\mathbf{b}}_s,\hat{\mathbf{d}}]^T,</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \mathbf{P}_a\in\mathbb{R}^{n_a\times n_a},</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      n_a=7+n_h+n_{b_a}+n_{b_s}+n_d.</span>
+
+<span class="sd">   The additive covariance retains all four quaternion coefficients.</span>
+
 <span class="sd">.. container:: ekf-step ekf-step-predict</span>
 
 <span class="sd">   **2. Propagate the augmented nominal state**</span>
 
 <span class="sd">   Synchronize the nominal augmented parameters into ``EstimatedSatellite``</span>
 <span class="sd">   and propagate the spacecraft state through the nonlinear dynamics.</span>
+
+<span class="sd">   .. math::</span>
+
+<span class="sd">      \hat{\mathbf{x}}_{p,k+1}^{-} =</span>
+<span class="sd">      f(\hat{\mathbf{x}}_{p,k}^{+},\hat{\mathbf{b}}_{a,k}^{+},</span>
+<span class="sd">      \hat{\mathbf{d}}_k^{+},\mathbf{u}_k,\mathbf{o}_k,\mathbf{o}_{k+1},\Delta t),</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \begin{bmatrix}\hat{\mathbf{b}}_a\\\hat{\mathbf{b}}_s\\\hat{\mathbf{d}}\end{bmatrix}_{k+1}^{-}</span>
+<span class="sd">      =</span>
+<span class="sd">      \begin{bmatrix}\hat{\mathbf{b}}_a\\\hat{\mathbf{b}}_s\\\hat{\mathbf{d}}\end{bmatrix}_{k}^{+}.</span>
+
+<span class="sd">   Here :math:`\mathbf{x}_p=[\boldsymbol{\omega},\mathbf{q},\mathbf{h}]^T`;</span>
+<span class="sd">   the deterministic model holds parameter values constant.</span>
 
 <span class="sd">.. container:: ekf-step ekf-step-linearize</span>
 
@@ -604,11 +629,32 @@
 <span class="sd">   Build the physical, bias, and disturbance-parameter couplings and discretize</span>
 <span class="sd">   the continuous process noise.</span>
 
+<span class="sd">   .. math::</span>
+
+<span class="sd">      \delta\dot{\mathbf{x}}_a=\mathbf{F}_{a,k}\delta\mathbf{x}_a+</span>
+<span class="sd">      \mathbf{w}_{a,k},\qquad</span>
+<span class="sd">      \mathbf{F}_{a,k}=</span>
+<span class="sd">      \begin{bmatrix}</span>
+<span class="sd">      \mathbf{F}_{pp} &amp; \mathbf{F}_{p b_a} &amp; \mathbf{0} &amp; \mathbf{F}_{p d}\\</span>
+<span class="sd">      \mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0}\\</span>
+<span class="sd">      \mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0}\\</span>
+<span class="sd">      \mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0} &amp; \mathbf{0}</span>
+<span class="sd">      \end{bmatrix}.</span>
+
+<span class="sd">   The zero lower rows implement random walks; their configured spectral</span>
+<span class="sd">   densities are included in :math:`\mathbf{Q}_{c,a}` before discretization.</span>
+
 <span class="sd">.. container:: ekf-step ekf-step-covariance</span>
 
 <span class="sd">   **4. Predict the full covariance**</span>
 
 <span class="sd">   Apply :math:`P^- = \\Phi P^+ \\Phi^T + Q_d` in full quaternion coordinates.</span>
+
+<span class="sd">   .. math::</span>
+
+<span class="sd">      \mathbf{P}_{a,k+1}^{-}=</span>
+<span class="sd">      \mathbf{\Phi}_{a,k}\mathbf{P}_{a,k}^{+}\mathbf{\Phi}_{a,k}^{T}</span>
+<span class="sd">      +\mathbf{Q}_{d,a,k}^{model}+\mathbf{Q}_{d,a,k}^{state}.</span>
 
 <span class="sd">.. container:: ekf-step ekf-step-measurement</span>
 
@@ -617,6 +663,13 @@
 <span class="sd">   Use the shared measurement stack, including bias terms in the augmented</span>
 <span class="sd">   measurement model.</span>
 
+<span class="sd">   .. math::</span>
+
+<span class="sd">      \hat{\mathbf{z}}_k=h(\hat{\mathbf{x}}_{p,k}^{-},\mathbf{o}_k)</span>
+<span class="sd">      +\mathbf{D}_{s,k}\hat{\mathbf{b}}_{s,k}^{-},</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \mathbf{r}_k=\mathbf{z}_k-\hat{\mathbf{z}}_k.</span>
+
 <span class="sd">.. container:: ekf-step ekf-step-jacobian</span>
 
 <span class="sd">   **6. Form the augmented measurement Jacobian**</span>
@@ -624,11 +677,35 @@
 <span class="sd">   Include derivatives with respect to the physical state, sensor biases, and</span>
 <span class="sd">   disturbance parameters.</span>
 
+<span class="sd">   .. math::</span>
+
+<span class="sd">      \mathbf{H}_{a,k}=</span>
+<span class="sd">      \begin{bmatrix}</span>
+<span class="sd">      \dfrac{\partial h}{\partial\mathbf{x}_p} &amp;</span>
+<span class="sd">      \dfrac{\partial h}{\partial\mathbf{b}_a} &amp;</span>
+<span class="sd">      \mathbf{D}_{s,k} &amp;</span>
+<span class="sd">      \dfrac{\partial h}{\partial\mathbf{d}}</span>
+<span class="sd">      \end{bmatrix}_{\hat{\mathbf{x}}_{a,k}^{-}},</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \mathbf{R}_k=\mathbb{E}[\mathbf{v}_k\mathbf{v}_k^T].</span>
+
 <span class="sd">.. container:: ekf-step ekf-step-update</span>
 
 <span class="sd">   **7. Apply the Kalman correction**</span>
 
 <span class="sd">   Update the complete augmented estimate and covariance.</span>
+
+<span class="sd">   .. math::</span>
+
+<span class="sd">      \mathbf{S}_k=\mathbf{H}_{a,k}\mathbf{P}_{a,k}^{-}\mathbf{H}_{a,k}^{T}+</span>
+<span class="sd">      \mathbf{R}_k,\qquad</span>
+<span class="sd">      \mathbf{K}_k=\mathbf{P}_{a,k}^{-}\mathbf{H}_{a,k}^{T}\mathbf{S}_k^{-1},</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \delta\mathbf{x}_{a,k}=\mathbf{K}_k\mathbf{r}_k.</span>
+
+<span class="sd">      \mathbf{P}_{a,k,raw}^{+}=(\mathbf{I}-\mathbf{K}_k\mathbf{H}_{a,k})</span>
+<span class="sd">      \mathbf{P}_{a,k}^{-}(\mathbf{I}-\mathbf{K}_k\mathbf{H}_{a,k})^T+</span>
+<span class="sd">      \mathbf{K}_k\mathbf{R}_k\mathbf{K}_k^T.</span>
 
 <span class="sd">.. container:: ekf-step ekf-step-reset</span>
 
@@ -636,6 +713,17 @@
 
 <span class="sd">   Normalize the quaternion and retain the estimated parameter blocks for the</span>
 <span class="sd">   next prediction.</span>
+
+<span class="sd">   .. math::</span>
+
+<span class="sd">      \mathbf{x}_{a,k}^{+}=\mathbf{x}_{a,k}^{-}\boxplus\delta\mathbf{x}_{a,k},</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \mathbf{q}_k^{+}=</span>
+<span class="sd">      \frac{\hat{\mathbf{q}}_k^{-}+\delta\mathbf{q}_k}</span>
+<span class="sd">      {\lVert\hat{\mathbf{q}}_k^{-}+\delta\mathbf{q}_k\rVert},</span>
+<span class="sd">      \qquad</span>
+<span class="sd">      \mathbf{P}_{a,k}^{+}=\mathbf{J}_{reset}\mathbf{P}_{a,k,raw}^{+}</span>
+<span class="sd">      \mathbf{J}_{reset}^{T}.</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>

@@ -593,37 +593,120 @@
 <p><strong>1. Construct the augmented tangent-state estimate</strong></p>
 <p>Validate the physical state and append bias and disturbance-parameter
 blocks while retaining the three-coordinate right-attitude error.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\mathbf{x}}_a =
+[\hat{\boldsymbol{\omega}},\hat{\mathbf{q}},\hat{\mathbf{h}},
+\hat{\mathbf{b}}_a,\hat{\mathbf{b}}_s,\hat{\mathbf{d}}]^T,
+\qquad
+\delta\mathbf{x}_a =
+[\delta\boldsymbol{\omega},\delta\boldsymbol{\theta},\delta\mathbf{h},
+\delta\mathbf{b}_a,\delta\mathbf{b}_s,\delta\mathbf{d}]^T
+\in\mathbb{R}^{n_a},
+\qquad
+n_a=6+n_h+n_{b_a}+n_{b_s}+n_d.\]</div>
+</div>
+<p>The nominal quaternion has four coefficients, while
+<span class="math notranslate nohighlight">\(\delta\boldsymbol{\theta}\)</span> is its three-coordinate right error.</p>
 </div>
 <div class="ekf-step ekf-step-predict docutils container">
 <p><strong>2. Propagate the augmented nominal state</strong></p>
 <p>Synchronize the nominal augmented parameters into <code class="docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code>
 and propagate the nonlinear spacecraft model.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\hat{\mathbf{x}}_{p,k+1}^{-} =
+f(\hat{\mathbf{x}}_{p,k}^{+},\hat{\mathbf{b}}_{a,k}^{+},
+\hat{\mathbf{d}}_k^{+},\mathbf{u}_k,\mathbf{o}_k,\mathbf{o}_{k+1},\Delta t),
+\qquad
+\begin{bmatrix}\hat{\mathbf{b}}_a\\\hat{\mathbf{b}}_s\\\hat{\mathbf{d}}\end{bmatrix}_{k+1}^{-}
+=
+\begin{bmatrix}\hat{\mathbf{b}}_a\\\hat{\mathbf{b}}_s\\\hat{\mathbf{d}}\end{bmatrix}_{k}^{+}.\end{split}\]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-linearize docutils container">
 <p><strong>3. Linearize the augmented process model</strong></p>
 <p>Construct the tangent error dynamics and discretize physical, bias, and
 disturbance-parameter process noise.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\delta\dot{\mathbf{x}}_a=\mathbf{F}_{a,k}\delta\mathbf{x}_a+
+\mathbf{w}_{a,k},\qquad
+\mathbf{\Phi}_{a,k}\approx e^{\mathbf{F}_{a,k}\Delta t},
+\qquad
+\mathbf{Q}_{d,a,k}^{VL}=
+\int_0^{\Delta t}e^{\mathbf{F}_{a,k}\tau}\mathbf{Q}_{c,a,k}
+e^{\mathbf{F}_{a,k}^{T}\tau}\,d\tau.\]</div>
+</div>
+<p>The parameter-error rows of <span class="math notranslate nohighlight">\(\mathbf{F}_{a,k}\)</span> are zero for the
+deterministic random-walk model; their configured noise remains in
+<span class="math notranslate nohighlight">\(\mathbf{Q}_{c,a,k}\)</span>.</p>
 </div>
 <div class="ekf-step ekf-step-covariance docutils container">
 <p><strong>4. Predict the tangent covariance</strong></p>
 <p>Apply the linear covariance recursion in the right-error coordinates.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{P}_{a,k+1}^{-}=
+\mathbf{\Phi}_{a,k}\mathbf{P}_{a,k}^{+}\mathbf{\Phi}_{a,k}^{T}
++\mathbf{Q}_{d,a,k}^{model}+\mathbf{Q}_{d,a,k}^{state}.\]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-measurement docutils container">
 <p><strong>5. Predict measurements and form the innovation</strong></p>
 <p>Use the shared measurement stack and its bias-aware residual definitions.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\mathbf{z}}_k=h(\hat{\mathbf{x}}_{p,k}^{-},\mathbf{o}_k)
++\mathbf{D}_{s,k}\hat{\mathbf{b}}_{s,k}^{-},
+\qquad
+\mathbf{r}_k=\mathbf{z}_k\boxminus\hat{\mathbf{z}}_k.\]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-jacobian docutils container">
 <p><strong>6. Form the augmented measurement Jacobian</strong></p>
 <p>Include physical-state, sensor-bias, and disturbance-parameter sensitivities.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{H}_{a,k}=
+\begin{bmatrix}
+\dfrac{\partial h}{\partial\delta\mathbf{x}_p} &amp;
+\dfrac{\partial h}{\partial\mathbf{b}_a} &amp;
+\mathbf{D}_{s,k} &amp;
+\dfrac{\partial h}{\partial\mathbf{d}}
+\end{bmatrix}_{\hat{\mathbf{x}}_{a,k}^{-}},
+\qquad
+\mathbf{R}_k=\mathbb{E}[\mathbf{v}_k\mathbf{v}_k^T].\]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-update docutils container">
 <p><strong>7. Apply the Kalman correction</strong></p>
 <p>Correct the physical state and every enabled augmented parameter block.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{S}_k=\mathbf{H}_{a,k}\mathbf{P}_{a,k}^{-}\mathbf{H}_{a,k}^{T}+
+\mathbf{R}_k,\qquad
+\mathbf{K}_k=\mathbf{P}_{a,k}^{-}\mathbf{H}_{a,k}^{T}\mathbf{S}_k^{-1},
+\qquad
+\delta\mathbf{x}_{a,k}=\mathbf{K}_k\mathbf{r}_k.\\\mathbf{P}_{a,k,raw}^{+}=(\mathbf{I}-\mathbf{K}_k\mathbf{H}_{a,k})
+\mathbf{P}_{a,k}^{-}(\mathbf{I}-\mathbf{K}_k\mathbf{H}_{a,k})^T+
+\mathbf{K}_k\mathbf{R}_k\mathbf{K}_k^T.\end{aligned}\end{align} \]</div>
+</div>
 </div>
 <div class="ekf-step ekf-step-reset docutils container">
 <p><strong>8. Retract the attitude and reset the tangent covariance</strong></p>
 <p>Apply the multiplicative quaternion retraction and transport the covariance
 about the new tangent origin.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{x}_{a,k}^{+}=\mathbf{x}_{a,k}^{-}\boxplus\delta\mathbf{x}_{a,k},
+\qquad
+\mathbf{q}_k^{+}=\hat{\mathbf{q}}_k^{-}
+\otimes\phi^{-1}(\delta\boldsymbol{\theta}_k),
+\qquad
+\mathbf{P}_{a,k}^{+}=\mathbf{J}_{reset}\mathbf{P}_{a,k,raw}^{+}
+\mathbf{J}_{reset}^{T}.\]</div>
+</div>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_AugmentedMEKF.AugmentedMEKF">
@@ -709,6 +792,7 @@ coordinates, just as for <code class="xref py py-class docutils literal notransl
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>
