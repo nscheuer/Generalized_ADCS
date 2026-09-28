@@ -281,6 +281,10 @@ def simulate(
 
         env_local_time_s = time.perf_counter() - env_t0
 
+        # The state this step's readings, estimate and control refer to. It is
+        # what gets recorded: everything else in the record (time, orbital
+        # state, readings, estimate, control) belongs to the start of the step.
+        x_k = x
         dyn_t0 = time.perf_counter()
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
@@ -391,7 +395,7 @@ def simulate(
             est_os=os_hat,
             os_cov=(getattr(getattr(orbit_estimator, "os_hat", None), "P", None)
                     if orbit_estimator is not None else None),
-            state=x,
+            state=x_k,
             est_state=x_hat,
             # The new-generation filters expose their estimate as .state; the
             # returned x_hat carries the covariance directly.

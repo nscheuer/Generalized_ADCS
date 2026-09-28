@@ -229,6 +229,10 @@ def _simulate_with_precomputed_orbit(
         else:
             u[:] = 0.0
 
+        # The state this step's readings, estimate and control refer to; it is
+        # what gets recorded, so every entry of a record belongs to the start of
+        # the step (see simulate()).
+        x_k = x
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0, dt),
@@ -299,7 +303,7 @@ def _simulate_with_precomputed_orbit(
             os=os_k,
             est_os=os_hat,
             os_cov=(getattr(getattr(orbit_estimator, "os_hat", None), "P", None) if orbit_estimator is not None else None),
-            state=x,
+            state=x_k,
             est_state=x_hat,
             state_cov=(getattr(x_hat, "cov", getattr(getattr(estimator, "x_hat", None), "cov", None)) if estimator is not None else None),
             actuator_bias=(
