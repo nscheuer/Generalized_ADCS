@@ -50,6 +50,29 @@ Control Laws
      - P. McKeen, N. Scheuer, and K. Cahoy, "Generalized Attitude Control for Small Spacecraft," 40th Annual Small Satellite Conference, Poster Session 2, SSC26-P2-54, 2026.
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2026/all2026/253/>`__
 
+Orbits
+------
+
+The orbit environment models use the following external Python libraries for
+planetary ephemerides and geomagnetic-field calculations.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 25 35 15
+
+   * - Model
+     - Documentation
+     - Original citation
+     - Reference
+   * - Planetary ephemeris and celestial-body positions
+     - ``ADCS.orbits.ephemeris.Ephemeris``
+     - B. Rhodes, "Skyfield: High precision research-grade positions for planets and Earth satellites in Python," 2019, ASCL: `ascl:1907.024 <https://ascl.net/1907.024>`__.
+     - `Skyfield documentation <https://rhodesmill.org/skyfield/>`__
+   * - IGRF geomagnetic field
+     - ``ADCS.orbits.orbital_state.Orbital_State``
+     - IAGA-VMOD, *ppigrf: Pure Python IGRF*, together with P. Alken et al., "International Geomagnetic Reference Field: the thirteenth generation," *Earth, Planets and Space*, Vol. 73, Article 49, 2021.
+     - `ppigrf <https://github.com/IAGA-VMOD/ppigrf>`__; `doi:10.1186/s40623-020-01288-x <https://doi.org/10.1186/s40623-020-01288-x>`__
+
 Estimators
 ----------
 
