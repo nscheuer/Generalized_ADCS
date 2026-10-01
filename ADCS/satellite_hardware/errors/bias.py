@@ -60,6 +60,33 @@ class Bias:
         """
         return not (np.all(self.bias == 0.0) and np.all(self.std_bias == 0.0))
     
+    def broadcast_to(self, length: int, *, owner: str = "sensor") -> "Bias":
+        """Return this model sized for a ``length``-output sensor.
+
+        A scalar model is repeated per axis, a model that already has
+        ``length`` entries is copied, and any other size is a configuration
+        error reported here, where the owning sensor is known, instead of
+        surfacing later as a covariance-shape error inside the filter.
+        Subclasses with their own parameterisation are copied untouched.
+        """
+        size = int(np.asarray(self.std_bias).size)
+        if size == length or type(self) is not Bias:
+            return self.copy()
+        if size != 1:
+            raise ValueError(
+                f"{owner} bias model has {size} entries for a {length}-output sensor"
+            )
+
+        def repeat(value):
+            array = np.asarray(value, dtype=float).reshape(-1)
+            return np.full(length, array[0]) if array.size == 1 else array.copy()
+
+        return Bias(
+            bias=repeat(self.bias),
+            std_bias=repeat(self.std_bias),
+            bounds=(repeat(self.bounds[0]), repeat(self.bounds[1])),
+        )
+
     def copy(self):
         result = Bias(bias=self.bias, std_bias=self.std_bias, bounds=self.bounds)
         result.estimated_std_bias = self.estimated_std_bias.copy()

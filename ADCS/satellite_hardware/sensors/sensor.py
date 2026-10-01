@@ -120,6 +120,12 @@ class Sensor:
             self.noise = Noise()
         self.sample_time = sample_time
         self.output_length = output_length
+        # A scalar error model on a vector sensor produced a 1x1 noise or bias
+        # block that the measurement stack assembled unchecked; the filters then
+        # failed at correct() with a message naming no sensor. Size the models
+        # here, where the sensor is known.
+        self.noise = self.noise.broadcast_to(output_length, owner=type(self).__name__)
+        self.bias = self.bias.broadcast_to(output_length, owner=type(self).__name__)
         self.estimate_bias = estimate_bias
 
     def measurement_covariance(self, *, form: str = "full") -> Covariance:

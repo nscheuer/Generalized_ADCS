@@ -14,7 +14,7 @@ from .satellite import Satellite
 import ADCS.orbits.universal_constants as uc
 from ADCS.helpers.math_helpers import *
 from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, General_Disturbance, Prop_Disturbance
-from ADCS.satellite_hardware.sensors import Sensor, GPS
+from ADCS.satellite_hardware.sensors import Sensor, GPS, StarTrackerQuaternion
 from ADCS.satellite_hardware.actuators import Actuator, RW
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.state import EstimatorState
@@ -130,6 +130,15 @@ class EstimatedSatellite(Satellite):
         self.act_bias_len = sum([self.actuators[j].input_len for j in self.act_bias_inds]) # Number of actuators with biases
         self.att_sens_bias_inds = [j for j in range(len(self.attitude_sensors)) if self.attitude_sensors[j].estimate_bias] # Indices with sensor bias
         self.att_sens_bias_len = sum([self.attitude_sensors[j].output_length for j in self.att_sens_bias_inds]) # Number of sensors with bias
+        # The measurement stack rejects this too, but lazily (behind a cached
+        # property), after a 4-wide bias block has already been registered and
+        # after the augmented filters have raised a misleading size error.
+        for j in self.att_sens_bias_inds:
+            if isinstance(self.attitude_sensors[j], StarTrackerQuaternion):
+                raise ValueError(
+                    "StarTrackerQuaternion biases cannot be estimated as additive "
+                    "four-coefficient states; use a three-coordinate attitude error model."
+                )
         self.dist_param_inds = [j for j in range(len(self.disturbances)) if self.disturbances[j].estimate_dist] # Indices with sensor disturbaces
         self.dist_param_len = sum([self.disturbances[j].estimated_vector_length for j in self.dist_param_inds]) # Number of sensors with bias
 

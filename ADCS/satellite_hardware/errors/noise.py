@@ -57,6 +57,33 @@ class Noise:
         """
         return not (np.all(self.noise == 0.0) and np.all(self.std_noise == 0.0))
     
+    def broadcast_to(self, length: int, *, owner: str = "sensor") -> "Noise":
+        """Return this model sized for a ``length``-output sensor.
+
+        A scalar model is repeated per axis, a model that already has
+        ``length`` entries is copied, and any other size is a configuration
+        error reported here, where the owning sensor is known, instead of
+        surfacing later as a covariance-shape error inside the filter.
+        Subclasses with their own parameterisation are copied untouched.
+        """
+        size = int(np.asarray(self.std_noise).size)
+        if size == length or type(self) is not Noise:
+            return self.copy()
+        if size != 1:
+            raise ValueError(
+                f"{owner} noise model has {size} entries for a {length}-output sensor"
+            )
+
+        def repeat(value):
+            array = np.asarray(value, dtype=float).reshape(-1)
+            return np.full(length, array[0]) if array.size == 1 else array.copy()
+
+        return Noise(
+            noise=repeat(self.noise),
+            std_noise=repeat(self.std_noise),
+            bounds=(repeat(self.bounds[0]), repeat(self.bounds[1])),
+        )
+
     def copy(self):
         return Noise(noise=self.noise, std_noise=self.std_noise, bounds=self.bounds)
 

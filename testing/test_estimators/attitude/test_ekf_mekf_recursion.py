@@ -125,7 +125,7 @@ class _StepAdapter:
             self._previous = os
             return self.inner.correct(sensors, os)
         start, self._previous = self._previous, os
-        return self.inner.step(u, sensors, start, os, midpoint_orbital_state=os)
+        return self.inner.step(u, sensors, start, os)
 
     def __getattr__(self, name):
         return getattr(self.inner, name)

@@ -14,6 +14,13 @@ from typing import Any, Iterable, Literal
 import numpy as np
 from scipy.linalg import solve_triangular
 
+from ADCS.estimators.numba_kernels import (
+    linear_covariance_prediction,
+    linear_kalman_update,
+    weighted_cross_covariance,
+    weighted_outer_covariance,
+)
+
 
 CovarianceForm = Literal["full", "sqrt"]
 PSDPolicy = Literal["strict", "project", "jitter", "allow_indefinite"]
@@ -271,7 +278,10 @@ class Covariance:
                         coordinates=coordinates,
                         psd_policy=policy,
                     )
-        matrix = np.einsum("i,ij,ik->jk", weights, deviations, deviations)
+        # This array-only hot path is shared by UKF, SRUKF, and both augmented
+        # variants.  Validation stays above the compiled boundary so Numba
+        # never changes the public error contract.
+        matrix = weighted_outer_covariance(deviations, weights)
         if noise is not None:
             noise_matrix = _as_covariance_matrix(noise, name="noise covariance")
             if noise_matrix.shape != (dimension, dimension):
@@ -596,7 +606,9 @@ class Covariance:
                 coordinates=self.coordinates,
                 psd_policy=self._psd_policy,
             )
-        matrix = transition @ self.as_matrix() @ transition.T + noise_matrix
+        matrix = linear_covariance_prediction(
+            transition, self.as_matrix(), noise_matrix
+        )
         return Covariance(
             matrix,
             form=self.form,
@@ -659,16 +671,12 @@ class Covariance:
         r = _as_covariance_matrix(measurement_noise, name="measurement noise covariance")
         if r.shape != (h.shape[0], h.shape[0]):
             raise ValueError("measurement noise dimension must match measurement jacobian")
-        p = self.as_matrix()
-        innovation = Covariance(h @ p @ h.T + r, psd_policy=self._psd_policy)
-        gain = innovation.solve(h @ p).T
-        identity = np.eye(self.dimension)
-        if joseph:
-            residual = identity - gain @ h
-            posterior = residual @ p @ residual.T + gain @ r @ gain.T
-        else:
-            posterior = (identity - gain @ h) @ p
-        posterior = (posterior + posterior.T) / 2.0
+        # EKF/MEKF and their augmented variants all take this path.  The
+        # wrapper retains representation and validation responsibilities;
+        # only the dense numeric recursion is compiled.
+        gain, posterior = linear_kalman_update(
+            self.as_matrix(), h, r, joseph
+        )
         return gain, Covariance(
             posterior,
             form=self.form,
@@ -694,7 +702,7 @@ class Covariance:
             raise ValueError("deviation arrays must contain the same number of samples")
         if not np.all(np.isfinite(second)):
             raise ValueError("deviations must contain only finite values")
-        return np.einsum("i,ij,ik->jk", weights, first, second)
+        return weighted_cross_covariance(first, second, weights)
 
     def updated_unscented(
         self,
