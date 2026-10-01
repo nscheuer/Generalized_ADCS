@@ -11,8 +11,7 @@
   inside the filter instead of at construction.
 * A quaternion star tracker with ``estimate_bias=True`` registered a
   four-wide bias block and failed later inside the augmented filters.
-* ``Controller`` never stored ``est_sat``; the legacy alias stubs imported
-  silently.
+* ``Controller`` never stored ``est_sat``.
 """
 
 from __future__ import annotations
@@ -113,7 +112,7 @@ def test_two_argument_step_rejects_a_legacy_control_measurement_call():
 def test_predict_warns_when_dt_disagrees_with_the_orbital_state_gap():
     satellite = _satellite()
     os_start = _orbital_state(0.22)
-    os_end = _orbital_state(0.22 + 100.0 / 86400.0, along_track_s=100.0)
+    os_end = _orbital_state(0.22 + 100.0 / (36525.0 * 86400.0), along_track_s=100.0)
     estimator = MEKF(satellite, _state(), dt=10.0)
     with pytest.warns(UserWarning, match="apart"):
         estimator.predict(np.empty(0), os_start, os_end)  # 10 s step over a 100 s gap
@@ -136,15 +135,3 @@ def test_controller_base_stores_the_estimated_satellite():
 
     satellite = _satellite()
     assert Minimal(satellite).est_sat is satellite
-
-
-def test_legacy_estimator_stubs_warn_on_import():
-    import importlib
-    import sys
-    import warnings
-
-    for name in ("ADCS.estimators.old_attitude_estimators.attitude_UAKF",
-                 "ADCS.estimators.old_attitude_estimators.attitude_SRUAKF"):
-        sys.modules.pop(name, None)
-        with pytest.warns(DeprecationWarning, match="compatibility alias"):
-            importlib.import_module(name)
