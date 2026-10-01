@@ -84,7 +84,7 @@ jobs:
               assert os.path.exists(os.path.join(root, rel)), f"missing data file: {rel}"
 
           # the legacy estimator that used to need choldate
-          from ADCS.estimators.old_attitude_estimators.attitude_SRUAKF import SRUAKF
+          from ADCS.estimators.attitude_estimators import SRUKF
 
           # PEP 561 marker must travel with the wheel, or downstream type
           # checkers silently discard every annotation we ship

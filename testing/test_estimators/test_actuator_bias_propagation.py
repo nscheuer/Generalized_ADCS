@@ -14,6 +14,7 @@ from ADCS.estimators.attitude_estimators import AugmentedMEKF, AugmentedSRUKF, A
 from ADCS.estimators.process_model import propagate_state
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite
@@ -72,7 +73,7 @@ def test_augmented_filters_recover_a_magnetorquer_bias():
         rng = np.random.default_rng(3)
         errors = []
         for k in range(40):
-            os_k = _orbital_state(0.22 + (k + 1) * 10.0 / 86400.0, along_track_s=(k + 1) * 10.0)
+            os_k = _orbital_state(0.22 + (k + 1) * 10.0 * TimeConstants.sec2cent, along_track_s=(k + 1) * 10.0)
             control = 0.2 * rng.standard_normal(3)  # excite the bias through a varying command
             truth = propagate_state(truth, truth_sat, control, 10.0, os_prev, os_k)
             estimator.predict(control, os_prev, os_k)

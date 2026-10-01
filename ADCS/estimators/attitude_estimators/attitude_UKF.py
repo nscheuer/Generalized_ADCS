@@ -283,6 +283,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import math
+
 import numpy as np
 
 from ADCS.covariance import Covariance
@@ -296,6 +298,21 @@ from .attitude_estimator import AttitudeEstimator
 
 
 __all__ = ["UKF"]
+
+
+# Largest attitude sigma-point offset, in chart units, that the spread clamp
+# allows. Every entry corresponds to the same rotation, 2*asin(0.95) = 143.6
+# degrees, which is the long-standing quaternion_vector limit of 1.9: past 180
+# degrees the retraction folds a sample point back onto the short rotation and
+# the recombined covariance shrinks instead of growing, silently.
+_CHART_LIMIT_ANGLE = 2.0 * math.asin(0.95)
+_CHART_OFFSET_LIMIT = {
+    "quaternion_vector": 1.9,                              # |v| = 2 sin(theta / 2)
+    "rotation_vector": _CHART_LIMIT_ANGLE,                  # |v| = theta
+    "mrp": math.tan(_CHART_LIMIT_ANGLE / 4.0),              # |v| = tan(theta / 4)
+    "two_mrp": 2.0 * math.tan(_CHART_LIMIT_ANGLE / 4.0),    # |v| = 2 tan(theta / 4)
+    "cayley": math.tan(_CHART_LIMIT_ANGLE / 2.0),           # |v| = tan(theta / 2)
+}
 
 
 class UKF(AttitudeEstimator):
@@ -371,16 +388,17 @@ class UKF(AttitudeEstimator):
         if scale <= 0.0 or not np.isfinite(scale):
             raise ValueError("alpha and kappa must give a finite positive UKF scale")
         gamma = np.sqrt(scale)
-        if self.correction_mode == "quaternion_vector":
+        limit = _CHART_OFFSET_LIMIT.get(self.correction_mode)
+        if limit is not None:
             attitude = state.slice("attitude", coordinates="tangent")
             unit_offsets = state.covariance.sigma_offsets()
             largest_attitude_offset = float(
                 np.max(np.linalg.norm(unit_offsets[:, attitude], axis=1))
             )
             if largest_attitude_offset:
-                # The quaternion-vector retraction is defined only for norms
-                # up to two. Keep the sigma points clear of its singular edge.
-                gamma = min(gamma, 1.9 / largest_attitude_offset)
+                # Keep every sample point below 143.6 degrees of rotation in
+                # whichever chart is in use; see _CHART_OFFSET_LIMIT.
+                gamma = min(gamma, limit / largest_attitude_offset)
                 scale = gamma**2
         lam = scale - dimension
         mean = np.full(2 * dimension + 1, 0.5 / scale)
@@ -654,6 +672,10 @@ class UKF(AttitudeEstimator):
                 kalman_gain=np.zeros((covariance_size, 0)),
                 correction=np.zeros(covariance_size),
                 reset_jacobian=np.eye(covariance_size),
+                sigma_offsets=np.zeros((0, covariance_size)),
+                sigma_weights_mean=np.empty(0),
+                sigma_weights_covariance=np.empty(0),
+                measurement_sigma_deviations=np.zeros((0, 0)),
                 corrected_covariance=prior.covariance.as_matrix(),
             )
             return self.state
@@ -665,6 +687,42 @@ class UKF(AttitudeEstimator):
             return stack.predict(point, orbital_state, active_mask=active)
 
         sigma_measurements = [predict_sigma_measurement(point) for point in points]
+        # A sensor can be unavailable at some sample points even though it is
+        # available at the estimate (a narrow field of view with a wide
+        # attitude uncertainty, an eclipse boundary); its prediction is then
+        # non-finite there. Such sensors leave the active mask for this update
+        # instead of aborting it, and return once every sample point sees them.
+        seen_by_every_point = np.array(
+            [
+                all(
+                    np.all(np.isfinite(measurement[entry.raw_slice]))
+                    for measurement in sigma_measurements
+                )
+                for entry in stack.entries
+            ],
+            dtype=bool,
+        )
+        was_active = active
+        active = active & seen_by_every_point
+        dropped = [
+            entry.name
+            for entry, before, after in zip(stack.entries, was_active, active)
+            if before and not after
+        ]
+        if not np.any(active):
+            self._diagnostics.update(
+                active_mask=active,
+                predicted_measurement=nominal_measurement,
+                innovation=np.empty(0),
+                measurement_noise=np.zeros((0, 0)),
+                innovation_covariance=np.zeros((0, 0)),
+                kalman_gain=np.zeros((covariance_size, 0)),
+                correction=np.zeros(covariance_size),
+                reset_jacobian=np.eye(covariance_size),
+                corrected_covariance=prior.covariance.as_matrix(),
+                dropped_entries=dropped,
+            )
+            return self.state
         predicted_measurement = self._measurement_mean(
             stack, sigma_measurements, active, mean_weights
         )
@@ -736,6 +794,7 @@ class UKF(AttitudeEstimator):
             self.satellite.match_estimate(corrected, self.dt)
         self._diagnostics.update(
             active_mask=active,
+            dropped_entries=dropped,
             predicted_measurement=predicted_measurement,
             innovation=innovation,
             measurement_noise=measurement_noise.as_matrix(),

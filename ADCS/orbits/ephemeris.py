@@ -111,6 +111,27 @@ class Ephemeris:
 
         # Create a timescale object (shared across all orbital computations)
         self.ts = load.timescale()
+        self._closed = False
+
+    def close(self) -> None:
+        """Close the underlying Skyfield kernel and its BSP file handle."""
+        if not getattr(self, "_closed", True):
+            self.planets.close()
+            self._closed = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def __del__(self):
+        # Keep existing call sites safe even when they do not yet explicitly
+        # close their Ephemeris instance.
+        try:
+            self.close()
+        except Exception:
+            pass
 
     # ----------------------------------------------------------------------
     @staticmethod
