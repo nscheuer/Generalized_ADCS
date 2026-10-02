@@ -70,8 +70,8 @@ planetary ephemerides and geomagnetic-field calculations.
      - `Skyfield documentation <https://rhodesmill.org/skyfield/>`__
    * - IGRF geomagnetic field
      - ``ADCS.orbits.orbital_state.Orbital_State``
-     - IAGA-VMOD, *ppigrf: Pure Python IGRF*, together with P. Alken et al., "International Geomagnetic Reference Field: the thirteenth generation," *Earth, Planets and Space*, Vol. 73, Article 49, 2021.
-     - `ppigrf <https://github.com/IAGA-VMOD/ppigrf>`__; `doi:10.1186/s40623-020-01288-x <https://doi.org/10.1186/s40623-020-01288-x>`__
+     - International Association of Geomagnetism and Aeronomy, *IGRF-14* (2024), coefficient dataset. Also cite C. Beggan et al., "International geomagnetic reference field: the fourteenth generation," *Earth, Planets and Space*, 78, 127 (2026), and IAGA-VMOD, *ppigrf: Pure Python IGRF* for the legacy backend.
+     - `IGRF-14 coefficient dataset, doi:10.5281/zenodo.14012302 <https://doi.org/10.5281/zenodo.14012302>`__; `IGRF-14 paper, doi:10.1186/s40623-025-02360-0 <https://doi.org/10.1186/s40623-025-02360-0>`__; `ppigrf <https://github.com/IAGA-VMOD/ppigrf>`__
 
 Estimators
 ----------
