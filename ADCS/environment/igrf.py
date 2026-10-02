@@ -166,6 +166,7 @@ def _read_shc(path: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
         ],
         dtype=float,
     )
+    print("✅ Loaded Magnetic Field Model: IGRF14.shc")
     return epochs, g, h, nmax
 
 
