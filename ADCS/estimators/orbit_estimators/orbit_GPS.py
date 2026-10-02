@@ -239,7 +239,8 @@ class Orbit_GPS(Orbit_Estimator):
             J2000=J2000,
             R=np.zeros(3), # Dummy values
             V=np.zeros(3),
-            density_model=self.os_template.density_model
+            density_model=self.os_template.density_model,
+            magnetic_model=self.os_template.magnetic_model,
         )
 
         # 2. Convert ECEF Measurement -> ECI State
@@ -291,7 +292,8 @@ class Orbit_GPS(Orbit_Estimator):
             J2000=J2000,
             R=r_eci,
             V=v_eci,
-            density_model=self.os_template.density_model
+            density_model=self.os_template.density_model,
+            magnetic_model=self.os_template.magnetic_model,
         )
 
         # 4. Return Estimated State

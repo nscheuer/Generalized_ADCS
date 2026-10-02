@@ -93,6 +93,29 @@ class Sensor:
     * Bias and noise updates are controlled via
       :class:`~ADCS.satellite_hardware.errors.ErrorMode`.
     """
+    #: What the sensor observes, for single-frame attitude determination and
+    #: estimator warm starts: ``"magnetic_field"``, ``"sun"``, ``"nadir"``,
+    #: ``"star"`` (a direction), ``"attitude"`` (a full quaternion),
+    #: ``"angular_rate"``, or ``None`` when the reading is none of these.
+    #: Single-axis direction sensors expose ``axis`` (and sun sensors
+    #: ``efficiency``); vector sensors return the body-frame direction itself.
+    observation_kind: Optional[str] = None
+
+    def reference_direction(self, os: Orbital_State) -> Optional[np.ndarray]:
+        r"""
+        Unit vector, in the inertial frame, of the direction this sensor observes.
+
+        ``None`` for sensors that observe no fixed reference direction (the
+        default) and for a star tracker that does not know which star it saw.
+        Used to pair a body-frame observation with its inertial counterpart.
+
+        :param os: Orbital state at the time of the reading.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Unit reference direction in ECI, or ``None``.
+        :rtype: numpy.ndarray | None
+        """
+        return None
+
     def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
         r"""
         Initialize a generic sensor model.

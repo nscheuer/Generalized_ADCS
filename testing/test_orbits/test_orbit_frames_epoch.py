@@ -24,10 +24,8 @@ def make_orbital_state(j2000: float = 0.22, R=None, V=None) -> Orbital_State:
 
 def build_orbit(dt_s: float = 300.0, n: int = 12):
     start = make_orbital_state(j2000=0.0, R=np.array([6878.0, 0.0, 0.0]), V=np.array([0.0, 7.613, 0.0]))
-    states = [start]
-    for _ in range(n):
-        states.append(states[-1].propagate_orbit_rk4(dt_s))
-    return Orbit(states), dt_s
+    end_time = start.J2000 + n * dt_s * TimeConstants.sec2cent
+    return Orbit(os0=start, end_time=end_time, dt=dt_s, verbose=False), dt_s
 
 
 def test_ecef_to_geocentric_roundtrip_is_identity():
@@ -118,9 +116,17 @@ def test_get_os_midpoint_matches_fine_rk4_truth():
     t0 = orbit.times[0]
     t1 = orbit.times[1]
     midpoint = 0.5 * (t0 + t1)
-    truth = orbit.states[t0]
-    for _ in range(400):
-        truth = truth.propagate_orbit_rk4(0.5 * dt_s / 400)
+    start = orbit.states[t0]
+    # Reference through the same public batch interface, with a finer grid.
+    # This keeps environment work vectorized instead of constructing 48
+    # transient states one at a time.
+    reference = Orbit(
+        os0=start,
+        end_time=start.J2000 + 0.5 * dt_s * TimeConstants.sec2cent,
+        dt=0.5 * dt_s / 24,
+        verbose=False,
+    )
+    truth = reference.states[reference.times[-1]]
     interpolated = orbit.get_os(float(midpoint))
     assert np.linalg.norm(interpolated.R - truth.R) < 1.0
 

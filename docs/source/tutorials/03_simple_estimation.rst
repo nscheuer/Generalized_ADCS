@@ -144,3 +144,39 @@ Note that in the configuration, we may not have perfect knowledge of the satelli
           :width: 100%
      - .. image:: ../_static/tutorials/tutorial_03_plots.png
           :width: 100%
+
+Starting from the first readings
+--------------------------------
+
+The estimator above starts at the identity attitude with a large covariance and
+needs a while to converge. When the satellite carries sensors that see two or
+more different directions (here the magnetometers and the sun pairs), the first
+measurement vector already determines the attitude. Pass a
+:class:`~ADCS.estimators.initialization.WarmStart` in place of the initial state
+and the estimator builds its own state on its first cycle:
+
+.. code-block:: python
+
+  estimator = ADCS.AugmentedSRUKF(
+      est_satellite, ADCS.WarmStart(process_noise=Q_hat), dt=dt,
+  )
+
+The attitude is solved from the direction observations with QUEST (or TRIAD, or
+taken from a quaternion star tracker when there is one), the angular rate is
+read off the gyros assuming zero bias, and the wheel momenta off the wheels. The
+covariance follows from the sensors' noise. Biases and disturbance parameters
+start at zero; when the satellite estimates them, give their initial standard
+deviations (``act_bias_std``, ``sens_bias_std``, ``dist_param_std``). Any value
+can be supplied instead of read, together with its standard deviation (for
+example ``rate=np.zeros(3), rate_std=0.01`` for a satellite without gyros).
+The estimator has no state before its first cycle; afterwards
+``estimator.warm_start_attitude`` holds the attitude solution it started from.
+In eclipse the sun sensors give no direction, so with only magnetometers and sun
+sensors the first readings must be taken in sunlight, otherwise the estimator
+raises and asks for an explicit initial attitude.
+
+To build the state yourself, call
+:func:`~ADCS.estimators.initialization.initial_state_from_readings` with the
+satellite, one measurement vector and its orbital state, or use the
+``from_readings`` class method of any estimator, which constructs the filter
+and runs that first cycle in one call.

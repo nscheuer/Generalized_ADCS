@@ -26,7 +26,7 @@ from ADCS.orbits.orbital_state import (
     _zonal_perturbation_accel,
     _zonal_perturbation_accel_jac,
 )
-from ADCS.orbits.universal_constants import EarthConstants
+from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
 
 MU = EarthConstants.mu_e
 RE = EarthConstants.R_e
@@ -174,14 +174,24 @@ def test_empty_higher_zonals_contributes_nothing():
 def test_zonal_J_six_changes_trajectory_vs_j2_only():
     R = np.array([6878.0, 0.0, 0.0])
     V = np.array([0.0, 7.0, 2.8])  # inclined so odd/even zonals both act
-    s2 = Orbital_State(ephem=EPHEM, J2000=0.0, R=R, V=V)
-    s6 = s2.copy()
+    state = Orbital_State(ephem=EPHEM, J2000=0.0, R=R, V=V)
     period = 2.0 * np.pi * np.sqrt(np.linalg.norm(R) ** 3 / MU)
-    steps = 400
-    dt = period / steps
-    for _ in range(steps):
-        s2 = s2.propagate_orbit_rk4(dt, zonal_J=2)
-        s6 = s6.propagate_orbit_rk4(dt, zonal_J=6)
+    # A full orbit is unnecessary here: the acceleration unit tests above
+    # establish each term independently, and 48 RK4 steps make the cumulative
+    # J3--J6 displacement comfortably measurable.
+    steps = 48
+    def propagate(zonal_J):
+        trajectory = Orbit(
+            os0=state,
+            end_time=state.J2000 + period * TimeConstants.sec2cent,
+            dt=period / steps,
+            zonal_J=zonal_J,
+            verbose=False,
+        )
+        return trajectory.states[trajectory.times[-1]]
+
+    s2 = propagate(zonal_J=2)
+    s6 = propagate(zonal_J=6)
     drift = np.linalg.norm(s6.R - s2.R)
     # J3-J6 are tiny, but over a full orbit they accumulate to a clearly
     # non-zero, sub-kilometre-to-kilometre separation.
