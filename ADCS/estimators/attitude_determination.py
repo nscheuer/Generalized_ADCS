@@ -5,12 +5,101 @@ known in the inertial frame (``reference``), find the attitude. These are the
 classic single-frame solutions of Wahba's problem and are used to warm-start
 the recursive estimators from a first set of readings.
 
+.. rubric:: Background
+
+Most attitude sensors measure a direction: the magnetometers give the
+direction of the magnetic field in the body frame, the sun sensors the
+direction to the sun, a horizon sensor the direction to the Earth, a star
+tracker the direction to a star. For each of these the same direction is also
+known in the inertial frame, from the field model, the sun ephemeris, the
+orbit, or the star catalogue. One such pair fixes two of the three attitude
+angles; the rotation about the measured direction itself is invisible to it.
+Two pairs that are not parallel fix the attitude completely, and more pairs
+over-determine it.
+
+Wahba [1]_ posed the problem of using all pairs at once: find the rotation
+that maps the inertial directions onto the measured ones with the smallest
+weighted sum of squared residuals, each weight being the inverse variance of
+that observation's angular error. Everything in this module solves, or
+approximates, that problem for one instant, without any dynamics or history,
+which is why these are called single-frame or "point" methods:
+
+* **TRIAD** [2]_ uses exactly two pairs. It builds an orthonormal triad from
+  the two directions in each frame and reads the rotation off the two triads.
+  It is exact and needs no iteration, but it trusts the first direction
+  completely and uses the second only to fix the rotation about the first, so
+  it is not the optimal combination of the two. Its covariance is obtained by
+  linearising the construction (:func:`triad_covariance`).
+
+* **The q-method** [3]_ (Davenport) notes that Wahba's loss is a quadratic
+  form in the attitude quaternion, so the optimum is the eigenvector of a 4x4
+  symmetric matrix built from the observations, belonging to its largest
+  eigenvalue. It takes any number of pairs with any weights and is exact up to
+  the eigen-solver.
+
+* **QUEST** [4]_ (Shuster and Oh, "QUaternion ESTimator") reaches the same
+  optimum without an eigen-solver, which is why most flight software uses it.
+  The largest eigenvalue is close to the sum of the weights and is found by a
+  Newton iteration on the characteristic polynomial; the quaternion then
+  follows in closed form through the Gibbs vector, with the "sequential
+  rotations" of the paper covering the 180-degree case where that vector is
+  singular. The same paper gives the covariance of the optimal estimate, the
+  small-angle attitude-error covariance ``[sum_i (1/sigma_i^2)(I - b_i b_i^T)]^-1``
+  (:func:`wahba_covariance`), which is the best any estimator can do from
+  those directions and is what makes the solution usable as the initial state
+  and covariance of a filter.
+
+QUEST and the q-method return the same attitude on exact data; here QUEST is
+additionally checked against the q-method in the tests, and both are polished
+by a few Gauss-Newton steps on the loss because the closed forms lose accuracy
+when one direction is weighted far more heavily than the others (see
+:func:`_refine`). Shepperd's method [5]_ is used wherever a quaternion has to
+be read off a rotation matrix. Markley and Mortari [6]_ survey these and the
+later algorithms, and Markley and Crassidis [7]_ give a textbook treatment.
+
+.. rubric:: Why a single-frame solution is worth having
+
+The recursive filters (EKF, MEKF, UKF) refine an attitude they are given; they
+cannot start from nothing. Started at an arbitrary attitude with a large
+covariance they spend their first part of a run converging, and because their
+corrections are linearised about the current estimate, a start that is far
+off can converge slowly, settle on a wrong solution, or diverge. A single-frame
+solution from the first readings is accurate to the sensors' noise and comes
+with a consistent covariance, so the filter begins where its linearisation is
+valid. The same solution is useful on its own, as a sanity check of a filter
+(a filter that drifts away from the point solution is diverging) and as a
+plain attitude estimate when no dynamics model is wanted.
+
 Conventions match the rest of the package: quaternions are Hamilton, scalar
 first, and :func:`~ADCS.helpers.math_helpers.rot_mat` maps body to inertial,
 so a unit reference direction ``r`` is observed as ``b = rot_mat(q).T @ r``.
 Every function accepts one standard deviation per observation, in radians:
 the angular error of that direction, assumed the same in every direction
 perpendicular to it (the usual model behind QUEST).
+
+References
+----------
+
+.. [1] G. Wahba, "A Least Squares Estimate of Satellite Attitude," *SIAM
+   Review*, Vol. 7, No. 3, 1965, p. 409. doi:10.1137/1007077
+.. [2] H. D. Black, "A Passive System for Determining the Attitude of a
+   Satellite," *AIAA Journal*, Vol. 2, No. 7, 1964, pp. 1350-1351.
+   doi:10.2514/3.2555
+.. [3] P. B. Davenport, "A Vector Approach to the Algebra of Rotations with
+   Applications," NASA Technical Note TN D-4696, 1968.
+   https://ntrs.nasa.gov/citations/19680021122
+.. [4] M. D. Shuster and S. D. Oh, "Three-Axis Attitude Determination from
+   Vector Observations," *Journal of Guidance and Control*, Vol. 4, No. 1,
+   1981, pp. 70-77. doi:10.2514/3.19717
+.. [5] S. W. Shepperd, "Quaternion from Rotation Matrix," *Journal of
+   Guidance and Control*, Vol. 1, No. 3, 1978, pp. 223-224.
+   doi:10.2514/3.55767b
+.. [6] F. L. Markley and D. Mortari, "Quaternion Attitude Estimation Using
+   Vector Observations," *Journal of the Astronautical Sciences*, Vol. 48,
+   No. 2-3, 2000, pp. 359-380.
+.. [7] F. L. Markley and J. L. Crassidis, *Fundamentals of Spacecraft Attitude
+   Determination and Control*, Springer, 2014, Chapter 5.
+   doi:10.1007/978-1-4939-0802-8
 """
 
 from __future__ import annotations
