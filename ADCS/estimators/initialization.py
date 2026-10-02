@@ -68,6 +68,24 @@ def _noise_std(sensor: Any, length: int) -> np.ndarray:
     return np.broadcast_to(std, (length,)).copy()
 
 
+def _unit_reference(reference: Any, source: str) -> np.ndarray:
+    """Validate and normalize one inertial reference direction."""
+    try:
+        vector = np.asarray(reference, dtype=float)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"reference direction for {source} must be a numeric 3-vector") from exc
+    if vector.shape != (3,):
+        raise ValueError(
+            f"reference direction for {source} must have shape (3,), got {vector.shape}"
+        )
+    if not np.all(np.isfinite(vector)):
+        raise ValueError(f"reference direction for {source} must contain only finite values")
+    norm = float(np.linalg.norm(vector))
+    if not np.isfinite(norm) or norm == 0.0:
+        raise ValueError(f"reference direction for {source} must have a finite, non-zero norm")
+    return vector / norm
+
+
 def _weighted_least_squares(rows: list[tuple[np.ndarray, float, float]]):
     """Solve axis_i . v = value_i for v; return v, its covariance, or None if not solvable.
 
@@ -165,9 +183,9 @@ def vector_observations(
                 reference = sensor.reference_direction(orbital_state)
             if reference is None:
                 continue
-            reference = np.asarray(reference, dtype=float)
+            reference = _unit_reference(reference, entry.name)
             observations.append(VectorObservation(
-                kind=kind, body=reading / norm, reference=reference / np.linalg.norm(reference),
+                kind=kind, body=reading / norm, reference=reference,
                 sigma=max(float(np.sqrt(np.mean(noise**2))) / norm, sigma_floor), sources=(entry.name,),
             ))
             continue
@@ -197,9 +215,9 @@ def vector_observations(
         norm = float(np.linalg.norm(vector))
         if norm == 0.0:
             continue
-        reference = np.asarray(group["reference"], dtype=float)
+        reference = _unit_reference(group["reference"], f"{kind} sensor group")
         observations.append(VectorObservation(
-            kind=kind, body=vector / norm, reference=reference / np.linalg.norm(reference),
+            kind=kind, body=vector / norm, reference=reference,
             sigma=_angular_sigma(vector, covariance, sigma_floor), sources=tuple(group["sources"]),
         ))
     return observations
