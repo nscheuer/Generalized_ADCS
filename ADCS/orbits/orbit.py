@@ -2,13 +2,13 @@
 __all__ = ["Orbit"]
 
 import numpy as np
-import ppigrf
 import warnings
 from typing import List, Union, Optional, Sequence
 from tqdm import tqdm
 from skyfield import api, units, positionlib, framelib
 from datetime import timezone
 
+from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, field_gc
 from ADCS.orbits.orbital_state import Orbital_State, _normalize_zonal_J
 from ADCS.orbits.universal_constants import TimeConstants, EarthConstants
 from ADCS.helpers.math_constants import MathConstants
@@ -31,7 +31,7 @@ class Orbit:
     -----------
     For propagated orbits, this constructor propagates the translational dynamics
     using pure NumPy and then batch-computes the expensive environment quantities
-    (Skyfield frames / Sun vector and ppigrf geomagnetic field) for the full time
+    (Skyfield frames / Sun vector and IGRF geomagnetic field) for the full time
     array once, before constructing individual :class:`~ADCS.orbits.orbital_state.Orbital_State`
     objects.
 
@@ -60,6 +60,11 @@ class Orbit:
         ``0`` disables zonals, ``2`` includes only J2, and larger values
         include every zonal term up to that degree.
     :type zonal_J: int
+    :param magnetic_model:
+        Geomagnetic field model for every state's ``B``; one of
+        :data:`ADCS.environment.MAGNETIC_MODELS`. ``None`` uses the model of
+        the initial state (or of the first state, for a list).
+    :type magnetic_model: str or None
 
     :raises ValueError:
         If input arguments are inconsistent or unsupported.
@@ -74,6 +79,7 @@ class Orbit:
         fast: bool = True,
         verbose: bool = True,
         zonal_J: int = 2,
+        magnetic_model: Optional[str] = None,
     ) -> None:
         r"""
         Initialize an orbit from an initial condition or a list of states.
@@ -107,13 +113,19 @@ class Orbit:
         # Remember the zonal setting so node-to-node interpolation in get_os()
         # reuses the same gravity model the orbit was propagated with.
         self._zonal_J = _normalize_zonal_J(zonal_J)
+        # Likewise the field model, so every state in this orbit -- including
+        # ones get_os() interpolates later -- evaluates B the same way.
+        if magnetic_model is None:
+            first = os0 if isinstance(os0, Orbital_State) else (os0[0] if isinstance(os0, list) and os0 else None)
+            magnetic_model = getattr(first, "magnetic_model", None)
+        self._magnetic_model = _normalize_magnetic_model(magnetic_model)
 
         if isinstance(os0, Orbital_State):
             start_time = float(os0.J2000)
 
             # Singleton orbit
             if end_time is None or dt is None or float(end_time) == start_time:
-                st = os0.copy()
+                st = self._adopt_magnetic_model(os0.copy())
                 self.states = {st.J2000: st}
                 self.times = np.array([st.J2000], dtype=float)
                 return
@@ -212,28 +224,18 @@ class Orbit:
             else:
                 S_hist = np.reshape(sun_km, (N, 3))
 
-            # Magnetic field (IGRF) in geocentric components (vectorized call)
-            b_r, b_th, b_ph = ppigrf.igrf_gc(
+            # Magnetic field (IGRF) in geocentric components (vectorized call).
+            # Dates pair up elementwise with the positions, so this is N field
+            # evaluations. ppigrf broadcast dates against coordinates instead,
+            # computing an N x N grid of which the diagonal was then extracted
+            # -- N^2 work for N results.
+            b_r, b_th, b_ph = field_gc(
+                self._magnetic_model,
                 geo_hist[:, 0],
                 geo_hist[:, 1] * 180.0 / np.pi,
                 geo_hist[:, 2] * 180.0 / np.pi,
                 dts,
             )
-            b_r = np.asarray(b_r)
-            b_th = np.asarray(b_th)
-            b_ph = np.asarray(b_ph)
-
-            # ppigrf sometimes returns diagonal matrices when passed time lists; handle both
-            if b_r.ndim == 2 and b_r.shape[0] == b_r.shape[1] == N:
-                b_r = np.diagonal(b_r)
-            if b_th.ndim == 2 and b_th.shape[0] == b_th.shape[1] == N:
-                b_th = np.diagonal(b_th)
-            if b_ph.ndim == 2 and b_ph.shape[0] == b_ph.shape[1] == N:
-                b_ph = np.diagonal(b_ph)
-
-            b_r = np.asarray(b_r, dtype=float).reshape(N)
-            b_th = np.asarray(b_th, dtype=float).reshape(N)
-            b_ph = np.asarray(b_ph, dtype=float).reshape(N)
 
             # Local basis for geocentric->ECEF conversion (vectorized, matches existing Orbit.geocentric_to_ecef_orbit)
             n_ecef = ECEF_hist / r_ecef[:, None]
@@ -287,7 +289,7 @@ class Orbit:
             except Exception:
                 sunlit_hist = np.array([False] * N, dtype=bool)
 
-            # --- Construct Orbital_State objects cheaply without per-state skyfield/ppigrf calls ---
+            # --- Construct Orbital_State objects cheaply without per-state skyfield/IGRF calls ---
             states0: List[Orbital_State] = [None] * N
             for i in range(N):
                 st = Orbital_State.__new__(Orbital_State)
@@ -321,6 +323,7 @@ class Orbit:
 
                 # Environment
                 st.density_model = density_model
+                st.magnetic_model = self._magnetic_model
                 st.S = S_hist[i, :].copy()
                 st.B = B_hist[i, :].copy()
                 st.rho = float(rho_hist[i])
@@ -351,11 +354,22 @@ class Orbit:
         elif isinstance(os0, list) and all(isinstance(j, Orbital_State) for j in os0):
             # Ensure uniqueness by time and copy states (copy is fast and does not recompute environment)
             unique_times = {j.J2000 for j in os0}
-            self.states = {j.J2000: j.copy() for j in os0 if j.J2000 in unique_times}
+            self.states = {j.J2000: self._adopt_magnetic_model(j.copy()) for j in os0 if j.J2000 in unique_times}
             self.times = np.array(sorted(self.states.keys()), dtype=float)
 
         else:
             raise ValueError("Orbit must be initialized with Orbital_State or List[Orbital_State]")
+
+    def _adopt_magnetic_model(self, st: Orbital_State) -> Orbital_State:
+        r"""
+        Put a (copied) state on this orbit's field model, recomputing ``B`` only
+        if the state was built with a different one.
+        """
+        model = getattr(self, "_magnetic_model", DEFAULT_MAGNETIC_MODEL)
+        if getattr(st, "magnetic_model", None) != model:
+            st.magnetic_model = model
+            st.B = st.get_b_eci()
+        return st
 
     def get_os(self, J2000: float) -> Orbital_State:
         r"""
@@ -454,7 +468,7 @@ class Orbit:
             newstates = [self.states[j] for j in self.times if (j <= t_1 and j >= t_0)]
             if len(newstates) == 0:
                 raise ValueError("there are no pre-created states in this time span")
-            return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2))
+            return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2), magnetic_model=getattr(self, "_magnetic_model", DEFAULT_MAGNETIC_MODEL))
         ts = np.concatenate([np.arange(t_0, t_1, float(dt) / TimeConstants.cent2sec), [t_1]])
         return self.new_orbit_from_times(ts.tolist())
 
@@ -477,7 +491,7 @@ class Orbit:
         if not np.all([self.time_in_span(float(j)) for j in time_list]):
             raise ValueError("at least one time is not within this orbit span")
         newstates = [self.get_os(float(j)) for j in time_list]
-        return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2))
+        return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2), magnetic_model=getattr(self, "_magnetic_model", DEFAULT_MAGNETIC_MODEL))
 
     def next_state(self, input: Orbital_State | float) -> Orbital_State:
         r"""
@@ -603,16 +617,7 @@ class Orbit:
             # Fallback to legacy computation if any state is missing B
             geos = np.vstack([self.states[j].geocentric for j in self.times])
             dts = [self.states[j].datetime for j in self.times]
-            b_r, b_th, b_ph = ppigrf.igrf_gc(geos[:, 0], geos[:, 1] * 180.0 / np.pi, geos[:, 2] * 180.0 / np.pi, dts)
-            b_r = np.asarray(b_r)
-            b_th = np.asarray(b_th)
-            b_ph = np.asarray(b_ph)
-            if b_r.ndim == 2:
-                b_r = np.diagonal(b_r)
-            if b_th.ndim == 2:
-                b_th = np.diagonal(b_th)
-            if b_ph.ndim == 2:
-                b_ph = np.diagonal(b_ph)
+            b_r, b_th, b_ph = field_gc(getattr(self, "_magnetic_model", DEFAULT_MAGNETIC_MODEL), geos[:, 0], geos[:, 1] * 180.0 / np.pi, geos[:, 2] * 180.0 / np.pi, dts)
             b_ecef = self.geocentric_to_ecef_orbit(np.vstack([b_r, b_th, b_ph]).T)
             b_eci = self.ecef_to_eci_orbit(b_ecef)
             return b_eci * 1e-9
