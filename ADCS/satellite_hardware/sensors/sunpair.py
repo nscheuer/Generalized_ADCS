@@ -95,6 +95,13 @@ class SunPair(Sensor):
       (``np.isnan``) and deactivate the sensor (it is *not* zero).
     """
 
+    observation_kind = "sun"
+
+    def reference_direction(self, os):
+        """Unit direction from the satellite to the Sun in ECI."""
+        direction = np.asarray(os.S, dtype=float) - np.asarray(os.R, dtype=float)
+        return direction / np.linalg.norm(direction)
+
     def __init__(
         self,
         axis: np.ndarray,

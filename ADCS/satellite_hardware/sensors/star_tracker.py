@@ -103,6 +103,18 @@ class StarTracker(Sensor):
 
     output_length: int = 3
 
+    observation_kind = "star"
+
+    def reference_direction(self, os):
+        """Inertial direction of the star of the last reading, if this object took it.
+
+        The reading itself does not say which star was used, so only the
+        sensor object that produced it knows; an estimator's copy returns
+        ``None`` and needs the reference supplied separately.
+        """
+        star = getattr(self, "current_star", None)
+        return None if star is None else np.asarray(star.s_eci, dtype=float)
+
     def __init__(self, 
         sample_time: float = 0.1, 
         bias: Optional[Bias] = None, 
