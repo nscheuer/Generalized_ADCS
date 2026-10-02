@@ -4,6 +4,7 @@ import numpy as np
 from typing import List
 
 from ADCS.covariance import Covariance
+from ADCS.orbits.universal_constants import TimeConstants
 
 class Disturbance:
     def __init__(
@@ -100,6 +101,39 @@ class Disturbance:
             self.parameter_std_rate < 0.0
         ):
             raise ValueError("parameter_std_rate must be finite and non-negative")
+        self.last_update_time = float("nan")
+
+    def update(self) -> None:
+        """Refresh the values held over the next plant step.
+
+        Disturbances with a noise model draw a fresh sample here; the base
+        class has nothing to refresh. Called by :meth:`update_errors`.
+        """
+
+    def update_errors(self, j2000: float) -> None:
+        r"""Advance the stochastic error models by one plant step.
+
+        The estimated parameters (``main_param``) take one step of their
+        random walk, with standard deviation ``parameter_std_rate`` times the
+        square root of the elapsed time in seconds, the same model the
+        estimator assumes through :meth:`parameter_process_psd`; then
+        :meth:`update` draws the step's noise sample. The simulation calls
+        this once per step before integrating the plant, so the integrator
+        sees one frozen realisation per step, never a draw inside the solver.
+
+        :param j2000: Current epoch in Julian centuries since J2000.
+        """
+        if self.estimated_vector_length > 0 and np.any(self.parameter_std_rate > 0.0):
+            if not np.isfinite(self.last_update_time):
+                self.last_update_time = j2000
+            else:
+                elapsed = (j2000 - self.last_update_time) * TimeConstants.cent2sec
+                if elapsed > 0.0:
+                    self.main_param = self.main_param + np.random.normal(
+                        0.0, self.parameter_std_rate * np.sqrt(elapsed)
+                    )
+                    self.last_update_time = j2000
+        self.update()
 
     def parameter_process_psd(self, *, form: str = "full") -> Covariance:
         r"""Return the continuous PSD of estimated disturbance parameters.

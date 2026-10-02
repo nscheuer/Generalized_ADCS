@@ -83,10 +83,7 @@ class Dipole_Disturbance(Disturbance):
         :rtype: None
         """
         self.torque_nominal = dipole_torque
-        if noise:
-            self.noise = noise
-        else:
-            self.noise = Noise()
+        self.noise = (noise if noise else Noise()).broadcast_to(3, owner="Dipole_Disturbance")
         self.current_torque = self.torque_nominal.copy()
 
         super().__init__(estimate_dist=estimate_dist, estimated_vector_length=3)
@@ -131,6 +128,8 @@ class Dipole_Disturbance(Disturbance):
         :return: None
         :rtype: None
         """
+        if np.any(np.asarray(self.noise.std_noise) > 0.0):
+            self.noise._update_noise()  # one fresh sample, held for the whole step; a fixed offset (zero std) stays
         self.current_torque = self.torque_nominal + self.noise.get_noise()
 
     def torque(self, x: State, os: Orbital_State) -> np.ndarray:
