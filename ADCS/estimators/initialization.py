@@ -9,14 +9,6 @@ kind by weighted least squares; vector sensors (Earth horizon, star tracker)
 are taken as they are. :func:`angular_rate_from_readings` does the same for
 the gyros, and :func:`wheel_momentum_from_readings` collects the reaction
 wheel readings.
-
-On top of those, :func:`attitude_from_readings` solves for the attitude
-(QUEST, TRIAD, or a quaternion star tracker's reading) and
-:func:`initial_state_from_readings` assembles a complete
-:class:`~ADCS.state.EstimatorState` with its covariance, following a
-:class:`WarmStart` recipe. The attitude estimators accept a
-:class:`WarmStart` in place of an initial state and build theirs from the
-first measurement vector they receive.
 """
 
 from __future__ import annotations

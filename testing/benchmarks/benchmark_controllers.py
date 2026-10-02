@@ -39,8 +39,8 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.state import State
 from testing.test_controllers._mtq_rw_qp_test_helpers import make_controller as make_qp_controller
 from testing.test_controllers._mtq_rw_qp_test_helpers import make_orbital_state, make_satellite
-from testing.test_controllers.test_controller_mtq_w_rw import StaticGoal as RWStaticGoal
-from testing.test_controllers.test_controller_mtq_w_rw_lp import StaticGoal as LPStaticGoal
+from testing.test_controllers.mtq_w_rw.test_controller_mtq_w_rw import StaticGoal as RWStaticGoal
+from testing.test_controllers.mtq_w_rw_lp.test_controller_mtq_w_rw_lp import StaticGoal as LPStaticGoal
 
 
 BASELINE_PATH = REPO_ROOT / "testing" / "benchmarks" / "baselines" / "controllers.json"

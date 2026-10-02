@@ -1,9 +1,18 @@
+"""Fast, independent regression checks for two-body and J2 orbit physics.
+
+These are deliberately *not* long simulation experiments. The expensive
+environment construction is exercised separately; here, a compact batch orbit
+provides enough samples to catch errors in the RK4 plumbing, force-model
+selection, and secular J2 behaviour.
+"""
+
 import numpy as np
 import pytest
 
+from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.universal_constants import EarthConstants
+from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
 
 MU = EarthConstants.mu_e
 RE = EarthConstants.R_e
@@ -46,156 +55,102 @@ def orbital_elements(R, V):
     }
 
 
-def propagate(state, dt: float, steps: int, *, j2: bool = False):
-    current = state
-    for _ in range(steps):
-        current = state.__class__.propagate_orbit_rk4(current, dt, zonal_J=2 if j2 else 0)
-    return current
+def propagate_batch(state, duration, steps, *, zonal_J):
+    """Propagate through the public batch API without per-step I/O work."""
+    return Orbit(
+        os0=state,
+        end_time=state.J2000 + duration * TimeConstants.sec2cent,
+        dt=duration / steps,
+        zonal_J=zonal_J,
+        verbose=False,
+    )
 
 
-@pytest.mark.parametrize(
-    "R,V,name",
-    [
-        (np.array([6878.0, 0.0, 0.0]), np.array([0.0, 7.613, 0.0]), "circular"),
-        (np.array([7000.0, 0.0, 0.0]), np.array([0.0, 8.6, 2.0]), "eccentric_inclined"),
-    ],
-)
-def test_two_body_specific_energy_is_conserved(R, V, name):
-    state0 = make_state(R, V)
-    elements0 = orbital_elements(R, V)
-    period = 2.0 * np.pi * np.sqrt(elements0["a"] ** 3 / MU)
-    dt = period / 500
-    current = state0
-    max_drift = 0.0
-    for _ in range(3 * 500):
-        current = state0.__class__.propagate_orbit_rk4(current, dt, zonal_J=0)
-        elements = orbital_elements(current.R, current.V)
-        max_drift = max(max_drift, abs(elements["energy"] - elements0["energy"]) / abs(elements0["energy"]))
-    assert max_drift < 1e-6, f"{name}: specific-energy drift {max_drift:.2e}"
+@pytest.fixture(scope="module", params=[
+    (np.array([6878.0, 0.0, 0.0]), np.array([0.0, 7.613, 0.0]), "circular"),
+    (np.array([7000.0, 0.0, 0.0]), np.array([0.0, 8.6, 2.0]), "eccentric_inclined"),
+])
+def two_body_run(request):
+    R, V, name = request.param
+    start = make_state(R, V)
+    start_elements = orbital_elements(R, V)
+    period = 2.0 * np.pi * np.sqrt(start_elements["a"] ** 3 / MU)
+    # Three periods with 256 RK4 steps per period retain sensitivity to
+    # accumulated integration error while remaining cheap through the batch
+    # API.  This is substantially shorter than the former 3 x 500-step loop.
+    orbit = propagate_batch(start, 3.0 * period, 3 * 256, zonal_J=0)
+    finish = orbit.states[orbit.times[-1]]
+    return start, start_elements, finish, name
 
 
-@pytest.mark.parametrize(
-    "R,V,name",
-    [
-        (np.array([6878.0, 0.0, 0.0]), np.array([0.0, 7.613, 0.0]), "circular"),
-        (np.array([7000.0, 0.0, 0.0]), np.array([0.0, 8.6, 2.0]), "eccentric_inclined"),
-    ],
-)
-def test_two_body_angular_momentum_is_conserved(R, V, name):
-    state0 = make_state(R, V)
-    elements0 = orbital_elements(R, V)
-    period = 2.0 * np.pi * np.sqrt(elements0["a"] ** 3 / MU)
-    dt = period / 500
-    current = state0
-    max_drift = 0.0
-    for _ in range(3 * 500):
-        current = state0.__class__.propagate_orbit_rk4(current, dt, zonal_J=0)
-        elements = orbital_elements(current.R, current.V)
-        max_drift = max(max_drift, np.linalg.norm(elements["h"] - elements0["h"]) / np.linalg.norm(elements0["h"]))
-    assert max_drift < 1e-7, f"{name}: |h| drift {max_drift:.2e}"
+def test_two_body_specific_energy_is_conserved(two_body_run):
+    _, initial, finish, name = two_body_run
+    final = orbital_elements(finish.R, finish.V)
+    relative_drift = abs(final["energy"] - initial["energy"]) / abs(initial["energy"])
+    assert relative_drift < 1e-6, f"{name}: specific-energy drift {relative_drift:.2e}"
 
 
-@pytest.mark.parametrize(
-    "R,V,name",
-    [
-        (np.array([6878.0, 0.0, 0.0]), np.array([0.0, 7.613, 0.0]), "circular"),
-        (np.array([7000.0, 0.0, 0.0]), np.array([0.0, 8.6, 2.0]), "eccentric_inclined"),
-    ],
-)
-def test_two_body_eccentricity_vector_is_conserved(R, V, name):
-    state0 = make_state(R, V)
-    elements0 = orbital_elements(R, V)
-    period = 2.0 * np.pi * np.sqrt(elements0["a"] ** 3 / MU)
-    dt = period / 500
-    current = state0
-    max_drift = 0.0
-    for _ in range(3 * 500):
-        current = state0.__class__.propagate_orbit_rk4(current, dt, zonal_J=0)
-        elements = orbital_elements(current.R, current.V)
-        max_drift = max(max_drift, np.linalg.norm(elements["e_vec"] - elements0["e_vec"]))
-    assert max_drift < 1e-4, f"{name}: eccentricity-vector drift {max_drift:.2e}"
+def test_two_body_angular_momentum_is_conserved(two_body_run):
+    _, initial, finish, name = two_body_run
+    final = orbital_elements(finish.R, finish.V)
+    relative_drift = np.linalg.norm(final["h"] - initial["h"]) / np.linalg.norm(initial["h"])
+    assert relative_drift < 1e-7, f"{name}: |h| drift {relative_drift:.2e}"
 
 
-@pytest.mark.parametrize(
-    "R,V",
-    [
-        (np.array([6878.0, 0.0, 0.0]), np.array([0.0, 7.613, 0.0])),
-        (np.array([8000.0, 0.0, 0.0]), np.array([0.0, 7.2, 0.0])),
-    ],
-)
-def test_orbit_closes_in_position_after_kepler_period(R, V):
-    state0 = make_state(R, V)
-    semi_major_axis = orbital_elements(R, V)["a"]
-    period = 2.0 * np.pi * np.sqrt(semi_major_axis**3 / MU)
-    propagated = propagate(state0, period / 1200, 1200)
-    assert np.linalg.norm(propagated.R - R) < 1.0
+def test_two_body_eccentricity_vector_is_conserved(two_body_run):
+    _, initial, finish, name = two_body_run
+    final = orbital_elements(finish.R, finish.V)
+    drift = np.linalg.norm(final["e_vec"] - initial["e_vec"])
+    assert drift < 2e-6, f"{name}: eccentricity-vector drift {drift:.2e}"
 
 
-@pytest.mark.parametrize(
-    "R,V",
-    [
-        (np.array([6878.0, 0.0, 0.0]), np.array([0.0, 7.613, 0.0])),
-        (np.array([8000.0, 0.0, 0.0]), np.array([0.0, 7.2, 0.0])),
-    ],
-)
-def test_orbit_closes_in_velocity_after_kepler_period(R, V):
-    state0 = make_state(R, V)
-    semi_major_axis = orbital_elements(R, V)["a"]
-    period = 2.0 * np.pi * np.sqrt(semi_major_axis**3 / MU)
-    propagated = propagate(state0, period / 1200, 1200)
-    assert np.linalg.norm(propagated.V - V) < 1e-3
+def test_orbit_closes_in_position_after_three_kepler_periods(two_body_run):
+    start, _, finish, _ = two_body_run
+    assert np.linalg.norm(finish.R - start.R) < 0.25
 
 
-def test_j2_nodal_regression_matches_first_order_analytic_rate():
+def test_orbit_closes_in_velocity_after_three_kepler_periods(two_body_run):
+    start, _, finish, _ = two_body_run
+    assert np.linalg.norm(finish.V - start.V) < 2.5e-4
+
+
+@pytest.fixture(scope="module")
+def j2_secular_run():
     semi_major_axis = RE + 1500.0
     eccentricity = 0.08
     inclination = np.radians(51.6)
     semi_latus_rectum = semi_major_axis * (1.0 - eccentricity**2)
     perigee_radius = semi_major_axis * (1.0 - eccentricity)
     perigee_speed = np.sqrt(MU * (2.0 / perigee_radius - 1.0 / semi_major_axis))
-    state0 = make_state(
+    start = make_state(
         np.array([perigee_radius, 0.0, 0.0]),
         np.array([0.0, perigee_speed * np.cos(inclination), perigee_speed * np.sin(inclination)]),
     )
-    elements0 = orbital_elements(state0.R, state0.V)
+    initial = orbital_elements(start.R, start.V)
     mean_motion = np.sqrt(MU / semi_major_axis**3)
     period = 2.0 * np.pi / mean_motion
-    propagated = propagate(state0, 8 * period / (300 * 8), 300 * 8, j2=True)
-    elements = orbital_elements(propagated.R, propagated.V)
+    # Retain eight periods for a clean secular signal, but share one compact
+    # 96-steps-per-period batch trajectory between the two rate checks.
+    orbit = propagate_batch(start, 8.0 * period, 8 * 96, zonal_J=2)
+    finish = orbit.states[orbit.times[-1]]
+    return initial, orbital_elements(finish.R, finish.V), mean_motion, semi_latus_rectum, inclination, 8.0 * period
 
-    def unwrap_rate(end, start, total_time):
-        delta = (end - start + np.pi) % (2.0 * np.pi) - np.pi
-        return delta / total_time
 
-    total_time = 8 * period
-    numeric_rate = unwrap_rate(elements["raan"], elements0["raan"], total_time)
+def unwrap_rate(end, start, total_time):
+    delta = (end - start + np.pi) % (2.0 * np.pi) - np.pi
+    return delta / total_time
+
+
+def test_j2_nodal_regression_matches_first_order_analytic_rate(j2_secular_run):
+    initial, final, mean_motion, semi_latus_rectum, inclination, total_time = j2_secular_run
+    numeric_rate = unwrap_rate(final["raan"], initial["raan"], total_time)
     analytic_rate = -1.5 * mean_motion * J2 * (RE / semi_latus_rectum) ** 2 * np.cos(inclination)
     assert analytic_rate < 0.0
     assert abs(numeric_rate - analytic_rate) / abs(analytic_rate) < 0.05
 
 
-def test_j2_apsidal_precession_matches_first_order_analytic_rate():
-    semi_major_axis = RE + 1500.0
-    eccentricity = 0.08
-    inclination = np.radians(51.6)
-    semi_latus_rectum = semi_major_axis * (1.0 - eccentricity**2)
-    perigee_radius = semi_major_axis * (1.0 - eccentricity)
-    perigee_speed = np.sqrt(MU * (2.0 / perigee_radius - 1.0 / semi_major_axis))
-    state0 = make_state(
-        np.array([perigee_radius, 0.0, 0.0]),
-        np.array([0.0, perigee_speed * np.cos(inclination), perigee_speed * np.sin(inclination)]),
-    )
-    elements0 = orbital_elements(state0.R, state0.V)
-    mean_motion = np.sqrt(MU / semi_major_axis**3)
-    period = 2.0 * np.pi / mean_motion
-    propagated = propagate(state0, 8 * period / (300 * 8), 300 * 8, j2=True)
-    elements = orbital_elements(propagated.R, propagated.V)
-
-    def unwrap_rate(end, start, total_time):
-        delta = (end - start + np.pi) % (2.0 * np.pi) - np.pi
-        return delta / total_time
-
-    total_time = 8 * period
-    numeric_rate = unwrap_rate(elements["argp"], elements0["argp"], total_time)
+def test_j2_apsidal_precession_matches_first_order_analytic_rate(j2_secular_run):
+    initial, final, mean_motion, semi_latus_rectum, inclination, total_time = j2_secular_run
+    numeric_rate = unwrap_rate(final["argp"], initial["argp"], total_time)
     analytic_rate = 0.75 * mean_motion * J2 * (RE / semi_latus_rectum) ** 2 * (5.0 * np.cos(inclination) ** 2 - 1.0)
     assert abs(numeric_rate - analytic_rate) / abs(analytic_rate) < 0.08

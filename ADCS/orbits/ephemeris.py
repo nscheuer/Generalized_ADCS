@@ -99,7 +99,7 @@ class Ephemeris:
             existing = self._find_existing_ephemeris()
             if existing is not None:
                 self.planets = load(str(existing))
-                print(f"✅ Loaded local ephemeris from {existing}")
+                print("✅ Loaded Ephemeris: de421.bsp")
             else:
                 self.planets = self._download_ephemeris(
                     self._get_default_ephemeris_path()

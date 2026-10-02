@@ -6,6 +6,7 @@ __all__ = ["create_random_circular_os", "create_random_circular_orbit"]
 import numpy as np
 from typing import Optional
 
+from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
@@ -16,7 +17,8 @@ def create_random_circular_os(
     radius_km: float,
     J2000: float = 0.22,
     ephem: Optional[Ephemeris] = None,
-    rng: Optional[np.random.Generator] = None
+    rng: Optional[np.random.Generator] = None,
+    magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
 ) -> Orbital_State:
     r"""
     Generates a random orbital state for a circular orbit with a specified radius.
@@ -55,6 +57,9 @@ def create_random_circular_os(
     :type J2000: float
     :param ephem: Optional ephemeris object. If None, a new one is created.
     :type ephem: :class:`~ADCS.orbits.ephemeris.Ephemeris`, optional
+    :param magnetic_model: Geomagnetic field model; one of
+        :data:`ADCS.environment.MAGNETIC_MODELS`.
+    :type magnetic_model: str
     :return: The generated orbital state.
     :rtype: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
@@ -84,6 +89,7 @@ def create_random_circular_os(
         J2000=J2000,
         R=R,
         V=V,
+        magnetic_model=magnetic_model,
     )
 
 
@@ -95,6 +101,7 @@ def create_random_circular_orbit(
     fast: bool = False,
     rng: Optional[np.random.Generator] = None,
     zonal_J: int = 2,
+    magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
 ) -> Orbit:
     r"""
     Creates an initialized Orbit object based on a random circular orbital state.
@@ -124,11 +131,14 @@ def create_random_circular_orbit(
         zonals, ``2`` includes only J2, and larger values include every zonal
         term up to that degree.
     :type zonal_J: int
+    :param magnetic_model: Geomagnetic field model; one of
+        :data:`ADCS.environment.MAGNETIC_MODELS`.
+    :type magnetic_model: str
     :return: The fully initialized orbit object.
     :rtype: :class:`~ADCS.orbits.orbit.Orbit`
 
     """
-    os0 = create_random_circular_os(radius_km=radius_km, J2000=J2000, rng=rng)
+    os0 = create_random_circular_os(radius_km=radius_km, J2000=J2000, rng=rng, magnetic_model=magnetic_model)
 
     return Orbit(
         os0=os0,
