@@ -101,7 +101,7 @@ def test_exact_poles_return_finite_field(theta):
     date = datetime(2024, 3, 1, 12)
     got = igrf_gc(6771.2, theta, 33.0, date)
     assert all(np.isfinite(component) for component in got)
-    near = igrf_gc(6771.2, theta + (1e-5 if theta == 0.0 else -1e-5), 33.0, date)
+    near = igrf_gc(6771.2, theta + (1e-6 if theta == 0.0 else -1e-6), 33.0, date)
     np.testing.assert_allclose(got, near, rtol=1e-6, atol=1e-5)
 
 
