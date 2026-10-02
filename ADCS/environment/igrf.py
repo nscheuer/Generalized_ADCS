@@ -278,6 +278,15 @@ def _eval_one(ri, th_deg, ph_deg, g, h, nmax, Pc, P1, P2, Dc, D1, D2, cosmp, sin
         nan = np.nan
         return nan, nan, nan
 
+    # Bphi is expressed as a quotient by sin(theta). At the exact poles both
+    # its numerator and denominator vanish, although the physical limiting
+    # value is finite. Evaluate the pole limit at a tiny angular offset to
+    # avoid 0/0 while retaining the radial and southward components to
+    # machine precision.
+    if th_deg == 0.0:
+        th_deg = 1e-7
+    elif th_deg == 180.0:
+        th_deg = 180.0 - 1e-7
     th = th_deg * (np.pi / 180.0)
     ph = ph_deg * (np.pi / 180.0)
     sinth = np.sin(th)

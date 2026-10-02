@@ -95,6 +95,16 @@ def test_matches_reference_near_the_poles(theta):
     assert _worst(_ppigrf(6771.2, theta, 33.0, date), got) < RTOL
 
 
+@pytest.mark.parametrize("theta", [0.0, 180.0])
+def test_exact_poles_return_finite_field(theta):
+    """The azimuthal component has a finite pole limit despite its 1/sin(theta) form."""
+    date = datetime(2024, 3, 1, 12)
+    got = igrf_gc(6771.2, theta, 33.0, date)
+    assert all(np.isfinite(component) for component in got)
+    near = igrf_gc(6771.2, theta + (1e-5 if theta == 0.0 else -1e-5), 33.0, date)
+    np.testing.assert_allclose(got, near, rtol=1e-6, atol=1e-5)
+
+
 def test_chunk_size_does_not_change_the_result():
     """chunk only partitions the parallel loop; it must not be observable."""
     rng = np.random.default_rng(3)
