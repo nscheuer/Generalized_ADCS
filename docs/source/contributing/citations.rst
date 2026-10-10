@@ -78,3 +78,36 @@ Estimators
 
 Estimator citations should be added here when an estimator implementation is
 derived from a specific paper or validated against a published formulation.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 25 40 15
+
+   * - Model
+     - Documentation
+     - Original citation
+     - Paper
+   * - Wahba's problem (the loss every single-frame method minimises)
+     - :doc:`attitude_determination <../ADCS.estimators.attitude_determination>`
+     - G. Wahba, "A Least Squares Estimate of Satellite Attitude," *SIAM Review*, Vol. 7, No. 3, 1965, p. 409.
+     - `doi:10.1137/1007077 <https://doi.org/10.1137/1007077>`__
+   * - TRIAD two-vector attitude determination
+     - :doc:`attitude_determination <../ADCS.estimators.attitude_determination>`
+     - H. D. Black, "A Passive System for Determining the Attitude of a Satellite," *AIAA Journal*, Vol. 2, No. 7, 1964, pp. 1350-1351.
+     - `doi:10.2514/3.2555 <https://doi.org/10.2514/3.2555>`__
+   * - Davenport's q-method
+     - :doc:`attitude_determination <../ADCS.estimators.attitude_determination>`
+     - P. B. Davenport, "A Vector Approach to the Algebra of Rotations with Applications," NASA TN D-4696, 1968.
+     - `NTRS 19680021122 <https://ntrs.nasa.gov/citations/19680021122>`__
+   * - QUEST and the optimal attitude covariance
+     - :doc:`attitude_determination <../ADCS.estimators.attitude_determination>`
+     - M. D. Shuster and S. D. Oh, "Three-Axis Attitude Determination from Vector Observations," *Journal of Guidance and Control*, Vol. 4, No. 1, 1981, pp. 70-77.
+     - `doi:10.2514/3.19717 <https://doi.org/10.2514/3.19717>`__
+   * - Quaternion from a rotation matrix (Shepperd's method)
+     - :doc:`attitude_determination <../ADCS.estimators.attitude_determination>`
+     - S. W. Shepperd, "Quaternion from Rotation Matrix," *Journal of Guidance and Control*, Vol. 1, No. 3, 1978, pp. 223-224.
+     - `doi:10.2514/3.55767b <https://doi.org/10.2514/3.55767b>`__
+   * - Survey of single-frame attitude estimators
+     - :doc:`attitude_determination <../ADCS.estimators.attitude_determination>`
+     - F. L. Markley and D. Mortari, "Quaternion Attitude Estimation Using Vector Observations," *Journal of the Astronautical Sciences*, Vol. 48, No. 2-3, 2000, pp. 359-380.
+     - (journal article)

@@ -149,11 +149,23 @@ Starting from the first readings
 --------------------------------
 
 The estimator above starts at the identity attitude with a large covariance and
-needs a while to converge. When the satellite carries sensors that see two or
-more different directions (here the magnetometers and the sun pairs), the first
-measurement vector already determines the attitude. Pass a
-:class:`~ADCS.estimators.initialization.WarmStart` in place of the initial state
-and the estimator builds its own state on its first cycle:
+needs a while to converge. That start is a guess, and the filters are not built
+for guesses: an EKF, MEKF or UKF corrects an attitude it already has, with
+corrections linearised about that estimate, so a start that is far from the
+truth converges slowly and, with a poor covariance, can settle on a wrong
+solution or diverge. The readings themselves offer a better start. When the
+satellite carries sensors that see two or more different directions (here the
+magnetometers and the sun pairs), the first measurement vector already
+determines the attitude: each measured direction is also known in the inertial
+frame, and two non-parallel ones pin down the rotation between the frames. The
+module :mod:`ADCS.estimators.attitude_determination` solves this "single-frame"
+problem with the classic TRIAD and QUEST algorithms (and explains them, with the
+original papers); the result is accurate to the sensors' noise and comes with a
+covariance, so the filter starts where its linearisation holds and its first
+covariance is honest rather than a large placeholder.
+
+Pass a :class:`~ADCS.estimators.initialization.WarmStart` in place of the
+initial state and the estimator builds its own state on its first cycle:
 
 .. code-block:: python
 
