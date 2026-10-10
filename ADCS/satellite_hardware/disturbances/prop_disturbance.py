@@ -120,7 +120,8 @@ class Prop_Disturbance(Disturbance):
         :return: None
         :rtype: None
         """
-        if np.any(np.asarray(self.noise.std_noise) > 0.0):
+        std_noise = self.noise.std_noise
+        if std_noise[0] > 0.0 or std_noise[1] > 0.0 or std_noise[2] > 0.0:
             self.noise._update_noise()  # one fresh sample, held for the whole step; a fixed offset (zero std) stays
         self.current_torque = self.torque_nominal + self.noise.get_noise()
 
