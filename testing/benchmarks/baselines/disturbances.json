@@ -21,8 +21,8 @@
     "dipole_update": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.00017570792676344473,
-      "seconds": 1.6091271972662469e-06
+      "normalized_seconds": 0.0001633629340768002,
+      "seconds": 1.0617482910091347e-06
     },
     "drag_torque": {
       "loops": 4096,
@@ -57,8 +57,8 @@
     "prop_update": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.00017514777149674402,
-      "seconds": 1.6039973144491015e-06
+      "normalized_seconds": 0.0001638608263149954,
+      "seconds": 1.0649842529242282e-06
     },
     "srp_torque": {
       "loops": 8192,
