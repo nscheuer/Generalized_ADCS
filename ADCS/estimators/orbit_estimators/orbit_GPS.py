@@ -8,6 +8,7 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedOrbital_State
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
+from ADCS.helpers.math_helpers import rotate_covariance
 
 
 def _sensor_axes_to_eci(covariance: np.ndarray, os: Orbital_State) -> np.ndarray:
@@ -22,7 +23,7 @@ def _sensor_axes_to_eci(covariance: np.ndarray, os: Orbital_State) -> np.ndarray
     rotation = np.column_stack([os.ecef_to_eci(axis) for axis in np.eye(3)])
     rotated = np.zeros((6, 6))
     for block in (slice(0, 3), slice(3, 6)):
-        rotated[block, block] = rotation @ covariance[block, block] @ rotation.T
+        rotated[block, block] = rotate_covariance(covariance[block, block], rotation)
     return 0.5 * (rotated + rotated.T)
 
 class Orbit_GPS(Orbit_Estimator):
