@@ -5,7 +5,7 @@ from typing import Tuple
 
 from .goal import Goal
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.helpers.math_helpers import normalize, rot_mat, norm
+from ADCS.helpers.math_helpers import vector_alignment_error
 
 class Vector_Goal(Goal):
     r"""
@@ -165,23 +165,4 @@ class Vector_Goal(Goal):
         """
         eci_goal, _ = self.to_ref(os0)
 
-        v_bore = normalize(body_boresight)
-        R_b2i = rot_mat(q)                    # q: body -> ECI (Hamilton)
-        v_goal_body = normalize(R_b2i.T @ eci_goal[1:4])
-
-        dot = np.dot(v_bore, v_goal_body)
-
-        if dot < -0.9999:
-            # 180° case: pick any orthogonal axis
-            axis = np.cross(v_bore, [1.0, 0.0, 0.0])
-            if norm(axis) < 1e-3:
-                axis = np.cross(v_bore, [0.0, 1.0, 0.0])
-            q_err_full = np.concatenate([[0.0], normalize(axis)])
-        else:
-            # NOTE: goal × bore, not bore × goal
-            cross = np.cross(v_goal_body, v_bore)
-            q_err_full = normalize(np.concatenate([[1.0 + dot], cross]))
-
-        sign = 1.0 if q_err_full[0] >= 0.0 else -1.0
-        q_err_vec = q_err_full[1:4] * sign
-        return q_err_vec
+        return vector_alignment_error(q, eci_goal[1:4], body_boresight)

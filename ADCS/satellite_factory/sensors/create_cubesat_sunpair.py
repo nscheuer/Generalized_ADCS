@@ -8,6 +8,7 @@ __all__ = [
 ]
 
 import numpy as np
+from ADCS.helpers.math_helpers import axes_from_az_el_deg as _axes_from_az_el_deg
 from typing import Optional, List
 
 from ADCS.satellite_hardware.sensors import SunPair, SunSensor
@@ -15,11 +16,6 @@ from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_helpers import random_n_unit_vec
 
 
-def _axes_from_az_el_deg(az_el_deg: np.ndarray) -> np.ndarray:
-    angles = np.deg2rad(np.asarray(az_el_deg, dtype=float))
-    az = angles[:, 0]
-    el = angles[:, 1]
-    return np.column_stack((np.cos(el) * np.cos(az), np.cos(el) * np.sin(az), np.sin(el)))
 
 def create_Clydespace_3U_array(axis: np.ndarray = np.array([1, 0, 0]), bias: Bias | None = None, noise: Noise | None = None, estimate_bias: bool = False) -> List[SunPair]:
     r"""

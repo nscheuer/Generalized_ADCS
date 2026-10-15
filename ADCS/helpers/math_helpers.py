@@ -76,6 +76,7 @@ def _rw_hdot_kernel(
 # ===============================================================
 
 
+@njit(cache=True)
 def rot_mat(q: np.ndarray) -> np.ndarray:
     r"""
     Construct the direction cosine matrix (DCM) corresponding to a quaternion
@@ -1311,3 +1312,369 @@ def dcm_to_quat(R: np.ndarray) -> np.ndarray:
         out[3] = q3
 
     return normalize(out)
+
+
+# Quaternion statistics and batched rotation algebra
+
+
+@njit(cache=True)
+def skewsym_batch(vectors: np.ndarray) -> np.ndarray:
+    matrices = np.zeros((len(vectors), 3, 3))
+    x, y, z = vectors.T
+    matrices[:, 0, 1], matrices[:, 1, 0] = -z, z
+    matrices[:, 0, 2], matrices[:, 2, 0] = y, -y
+    matrices[:, 1, 2], matrices[:, 2, 1] = -x, x
+    return matrices
+
+
+def _quaternion_mean_deviations(
+    quaternion: np.ndarray, values: np.ndarray, mode: str
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return shortest right errors and their rotation-vector derivatives."""
+    scalar, vector = quaternion[0], quaternion[1:]
+    relative_scalar = scalar * values[:, 0] + values[:, 1:] @ vector
+    relative_vector = (
+        scalar * values[:, 1:]
+        - values[:, 0, None] * vector
+        - np.cross(vector, values[:, 1:])
+    )
+    signs = np.where(relative_scalar < 0.0, -1.0, 1.0)
+    s = relative_scalar * signs
+    v = relative_vector * signs[:, None]
+    identity = np.eye(3)
+    # q' = Exp(-step) q: ds/dstep = v/2 and dv/dstep = (-s I + [v]x)/2.
+    vector_derivative = 0.5 * (-s[:, None, None] * identity + skewsym_batch(v))
+
+    if mode == "quaternion_vector":
+        return 2.0 * v, 2.0 * vector_derivative
+    if mode == "rotation_vector":
+        length = np.linalg.norm(v, axis=1)
+        angle = 2.0 * np.arctan2(length, s)
+        scale = np.full_like(length, 2.0)
+        np.divide(angle, length, out=scale, where=length > 1.0e-15)
+        errors = scale[:, None] * v
+        coefficient = np.full_like(angle, 1.0 / 12.0)
+        large = angle > 1.0e-4
+        theta = angle[large]
+        coefficient[large] = (1.0 - 0.5 * theta / np.tan(0.5 * theta)) / theta**2
+        skew = skewsym_batch(errors)
+        derivative = -identity + 0.5 * skew - coefficient[:, None, None] * (skew @ skew)
+        return errors, derivative
+
+    divisor = s if mode == "cayley" else 1.0 + s
+    if np.any(divisor < 1.0e-10):
+        raise ValueError(
+            "Quaternion mean reaches the Cayley chart singularity at 180 degrees; "
+            "use rotation_vector coordinates"
+        )
+    scale = 2.0 if mode == "two_mrp" else 1.0
+    errors = scale * v / divisor[:, None]
+    derivative = scale * (
+        vector_derivative / divisor[:, None, None]
+        - 0.5 * v[:, :, None] * v[:, None, :] / divisor[:, None, None] ** 2
+    )
+    return errors, derivative
+
+
+def quaternion_mean(values: np.ndarray, weights: np.ndarray, *, mode: str) -> np.ndarray:
+    """Solve sum(w_i * chart(q^-1 q_i)) = 0, including signed weights.
+
+    Newton steps use rotation vectors, so the solver never retracts an
+    out-of-domain quaternion-vector correction. Backtracking limits each step
+    and reduces the residual, unlike the undamped chart fixed point. Both
+    state and measurement means use this same definition; covariance errors
+    remain in the requested chart. The analytic 3x3 Jacobian avoids repeated
+    state copies and numerical differentiation.
+    """
+    values = np.asarray(values, dtype=float)
+    weights = np.asarray(weights, dtype=float)
+    if mode not in ("quaternion_vector", "rotation_vector", "mrp", "two_mrp", "cayley"):
+        raise ValueError(f"unsupported three-parameter quaternion mode {mode!r}")
+    norms = np.linalg.norm(values, axis=1)
+    if not np.all(np.isfinite(values)) or np.any(norms == 0.0):
+        raise ValueError("quaternion mean requires finite nonzero quaternions")
+    values = values / norms[:, None]
+    mean = values[0].copy()
+    for _ in range(32):
+        deviations, derivatives = _quaternion_mean_deviations(mean, values, mode)
+        residual = weights @ deviations
+        residual_norm = np.linalg.norm(residual)
+        # Allow for roundoff in cancellation between signed sigma weights.
+        scale = np.abs(weights) @ np.linalg.norm(deviations, axis=1)
+        tolerance = 1.0e-12 + 64.0 * np.finfo(float).eps * scale
+        if residual_norm <= tolerance:
+            return mean
+        jacobian = np.einsum("i,ijk->jk", weights, derivatives)
+        try:
+            step = np.linalg.solve(jacobian, -residual)
+        except np.linalg.LinAlgError:
+            break
+        step_norm = np.linalg.norm(step)
+        if not np.isfinite(step_norm):
+            break
+        step *= min(1.0, (np.pi / 2.0) / max(step_norm, 1.0e-15))
+        for _ in range(16):
+            candidate = quat_mult(
+                mean, rot_exp(step)
+            )
+            candidate /= np.linalg.norm(candidate)
+            try:
+                candidate_deviations, _ = _quaternion_mean_deviations(candidate, values, mode)
+                improved = np.linalg.norm(weights @ candidate_deviations) < residual_norm
+            except ValueError:
+                improved = False
+            if improved:
+                mean = candidate
+                break
+            step *= 0.5
+        else:
+            break
+    raise RuntimeError(
+        f"quaternion mean did not converge in {mode!r} coordinates; "
+        "the prior may be too broad for a single local attitude distribution"
+    )
+
+
+@njit(cache=True)
+def _rot_mat_batch_kernel(quaternions: np.ndarray) -> np.ndarray:
+    """Hamilton scalar-first body-to-inertial DCMs for an (N, 4) array."""
+    matrices = np.empty((quaternions.shape[0], 3, 3), dtype=np.float64)
+    for i in range(quaternions.shape[0]):
+        w, x, y, z = quaternions[i]
+        matrices[i, 0, 0] = w*w + x*x - y*y - z*z
+        matrices[i, 0, 1] = 2.0 * (x*y - z*w)
+        matrices[i, 0, 2] = 2.0 * (x*z + y*w)
+        matrices[i, 1, 0] = 2.0 * (x*y + z*w)
+        matrices[i, 1, 1] = w*w - x*x + y*y - z*z
+        matrices[i, 1, 2] = 2.0 * (y*z - x*w)
+        matrices[i, 2, 0] = 2.0 * (x*z - y*w)
+        matrices[i, 2, 1] = 2.0 * (y*z + x*w)
+        matrices[i, 2, 2] = w*w - x*x - y*y + z*z
+    return matrices
+
+
+def rot_mat_batch(quaternions: np.ndarray) -> np.ndarray:
+    """Return body-to-inertial DCMs for scalar-first unit quaternions.
+
+    Accepts shape ``(4,)`` or ``(N, 4)`` and mirrors :func:`rot_mat`'s
+    quadratic formula even if the input is not exactly unit length.
+    """
+    q = np.asarray(quaternions, dtype=float)
+    if q.shape == (4,):
+        return _rot_mat_batch_kernel(q.reshape(1, 4))[0]
+    if q.ndim != 2 or q.shape[1] != 4:
+        raise ValueError("quaternions must have shape (4,) or (N, 4)")
+    return _rot_mat_batch_kernel(q)
+
+
+@njit(cache=True)
+def rotation_between_vectors(first: np.ndarray, second: np.ndarray) -> np.ndarray:
+    """Return a proper 3D rotation carrying ``first`` onto ``second``.
+
+    Zero length inputs retain the historical identity fallback. For opposite
+    directions, choose a deterministic perpendicular axis for the half turn.
+    """
+    n_first = np.linalg.norm(first)
+    n_second = np.linalg.norm(second)
+    identity = np.eye(3)
+    if n_first < 1e-12 or n_second < 1e-12:
+        return identity
+    a = first / n_first
+    b = second / n_second
+    cross = np.cross(a, b)
+    sine = np.linalg.norm(cross)
+    cosine = np.dot(a, b)
+    if sine < 1e-6:
+        if cosine > 0.0:
+            return identity
+        basis = np.zeros(3)
+        basis[np.argmin(np.abs(a))] = 1.0
+        axis = np.cross(a, basis)
+        axis /= np.linalg.norm(axis)
+        return 2.0 * np.outer(axis, axis) - identity
+    skew = skewsym(cross)
+    return identity + skew + (skew @ skew) * ((1.0 - cosine) / (sine * sine))
+
+
+@njit(cache=True)
+def vector_alignment_error(q: np.ndarray, eci_goal: np.ndarray,
+                           body_boresight: np.ndarray) -> np.ndarray:
+    """Shortest body-frame quaternion-vector error for boresight alignment."""
+    bore = normalize(body_boresight)
+    goal_body = normalize(rot_mat(q).T @ eci_goal)
+    dot = np.dot(bore, goal_body)
+    q_error = np.empty(4)
+    if dot < -0.9999:
+        axis = np.cross(bore, np.array([1.0, 0.0, 0.0]))
+        if norm(axis) < 1e-3:
+            axis = np.cross(bore, np.array([0.0, 1.0, 0.0]))
+        q_error[0] = 0.0
+        q_error[1:] = normalize(axis)
+    else:
+        q_error[0] = 1.0 + dot
+        q_error[1:] = np.cross(goal_body, bore)
+        q_error = normalize(q_error)
+    return q_error[1:4] * (1.0 if q_error[0] >= 0.0 else -1.0)
+
+
+@njit(cache=True)
+def angle_between_vectors(first: np.ndarray, second: np.ndarray) -> float:
+    """Unsigned angle in radians, or NaN for zero or nonfinite vectors."""
+    n_first = np.linalg.norm(first)
+    n_second = np.linalg.norm(second)
+    if not np.isfinite(n_first) or not np.isfinite(n_second) or n_first == 0.0 or n_second == 0.0:
+        return np.nan
+    cosine = np.dot(first, second) / (n_first * n_second)
+    return np.arccos(min(1.0, max(-1.0, cosine)))
+
+
+@njit(cache=True)
+def quaternion_angle(first: np.ndarray, second: np.ndarray) -> float:
+    """Shortest rotation angle in radians between scalar-first quaternions."""
+    n_first = np.linalg.norm(first)
+    n_second = np.linalg.norm(second)
+    if not np.isfinite(n_first) or not np.isfinite(n_second) or n_first == 0.0 or n_second == 0.0:
+        return np.nan
+    cosine = abs(np.dot(first, second) / (n_first * n_second))
+    return 2.0 * np.arccos(min(1.0, cosine))
+
+
+def rotate_covariance(covariance: np.ndarray, transform: np.ndarray) -> np.ndarray:
+    """Apply a linear coordinate transform to covariance: ``T P T.T``."""
+    return transform @ covariance @ transform.T
+
+
+@njit(cache=True)
+def axes_from_az_el_deg(az_el_deg: np.ndarray) -> np.ndarray:
+    """Convert rows of azimuth/elevation angles in degrees to unit vectors."""
+    angles = np.deg2rad(az_el_deg)
+    result = np.empty((angles.shape[0], 3))
+    for i in range(angles.shape[0]):
+        az, el = angles[i]
+        result[i, 0] = np.cos(el) * np.cos(az)
+        result[i, 1] = np.cos(el) * np.sin(az)
+        result[i, 2] = np.sin(el)
+    return result
+
+
+def quaternion_delta_from_vector(vector: np.ndarray, mode: str) -> np.ndarray:
+    """Convert local attitude coordinates to a scalar-first unit delta quaternion."""
+    vector = np.asarray(vector, dtype=float)
+    if vector.shape != (3,) or not np.all(np.isfinite(vector)):
+        raise ValueError("attitude delta must be a finite three-vector")
+    if mode == "quaternion_vector":
+        qv = vector / 2.0
+        qv_norm_sq = float(qv @ qv)
+        if qv_norm_sq > 1.0:
+            raise ValueError("attitude delta exceeds quaternion-vector range (norm > 2)")
+        return np.concatenate(([np.sqrt(max(0.0, 1.0 - qv_norm_sq))], qv))
+    if mode == "rotation_vector":
+        return rot_exp(vector)
+    helper_modes = {"mrp": 1, "two_mrp": 6, "cayley": 2}
+    if mode not in helper_modes:
+        raise ValueError(f"unsupported three-parameter quaternion mode {mode!r}")
+    return vec3_to_quat(vector, helper_modes[mode])
+
+
+def quaternion_delta_to_vector(quaternion: np.ndarray, mode: str,
+                               *, shortest: bool = True) -> np.ndarray:
+    """Convert a scalar-first delta quaternion to local attitude coordinates."""
+    q = np.asarray(quaternion, dtype=float)
+    if q.shape != (4,) or not np.all(np.isfinite(q)):
+        raise ValueError("quaternion delta must be a finite four-vector")
+    length = float(np.linalg.norm(q))
+    if length == 0.0:
+        raise ValueError("quaternion delta must have a finite, non-zero norm")
+    q = q / length
+    if shortest and q[0] < 0.0:
+        q = -q
+    if mode == "quaternion_vector":
+        return 2.0 * q[1:]
+    if mode == "rotation_vector":
+        vector_norm = float(np.linalg.norm(q[1:]))
+        if vector_norm < 1e-15:
+            return 2.0 * q[1:]
+        return (2.0 * np.arctan2(vector_norm, q[0]) / vector_norm) * q[1:]
+    helper_modes = {"mrp": 1, "two_mrp": 5, "cayley": 2}
+    if mode not in helper_modes:
+        raise ValueError(f"unsupported three-parameter quaternion mode {mode!r}")
+    return quat_to_vec3(q, helper_modes[mode])
+
+
+def quaternion_tangent_scale(mode: str) -> float:
+    """Derivative scale at the identity for a three-parameter attitude chart."""
+    scales = {"quaternion_vector": 0.5, "rotation_vector": 0.5,
+              "mrp": 2.0, "two_mrp": 1.0, "cayley": 1.0}
+    if mode not in scales:
+        raise ValueError(f"unsupported three-parameter quaternion mode {mode!r}")
+    return scales[mode]
+
+
+@njit(cache=True)
+def rotation_vector_reset_jacobian(vector: np.ndarray, order: str) -> np.ndarray:
+    """Attitude error reset Jacobian for rotation-vector coordinates."""
+    theta = float(np.linalg.norm(vector))
+    theta_sq = theta * theta
+    if theta < 1.0e-8:
+        a = 0.5 - theta_sq / 24.0
+        b = 1.0 / 6.0 - theta_sq / 120.0
+    else:
+        a = (1.0 - np.cos(theta)) / theta_sq
+        b = (theta - np.sin(theta)) / (theta_sq * theta)
+    cross = skewsym(vector)
+    sign = -1.0 if order == "right" else 1.0
+    return np.eye(3) + sign * a * cross + b * (cross @ cross)
+
+
+@njit(cache=True)
+def quaternion_vector_reset_jacobian(vector: np.ndarray, order: str) -> np.ndarray | None:
+    """Attitude error reset Jacobian for quaternion-vector coordinates."""
+    qv = vector / 2.0
+    qv_norm_sq = float(qv @ qv)
+    if qv_norm_sq > 1.0:
+        raise ValueError("attitude delta exceeds quaternion-vector range (norm > 2)")
+    q0 = np.sqrt(max(0.0, 1.0 - qv_norm_sq))
+    if q0 <= 1.0e-12:
+        return None
+    sign = -1.0 if order == "right" else 1.0
+    return q0 * np.eye(3) + np.outer(qv, qv) / q0 + sign * skewsym(qv)
+
+
+def legendre_p_and_dp(s, max_degree):
+    r"""
+    Evaluate Legendre polynomials and their first derivatives at ``s``.
+
+    Uses the standard upward recurrences
+
+    .. math::
+        n P_n = (2n-1)\, s\, P_{n-1} - (n-1) P_{n-2}, \qquad
+        P_n' = n\, P_{n-1} + s\, P_{n-1}',
+
+    which are stable everywhere on :math:`s\in[-1,1]` (no division by
+    :math:`1-s^2`, so they hold over the poles) and are analytic in ``s``,
+    so the routine is safe for complex-step differentiation.
+
+    :param s:
+        Argument of the polynomials (``sin`` of geocentric latitude). May be a
+        real or complex scalar.
+    :type s: float or complex
+
+    :param max_degree:
+        Highest polynomial degree to evaluate.
+    :type max_degree: int
+
+    :return:
+        Tuple ``(P, dP)`` of lists indexed by degree ``0..max_degree``.
+    :rtype: tuple[list, list]
+    """
+    P = [None] * (max_degree + 1)
+    dP = [None] * (max_degree + 1)
+    P[0] = 1.0 + 0.0 * s  # preserve dtype (float or complex) of s
+    dP[0] = 0.0 * s
+    if max_degree >= 1:
+        P[1] = s
+        dP[1] = 1.0 + 0.0 * s
+    for n in range(2, max_degree + 1):
+        P[n] = ((2 * n - 1) * s * P[n - 1] - (n - 1) * P[n - 2]) / n
+        dP[n] = n * P[n - 1] + s * dP[n - 1]
+    return P, dP
