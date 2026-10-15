@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 
 from ..subplot import Subplot
-from ADCS.helpers.math_helpers import rot_mat, normalize, quat_diff
+from ADCS.helpers.math_helpers import rot_mat, normalize, angle_between_vectors, quaternion_angle
 from ADCS.state import State
 
 
@@ -28,16 +28,7 @@ def _normalize_modes(modes: list[str] | None) -> list[str]:
 def _angle_deg(u: np.ndarray, v: np.ndarray) -> float:
     u = np.asarray(u, dtype=float).reshape(-1)
     v = np.asarray(v, dtype=float).reshape(-1)
-    if u.size != 3 or v.size != 3:
-        return float("nan")
-    nu = float(np.linalg.norm(u))
-    nv = float(np.linalg.norm(v))
-    if nu == 0.0 or nv == 0.0:
-        return float("nan")
-    u = u / nu
-    v = v / nv
-    dot = float(np.clip(np.dot(u, v), -1.0, 1.0))
-    return float(np.rad2deg(np.arccos(dot)))
+    return float(np.rad2deg(angle_between_vectors(u, v))) if u.size == v.size == 3 else float("nan")
 
 
 def _boresight_eci(q_b2i: np.ndarray, bore_body_unit: np.ndarray) -> np.ndarray:
@@ -49,17 +40,7 @@ def _boresight_eci(q_b2i: np.ndarray, bore_body_unit: np.ndarray) -> np.ndarray:
 
 
 def _attitude_error_deg(q_b2i: np.ndarray, qref_b2i: np.ndarray) -> float:
-    """
-    Hamilton, scalar-first.
-    Returns the minimal rotation angle between q and q_ref in degrees.
-    """
-    q_b2i = normalize(np.asarray(q_b2i, dtype=float).reshape(4))
-    qref_b2i = normalize(np.asarray(qref_b2i, dtype=float).reshape(4))
-
-    # quat_diff(q0, q1) returns q0^{-1} ⊗ q1 (forced to positive scalar part)
-    q_err = quat_diff(q_b2i, qref_b2i)
-    w = float(np.clip(q_err[0], -1.0, 1.0))
-    return float(np.rad2deg(2.0 * np.arccos(w)))
+    return float(np.rad2deg(quaternion_angle(np.asarray(q_b2i, dtype=float), np.asarray(qref_b2i, dtype=float))))
 
 
 class TargetPlot(Subplot):
