@@ -327,6 +327,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -353,8 +355,11 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -614,6 +619,40 @@ parameters naturally returns a zero-dimensional PSD.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="ADCS.covariance.html#ADCS.covariance.Covariance" title="ADCS.covariance.Covariance"><em>Covariance</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/disturbance.html#Disturbance.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update" title="Link to this definition">¶</a></dt>
+<dd><p>Refresh the values held over the next plant step.</p>
+<p>Disturbances with a noise model draw a fresh sample here; the base
+class has nothing to refresh. Called by <a class="reference internal" href="#ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update_errors" title="ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update_errors"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_errors()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update_errors">
+<span class="sig-name descname"><span class="pre">update_errors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">j2000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/disturbance.html#Disturbance.update_errors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update_errors" title="Link to this definition">¶</a></dt>
+<dd><p>Advance the stochastic error models by one plant step.</p>
+<p>The estimated parameters (<code class="docutils literal notranslate"><span class="pre">main_param</span></code>) take one step of their
+random walk, with standard deviation <code class="docutils literal notranslate"><span class="pre">parameter_std_rate</span></code> times the
+square root of the elapsed time in seconds, the same model the
+estimator assumes through <a class="reference internal" href="#ADCS.satellite_hardware.disturbances.disturbance.Disturbance.parameter_process_psd" title="ADCS.satellite_hardware.disturbances.disturbance.Disturbance.parameter_process_psd"><code class="xref py py-meth docutils literal notranslate"><span class="pre">parameter_process_psd()</span></code></a>; then
+<a class="reference internal" href="#ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update" title="ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a> draws the step’s noise sample. The simulation calls
+this once per step before integrating the plant, so the integrator
+sees one frozen realisation per step, never a draw inside the solver.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>j2000</strong> (<em>float</em>) – Current epoch in Julian centuries since J2000.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>

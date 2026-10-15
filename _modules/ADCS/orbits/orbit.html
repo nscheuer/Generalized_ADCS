@@ -326,6 +326,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -352,8 +354,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -584,13 +589,13 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Orbit"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">ppigrf</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">skyfield</span><span class="w"> </span><span class="kn">import</span> <span class="n">api</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">positionlib</span><span class="p">,</span> <span class="n">framelib</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.environment.magnetic_field</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_MAGNETIC_MODEL</span><span class="p">,</span> <span class="n">_normalize_magnetic_model</span><span class="p">,</span> <span class="n">field_gc</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">_normalize_zonal_J</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span><span class="p">,</span> <span class="n">EarthConstants</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">MathConstants</span>
@@ -615,7 +620,7 @@
 <span class="sd">    -----------</span>
 <span class="sd">    For propagated orbits, this constructor propagates the translational dynamics</span>
 <span class="sd">    using pure NumPy and then batch-computes the expensive environment quantities</span>
-<span class="sd">    (Skyfield frames / Sun vector and ppigrf geomagnetic field) for the full time</span>
+<span class="sd">    (Skyfield frames / Sun vector and IGRF geomagnetic field) for the full time</span>
 <span class="sd">    array once, before constructing individual :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">    objects.</span>
 
@@ -644,6 +649,11 @@
 <span class="sd">        ``0`` disables zonals, ``2`` includes only J2, and larger values</span>
 <span class="sd">        include every zonal term up to that degree.</span>
 <span class="sd">    :type zonal_J: int</span>
+<span class="sd">    :param magnetic_model:</span>
+<span class="sd">        Geomagnetic field model for every state's ``B``; one of</span>
+<span class="sd">        :data:`ADCS.environment.MAGNETIC_MODELS`. ``None`` uses the model of</span>
+<span class="sd">        the initial state (or of the first state, for a list).</span>
+<span class="sd">    :type magnetic_model: str or None</span>
 
 <span class="sd">    :raises ValueError:</span>
 <span class="sd">        If input arguments are inconsistent or unsupported.</span>
@@ -658,6 +668,7 @@
         <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">magnetic_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize an orbit from an initial condition or a list of states.</span>
@@ -691,13 +702,19 @@
         <span class="c1"># Remember the zonal setting so node-to-node interpolation in get_os()</span>
         <span class="c1"># reuses the same gravity model the orbit was propagated with.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_zonal_J</span> <span class="o">=</span> <span class="n">_normalize_zonal_J</span><span class="p">(</span><span class="n">zonal_J</span><span class="p">)</span>
+        <span class="c1"># Likewise the field model, so every state in this orbit -- including</span>
+        <span class="c1"># ones get_os() interpolates later -- evaluates B the same way.</span>
+        <span class="k">if</span> <span class="n">magnetic_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">first</span> <span class="o">=</span> <span class="n">os0</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">os0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">magnetic_model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="s2">"magnetic_model"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_magnetic_model</span> <span class="o">=</span> <span class="n">_normalize_magnetic_model</span><span class="p">(</span><span class="n">magnetic_model</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="n">Orbital_State</span><span class="p">):</span>
             <span class="n">start_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os0</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
 
             <span class="c1"># Singleton orbit</span>
             <span class="k">if</span> <span class="n">end_time</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">float</span><span class="p">(</span><span class="n">end_time</span><span class="p">)</span> <span class="o">==</span> <span class="n">start_time</span><span class="p">:</span>
-                <span class="n">st</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adopt_magnetic_model</span><span class="p">(</span><span class="n">os0</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">{</span><span class="n">st</span><span class="o">.</span><span class="n">J2000</span><span class="p">:</span> <span class="n">st</span><span class="p">}</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">st</span><span class="o">.</span><span class="n">J2000</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
                 <span class="k">return</span>
@@ -796,28 +813,18 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">S_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">sun_km</span><span class="p">,</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
 
-            <span class="c1"># Magnetic field (IGRF) in geocentric components (vectorized call)</span>
-            <span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span> <span class="o">=</span> <span class="n">ppigrf</span><span class="o">.</span><span class="n">igrf_gc</span><span class="p">(</span>
+            <span class="c1"># Magnetic field (IGRF) in geocentric components (vectorized call).</span>
+            <span class="c1"># Dates pair up elementwise with the positions, so this is N field</span>
+            <span class="c1"># evaluations. ppigrf broadcast dates against coordinates instead,</span>
+            <span class="c1"># computing an N x N grid of which the diagonal was then extracted</span>
+            <span class="c1"># -- N^2 work for N results.</span>
+            <span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span> <span class="o">=</span> <span class="n">field_gc</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_magnetic_model</span><span class="p">,</span>
                 <span class="n">geo_hist</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
                 <span class="n">geo_hist</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
                 <span class="n">geo_hist</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
                 <span class="n">dts</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_r</span><span class="p">)</span>
-            <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_th</span><span class="p">)</span>
-            <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_ph</span><span class="p">)</span>
-
-            <span class="c1"># ppigrf sometimes returns diagonal matrices when passed time lists; handle both</span>
-            <span class="k">if</span> <span class="n">b_r</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">b_r</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">b_r</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">N</span><span class="p">:</span>
-                <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_r</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">b_th</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">b_th</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">b_th</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">N</span><span class="p">:</span>
-                <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_th</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">b_ph</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">b_ph</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">b_ph</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">N</span><span class="p">:</span>
-                <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_ph</span><span class="p">)</span>
-
-            <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_r</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
-            <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_th</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
-            <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_ph</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
 
             <span class="c1"># Local basis for geocentric-&gt;ECEF conversion (vectorized, matches existing Orbit.geocentric_to_ecef_orbit)</span>
             <span class="n">n_ecef</span> <span class="o">=</span> <span class="n">ECEF_hist</span> <span class="o">/</span> <span class="n">r_ecef</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
@@ -871,7 +878,7 @@
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
                 <span class="n">sunlit_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">False</span><span class="p">]</span> <span class="o">*</span> <span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
 
-            <span class="c1"># --- Construct Orbital_State objects cheaply without per-state skyfield/ppigrf calls ---</span>
+            <span class="c1"># --- Construct Orbital_State objects cheaply without per-state skyfield/IGRF calls ---</span>
             <span class="n">states0</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">N</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
                 <span class="n">st</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">Orbital_State</span><span class="p">)</span>
@@ -905,6 +912,7 @@
 
                 <span class="c1"># Environment</span>
                 <span class="n">st</span><span class="o">.</span><span class="n">density_model</span> <span class="o">=</span> <span class="n">density_model</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">magnetic_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_magnetic_model</span>
                 <span class="n">st</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="n">S_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                 <span class="n">st</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">B_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                 <span class="n">st</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rho_hist</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
@@ -935,11 +943,22 @@
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">os0</span><span class="p">):</span>
             <span class="c1"># Ensure uniqueness by time and copy states (copy is fast and does not recompute environment)</span>
             <span class="n">unique_times</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="o">.</span><span class="n">J2000</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">os0</span><span class="p">}</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="o">.</span><span class="n">J2000</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">os0</span> <span class="k">if</span> <span class="n">j</span><span class="o">.</span><span class="n">J2000</span> <span class="ow">in</span> <span class="n">unique_times</span><span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="o">.</span><span class="n">J2000</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adopt_magnetic_model</span><span class="p">(</span><span class="n">j</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">os0</span> <span class="k">if</span> <span class="n">j</span><span class="o">.</span><span class="n">J2000</span> <span class="ow">in</span> <span class="n">unique_times</span><span class="p">}</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Orbit must be initialized with Orbital_State or List[Orbital_State]"</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_adopt_magnetic_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">st</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Orbital_State</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Put a (copied) state on this orbit's field model, recomputing ``B`` only</span>
+<span class="sd">        if the state was built with a different one.</span>
+<span class="sd">        """</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_magnetic_model"</span><span class="p">,</span> <span class="n">DEFAULT_MAGNETIC_MODEL</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="s2">"magnetic_model"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="n">model</span><span class="p">:</span>
+            <span class="n">st</span><span class="o">.</span><span class="n">magnetic_model</span> <span class="o">=</span> <span class="n">model</span>
+            <span class="n">st</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">get_b_eci</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">st</span>
 
 <div class="viewcode-block" id="Orbit.get_os">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.get_os">[docs]</a>
@@ -1043,7 +1062,7 @@
             <span class="n">newstates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">&lt;=</span> <span class="n">t_1</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">&gt;=</span> <span class="n">t_0</span><span class="p">)]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">newstates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"there are no pre-created states in this time span"</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_zonal_J"</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_zonal_J"</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">magnetic_model</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_magnetic_model"</span><span class="p">,</span> <span class="n">DEFAULT_MAGNETIC_MODEL</span><span class="p">))</span>
         <span class="n">ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">t_0</span><span class="p">,</span> <span class="n">t_1</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="o">/</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">),</span> <span class="p">[</span><span class="n">t_1</span><span class="p">]])</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_orbit_from_times</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
 
@@ -1069,7 +1088,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">time_in_span</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">j</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"at least one time is not within this orbit span"</span><span class="p">)</span>
         <span class="n">newstates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_os</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">j</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_zonal_J"</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_zonal_J"</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">magnetic_model</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_magnetic_model"</span><span class="p">,</span> <span class="n">DEFAULT_MAGNETIC_MODEL</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Orbit.next_state">
@@ -1216,16 +1235,7 @@
             <span class="c1"># Fallback to legacy computation if any state is missing B</span>
             <span class="n">geos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">geocentric</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">])</span>
             <span class="n">dts</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">datetime</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
-            <span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span> <span class="o">=</span> <span class="n">ppigrf</span><span class="o">.</span><span class="n">igrf_gc</span><span class="p">(</span><span class="n">geos</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">geos</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">geos</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">dts</span><span class="p">)</span>
-            <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_r</span><span class="p">)</span>
-            <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_th</span><span class="p">)</span>
-            <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_ph</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">b_r</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_r</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">b_th</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_th</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">b_ph</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_ph</span><span class="p">)</span>
+            <span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span> <span class="o">=</span> <span class="n">field_gc</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_magnetic_model"</span><span class="p">,</span> <span class="n">DEFAULT_MAGNETIC_MODEL</span><span class="p">),</span> <span class="n">geos</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">geos</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">geos</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">dts</span><span class="p">)</span>
             <span class="n">b_ecef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geocentric_to_ecef_orbit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
             <span class="n">b_eci</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ecef_to_eci_orbit</span><span class="p">(</span><span class="n">b_ecef</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">b_eci</span> <span class="o">*</span> <span class="mf">1e-9</span></div>

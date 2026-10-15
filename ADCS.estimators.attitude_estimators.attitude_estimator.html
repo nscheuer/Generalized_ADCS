@@ -327,6 +327,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -353,8 +355,11 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -613,6 +618,28 @@ parameters can opt in by setting <code class="docutils literal notranslate"><spa
 </dd>
 </dl>
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.from_readings">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">readings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warm_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">filter_options</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#AttitudeEstimator.from_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.from_readings" title="Link to this definition">¶</a></dt>
+<dd><p>Build the filter and initialise it from one measurement vector.</p>
+<p>The same as constructing it with a
+<a class="reference internal" href="ADCS.estimators.initialization.html#ADCS.estimators.initialization.WarmStart" title="ADCS.estimators.initialization.WarmStart"><code class="xref py py-class docutils literal notranslate"><span class="pre">WarmStart</span></code></a> as its state and
+calling <code class="docutils literal notranslate"><span class="pre">step(readings,</span> <span class="pre">orbital_state)</span></code>. <code class="docutils literal notranslate"><span class="pre">filter_options</span></code> are the
+filter’s own keyword arguments (<code class="docutils literal notranslate"><span class="pre">quaternion_mode</span></code>, <code class="docutils literal notranslate"><span class="pre">alpha</span></code>, …).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>satellite</strong> (<em>Any</em>)</p></li>
+<li><p><strong>readings</strong> (<em>Any</em>)</p></li>
+<li><p><strong>orbital_state</strong> (<em>Any</em>)</p></li>
+<li><p><strong>dt</strong> (<em>float</em>)</p></li>
+<li><p><strong>warm_start</strong> (<a class="reference internal" href="ADCS.estimators.initialization.html#ADCS.estimators.initialization.WarmStart" title="ADCS.estimators.initialization.WarmStart"><em>WarmStart</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>filter_options</strong> (<em>Any</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.correct">
 <span class="sig-name descname"><span class="pre">correct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">measurements</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_estimator.html#AttitudeEstimator.correct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.correct" title="Link to this definition">¶</a></dt>
 <dd><p>Apply all selected finite measurements at the current state.</p>
@@ -750,11 +777,18 @@ temporary adapter for callers that still use the old one-call protocol.</p>
 <dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.state">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">state</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><span class="pre">EstimatorState</span></a></span><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.state" title="Link to this definition">¶</a></dt>
 <dd><p>Return an owned snapshot of the current estimate.</p>
+<p>A filter built from a <a class="reference internal" href="ADCS.estimators.initialization.html#ADCS.estimators.initialization.WarmStart" title="ADCS.estimators.initialization.WarmStart"><code class="xref py py-class docutils literal notranslate"><span class="pre">WarmStart</span></code></a>
+has none until its first readings arrive.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.supports_augmented_parameters">
 <span class="sig-name descname"><span class="pre">supports_augmented_parameters</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.supports_augmented_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.warm_start_attitude">
+<span class="sig-name descname"><span class="pre">warm_start_attitude</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="ADCS.estimators.attitude_determination.html#ADCS.estimators.attitude_determination.AttitudeSolution" title="ADCS.estimators.attitude_determination.AttitudeSolution"><span class="pre">AttitudeSolution</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.warm_start_attitude" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

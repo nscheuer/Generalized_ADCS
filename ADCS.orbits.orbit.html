@@ -327,6 +327,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -353,8 +355,11 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -590,7 +595,7 @@
 <span id="adcs-orbits-orbit-module"></span><h1>ADCS.orbits.orbit module<a class="headerlink" href="#module-ADCS.orbits.orbit" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="ADCS.orbits.orbit.Orbit">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.orbits.orbit.</span></span><span class="sig-name descname"><span class="pre">Orbit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">os0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zonal_J</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.orbit.Orbit" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.orbits.orbit.</span></span><span class="sig-name descname"><span class="pre">Orbit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">os0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zonal_J</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">magnetic_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.orbit.Orbit" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Time-ordered container and propagator for orbital states.</p>
 <p class="rubric">Notes</p>
@@ -602,7 +607,7 @@ field) and full frame transforms for each stored
 <h2>Performance<a class="headerlink" href="#performance" title="Link to this heading">¶</a></h2>
 <p>For propagated orbits, this constructor propagates the translational dynamics
 using pure NumPy and then batch-computes the expensive environment quantities
-(Skyfield frames / Sun vector and ppigrf geomagnetic field) for the full time
+(Skyfield frames / Sun vector and IGRF geomagnetic field) for the full time
 array once, before constructing individual <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>
 objects.</p>
 <dl class="field-list simple">
@@ -643,6 +648,14 @@ include every zonal term up to that degree.</p>
 </dd>
 <dt class="field-even">type zonal_J<span class="colon">:</span></dt>
 <dd class="field-even"><p>int</p>
+</dd>
+<dt class="field-odd">param magnetic_model<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Geomagnetic field model for every state’s <code class="docutils literal notranslate"><span class="pre">B</span></code>; one of
+<code class="xref py py-data docutils literal notranslate"><span class="pre">ADCS.environment.MAGNETIC_MODELS</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code> uses the model of
+the initial state (or of the first state, for a list).</p>
+</dd>
+<dt class="field-even">type magnetic_model<span class="colon">:</span></dt>
+<dd class="field-even"><p>str or None</p>
 </dd>
 <dt class="field-odd">raises ValueError<span class="colon">:</span></dt>
 <dd class="field-odd"><p>If input arguments are inconsistent or unsupported.</p>
@@ -851,6 +864,7 @@ directly.</p>
 <li><p><strong>fast</strong> (<em>bool</em>)</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em>)</p></li>
 <li><p><strong>zonal_J</strong> (<em>int</em>)</p></li>
+<li><p><strong>magnetic_model</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
 </ul>
 </dd>
 </dl>

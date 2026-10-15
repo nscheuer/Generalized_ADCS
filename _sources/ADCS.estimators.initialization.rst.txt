@@ -1,0 +1,7 @@
+ADCS.estimators.initialization module
+=====================================
+
+.. automodule:: ADCS.estimators.initialization
+   :members:
+   :show-inheritance:
+   :undoc-members:

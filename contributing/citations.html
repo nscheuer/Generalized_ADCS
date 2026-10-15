@@ -327,6 +327,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -353,8 +355,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -696,8 +701,8 @@ planetary ephemerides and geomagnetic-field calculations.</p>
 </tr>
 <tr class="row-odd"><td><p>IGRF geomagnetic field</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">ADCS.orbits.orbital_state.Orbital_State</span></code></p></td>
-<td><p>IAGA-VMOD, <em>ppigrf: Pure Python IGRF</em>, together with P. Alken et al., “International Geomagnetic Reference Field: the thirteenth generation,” <em>Earth, Planets and Space</em>, Vol. 73, Article 49, 2021.</p></td>
-<td><p><a class="reference external" href="https://github.com/IAGA-VMOD/ppigrf">ppigrf</a>; <a class="reference external" href="https://doi.org/10.1186/s40623-020-01288-x">doi:10.1186/s40623-020-01288-x</a></p></td>
+<td><p>International Association of Geomagnetism and Aeronomy, <em>IGRF-14</em> (2024), coefficient dataset. Also cite C. Beggan et al., “International geomagnetic reference field: the fourteenth generation,” <em>Earth, Planets and Space</em>, 78, 127 (2026), and IAGA-VMOD, <em>ppigrf: Pure Python IGRF</em> for the legacy backend.</p></td>
+<td><p><a class="reference external" href="https://doi.org/10.5281/zenodo.14012302">IGRF-14 coefficient dataset, doi:10.5281/zenodo.14012302</a>; <a class="reference external" href="https://doi.org/10.1186/s40623-025-02360-0">IGRF-14 paper, doi:10.1186/s40623-025-02360-0</a>; <a class="reference external" href="https://github.com/IAGA-VMOD/ppigrf">ppigrf</a></p></td>
 </tr>
 </tbody>
 </table>
@@ -707,6 +712,88 @@ planetary ephemerides and geomagnetic-field calculations.</p>
 <h2>Estimators<a class="headerlink" href="#estimators" title="Link to this heading">¶</a></h2>
 <p>Estimator citations should be added here when an estimator implementation is
 derived from a specific paper or validated against a published formulation.</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 40.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Documentation</p></th>
+<th class="head"><p>Original citation</p></th>
+<th class="head"><p>Paper</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Wahba’s problem (the loss every single-frame method minimises)</p></td>
+<td><p><a class="reference internal" href="../ADCS.estimators.attitude_determination.html"><span class="doc">attitude_determination</span></a></p></td>
+<td><ol class="upperalpha simple" start="7">
+<li><p>Wahba, “A Least Squares Estimate of Satellite Attitude,” <em>SIAM Review</em>, Vol. 7, No. 3, 1965, p. 409.</p></li>
+</ol>
+</td>
+<td><p><a class="reference external" href="https://doi.org/10.1137/1007077">doi:10.1137/1007077</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>TRIAD two-vector attitude determination</p></td>
+<td><p><a class="reference internal" href="../ADCS.estimators.attitude_determination.html"><span class="doc">attitude_determination</span></a></p></td>
+<td><ol class="upperalpha simple" start="8">
+<li><ol class="upperalpha simple" start="4">
+<li><p>Black, “A Passive System for Determining the Attitude of a Satellite,” <em>AIAA Journal</em>, Vol. 2, No. 7, 1964, pp. 1350-1351.</p></li>
+</ol>
+</li>
+</ol>
+</td>
+<td><p><a class="reference external" href="https://doi.org/10.2514/3.2555">doi:10.2514/3.2555</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Davenport’s q-method</p></td>
+<td><p><a class="reference internal" href="../ADCS.estimators.attitude_determination.html"><span class="doc">attitude_determination</span></a></p></td>
+<td><ol class="upperalpha simple" start="16">
+<li><ol class="upperalpha simple" start="2">
+<li><p>Davenport, “A Vector Approach to the Algebra of Rotations with Applications,” NASA TN D-4696, 1968.</p></li>
+</ol>
+</li>
+</ol>
+</td>
+<td><p><a class="reference external" href="https://ntrs.nasa.gov/citations/19680021122">NTRS 19680021122</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>QUEST and the optimal attitude covariance</p></td>
+<td><p><a class="reference internal" href="../ADCS.estimators.attitude_determination.html"><span class="doc">attitude_determination</span></a></p></td>
+<td><ol class="upperalpha simple" start="13">
+<li><ol class="upperalpha simple" start="4">
+<li><p>Shuster and S. D. Oh, “Three-Axis Attitude Determination from Vector Observations,” <em>Journal of Guidance and Control</em>, Vol. 4, No. 1, 1981, pp. 70-77.</p></li>
+</ol>
+</li>
+</ol>
+</td>
+<td><p><a class="reference external" href="https://doi.org/10.2514/3.19717">doi:10.2514/3.19717</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Quaternion from a rotation matrix (Shepperd’s method)</p></td>
+<td><p><a class="reference internal" href="../ADCS.estimators.attitude_determination.html"><span class="doc">attitude_determination</span></a></p></td>
+<td><ol class="upperalpha simple" start="19">
+<li><ol class="upperalpha simple" start="23">
+<li><p>Shepperd, “Quaternion from Rotation Matrix,” <em>Journal of Guidance and Control</em>, Vol. 1, No. 3, 1978, pp. 223-224.</p></li>
+</ol>
+</li>
+</ol>
+</td>
+<td><p><a class="reference external" href="https://doi.org/10.2514/3.55767b">doi:10.2514/3.55767b</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Survey of single-frame attitude estimators</p></td>
+<td><p><a class="reference internal" href="../ADCS.estimators.attitude_determination.html"><span class="doc">attitude_determination</span></a></p></td>
+<td><ol class="upperalpha simple" start="6">
+<li><ol class="upperalpha simple" start="12">
+<li><p>Markley and D. Mortari, “Quaternion Attitude Estimation Using Vector Observations,” <em>Journal of the Astronautical Sciences</em>, Vol. 48, No. 2-3, 2000, pp. 359-380.</p></li>
+</ol>
+</li>
+</ol>
+</td>
+<td><p>(journal article)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 </section>
 </section>
 

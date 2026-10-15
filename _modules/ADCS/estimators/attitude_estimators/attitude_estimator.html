@@ -326,6 +326,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../../ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -352,8 +354,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -597,6 +602,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.covariance</span><span class="w"> </span><span class="kn">import</span> <span class="n">Covariance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.process_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">propagate_state</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.process_noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">discretize_process_noise</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators</span><span class="w"> </span><span class="kn">import</span> <span class="n">initialization</span> <span class="k">as</span> <span class="n">_initialization</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.attitude_determination</span><span class="w"> </span><span class="kn">import</span> <span class="n">AttitudeSolution</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.initialization</span><span class="w"> </span><span class="kn">import</span> <span class="n">WarmStart</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">QuaternionMode</span>
 
@@ -629,8 +637,10 @@
         <span class="n">measurement_quaternion_mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">unmodeled_dynamics_psd</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"state must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="p">(</span><span class="n">EstimatorState</span><span class="p">,</span> <span class="n">WarmStart</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"state must be an EstimatorState or a WarmStart, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">or</span> <span class="n">dt</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"dt must be finite and non-negative"</span><span class="p">)</span>
@@ -645,6 +655,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_covariance_coordinates</span> <span class="o">=</span> <span class="n">covariance_coordinates</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_correction_mode</span> <span class="o">=</span> <span class="n">correction_mode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_measurement_quaternion_mode</span> <span class="o">=</span> <span class="n">measurement_quaternion_mode</span>
+        <span class="c1"># A WarmStart is a recipe, not a state: the state is built from the</span>
+        <span class="c1"># first measurement vector (see correct). Until then a placeholder of</span>
+        <span class="c1"># the right layout keeps the constructors' checks meaningful.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_warm_start</span><span class="p">:</span> <span class="n">WarmStart</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warm_start_attitude</span><span class="p">:</span> <span class="n">AttitudeSolution</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">WarmStart</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_warm_start</span> <span class="o">=</span> <span class="n">state</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_placeholder_state</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">unmodeled_dynamics_psd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
             <span class="n">unmodeled_dynamics_psd</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span>
@@ -674,7 +692,12 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Return an owned snapshot of the current estimate."""</span>
+<span class="w">        </span><span class="sd">"""Return an owned snapshot of the current estimate.</span>
+
+<span class="sd">        A filter built from a :class:`~ADCS.estimators.initialization.WarmStart`</span>
+<span class="sd">        has none until its first readings arrive.</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_require_initialized</span><span class="p">(</span><span class="s2">"state"</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
     <span class="nd">@property</span>
@@ -687,11 +710,79 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Replace the estimate after validating this filter's layout."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_warm_start</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># a given state replaces a pending warm start</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_initial_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_configured_process_noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">process_noise</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_diagnostics</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_previous_orbital_state</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_require_initialized</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_warm_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"the estimator has no </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2"> yet: it starts from its first readings, so call "</span>
+                <span class="s2">"step(measurements, orbital_state) or update(control, measurements, orbital_state) first"</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_placeholder_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""A state of this filter's layout, standing in until the warm start runs."""</span>
+        <span class="n">satellite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span>
+        <span class="n">layout</span> <span class="o">=</span> <span class="n">EstimatorState</span><span class="p">(</span>
+            <span class="n">w</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+            <span class="n">q</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+            <span class="n">h</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">satellite</span><span class="o">.</span><span class="n">rw_actuators</span><span class="p">)),</span>
+            <span class="n">act_bias</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">satellite</span><span class="o">.</span><span class="n">act_bias_len</span><span class="p">),</span>
+            <span class="n">sens_bias</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">satellite</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="p">),</span>
+            <span class="n">dist_param</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">satellite</span><span class="o">.</span><span class="n">dist_param_len</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">coordinates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">covariance_coordinates</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">EstimatorState</span><span class="p">(</span>
+            <span class="n">w</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="n">act_bias</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">act_bias</span><span class="p">,</span>
+            <span class="n">sens_bias</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">sens_bias</span><span class="p">,</span> <span class="n">dist_param</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">dist_param</span><span class="p">,</span>
+            <span class="n">cov</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">size</span><span class="p">),</span> <span class="n">int_cov</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">)),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_initialize_from_readings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">measurements</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Build the state from the first readings, which are consumed rather than corrected on."""</span>
+        <span class="n">chart</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">correction_mode</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariance_coordinates</span> <span class="o">==</span> <span class="s2">"tangent"</span>
+            <span class="k">else</span> <span class="n">EstimatorState</span><span class="o">.</span><span class="n">DEFAULT_QUATERNION_MODE</span>
+        <span class="p">)</span>
+        <span class="n">state</span><span class="p">,</span> <span class="n">solution</span> <span class="o">=</span> <span class="n">_initialization</span><span class="o">.</span><span class="n">_initial_state</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="p">,</span> <span class="n">measurements</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_warm_start</span><span class="p">,</span>
+            <span class="n">covariance_coordinates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">covariance_coordinates</span><span class="p">,</span> <span class="n">quaternion_mode</span><span class="o">=</span><span class="n">chart</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_previous_orbital_state</span>  <span class="c1"># the update() adapter records it before correcting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_previous_orbital_state</span> <span class="o">=</span> <span class="n">previous</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warm_start_attitude</span> <span class="o">=</span> <span class="n">solution</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span>
+
+<div class="viewcode-block" id="AttitudeEstimator.from_readings">
+<a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.AttitudeEstimator.from_readings">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_readings</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">satellite</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">readings</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">orbital_state</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">warm_start</span><span class="p">:</span> <span class="n">WarmStart</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">filter_options</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Build the filter and initialise it from one measurement vector.</span>
+
+<span class="sd">        The same as constructing it with a</span>
+<span class="sd">        :class:`~ADCS.estimators.initialization.WarmStart` as its state and</span>
+<span class="sd">        calling ``step(readings, orbital_state)``. ``filter_options`` are the</span>
+<span class="sd">        filter's own keyword arguments (``quaternion_mode``, ``alpha``, ...).</span>
+<span class="sd">        """</span>
+        <span class="n">estimator</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="n">warm_start</span> <span class="ow">or</span> <span class="n">WarmStart</span><span class="p">(),</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="o">**</span><span class="n">filter_options</span><span class="p">)</span>
+        <span class="n">estimator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">readings</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">estimator</span></div>
 
 
     <span class="nd">@staticmethod</span>
@@ -776,6 +867,7 @@
 <span class="sd">        The model-generated discrete process covariance and the prior state's</span>
 <span class="sd">        discrete ``process_noise`` (legacy ``int_cov``) are additive.</span>
 <span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_require_initialized</span><span class="p">(</span><span class="s2">"state to propagate"</span><span class="p">)</span>
         <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">step</span><span class="p">)</span> <span class="ow">or</span> <span class="n">step</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"dt must be finite and non-negative"</span><span class="p">)</span>
@@ -873,6 +965,8 @@
         <span class="n">epoch_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Apply all selected finite measurements at the current state."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_warm_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_from_readings</span><span class="p">(</span><span class="n">measurements</span><span class="p">,</span> <span class="n">orbital_state</span><span class="p">)</span>
         <span class="n">stack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">measurement_stack</span>
         <span class="n">candidate</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">active_mask</span><span class="p">(</span>
             <span class="n">measurements</span><span class="p">,</span>

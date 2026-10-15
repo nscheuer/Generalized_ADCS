@@ -7,6 +7,8 @@ Submodules
 .. toctree::
    :maxdepth: 1
 
+   ADCS.environment.igrf
+   ADCS.environment.magnetic_field
    ADCS.environment.star_catalog
 
 Module contents

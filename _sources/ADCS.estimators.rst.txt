@@ -17,8 +17,11 @@ Submodules
 .. toctree::
    :maxdepth: 1
 
+   ADCS.estimators.attitude_determination
    ADCS.estimators.covariance
+   ADCS.estimators.initialization
    ADCS.estimators.measurement_stack
+   ADCS.estimators.numba_kernels
    ADCS.estimators.process_model
    ADCS.estimators.process_noise
    ADCS.estimators.quaternion_mean

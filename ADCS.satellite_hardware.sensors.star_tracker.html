@@ -327,6 +327,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -353,8 +355,11 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -795,6 +800,15 @@ constraint.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.star_tracker.StarTracker.reference_direction">
+<span class="sig-name descname"><span class="pre">reference_direction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/star_tracker.html#StarTracker.reference_direction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.reference_direction" title="Link to this definition">¶</a></dt>
+<dd><p>Inertial direction of the star of the last reading, if this object took it.</p>
+<p>The reading itself does not say which star was used, so only the
+sensor object that produced it knows; an estimator’s copy returns
+<code class="docutils literal notranslate"><span class="pre">None</span></code> and needs the reference supplied separately.</p>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.star_tracker.StarTracker.noise_covariance">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">noise_covariance</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">NDArray</span><span class="p"><span class="pre">[</span></span><span class="pre">float64</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.noise_covariance" title="Link to this definition">¶</a></dt>
@@ -807,6 +821,17 @@ constraint.</p>
 <dd class="field-even"><p>numpy.ndarray</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.star_tracker.StarTracker.observation_kind">
+<span class="sig-name descname"><span class="pre">observation_kind</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'star'</span></span><a class="headerlink" href="#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.observation_kind" title="Link to this definition">¶</a></dt>
+<dd><p>What the sensor observes, for single-frame attitude determination and
+estimator warm starts: <code class="docutils literal notranslate"><span class="pre">&quot;magnetic_field&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;sun&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;nadir&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;star&quot;</span></code> (a direction), <code class="docutils literal notranslate"><span class="pre">&quot;attitude&quot;</span></code> (a full quaternion),
+<code class="docutils literal notranslate"><span class="pre">&quot;angular_rate&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when the reading is none of these.
+Single-axis direction sensors expose <code class="docutils literal notranslate"><span class="pre">axis</span></code> (and sun sensors
+<code class="docutils literal notranslate"><span class="pre">efficiency</span></code>); vector sensors return the body-frame direction itself.</p>
 </dd></dl>
 
 <dl class="py attribute">

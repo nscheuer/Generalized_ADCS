@@ -326,6 +326,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../../ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -352,8 +354,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -586,6 +591,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.covariance</span><span class="w"> </span><span class="kn">import</span> <span class="n">Covariance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span>
 
 <div class="viewcode-block" id="Disturbance">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance">[docs]</a>
@@ -684,6 +690,45 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">parameter_std_rate</span> <span class="o">&lt;</span> <span class="mf">0.0</span>
         <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"parameter_std_rate must be finite and non-negative"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_update_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Disturbance.update">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Refresh the values held over the next plant step.</span>
+
+<span class="sd">        Disturbances with a noise model draw a fresh sample here; the base</span>
+<span class="sd">        class has nothing to refresh. Called by :meth:`update_errors`.</span>
+<span class="sd">        """</span></div>
+
+
+<div class="viewcode-block" id="Disturbance.update_errors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update_errors">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">j2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Advance the stochastic error models by one plant step.</span>
+
+<span class="sd">        The estimated parameters (``main_param``) take one step of their</span>
+<span class="sd">        random walk, with standard deviation ``parameter_std_rate`` times the</span>
+<span class="sd">        square root of the elapsed time in seconds, the same model the</span>
+<span class="sd">        estimator assumes through :meth:`parameter_process_psd`; then</span>
+<span class="sd">        :meth:`update` draws the step's noise sample. The simulation calls</span>
+<span class="sd">        this once per step before integrating the plant, so the integrator</span>
+<span class="sd">        sees one frozen realisation per step, never a draw inside the solver.</span>
+
+<span class="sd">        :param j2000: Current epoch in Julian centuries since J2000.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimated_vector_length</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_std_rate</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_update_time</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_update_time</span> <span class="o">=</span> <span class="n">j2000</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">elapsed</span> <span class="o">=</span> <span class="p">(</span><span class="n">j2000</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_update_time</span><span class="p">)</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span>
+                <span class="k">if</span> <span class="n">elapsed</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">main_param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_param</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+                        <span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_std_rate</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">elapsed</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">last_update_time</span> <span class="o">=</span> <span class="n">j2000</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span></div>
+
 
 <div class="viewcode-block" id="Disturbance.parameter_process_psd">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance.parameter_process_psd">[docs]</a>

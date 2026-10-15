@@ -176,7 +176,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -327,6 +327,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -353,8 +355,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -581,7 +586,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
@@ -753,6 +758,49 @@ and an attitude represented by quaternion
 </tbody>
 </table>
 </div>
+<section id="starting-from-the-first-readings">
+<h2>Starting from the first readings<a class="headerlink" href="#starting-from-the-first-readings" title="Link to this heading">¶</a></h2>
+<p>The estimator above starts at the identity attitude with a large covariance and
+needs a while to converge. That start is a guess, and the filters are not built
+for guesses: an EKF, MEKF or UKF corrects an attitude it already has, with
+corrections linearised about that estimate, so a start that is far from the
+truth converges slowly and, with a poor covariance, can settle on a wrong
+solution or diverge. The readings themselves offer a better start. When the
+satellite carries sensors that see two or more different directions (here the
+magnetometers and the sun pairs), the first measurement vector already
+determines the attitude: each measured direction is also known in the inertial
+frame, and two non-parallel ones pin down the rotation between the frames. The
+module <a class="reference internal" href="../ADCS.estimators.attitude_determination.html#module-ADCS.estimators.attitude_determination" title="ADCS.estimators.attitude_determination"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ADCS.estimators.attitude_determination</span></code></a> solves this “single-frame”
+problem with the classic TRIAD and QUEST algorithms (and explains them, with the
+original papers); the result is accurate to the sensors’ noise and comes with a
+covariance, so the filter starts where its linearisation holds and its first
+covariance is honest rather than a large placeholder.</p>
+<p>Pass a <a class="reference internal" href="../ADCS.estimators.initialization.html#ADCS.estimators.initialization.WarmStart" title="ADCS.estimators.initialization.WarmStart"><code class="xref py py-class docutils literal notranslate"><span class="pre">WarmStart</span></code></a> in place of the
+initial state and the estimator builds its own state on its first cycle:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">estimator</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">AugmentedSRUKF</span><span class="p">(</span>
+    <span class="n">est_satellite</span><span class="p">,</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">WarmStart</span><span class="p">(</span><span class="n">process_noise</span><span class="o">=</span><span class="n">Q_hat</span><span class="p">),</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The attitude is solved from the direction observations with QUEST (or TRIAD, or
+taken from a quaternion star tracker when there is one), the angular rate is
+read off the gyros assuming zero bias, and the wheel momenta off the wheels. The
+covariance follows from the sensors’ noise. Biases and disturbance parameters
+start at zero; when the satellite estimates them, give their initial standard
+deviations (<code class="docutils literal notranslate"><span class="pre">act_bias_std</span></code>, <code class="docutils literal notranslate"><span class="pre">sens_bias_std</span></code>, <code class="docutils literal notranslate"><span class="pre">dist_param_std</span></code>). Any value
+can be supplied instead of read, together with its standard deviation (for
+example <code class="docutils literal notranslate"><span class="pre">rate=np.zeros(3),</span> <span class="pre">rate_std=0.01</span></code> for a satellite without gyros).
+The estimator has no state before its first cycle; afterwards
+<code class="docutils literal notranslate"><span class="pre">estimator.warm_start_attitude</span></code> holds the attitude solution it started from.
+In eclipse the sun sensors give no direction, so with only magnetometers and sun
+sensors the first readings must be taken in sunlight, otherwise the estimator
+raises and asks for an explicit initial attitude.</p>
+<p>To build the state yourself, call
+<a class="reference internal" href="../ADCS.estimators.initialization.html#ADCS.estimators.initialization.initial_state_from_readings" title="ADCS.estimators.initialization.initial_state_from_readings"><code class="xref py py-func docutils literal notranslate"><span class="pre">initial_state_from_readings()</span></code></a> with the
+satellite, one measurement vector and its orbital state, or use the
+<code class="docutils literal notranslate"><span class="pre">from_readings</span></code> class method of any estimator, which constructs the filter
+and runs that first cycle in one call.</p>
+</section>
 </section>
 
         </article>
@@ -798,8 +846,27 @@ and an attitude represented by quaternion
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">03: Simple Estimation</a><ul>
+<li><a class="reference internal" href="#starting-from-the-first-readings">Starting from the first readings</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

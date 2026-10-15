@@ -326,6 +326,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -352,8 +354,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -595,6 +600,13 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_triangular</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.numba_kernels</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">linear_covariance_prediction</span><span class="p">,</span>
+    <span class="n">linear_kalman_update</span><span class="p">,</span>
+    <span class="n">weighted_cross_covariance</span><span class="p">,</span>
+    <span class="n">weighted_outer_covariance</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <span class="n">CovarianceForm</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"full"</span><span class="p">,</span> <span class="s2">"sqrt"</span><span class="p">]</span>
@@ -872,7 +884,10 @@
                         <span class="n">coordinates</span><span class="o">=</span><span class="n">coordinates</span><span class="p">,</span>
                         <span class="n">psd_policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span>
                     <span class="p">)</span>
-        <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"i,ij,ik-&gt;jk"</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">deviations</span><span class="p">,</span> <span class="n">deviations</span><span class="p">)</span>
+        <span class="c1"># This array-only hot path is shared by UKF, SRUKF, and both augmented</span>
+        <span class="c1"># variants.  Validation stays above the compiled boundary so Numba</span>
+        <span class="c1"># never changes the public error contract.</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">weighted_outer_covariance</span><span class="p">(</span><span class="n">deviations</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">noise_matrix</span> <span class="o">=</span> <span class="n">_as_covariance_matrix</span><span class="p">(</span><span class="n">noise</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"noise covariance"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">noise_matrix</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">dimension</span><span class="p">,</span> <span class="n">dimension</span><span class="p">):</span>
@@ -1245,7 +1260,9 @@
                 <span class="n">coordinates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">,</span>
                 <span class="n">psd_policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="n">matrix</span> <span class="o">=</span> <span class="n">transition</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span> <span class="o">@</span> <span class="n">transition</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">noise_matrix</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">linear_covariance_prediction</span><span class="p">(</span>
+            <span class="n">transition</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">(),</span> <span class="n">noise_matrix</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">Covariance</span><span class="p">(</span>
             <span class="n">matrix</span><span class="p">,</span>
             <span class="n">form</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="p">,</span>
@@ -1314,16 +1331,12 @@
         <span class="n">r</span> <span class="o">=</span> <span class="n">_as_covariance_matrix</span><span class="p">(</span><span class="n">measurement_noise</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"measurement noise covariance"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"measurement noise dimension must match measurement jacobian"</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span>
-        <span class="n">innovation</span> <span class="o">=</span> <span class="n">Covariance</span><span class="p">(</span><span class="n">h</span> <span class="o">@</span> <span class="n">p</span> <span class="o">@</span> <span class="n">h</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="n">psd_policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_psd_policy</span><span class="p">)</span>
-        <span class="n">gain</span> <span class="o">=</span> <span class="n">innovation</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">h</span> <span class="o">@</span> <span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
-        <span class="n">identity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">joseph</span><span class="p">:</span>
-            <span class="n">residual</span> <span class="o">=</span> <span class="n">identity</span> <span class="o">-</span> <span class="n">gain</span> <span class="o">@</span> <span class="n">h</span>
-            <span class="n">posterior</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">@</span> <span class="n">p</span> <span class="o">@</span> <span class="n">residual</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">gain</span> <span class="o">@</span> <span class="n">r</span> <span class="o">@</span> <span class="n">gain</span><span class="o">.</span><span class="n">T</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">posterior</span> <span class="o">=</span> <span class="p">(</span><span class="n">identity</span> <span class="o">-</span> <span class="n">gain</span> <span class="o">@</span> <span class="n">h</span><span class="p">)</span> <span class="o">@</span> <span class="n">p</span>
-        <span class="n">posterior</span> <span class="o">=</span> <span class="p">(</span><span class="n">posterior</span> <span class="o">+</span> <span class="n">posterior</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="c1"># EKF/MEKF and their augmented variants all take this path.  The</span>
+        <span class="c1"># wrapper retains representation and validation responsibilities;</span>
+        <span class="c1"># only the dense numeric recursion is compiled.</span>
+        <span class="n">gain</span><span class="p">,</span> <span class="n">posterior</span> <span class="o">=</span> <span class="n">linear_kalman_update</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">(),</span> <span class="n">h</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">joseph</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">gain</span><span class="p">,</span> <span class="n">Covariance</span><span class="p">(</span>
             <span class="n">posterior</span><span class="p">,</span>
             <span class="n">form</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="p">,</span>
@@ -1352,7 +1365,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"deviation arrays must contain the same number of samples"</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">second</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"deviations must contain only finite values"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"i,ij,ik-&gt;jk"</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">weighted_cross_covariance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Covariance.updated_unscented">

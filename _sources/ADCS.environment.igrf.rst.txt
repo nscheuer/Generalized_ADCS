@@ -1,0 +1,7 @@
+ADCS.environment.igrf module
+============================
+
+.. automodule:: ADCS.environment.igrf
+   :members:
+   :show-inheritance:
+   :undoc-members:

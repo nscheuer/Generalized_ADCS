@@ -326,6 +326,8 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../../ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.environment.igrf.html">ADCS.environment.igrf module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.environment.magnetic_field.html">ADCS.environment.magnetic_field module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
@@ -352,8 +354,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.attitude_determination.html">ADCS.estimators.attitude_determination module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.covariance.html">ADCS.estimators.covariance module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.initialization.html">ADCS.estimators.initialization module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.measurement_stack.html">ADCS.estimators.measurement_stack module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.numba_kernels.html">ADCS.estimators.numba_kernels module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_model.html">ADCS.estimators.process_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.process_noise.html">ADCS.estimators.process_noise module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../ADCS.estimators.quaternion_mean.html">ADCS.estimators.quaternion_mean module</a></li>
@@ -1130,6 +1135,27 @@
 <span class="sd">        """</span>
         <span class="k">for</span> <span class="n">actuator</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">actuators</span><span class="p">:</span>
             <span class="n">actuator</span><span class="o">.</span><span class="n">update_errors</span><span class="p">(</span><span class="n">j2000</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Satellite.update_errors">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.update_errors">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">j2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Advance every stochastic error model by one plant step.</span>
+
+<span class="sd">        The actuators (:meth:`update_actuator_errors`) and the disturbances</span>
+<span class="sd">        (:meth:`~ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update_errors`)</span>
+<span class="sd">        step their bias and parameter random walks to ``j2000`` and draw the</span>
+<span class="sd">        noise samples held over the following integration step.</span>
+<span class="sd">        :func:`~ADCS.simulate.simulate` calls this once per step before</span>
+<span class="sd">        integrating the plant; sensors draw their own samples when read.</span>
+
+<span class="sd">        :param j2000: Current epoch in Julian centuries since J2000.</span>
+<span class="sd">        :type j2000: float</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_actuator_errors</span><span class="p">(</span><span class="n">j2000</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">disturbance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disturbances</span><span class="p">:</span>
+            <span class="n">disturbance</span><span class="o">.</span><span class="n">update_errors</span><span class="p">(</span><span class="n">j2000</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Satellite.update_RWhs">

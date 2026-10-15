@@ -1,0 +1,7 @@
+ADCS.estimators.numba\_kernels module
+=====================================
+
+.. automodule:: ADCS.estimators.numba_kernels
+   :members:
+   :show-inheritance:
+   :undoc-members:

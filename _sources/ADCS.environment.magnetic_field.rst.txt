@@ -1,0 +1,7 @@
+ADCS.environment.magnetic\_field module
+=======================================
+
+.. automodule:: ADCS.environment.magnetic_field
+   :members:
+   :show-inheritance:
+   :undoc-members:
