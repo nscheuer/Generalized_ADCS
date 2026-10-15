@@ -291,7 +291,7 @@ from ADCS.covariance import Covariance
 from ADCS.estimators.numba_kernels import weighted_row_mean
 from ADCS.estimators.process_model import propagate_state
 from ADCS.estimators.process_noise import discretize_process_noise
-from ADCS.helpers.math_helpers import quaternion_mean
+from ADCS.estimators.quaternion_mean import quaternion_mean
 from ADCS.state import EstimatorState, State
 
 from .attitude_estimator import AttitudeEstimator

@@ -11,7 +11,7 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button, RadioButtons
 from numpy.linalg import norm
 from typing import Callable, Tuple, List, Optional, Sequence
-from ADCS.helpers.math_helpers import quat_to_euler, quaternion_angle
+from ADCS.helpers.math_helpers import quat_to_euler
 from ADCS.state import State
 
 
@@ -255,7 +255,11 @@ def plot_error_and_sun(
         q_hat = est_state_hist[i, 3:7]
         q = state_hist[i, 3:7]
 
-        quat_err[i] = np.rad2deg(quaternion_angle(q_hat, q))
+        # dot product, clipped for numerical safety
+        qdot = float(np.clip(np.dot(q_hat, q), -1.0, 1.0))
+
+        # standard angle between quaternions (deg)
+        quat_err[i] = (180.0 / np.pi) * np.arccos(-1.0 + 2.0 * qdot**2.0)
 
         # angular velocity error norm (convert rad/s to deg/s)
         omega_err[i] = norm(est_state_hist[i, 0:3] - state_hist[i, 0:3]) * 180.0 / np.pi

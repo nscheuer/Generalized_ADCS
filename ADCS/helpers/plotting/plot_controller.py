@@ -10,7 +10,7 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button, RadioButtons
 from numpy.linalg import norm
 from typing import Callable, Tuple, List, Sequence
-from ADCS.helpers.math_helpers import quat_to_euler, quaternion_angle, angle_between_vectors, rot_mat
+from ADCS.helpers.math_helpers import quat_to_euler
 from ADCS.state import State
 
 def plot_control(
@@ -224,12 +224,42 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import Optional
 
+from ADCS.helpers.math_helpers import rot_mat
+
+
+def _normalize_quat(q: np.ndarray) -> Optional[np.ndarray]:
+    q = np.asarray(q, dtype=float).reshape(4)
+    if not np.all(np.isfinite(q)):
+        return None
+    n = np.linalg.norm(q)
+    if n < 1e-12:
+        return None
+    return q / n
 
 
 def _quat_attitude_error_deg(q: np.ndarray, q_ref: np.ndarray) -> float:
-    return float(np.rad2deg(quaternion_angle(
-        np.asarray(q, dtype=float), np.asarray(q_ref, dtype=float)
-    )))
+    """
+    Minimal rotation angle between q and q_ref (scalar-first, Hamilton).
+    """
+    q = _normalize_quat(q)
+    q_ref = _normalize_quat(q_ref)
+    if q is None or q_ref is None:
+        return np.nan
+
+    # q_err = q^{-1} ⊗ q_ref
+    q_inv = np.array([q[0], -q[1], -q[2], -q[3]])
+    w0, x0, y0, z0 = q_inv
+    w1, x1, y1, z1 = q_ref
+
+    q_err = np.array([
+        w0*w1 - x0*x1 - y0*y1 - z0*z1,
+        w0*x1 + x0*w1 + y0*z1 - z0*y1,
+        w0*y1 - x0*z1 + y0*w1 + z0*x1,
+        w0*z1 + x0*y1 - y0*x1 + z0*w1,
+    ])
+
+    w = float(np.clip(q_err[0], -1.0, 1.0))
+    return float(np.rad2deg(2.0 * np.arccos(w)))
 
 
 def plot_target_tracking(
@@ -274,7 +304,8 @@ def plot_target_tracking(
                 continue
             v_goal /= np.linalg.norm(v_goal)
 
-            error_angle_deg[i] = np.rad2deg(angle_between_vectors(v_bore_eci, v_goal))
+            dot = np.clip(np.dot(v_bore_eci, v_goal), -1.0, 1.0)
+            error_angle_deg[i] = np.rad2deg(np.arccos(dot))
 
         # ---- Mixed Nx4 target ----
         elif row.size == 4:
@@ -291,7 +322,8 @@ def plot_target_tracking(
                     continue
                 v_goal /= np.linalg.norm(v_goal)
 
-                error_angle_deg[i] = np.rad2deg(angle_between_vectors(v_bore_eci, v_goal))
+                dot = np.clip(np.dot(v_bore_eci, v_goal), -1.0, 1.0)
+                error_angle_deg[i] = np.rad2deg(np.arccos(dot))
 
             else:
                 # Quaternion goal: [q0,q1,q2,q3]
