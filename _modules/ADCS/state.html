@@ -652,8 +652,19 @@
     <span class="n">mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"full_quaternion uses a four-element additive attitude block"</span><span class="p">)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quaternion_delta_from_vector</span>
-    <span class="k">return</span> <span class="n">quaternion_delta_from_vector</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"quaternion_vector"</span><span class="p">:</span>
+        <span class="n">qv</span> <span class="o">=</span> <span class="n">vector</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="n">qv_norm_sq</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">qv</span> <span class="o">@</span> <span class="n">qv</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">qv_norm_sq</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"attitude delta exceeds quaternion-vector range (norm &gt; 2)"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">qv_norm_sq</span><span class="p">))],</span> <span class="n">qv</span><span class="p">))</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">rot_exp</span><span class="p">,</span> <span class="n">vec3_to_quat</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"rotation_vector"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">rot_exp</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
+    <span class="n">helper_mode</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"mrp"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"two_mrp"</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">"cayley"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">vec3_to_quat</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">helper_mode</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_quat_delta_to_vector</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">shortest</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -661,33 +672,69 @@
     <span class="n">mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"full_quaternion does not convert to a three-element attitude vector"</span><span class="p">)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quaternion_delta_to_vector</span>
-    <span class="k">return</span> <span class="n">quaternion_delta_to_vector</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">shortest</span><span class="o">=</span><span class="n">shortest</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">shortest</span> <span class="ow">and</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="o">-</span><span class="n">q</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"quaternion_vector"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"rotation_vector"</span><span class="p">:</span>
+        <span class="n">vector_norm</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+        <span class="k">if</span> <span class="n">vector_norm</span> <span class="o">&lt;</span> <span class="mf">1e-15</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">vector_norm</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">vector_norm</span><span class="p">)</span> <span class="o">*</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quat_to_vec3</span>
+
+    <span class="n">helper_mode</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"mrp"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"two_mrp"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">"cayley"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">quat_to_vec3</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">helper_mode</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_quaternion_tangent_scale</span><span class="p">(</span><span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
     <span class="n">mode</span> <span class="o">=</span> <span class="n">_quaternion_mode</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"full_quaternion"</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"full_quaternion has no reduced quaternion tangent scale"</span><span class="p">)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quaternion_tangent_scale</span>
-    <span class="k">return</span> <span class="n">quaternion_tangent_scale</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"quaternion_vector"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="s2">"rotation_vector"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="s2">"mrp"</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="s2">"two_mrp"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s2">"cayley"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_skew</span><span class="p">(</span><span class="n">vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="c1"># Import at call time: math_helpers loads the orbit package during import.</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">skewsym</span>
-
-    <span class="k">return</span> <span class="n">skewsym</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="n">vector</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">vector</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+            <span class="p">[</span><span class="n">vector</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="n">vector</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+            <span class="p">[</span><span class="o">-</span><span class="n">vector</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">vector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">],</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_rotation_vector_reset_jacobian</span><span class="p">(</span><span class="n">vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="n">QuaternionOrder</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">rotation_vector_reset_jacobian</span>
-    <span class="k">return</span> <span class="n">rotation_vector_reset_jacobian</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vector</span><span class="p">))</span>
+    <span class="n">theta_sq</span> <span class="o">=</span> <span class="n">theta</span> <span class="o">*</span> <span class="n">theta</span>
+    <span class="k">if</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="mf">1.0e-8</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">-</span> <span class="n">theta_sq</span> <span class="o">/</span> <span class="mf">24.0</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mf">6.0</span> <span class="o">-</span> <span class="n">theta_sq</span> <span class="o">/</span> <span class="mf">120.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span> <span class="o">/</span> <span class="n">theta_sq</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="n">theta</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">theta_sq</span> <span class="o">*</span> <span class="n">theta</span><span class="p">)</span>
+    <span class="n">cross</span> <span class="o">=</span> <span class="n">_skew</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
+    <span class="n">sign</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">"right"</span> <span class="k">else</span> <span class="mf">1.0</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">cross</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="p">(</span><span class="n">cross</span> <span class="o">@</span> <span class="n">cross</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_quaternion_vector_reset_jacobian</span><span class="p">(</span><span class="n">vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="n">QuaternionOrder</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quaternion_vector_reset_jacobian</span>
-    <span class="k">return</span> <span class="n">quaternion_vector_reset_jacobian</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+    <span class="n">qv</span> <span class="o">=</span> <span class="n">vector</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="n">qv_norm_sq</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">qv</span> <span class="o">@</span> <span class="n">qv</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">qv_norm_sq</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"attitude delta exceeds quaternion-vector range (norm &gt; 2)"</span><span class="p">)</span>
+    <span class="n">q0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">qv_norm_sq</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">q0</span> <span class="o">&lt;=</span> <span class="mf">1.0e-12</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">sign</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">"right"</span> <span class="k">else</span> <span class="mf">1.0</span>
+    <span class="k">return</span> <span class="n">q0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">qv</span><span class="p">,</span> <span class="n">qv</span><span class="p">)</span> <span class="o">/</span> <span class="n">q0</span> <span class="o">+</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">_skew</span><span class="p">(</span><span class="n">qv</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_vector</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>

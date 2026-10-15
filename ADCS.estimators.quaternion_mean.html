@@ -593,11 +593,11 @@
         <article role="main" id="furo-main-content">
           <section id="module-ADCS.estimators.quaternion_mean">
 <span id="adcs-estimators-quaternion-mean-module"></span><h1>ADCS.estimators.quaternion_mean module<a class="headerlink" href="#module-ADCS.estimators.quaternion_mean" title="Link to this heading">¶</a></h1>
-<p>Compatibility import for the shared quaternion mean.</p>
+<p>Chart-consistent quaternion means for unscented attitude filters.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="ADCS.estimators.quaternion_mean.quaternion_mean">
-<span class="sig-prename descclassname"><span class="pre">ADCS.estimators.quaternion_mean.</span></span><span class="sig-name descname"><span class="pre">quaternion_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quaternion_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.quaternion_mean.quaternion_mean" title="Link to this definition">¶</a></dt>
-<dd><p>Solve sum(w_i * chart(q^-1 q_i)) = 0, including signed weights.</p>
+<span class="sig-prename descclassname"><span class="pre">ADCS.estimators.quaternion_mean.</span></span><span class="sig-name descname"><span class="pre">quaternion_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/quaternion_mean.html#quaternion_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.quaternion_mean.quaternion_mean" title="Link to this definition">¶</a></dt>
+<dd><p>Solve sum(w_i * chart(q^-1 q_i)) = 0, including signed UKF weights.</p>
 <p>Newton steps use rotation vectors, so the solver never retracts an
 out-of-domain quaternion-vector correction. Backtracking limits each step
 and reduces the residual, unlike the undamped chart fixed point. Both
