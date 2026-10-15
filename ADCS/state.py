@@ -65,19 +65,8 @@ def _quat_delta_from_vector(value: Any, mode: str) -> np.ndarray:
     mode = _quaternion_mode(mode)
     if mode == "full_quaternion":
         raise ValueError("full_quaternion uses a four-element additive attitude block")
-    if mode == "quaternion_vector":
-        qv = vector / 2.0
-        qv_norm_sq = float(qv @ qv)
-        if qv_norm_sq > 1.0:
-            raise ValueError("attitude delta exceeds quaternion-vector range (norm > 2)")
-        return np.concatenate(([np.sqrt(max(0.0, 1.0 - qv_norm_sq))], qv))
-
-    from ADCS.helpers.math_helpers import rot_exp, vec3_to_quat
-
-    if mode == "rotation_vector":
-        return rot_exp(vector)
-    helper_mode = {"mrp": 1, "two_mrp": 6, "cayley": 2}[mode]
-    return vec3_to_quat(vector, helper_mode)
+    from ADCS.helpers.math_helpers import quaternion_delta_from_vector
+    return quaternion_delta_from_vector(vector, mode)
 
 
 def _quat_delta_to_vector(value: Any, mode: str, *, shortest: bool) -> np.ndarray:
@@ -85,69 +74,33 @@ def _quat_delta_to_vector(value: Any, mode: str, *, shortest: bool) -> np.ndarra
     mode = _quaternion_mode(mode)
     if mode == "full_quaternion":
         raise ValueError("full_quaternion does not convert to a three-element attitude vector")
-    if shortest and q[0] < 0.0:
-        q = -q
-    if mode == "quaternion_vector":
-        return 2.0 * q[1:]
-    if mode == "rotation_vector":
-        vector_norm = float(np.linalg.norm(q[1:]))
-        if vector_norm < 1e-15:
-            return 2.0 * q[1:]
-        return (2.0 * np.arctan2(vector_norm, q[0]) / vector_norm) * q[1:]
-
-    from ADCS.helpers.math_helpers import quat_to_vec3
-
-    helper_mode = {"mrp": 1, "two_mrp": 5, "cayley": 2}[mode]
-    return quat_to_vec3(q, helper_mode)
+    from ADCS.helpers.math_helpers import quaternion_delta_to_vector
+    return quaternion_delta_to_vector(q, mode, shortest=shortest)
 
 
 def _quaternion_tangent_scale(mode: str) -> float:
     mode = _quaternion_mode(mode)
     if mode == "full_quaternion":
         raise ValueError("full_quaternion has no reduced quaternion tangent scale")
-    return {
-        "quaternion_vector": 0.5,
-        "rotation_vector": 0.5,
-        "mrp": 2.0,
-        "two_mrp": 1.0,
-        "cayley": 1.0,
-    }[mode]
+    from ADCS.helpers.math_helpers import quaternion_tangent_scale
+    return quaternion_tangent_scale(mode)
 
 
 def _skew(vector: np.ndarray) -> np.ndarray:
-    return np.array(
-        [
-            [0.0, -vector[2], vector[1]],
-            [vector[2], 0.0, -vector[0]],
-            [-vector[1], vector[0], 0.0],
-        ]
-    )
+    # Import at call time: math_helpers loads the orbit package during import.
+    from ADCS.helpers.math_helpers import skewsym
+
+    return skewsym(vector)
 
 
 def _rotation_vector_reset_jacobian(vector: np.ndarray, order: QuaternionOrder) -> np.ndarray:
-    theta = float(np.linalg.norm(vector))
-    theta_sq = theta * theta
-    if theta < 1.0e-8:
-        a = 0.5 - theta_sq / 24.0
-        b = 1.0 / 6.0 - theta_sq / 120.0
-    else:
-        a = (1.0 - np.cos(theta)) / theta_sq
-        b = (theta - np.sin(theta)) / (theta_sq * theta)
-    cross = _skew(vector)
-    sign = -1.0 if order == "right" else 1.0
-    return np.eye(3) + sign * a * cross + b * (cross @ cross)
+    from ADCS.helpers.math_helpers import rotation_vector_reset_jacobian
+    return rotation_vector_reset_jacobian(vector, order)
 
 
 def _quaternion_vector_reset_jacobian(vector: np.ndarray, order: QuaternionOrder) -> np.ndarray | None:
-    qv = vector / 2.0
-    qv_norm_sq = float(qv @ qv)
-    if qv_norm_sq > 1.0:
-        raise ValueError("attitude delta exceeds quaternion-vector range (norm > 2)")
-    q0 = np.sqrt(max(0.0, 1.0 - qv_norm_sq))
-    if q0 <= 1.0e-12:
-        return None
-    sign = -1.0 if order == "right" else 1.0
-    return q0 * np.eye(3) + np.outer(qv, qv) / q0 + sign * _skew(qv)
+    from ADCS.helpers.math_helpers import quaternion_vector_reset_jacobian
+    return quaternion_vector_reset_jacobian(vector, order)
 
 
 def _vector(value: Any, *, name: str, size: int | None = None) -> np.ndarray:
