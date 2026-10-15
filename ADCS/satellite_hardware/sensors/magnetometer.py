@@ -87,6 +87,13 @@ class MTM(Sensor):
     * The magnetometer itself is not an attitude sensor, but it provides
       attitude information when combined with an orbital magnetic field model.
     """
+    observation_kind = "magnetic_field"
+
+    def reference_direction(self, os):
+        """Unit geomagnetic field direction in ECI at the orbital state."""
+        field = np.asarray(os.B, dtype=float)
+        return field / np.linalg.norm(field)
+
     def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
         r"""
         Initialize the magnetometer sensor model.

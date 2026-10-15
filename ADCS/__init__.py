@@ -45,6 +45,7 @@ from .satellite_hardware.sensors import GPS, Gyro, MTM, StarTracker, SunPair, Su
 from .simulate import simulate
 from .simulate_remote import simulate_remote
 from .covariance import Covariance
+from .estimators.initialization import WarmStart, initial_state_from_readings
 from .state import EstimatorState, State
 
 __all__ = [
@@ -93,6 +94,8 @@ __all__ = [
     "satellite_factory",
     "State",
     "EstimatorState",
+    "WarmStart",
+    "initial_state_from_readings",
     "Covariance",
 ]
 

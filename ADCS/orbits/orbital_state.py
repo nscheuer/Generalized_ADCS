@@ -3,11 +3,11 @@ __all__ = ["Orbital_State"]
 
 import numpy as np
 import warnings
-import ppigrf
 from skyfield import api, units, positionlib, toposlib, framelib
 from datetime import timezone
 from typing import Dict, Tuple, Optional
 
+from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, field_gc
 from ADCS.orbits.density_model import DensityModel
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
@@ -266,6 +266,7 @@ class Orbital_State:
         rho: Optional[float] = None,
         density_model: Optional[DensityModel] = None,
         fast: bool = False,
+        magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
     ) -> None:
         r"""
         Initialize a fully defined orbital state.
@@ -306,12 +307,19 @@ class Orbital_State:
             Backward-compatible parameter (ignored).
         :type fast: bool
 
+        :param magnetic_model:
+            Geomagnetic field model used for ``B``; one of
+            :data:`ADCS.environment.MAGNETIC_MODELS`. Carried to every state
+            derived from this one (copies, propagation, interpolation).
+        :type magnetic_model: str
+
         :return:
             ``None``
         :rtype: None
 
         """
         _ = fast  # ignored (kept for backward compatibility)
+        self.magnetic_model = _normalize_magnetic_model(magnetic_model)
 
         self.ephem = Ephemeris() if ephem is None else ephem
         self.ts = self.ephem.ts
@@ -348,7 +356,8 @@ class Orbital_State:
             target=0,
         )
 
-        # Cache a naive UTC datetime for ppigrf compatibility.
+        # Cache a naive UTC datetime; ADCS.environment.igrf reads naive
+        # datetimes as UTC.
         dt_aware = self.sf_pos.t.astimezone(timezone.utc)
         self.datetime = dt_aware.replace(tzinfo=None)
 
@@ -455,6 +464,7 @@ class Orbital_State:
         out.ECI2ENUmat = np.array(self.ECI2ENUmat, dtype=float, copy=True)
 
         out.density_model = self.density_model
+        out.magnetic_model = getattr(self, "magnetic_model", DEFAULT_MAGNETIC_MODEL)
         out.S = self.S.copy()
         out.B = self.B.copy()
         out.rho = float(self.rho)
@@ -535,6 +545,7 @@ class Orbital_State:
         out.ECI2ENUmat = a * self.ECI2ENUmat + b * os2.ECI2ENUmat
 
         out.density_model = self.density_model
+        out.magnetic_model = getattr(self, "magnetic_model", DEFAULT_MAGNETIC_MODEL)
 
         out.vecs = None
         out._last_x = None
@@ -778,7 +789,11 @@ class Orbital_State:
         v_out = v_ECI + k1b * float(dt)
         j2000 = self.J2000 + (float(dt) / TimeConstants.cent2sec)
 
-        return Orbital_State(self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None, density_model=self.density_model, fast=False)
+        return Orbital_State(
+            self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None,
+            density_model=self.density_model, fast=False,
+            magnetic_model=getattr(self, "magnetic_model", DEFAULT_MAGNETIC_MODEL),
+        )
 
     def propagate_orbit_rk4(self, dt: float, fast: bool = True, zonal_J: int = 2):
         r"""
@@ -819,7 +834,11 @@ class Orbital_State:
 
         j2000 = self.J2000 + (dt / TimeConstants.cent2sec)
 
-        return Orbital_State(self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None, density_model=self.density_model, fast=False)
+        return Orbital_State(
+            self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None,
+            density_model=self.density_model, fast=False,
+            magnetic_model=getattr(self, "magnetic_model", DEFAULT_MAGNETIC_MODEL),
+        )
 
     def propagate_jacobians(self, dt: float, zonal_J: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""
@@ -1032,21 +1051,19 @@ class Orbital_State:
         theta_rad = float(self.geocentric[1])
         phi_rad = float(self.geocentric[2])
 
-        b_r, b_th, b_ph = ppigrf.igrf_gc(
+        # Scalar in, scalars out -- no reshaping needed. This is the
+        # simulation's inner loop: with the default igrf_numba model this is
+        # ~4 us per call, against ~31 ms for igrf_ppigrf, which re-reads its
+        # coefficient file every time.
+        b_r, b_th, b_ph = field_gc(
+            getattr(self, "magnetic_model", DEFAULT_MAGNETIC_MODEL),
             r,
             theta_rad * 180.0 / np.pi,
             phi_rad * 180.0 / np.pi,
             self.datetime,
         )
 
-        b_array = np.array(
-            [
-                np.asarray(b_r, dtype=float).reshape(-1)[0],
-                np.asarray(b_th, dtype=float).reshape(-1)[0],
-                np.asarray(b_ph, dtype=float).reshape(-1)[0],
-            ],
-            dtype=float,
-        )
+        b_array = np.array([b_r, b_th, b_ph], dtype=float)
         b_ecef = self.geocentric_to_ecef(b_array)
         b_eci = self.ecef_to_eci(b_ecef)
         return b_eci * 1e-9
@@ -1196,10 +1213,20 @@ class Orbital_State:
         :rtype: dict
 
         """
-        return {"J2000": self.J2000, "R": self.R, "V": self.V, "S": self.S, "B": self.B, "rho": self.rho}
+        return {
+            "J2000": self.J2000, "R": self.R, "V": self.V, "S": self.S, "B": self.B, "rho": self.rho,
+            "magnetic_model": getattr(self, "magnetic_model", DEFAULT_MAGNETIC_MODEL),
+        }
 
     @classmethod
-    def from_dict(cls, d: dict, ephem: Ephemeris, density_model: DensityModel | None = None, fast: bool = True):
+    def from_dict(
+        cls,
+        d: dict,
+        ephem: Ephemeris,
+        density_model: DensityModel | None = None,
+        fast: bool = True,
+        magnetic_model: str | None = None,
+    ):
         r"""
         Construct an orbital state from a dictionary.
 
@@ -1223,6 +1250,12 @@ class Orbital_State:
             Backward-compatible parameter (ignored).
         :type fast: bool
 
+        :param magnetic_model:
+            Geomagnetic field model. When omitted, the one recorded in ``d``
+            is used, falling back to the default for dicts written before the
+            field existed.
+        :type magnetic_model: str or None
+
         :return:
             Reconstructed orbital state.
         :rtype: Orbital_State
@@ -1239,4 +1272,6 @@ class Orbital_State:
             rho=d.get("rho"),
             density_model=density_model,
             fast=False,
+            magnetic_model=magnetic_model if magnetic_model is not None
+            else d.get("magnetic_model", DEFAULT_MAGNETIC_MODEL),
         )

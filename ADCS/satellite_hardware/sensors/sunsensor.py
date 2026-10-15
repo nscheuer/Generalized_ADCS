@@ -94,6 +94,13 @@ class SunSensor(Sensor):
       that step. (It is *not* zero -- a zero would be fed to the filter as a
       real measurement.)
     """
+    observation_kind = "sun"
+
+    def reference_direction(self, os):
+        """Unit direction from the satellite to the Sun in ECI."""
+        direction = np.asarray(os.S, dtype=float) - np.asarray(os.R, dtype=float)
+        return direction / np.linalg.norm(direction)
+
     def __init__(self, axis: np.ndarray, efficiency: float, sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
         r"""
         Initialize a single-axis coarse Sun sensor.

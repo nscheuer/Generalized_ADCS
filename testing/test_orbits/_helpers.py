@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import numpy as np
 
 from ADCS.helpers.math_helpers import normalize, random_n_unit_vec
@@ -39,7 +41,15 @@ def make_random_orbital_state(seed=123):
     return Orbital_State(ephem=Ephemeris(), J2000=0.22, R=rvec, V=vvec, fast=True)
 
 
-def make_orbit_family(dt=3600.0, n_steps=24 * 2):
+@lru_cache(maxsize=None)
+def make_orbit_family(dt=600.0, n_steps=6):
+    """Build the common orbit fixture once.
+
+    The orbit API tests only inspect this family.  Caching it avoids repeating
+    the same expensive ephemeris and geomagnetic-field work for every test,
+    while six samples still exercise node lookup, interpolation, slicing, and
+    resampling (the largest fixed index used by the tests is five).
+    """
     os0 = make_reference_orbital_state()
     end_time = os0.J2000 + TimeConstants.sec2cent * dt * n_steps
 

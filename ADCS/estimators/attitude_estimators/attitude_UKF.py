@@ -288,6 +288,7 @@ import math
 import numpy as np
 
 from ADCS.covariance import Covariance
+from ADCS.estimators.numba_kernels import weighted_row_mean
 from ADCS.estimators.process_model import propagate_state
 from ADCS.estimators.process_noise import discretize_process_noise
 from ADCS.estimators.quaternion_mean import quaternion_mean
@@ -498,7 +499,7 @@ class UKF(AttitudeEstimator):
         # These blocks are Euclidean and need no iterative manifold solve.
         for name in ("w", "h", "act_bias", "sens_bias", "dist_param"):
             values = np.vstack([getattr(point, name) for point in points])
-            setattr(mean, name, weights @ values)
+            setattr(mean, name, weighted_row_mean(values, weights))
         mean.q = quaternion_mean(
             np.vstack([point.q for point in points]), weights, mode=self.correction_mode
         )
@@ -523,7 +524,7 @@ class UKF(AttitudeEstimator):
                     f"UKF sigma-point prediction for {entry.name} contains non-finite values"
                 )
             if not entry.is_quaternion_attitude:
-                mean[entry.raw_slice] = weights @ values
+                mean[entry.raw_slice] = weighted_row_mean(values, weights)
                 continue
 
             mean[entry.raw_slice] = quaternion_mean(
@@ -541,6 +542,7 @@ class UKF(AttitudeEstimator):
         midpoint_orbital_state: Any | None = None,
     ) -> EstimatorState:
         """Propagate tangent-state sigma points and add discretized process noise."""
+        self._require_initialized("state to propagate")
         step = self.dt if dt is None else float(dt)
         if not np.isfinite(step) or step < 0.0:
             raise ValueError("dt must be finite and non-negative")
@@ -643,6 +645,8 @@ class UKF(AttitudeEstimator):
         epoch_s: float = 0.0,
     ) -> EstimatorState:
         """Apply the unscented measurement update."""
+        if self._warm_start is not None:
+            return self._initialize_from_readings(measurements, orbital_state)
         stack = self.satellite.measurement_stack
         if self.supports_augmented_parameters:
             self.satellite.match_estimate(self._state, self.dt)

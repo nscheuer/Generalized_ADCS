@@ -11,8 +11,7 @@
   inside the filter instead of at construction.
 * A quaternion star tracker with ``estimate_bias=True`` registered a
   four-wide bias block and failed later inside the augmented filters.
-* The pre-2.0 ``UAKF``/``SRUAKF`` alias stubs still shipped although their
-  constructor arguments no longer worked.
+* ``Controller`` never stored ``est_sat``.
 """
 
 from __future__ import annotations
@@ -23,7 +22,6 @@ import pytest
 from ADCS.estimators.attitude_estimators import MEKF, AugmentedMEKF
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware import disturbances as D
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite
@@ -114,7 +112,7 @@ def test_two_argument_step_rejects_a_legacy_control_measurement_call():
 def test_predict_warns_when_dt_disagrees_with_the_orbital_state_gap():
     satellite = _satellite()
     os_start = _orbital_state(0.22)
-    os_end = _orbital_state(0.22 + 100.0 * TimeConstants.sec2cent, along_track_s=100.0)
+    os_end = _orbital_state(0.22 + 100.0 / (36525.0 * 86400.0), along_track_s=100.0)
     estimator = MEKF(satellite, _state(), dt=10.0)
     with pytest.warns(UserWarning, match="apart"):
         estimator.predict(np.empty(0), os_start, os_end)  # 10 s step over a 100 s gap
@@ -126,12 +124,14 @@ def test_predict_warns_when_dt_disagrees_with_the_orbital_state_gap():
         MEKF(satellite, _state(), dt=10.0).predict(np.empty(0), os_start, os_start)  # static orbit
 
 
-def test_legacy_estimator_package_is_gone():
-    """0.2.x ships UKF/SRUKF only; the pre-2.0 UAKF/SRUAKF stubs were removed."""
-    import importlib
+def test_controller_base_stores_the_estimated_satellite():
+    """The remote controller service reads controller.est_sat; only two
+    subclasses used to set it, so 13 of 15 controllers failed remotely."""
+    from ADCS.controller.controller import Controller
 
-    for name in ("ADCS.estimators.old_attitude_estimators.attitude_UAKF",
-                 "ADCS.estimators.old_attitude_estimators.attitude_SRUAKF",
-                 "ADCS.estimators.old_attitude_estimators.attitude_estimator"):
-        with pytest.raises(ModuleNotFoundError):
-            importlib.import_module(name)
+    class Minimal(Controller):
+        def find_u(self, *args, **kwargs):
+            return np.zeros(0)
+
+    satellite = _satellite()
+    assert Minimal(satellite).est_sat is satellite

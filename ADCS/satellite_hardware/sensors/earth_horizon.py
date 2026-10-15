@@ -103,6 +103,13 @@ class EarthHorizonSensor(Sensor):
 
     output_length: int = 3
 
+    observation_kind = "nadir"
+
+    def reference_direction(self, os):
+        """Unit nadir direction (towards the Earth's centre) in ECI."""
+        position = np.asarray(os.R, dtype=float)
+        return -position / np.linalg.norm(position)
+
     def __init__(
         self,
         sample_time: float = 0.1,

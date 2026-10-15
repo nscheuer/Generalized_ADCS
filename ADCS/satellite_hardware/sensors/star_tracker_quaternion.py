@@ -80,6 +80,8 @@ class StarTrackerQuaternion(Sensor):
 
     output_length: int = 4
 
+    observation_kind = "attitude"
+
     def __init__(
         self,
         sample_time: float = 0.1,

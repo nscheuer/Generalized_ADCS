@@ -512,6 +512,24 @@ class Satellite:
         for actuator in self.actuators:
             actuator.update_errors(j2000)
 
+    def update_errors(self, j2000: float) -> None:
+        r"""
+        Advance every stochastic error model by one plant step.
+
+        The actuators (:meth:`update_actuator_errors`) and the disturbances
+        (:meth:`~ADCS.satellite_hardware.disturbances.disturbance.Disturbance.update_errors`)
+        step their bias and parameter random walks to ``j2000`` and draw the
+        noise samples held over the following integration step.
+        :func:`~ADCS.simulate.simulate` calls this once per step before
+        integrating the plant; sensors draw their own samples when read.
+
+        :param j2000: Current epoch in Julian centuries since J2000.
+        :type j2000: float
+        """
+        self.update_actuator_errors(j2000)
+        for disturbance in self.disturbances:
+            disturbance.update_errors(j2000)
+
     def update_RWhs(self,state_or_RWhs) -> None:
         r"""
         Update stored wheel momentum values in each :class:`~ADCS.satellite_hardware.actuators.RW`.

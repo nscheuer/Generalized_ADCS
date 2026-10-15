@@ -65,7 +65,6 @@ dependencies = [
     "scipy>=1.10",
     "matplotlib>=3.7",
     "numba>=0.59",
-    "ppigrf>=2.0",
     "skyfield>=1.45",
     "tqdm>=4.60",
     "rich>=13.0",
@@ -73,6 +72,12 @@ dependencies = [
 
 # Optional extras
 [project.optional-dependencies]
+# The legacy geomagnetic field model, selectable with
+# magnetic_model="igrf_ppigrf" to reproduce results from 0.1.8 and earlier.
+# The default in-tree igrf_numba model needs nothing extra.
+ppigrf = [
+    "ppigrf>=2.0",
+]
 # 3-D orbit animation helpers (ADCS/helpers/plotting/animate_orbit_pyvista.py).
 viz = [
     "pyvista>=0.44",
@@ -110,6 +115,11 @@ dev = [
     "numdifftools",
     "black",
     "ruff",
+    # Reference implementation for testing/test_igrf.py. ADCS.environment.igrf
+    # replaced it at runtime, but it stays the oracle the new kernel is checked
+    # against, so a drift in the field model fails a test rather than quietly
+    # changing every simulation.
+    "ppigrf>=2.0",
 ]
 
 [project.urls]
@@ -201,6 +211,10 @@ packages = [
 [tool.setuptools.package-data]
 "*" = ["textures/*.jpg"]
 "ADCS" = ["py.typed"]
+# The IGRF coefficients. Without this the wheel imports fine and then raises
+# FileNotFoundError on the first field evaluation -- which is exactly how the
+# pyIGRF and igrf packages on PyPI are currently broken.
+"ADCS.environment" = ["*.shc"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]

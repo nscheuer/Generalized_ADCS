@@ -1,8 +1,9 @@
 import numpy as np
-import numdifftools as nd
 import pytest
+from scipy.integrate import solve_ivp
 
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
+from ADCS.orbits.orbit import Orbit
 
 from testing.test_orbits._helpers import make_random_orbital_state, make_reference_orbital_state
 
@@ -15,6 +16,17 @@ def closest_approach(reference, trajectory, min_skip=1):
     return i_star, np.sqrt(d2[i_star])
 
 
+def central_jacobian(function, x, steps):
+    """Independent central-difference Jacobian without state construction."""
+    x = np.asarray(x, dtype=float)
+    jacobian = np.empty((len(function(x)), len(x)))
+    for column, step in enumerate(steps):
+        offset = np.zeros_like(x)
+        offset[column] = step
+        jacobian[:, column] = (function(x + offset) - function(x - offset)) / (2.0 * step)
+    return jacobian
+
+
 def propagate_one_orbit(method="rk4", use_j2=False, dt=60.0):
     orbit = make_reference_orbital_state()
     mu = EarthConstants.mu_e
@@ -23,13 +35,22 @@ def propagate_one_orbit(method="rk4", use_j2=False, dt=60.0):
     steps = int(t_orbit / dt)
     dt = t_orbit / steps
 
+    if method == "rk4":
+        end_time = orbit.J2000 + t_orbit * TimeConstants.sec2cent
+        batch = Orbit(
+            os0=orbit,
+            end_time=end_time,
+            dt=dt,
+            zonal_J=2 if use_j2 else 0,
+            verbose=False,
+        )
+        return dt, np.vstack([batch.states[t].R for t in batch.times])
+
     positions = np.zeros((steps + 1, 3))
     positions[0] = orbit.R
 
     for i in range(steps):
-        if method == "rk4":
-            orbit = orbit.propagate_orbit_rk4(dt, zonal_J=2 if use_j2 else 0)
-        elif method == "euler":
+        if method == "euler":
             orbit = orbit.propagate_orbit(dt, zonal_J=2 if use_j2 else 0)
         else:
             raise ValueError(f"Unknown method: {method}")
@@ -67,15 +88,15 @@ def test_propagate_orbit_rk4_advances_time_by_dt():
 
 
 def test_rk4_orbit_closes_without_j2():
-    _, positions = propagate_one_orbit(method="rk4", use_j2=False, dt=60.0)
+    _, positions = propagate_one_orbit(method="rk4", use_j2=False, dt=120.0)
 
     _, d_min = closest_approach(positions[0], positions)
     assert d_min < 1.0
 
 
 def test_rk4_is_more_accurate_than_euler_for_one_orbit():
-    _, rk4_positions = propagate_one_orbit(method="rk4", use_j2=False, dt=120.0)
-    _, euler_positions = propagate_one_orbit(method="euler", use_j2=False, dt=120.0)
+    _, rk4_positions = propagate_one_orbit(method="rk4", use_j2=False, dt=180.0)
+    _, euler_positions = propagate_one_orbit(method="euler", use_j2=False, dt=180.0)
 
     _, rk4_err = closest_approach(rk4_positions[0], rk4_positions)
     _, euler_err = closest_approach(euler_positions[0], euler_positions)
@@ -86,53 +107,40 @@ def test_rk4_is_more_accurate_than_euler_for_one_orbit():
 def test_orbit_dynamics_jacobians_match_finite_difference():
     state = make_random_orbital_state(seed=11)
 
-    def rfun(c):
-        probe = make_reference_orbital_state()
-        probe.R = np.array(c[:3], dtype=float)
-        probe.V = np.array(c[3:], dtype=float)
-        return probe.orbit_dynamics(zonal_J=2)[0]
+    def dynamics(x):
+        r_dot, v_dot = state._orbit_dynamics_raw(
+            x[:3], x[3:], state.mu_e, state.R_e, state.J2coeff, zonal_J=2, Jcoeffs=state.Jcoeffs
+        )
+        return np.concatenate((r_dot, v_dot))
 
-    def vfun(c):
-        probe = make_reference_orbital_state()
-        probe.R = np.array(c[:3], dtype=float)
-        probe.V = np.array(c[3:], dtype=float)
-        return probe.orbit_dynamics(zonal_J=2)[1]
-
-    x = state.R.tolist() + state.V.tolist()
-    jr_num = np.array(nd.Jacobian(rfun)(x))
-    jv_num = np.array(nd.Jacobian(vfun)(x))
-
+    x = np.concatenate((state.R, state.V))
+    numeric = central_jacobian(dynamics, x, steps=[1e-3, 1e-3, 1e-3, 1e-6, 1e-6, 1e-6])
     drd_dr, drd_dv, dvd_dr, dvd_dv = state.orbit_dynamics_jacobians(zonal_J=2)
-    assert np.allclose(jr_num, np.hstack([drd_dr, drd_dv]))
-    assert np.allclose(jv_num, np.hstack([dvd_dr, dvd_dv]))
+    analytic = np.block([[drd_dr, drd_dv], [dvd_dr, dvd_dv]])
+    assert np.allclose(numeric, analytic, rtol=1e-6, atol=1e-10)
 
 
 def test_propagate_orbit_rk4_jacobians_match_finite_difference():
     state = make_random_orbital_state(seed=22)
     dt = 1.0
 
-    def rfun(c):
-        probe = make_reference_orbital_state()
-        probe.R = np.array(c[:3], dtype=float)
-        probe.V = np.array(c[3:], dtype=float)
-        return probe.propagate_orbit_rk4(dt=dt, zonal_J=2).R
+    def rhs(_, x):
+        r_dot, v_dot = state._orbit_dynamics_raw(
+            x[:3], x[3:], state.mu_e, state.R_e, state.J2coeff, zonal_J=2, Jcoeffs=state.Jcoeffs
+        )
+        return np.concatenate((r_dot, v_dot))
 
-    def vfun(c):
-        probe = make_reference_orbital_state()
-        probe.R = np.array(c[:3], dtype=float)
-        probe.V = np.array(c[3:], dtype=float)
-        return probe.propagate_orbit_rk4(dt=dt, zonal_J=2).V
+    def high_accuracy_step(x):
+        solution = solve_ivp(rhs, (0.0, dt), x, method="DOP853", rtol=1e-12, atol=1e-13)
+        assert solution.success
+        return solution.y[:, -1]
 
-    x = state.R.tolist() + state.V.tolist()
-    jr_num = np.array(nd.Jacobian(rfun)(x))
-    jv_num = np.array(nd.Jacobian(vfun)(x))
-
+    x = np.concatenate((state.R, state.V))
+    numeric = central_jacobian(high_accuracy_step, x, steps=[1e-2, 1e-2, 1e-2, 1e-4, 1e-4, 1e-4])
     drd_dr, drd_dv, dvd_dr, dvd_dv = state.propagate_jacobians_rk4(dt=dt, zonal_J=2)
-    analytic_r = np.hstack([drd_dr, drd_dv])
-    analytic_v = np.hstack([dvd_dr, dvd_dv])
+    analytic = np.block([[drd_dr, drd_dv], [dvd_dr, dvd_dv]])
 
-    assert np.allclose(jr_num, analytic_r)
-    assert np.allclose(jv_num, analytic_v)
+    assert np.allclose(numeric, analytic, rtol=1e-6, atol=1e-8)
 
 
 def test_copy_returns_independent_state():

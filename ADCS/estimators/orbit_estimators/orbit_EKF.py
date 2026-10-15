@@ -268,6 +268,7 @@ class Orbit_EKF(Orbit_Estimator):
             rho=None,
             density_model=os0.density_model,
             fast=False,
+            magnetic_model=os0.magnetic_model,
         )
 
         self.os_hat = EstimatedOrbital_State(

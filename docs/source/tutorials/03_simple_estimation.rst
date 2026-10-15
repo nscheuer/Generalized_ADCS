@@ -144,3 +144,51 @@ Note that in the configuration, we may not have perfect knowledge of the satelli
           :width: 100%
      - .. image:: ../_static/tutorials/tutorial_03_plots.png
           :width: 100%
+
+Starting from the first readings
+--------------------------------
+
+The estimator above starts at the identity attitude with a large covariance and
+needs a while to converge. That start is a guess, and the filters are not built
+for guesses: an EKF, MEKF or UKF corrects an attitude it already has, with
+corrections linearised about that estimate, so a start that is far from the
+truth converges slowly and, with a poor covariance, can settle on a wrong
+solution or diverge. The readings themselves offer a better start. When the
+satellite carries sensors that see two or more different directions (here the
+magnetometers and the sun pairs), the first measurement vector already
+determines the attitude: each measured direction is also known in the inertial
+frame, and two non-parallel ones pin down the rotation between the frames. The
+module :mod:`ADCS.estimators.attitude_determination` solves this "single-frame"
+problem with the classic TRIAD and QUEST algorithms (and explains them, with the
+original papers); the result is accurate to the sensors' noise and comes with a
+covariance, so the filter starts where its linearisation holds and its first
+covariance is honest rather than a large placeholder.
+
+Pass a :class:`~ADCS.estimators.initialization.WarmStart` in place of the
+initial state and the estimator builds its own state on its first cycle:
+
+.. code-block:: python
+
+  estimator = ADCS.AugmentedSRUKF(
+      est_satellite, ADCS.WarmStart(process_noise=Q_hat), dt=dt,
+  )
+
+The attitude is solved from the direction observations with QUEST (or TRIAD, or
+taken from a quaternion star tracker when there is one), the angular rate is
+read off the gyros assuming zero bias, and the wheel momenta off the wheels. The
+covariance follows from the sensors' noise. Biases and disturbance parameters
+start at zero; when the satellite estimates them, give their initial standard
+deviations (``act_bias_std``, ``sens_bias_std``, ``dist_param_std``). Any value
+can be supplied instead of read, together with its standard deviation (for
+example ``rate=np.zeros(3), rate_std=0.01`` for a satellite without gyros).
+The estimator has no state before its first cycle; afterwards
+``estimator.warm_start_attitude`` holds the attitude solution it started from.
+In eclipse the sun sensors give no direction, so with only magnetometers and sun
+sensors the first readings must be taken in sunlight, otherwise the estimator
+raises and asks for an explicit initial attitude.
+
+To build the state yourself, call
+:func:`~ADCS.estimators.initialization.initial_state_from_readings` with the
+satellite, one measurement vector and its orbital state, or use the
+``from_readings`` class method of any estimator, which constructs the filter
+and runs that first cycle in one call.
