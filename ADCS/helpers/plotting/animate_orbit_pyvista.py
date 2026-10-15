@@ -8,7 +8,6 @@ os.environ["LIBGL_ALWAYS_SOFTWARE"] = "1"
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
 import numpy as np
-from ADCS.helpers.math_helpers import rotation_between_vectors as get_rotation_from_vectors
 import pyvista as pv
 from pyvista import examples
 from pathlib import Path
@@ -28,6 +27,23 @@ THIS_DIR = Path(__file__).resolve().parent
 DEFAULT_TEXTURE_PATH = THIS_DIR / "textures" / "2k_earth_daymap.jpg"
 
 
+def get_rotation_from_vectors(vec1, vec2):
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+    if norm1 < 1e-12 or norm2 < 1e-12:
+        return np.eye(3)
+
+    a, b = (vec1 / norm1), (vec2 / norm2)
+    v = np.cross(a, b)
+    c = np.dot(a, b)
+    s = np.linalg.norm(v)
+
+    if s < 1e-6:
+        return np.eye(3) if c > 0 else -np.eye(3)
+
+    kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+    rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s**2))
+    return rotation_matrix
 
 
 def animate_orbit_pyvista(

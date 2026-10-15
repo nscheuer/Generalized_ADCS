@@ -11,7 +11,7 @@ from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_m
 from ADCS.orbits.density_model import DensityModel
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
-from ADCS.helpers.math_helpers import normalize, rot_mat, drotmatTvecdq, ddrotmatTvecdqdq, legendre_p_and_dp
+from ADCS.helpers.math_helpers import normalize, rot_mat, drotmatTvecdq, ddrotmatTvecdqdq
 from ADCS.state import State
 
 _I3 = np.eye(3)
@@ -39,6 +39,46 @@ def _normalize_zonal_J(zonal_J, max_degree=None):
     if 2 <= value <= int(max_degree):
         return value
     raise ValueError(f"zonal_J must be 0 or an integer from 2 through {int(max_degree)}, got {zonal_J!r}")
+
+
+def _legendre_p_and_dp(s, max_degree):
+    r"""
+    Evaluate Legendre polynomials and their first derivatives at ``s``.
+
+    Uses the standard upward recurrences
+
+    .. math::
+        n P_n = (2n-1)\, s\, P_{n-1} - (n-1) P_{n-2}, \qquad
+        P_n' = n\, P_{n-1} + s\, P_{n-1}',
+
+    which are stable everywhere on :math:`s\in[-1,1]` (no division by
+    :math:`1-s^2`, so they hold over the poles) and are analytic in ``s``,
+    so the routine is safe for complex-step differentiation.
+
+    :param s:
+        Argument of the polynomials (``sin`` of geocentric latitude). May be a
+        real or complex scalar.
+    :type s: float or complex
+
+    :param max_degree:
+        Highest polynomial degree to evaluate.
+    :type max_degree: int
+
+    :return:
+        Tuple ``(P, dP)`` of lists indexed by degree ``0..max_degree``.
+    :rtype: tuple[list, list]
+    """
+    P = [None] * (max_degree + 1)
+    dP = [None] * (max_degree + 1)
+    P[0] = 1.0 + 0.0 * s  # preserve dtype (float or complex) of s
+    dP[0] = 0.0 * s
+    if max_degree >= 1:
+        P[1] = s
+        dP[1] = 1.0 + 0.0 * s
+    for n in range(2, max_degree + 1):
+        P[n] = ((2 * n - 1) * s * P[n - 1] - (n - 1) * P[n - 2]) / n
+        dP[n] = n * P[n - 1] + s * dP[n - 1]
+    return P, dP
 
 
 def _zonal_perturbation_accel(R, mu_e, R_e, coeffs, start_degree):
@@ -94,7 +134,7 @@ def _zonal_perturbation_accel(R, mu_e, R_e, coeffs, start_degree):
     s = z / r
 
     max_degree = start_degree + coeffs.size - 1
-    P, dP = legendre_p_and_dp(s, max_degree)
+    P, dP = _legendre_p_and_dp(s, max_degree)
 
     accel = np.zeros(3, dtype=R.dtype)
     for k in range(coeffs.size):

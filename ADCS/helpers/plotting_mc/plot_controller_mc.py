@@ -5,11 +5,36 @@ __all__ = [
 ]
 
 import numpy as np
-from ADCS.helpers.math_helpers import rot_mat_batch as _rot_mat_vec
 import matplotlib.pyplot as plt
 from typing import List, Dict, Any, Tuple, Sequence
 import matplotlib.cm as cm
 
+def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
+    """
+    Vectorized conversion of Scalar-First Quaternions (w, x, y, z) 
+    to Rotation Matrices (Body -> Inertial).
+    
+    Input: q shape (N, 4)
+    Output: R shape (N, 3, 3)
+    """
+    w, x, y, z = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
+    
+    # Formula for Rotation Matrix from Quaternion (Hamilton/Scalar First)
+    R = np.empty((q.shape[0], 3, 3))
+    
+    R[:, 0, 0] = 1 - 2*(y**2 + z**2)
+    R[:, 0, 1] = 2*(x*y - z*w)
+    R[:, 0, 2] = 2*(x*z + y*w)
+    
+    R[:, 1, 0] = 2*(x*y + z*w)
+    R[:, 1, 1] = 1 - 2*(x**2 + z**2)
+    R[:, 1, 2] = 2*(y*z - x*w)
+    
+    R[:, 2, 0] = 2*(x*z - y*w)
+    R[:, 2, 1] = 2*(y*z + x*w)
+    R[:, 2, 2] = 1 - 2*(x**2 + y**2)
+    
+    return R
     
 def plot_h_tracking_mc(
     full_results: Sequence[Dict[str, Any]],

@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
-from ADCS.helpers.math_helpers import rotation_between_vectors as _get_rotation_from_vectors
 
 from ..subplot import Subplot
 from ADCS.state import State
@@ -17,6 +16,27 @@ os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
 
+def _get_rotation_from_vectors(vec1: np.ndarray, vec2: np.ndarray) -> np.ndarray:
+    """Rotation matrix mapping vec1 -> vec2 (both in R^3)."""
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+    if norm1 < 1e-12 or norm2 < 1e-12:
+        return np.eye(3)
+
+    a = vec1 / norm1
+    b = vec2 / norm2
+    v = np.cross(a, b)
+    c = float(np.dot(a, b))
+    s = np.linalg.norm(v)
+
+    if s < 1e-6:
+        return np.eye(3) if c > 0 else -np.eye(3)
+
+    kmat = np.array(
+        [[0.0, -v[2], v[1]], [v[2], 0.0, -v[0]], [-v[1], v[0], 0.0]],
+        dtype=float,
+    )
+    return np.eye(3) + kmat + (kmat @ kmat) * ((1.0 - c) / (s**2))
 
 
 def _unwrap_os(os_obj):
