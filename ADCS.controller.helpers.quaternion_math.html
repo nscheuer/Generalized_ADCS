@@ -176,7 +176,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -586,136 +586,31 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
           <section id="module-ADCS.controller.helpers.quaternion_math">
 <span id="adcs-controller-helpers-quaternion-math-module"></span><h1>ADCS.controller.helpers.quaternion_math module<a class="headerlink" href="#module-ADCS.controller.helpers.quaternion_math" title="Link to this heading">¶</a></h1>
-<section id="quaternion-math-py">
-<h2>quaternion_math.py<a class="headerlink" href="#quaternion-math-py" title="Link to this heading">¶</a></h2>
-<p>Core quaternion and rotation math utilities for the ADCS framework.</p>
-<p>This module provides quaternion algebra, rotation matrix conversions,
-and associated differential operations such as Jacobians and Hessians.</p>
-<p>All functions are standalone and compatible with onboard estimator
-and simulator modules.</p>
-</section>
-<dl class="py function">
-<dt class="sig sig-object py" id="ADCS.controller.helpers.quaternion_math.norm">
-<span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.quaternion_math.</span></span><span class="sig-name descname"><span class="pre">norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.quaternion_math.norm" title="Link to this definition">¶</a></dt>
-<dd><p>Compute the Euclidean norm of a vector.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>v</strong> (<em>numpy.ndarray</em>) – Input vector.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>n</strong> – Euclidean norm (magnitude) of the vector.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="ADCS.controller.helpers.quaternion_math.normalize">
-<span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.quaternion_math.</span></span><span class="sig-name descname"><span class="pre">normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#normalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.quaternion_math.normalize" title="Link to this definition">¶</a></dt>
-<dd><p>Normalize a vector to unit length.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>v</strong> (<em>ndarray</em>) – Input vector <span class="math notranslate nohighlight">\(\mathbf{v}\)</span>.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Normalized vector
-<span class="math notranslate nohighlight">\(\hat{\mathbf{v}} = \frac{\mathbf{v}}{\|\mathbf{v}\|}\)</span>.
-If <span class="math notranslate nohighlight">\(\|\mathbf{v}\|=0\)</span>, the zero vector is returned unchanged.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="ADCS.controller.helpers.quaternion_math.rot_mat">
-<span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.quaternion_math.</span></span><span class="sig-name descname"><span class="pre">rot_mat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#rot_mat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.quaternion_math.rot_mat" title="Link to this definition">¶</a></dt>
-<dd><p>Construct the direction cosine matrix (DCM) corresponding to a quaternion
-using the <strong>Hamilton quaternion convention</strong>.</p>
-<p>The returned matrix performs a rotation from the <strong>body frame</strong> to the
-<strong>inertial (ECI) frame</strong>, such that</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathbf{v}_{\mathrm{ECI}} = \mathbf{R}(\mathbf{q})\,\mathbf{v}_{\mathrm{body}}\]</div>
-</div>
-<p>where the quaternion is defined as</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathbf{q} = \begin{bmatrix} q_0 &amp; q_1 &amp; q_2 &amp; q_3 \end{bmatrix}^\mathsf{T}\]</div>
-</div>
-<p>with scalar-first ordering.</p>
-<p>The rotation matrix is explicitly given by</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\begin{split}\mathbf{R}(\mathbf{q}) =
-\begin{bmatrix}
-q_0^2+q_1^2-q_2^2-q_3^2 &amp; 2(q_1q_2-q_0q_3) &amp; 2(q_1q_3+q_0q_2) \\
-2(q_1q_2+q_0q_3) &amp; q_0^2-q_1^2+q_2^2-q_3^2 &amp; 2(q_2q_3-q_0q_1) \\
-2(q_1q_3-q_0q_2) &amp; 2(q_2q_3+q_0q_1) &amp; q_0^2-q_1^2-q_2^2+q_3^2
-\end{bmatrix}\end{split}\]</div>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>q</strong> (<em>numpy.ndarray</em>) – Unit quaternion in Hamilton form <code class="docutils literal notranslate"><span class="pre">[q0,</span> <span class="pre">q1,</span> <span class="pre">q2,</span> <span class="pre">q3]</span></code>.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Direction cosine matrix mapping body-frame vectors to inertial frame.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
+<p>Compatibility import for vector alignment geometry.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="ADCS.controller.helpers.quaternion_math.vector_alignment_error">
-<span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.quaternion_math.</span></span><span class="sig-name descname"><span class="pre">vector_alignment_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eci_goal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_boresight</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/helpers/quaternion_math.html#vector_alignment_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.quaternion_math.vector_alignment_error" title="Link to this definition">¶</a></dt>
-<dd><p>Compute a minimal vector attitude error aligning a body boresight to an inertial goal.</p>
-<p>The function returns a 3D error vector suitable for feedback control. The error
-represents the shortest rotation that aligns a body-fixed boresight vector with
-a desired inertial-frame direction.</p>
-<p>The procedure is:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}\mathbf{v}_g^b = \mathbf{R}(q)^\top \mathbf{v}_g^{eci}\\\begin{split}\mathbf{q}_{err} =
-\begin{bmatrix}
-    1 + \mathbf{v}_g^{b\top} \mathbf{v}_b \\
-    \mathbf{v}_g^b \times \mathbf{v}_b
-\end{bmatrix}\end{split}\end{aligned}\end{align} \]</div>
-</div>
-<p>followed by normalization and extraction of the vector part with shortest-rotation
-sign enforcement.</p>
+<span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.quaternion_math.</span></span><span class="sig-name descname"><span class="pre">vector_alignment_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eci_goal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_boresight</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#vector_alignment_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.quaternion_math.vector_alignment_error" title="Link to this definition">¶</a></dt>
+<dd><p>Shortest body-frame quaternion-vector error for boresight alignment.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>q</strong> (<em>numpy.ndarray</em>) – Attitude quaternion representing the rotation from body frame to ECI frame.</p></li>
-<li><p><strong>eci_goal</strong> (<em>numpy.ndarray</em>) – Desired pointing direction expressed in the ECI frame.</p></li>
-<li><p><strong>body_boresight</strong> (<em>numpy.ndarray</em>) – Body-frame boresight direction to be aligned with the goal.</p></li>
+<li><p><strong>q</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>eci_goal</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>body_boresight</strong> (<em>ndarray</em>)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Vector part of the attitude error quaternion in the body frame.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
 </dd>
 </dl>
 </dd></dl>
-
-<dl class="py type">
-<dt class="sig sig-object py" id="ADCS.controller.helpers.quaternion_math.NDArray">
-<span class="property"><span class="k"><span class="pre">type</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.quaternion_math.</span></span><span class="sig-name descname"><span class="pre">NDArray</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">_AnyShape</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.controller.helpers.quaternion_math.NDArray" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </section>
 
@@ -762,27 +657,8 @@ sign enforcement.</p>
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">ADCS.controller.helpers.quaternion_math module</a><ul>
-<li><a class="reference internal" href="#quaternion-math-py">quaternion_math.py</a></li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>
@@ -791,7 +667,6 @@ sign enforcement.</p>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="_static/factory-tables.js?v=79d82ec7"></script>
     </body>
 </html>

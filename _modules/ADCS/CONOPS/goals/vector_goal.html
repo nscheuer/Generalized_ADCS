@@ -592,7 +592,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.goal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Goal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize</span><span class="p">,</span> <span class="n">rot_mat</span><span class="p">,</span> <span class="n">norm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">vector_alignment_error</span>
 
 <div class="viewcode-block" id="Vector_Goal">
 <a class="viewcode-back" href="../../../../ADCS.CONOPS.goals.vector_goal.html#ADCS.CONOPS.goals.vector_goal.Vector_Goal">[docs]</a>
@@ -759,26 +759,7 @@
 <span class="sd">        """</span>
         <span class="n">eci_goal</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_ref</span><span class="p">(</span><span class="n">os0</span><span class="p">)</span>
 
-        <span class="n">v_bore</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">body_boresight</span><span class="p">)</span>
-        <span class="n">R_b2i</span> <span class="o">=</span> <span class="n">rot_mat</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>                    <span class="c1"># q: body -&gt; ECI (Hamilton)</span>
-        <span class="n">v_goal_body</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">R_b2i</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">eci_goal</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span>
-
-        <span class="n">dot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v_bore</span><span class="p">,</span> <span class="n">v_goal_body</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">dot</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">0.9999</span><span class="p">:</span>
-            <span class="c1"># 180° case: pick any orthogonal axis</span>
-            <span class="n">axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">v_bore</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">norm</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-3</span><span class="p">:</span>
-                <span class="n">axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">v_bore</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
-            <span class="n">q_err_full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">normalize</span><span class="p">(</span><span class="n">axis</span><span class="p">)])</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># NOTE: goal × bore, not bore × goal</span>
-            <span class="n">cross</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">v_goal_body</span><span class="p">,</span> <span class="n">v_bore</span><span class="p">)</span>
-            <span class="n">q_err_full</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([[</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">dot</span><span class="p">],</span> <span class="n">cross</span><span class="p">]))</span>
-
-        <span class="n">sign</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">q_err_full</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="o">-</span><span class="mf">1.0</span>
-        <span class="n">q_err_vec</span> <span class="o">=</span> <span class="n">q_err_full</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">sign</span>
-        <span class="k">return</span> <span class="n">q_err_vec</span></div>
+        <span class="k">return</span> <span class="n">vector_alignment_error</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">eci_goal</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="n">body_boresight</span><span class="p">)</span></div>
 </div>
 
 </pre></div>

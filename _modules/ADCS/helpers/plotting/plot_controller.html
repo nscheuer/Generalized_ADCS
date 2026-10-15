@@ -597,7 +597,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.widgets</span><span class="w"> </span><span class="kn">import</span> <span class="n">Button</span><span class="p">,</span> <span class="n">RadioButtons</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">norm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Sequence</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quat_to_euler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quat_to_euler</span><span class="p">,</span> <span class="n">quaternion_angle</span><span class="p">,</span> <span class="n">angle_between_vectors</span><span class="p">,</span> <span class="n">rot_mat</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span>
 
 <div class="viewcode-block" id="plot_control">
@@ -817,42 +817,12 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">rot_mat</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_quat</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">q</span><span class="p">)):</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mf">1e-12</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="n">q</span> <span class="o">/</span> <span class="n">n</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_quat_attitude_error_deg</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">q_ref</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Minimal rotation angle between q and q_ref (scalar-first, Hamilton).</span>
-<span class="sd">    """</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">_normalize_quat</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-    <span class="n">q_ref</span> <span class="o">=</span> <span class="n">_normalize_quat</span><span class="p">(</span><span class="n">q_ref</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">q_ref</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-
-    <span class="c1"># q_err = q^{-1} ⊗ q_ref</span>
-    <span class="n">q_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">-</span><span class="n">q</span><span class="p">[</span><span class="mi">3</span><span class="p">]])</span>
-    <span class="n">w0</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">z0</span> <span class="o">=</span> <span class="n">q_inv</span>
-    <span class="n">w1</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">z1</span> <span class="o">=</span> <span class="n">q_ref</span>
-
-    <span class="n">q_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
-        <span class="n">w0</span><span class="o">*</span><span class="n">w1</span> <span class="o">-</span> <span class="n">x0</span><span class="o">*</span><span class="n">x1</span> <span class="o">-</span> <span class="n">y0</span><span class="o">*</span><span class="n">y1</span> <span class="o">-</span> <span class="n">z0</span><span class="o">*</span><span class="n">z1</span><span class="p">,</span>
-        <span class="n">w0</span><span class="o">*</span><span class="n">x1</span> <span class="o">+</span> <span class="n">x0</span><span class="o">*</span><span class="n">w1</span> <span class="o">+</span> <span class="n">y0</span><span class="o">*</span><span class="n">z1</span> <span class="o">-</span> <span class="n">z0</span><span class="o">*</span><span class="n">y1</span><span class="p">,</span>
-        <span class="n">w0</span><span class="o">*</span><span class="n">y1</span> <span class="o">-</span> <span class="n">x0</span><span class="o">*</span><span class="n">z1</span> <span class="o">+</span> <span class="n">y0</span><span class="o">*</span><span class="n">w1</span> <span class="o">+</span> <span class="n">z0</span><span class="o">*</span><span class="n">x1</span><span class="p">,</span>
-        <span class="n">w0</span><span class="o">*</span><span class="n">z1</span> <span class="o">+</span> <span class="n">x0</span><span class="o">*</span><span class="n">y1</span> <span class="o">-</span> <span class="n">y0</span><span class="o">*</span><span class="n">x1</span> <span class="o">+</span> <span class="n">z0</span><span class="o">*</span><span class="n">w1</span><span class="p">,</span>
-    <span class="p">])</span>
-
-    <span class="n">w</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">q_err</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
-    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">w</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">quaternion_angle</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">q_ref</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="p">)))</span>
 
 
 <div class="viewcode-block" id="plot_target_tracking">
@@ -899,8 +869,7 @@
                 <span class="k">continue</span>
             <span class="n">v_goal</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v_goal</span><span class="p">)</span>
 
-            <span class="n">dot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v_bore_eci</span><span class="p">,</span> <span class="n">v_goal</span><span class="p">),</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-            <span class="n">error_angle_deg</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">dot</span><span class="p">))</span>
+            <span class="n">error_angle_deg</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">angle_between_vectors</span><span class="p">(</span><span class="n">v_bore_eci</span><span class="p">,</span> <span class="n">v_goal</span><span class="p">))</span>
 
         <span class="c1"># ---- Mixed Nx4 target ----</span>
         <span class="k">elif</span> <span class="n">row</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
@@ -917,8 +886,7 @@
                     <span class="k">continue</span>
                 <span class="n">v_goal</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v_goal</span><span class="p">)</span>
 
-                <span class="n">dot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v_bore_eci</span><span class="p">,</span> <span class="n">v_goal</span><span class="p">),</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-                <span class="n">error_angle_deg</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">dot</span><span class="p">))</span>
+                <span class="n">error_angle_deg</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">angle_between_vectors</span><span class="p">(</span><span class="n">v_bore_eci</span><span class="p">,</span> <span class="n">v_goal</span><span class="p">))</span>
 
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># Quaternion goal: [q0,q1,q2,q3]</span>
