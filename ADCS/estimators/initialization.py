@@ -19,7 +19,7 @@ from typing import Any, Mapping
 import numpy as np
 from scipy.linalg import block_diag
 
-from ADCS.estimators.attitude_determination import AttitudeSolution, quest, triad
+from ADCS.estimators.attitude_determination import AttitudeSolution, q_method, quest, triad
 from ADCS.state import EstimatorState, State, _quaternion_tangent_scale
 
 __all__ = [
@@ -252,7 +252,7 @@ def wheel_momentum_from_readings(satellite: Any, readings: Any) -> np.ndarray:
 # ----------------------------------------------------------------------------
 # attitude and complete initial state
 
-_METHODS = ("auto", "quest", "triad", "tracker")
+_METHODS = ("auto", "quest", "triad", "q_method", "tracker")
 _ATTITUDE_SIGMA_FLOOR = 1.0e-6  # rad; the same floor vector_observations uses
 
 
@@ -274,7 +274,7 @@ class WarmStart:
 
     :param method: ``"auto"`` (a quaternion star tracker when one has a reading,
         otherwise QUEST), ``"quest"``, ``"triad"`` (the two most precise
-        directions) or ``"tracker"``.
+        directions), ``"q_method"`` or ``"tracker"``.
     :param rate: ``"gyro"`` or the initial angular rate in rad/s.
     :param wheel_momentum: ``"readings"`` or the initial wheel momenta.
     :param act_bias: Initial actuator biases (default zeros).
@@ -356,9 +356,9 @@ def attitude_from_readings(
 ) -> AttitudeSolution:
     """The attitude at the time of one raw measurement vector.
 
-    ``"quest"`` solves Wahba's problem over every direction observation
-    (:func:`vector_observations`), ``"triad"`` uses the two most precise
-    ones, ``"tracker"`` takes the reading of a quaternion star tracker, and
+    ``"quest"`` and ``"q_method"`` solve Wahba's problem over every direction
+    observation (:func:`vector_observations`), ``"triad"`` uses the two most
+    precise ones, ``"tracker"`` takes a quaternion star tracker reading, and
     ``"auto"`` takes the tracker when one has a finite reading and QUEST
     otherwise. The solution's covariance is the small-angle attitude-error
     covariance in the body frame, in rad^2.
@@ -399,7 +399,7 @@ def attitude_from_readings(
         body = np.vstack([observation.body for observation in observations])
         reference = np.vstack([observation.reference for observation in observations])
         sigma = np.array([observation.sigma for observation in observations])
-        return quest(body, reference, sigma)
+        return q_method(body, reference, sigma) if method == "q_method" else quest(body, reference, sigma)
     except ValueError as error:
         raise ValueError(f"{error}; pass the initial attitude explicitly") from None
 
