@@ -101,7 +101,7 @@ class SunSensor(Sensor):
         direction = np.asarray(os.S, dtype=float) - np.asarray(os.R, dtype=float)
         return direction / np.linalg.norm(direction)
 
-    def __init__(self, axis: np.ndarray, efficiency: float, sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
+    def __init__(self, axis: np.ndarray, efficiency: float, sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False, scale_factor: float = 1.0, misalignment: Optional[np.ndarray] = None):
         r"""
         Initialize a single-axis coarse Sun sensor.
 
@@ -126,7 +126,7 @@ class SunSensor(Sensor):
         self.axis = normalize(axis)
         self.efficiency = efficiency
         self.attitude_sensor = False
-        super().__init__(sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
+        super().__init__(scale_factor=scale_factor, misalignment=misalignment, sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
     def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
@@ -179,12 +179,12 @@ class SunSensor(Sensor):
         sun_dir = normalize(vecs["s"] - vecs["r"])
 
         # Compute illumination
-        projection = np.dot(self.axis, sun_dir)
+        projection = np.dot(self.sensing_axis, sun_dir)
         illumination = np.maximum(projection, 0.0)
 
         # Eclipse handling
         if os.is_sunlit():
-            return self.efficiency * illumination
+            return self.scale_factor * self.efficiency * illumination
         else:
             return np.nan
     
@@ -292,10 +292,10 @@ class SunSensor(Sensor):
         ns = normalize(sunvec)
 
         dns__dq = normed_vec_jac(sunvec,vecs["ds"]-vecs["dr"])
-        cos_incidence = np.dot(ns, self.axis)
-        dcos_incidence__dq = (cos_incidence>0)*(dns__dq@self.axis)
+        cos_incidence = np.dot(ns, self.sensing_axis)
+        dcos_incidence__dq = (cos_incidence>0)*(dns__dq@self.sensing_axis)
         if os.is_sunlit():
-            return np.vstack([np.zeros((3,1)),self.efficiency*np.expand_dims(dcos_incidence__dq,1)])
+            return self.scale_factor * np.vstack([np.zeros((3,1)),self.efficiency*np.expand_dims(dcos_incidence__dq,1)])
         else:
             # In eclipse clean_reading() returns NaN as the "sensor invalid /
             # occulted" sentinel that the UKF/SRUKF use (np.isnan check) to
