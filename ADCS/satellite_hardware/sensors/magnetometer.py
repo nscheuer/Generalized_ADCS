@@ -117,7 +117,7 @@ class MTM(Sensor):
         self.axis = normalize(axis)
         self.attitude_sensor = False
         super().__init__(scale_factor=scale_factor, misalignment=misalignment, sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
-        self.field_error = field_error  # shared by the spacecraft's magnetometers; None on the estimator's model
+        self.field_error = field_error  # a Satellite built with field_error= sets this on every magnetometer; None on the estimator's model
 
     def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
