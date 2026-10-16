@@ -12,6 +12,7 @@ from ADCS.helpers.math_helpers import _quat_qdot, _wdot_no_rw_kernel, _wdot_rw_k
 from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, General_Disturbance, Prop_Disturbance
 from ADCS.satellite_hardware.sensors import Sensor, GPS, Gyro, MTM, SunPair, SunSensor
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
+from ADCS.satellite_hardware.errors import FieldModelError
 from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
@@ -131,7 +132,7 @@ class Satellite:
     :raises ValueError:
         If ``COM`` is not shape ``(3,)`` or ``J_0`` is not shape ``(3,3)``.
     """
-    def __init__(self, mass: float = 1.0, COM: Optional[np.ndarray] = None, J_0: Optional[np.ndarray] = None, disturbances: Sequence[Disturbance] = [], sensors: Sequence[Sensor] = [], actuators: Sequence[Actuator] = [], boresight: Optional[dict[str, np.ndarray] | np.ndarray] = None) -> None:
+    def __init__(self, mass: float = 1.0, COM: Optional[np.ndarray] = None, J_0: Optional[np.ndarray] = None, disturbances: Sequence[Disturbance] = [], sensors: Sequence[Sensor] = [], actuators: Sequence[Actuator] = [], boresight: Optional[dict[str, np.ndarray] | np.ndarray] = None, field_error: Optional["FieldModelError"] = None) -> None:
         r"""
         Construct a :class:`~ADCS.satellite.Satellite`.
 
@@ -192,6 +193,14 @@ class Satellite:
         self.rw_actuators: List[RW] = [s for s in actuators if isinstance(s, RW)]
         self.mtq_actuators: List[MTQ] = [s for s in actuators if not isinstance(s, RW)]
         self.momentum_inds = np.array([j for j in range(len(self.actuators)) if isinstance(self.actuators[j], RW)])
+        # The difference between the real geomagnetic field and the model, as
+        # the plant experiences it: the magnetometers read it and the torquers
+        # and magnetic disturbances act on it. The estimator's clone has none.
+        self.field_error = field_error
+        if field_error is not None:
+            for sensor in self.sensors:
+                if hasattr(sensor, "field_error"):
+                    sensor.field_error = field_error
         
         if boresight is None:
             self.boresight: dict[str, np.ndarray] = {
@@ -529,6 +538,8 @@ class Satellite:
         self.update_actuator_errors(j2000)
         for disturbance in self.disturbances:
             disturbance.update_errors(j2000)
+        if self.field_error is not None:
+            self.field_error._update(j2000)
 
     def update_RWhs(self,state_or_RWhs) -> None:
         r"""
@@ -739,6 +750,12 @@ class Satellite:
 
         return result
         
+    def _plant_orbital_state(self, orbital_state: Orbital_State) -> Orbital_State:
+        """The orbital state as the plant experiences it: the model field plus the field-model error."""
+        result = orbital_state.copy()  # copy() clears the body-vector cache, so "b" is recomputed from the new field
+        result.B = orbital_state.B + self.field_error.eci
+        return result
+
     def dynamics_for_solver(self, t: float, x: np.ndarray, u: np.ndarray, os0: Orbital_State, os1: Orbital_State) -> np.ndarray:
         r"""
         Wrapper for ODE solvers expecting signature ``f(t, x)``.
@@ -810,6 +827,8 @@ class Satellite:
         :return: Disturbance torque vector in body frame, shape ``(3,)`` (N·m).
         :rtype: numpy.ndarray
         """
+        if self.field_error:
+            os = self._plant_orbital_state(os)  # the plant's magnetic disturbances act on the true field
         torque_total = np.zeros(3)
 
         for j in self.disturbances:
@@ -850,6 +869,8 @@ class Satellite:
         :return: Actuator torque vector in body frame, shape ``(3,)`` (N·m).
         :rtype: numpy.ndarray
         """
+        if self.field_error:
+            os = self._plant_orbital_state(os)  # the plant's torquers act on the true field
 
         act_list = [self.actuators[j].torque(u[j], x, os=os, dmode=dmode) for j in range(len(self.actuators))]
         return sum(act_list, np.zeros(3))
