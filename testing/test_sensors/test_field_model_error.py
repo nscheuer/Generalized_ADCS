@@ -94,3 +94,42 @@ def test_configuration_is_validated():
     silent = MTM(np.array([1.0, 0.0, 0.0]), field_error=FieldModelError(std=0.0, correlation_time=10.0))
     os = _orbital_state()
     np.testing.assert_allclose(silent.reading(TRUTH, os), (rot_mat(TRUTH.q).T @ os.B)[0])
+
+
+def test_the_satellite_owns_the_error_and_its_torquers_act_on_the_true_field():
+    from ADCS.satellite_hardware.actuators import MTQ
+    from ADCS.satellite_hardware.disturbances import Dipole_Disturbance
+
+    np.random.seed(12)
+    error = FieldModelError(std=5.0e-6, correlation_time=600.0)  # large, to be visible against a 3e-5 T field
+    satellite = Satellite(
+        J_0=np.eye(3), sensors=[MTM(axis) for axis in np.eye(3)],
+        actuators=[MTQ(np.array([1.0, 0.0, 0.0]), max_torque=1.0)],
+        disturbances=[Dipole_Disturbance(np.array([0.0, 0.02, 0.0]))],
+        field_error=error,
+    )
+    assert all(sensor.field_error is error for sensor in satellite.sensors)
+    os = _orbital_state()
+    satellite.update_errors(T0)
+    assert np.any(error.eci != 0.0)
+    true_body_field = rot_mat(TRUTH.q).T @ (os.B + error.eci)
+    model_body_field = rot_mat(TRUTH.q).T @ os.B
+    # readings and torques see the same field, the true one
+    np.testing.assert_allclose(satellite.noiseless_sensor_readings(TRUTH, os), true_body_field)
+    command = np.array([0.3])
+    np.testing.assert_allclose(satellite.act_torque(TRUTH, command, os, dmode=None), np.cross(0.3 * np.array([1.0, 0.0, 0.0]), true_body_field))
+    np.testing.assert_allclose(satellite.dist_torques(TRUTH, os), np.cross(np.array([0.0, 0.02, 0.0]), true_body_field))
+    # the dynamics agree with the torque methods, and the caller's orbital state is untouched
+    plant_wdot = satellite.dynamics_core(TRUTH, command, os, dmode=None)[:3]
+    expected_torque = np.cross(0.3 * np.array([1.0, 0.0, 0.0]), true_body_field) + np.cross(np.array([0.0, 0.02, 0.0]), true_body_field)
+    np.testing.assert_allclose(plant_wdot, np.linalg.inv(np.eye(3)) @ (expected_torque - np.cross(TRUTH.w, TRUTH.w)), atol=1.0e-18)
+    np.testing.assert_allclose(rot_mat(TRUTH.q).T @ os.B, model_body_field)
+    # the estimator's clone predicts with the model field
+    estimated = EstimatedSatellite.from_satellite(satellite)
+    assert estimated.field_error is None and all(sensor.field_error is None for sensor in estimated.sensors)
+    np.testing.assert_allclose(estimated.act_torque(TRUTH, command, os, dmode=None), np.cross(0.3 * np.array([1.0, 0.0, 0.0]), model_body_field))
+    np.testing.assert_allclose(estimated.noiseless_sensor_readings(TRUTH, os), model_body_field)
+    # one realisation per step: a second update at the same epoch changes nothing
+    before = error.eci.copy()
+    satellite.update_errors(T0)
+    np.testing.assert_allclose(error.eci, before)
