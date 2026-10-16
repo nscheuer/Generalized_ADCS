@@ -220,10 +220,11 @@ packages = [
 [tool.setuptools.package-data]
 "*" = ["textures/*.jpg"]
 "ADCS" = ["py.typed"]
-# The IGRF coefficients. Without this the wheel imports fine and then raises
-# FileNotFoundError on the first field evaluation -- which is exactly how the
-# pyIGRF and igrf packages on PyPI are currently broken.
-"ADCS.environment.kernels" = ["*.shc"]
+# Bundle the small offline environment data files explicitly. A *.bsp glob
+# would also collect the multi-gigabyte DE441 kernels from a developer's cache.
+# IGRF-14, DE442s, and the compressed Bright Star Catalogue work without a
+# network connection after installing the wheel.
+"ADCS.environment.kernels" = ["IGRF14.shc", "de442s.bsp", "bsc5_catalog.gz"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]

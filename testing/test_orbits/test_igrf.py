@@ -18,6 +18,8 @@ import pytest
 
 from ADCS.environment.magnetic_field.igrf14_numba import NMAX, RE, coefficients_at, igrf_gc
 
+pytestmark = pytest.mark.local
+
 ppigrf = pytest.importorskip("ppigrf", reason="reference model not installed")
 
 # Machine precision for a ~1e4 nT field summed over 104 terms. The two codes

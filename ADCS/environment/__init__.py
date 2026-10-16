@@ -13,13 +13,14 @@ from .magnetic_field import (
     CHAOS8,
     field_gc,
 )
-from .star_catalogue import NavigationStar, StarCatalog, StarCatalogue, HipparcosCatalog
+from .star_catalogue import NavigationStar, StarCatalog, StarCatalogue, HipparcosCatalog, BrightStarCatalog
 
 __all__ = [
     "NavigationStar",
     "StarCatalog",
     "StarCatalogue",
     "HipparcosCatalog",
+    "BrightStarCatalog",
     "coefficients_at",
     "igrf_gc",
     "DEFAULT_MAGNETIC_MODEL",
@@ -50,13 +51,13 @@ def __getattr__(name):
     if name in {"Atmosphere", "SMADAtmosphere", "NRLMSISE00", "NRLMSISE", "AtmosphericModel"}:
         from .atmosphere import Atmosphere, SMADAtmosphere, NRLMSISE00, NRLMSISE, AtmosphericModel
         return {"Atmosphere": Atmosphere, "SMADAtmosphere": SMADAtmosphere, "NRLMSISE00": NRLMSISE00, "NRLMSISE": NRLMSISE, "AtmosphericModel": AtmosphericModel}[name]
-    if name in {"Ephemeris", "DE421", "DE442", "DE441", "VSOP2013", "EphemerisModel"}:
-        from .ephemeris import Ephemeris, DE421, DE442, DE441, VSOP2013, EphemerisModel
-        return {"Ephemeris": Ephemeris, "DE421": DE421, "DE442": DE442, "DE441": DE441, "VSOP2013": VSOP2013, "EphemerisModel": EphemerisModel}[name]
+    if name in {"Ephemeris", "DE421", "DE442", "DE442s", "DE442S", "DE441", "VSOP2013", "EphemerisModel"}:
+        from .ephemeris import Ephemeris, DE421, DE442, DE442s, DE442S, DE441, VSOP2013, EphemerisModel
+        return {"Ephemeris": Ephemeris, "DE421": DE421, "DE442": DE442, "DE442s": DE442s, "DE442S": DE442S, "DE441": DE441, "VSOP2013": VSOP2013, "EphemerisModel": EphemerisModel}[name]
     if name == "Environment":
         from .environment import Environment
         return Environment
     raise AttributeError(name)
 
 
-__all__ += ["Atmosphere", "SMADAtmosphere", "NRLMSISE00", "NRLMSISE", "AtmosphericModel", "Ephemeris", "DE421", "DE442", "DE441", "VSOP2013", "EphemerisModel", "Environment"]
+__all__ += ["Atmosphere", "SMADAtmosphere", "NRLMSISE00", "NRLMSISE", "AtmosphericModel", "Ephemeris", "DE421", "DE442", "DE442s", "DE442S", "DE441", "VSOP2013", "EphemerisModel", "Environment"]

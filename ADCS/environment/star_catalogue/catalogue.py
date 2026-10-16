@@ -64,8 +64,8 @@ class NavigationStar:
     These approximations are appropriate for typical small-satellite
     star tracker simulations.
 
-    :param hip_id: Hipparcos catalog identifier.
-    :type hip_id: int
+    :param hip_id: Hipparcos identifier, if this catalogue supplies one.
+    :type hip_id: int or None
 
     :param name: Common or Bayer star name.
     :type name: str
@@ -82,6 +82,9 @@ class NavigationStar:
     :param s_eci: Unit direction vector toward the star in the ECI frame.
     :type s_eci: numpy.ndarray
 
+    :param hr_id: Harvard Revised/Bright Star Catalogue identifier, if available.
+    :type hr_id: int or None
+
     References
     ----------
 
@@ -89,12 +92,13 @@ class NavigationStar:
       4th ed., Section 2.3.
 
     """
-    hip_id: int
+    hip_id: int | None
     name: str
     ra_rad: float
     dec_rad: float
     vmag: float
     s_eci: NDArray[np.float64]
+    hr_id: int | None = None
 
 
 class StarCatalog:

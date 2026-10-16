@@ -17,6 +17,10 @@ from ADCS.orbits.universal_constants import TimeConstants
 
 KERNELS = Path(ADCS.__file__).parent / "environment" / "kernels"
 
+# These reference and integration tests load the full WMM/CHAOS coefficient
+# files, which are intentionally cached locally rather than checked into Git.
+pytestmark = pytest.mark.local
+
 
 @pytest.mark.parametrize(
     "radius,date,reference",

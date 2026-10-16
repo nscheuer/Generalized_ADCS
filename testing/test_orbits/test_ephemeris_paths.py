@@ -318,12 +318,37 @@ def test_de442_uses_a_separate_cache_filename(monkeypatch, tmp_path):
     assert DE442._cache_ephemeris_path() == tmp_path / "generalized_adcs" / "de442.bsp"
 
 
+@pytest.mark.local
+def test_de442s_uses_the_bundled_kernel_offline(monkeypatch, tmp_path):
+    from ADCS.environment.ephemeris import DE442s
+    import numpy as np
+
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    monkeypatch.delenv("ADCS_DE442S_EPHEMERIS_PATH", raising=False)
+
+    def unexpected_download(*args, **kwargs):
+        raise AssertionError("DE442s should use its bundled kernel")
+
+    monkeypatch.setattr(
+        "ADCS.environment.ephemeris.de442.download_with_progress",
+        unexpected_download,
+    )
+    with DE442s() as model:
+        assert Path(model.planets.path) == DE442s._packaged_ephemeris_path()
+        assert "mars barycenter" in model.available_bodies
+        assert model.sun_position_eci(0.0).shape == (3,)
+        assert np.all(np.isfinite(model.position_eci("moon", 0.0)))
+        assert model.position_eci("sun", np.array([0.0, 0.1])).shape == (2, 3)
+
+
 @pytest.mark.parametrize("url", [
     "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de442.bsp",
+    "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de442s.bsp",
     "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de441_part-1.bsp",
     "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de441_part-2.bsp",
     "https://ftp.imcce.fr/pub/ephem/planets/vsop2013/ephemerides/VSOP2013.p2000",
 ])
+@pytest.mark.local
 def test_ephemeris_data_urls_are_reachable_without_downloading(url):
     """Use HTTP HEAD so large ephemeris data files are never transferred."""
     request = Request(url, method="HEAD")

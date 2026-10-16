@@ -27,23 +27,23 @@ class DE442(DE421):
     KERNEL_FILENAME = "de442.bsp"
     ENV_PATH_VARIABLE = "ADCS_DE442_EPHEMERIS_PATH"
 
-    @staticmethod
-    def _packaged_ephemeris_path() -> Path:
+    @classmethod
+    def _packaged_ephemeris_path(cls) -> Path:
         r"""Locate an optional source-package DE442 kernel.
 
         :return: Path within ``environment/kernels``.
         :rtype: pathlib.Path
         """
-        return Path(__file__).resolve().parents[1] / "kernels" / "de442.bsp"
+        return Path(__file__).resolve().parents[1] / "kernels" / cls.KERNEL_FILENAME
 
-    @staticmethod
-    def _cache_ephemeris_path() -> Path:
+    @classmethod
+    def _cache_ephemeris_path(cls) -> Path:
         r"""Choose the DE442 cache path for the current platform.
 
         :return: User override or platform cache destination.
         :rtype: pathlib.Path
         """
-        override = os.environ.get("ADCS_DE442_EPHEMERIS_PATH")
+        override = os.environ.get(cls.ENV_PATH_VARIABLE)
         if override:
             return Path(override).expanduser()
 
@@ -56,7 +56,7 @@ class DE442(DE421):
             base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
         else:
             base = Path.home() / ".cache"
-        return base / "generalized_adcs" / "de442.bsp"
+        return base / "generalized_adcs" / cls.KERNEL_FILENAME
 
     def _download_ephemeris(self, save_path: Path):
         r"""Download DE442 from JPL NAIF and open it with Skyfield.
@@ -74,11 +74,11 @@ class DE442(DE421):
             download_with_progress(self.DOWNLOAD_URL, temporary_path, self.KERNEL_FILENAME)
             temporary_path.replace(save_path)
             planets = load(str(save_path))
-            print(f"✅ DE442 ephemeris downloaded to: {save_path}")
+            print(f"✅ {self.KERNEL_FILENAME} ephemeris downloaded to: {save_path}")
             return planets
         except Exception as exc:
             temporary_path.unlink(missing_ok=True)
-            raise RuntimeError(f"❌ Failed to download DE442 ephemeris: {exc}") from exc
+            raise RuntimeError(f"❌ Failed to download {self.KERNEL_FILENAME}: {exc}") from exc
 
 
 __all__ = ["DE442"]
