@@ -20,7 +20,7 @@ from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.state import EstimatorState, State
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris.de421 import DE421 as Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.helpers.math_helpers import normalize

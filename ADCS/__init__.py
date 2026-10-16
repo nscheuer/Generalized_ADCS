@@ -35,7 +35,26 @@ from .helpers import plot as plots
 from .helpers.plot import plot
 from .helpers.simresults import RunResults, SimulationResults
 from .mc import MCConfig, simulate_mc
-from .orbits.ephemeris import Ephemeris
+from .environment.ephemeris.de421 import DE421 as Ephemeris
+from .environment import (
+    Environment,
+    MagneticField,
+    MagneticFieldModel,
+    IGRF14,
+    IGRF14Numba,
+    IGRF14Ppigrf,
+    Atmosphere,
+    SMADAtmosphere,
+    AtmosphericModel,
+    DE421,
+    DE442,
+    DE441,
+    VSOP2013,
+    EphemerisModel,
+    StarCatalog,
+    StarCatalogue,
+    HipparcosCatalog,
+)
 from .orbits.orbital_state import Orbital_State
 from .satellite_hardware import disturbances
 from .satellite_hardware.actuators import Actuator, MTQ, RW
@@ -90,6 +109,23 @@ __all__ = [
     "simulate_mc",
     "Orbital_State",
     "Ephemeris",
+    "Environment",
+    "MagneticField",
+    "MagneticFieldModel",
+    "IGRF14",
+    "IGRF14Numba",
+    "IGRF14Ppigrf",
+    "Atmosphere",
+    "SMADAtmosphere",
+    "AtmosphericModel",
+    "DE421",
+    "DE442",
+    "DE441",
+    "VSOP2013",
+    "EphemerisModel",
+    "StarCatalog",
+    "StarCatalogue",
+    "HipparcosCatalog",
     "orbits",
     "satellite_factory",
     "State",

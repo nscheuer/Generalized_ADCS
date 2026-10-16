@@ -238,10 +238,13 @@ class Orbit_GPS(Orbit_Estimator):
         temp_os = Orbital_State(
             ephem=self.os_template.ephem,
             J2000=J2000,
-            R=np.zeros(3), # Dummy values
+            R=self.os_template.R,  # Valid placeholder; only frame rotation is used.
             V=np.zeros(3),
             density_model=self.os_template.density_model,
             magnetic_model=self.os_template.magnetic_model,
+            B=np.zeros(3),
+            S=np.zeros(3),
+            rho=0.0,
         )
 
         # 2. Convert ECEF Measurement -> ECI State

@@ -17,6 +17,7 @@ from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.environment.environment import Environment
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import normalize
@@ -42,6 +43,7 @@ def simulate(
     os0: Optional[Orbital_State] = None,
     dt: float = 1.0,
     tf: float = 500.0,
+    environment: Optional[Environment] = None,
 ) -> SimulationResults:
     r"""
     Run a time-domain simulation of the spacecraft Attitude Determination and Control
@@ -117,6 +119,12 @@ def simulate(
     :type tf:
         float
 
+    :param environment:
+        Optional set of environment models used to construct the propagated
+        orbit. When omitted, the environment attached to ``os0`` is used.
+    :type environment:
+        :class:`~ADCS.environment.Environment` or None
+
     :return:
         Container holding all recorded simulation data, including true and estimated
         states, controls, sensor readings, biases, and targets for the entire run.
@@ -145,7 +153,8 @@ def simulate(
 
     start_time = os0.J2000
     end_time = start_time + tf * TimeConstants.sec2cent
-    orb = Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False)
+    orb = Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False, environment=environment)
+    os0 = orb.get_os(J2000=start_time)
 
     u = np.zeros(satellite.control_len)
 

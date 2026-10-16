@@ -15,7 +15,19 @@ x_0 = ADCS.State.from_array(np.array([0.01, -0.02, 0.01] + [1, 0, 0, 0] + [0.0])
 controller = ADCS.controller.MTQ_w_RW_LP(est_sat=satellite, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0, 0, 0]))
 
 goal = ADCS.goals.Coordinate_Goal(lat=42.36, lon=-71.06, alt=0)
-os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, 7.5, 0]))
+environment = ADCS.Environment(
+    magnetic_field=ADCS.Environment.MagneticField.IGRF14Numba(),
+    atmosphere=ADCS.Environment.Atmosphere.SMADAtmosphere(),
+    ephemeris=ADCS.Environment.Ephemeris.DE421(),
+)
+os0 = ADCS.Orbital_State(
+    environment=environment,
+    J2000=0.22,
+    R=np.array([5000, 0, 5000]),
+    V=np.array([0, 7.5, 0]),
+)
+print(f"Initial magnetic field (ECEF): {environment.magnetic_field.field(os0.ECEF, os0.datetime)} T")
+print(f"Initial density: {environment.atmosphere.density(os0.R)} kg/m³")
 
 results = ADCS.simulate(
     x=x_0,
@@ -24,7 +36,8 @@ results = ADCS.simulate(
     goal=goal,
     os0=os0,
     dt=1.0,
-    tf=500.0
+    tf=500.0,
+    environment=environment,
 )
 
 ADCS.plot(

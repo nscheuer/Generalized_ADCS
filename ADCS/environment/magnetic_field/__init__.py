@@ -27,13 +27,14 @@ import numpy as np
 
 from ADCS.environment.igrf import igrf_gc
 
-__all__ = ["MAGNETIC_MODELS", "DEFAULT_MAGNETIC_MODEL", "field_gc"]
+__all__ = ["MAGNETIC_MODELS", "DEFAULT_MAGNETIC_MODEL", "field_gc", "MagneticFieldModel", "IGRF14", "IGRF14Numba", "IGRF14Ppigrf", "MagneticField"]
 
 #: Names accepted by ``magnetic_model`` arguments throughout the package.
 MAGNETIC_MODELS = ("igrf_numba", "igrf_ppigrf")
 
 #: Model used when none is requested.
 DEFAULT_MAGNETIC_MODEL = "igrf_numba"
+
 
 #: Samples per ppigrf call when dates vary per sample. ppigrf forms the outer
 #: product of dates and coordinates, so a chunk of m samples costs m^2 field
@@ -157,3 +158,15 @@ def field_gc(magnetic_model, r, theta, phi, date):
     if model == "igrf_numba":
         return igrf_gc(r, theta, phi, date)
     return _ppigrf_gc(r, theta, phi, date)
+
+
+from .magnetic_field import MagneticField
+from .igrf14 import IGRF14
+from .igrf14_numba import IGRF14Numba
+from .igrf14_ppigrf import IGRF14Ppigrf
+
+# Backwards-compatible model name; now a concrete class in this package.
+MagneticFieldModel = IGRF14
+MagneticField.IGRF14 = IGRF14
+MagneticField.IGRF14Numba = IGRF14Numba
+MagneticField.IGRF14Ppigrf = IGRF14Ppigrf

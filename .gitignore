@@ -159,6 +159,11 @@ env/
 venv/
 venv*/
 env*/
+!/ADCS/environment/
+/ADCS/environment/kernels/*
+!/ADCS/environment/kernels/IGRF14.shc
+!/ADCS/environment/kernels/de421.bsp
+!/ADCS/environment/kernels/__init__.py
 ENV/
 env.bak/
 venv.bak/

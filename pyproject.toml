@@ -10,7 +10,7 @@ name = "Generalized_ADCS"
 # first PyPI upload went out as 0.1.5 -- two behind the documented state, and
 # built before the choldate removal. PyPI versions are immutable, so this moves
 # forward past the documented 0.1.7 rather than trying to reuse a number.
-version = "0.2.1"
+version = "0.2.2.dev0"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
     { name = "Patrick McKeen", email = "pmckeen@mit.edu" },
@@ -158,6 +158,11 @@ packages = [
     "ADCS.controller.plan_and_track",
     "ADCS.controller.saltro",
     "ADCS.environment",
+    "ADCS.environment.atmosphere",
+    "ADCS.environment.ephemeris",
+    "ADCS.environment.kernels",
+    "ADCS.environment.magnetic_field",
+    "ADCS.environment.star_catalogue",
     "ADCS.estimators",
     "ADCS.estimators.attitude_estimators",
     "ADCS.estimators.estimator_helpers",
@@ -201,9 +206,9 @@ packages = [
 # data files at all, so the Earth textures were missing and the orbit
 # animation silently lost its texture.
 #
-# de421.bsp (16 MB) is deliberately NOT shipped -- Ephemeris() downloads it on
+# de421.bsp (16 MB) is deliberately NOT shipped -- DE421() downloads it on
 # first use, and a 16 MB payload on every install is a poor trade for a file
-# most users never touch. Pass `Ephemeris(filepath=...)` to point at an
+# most users never touch. Pass `DE421(filepath=...)` to point at an
 # existing copy.
 # py.typed marks the package as PEP 561 typed, so downstream type checkers use
 # our annotations instead of discarding them. Only safe now that the public
@@ -214,7 +219,7 @@ packages = [
 # The IGRF coefficients. Without this the wheel imports fine and then raises
 # FileNotFoundError on the first field evaluation -- which is exactly how the
 # pyIGRF and igrf packages on PyPI are currently broken.
-"ADCS.environment" = ["*.shc"]
+"ADCS.environment.kernels" = ["*.shc"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]

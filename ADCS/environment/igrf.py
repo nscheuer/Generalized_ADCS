@@ -60,7 +60,7 @@ RE = 6371.2
 #: Maximum spherical-harmonic degree of IGRF-14.
 NMAX = 13
 
-_SHC_FILE = Path(__file__).with_name("IGRF14.shc")
+_SHC_FILE = Path(__file__).with_name("kernels") / "IGRF14.shc"
 
 #: Cached as a string: ``Path.__str__`` is not free, and the scalar path calls
 #: this often enough for it to show up.

@@ -8,12 +8,12 @@ from tqdm import tqdm
 from skyfield import api, units, positionlib, framelib
 from datetime import timezone
 
-from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, field_gc
+from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, MagneticFieldModel
+from ADCS.environment.environment import Environment
 from ADCS.orbits.orbital_state import Orbital_State, _normalize_zonal_J
 from ADCS.orbits.universal_constants import TimeConstants, EarthConstants
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import matrix_row_normalize
-from ADCS.orbits.density_model import DensityModel
 
 
 class Orbit:
@@ -65,6 +65,10 @@ class Orbit:
         :data:`ADCS.environment.MAGNETIC_MODELS`. ``None`` uses the model of
         the initial state (or of the first state, for a list).
     :type magnetic_model: str or None
+    :param environment:
+        Environment models used to compute every state's field, density, and
+        ephemeris data. Defaults to the initial state's environment.
+    :type environment: Environment or None
 
     :raises ValueError:
         If input arguments are inconsistent or unsupported.
@@ -80,6 +84,7 @@ class Orbit:
         verbose: bool = True,
         zonal_J: int = 2,
         magnetic_model: Optional[str] = None,
+        environment: Optional[Environment] = None,
     ) -> None:
         r"""
         Initialize an orbit from an initial condition or a list of states.
@@ -115,10 +120,24 @@ class Orbit:
         self._zonal_J = _normalize_zonal_J(zonal_J)
         # Likewise the field model, so every state in this orbit -- including
         # ones get_os() interpolates later -- evaluates B the same way.
-        if magnetic_model is None:
-            first = os0 if isinstance(os0, Orbital_State) else (os0[0] if isinstance(os0, list) and os0 else None)
-            magnetic_model = getattr(first, "magnetic_model", None)
-        self._magnetic_model = _normalize_magnetic_model(magnetic_model)
+        first = os0 if isinstance(os0, Orbital_State) else (os0[0] if isinstance(os0, list) and os0 else None)
+        if environment is None:
+            environment = getattr(first, "environment", None)
+        if environment is None:
+            environment = Environment(
+                magnetic_field=MagneticFieldModel(magnetic_model or getattr(first, "magnetic_model", DEFAULT_MAGNETIC_MODEL)),
+                atmosphere=getattr(first, "density_model", None),
+                ephemeris=getattr(first, "ephem", None),
+            )
+        elif magnetic_model is not None and _normalize_magnetic_model(magnetic_model) != environment.magnetic_model:
+            environment = Environment(
+                magnetic_field=MagneticFieldModel(magnetic_model),
+                atmosphere=environment.atmosphere,
+                ephemeris=environment.ephemeris,
+                star_catalogue=environment.star_catalogue,
+            )
+        self.environment = environment
+        self._magnetic_model = environment.magnetic_model
 
         if isinstance(os0, Orbital_State):
             start_time = float(os0.J2000)
@@ -174,7 +193,7 @@ class Orbit:
                 V_hist[j, :] = v0 + (dt_step / 6.0) * (k1v + 2.0 * k2v + 2.0 * k3v + k4v)
 
             # --- Batch-compute environment and frame transforms once ---
-            ephem = os0.ephem
+            ephem = environment.ephemeris
             ts = ephem.ts
 
             # 2451545.0 is the J2000.0 epoch in TT, so this is a TT Julian
@@ -215,27 +234,20 @@ class Orbit:
                     dts.append(dt_i)
 
             # Sun vector (ECI) in km (vectorized)
-            sun_icrf = ephem.earth.at(t_sf).observe(ephem.sun).apparent()
-            sun_km = np.asarray(sun_icrf.position.km, dtype=float)
-            if sun_km.ndim == 2 and sun_km.shape[0] == 3 and sun_km.shape[1] == N:
-                S_hist = sun_km.T
-            elif sun_km.ndim == 2 and sun_km.shape[0] == N and sun_km.shape[1] == 3:
-                S_hist = sun_km
+            if hasattr(ephem, "sun_position_eci"):
+                S_hist = np.asarray(ephem.sun_position_eci(times_arr), dtype=float).reshape(N, 3)
             else:
-                S_hist = np.reshape(sun_km, (N, 3))
+                sun_icrf = ephem.earth.at(t_sf).observe(ephem.sun).apparent()
+                sun_km = np.asarray(sun_icrf.position.km, dtype=float)
+                if sun_km.ndim == 2 and sun_km.shape[0] == 3 and sun_km.shape[1] == N:
+                    S_hist = sun_km.T
+                elif sun_km.ndim == 2 and sun_km.shape[0] == N and sun_km.shape[1] == 3:
+                    S_hist = sun_km
+                else:
+                    S_hist = np.reshape(sun_km, (N, 3))
 
-            # Magnetic field (IGRF) in geocentric components (vectorized call).
-            # Dates pair up elementwise with the positions, so this is N field
-            # evaluations. ppigrf broadcast dates against coordinates instead,
-            # computing an N x N grid of which the diagonal was then extracted
-            # -- N^2 work for N results.
-            b_r, b_th, b_ph = field_gc(
-                self._magnetic_model,
-                geo_hist[:, 0],
-                geo_hist[:, 1] * 180.0 / np.pi,
-                geo_hist[:, 2] * 180.0 / np.pi,
-                dts,
-            )
+            # The model accepts one ECEF position and date per orbit sample.
+            b_ecef = environment.magnetic_field.field(ECEF_hist, dts)
 
             # Local basis for geocentric->ECEF conversion (vectorized, matches existing Orbit.geocentric_to_ecef_orbit)
             n_ecef = ECEF_hist / r_ecef[:, None]
@@ -245,19 +257,15 @@ class Orbit:
             tvec = np.cross(svec, n_ecef)
             tvec = tvec / np.linalg.norm(tvec, axis=1)[:, None]
 
-            # Convert to ECEF, then to ECI
-            b_ecef = b_r[:, None] * n_ecef + b_ph[:, None] * svec + b_th[:, None] * tvec
-            B_hist = np.einsum("nij,nj->ni", R_ecef2eci, b_ecef) * 1e-9
+            B_hist = np.einsum("nij,nj->ni", R_ecef2eci, b_ecef)
 
             # Density model (reuse os0 model if present)
-            density_model = getattr(os0, "density_model", None)
-            if density_model is None:
-                density_model = DensityModel()
+            density_model = environment.atmosphere
 
-            alt_core = np.linalg.norm(R_hist, axis=1) - EarthConstants.R_e
-            try:
-                rho_hist = np.asarray(density_model.interpolate(alt_core), dtype=float).reshape(N)
-            except Exception:
+            if hasattr(density_model, "density"):
+                rho_hist = np.asarray(density_model.density(R_hist), dtype=float).reshape(N)
+            else:
+                alt_core = np.linalg.norm(R_hist, axis=1) - EarthConstants.R_e
                 rho_hist = np.array([float(density_model.interpolate(float(h))) for h in alt_core], dtype=float)
 
             # ENU transform (vectorized)
@@ -295,6 +303,7 @@ class Orbit:
                 st = Orbital_State.__new__(Orbital_State)
 
                 st.ephem = ephem
+                st.environment = environment
                 st.ts = ts
 
                 st.J2000 = float(times_arr[i])
@@ -365,10 +374,19 @@ class Orbit:
         Put a (copied) state on this orbit's field model, recomputing ``B`` only
         if the state was built with a different one.
         """
-        model = getattr(self, "_magnetic_model", DEFAULT_MAGNETIC_MODEL)
-        if getattr(st, "magnetic_model", None) != model:
-            st.magnetic_model = model
-            st.B = st.get_b_eci()
+        environment = getattr(self, "environment", getattr(st, "environment", None))
+        if environment is not None and getattr(st, "environment", None) is not environment:
+            st = Orbital_State(
+                J2000=st.J2000,
+                R=st.R,
+                V=st.V,
+                environment=environment,
+            )
+        elif environment is None:
+            model = getattr(self, "_magnetic_model", DEFAULT_MAGNETIC_MODEL)
+            if getattr(st, "magnetic_model", None) != model:
+                st.magnetic_model = model
+                st.B = st.get_b_eci()
         return st
 
     def get_os(self, J2000: float) -> Orbital_State:

@@ -65,9 +65,13 @@ planetary ephemerides and geomagnetic-field calculations.
      - Original citation
      - Reference
    * - Planetary ephemeris and celestial-body positions
-     - ``ADCS.orbits.ephemeris.Ephemeris``
+     - ``ADCS.environment.ephemeris.de421.DE421``
      - B. Rhodes, "Skyfield: High precision research-grade positions for planets and Earth satellites in Python," 2019, ASCL: `ascl:1907.024 <https://ascl.net/1907.024>`__.
      - `Skyfield documentation <https://rhodesmill.org/skyfield/>`__
+   * - VSOP2013 planetary ephemeris
+     - ``ADCS.environment.ephemeris.vsop2013.VSOP2013``
+     - J.-L. Simon, G. Francou, A. Fienga, and H. Manche, "New analytical planetary theories VSOP2013 and TOP2013," *Astronomy & Astrophysics*, 557, A49 (2013).
+     - `doi:10.1051/0004-6361/201321843 <https://doi.org/10.1051/0004-6361/201321843>`__; `IMCCE coefficient files and format notes <https://ftp.imcce.fr/pub/ephem/planets/vsop2013/ephemerides/>`__
    * - IGRF geomagnetic field
      - ``ADCS.orbits.orbital_state.Orbital_State``
      - International Association of Geomagnetism and Aeronomy, *IGRF-14* (2024), coefficient dataset. Also cite C. Beggan et al., "International geomagnetic reference field: the fourteenth generation," *Earth, Planets and Space*, 78, 127 (2026), and IAGA-VMOD, *ppigrf: Pure Python IGRF* for the legacy backend.

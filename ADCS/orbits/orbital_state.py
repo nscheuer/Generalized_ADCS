@@ -8,8 +8,10 @@ from datetime import timezone
 from typing import Dict, Tuple, Optional
 
 from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, field_gc
-from ADCS.orbits.density_model import DensityModel
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.environment import Environment
+from ADCS.environment.magnetic_field import MagneticFieldModel
+from ADCS.environment.atmosphere.density_model import DensityModel
+from ADCS.environment.ephemeris.de421 import DE421 as Ephemeris
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
 from ADCS.helpers.math_helpers import normalize, rot_mat, drotmatTvecdq, ddrotmatTvecdqdq, legendre_p_and_dp
 from ADCS.state import State
@@ -175,7 +177,7 @@ class Orbital_State:
 
     :param ephem:
         Ephemeris object used for Earth and Sun position queries.
-        If ``None``, a new :class:`~ADCS.orbits.ephemeris.Ephemeris` is constructed.
+        If ``None``, a new :class:`~ADCS.environment.ephemeris.de421.DE421` is constructed.
     :type ephem: Ephemeris
 
     :param J2000:
@@ -200,12 +202,12 @@ class Orbital_State:
 
     :param rho:
         Optional atmospheric density [kg/m^3]. If ``None``, it is computed using
-        :class:`~ADCS.orbits.density_model.DensityModel`.
+        :class:`~ADCS.environment.atmosphere.density_model.DensityModel`.
     :type rho: float or None
 
     :param density_model:
         Atmospheric density interpolation model. If ``None``, a new
-        :class:`~ADCS.orbits.density_model.DensityModel` is constructed.
+        :class:`~ADCS.environment.atmosphere.density_model.DensityModel` is constructed.
     :type density_model: DensityModel or None
 
     :param fast:
@@ -217,16 +219,17 @@ class Orbital_State:
 
     def __init__(
         self,
-        ephem: Ephemeris,
-        J2000: float,
-        R: np.ndarray,
-        V: np.ndarray,
+        ephem: Ephemeris | None = None,
+        J2000: float | None = None,
+        R: np.ndarray | None = None,
+        V: np.ndarray | None = None,
         S: Optional[np.ndarray] = None,
         B: Optional[np.ndarray] = None,
         rho: Optional[float] = None,
         density_model: Optional[DensityModel] = None,
         fast: bool = False,
         magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
+        environment: Environment | None = None,
     ) -> None:
         r"""
         Initialize a fully defined orbital state.
@@ -279,9 +282,20 @@ class Orbital_State:
 
         """
         _ = fast  # ignored (kept for backward compatibility)
-        self.magnetic_model = _normalize_magnetic_model(magnetic_model)
+        if J2000 is None or R is None or V is None:
+            raise TypeError("J2000, R, and V are required")
+        if environment is None:
+            environment = Environment(
+                magnetic_field=MagneticFieldModel(magnetic_model),
+                atmosphere=density_model if density_model is not None else DensityModel(),
+                ephemeris=ephem if ephem is not None else Ephemeris(),
+            )
+        elif ephem is not None or density_model is not None or magnetic_model != DEFAULT_MAGNETIC_MODEL:
+            raise ValueError("Pass model choices through environment, or use the legacy model arguments")
+        self.environment = environment
+        self.magnetic_model = environment.magnetic_model
 
-        self.ephem = Ephemeris() if ephem is None else ephem
+        self.ephem = environment.ephemeris
         self.ts = self.ephem.ts
 
         self.J2000 = float(J2000)
@@ -354,7 +368,7 @@ class Orbital_State:
         self.ECI2ENUmat = R_ecef_to_enu @ R_eci_to_ecef
 
         # Atmospheric density model
-        self.density_model = density_model if density_model is not None else DensityModel()
+        self.density_model = environment.atmosphere
 
         # Sun vector (ECI)
         if S is not None:
@@ -372,8 +386,11 @@ class Orbital_State:
         if rho is not None:
             self.rho = float(rho)
         else:
-            altitude_from_core = float(np.linalg.norm(self.R))
-            self.rho = float(self.density_model.interpolate(altitude_from_core - EarthConstants.R_e))
+            if hasattr(self.density_model, "density"):
+                self.rho = float(self.density_model.density(self.R))
+            else:
+                altitude_from_core = float(np.linalg.norm(self.R))
+                self.rho = float(self.density_model.interpolate(altitude_from_core - EarthConstants.R_e))
 
         self.vecs: Dict[str, np.ndarray] | None = None
         self._last_x: np.ndarray | None = None
@@ -393,6 +410,7 @@ class Orbital_State:
         out = Orbital_State.__new__(Orbital_State)
 
         out.ephem = self.ephem
+        out.environment = self.environment
         out.ts = self.ts
 
         out.J2000 = float(self.J2000)
@@ -471,6 +489,7 @@ class Orbital_State:
         out = Orbital_State.__new__(Orbital_State)
 
         out.ephem = self.ephem
+        out.environment = self.environment
         out.ts = self.ts
 
         out.J2000 = a * self.J2000 + b * os2.J2000
@@ -750,9 +769,8 @@ class Orbital_State:
         j2000 = self.J2000 + (float(dt) / TimeConstants.cent2sec)
 
         return Orbital_State(
-            self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None,
-            density_model=self.density_model, fast=False,
-            magnetic_model=getattr(self, "magnetic_model", DEFAULT_MAGNETIC_MODEL),
+            J2000=j2000, R=r_out, V=v_out, S=None, B=None, rho=None,
+            environment=self.environment,
         )
 
     def propagate_orbit_rk4(self, dt: float, fast: bool = True, zonal_J: int = 2):
@@ -795,9 +813,8 @@ class Orbital_State:
         j2000 = self.J2000 + (dt / TimeConstants.cent2sec)
 
         return Orbital_State(
-            self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None,
-            density_model=self.density_model, fast=False,
-            magnetic_model=getattr(self, "magnetic_model", DEFAULT_MAGNETIC_MODEL),
+            J2000=j2000, R=r_out, V=v_out, S=None, B=None, rho=None,
+            environment=self.environment,
         )
 
     def propagate_jacobians(self, dt: float, zonal_J: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -1007,6 +1024,10 @@ class Orbital_State:
         :rtype: numpy.ndarray
 
         """
+        magnetic_field = getattr(getattr(self, "environment", None), "magnetic_field", None)
+        if magnetic_field is not None and hasattr(magnetic_field, "field"):
+            return self.ecef_to_eci(magnetic_field.field(self.ECEF, self.datetime))
+
         r = float(self.geocentric[0])
         theta_rad = float(self.geocentric[1])
         phi_rad = float(self.geocentric[2])
@@ -1048,6 +1069,8 @@ class Orbital_State:
         :rtype: numpy.ndarray
 
         """
+        if hasattr(self.ephem, "sun_position_eci"):
+            return np.asarray(self.ephem.sun_position_eci(self.J2000), dtype=float).reshape(3)
         t = self.ts.tt_jd(self.TAI)  # TT scale (see __init__ note on self.TAI)
         sun_icrf = self.ephem.earth.at(t).observe(self.ephem.sun).apparent()
         return np.asarray(sun_icrf.position.km, dtype=float).reshape(3)
