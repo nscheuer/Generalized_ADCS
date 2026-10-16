@@ -128,7 +128,11 @@ class DE421(EphemerisBase):
 
     @property
     def available_bodies(self) -> tuple[str, ...]:
-        """Names and aliases for targets present in the loaded kernel."""
+        r"""List targets and aliases in the loaded DE421 kernel.
+
+        :return: Sorted lower-case body names and aliases.
+        :rtype: tuple[str, ...]
+        """
         names = self.planets.names()
         return tuple(sorted({alias.lower() for aliases in names.values() for alias in aliases}))
 
@@ -139,6 +143,17 @@ class DE421(EphemerisBase):
         the loaded kernel. J2000 epochs are expressed in Julian centuries.
         Scalar epochs return ``(3,)``; arrays return ``(..., 3)``. Apparent
         positions are computed by default, matching :meth:`sun_position_eci`.
+
+        :param target: Target body name or NAIF identifier.
+        :type target: str or int
+        :param j2000: Epoch or epochs in Julian centuries since J2000.
+        :type j2000: float or numpy.ndarray
+        :param observer: Origin body name or NAIF identifier.
+        :type observer: str or int
+        :param apparent: Apply apparent-position corrections when true.
+        :type apparent: bool
+        :return: Relative ECI position vector or vectors [km].
+        :rtype: numpy.ndarray
         """
         epochs = np.asarray(j2000, dtype=float)
         times = self.ts.tt_jd(epochs * 36525.0 + 2451545.0)
@@ -151,22 +166,53 @@ class DE421(EphemerisBase):
         return np.moveaxis(position, 0, -1)
 
     def sun_position_eci(self, j2000):
-        """Return Earth-to-Sun position [km] for J2000 centuries."""
+        r"""Find the apparent Earth to Sun position in ECI coordinates.
+
+        :param j2000: Epoch or epochs in Julian centuries since J2000.
+        :type j2000: float or numpy.ndarray
+        :return: Earth to Sun vector or vectors [km].
+        :rtype: numpy.ndarray
+        """
         return self.position_eci("sun", j2000)
 
     def close(self) -> None:
-        """Close the underlying Skyfield kernel and its BSP file handle."""
+        r"""Close the Skyfield kernel and its BSP file handle.
+
+        :return: None
+        :rtype: None
+        """
         if not getattr(self, "_closed", True):
             self.planets.close()
             self._closed = True
 
     def __enter__(self):
+        r"""Enter a context that closes the kernel on exit.
+
+        :return: This ephemeris instance.
+        :rtype: DE421
+        """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        r"""Close the kernel when leaving a context.
+
+        :param exc_type: Exception type, if one occurred.
+        :type exc_type: type or None
+        :param exc_value: Exception value, if one occurred.
+        :type exc_value: BaseException or None
+        :param traceback: Exception traceback, if one occurred.
+        :type traceback: traceback or None
+        :return: None, allowing an exception to propagate.
+        :rtype: None
+        """
         self.close()
 
     def __del__(self):
+        r"""Close an unclosed kernel during object finalization.
+
+        :return: None
+        :rtype: None
+        """
         # Keep existing call sites safe even when they do not yet explicitly
         # close their Ephemeris instance.
         try:

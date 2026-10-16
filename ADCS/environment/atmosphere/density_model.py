@@ -24,14 +24,13 @@ class DensityModel:
 
     This class implements a lightweight empirical atmospheric density model
     based on tabulated altitude–density reference data. The density
-    :math:`\rho(h)` is obtained by one–dimensional linear interpolation
+    :math:`\rho(h)` is obtained by interpolating the logarithm of density
     between known data points, making the model suitable for preliminary
     orbital dynamics and drag analyses.
 
     The model is conceptually equivalent to a simplified version of standard
     atmospheric models (e.g. SMAD – *Space Mission Analysis and Design*),
-    where density is assumed to be a deterministic and monotonically
-    decreasing function of altitude.
+    where density is treated as a deterministic function of altitude.
 
     Mathematical Model
     ------------------
@@ -46,10 +45,10 @@ class DensityModel:
 
     .. math::
 
-        \rho(h) =
-        \rho_i +
-        \frac{\rho_{i+1} - \rho_i}{h_{i+1} - h_i}
-        \left(h - h_i\right),
+        \rho(h) = \exp\left(
+        \ln\rho_i +
+        \frac{\ln\rho_{i+1} - \ln\rho_i}{h_{i+1} - h_i}
+        \left(h - h_i\right)\right),
         \quad h_i \le h \le h_{i+1}.
 
     This density model is commonly used in aerodynamic drag formulations:
@@ -111,6 +110,9 @@ class DensityModel:
             If array shapes do not match, altitudes are negative,
             or densities are non-positive.
 
+        :return: None
+        :rtype: None
+
         """
 
         # Store references (or copies if you prefer)
@@ -131,7 +133,7 @@ class DensityModel:
         Interpolate atmospheric density at a given altitude.
 
         This method evaluates the atmospheric density :math:`\rho(h)` at a
-        specified altitude using linear interpolation over the stored
+        specified altitude using log linear interpolation over the stored
         reference data.
 
         Mathematically, for an altitude :math:`h` between two reference points
@@ -139,10 +141,10 @@ class DensityModel:
 
         .. math::
 
-            \rho(h) =
-            \rho_i +
-            \frac{\rho_{i+1} - \rho_i}{h_{i+1} - h_i}
-            (h - h_i).
+            \rho(h) = \exp\left(
+            \ln\rho_i +
+            \frac{\ln\rho_{i+1} - \ln\rho_i}{h_{i+1} - h_i}
+            (h - h_i)\right).
 
         The atmosphere is approximately *exponential* in altitude, so the
         interpolation is performed **log-linearly** (linear in :math:`\ln\rho`
@@ -185,7 +187,16 @@ class DensityModel:
         return float(np.exp(np.interp(h, alt, log_rho)))
 
     def interpolate_many(self, altitude_km):
-        """Vectorized equivalent of :meth:`interpolate` for altitude arrays."""
+        r"""Interpolate atmospheric density for an array of altitudes.
+
+        Values within the table use log linear interpolation. Values above
+        the table continue with the last interval's exponential scale height.
+
+        :param altitude_km: Altitudes above Earth's mean radius [km].
+        :type altitude_km: numpy.ndarray
+        :return: Atmospheric mass densities [kg/m³].
+        :rtype: numpy.ndarray
+        """
         heights = np.asarray(altitude_km, dtype=float)
         log_density = np.interp(heights, self.altitude_range, self._log_rho_range)
         density = np.exp(log_density)

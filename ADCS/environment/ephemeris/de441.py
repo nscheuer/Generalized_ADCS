@@ -18,6 +18,13 @@ class _CombinedKernel:
     """Small Skyfield-compatible view over DE441's two time partitions."""
 
     def __init__(self, paths):
+        r"""Load both DE441 BSP partitions as one logical kernel.
+
+        :param paths: Paths to the two DE441 partition files.
+        :type paths: tuple[pathlib.Path, pathlib.Path]
+        :return: None
+        :rtype: None
+        """
         self.kernels = [load(str(path)) for path in paths]
         self.paths = tuple(Path(path) for path in paths)
         by_target = defaultdict(list)
@@ -30,9 +37,23 @@ class _CombinedKernel:
         }
 
     def decode(self, target):
+        r"""Resolve a body name or ID through Skyfield's kernel decoder.
+
+        :param target: Body name or NAIF identifier.
+        :type target: str or int
+        :return: Resolved NAIF identifier.
+        :rtype: int
+        """
         return self.kernels[0].decode(target)
 
     def __getitem__(self, target):
+        r"""Build a vector function for a target across both partitions.
+
+        :param target: Body name or NAIF identifier.
+        :type target: str or int
+        :return: Skyfield vector function from the solar system barycenter.
+        :rtype: skyfield.vectorlib.VectorFunction
+        """
         target = self.decode(target)
         vf = self._vector_functions[target]
         if vf.center == 0:
@@ -46,10 +67,20 @@ class _CombinedKernel:
         return VectorSum(center, target, tuple(reversed(vfs)))
 
     def close(self):
+        r"""Close each underlying BSP partition.
+
+        :return: None
+        :rtype: None
+        """
         for kernel in self.kernels:
             kernel.close()
 
     def names(self):
+        r"""Merge body name aliases from both DE441 partitions.
+
+        :return: NAIF identifier to aliases mapping.
+        :rtype: dict
+        """
         merged = {}
         for kernel in self.kernels:
             merged.update(kernel.names())
@@ -72,6 +103,13 @@ class DE441(DE421):
     )
 
     def __init__(self, filepath: str | Path | None = None) -> None:
+        r"""Find or download both DE441 partitions and open them.
+
+        :param filepath: Optional path in the desired partition directory.
+        :type filepath: str or pathlib.Path or None
+        :return: None
+        :rtype: None
+        """
         if filepath is None:
             paths = self._find_existing_ephemeris()
             if paths is None:
@@ -94,11 +132,21 @@ class DE441(DE421):
 
     @staticmethod
     def _packaged_ephemeris_paths() -> tuple[Path, Path]:
+        r"""Get source-package paths for the two DE441 partitions.
+
+        :return: Paths in ``environment/kernels``.
+        :rtype: tuple[pathlib.Path, pathlib.Path]
+        """
         kernel_dir = Path(__file__).resolve().parents[1] / "kernels"
         return tuple(kernel_dir / name for name in DE441.KERNEL_FILENAMES)
 
     @staticmethod
     def _cache_ephemeris_paths() -> tuple[Path, Path]:
+        r"""Get per-user cache paths for both DE441 partitions.
+
+        :return: Paths honoring the environment override or platform cache.
+        :rtype: tuple[pathlib.Path, pathlib.Path]
+        """
         override = os.environ.get("ADCS_DE441_EPHEMERIS_PATH")
         if override:
             first = Path(override).expanduser()
@@ -117,17 +165,35 @@ class DE441(DE421):
 
     @classmethod
     def _find_existing_ephemeris(cls) -> tuple[Path, Path] | None:
+        r"""Find a complete pair of locally available DE441 partitions.
+
+        :return: Both paths, or ``None`` if a complete pair is unavailable.
+        :rtype: tuple[pathlib.Path, pathlib.Path] or None
+        """
         for paths in (cls._cache_ephemeris_paths(), cls._packaged_ephemeris_paths()):
             if all(path.is_file() for path in paths):
                 return paths
         return None
 
     def _get_default_ephemeris_path(self) -> Path:
+        r"""Create the cache directory and return the first partition path.
+
+        :return: Destination for ``de441_part-1.bsp``.
+        :rtype: pathlib.Path
+        """
         paths = self._cache_ephemeris_paths()
         paths[0].parent.mkdir(parents=True, exist_ok=True)
         return paths[0]
 
     def _download_ephemeris(self, first_path: Path) -> tuple[Path, Path]:
+        r"""Download missing DE441 partitions from the JPL NAIF archive.
+
+        :param first_path: Path whose parent holds both partitions.
+        :type first_path: pathlib.Path
+        :return: Paths to the downloaded or existing partitions.
+        :rtype: tuple[pathlib.Path, pathlib.Path]
+        :raises RuntimeError: If either partition cannot be downloaded.
+        """
         paths = tuple(Path(first_path).parent / name for name in self.KERNEL_FILENAMES)
         try:
             paths[0].parent.mkdir(parents=True, exist_ok=True)

@@ -32,6 +32,26 @@ class NRLMSISE00(Atmosphere):
         reference_latitude_deg: float = 0.0,
         reference_longitude_deg: float = 0.0,
     ) -> None:
+        r"""Configure NRLMSISE version, solar inputs, and profile location.
+
+        :param version: MSIS version (0 for NRLMSISE-00, 2.0, or 2.1).
+        :type version: float
+        :param f107: Optional daily 10.7 cm solar flux.
+        :type f107: float or None
+        :param f107a: Optional 81-day mean solar flux.
+        :type f107a: float or None
+        :param ap: Optional geomagnetic activity index.
+        :type ap: float or None
+        :param reference_datetime: UTC date for altitude profile queries.
+        :type reference_datetime: datetime.datetime
+        :param reference_latitude_deg: Profile geodetic latitude [deg].
+        :type reference_latitude_deg: float
+        :param reference_longitude_deg: Profile east longitude [deg].
+        :type reference_longitude_deg: float
+        :return: None
+        :rtype: None
+        :raises ValueError: If the selected MSIS version is unsupported.
+        """
         if version not in (0, 2.0, 2.1):
             raise ValueError("NRLMSISE version must be 0 (NRLMSISE-00), 2.0, or 2.1")
         self.version = version
@@ -44,6 +64,12 @@ class NRLMSISE00(Atmosphere):
 
     @staticmethod
     def _backend():
+        r"""Import the optional PyMSIS backend when needed.
+
+        :return: Imported ``pymsis`` module.
+        :rtype: module
+        :raises ImportError: If PyMSIS is not installed.
+        """
         try:
             import pymsis
         except ImportError as exc:
@@ -55,6 +81,16 @@ class NRLMSISE00(Atmosphere):
 
     @staticmethod
     def _date_array(datetime_utc, count: int) -> np.ndarray:
+        r"""Align UTC dates with a batch of position samples.
+
+        :param datetime_utc: One UTC date or one date per position.
+        :type datetime_utc: datetime.datetime or sequence
+        :param count: Number of positions.
+        :type count: int
+        :return: UTC ``datetime64`` array with ``count`` entries.
+        :rtype: numpy.ndarray
+        :raises ValueError: If dates are missing or counts do not match.
+        """
         if datetime_utc is None:
             raise ValueError("datetime_utc is required for NRLMSISE density evaluation")
         dates = [datetime_utc] if isinstance(datetime_utc, datetime) else list(datetime_utc)
@@ -73,7 +109,15 @@ class NRLMSISE00(Atmosphere):
 
     @staticmethod
     def _to_geodetic(position, dates) -> np.ndarray:
-        """Convert aligned ECI positions to WGS84 latitude/longitude/altitude."""
+        r"""Convert aligned ECI positions to WGS84 geodetic coordinates.
+
+        :param position: ECI Cartesian positions ``(N, 3)`` [km].
+        :type position: numpy.ndarray
+        :param dates: Matching UTC ``datetime64`` entries.
+        :type dates: numpy.ndarray
+        :return: Latitude, east longitude [deg], and altitude [km].
+        :rtype: numpy.ndarray
+        """
         from skyfield.api import load, wgs84
         from skyfield.positionlib import ICRF
         from skyfield.units import Distance
@@ -87,6 +131,15 @@ class NRLMSISE00(Atmosphere):
         return np.column_stack((geo.latitude.degrees, geo.longitude.degrees, geo.elevation.km))
 
     def _calculate(self, lla: np.ndarray, dates: np.ndarray) -> np.ndarray:
+        r"""Evaluate neutral mass density through PyMSIS.
+
+        :param lla: Geodetic latitude, longitude [deg], and altitude [km].
+        :type lla: numpy.ndarray
+        :param dates: Matching UTC dates.
+        :type dates: numpy.ndarray
+        :return: Atmospheric mass density per sample [kg/m³].
+        :rtype: numpy.ndarray
+        """
         pymsis = self._backend()
         kwargs = {"version": self.version}
         if self.f107 is not None:
@@ -105,6 +158,18 @@ class NRLMSISE00(Atmosphere):
         return np.asarray(result, dtype=float).reshape(-1, 11)[:, 0]
 
     def density(self, position_eci_km, datetime_utc=None, geodetic_lla=None):
+        r"""Evaluate NRLMSISE mass density at one or many ECI positions.
+
+        :param position_eci_km: ECI position ``(3,)`` or positions ``(N, 3)`` [km].
+        :type position_eci_km: numpy.ndarray
+        :param datetime_utc: One UTC date or one per position.
+        :type datetime_utc: datetime.datetime or sequence
+        :param geodetic_lla: Optional latitude, longitude [deg], altitude [km].
+        :type geodetic_lla: numpy.ndarray or None
+        :return: Atmospheric mass density [kg/m³].
+        :rtype: float or numpy.ndarray
+        :raises ValueError: If positions, dates, or geodetic data do not align.
+        """
         position = np.asarray(position_eci_km, dtype=float)
         scalar = position.ndim == 1
         if scalar:
@@ -124,6 +189,13 @@ class NRLMSISE00(Atmosphere):
         return float(density[0]) if scalar else density
 
     def interpolate(self, altitude_km):
+        r"""Evaluate the reference-date density profile by altitude.
+
+        :param altitude_km: One altitude or an array of altitudes [km].
+        :type altitude_km: float or numpy.ndarray
+        :return: Atmospheric mass density [kg/m³].
+        :rtype: float or numpy.ndarray
+        """
         altitude = np.asarray(altitude_km, dtype=float)
         scalar = altitude.ndim == 0
         lla = np.column_stack((
@@ -136,6 +208,11 @@ class NRLMSISE00(Atmosphere):
         return float(density[0]) if scalar else density.reshape(altitude.shape)
 
     def __repr__(self) -> str:
+        r"""Identify the selected PyMSIS model version.
+
+        :return: Short model representation.
+        :rtype: str
+        """
         return f"NRLMSISE00(version={self.version})"
 
 

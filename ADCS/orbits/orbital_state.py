@@ -331,7 +331,7 @@ class Orbital_State:
             target=0,
         )
 
-        # Cache a naive UTC datetime; ADCS.environment.igrf reads naive
+        # Cache a naive UTC datetime; the IGRF model reads naive
         # datetimes as UTC.
         dt_aware = self.sf_pos.t.astimezone(timezone.utc)
         self.datetime = dt_aware.replace(tzinfo=None)

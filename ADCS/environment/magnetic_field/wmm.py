@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ADCS.environment.igrf import _kernel_varying, _schmidt_table
+from ADCS.helpers.math.spherical_harmonics import _kernel_varying, _schmidt_table
 
 from ._coefficients import KERNEL_DIR, coordinate_dates, ensure_kernel, evaluate_static, shaped_field
 from .magnetic_field import MagneticField
@@ -18,7 +18,16 @@ WMM2025_URL = "https://www.ngdc.noaa.gov/geomag/calculators/mobileStatic/WMM.COF
 
 @lru_cache(maxsize=4)
 def _load_cof(path: str):
-    """Parse the official WMM COF coefficients and annual secular variation."""
+    r"""Parse WMM2025 Gauss coefficients and annual secular variation.
+
+    Schmidt factors are folded into coefficients once, before Numba evaluation.
+
+    :param path: Local path to the official ``WMM.COF`` file.
+    :type path: str
+    :return: Epoch and normalized main and variation coefficient arrays.
+    :rtype: tuple
+    :raises ValueError: If the file is incomplete or not WMM2025.
+    """
     with open(path, encoding="ascii") as stream:
         header = stream.readline().split()
         if len(header) < 2 or header[1] != "WMM-2025":
@@ -49,6 +58,13 @@ def _load_cof(path: str):
 
 
 def _decimal_years(dates):
+    r"""Convert UTC dates to calendar year fractions for WMM variation.
+
+    :param dates: UTC dates as a NumPy datetime array.
+    :type dates: numpy.ndarray
+    :return: Decimal calendar years.
+    :rtype: numpy.ndarray
+    """
     years = dates.astype("datetime64[Y]")
     next_years = years + np.timedelta64(1, "Y")
     return years.astype(int) + 1970 + (
@@ -68,9 +84,30 @@ class WMM2025(MagneticField):
     name = "wmm2025"
 
     def __init__(self, kernel_path: str | Path | None = None):
+        r"""Choose the local WMM2025 coefficient file.
+
+        :param kernel_path: Optional local ``.COF`` path; missing files download.
+        :type kernel_path: str or pathlib.Path or None
+        :return: None
+        :rtype: None
+        """
         self.kernel_path = Path(kernel_path) if kernel_path is not None else KERNEL_DIR / "WMM2025.COF"
 
     def field_gc(self, r, theta, phi, date):
+        r"""Evaluate WMM2025 in geocentric spherical coordinates.
+
+        :param r: Geocentric radius [km].
+        :type r: float or numpy.ndarray
+        :param theta: Geocentric colatitude [deg].
+        :type theta: float or numpy.ndarray
+        :param phi: East longitude [deg].
+        :type phi: float or numpy.ndarray
+        :param date: One UTC date or one date per position.
+        :type date: datetime.datetime or sequence
+        :return: Radial, southward, and eastward field components [nT].
+        :rtype: tuple
+        :raises ValueError: If a date is outside 2025 through 2029.
+        """
         shape, r, theta, phi, dates = coordinate_dates(r, theta, phi, date)
         years = _decimal_years(dates)
         if np.any((years < 2025.0) | (years >= 2030.0)):

@@ -6,7 +6,7 @@ dispatches on a model name so that the implementation can be chosen per
 orbit -- the magnetic counterpart of ``zonal_J`` for gravity:
 
 ``"igrf_numba"`` (default)
-    The in-tree numba kernel, :func:`ADCS.environment.igrf.igrf_gc`.
+    The in-tree numba kernel, :func:`ADCS.environment.magnetic_field.igrf14_numba.igrf_gc`.
 
 ``"igrf_ppigrf"``
     The ``ppigrf`` package, which was the field model up to 0.1.8. Kept so
@@ -20,26 +20,18 @@ orbit -- the magnetic counterpart of ``zonal_J`` for gravity:
 
 from __future__ import annotations
 
-from datetime import datetime
 from functools import lru_cache
 
-import numpy as np
+from .igrf14_numba import coefficients_at, igrf_gc
+from .igrf_ppigrf import _PPIGRF_CHUNK, _ppigrf_gc
 
-from ADCS.environment.igrf import igrf_gc
-
-__all__ = ["MAGNETIC_MODELS", "DEFAULT_MAGNETIC_MODEL", "field_gc", "make_magnetic_field", "MagneticFieldModel", "IGRF14", "IGRF14Numba", "IGRF14Ppigrf", "WMM2025", "WMM", "CHAOS8", "MagneticField"]
+__all__ = ["MAGNETIC_MODELS", "DEFAULT_MAGNETIC_MODEL", "field_gc", "make_magnetic_field", "coefficients_at", "igrf_gc", "MagneticFieldModel", "IGRF14", "IGRF14Numba", "IGRF14Ppigrf", "WMM2025", "WMM", "CHAOS8", "MagneticField"]
 
 #: Names accepted by ``magnetic_model`` arguments throughout the package.
 MAGNETIC_MODELS = ("igrf_numba", "igrf_ppigrf", "wmm2025", "chaos8")
 
 #: Model used when none is requested.
 DEFAULT_MAGNETIC_MODEL = "igrf_numba"
-
-
-#: Samples per ppigrf call when dates vary per sample. ppigrf forms the outer
-#: product of dates and coordinates, so a chunk of m samples costs m^2 field
-#: evaluations; this bounds that cost without changing any value.
-_PPIGRF_CHUNK = 256
 
 
 def _normalize_magnetic_model(magnetic_model) -> str:
@@ -65,61 +57,6 @@ def _normalize_magnetic_model(magnetic_model) -> str:
     raise ValueError(
         f"magnetic_model must be one of {MAGNETIC_MODELS}, got {magnetic_model!r}"
     )
-
-
-def _import_ppigrf():
-    try:
-        import ppigrf
-    except ImportError as exc:
-        raise ImportError(
-            "magnetic_model='igrf_ppigrf' needs the optional ppigrf package: "
-            "pip install \"Generalized_ADCS[ppigrf]\""
-        ) from exc
-    return ppigrf
-
-
-def _ppigrf_gc(r, theta, phi, date):
-    r"""
-    ``ppigrf.igrf_gc`` with dates paired elementwise with the coordinates.
-
-    Same contract as :func:`ADCS.environment.igrf.igrf_gc`. ppigrf returns an
-    ``(n_dates, N)`` grid; for one date that is a single row, and for one date
-    per sample only the diagonal is wanted, which is taken chunk by chunk so
-    the discarded off-diagonal work stays bounded.
-    """
-    ppigrf = _import_ppigrf()
-
-    scalar = all(np.ndim(x) == 0 for x in (r, theta, phi))
-    r_a, th_a, ph_a = np.broadcast_arrays(
-        np.asarray(r, dtype=float), np.asarray(theta, dtype=float), np.asarray(phi, dtype=float)
-    )
-    shape = r_a.shape
-    r_f, th_f, ph_f = (a.reshape(-1) for a in (r_a, th_a, ph_a))
-    N = r_f.size
-
-    single_date = isinstance(date, datetime) or np.ndim(date) == 0
-    dates = None if single_date else list(date)
-    if dates is not None and len(dates) == 1:
-        single_date, date = True, dates[0]
-    if dates is not None and len(dates) != N:
-        raise ValueError(
-            f"date has {len(dates)} entries; expected 1 or {N} to match the coordinates"
-        )
-
-    if single_date:
-        out = ppigrf.igrf_gc(r_f, th_f, ph_f, date)
-        comps = [np.asarray(c, dtype=float).reshape(N) for c in out]
-    else:
-        comps = [np.empty(N) for _ in range(3)]
-        for i0 in range(0, N, _PPIGRF_CHUNK):
-            i1 = min(i0 + _PPIGRF_CHUNK, N)
-            out = ppigrf.igrf_gc(r_f[i0:i1], th_f[i0:i1], ph_f[i0:i1], dates[i0:i1])
-            for dst, c in zip(comps, out):
-                dst[i0:i1] = np.diagonal(np.asarray(c, dtype=float).reshape(i1 - i0, i1 - i0))
-
-    if scalar:
-        return tuple(float(c[0]) for c in comps)
-    return tuple(c.reshape(shape) for c in comps)
 
 
 def field_gc(magnetic_model, r, theta, phi, date):
@@ -165,19 +102,33 @@ def field_gc(magnetic_model, r, theta, phi, date):
 
 @lru_cache(maxsize=2)
 def _named_model(name):
+    r"""Reuse the default WMM2025 or CHAOS8 model instance by name.
+
+    :param name: Canonical magnetic model name.
+    :type name: str
+    :return: Cached concrete magnetic model.
+    :rtype: MagneticField
+    """
     return WMM2025() if name == "wmm2025" else CHAOS8()
 
 
 from .magnetic_field import MagneticField
 from .igrf14 import IGRF14
 from .igrf14_numba import IGRF14Numba
-from .igrf14_ppigrf import IGRF14Ppigrf
+from .igrf_ppigrf import IGRF14Ppigrf
 from .wmm import WMM2025, WMM
 from .chaos8 import CHAOS8
 
 
 def make_magnetic_field(name: str | None = None) -> MagneticField:
-    """Create the concrete model selected by a legacy magnetic model name."""
+    r"""Create the concrete model selected by a legacy name.
+
+    :param name: Canonical or accepted alias for a magnetic model.
+    :type name: str or None
+    :return: New concrete magnetic field model instance.
+    :rtype: MagneticField
+    :raises ValueError: If the model name is unknown.
+    """
     model = _normalize_magnetic_model(name)
     if model == "wmm2025":
         return WMM2025()

@@ -304,6 +304,11 @@ class StarCatalog:
         return self._stars
 
     def _catalog_arrays(self):
+        r"""Cache numeric star directions and sky coordinates for queries.
+
+        :return: Stars, ECI unit vectors, right ascensions, and declinations.
+        :rtype: tuple
+        """
         stars = self.stars
         if getattr(self, "_vectors", None) is None:
             self._vectors = np.stack([star.s_eci for star in stars]) if stars else np.empty((0, 3))
@@ -321,6 +326,16 @@ class StarCatalog:
 
         Results retain catalogue order, which is brightest first. This is a
         sky query only; use ``get_visible_stars`` for spacecraft occlusion.
+
+        :param boresight_eci: Center direction in the inertial frame.
+        :type boresight_eci: numpy.ndarray
+        :param radius_rad: Angular search radius [rad].
+        :type radius_rad: float
+        :param max_vmag: Optional faintest allowed visual magnitude.
+        :type max_vmag: float or None
+        :return: Catalogue stars inside the cone, brightest first.
+        :rtype: list[NavigationStar]
+        :raises ValueError: If radius or direction is invalid.
         """
         if not 0.0 <= radius_rad <= np.pi:
             raise ValueError("radius_rad must be between 0 and pi")
@@ -349,6 +364,20 @@ class StarCatalog:
 
         Right ascension wraps through zero when ``ra_min_rad > ra_max_rad``.
         Angles are radians; results retain brightness order.
+
+        :param ra_min_rad: Lower right ascension boundary [rad].
+        :type ra_min_rad: float
+        :param ra_max_rad: Upper right ascension boundary [rad].
+        :type ra_max_rad: float
+        :param dec_min_rad: Lower declination boundary [rad].
+        :type dec_min_rad: float
+        :param dec_max_rad: Upper declination boundary [rad].
+        :type dec_max_rad: float
+        :param max_vmag: Optional faintest allowed visual magnitude.
+        :type max_vmag: float or None
+        :return: Catalogue stars inside the sky region, brightest first.
+        :rtype: list[NavigationStar]
+        :raises ValueError: If angles or declination bounds are invalid.
         """
         values = (ra_min_rad, ra_max_rad, dec_min_rad, dec_max_rad)
         if not all(np.isfinite(value) for value in values):

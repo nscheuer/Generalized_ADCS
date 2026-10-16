@@ -9,7 +9,17 @@ from tqdm.auto import tqdm
 
 
 def download_with_progress(url: str, destination: Path, description: str) -> None:
-    """Download a URL to disk while showing a byte-based tqdm progress bar."""
+    r"""Download a kernel while showing byte progress through tqdm.
+
+    :param url: Source URL.
+    :type url: str
+    :param destination: Local destination path.
+    :type destination: pathlib.Path
+    :param description: Short label displayed beside the progress bar.
+    :type description: str
+    :return: None
+    :rtype: None
+    """
     destination = Path(destination)
     downloaded = 0
     with tqdm(

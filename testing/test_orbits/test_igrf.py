@@ -1,4 +1,4 @@
-"""ADCS.environment.igrf must agree with ppigrf, which it replaced.
+"""The Numba IGRF-14 model must agree with the ppigrf reference backend.
 
 ppigrf was the geomagnetic field model for every result published up to 0.1.8.
 The in-tree implementation exists for speed, not for a different answer, so the
@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from ADCS.environment.igrf import NMAX, RE, coefficients_at, igrf_gc
+from ADCS.environment.magnetic_field.igrf14_numba import NMAX, RE, coefficients_at, igrf_gc
 
 ppigrf = pytest.importorskip("ppigrf", reason="reference model not installed")
 

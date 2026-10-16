@@ -1,5 +1,6 @@
-from .igrf import coefficients_at, igrf_gc
 from .magnetic_field import (
+    coefficients_at,
+    igrf_gc,
     DEFAULT_MAGNETIC_MODEL,
     MAGNETIC_MODELS,
     MagneticField,
@@ -36,6 +37,14 @@ __all__ = [
 
 
 def __getattr__(name):
+    r"""Resolve environment classes lazily to avoid orbit import cycles.
+
+    :param name: Requested exported class name.
+    :type name: str
+    :return: Atmosphere, ephemeris, or environment class.
+    :rtype: type
+    :raises AttributeError: If the name is not a lazy export.
+    """
     # These model wrappers import orbit implementations. Keep them lazy because
     # Orbital_State itself imports ADCS.environment while ADCS.orbits loads.
     if name in {"Atmosphere", "SMADAtmosphere", "NRLMSISE00", "NRLMSISE", "AtmosphericModel"}:

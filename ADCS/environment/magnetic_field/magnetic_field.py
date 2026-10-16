@@ -6,10 +6,24 @@ import numpy as np
 
 
 class MagneticField(ABC):
-    """Evaluate Earth's magnetic field from an ECEF position and date."""
+    r"""Interface for an Earth magnetic field model.
+
+    Implementations evaluate geocentric spherical field components in
+    nanotesla. The common :meth:`field` method converts those components to
+    Earth fixed Cartesian vectors in tesla.
+    """
 
     def field(self, position_ecef_km, date):
-        """Return ECEF magnetic field vectors in tesla for one or many positions."""
+        r"""Evaluate an Earth fixed magnetic field vector.
+
+        :param position_ecef_km: One ECEF position ``(3,)`` or positions ``(N, 3)`` [km].
+        :type position_ecef_km: numpy.ndarray
+        :param date: One UTC date or one date per position.
+        :type date: datetime.datetime or sequence
+        :return: ECEF field vector or vectors [T], matching the position shape.
+        :rtype: numpy.ndarray
+        :raises ValueError: If a position has the wrong shape or zero radius.
+        """
         position = np.asarray(position_ecef_km, dtype=float)
         if position.ndim not in (1, 2) or position.shape[-1] != 3:
             raise ValueError("position_ecef_km must have shape (3,) or (N, 3)")
@@ -34,5 +48,17 @@ class MagneticField(ABC):
 
     @abstractmethod
     def field_gc(self, r, theta, phi, date):
-        """Return ``(Br, Btheta, Bphi)`` in nT for radius km and angles deg."""
+        r"""Evaluate geocentric spherical field components.
+
+        :param r: Geocentric radius [km].
+        :type r: float or numpy.ndarray
+        :param theta: Geocentric colatitude [deg].
+        :type theta: float or numpy.ndarray
+        :param phi: East longitude [deg].
+        :type phi: float or numpy.ndarray
+        :param date: One UTC date or one date per position.
+        :type date: datetime.datetime or sequence
+        :return: Radial, southward, and eastward components [nT].
+        :rtype: tuple
+        """
         raise NotImplementedError

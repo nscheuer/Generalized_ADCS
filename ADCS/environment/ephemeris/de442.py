@@ -29,12 +29,20 @@ class DE442(DE421):
 
     @staticmethod
     def _packaged_ephemeris_path() -> Path:
-        """Return the optional source/package kernel location."""
+        r"""Locate an optional source-package DE442 kernel.
+
+        :return: Path within ``environment/kernels``.
+        :rtype: pathlib.Path
+        """
         return Path(__file__).resolve().parents[1] / "kernels" / "de442.bsp"
 
     @staticmethod
     def _cache_ephemeris_path() -> Path:
-        """Return DE442's per-user cache path."""
+        r"""Choose the DE442 cache path for the current platform.
+
+        :return: User override or platform cache destination.
+        :rtype: pathlib.Path
+        """
         override = os.environ.get("ADCS_DE442_EPHEMERIS_PATH")
         if override:
             return Path(override).expanduser()
@@ -51,7 +59,14 @@ class DE442(DE421):
         return base / "generalized_adcs" / "de442.bsp"
 
     def _download_ephemeris(self, save_path: Path):
-        """Download DE442 from JPL/NAIF, then open it with Skyfield."""
+        r"""Download DE442 from JPL NAIF and open it with Skyfield.
+
+        :param save_path: Destination for ``de442.bsp``.
+        :type save_path: pathlib.Path
+        :return: Loaded planetary ephemeris kernel.
+        :rtype: skyfield.jpllib.SpiceKernel
+        :raises RuntimeError: If download or initialization fails.
+        """
         save_path = Path(save_path)
         temporary_path = save_path.with_name(save_path.name + ".part")
         try:

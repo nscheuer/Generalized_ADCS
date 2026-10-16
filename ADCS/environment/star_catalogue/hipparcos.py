@@ -23,12 +23,27 @@ class HipparcosCatalog(StarCatalog):
     FILENAME = "hip_main.dat"
 
     def __init__(self, max_vmag: float | None = 6.0, kernel_dir: str | Path | None = None) -> None:
+        r"""Configure the catalogue magnitude limit and file location.
+
+        :param max_vmag: Faintest visual magnitude to retain, or all if ``None``.
+        :type max_vmag: float or None
+        :param kernel_dir: Directory for the Hipparcos source file.
+        :type kernel_dir: str or pathlib.Path or None
+        :return: None
+        :rtype: None
+        """
         self.max_vmag = max_vmag
         self.kernel_dir = Path(kernel_dir) if kernel_dir is not None else Path(__file__).resolve().parents[1] / "kernels"
         self._stars: list[NavigationStar] | None = None
 
     @property
     def stars(self) -> list[NavigationStar]:
+        r"""Load and cache Hipparcos navigation stars on first access.
+
+        :return: Stars with valid positions and magnitudes, brightest first.
+        :rtype: list[NavigationStar]
+        :raises ValueError: If the source file contains no usable stars.
+        """
         if self._stars is None:
             path = self.kernel_dir / self.FILENAME
             if not path.is_file():
@@ -46,7 +61,14 @@ class HipparcosCatalog(StarCatalog):
         return self._stars
 
     def _load_catalog(self, path: Path) -> list[NavigationStar]:
-        """Read the CDS fixed-width Hipparcos main catalogue."""
+        r"""Read the CDS fixed-width Hipparcos main catalogue.
+
+        :param path: Local catalogue source file.
+        :type path: pathlib.Path
+        :return: Parsed stars subject to the magnitude limit.
+        :rtype: list[NavigationStar]
+        :raises ValueError: If no usable entries were parsed.
+        """
         stars = []
         with path.open("r", encoding="ascii") as source:
             for line in source:

@@ -1,6 +1,5 @@
 """IGRF-14 magnetic field model backed by the existing selectable kernels."""
 
-from . import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, field_gc
 from .magnetic_field import MagneticField
 
 
@@ -12,10 +11,36 @@ class IGRF14(MagneticField):
     ``datetime`` or one date per position.
     """
 
-    def __init__(self, implementation: str = DEFAULT_MAGNETIC_MODEL, *, name: str | None = None) -> None:
+    def __init__(self, implementation: str = "igrf_numba", *, name: str | None = None) -> None:
+        r"""Select an IGRF-14 backend.
+
+        :param implementation: ``"igrf_numba"`` or ``"igrf_ppigrf"``.
+        :type implementation: str
+        :param name: Legacy alias for ``implementation``.
+        :type name: str or None
+        :return: None
+        :rtype: None
+        """
+        from . import _normalize_magnetic_model
+
         if name is not None:
             implementation = name
         self.name = _normalize_magnetic_model(implementation)
 
     def field_gc(self, r, theta, phi, date):
+        r"""Evaluate IGRF-14 in geocentric spherical coordinates.
+
+        :param r: Geocentric radius [km].
+        :type r: float or numpy.ndarray
+        :param theta: Geocentric colatitude [deg].
+        :type theta: float or numpy.ndarray
+        :param phi: East longitude [deg].
+        :type phi: float or numpy.ndarray
+        :param date: One UTC date or a date per position.
+        :type date: datetime.datetime or sequence
+        :return: Radial, southward, and eastward field components [nT].
+        :rtype: tuple
+        """
+        from . import field_gc
+
         return field_gc(self.name, r, theta, phi, date)

@@ -13,7 +13,19 @@ from .ephemeris import Ephemeris
 
 @njit(cache=True, fastmath=True, nogil=True)
 def _chebyshev_xyz(coefficients, start: int, count: int, x: float):
-    """Clenshaw evaluation of the three adjacent VSOP coordinate series."""
+    r"""Evaluate three adjacent VSOP Chebyshev series with Clenshaw recursion.
+
+    :param coefficients: Coefficient record containing all three axes.
+    :type coefficients: numpy.ndarray
+    :param start: First coefficient index for the selected body.
+    :type start: int
+    :param count: Coefficients per axis.
+    :type count: int
+    :param x: Normalized interval coordinate in ``[-1, 1]``.
+    :type x: float
+    :return: Three heliocentric ecliptic coordinates [au].
+    :rtype: numpy.ndarray
+    """
     result = np.empty(3, dtype=np.float64)
     for axis in range(3):
         base = start + axis * count
@@ -66,6 +78,13 @@ class VSOP2013(Ephemeris):
     _cache: dict[tuple[str, int], tuple[float, np.ndarray, np.ndarray, np.ndarray, np.ndarray]]
 
     def __init__(self, kernel_dir: str | Path | None = None) -> None:
+        r"""Choose the directory for downloaded VSOP2013 data files.
+
+        :param kernel_dir: Optional local directory for official data files.
+        :type kernel_dir: str or pathlib.Path or None
+        :return: None
+        :rtype: None
+        """
         self.kernel_dir = (
             Path(kernel_dir).expanduser()
             if kernel_dir is not None
@@ -75,9 +94,22 @@ class VSOP2013(Ephemeris):
 
     @property
     def available_bodies(self) -> tuple[str, ...]:
+        r"""List supported planets and the Sun.
+
+        :return: Available body names and Earth-Moon barycenter aliases.
+        :rtype: tuple[str, ...]
+        """
         return self.BODIES + ("sun", "earth-moon barycenter", "emb")
 
     def _path_for_jd(self, jd: float) -> tuple[float, str]:
+        r"""Select the VSOP2013 data file spanning a Julian date.
+
+        :param jd: Julian date to locate.
+        :type jd: float
+        :return: File start Julian date and data filename.
+        :rtype: tuple[float, str]
+        :raises ValueError: If the date is outside the available files.
+        """
         for start_jd, end_jd, filename in self.DATA_FILES:
             if start_jd <= jd < end_jd:
                 return start_jd, filename
@@ -86,6 +118,13 @@ class VSOP2013(Ephemeris):
         )
 
     def _ensure_file(self, filename: str) -> Path:
+        r"""Download a missing VSOP2013 file to the kernel directory.
+
+        :param filename: Official data filename.
+        :type filename: str
+        :return: Path to the available local file.
+        :rtype: pathlib.Path
+        """
         path = self.kernel_dir / filename
         if not path.is_file():
             self.kernel_dir.mkdir(parents=True, exist_ok=True)
@@ -99,6 +138,14 @@ class VSOP2013(Ephemeris):
         return path
 
     def _read_header(self, path: Path) -> tuple[float, np.ndarray, np.ndarray, np.ndarray]:
+        r"""Read and validate a VSOP2013 file's coefficient layout.
+
+        :param path: Local VSOP2013 data file.
+        :type path: pathlib.Path
+        :return: First Julian date, body offsets, coefficient counts, and subdivisions.
+        :rtype: tuple
+        :raises ValueError: If the header or body layout is invalid.
+        """
         with path.open("r", encoding="ascii") as stream:
             header = [stream.readline() for _ in range(9)]
         if any(not line for line in header):
@@ -115,6 +162,16 @@ class VSOP2013(Ephemeris):
 
     @staticmethod
     def _read_period(path: Path, period_index: int) -> tuple[float, np.ndarray]:
+        r"""Read one fixed-length 32-day coefficient period.
+
+        :param path: Local VSOP2013 data file.
+        :type path: pathlib.Path
+        :param period_index: Zero-based period number within the file.
+        :type period_index: int
+        :return: Period start Julian date and its Chebyshev coefficients.
+        :rtype: tuple[float, numpy.ndarray]
+        :raises ValueError: If a record is truncated or malformed.
+        """
         # The official ASCII format has 9 header lines, then fixed 23,984-byte
         # interval records: a 23-byte date record and 163 147-byte records.
         with path.open("rb") as stream:
@@ -139,6 +196,13 @@ class VSOP2013(Ephemeris):
         return period_start, coefficients
 
     def _period(self, jd: float):
+        r"""Load or reuse the coefficient period containing a Julian date.
+
+        :param jd: Query Julian date.
+        :type jd: float
+        :return: Period start, coefficients, offsets, counts, and subdivisions.
+        :rtype: tuple
+        """
         file_start, filename = self._path_for_jd(jd)
         key = (filename, int((jd - file_start) // 32.0))
         if key not in self._cache:
@@ -149,6 +213,16 @@ class VSOP2013(Ephemeris):
         return self._cache[key]
 
     def _heliocentric_position_au(self, body_index: int, jd: float) -> np.ndarray:
+        r"""Evaluate a body's heliocentric ecliptic position.
+
+        :param body_index: Index in :attr:`BODIES`.
+        :type body_index: int
+        :param jd: Query Julian date.
+        :type jd: float
+        :return: Heliocentric ecliptic Cartesian position [au].
+        :rtype: numpy.ndarray
+        :raises ValueError: If Pluto data are unavailable for the date.
+        """
         period_start, coefficients, starts, ncoef, nsub = self._period(jd)
         count = int(ncoef[body_index])
         subdivisions = int(nsub[body_index])
@@ -163,10 +237,25 @@ class VSOP2013(Ephemeris):
 
     @staticmethod
     def _ecliptic_to_equatorial(position_au: np.ndarray) -> np.ndarray:
+        r"""Rotate a J2000 ecliptic position into the equatorial frame.
+
+        :param position_au: Ecliptic Cartesian position [au].
+        :type position_au: numpy.ndarray
+        :return: Equatorial Cartesian position [au].
+        :rtype: numpy.ndarray
+        """
         return _ECLIPTIC_TO_EQUATORIAL @ position_au
 
     @staticmethod
     def _body_index(body) -> int | None:
+        r"""Resolve a body name or alias to the VSOP planet index.
+
+        :param body: Planet name, Earth-Moon barycenter alias, or Sun.
+        :type body: str
+        :return: Planet index, or ``None`` for the Sun.
+        :rtype: int or None
+        :raises ValueError: If the body is not available.
+        """
         name = str(body).strip().lower().replace("_", " ").replace("-", " ")
         if name in {"sun", "sol"}:
             return None
@@ -184,6 +273,17 @@ class VSOP2013(Ephemeris):
         Chebyshev positions rather than apparent positions, ``apparent`` is
         accepted for interface compatibility but does not add light-time or
         aberration corrections.
+
+        :param target: Target body name or alias.
+        :type target: str
+        :param j2000: Epoch or epochs in Julian centuries since J2000.
+        :type j2000: float or numpy.ndarray
+        :param observer: Origin body name or alias.
+        :type observer: str
+        :param apparent: Accepted for interface compatibility, without correction.
+        :type apparent: bool
+        :return: Geometric target relative to observer in ECI coordinates [km].
+        :rtype: numpy.ndarray
         """
         target_index = self._body_index(target)
         observer_index = self._body_index(observer)
@@ -207,10 +307,21 @@ class VSOP2013(Ephemeris):
         return result.reshape(epochs.shape + (3,))
 
     def sun_position_eci(self, j2000):
-        """Return the geometric Earth-to-Sun position in ECI coordinates [km]."""
+        r"""Find the geometric Earth to Sun vector in ECI coordinates.
+
+        :param j2000: Epoch or epochs in Julian centuries since J2000.
+        :type j2000: float or numpy.ndarray
+        :return: Earth to Sun vector or vectors [km].
+        :rtype: numpy.ndarray
+        """
         return self.position_eci("sun", j2000, observer="earth")
 
     def close(self) -> None:
+        r"""Clear cached VSOP2013 coefficient periods.
+
+        :return: None
+        :rtype: None
+        """
         self._cache.clear()
 
 
