@@ -178,6 +178,8 @@ class EstimatedSatellite(Satellite):
             sensor.scale_factor = 1.0
             sensor.misalignment = None
             sensor.mounting_rotation = np.eye(3)
+            if hasattr(sensor, "field_error"):
+                sensor.field_error = None  # the model error is, by definition, what the model does not have
         return est
 
 
