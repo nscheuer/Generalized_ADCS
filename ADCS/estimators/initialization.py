@@ -71,7 +71,7 @@ def _readings(stack: Any, readings: Any) -> np.ndarray:
 
 
 def _noise_std(sensor: Any, length: int) -> np.ndarray:
-    std = np.atleast_1d(np.asarray(sensor.noise.std_noise, dtype=float))
+    std = np.atleast_1d(np.asarray(sensor.noise.std(getattr(sensor, "sample_time", None)), dtype=float))
     return np.broadcast_to(std, (length,)).copy()
 
 
