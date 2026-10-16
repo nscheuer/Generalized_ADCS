@@ -150,10 +150,17 @@ class Sensor:
         self.noise = self.noise.broadcast_to(output_length, owner=type(self).__name__)
         self.bias = self.bias.broadcast_to(output_length, owner=type(self).__name__)
         self.estimate_bias = estimate_bias
+        if np.any(getattr(self.noise, "density", 0.0) != 0.0):
+            # A density only means something at a rate: fail here, naming the
+            # sensor, rather than at the first reading.
+            try:
+                self.noise.std(self.sample_time)
+            except ValueError as error:
+                raise ValueError(f"{type(self).__name__}: {error}") from None
 
     def measurement_covariance(self, *, form: str = "full") -> Covariance:
         """Return measurement-noise covariance owned by this sensor."""
-        return self.noise.covariance(form=form, coordinates="measurement")
+        return self.noise.covariance(form=form, coordinates="measurement", sample_time=self.sample_time)
 
     def bias_process_psd(self, *, form: str = "full") -> Covariance:
         """Return the continuous PSD of this sensor's bias random walk."""
@@ -217,7 +224,7 @@ class Sensor:
             reading += self.bias.get_bias(os.J2000)
 
         if dmode.update_noise:
-            self.noise._update_noise()
+            self.noise._update_noise(sample_time=self.sample_time)
         if self.noise and dmode.add_noise:
             reading += self.noise.get_noise()
 
