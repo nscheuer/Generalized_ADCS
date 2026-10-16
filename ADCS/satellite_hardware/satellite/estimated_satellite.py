@@ -10,6 +10,7 @@ from typing import List, Dict, Union, Tuple, Any, Optional, Sequence
 from scipy.linalg import block_diag
 
 from .satellite import Satellite
+from ADCS.satellite_hardware.errors import FieldModelError
 
 import ADCS.orbits.universal_constants as uc
 from ADCS.helpers.math_helpers import *
@@ -79,7 +80,7 @@ class EstimatedSatellite(Satellite):
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
     """
 
-    def __init__(self, mass: float = 1.0, COM: Optional[np.ndarray] = None, J_0: Optional[np.ndarray] = None, disturbances: Sequence[Disturbance] = [], sensors: Sequence[Sensor] = [], actuators: Sequence[Actuator] = [], boresight: Optional[dict[str, np.ndarray] | np.ndarray] = None) -> None:
+    def __init__(self, mass: float = 1.0, COM: Optional[np.ndarray] = None, J_0: Optional[np.ndarray] = None, disturbances: Sequence[Disturbance] = [], sensors: Sequence[Sensor] = [], actuators: Sequence[Actuator] = [], boresight: Optional[dict[str, np.ndarray] | np.ndarray] = None, field_error: Optional["FieldModelError"] = None) -> None:
         r"""
         Construct an estimator-augmented satellite.
 
@@ -123,7 +124,7 @@ class EstimatedSatellite(Satellite):
         :return: ``None``.
         :rtype: None
         """
-        super().__init__(mass, COM, J_0, disturbances, sensors, actuators, boresight)
+        super().__init__(mass, COM, J_0, disturbances, sensors, actuators, boresight, field_error=field_error)
 
         # Add estimated states
         self.act_bias_inds = [j for j in range(len(self.actuators)) if self.actuators[j].estimate_bias] # Indices with actuator bias
@@ -178,6 +179,8 @@ class EstimatedSatellite(Satellite):
             sensor.scale_factor = 1.0
             sensor.misalignment = None
             sensor.mounting_rotation = np.eye(3)
+            if hasattr(sensor, "field_error"):
+                sensor.field_error = None  # the model error is, by definition, what the model does not have
         return est
 
 
