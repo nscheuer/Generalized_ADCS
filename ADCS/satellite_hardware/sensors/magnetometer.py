@@ -3,6 +3,8 @@ __all__ = ["MTM"]
 from .sensor import Sensor
 
 import numpy as np
+from ADCS.helpers.math_helpers import drotmatTvecdq, rot_mat
+from ADCS.satellite_hardware.errors import ErrorMode, FieldModelError
 
 from ADCS.state import State
 from scipy.linalg import block_diag
@@ -94,7 +96,7 @@ class MTM(Sensor):
         field = np.asarray(os.B, dtype=float)
         return field / np.linalg.norm(field)
 
-    def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False, scale_factor: float = 1.0, misalignment: Optional[np.ndarray] = None):
+    def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False, scale_factor: float = 1.0, misalignment: Optional[np.ndarray] = None, field_error: Optional[FieldModelError] = None):
         r"""
         Initialize the magnetometer sensor model.
 
@@ -115,6 +117,7 @@ class MTM(Sensor):
         self.axis = normalize(axis)
         self.attitude_sensor = False
         super().__init__(scale_factor=scale_factor, misalignment=misalignment, sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
+        self.field_error = field_error  # shared by the spacecraft's magnetometers; None on the estimator's model
 
     def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
@@ -153,8 +156,17 @@ class MTM(Sensor):
         :rtype: numpy.ndarray
         """
         vecs = os.get_state_vector(x=x)
-        return self.scale_factor * np.dot(vecs["b"], self.sensing_axis)
+        field = vecs["b"]
+        if self.field_error:
+            field = field + rot_mat(x.q).T @ self.field_error.eci
+        return self.scale_factor * np.dot(field, self.sensing_axis)
     
+    def reading(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
+        """Read the field, stepping the shared field-model error to this epoch first (see :class:`~ADCS.satellite_hardware.errors.FieldModelError`)."""
+        if self.field_error and (dmode is None or dmode.update_bias):
+            self.field_error._update(os.J2000)
+        return super().reading(x, os, dmode)
+
     def bias_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the magnetometer measurement with respect to the bias state.
@@ -250,6 +262,9 @@ class MTM(Sensor):
         :rtype: numpy.ndarray
         """
         vecs = os.get_state_vector(x=x)
-        return self.scale_factor * np.vstack([np.zeros((3,1)), vecs['db']@np.expand_dims(self.sensing_axis,1)])
+        db = vecs['db']
+        if self.field_error:
+            db = db + drotmatTvecdq(x.q, self.field_error.eci)
+        return self.scale_factor * np.vstack([np.zeros((3,1)), db@np.expand_dims(self.sensing_axis,1)])
         
     
