@@ -124,6 +124,7 @@ class DensityModel:
             raise ValueError("Altitude values must be non-negative.")
         if np.any(self.rho_range <= 0):
             raise ValueError("Density values must be positive.")
+        self._log_rho_range = np.log(self.rho_range)
 
     def interpolate(self, altitude_km: float) -> float:
         r"""
@@ -165,7 +166,7 @@ class DensityModel:
         h = float(altitude_km)
         alt = self.altitude_range
         rho = self.rho_range
-        log_rho = np.log(rho)
+        log_rho = self._log_rho_range
 
         if h <= alt[0]:
             # Below the table (incl. sub-surface / negative): clamp, no crash.
@@ -182,6 +183,26 @@ class DensityModel:
 
         # Interior: linear in ln(rho) vs altitude == exponential interpolation.
         return float(np.exp(np.interp(h, alt, log_rho)))
+
+    def interpolate_many(self, altitude_km):
+        """Vectorized equivalent of :meth:`interpolate` for altitude arrays."""
+        heights = np.asarray(altitude_km, dtype=float)
+        log_density = np.interp(heights, self.altitude_range, self._log_rho_range)
+        density = np.exp(log_density)
+        above = heights >= self.altitude_range[-1]
+        if np.any(above):
+            log_rho = self._log_rho_range
+            denominator = log_rho[-2] - log_rho[-1]
+            if denominator > 0.0:
+                scale_height = (self.altitude_range[-1] - self.altitude_range[-2]) / denominator
+                density = np.where(
+                    above,
+                    self.rho_range[-1] * np.exp(-(heights - self.altitude_range[-1]) / scale_height),
+                    density,
+                )
+            else:
+                density = np.where(above, self.rho_range[-1], density)
+        return density
 
     def __repr__(self) -> str:
         r"""

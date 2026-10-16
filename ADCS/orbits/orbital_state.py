@@ -9,7 +9,8 @@ from typing import Dict, Tuple, Optional
 
 from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, field_gc
 from ADCS.environment.environment import Environment
-from ADCS.environment.magnetic_field import MagneticFieldModel
+from ADCS.environment.atmosphere.atmosphere import Atmosphere
+from ADCS.environment.magnetic_field import make_magnetic_field
 from ADCS.environment.atmosphere.density_model import DensityModel
 from ADCS.environment.ephemeris.de421 import DE421 as Ephemeris
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
@@ -286,7 +287,7 @@ class Orbital_State:
             raise TypeError("J2000, R, and V are required")
         if environment is None:
             environment = Environment(
-                magnetic_field=MagneticFieldModel(magnetic_model),
+                magnetic_field=make_magnetic_field(magnetic_model),
                 atmosphere=density_model if density_model is not None else DensityModel(),
                 ephemeris=ephem if ephem is not None else Ephemeris(),
             )
@@ -387,7 +388,11 @@ class Orbital_State:
             self.rho = float(rho)
         else:
             if hasattr(self.density_model, "density"):
-                self.rho = float(self.density_model.density(self.R))
+                geodetic_lla = np.array([np.rad2deg(self.LLA[0]), np.rad2deg(self.LLA[1]), self.LLA[2]])
+                if isinstance(self.density_model, Atmosphere):
+                    self.rho = float(self.density_model.density(self.R, self.datetime, geodetic_lla))
+                else:
+                    self.rho = float(self.density_model.density(self.R))
             else:
                 altitude_from_core = float(np.linalg.norm(self.R))
                 self.rho = float(self.density_model.interpolate(altitude_from_core - EarthConstants.R_e))

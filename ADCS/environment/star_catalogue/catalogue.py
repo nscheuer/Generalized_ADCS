@@ -303,6 +303,14 @@ class StarCatalog:
         """
         return self._stars
 
+    def _catalog_arrays(self):
+        stars = self.stars
+        if getattr(self, "_vectors", None) is None:
+            self._vectors = np.stack([star.s_eci for star in stars]) if stars else np.empty((0, 3))
+            self._ra = np.fromiter((star.ra_rad for star in stars), dtype=float, count=len(stars))
+            self._dec = np.fromiter((star.dec_rad for star in stars), dtype=float, count=len(stars))
+        return stars, self._vectors, self._ra, self._dec
+
     def stars_in_cone(
         self,
         boresight_eci: NDArray[np.float64],
@@ -323,12 +331,9 @@ class StarCatalog:
         if norm == 0.0:
             raise ValueError("boresight_eci must be nonzero")
         direction = direction / norm
-        stars = self.stars
+        stars, vectors, _, _ = self._catalog_arrays()
         if not stars:
             return []
-        if getattr(self, "_vectors", None) is None:
-            self._vectors = np.stack([star.s_eci for star in stars])
-        vectors = self._vectors
         inside = vectors @ direction >= np.cos(radius_rad) - 1e-14
         return [star for star, selected in zip(stars, inside) if selected and (max_vmag is None or star.vmag <= max_vmag)]
 
@@ -353,13 +358,18 @@ class StarCatalog:
         full_ra = abs(ra_max_rad - ra_min_rad) >= 2 * np.pi
         ra_min = ra_min_rad % (2 * np.pi)
         ra_max = ra_max_rad % (2 * np.pi)
-        def in_ra(value: float) -> bool:
-            if full_ra:
-                return True
-            if ra_min <= ra_max:
-                return ra_min <= value <= ra_max
-            return value >= ra_min or value <= ra_max
-        return [star for star in self.stars if in_ra(star.ra_rad % (2 * np.pi)) and dec_min_rad <= star.dec_rad <= dec_max_rad and (max_vmag is None or star.vmag <= max_vmag)]
+        stars, _, ra, dec = self._catalog_arrays()
+        ra = ra % (2 * np.pi)
+        if full_ra:
+            ra_mask = np.ones(len(stars), dtype=bool)
+        elif ra_min <= ra_max:
+            ra_mask = (ra >= ra_min) & (ra <= ra_max)
+        else:
+            ra_mask = (ra >= ra_min) | (ra <= ra_max)
+        mask = ra_mask & (dec >= dec_min_rad) & (dec <= dec_max_rad)
+        if max_vmag is not None:
+            mask &= np.fromiter((star.vmag <= max_vmag for star in stars), dtype=bool, count=len(stars))
+        return [star for star, selected in zip(stars, mask) if selected]
 
     load_sky_swath = stars_in_region
 
@@ -457,8 +467,16 @@ class StarCatalog:
         - Liebe (2002), Section IV-A — Star tracker Sun exclusion
 
         """
-        visible = []
         half_fov = fov_rad / 2.0
+        stars, vectors, _, _ = self._catalog_arrays()
+        if not stars:
+            return []
+        boresight = np.asarray(boresight_eci, dtype=float)
+        boresight_norm = np.linalg.norm(boresight)
+        if boresight_norm == 0.0:
+            raise ValueError("boresight_eci must be nonzero")
+        boresight = boresight / boresight_norm
+        visible_mask = vectors @ boresight >= np.cos(half_fov)
 
         # Precompute Earth occlusion geometry
         # Reference: Vallado (2013), Section 5.3
@@ -480,33 +498,14 @@ class StarCatalog:
         # Reference: Liebe (2002), Section IV-A
         if sun_eci is not None:
             sun_dir = sun_eci / np.linalg.norm(sun_eci)
-            sun_angle_from_boresight = np.arccos(np.clip(
-                np.dot(boresight_eci, sun_dir), -1.0, 1.0
-            ))
-            if sun_angle_from_boresight < sun_exclusion_rad:
+            if np.dot(boresight, sun_dir) > np.cos(sun_exclusion_rad):
                 return []  # Tracker completely blinded - no stars visible
 
-        for star in self.stars_in_cone(boresight_eci, half_fov):
-            # 1. Check if star is within FOV
-            cos_angle = np.dot(boresight_eci, star.s_eci)
-            if cos_angle < np.cos(half_fov):
-                continue
+        # 2. Earth occlusion (star behind Earth).
+        visible_mask &= vectors @ nadir <= np.cos(earth_angular_radius)
 
-            # 2. Check Earth occlusion (star behind Earth)
-            angle_from_nadir = np.arccos(np.clip(
-                np.dot(nadir, star.s_eci), -1.0, 1.0
-            ))
-            if angle_from_nadir < earth_angular_radius:
-                continue  # Star is behind Earth
+        # 3. Moon occlusion (star behind Moon).
+        if moon_dir is not None:
+            visible_mask &= vectors @ moon_dir <= np.cos(moon_angular_radius)
 
-            # 3. Check Moon occlusion (star behind Moon)
-            if moon_dir is not None:
-                angle_from_moon = np.arccos(np.clip(
-                    np.dot(moon_dir, star.s_eci), -1.0, 1.0
-                ))
-                if angle_from_moon < moon_angular_radius:
-                    continue  # Star is behind Moon
-
-            visible.append(star)
-
-        return visible
+        return [star for star, selected in zip(stars, visible_mask) if selected]

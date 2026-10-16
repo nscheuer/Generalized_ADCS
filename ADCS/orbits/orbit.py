@@ -8,8 +8,9 @@ from tqdm import tqdm
 from skyfield import api, units, positionlib, framelib
 from datetime import timezone
 
-from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, MagneticFieldModel
+from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, make_magnetic_field
 from ADCS.environment.environment import Environment
+from ADCS.environment.atmosphere.atmosphere import Atmosphere
 from ADCS.orbits.orbital_state import Orbital_State, _normalize_zonal_J
 from ADCS.orbits.universal_constants import TimeConstants, EarthConstants
 from ADCS.helpers.math_constants import MathConstants
@@ -125,13 +126,13 @@ class Orbit:
             environment = getattr(first, "environment", None)
         if environment is None:
             environment = Environment(
-                magnetic_field=MagneticFieldModel(magnetic_model or getattr(first, "magnetic_model", DEFAULT_MAGNETIC_MODEL)),
+                magnetic_field=make_magnetic_field(magnetic_model or getattr(first, "magnetic_model", DEFAULT_MAGNETIC_MODEL)),
                 atmosphere=getattr(first, "density_model", None),
                 ephemeris=getattr(first, "ephem", None),
             )
         elif magnetic_model is not None and _normalize_magnetic_model(magnetic_model) != environment.magnetic_model:
             environment = Environment(
-                magnetic_field=MagneticFieldModel(magnetic_model),
+                magnetic_field=make_magnetic_field(magnetic_model),
                 atmosphere=environment.atmosphere,
                 ephemeris=environment.ephemeris,
                 star_catalogue=environment.star_catalogue,
@@ -259,15 +260,6 @@ class Orbit:
 
             B_hist = np.einsum("nij,nj->ni", R_ecef2eci, b_ecef)
 
-            # Density model (reuse os0 model if present)
-            density_model = environment.atmosphere
-
-            if hasattr(density_model, "density"):
-                rho_hist = np.asarray(density_model.density(R_hist), dtype=float).reshape(N)
-            else:
-                alt_core = np.linalg.norm(R_hist, axis=1) - EarthConstants.R_e
-                rho_hist = np.array([float(density_model.interpolate(float(h))) for h in alt_core], dtype=float)
-
             # ENU transform (vectorized)
             pos = units.Distance(km=[R_hist[:, 0], R_hist[:, 1], R_hist[:, 2]])
             vel = units.Velocity(km_per_s=[V_hist[:, 0], V_hist[:, 1], V_hist[:, 2]])
@@ -278,6 +270,20 @@ class Orbit:
             lon = np.asarray(sf_geo_pos_vec.longitude.radians, dtype=float).reshape(N)
             elev = np.asarray(sf_geo_pos_vec.elevation.km, dtype=float).reshape(N)
             LLA_hist = np.stack([lat, lon, elev], axis=1)
+
+            # Density model receives geodetic coordinates and UTC epochs for
+            # time-dependent empirical atmospheres such as NRLMSISE.
+            density_model = environment.atmosphere
+            if hasattr(density_model, "density"):
+                model_lla = LLA_hist.copy()
+                model_lla[:, :2] = np.rad2deg(model_lla[:, :2])
+                if isinstance(density_model, Atmosphere):
+                    rho_hist = np.asarray(density_model.density(R_hist, dts, model_lla), dtype=float).reshape(N)
+                else:
+                    rho_hist = np.asarray(density_model.density(R_hist), dtype=float).reshape(N)
+            else:
+                alt_core = elev
+                rho_hist = np.array([float(density_model.interpolate(float(h))) for h in alt_core], dtype=float)
 
             R_eci_to_ecef_geo_raw = sf_geo_pos_vec.rotation_at(t_sf)
             R_eci_to_ecef_geo_raw = np.asarray(R_eci_to_ecef_geo_raw, dtype=float)

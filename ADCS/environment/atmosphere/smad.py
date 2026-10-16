@@ -35,14 +35,15 @@ class SMADAtmosphere(Atmosphere):
     def interpolate(self, altitude_km):
         return self._model.interpolate(altitude_km)
 
-    def density(self, position_eci_km):
+    def density(self, position_eci_km, datetime_utc=None, geodetic_lla=None):
+        del datetime_utc, geodetic_lla
         position = np.asarray(position_eci_km, dtype=float)
         if position.ndim not in (1, 2) or position.shape[-1] != 3:
             raise ValueError("position_eci_km must have shape (3,) or (N, 3)")
         altitude = np.linalg.norm(position, axis=-1) - EarthConstants.R_e
         if np.ndim(altitude) == 0:
             return self.interpolate(float(altitude))
-        return np.array([self.interpolate(float(h)) for h in np.ravel(altitude)]).reshape(altitude.shape)
+        return self._model.interpolate_many(altitude)
 
     def __repr__(self) -> str:
         return f"SMADAtmosphere(n={len(self._model.altitude_range)})"

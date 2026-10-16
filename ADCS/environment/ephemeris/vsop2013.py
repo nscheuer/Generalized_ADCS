@@ -5,9 +5,36 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+from numba import njit
 
 from ._download import download_with_progress
 from .ephemeris import Ephemeris
+
+
+@njit(cache=True, fastmath=True, nogil=True)
+def _chebyshev_xyz(coefficients, start: int, count: int, x: float):
+    """Clenshaw evaluation of the three adjacent VSOP coordinate series."""
+    result = np.empty(3, dtype=np.float64)
+    for axis in range(3):
+        base = start + axis * count
+        b1 = 0.0
+        b2 = 0.0
+        for index in range(count - 1, 0, -1):
+            b0 = 2.0 * x * b1 - b2 + coefficients[base + index]
+            b2 = b1
+            b1 = b0
+        result[axis] = x * b1 - b2 + coefficients[base]
+    return result
+
+
+_OBLIQUITY = np.deg2rad(23.0 + 26.0 / 60.0 + 21.41136 / 3600.0)
+_FRAME_OFFSET = np.deg2rad(-0.05188 / 3600.0)
+_C, _S = np.cos(_OBLIQUITY), np.sin(_OBLIQUITY)
+_CP, _SP = np.cos(_FRAME_OFFSET), np.sin(_FRAME_OFFSET)
+_ECLIPTIC_TO_EQUATORIAL = np.array(
+    [[_CP, -_SP, 0.0], [_SP * _C, _CP * _C, -_S], [_SP * _S, _CP * _S, _C]],
+    dtype=float,
+)
 
 
 class VSOP2013(Ephemeris):
@@ -132,25 +159,11 @@ class VSOP2013(Ephemeris):
         interval_start = period_start + subinterval * delta
         x = 2.0 * (jd - interval_start) / delta - 1.0
         start = int(starts[body_index]) - 1 + 6 * count * subinterval
-        position = np.empty(3, dtype=float)
-        for axis in range(3):
-            first = start + axis * count
-            position[axis] = np.polynomial.chebyshev.chebval(
-                x, coefficients[first : first + count]
-            )
-        return position
+        return _chebyshev_xyz(coefficients, start, count, x)
 
     @staticmethod
     def _ecliptic_to_equatorial(position_au: np.ndarray) -> np.ndarray:
-        obliquity = np.deg2rad(23.0 + 26.0 / 60.0 + 21.41136 / 3600.0)
-        frame_offset = np.deg2rad(-0.05188 / 3600.0)
-        c, s = np.cos(obliquity), np.sin(obliquity)
-        cp, sp = np.cos(frame_offset), np.sin(frame_offset)
-        rotation = np.array(
-            [[cp, -sp, 0.0], [sp * c, cp * c, -s], [sp * s, cp * s, c]],
-            dtype=float,
-        )
-        return rotation @ position_au
+        return _ECLIPTIC_TO_EQUATORIAL @ position_au
 
     @staticmethod
     def _body_index(body) -> int | None:

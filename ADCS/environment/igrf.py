@@ -530,12 +530,12 @@ def igrf_gc(r, theta, phi, date, chunk: int = 512):
     # ``np.float64`` subclasses ``float``, and ``pandas.Timestamp`` subclasses
     # ``datetime``, so isinstance covers the shapes callers actually pass.
     if (
-        isinstance(r, float) and isinstance(theta, float)
-        and isinstance(phi, float) and isinstance(date, datetime)
+        np.ndim(r) == 0 and np.ndim(theta) == 0
+        and np.ndim(phi) == 0 and isinstance(date, datetime)
     ):
         epochs, g, h, nmax = _read_shc(_SHC_PATH)
         k, w = _bracket_scalar(_posix_of(date), epochs)
-        return _eval_scalar(r, theta, phi, g, h, k, w, nmax)
+        return _eval_scalar(float(r), float(theta), float(phi), g, h, k, w, nmax)
 
     r_a = np.asarray(r, dtype=float)
     th_a = np.asarray(theta, dtype=float)

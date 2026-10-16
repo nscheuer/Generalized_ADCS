@@ -3,6 +3,7 @@
 import numpy as np
 
 from ADCS.environment.ephemeris import VSOP2013
+from ADCS.environment.ephemeris.vsop2013 import _chebyshev_xyz
 
 
 def _write_tiny_kernel(path):
@@ -50,3 +51,16 @@ def test_vsop2013_supports_vector_epochs_and_earth_aliases(tmp_path):
     assert result.shape == (2, 3)
     np.testing.assert_array_equal(result[0], result[1])
     assert "pluto" in model.available_bodies
+
+
+def test_numba_chebyshev_evaluation_matches_numpy():
+    rng = np.random.default_rng(4)
+    count = 24
+    coefficients = rng.normal(size=3 * count)
+    for x in (-1.0, -0.73, 0.0, 0.41, 1.0):
+        actual = _chebyshev_xyz(coefficients, 0, count, x)
+        expected = np.array([
+            np.polynomial.chebyshev.chebval(x, coefficients[axis * count : (axis + 1) * count])
+            for axis in range(3)
+        ])
+        np.testing.assert_allclose(actual, expected, rtol=1e-13, atol=1e-13)

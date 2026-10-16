@@ -14,23 +14,23 @@ orbit -- the magnetic counterpart of ``zonal_J`` for gravity:
     dependency (``pip install "Generalized_ADCS[ppigrf]"``) and is imported
     only when selected.
 
-Both evaluate IGRF-14 from the same coefficients and agree to ~1e-12
-relative; they differ only in speed. A further model (e.g. WMM) is a new
-entry in :data:`MAGNETIC_MODELS` plus a branch in :func:`field_gc`.
+``"wmm2025"`` and ``"chaos8"``
+    WMM2025 and the internal core plus lithospheric CHAOS-8.7 field.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
+from functools import lru_cache
 
 import numpy as np
 
 from ADCS.environment.igrf import igrf_gc
 
-__all__ = ["MAGNETIC_MODELS", "DEFAULT_MAGNETIC_MODEL", "field_gc", "MagneticFieldModel", "IGRF14", "IGRF14Numba", "IGRF14Ppigrf", "MagneticField"]
+__all__ = ["MAGNETIC_MODELS", "DEFAULT_MAGNETIC_MODEL", "field_gc", "make_magnetic_field", "MagneticFieldModel", "IGRF14", "IGRF14Numba", "IGRF14Ppigrf", "WMM2025", "WMM", "CHAOS8", "MagneticField"]
 
 #: Names accepted by ``magnetic_model`` arguments throughout the package.
-MAGNETIC_MODELS = ("igrf_numba", "igrf_ppigrf")
+MAGNETIC_MODELS = ("igrf_numba", "igrf_ppigrf", "wmm2025", "chaos8")
 
 #: Model used when none is requested.
 DEFAULT_MAGNETIC_MODEL = "igrf_numba"
@@ -59,6 +59,7 @@ def _normalize_magnetic_model(magnetic_model) -> str:
     if magnetic_model is None:
         return DEFAULT_MAGNETIC_MODEL
     value = str(magnetic_model).strip().lower()
+    value = {"wmm": "wmm2025", "chaos-8": "chaos8", "chaos-8.7": "chaos8"}.get(value, value)
     if value in MAGNETIC_MODELS:
         return value
     raise ValueError(
@@ -157,16 +158,39 @@ def field_gc(magnetic_model, r, theta, phi, date):
     model = _normalize_magnetic_model(magnetic_model)
     if model == "igrf_numba":
         return igrf_gc(r, theta, phi, date)
-    return _ppigrf_gc(r, theta, phi, date)
+    if model == "igrf_ppigrf":
+        return _ppigrf_gc(r, theta, phi, date)
+    return _named_model(model).field_gc(r, theta, phi, date)
+
+
+@lru_cache(maxsize=2)
+def _named_model(name):
+    return WMM2025() if name == "wmm2025" else CHAOS8()
 
 
 from .magnetic_field import MagneticField
 from .igrf14 import IGRF14
 from .igrf14_numba import IGRF14Numba
 from .igrf14_ppigrf import IGRF14Ppigrf
+from .wmm import WMM2025, WMM
+from .chaos8 import CHAOS8
+
+
+def make_magnetic_field(name: str | None = None) -> MagneticField:
+    """Create the concrete model selected by a legacy magnetic model name."""
+    model = _normalize_magnetic_model(name)
+    if model == "wmm2025":
+        return WMM2025()
+    if model == "chaos8":
+        return CHAOS8()
+    return IGRF14(model)
+
 
 # Backwards-compatible model name; now a concrete class in this package.
 MagneticFieldModel = IGRF14
 MagneticField.IGRF14 = IGRF14
 MagneticField.IGRF14Numba = IGRF14Numba
 MagneticField.IGRF14Ppigrf = IGRF14Ppigrf
+MagneticField.WMM2025 = WMM2025
+MagneticField.WMM = WMM
+MagneticField.CHAOS8 = CHAOS8

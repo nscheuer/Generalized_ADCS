@@ -78,6 +78,9 @@ dependencies = [
 ppigrf = [
     "ppigrf>=2.0",
 ]
+nrlmsise = [
+    "pymsis>=0.12",
+]
 # 3-D orbit animation helpers (ADCS/helpers/plotting/animate_orbit_pyvista.py).
 viz = [
     "pyvista>=0.44",
