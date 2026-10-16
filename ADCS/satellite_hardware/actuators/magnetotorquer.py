@@ -154,6 +154,8 @@ class MTQ(Actuator):
         :rtype: None
         """
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
+        #: The dipole moment (A m^2) this torquer last applied, bias and noise included; magnetometers coupled to it read its field.
+        self.last_moment: float = 0.0
 
     def torque(
         self,
@@ -228,6 +230,7 @@ class MTQ(Actuator):
         # array-valued finite-difference probes used by some tests.
         u_arr = np.asarray(u)
         if u_arr.ndim == 0 or u_arr.size == 1:
+            self.last_moment = float(u_arr.reshape(-1)[0])
             torque = _mtq_torque_kernel(b_body, self.axis, float(u_arr.reshape(-1)[0]))
         else:
             torque = -np.cross(b_body, self.axis) * u_arr

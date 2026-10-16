@@ -192,6 +192,10 @@ class Satellite:
         self.rw_actuators: List[RW] = [s for s in actuators if isinstance(s, RW)]
         self.mtq_actuators: List[MTQ] = [s for s in actuators if not isinstance(s, RW)]
         self.momentum_inds = np.array([j for j in range(len(self.actuators)) if isinstance(self.actuators[j], RW)])
+        for sensor in self.sensors:
+            coupling = getattr(sensor, "torquer_coupling", None)
+            if coupling is not None:
+                coupling.attach(self.mtq_actuators)
         
         if boresight is None:
             self.boresight: dict[str, np.ndarray] = {

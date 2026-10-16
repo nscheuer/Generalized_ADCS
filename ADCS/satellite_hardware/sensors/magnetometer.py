@@ -4,7 +4,7 @@ from .sensor import Sensor
 
 import numpy as np
 from ADCS.helpers.math_helpers import drotmatTvecdq, rot_mat
-from ADCS.satellite_hardware.errors import ErrorMode, FieldModelError
+from ADCS.satellite_hardware.errors import ErrorMode, FieldModelError, MagnetorquerCoupling
 
 from ADCS.state import State
 from scipy.linalg import block_diag
@@ -96,7 +96,7 @@ class MTM(Sensor):
         field = np.asarray(os.B, dtype=float)
         return field / np.linalg.norm(field)
 
-    def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False, scale_factor: float = 1.0, misalignment: Optional[np.ndarray] = None, field_error: Optional[FieldModelError] = None):
+    def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False, scale_factor: float = 1.0, misalignment: Optional[np.ndarray] = None, field_error: Optional[FieldModelError] = None, torquer_coupling: Optional[MagnetorquerCoupling] = None):
         r"""
         Initialize the magnetometer sensor model.
 
@@ -118,6 +118,7 @@ class MTM(Sensor):
         self.attitude_sensor = False
         super().__init__(scale_factor=scale_factor, misalignment=misalignment, sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
         self.field_error = field_error  # shared by the spacecraft's magnetometers; None on the estimator's model
+        self.torquer_coupling = torquer_coupling  # the satellite attaches its torquers; None on the estimator's model
 
     def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
@@ -159,6 +160,8 @@ class MTM(Sensor):
         field = vecs["b"]
         if self.field_error:
             field = field + rot_mat(x.q).T @ self.field_error.eci
+        if self.torquer_coupling is not None:
+            field = field + self.torquer_coupling.field()  # state independent: no Jacobian term
         return self.scale_factor * np.dot(field, self.sensing_axis)
     
     def reading(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:

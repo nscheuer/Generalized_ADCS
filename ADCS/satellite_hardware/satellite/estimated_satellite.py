@@ -180,6 +180,8 @@ class EstimatedSatellite(Satellite):
             sensor.mounting_rotation = np.eye(3)
             if hasattr(sensor, "field_error"):
                 sensor.field_error = None  # the model error is, by definition, what the model does not have
+            if hasattr(sensor, "torquer_coupling"):
+                sensor.torquer_coupling = None  # the torquers' field at the sensor is a plant property too
         return est
 
 
