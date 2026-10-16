@@ -17,8 +17,22 @@ class Bias:
         Standard deviation rate :math:`\sigma_b` controlling random-walk diffusion (default 0).
     bounds : (float, float), optional
         Clipping range :math:`[b_{\min}, b_{\max}]` applied after updates.
+    instability_std : float, optional
+        Standard deviation :math:`\sigma_g` of the bias instability, the slow
+        wander around the constant offset that an Allan-variance plot shows as
+        its floor. Modelled as a first-order Gauss-Markov process with
+        correlation time ``instability_time``: it decays towards zero and is
+        topped up so that its standard deviation stays at :math:`\sigma_g`.
+    instability_time : float, optional
+        Correlation time :math:`\tau` of the bias instability in seconds
+        (required when ``instability_std`` is set).
+
+    The bias at any time is ``offset + walk + instability``: the constant
+    value the device was built with (``bias`` at construction), a random walk
+    of rate ``std_bias`` that starts at zero, and the instability. ``bias``
+    holds the sum.
     """
-    def __init__(self, bias: np.ndarray | float = np.array([0.0]), std_bias: np.ndarray | float = np.array([0.0]), bounds: Sequence[np.ndarray | float] = (-np.array([np.inf]), np.array([np.inf]))) -> None:
+    def __init__(self, bias: np.ndarray | float = np.array([0.0]), std_bias: np.ndarray | float = np.array([0.0]), bounds: Sequence[np.ndarray | float] = (-np.array([np.inf]), np.array([np.inf])), instability_std: np.ndarray | float = 0.0, instability_time: float | None = None) -> None:
         if isinstance(bias, (float, int)):
             bias = np.array([bias])
         else:
@@ -48,6 +62,25 @@ class Bias:
         self.std_bias = std_bias
         self.last_bias_time = float('nan')
         self.bounds = (lo, hi)
+        # The three parts of the bias. ``bias`` above is their sum, kept as a
+        # plain attribute because the rest of the package reads and writes it.
+        self.offset = bias.copy()                     # constant: the value the device was built with
+        self.walk = np.zeros_like(bias, dtype=float)  # random walk, rate std_bias, starts at zero
+        self.instability = np.zeros_like(bias, dtype=float)  # bias instability, see below
+        instability_std = np.asarray(instability_std, dtype=float)
+        if instability_std.size == 1:
+            instability_std = np.full_like(bias, float(instability_std.reshape(-1)[0]), dtype=float)
+        if instability_std.shape != bias.shape:
+            raise ValueError("instability_std must be a scalar or match the shape of bias.")
+        if np.any(~np.isfinite(instability_std)) or np.any(instability_std < 0.0):
+            raise ValueError("instability_std must be finite and non-negative.")
+        self.instability_std = instability_std
+        if np.any(instability_std > 0.0):
+            if instability_time is None or not np.isfinite(instability_time) or instability_time <= 0.0:
+                raise ValueError("instability_time (the correlation time in seconds) must be positive when instability_std is set.")
+            self.instability_time = float(instability_time)
+        else:
+            self.instability_time = None if instability_time is None else float(instability_time)
 
     def __bool__(self):
         r"""
@@ -58,7 +91,7 @@ class Bias:
         The model is considered *inactive* (i.e. returns ``False``)
         when both :math:`b_0 = 0` and :math:`\sigma_b = 0`.
         """
-        return not (np.all(self.bias == 0.0) and np.all(self.std_bias == 0.0))
+        return not (np.all(self.bias == 0.0) and np.all(self.std_bias == 0.0) and np.all(self.instability_std == 0.0))
     
     def broadcast_to(self, length: int, *, owner: str = "sensor") -> "Bias":
         """Return this model sized for a ``length``-output sensor.
@@ -85,10 +118,12 @@ class Bias:
             bias=repeat(self.bias),
             std_bias=repeat(self.std_bias),
             bounds=(repeat(self.bounds[0]), repeat(self.bounds[1])),
+            instability_std=repeat(self.instability_std),
+            instability_time=self.instability_time,
         )
 
     def copy(self):
-        result = Bias(bias=self.bias, std_bias=self.std_bias, bounds=self.bounds)
+        result = Bias(bias=self.bias, std_bias=self.std_bias, bounds=self.bounds, instability_std=self.instability_std, instability_time=self.instability_time)
         result.estimated_std_bias = self.estimated_std_bias.copy()
         return result
 
@@ -115,8 +150,16 @@ class Bias:
         per-step covariance.  Discretizers such as Van Loan therefore use
         this PSD directly and own the timestep conversion.
         """
+        # A bias instability of standard deviation s and correlation time tau
+        # has the low-frequency power density of a random walk of rate
+        # sqrt(2 s^2 / tau); that is how a filter with a random-walk bias
+        # state covers it (the usual practice; the first-order Gauss-Markov
+        # process is the standard stand-in for the flicker floor).
+        rate_squared = self.std_bias * self.std_bias
+        if np.any(self.instability_std > 0.0):
+            rate_squared = rate_squared + 2.0 * self.instability_std**2 / self.instability_time
         return Covariance(
-            np.diagflat(self.std_bias * self.std_bias),
+            np.diagflat(rate_squared),
             form=form,
             coordinates="bias_rate",
         )
@@ -153,8 +196,16 @@ class Bias:
             return
 
         dt_sec = dt_centuries * TimeConstants.cent2sec
-        self.bias = np.random.normal(loc=self.bias, scale=self.std_bias*np.sqrt(dt_sec))
-        self.bias = np.clip(self.bias, self.bounds[0], self.bounds[1])
+        self.walk = np.random.normal(loc=self.walk, scale=self.std_bias*np.sqrt(dt_sec))
+        if np.any(self.instability_std > 0.0):
+            # First-order Gauss-Markov step, exact for any dt: the process
+            # decays towards zero and is topped up so its variance stays at
+            # instability_std^2.
+            decay = np.exp(-dt_sec / self.instability_time)
+            self.instability = decay * self.instability + np.random.normal(
+                loc=0.0, scale=self.instability_std * np.sqrt(1.0 - decay * decay)
+            )
+        self.bias = np.clip(self.offset + self.walk + self.instability, self.bounds[0], self.bounds[1])
         self.last_bias_time = j2000
 
     def get_bias(self, j2000: float) -> float:
