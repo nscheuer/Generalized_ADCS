@@ -1,8 +1,8 @@
 0.2.1 Attitude Determination and Performance
 ============================================
 
-MEKF warm starts for large attitude errors
--------------------------------------------
+Kalman Filter Warm Starts
+-------------------------
 
 TRIAD, QUEST, and Davenport's q-method now determine attitude from direction
 observations in a single frame. Estimators can use these solutions to
