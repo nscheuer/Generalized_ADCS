@@ -1,5 +1,5 @@
 0.2.0 New Estimation Framework
-============================
+==============================
 
 Release 0.2.0 introduces a new, composable foundation for spacecraft attitude
 estimation. The new APIs make state layouts, uncertainty representations,
