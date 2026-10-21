@@ -259,16 +259,14 @@ class Orbit_EKF(Orbit_Estimator):
 
         # --- 7. Build updated Orbital_State ---
         os_upd = Orbital_State(
-            ephem=os0.ephem,
             J2000=J2000,
             R=x_upd[0:3],
             V=x_upd[3:6],
             S=None,
             B=None,
             rho=None,
-            density_model=os0.density_model,
             fast=False,
-            magnetic_model=os0.magnetic_model,
+            environment=os0.environment,
         )
 
         self.os_hat = EstimatedOrbital_State(

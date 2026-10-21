@@ -54,12 +54,12 @@ def _orbit(os0, **kw):
 
 def test_default_is_the_numba_kernel():
     assert DEFAULT_MAGNETIC_MODEL == "igrf_numba"
-    assert set(MAGNETIC_MODELS) == {"igrf_numba", "igrf_ppigrf"}
+    assert set(MAGNETIC_MODELS) == {"igrf_numba", "igrf_ppigrf", "wmm2025", "chaos8"}
 
 
 def test_unknown_model_is_rejected():
     with pytest.raises(ValueError, match="magnetic_model must be one of"):
-        field_gc("wmm", 6771.2, 45.0, 10.0, datetime(2024, 1, 1))
+        field_gc("unknown_model", 6771.2, 45.0, 10.0, datetime(2024, 1, 1))
 
 
 def test_model_name_is_case_insensitive():
