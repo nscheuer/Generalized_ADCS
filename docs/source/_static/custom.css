@@ -208,6 +208,11 @@
     }
 }
 
+.release-card-featured img {
+    max-height: none;
+    object-fit: contain;
+}
+
 table.sortable-factory th.factory-sortable-header {
     cursor: pointer;
     user-select: none;

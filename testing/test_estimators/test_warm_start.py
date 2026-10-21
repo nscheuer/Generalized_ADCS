@@ -129,6 +129,17 @@ def test_covariance_blocks_follow_the_sensor_noise():
     np.testing.assert_allclose(_block(state, "wheel_momentum"), [[WHEEL_STD**2]])
 
 
+def test_q_method_can_initialize_a_filter_from_readings():
+    satellite = _satellite(noisy=False)
+    os = _orbital_state()
+    readings = satellite.noiseless_sensor_readings(TRUTH, os)
+    estimator = MEKF.from_readings(
+        satellite, readings, os, dt=1.0, warm_start=WarmStart(method="q_method"),
+    )
+    assert estimator.warm_start_attitude.method == "q_method"
+    assert np.linalg.norm(attitude_error(estimator.state.q, TRUTH.q)) < 1.0e-8
+
+
 def test_attitude_block_follows_the_chart_and_the_full_covariance_does_not():
     satellite = _satellite()
     os = _orbital_state()

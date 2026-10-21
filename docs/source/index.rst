@@ -18,16 +18,25 @@ Latest Release Notes
 .. raw:: html
 
    <div class="release-grid">
-     <a class="release-card release-card-featured" href="release_notes/0_2_0_estimation_framework.html">
-       <img src="_static/release_notes/0_2_0_advanced_MEKF.png" alt="Advanced MEKF estimation results">
+     <a class="release-card release-card-featured" href="release_notes/0_2_1_attitude_determination_and_speed.html">
+       <img src="_static/release_notes/0_2_1_filter_tradeoff.png" alt="EKF, MEKF, UKF, and SRUKF simulation time per step versus attitude error at 100 seconds">
        <div class="release-card-copy">
-         <div class="release-card-kicker">Release 2.0</div>
-         <h3>New Estimation Framework</h3>
-         <p>Named state and covariance classes, a canonical measurement stack, shared process models and noise, a new attitude-estimator base, and eight new attitude estimators.</p>
-         <span>Explore release note 2.0</span>
+         <div class="release-card-kicker">Release 0.2.1</div>
+         <h3>Attitude Determination and Performance</h3>
+         <p>MEKF warm starts for large attitude errors, a 100x+ faster default geomagnetic field model, and robust estimator and simulation updates.</p>
+         <span>Explore release note 0.2.1</span>
        </div>
      </a>
-     <a class="release-card release-card-featured" href="papers/generalized_acs.html">
+     <a class="release-card" href="release_notes/0_2_0_estimation_framework.html">
+       <img src="_static/release_notes/0_2_0_advanced_MEKF.png" alt="Advanced MEKF estimation results">
+       <div class="release-card-copy">
+         <div class="release-card-kicker">Release 0.2.0</div>
+         <h3>New Estimation Framework</h3>
+         <p>Named state and covariance classes, a canonical measurement stack, shared process models and noise, a new attitude-estimator base, and eight new attitude estimators.</p>
+         <span>Explore release note 0.2.0</span>
+       </div>
+     </a>
+     <a class="release-card" href="papers/generalized_acs.html">
        <img src="_static/release_notes/0_1_8_smallsat_logo.png" alt="SmallSat 2026 logo">
        <div class="release-card-copy">
          <div class="release-card-kicker">Update 0.1.8</div>
