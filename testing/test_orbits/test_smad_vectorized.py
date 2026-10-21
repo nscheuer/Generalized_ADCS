@@ -1,13 +1,12 @@
 import numpy as np
 
 from ADCS.environment.atmosphere import SMADAtmosphere
-from ADCS.environment.atmosphere.density_model import DensityModel
 
 
 def test_vector_density_matches_scalar_across_interpolation_regions():
-    model = DensityModel()
+    model = SMADAtmosphere()
     altitudes = np.array([-10.0, 0.0, 50.0, 400.0, 1000.0, 1200.0, 35000.0])
-    vectorized = model.interpolate_many(altitudes)
+    vectorized = model.interpolate(altitudes)
     scalar = np.array([model.interpolate(altitude) for altitude in altitudes])
     np.testing.assert_allclose(vectorized, scalar, rtol=1e-14, atol=0.0)
 

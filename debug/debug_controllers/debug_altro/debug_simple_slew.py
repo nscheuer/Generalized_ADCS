@@ -21,7 +21,7 @@ from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track import PlannerSettings, DebugPlanner
 from ADCS.controller.plan_and_track.build_csat import build_cpp_satellite
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE442s as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.satellite import Satellite

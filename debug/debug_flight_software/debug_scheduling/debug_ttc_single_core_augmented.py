@@ -12,7 +12,7 @@ from ADCS.controller import MTQ_w_RW, BDot
 from ADCS import AugmentedSRUKF
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE442s as Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite

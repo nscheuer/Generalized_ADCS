@@ -65,7 +65,7 @@ planetary ephemerides and geomagnetic-field calculations.
      - Original citation
      - Reference
    * - Planetary ephemeris and celestial-body positions
-     - ``ADCS.orbits.ephemeris.Ephemeris``
+     - ``ADCS.environment.ephemeris.DE442s``
      - B. Rhodes, "Skyfield: High precision research-grade positions for planets and Earth satellites in Python," 2019, ASCL: `ascl:1907.024 <https://ascl.net/1907.024>`__.
      - `Skyfield documentation <https://rhodesmill.org/skyfield/>`__
    * - IGRF geomagnetic field

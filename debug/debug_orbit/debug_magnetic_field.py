@@ -8,7 +8,7 @@ from tqdm import tqdm
 import pytest
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE442s as Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants

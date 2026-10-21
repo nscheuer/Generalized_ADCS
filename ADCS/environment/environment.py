@@ -13,7 +13,7 @@ class Environment:
 
     The orbit samples these models; :class:`Orbital_State` carries the sampled
     values to sensors, actuators, disturbances, and the attitude integrator.
-    Existing density and ephemeris implementations can also be supplied here.
+    Custom atmosphere and ephemeris implementations can also be supplied here.
     """
 
     MagneticField = MagneticField
