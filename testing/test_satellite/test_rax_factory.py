@@ -14,6 +14,14 @@ def test_osram_sfh2430_helper_creates_one_photodiode_by_default():
     assert np.isclose(suns[0].noise.std_noise.item(), 0.05)
 
 
+def test_osram_sfh2430_helper_accepts_azimuth_elevation_lists():
+    suns = create_osram_sfh2430_sun_sensors(az_el_deg=[[0, 0], [90, 0]])
+
+    assert len(suns) == 2
+    assert np.allclose(suns[0].axis, [1.0, 0.0, 0.0])
+    assert np.allclose(suns[1].axis, [0.0, 1.0, 0.0], atol=1e-15)
+
+
 def _rax_inertia() -> np.ndarray:
     return 1e-2 * np.diag([2.91058, 2.91058, 0.59261])
 

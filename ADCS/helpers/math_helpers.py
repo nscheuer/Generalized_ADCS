@@ -1497,8 +1497,8 @@ def rotation_between_vectors(first: np.ndarray, second: np.ndarray) -> np.ndarra
 
 
 @njit(cache=True)
-def vector_alignment_error(q: np.ndarray, eci_goal: np.ndarray,
-                           body_boresight: np.ndarray) -> np.ndarray:
+def _vector_alignment_error_kernel(q: np.ndarray, eci_goal: np.ndarray,
+                                   body_boresight: np.ndarray) -> np.ndarray:
     """Shortest body-frame quaternion-vector error for boresight alignment."""
     bore = normalize(body_boresight)
     goal_body = normalize(rot_mat(q).T @ eci_goal)
@@ -1515,6 +1515,20 @@ def vector_alignment_error(q: np.ndarray, eci_goal: np.ndarray,
         q_error[1:] = np.cross(goal_body, bore)
         q_error = normalize(q_error)
     return q_error[1:4] * (1.0 if q_error[0] >= 0.0 else -1.0)
+
+
+def vector_alignment_error(q: np.ndarray, eci_goal: np.ndarray,
+                           body_boresight: np.ndarray) -> np.ndarray:
+    """Return the shortest body-frame quaternion-vector error for boresight alignment.
+
+    Inputs are converted to floating-point arrays before entering the compiled
+    kernel, so integer arrays and ordinary Python sequences are accepted.
+    """
+    return _vector_alignment_error_kernel(
+        np.asarray(q, dtype=float),
+        np.asarray(eci_goal, dtype=float),
+        np.asarray(body_boresight, dtype=float),
+    )
 
 
 @njit(cache=True)

@@ -11,6 +11,7 @@ from ADCS.helpers.math_helpers import (
     rotate_covariance,
     skewsym,
     skewsym_batch,
+    vector_alignment_error,
 )
 
 
@@ -40,3 +41,12 @@ def test_shared_angles_and_covariance_transform():
     covariance = np.diag([4.0, 1.0, 2.0])
     np.testing.assert_allclose(rotate_covariance(covariance, transform),
                                transform @ covariance @ transform.T)
+
+
+def test_vector_alignment_error_accepts_integer_arrays():
+    error = vector_alignment_error(
+        np.array([1, 0, 0, 0]),
+        np.array([0, 0, 1]),
+        np.array([0, 0, 1]),
+    )
+    np.testing.assert_allclose(error, np.zeros(3))

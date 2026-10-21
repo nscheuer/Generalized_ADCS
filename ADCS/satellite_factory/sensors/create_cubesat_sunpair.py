@@ -186,7 +186,9 @@ def create_osram_sfh2430_sun_sensors(
     if az_el_deg is None:
         az_el_deg = np.array([[0, 0]])
 
-    axes = _axes_from_az_el_deg(az_el_deg)
+    # Numba kernels accept NumPy arrays, while this public factory also accepts
+    # ordinary nested lists for convenience.
+    axes = _axes_from_az_el_deg(np.asarray(az_el_deg, dtype=float))
     n_axes = len(axes)
     if bias is None:
         bias = [Bias() for _ in range(n_axes)]
