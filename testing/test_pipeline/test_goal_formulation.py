@@ -39,7 +39,7 @@ from ADCS.pipeline.goal_formulation.goal_formulation import goal_formulation_ste
 from ADCS.pipeline.data import GoalSpec, WorldVectorSpec, LawInterface
 
 # Reusable orbital state mock
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE442s as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 

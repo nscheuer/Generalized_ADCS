@@ -7,7 +7,7 @@ import numpy as np
 from typing import Optional
 
 from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE442s as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.universal_constants import TimeConstants, EarthConstants
@@ -56,7 +56,7 @@ def create_random_circular_os(
     :param J2000: The current time in J2000 centuries. Defaults to 0.22.
     :type J2000: float
     :param ephem: Optional ephemeris object. If None, a new one is created.
-    :type ephem: :class:`~ADCS.orbits.ephemeris.Ephemeris`, optional
+    :type ephem: :class:`~ADCS.environment.ephemeris.DE442s`, optional
     :param magnetic_model: Geomagnetic field model; one of
         :data:`ADCS.environment.MAGNETIC_MODELS`.
     :type magnetic_model: str

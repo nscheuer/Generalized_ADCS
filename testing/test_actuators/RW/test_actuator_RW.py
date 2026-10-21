@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE442s as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import RW

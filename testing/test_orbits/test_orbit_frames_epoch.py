@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from ADCS.orbits.density_model import DensityModel
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.atmosphere import SMADAtmosphere
+from ADCS.environment.ephemeris import DE442s as Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
@@ -68,13 +68,13 @@ def test_j2000_zero_uses_tt_epoch_not_tai():
 
 
 def test_density_interpolation_matches_table_nodes():
-    model = DensityModel()
+    model = SMADAtmosphere()
     for altitude, density in zip(model.altitude_range, model.rho_range):
         assert np.isclose(model.interpolate(float(altitude)), float(density), rtol=1e-9)
 
 
 def test_density_interpolation_is_log_linear_between_nodes():
-    model = DensityModel()
+    model = SMADAtmosphere()
     index = len(model.altitude_range) // 2
     midpoint = 0.5 * (model.altitude_range[index] + model.altitude_range[index + 1])
     geometric = np.sqrt(model.rho_range[index] * model.rho_range[index + 1])
@@ -85,21 +85,21 @@ def test_density_interpolation_is_log_linear_between_nodes():
 
 
 def test_density_interpolation_is_monotonic_decreasing():
-    model = DensityModel()
+    model = SMADAtmosphere()
     sweep = np.linspace(model.altitude_range[0] + 1.0, model.altitude_range[-1] - 1.0, 200)
     densities = np.array([model.interpolate(altitude) for altitude in sweep])
     assert np.all(np.diff(densities) <= 1e-30)
 
 
 def test_density_extrapolation_decays_above_table():
-    model = DensityModel()
+    model = SMADAtmosphere()
     top = float(model.altitude_range[-1])
     assert model.interpolate(top + 5000.0) < model.interpolate(top) * 1e-3
     assert model.interpolate(1.0e6) < model.interpolate(top) * 1e-12
 
 
 def test_density_interpolation_clamps_below_table():
-    model = DensityModel()
+    model = SMADAtmosphere()
     assert model.interpolate(float(model.altitude_range[0]) - 50.0) == pytest.approx(float(model.rho_range[0]))
     assert np.isfinite(model.interpolate(-100.0))
 

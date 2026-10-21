@@ -11,7 +11,6 @@ from datetime import timezone
 from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, make_magnetic_field
 from ADCS.environment.environment import Environment
 from ADCS.environment.ephemeris.ephemeris import sunlit_from_vectors
-from ADCS.environment.atmosphere.atmosphere import Atmosphere
 from ADCS.orbits.orbital_state import Orbital_State, _normalize_zonal_J
 from ADCS.orbits.universal_constants import TimeConstants, EarthConstants
 from ADCS.helpers.math_constants import MathConstants
@@ -128,7 +127,7 @@ class Orbit:
         if environment is None:
             environment = Environment(
                 magnetic_field=make_magnetic_field(magnetic_model or getattr(first, "magnetic_model", DEFAULT_MAGNETIC_MODEL)),
-                atmosphere=getattr(first, "density_model", None),
+                atmosphere=getattr(first, "atmosphere", None),
                 ephemeris=getattr(first, "ephem", None),
             )
         elif magnetic_model is not None and _normalize_magnetic_model(magnetic_model) != environment.magnetic_model:
@@ -273,17 +272,11 @@ class Orbit:
 
             # Density model receives geodetic coordinates and UTC epochs for
             # time-dependent empirical atmospheres such as NRLMSISE.
-            density_model = environment.atmosphere
-            if hasattr(density_model, "density"):
-                model_lla = LLA_hist.copy()
-                model_lla[:, :2] = np.rad2deg(model_lla[:, :2])
-                if isinstance(density_model, Atmosphere):
-                    rho_hist = np.asarray(density_model.density(R_hist, dts, model_lla), dtype=float).reshape(N)
-                else:
-                    rho_hist = np.asarray(density_model.density(R_hist), dtype=float).reshape(N)
-            else:
-                alt_core = elev
-                rho_hist = np.array([float(density_model.interpolate(float(h))) for h in alt_core], dtype=float)
+            model_lla = LLA_hist.copy()
+            model_lla[:, :2] = np.rad2deg(model_lla[:, :2])
+            rho_hist = np.asarray(
+                environment.atmosphere.density(R_hist, dts, model_lla), dtype=float
+            ).reshape(N)
 
             R_eci_to_ecef_geo_raw = sf_geo_pos_vec.rotation_at(t_sf)
             R_eci_to_ecef_geo_raw = np.asarray(R_eci_to_ecef_geo_raw, dtype=float)
@@ -337,7 +330,7 @@ class Orbit:
                 st._ecef_to_geo = np.vstack([st._n_ecef, st._tvec, st._svec])
 
                 # Environment
-                st.density_model = density_model
+                st.atmosphere = environment.atmosphere
                 st.magnetic_model = self._magnetic_model
                 st.S = S_hist[i, :].copy()
                 st.B = B_hist[i, :].copy()

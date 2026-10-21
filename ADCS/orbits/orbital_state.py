@@ -10,9 +10,7 @@ from typing import Dict, Tuple, Optional
 from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, field_gc
 from ADCS.environment.environment import Environment
 from ADCS.environment.ephemeris.ephemeris import sunlit_from_vectors
-from ADCS.environment.atmosphere.atmosphere import Atmosphere
 from ADCS.environment.magnetic_field import make_magnetic_field
-from ADCS.environment.atmosphere.density_model import DensityModel
 from ADCS.environment.ephemeris import DE442s as Ephemeris
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
 from ADCS.helpers.math_helpers import normalize, rot_mat, drotmatTvecdq, ddrotmatTvecdqdq, legendre_p_and_dp
@@ -178,8 +176,8 @@ class Orbital_State:
     frame transforms.
 
     :param ephem:
-        Ephemeris object used for Earth and Sun position queries.
-        If ``None``, a new :class:`~ADCS.environment.ephemeris.de442s.DE442s` is constructed.
+        Ephemeris object used for Earth and Sun position queries. If omitted,
+        the default environment supplies DE442s.
     :type ephem: Ephemeris
 
     :param J2000:
@@ -203,14 +201,14 @@ class Orbital_State:
     :type B: numpy.ndarray or None
 
     :param rho:
-        Optional atmospheric density [kg/m^3]. If ``None``, it is computed using
-        :class:`~ADCS.environment.atmosphere.density_model.DensityModel`.
+        Optional atmospheric density [kg/m^3]. If ``None``, it is computed by
+        the atmosphere selected in ``environment``.
     :type rho: float or None
 
-    :param density_model:
-        Atmospheric density interpolation model. If ``None``, a new
-        :class:`~ADCS.environment.atmosphere.density_model.DensityModel` is constructed.
-    :type density_model: DensityModel or None
+    :param environment:
+        Environment models used to sample the state. When omitted, defaults
+        are combined with any supplied ``ephem`` or ``magnetic_model``.
+    :type environment: Environment or None
 
     :param fast:
         Backward-compatible parameter (ignored). Real environment vectors are always
@@ -228,7 +226,6 @@ class Orbital_State:
         S: Optional[np.ndarray] = None,
         B: Optional[np.ndarray] = None,
         rho: Optional[float] = None,
-        density_model: Optional[DensityModel] = None,
         fast: bool = False,
         magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
         environment: Environment | None = None,
@@ -264,10 +261,6 @@ class Orbital_State:
             Optional atmospheric density [kg/m^3]. If not provided, it is computed.
         :type rho: float or None
 
-        :param density_model:
-            Atmospheric density model.
-        :type density_model: DensityModel or None
-
         :param fast:
             Backward-compatible parameter (ignored).
         :type fast: bool
@@ -289,10 +282,9 @@ class Orbital_State:
         if environment is None:
             environment = Environment(
                 magnetic_field=make_magnetic_field(magnetic_model),
-                atmosphere=density_model if density_model is not None else DensityModel(),
                 ephemeris=ephem if ephem is not None else Ephemeris(),
             )
-        elif ephem is not None or density_model is not None or magnetic_model != DEFAULT_MAGNETIC_MODEL:
+        elif ephem is not None or magnetic_model != DEFAULT_MAGNETIC_MODEL:
             raise ValueError("Pass model choices through environment, or use the legacy model arguments")
         self.environment = environment
         self.magnetic_model = environment.magnetic_model
@@ -370,7 +362,7 @@ class Orbital_State:
         self.ECI2ENUmat = R_ecef_to_enu @ R_eci_to_ecef
 
         # Atmospheric density model
-        self.density_model = environment.atmosphere
+        self.atmosphere = environment.atmosphere
 
         # Sun vector (ECI)
         if S is not None:
@@ -388,15 +380,8 @@ class Orbital_State:
         if rho is not None:
             self.rho = float(rho)
         else:
-            if hasattr(self.density_model, "density"):
-                geodetic_lla = np.array([np.rad2deg(self.LLA[0]), np.rad2deg(self.LLA[1]), self.LLA[2]])
-                if isinstance(self.density_model, Atmosphere):
-                    self.rho = float(self.density_model.density(self.R, self.datetime, geodetic_lla))
-                else:
-                    self.rho = float(self.density_model.density(self.R))
-            else:
-                altitude_from_core = float(np.linalg.norm(self.R))
-                self.rho = float(self.density_model.interpolate(altitude_from_core - EarthConstants.R_e))
+            geodetic_lla = np.array([np.rad2deg(self.LLA[0]), np.rad2deg(self.LLA[1]), self.LLA[2]])
+            self.rho = float(self.atmosphere.density(self.R, self.datetime, geodetic_lla))
 
         self.vecs: Dict[str, np.ndarray] | None = None
         self._last_x: np.ndarray | None = None
@@ -447,7 +432,7 @@ class Orbital_State:
         out.LLA = np.array(self.LLA, dtype=float, copy=True)
         out.ECI2ENUmat = np.array(self.ECI2ENUmat, dtype=float, copy=True)
 
-        out.density_model = self.density_model
+        out.atmosphere = self.atmosphere
         out.magnetic_model = getattr(self, "magnetic_model", DEFAULT_MAGNETIC_MODEL)
         out.S = self.S.copy()
         out.B = self.B.copy()
@@ -529,7 +514,7 @@ class Orbital_State:
         out.LLA = a * self.LLA + b * os2.LLA
         out.ECI2ENUmat = a * self.ECI2ENUmat + b * os2.ECI2ENUmat
 
-        out.density_model = self.density_model
+        out.atmosphere = self.atmosphere
         out.magnetic_model = getattr(self, "magnetic_model", DEFAULT_MAGNETIC_MODEL)
 
         out.vecs = None
@@ -1213,10 +1198,10 @@ class Orbital_State:
     def from_dict(
         cls,
         d: dict,
-        ephem: Ephemeris,
-        density_model: DensityModel | None = None,
+        ephem: Ephemeris | None = None,
         fast: bool = True,
         magnetic_model: str | None = None,
+        environment: Environment | None = None,
     ):
         r"""
         Construct an orbital state from a dictionary.
@@ -1233,10 +1218,6 @@ class Orbital_State:
             Ephemeris object.
         :type ephem: Ephemeris
 
-        :param density_model:
-            Atmospheric density model.
-        :type density_model: DensityModel or None
-
         :param fast:
             Backward-compatible parameter (ignored).
         :type fast: bool
@@ -1247,6 +1228,9 @@ class Orbital_State:
             field existed.
         :type magnetic_model: str or None
 
+        :param environment: Models used to reconstruct the state.
+        :type environment: Environment or None
+
         :return:
             Reconstructed orbital state.
         :rtype: Orbital_State
@@ -1254,15 +1238,15 @@ class Orbital_State:
         """
         _ = fast  # ignored
         return cls(
-            ephem=ephem,
+            ephem=ephem if environment is None else None,
             J2000=d["J2000"],
             R=d["R"],
             V=d["V"],
             S=d.get("S"),
             B=d.get("B"),
             rho=d.get("rho"),
-            density_model=density_model,
             fast=False,
             magnetic_model=magnetic_model if magnetic_model is not None
             else d.get("magnetic_model", DEFAULT_MAGNETIC_MODEL),
+            environment=environment,
         )

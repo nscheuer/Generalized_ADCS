@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from ADCS.estimators.orbit_estimators import Orbit_GPS
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE442s as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Noise
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
