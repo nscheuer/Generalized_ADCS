@@ -7,12 +7,12 @@
         <link rel="prefetch" href="../../../_static/starlab_logo.svg" as="image">
         <link rel="prefetch" href="../../../_static/starlab_logo.svg" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
         <title>ADCS.estimators.initialization - Generalized ADCS 2026 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=4f7aa7b9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=2c4d9473" />
     
     
 
@@ -229,7 +229,8 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_2_0_estimation_framework.html">2.0 New Estimation Framework</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_2_1_attitude_determination_and_speed.html">0.2.1 Attitude Determination and Performance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_2_0_estimation_framework.html">0.2.0 New Estimation Framework</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Available on PyPI (2026-08-19)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
@@ -606,7 +607,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">block_diag</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.attitude_determination</span><span class="w"> </span><span class="kn">import</span> <span class="n">AttitudeSolution</span><span class="p">,</span> <span class="n">quest</span><span class="p">,</span> <span class="n">triad</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.attitude_determination</span><span class="w"> </span><span class="kn">import</span> <span class="n">AttitudeSolution</span><span class="p">,</span> <span class="n">q_method</span><span class="p">,</span> <span class="n">quest</span><span class="p">,</span> <span class="n">triad</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span><span class="p">,</span> <span class="n">_quaternion_tangent_scale</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
@@ -851,7 +852,7 @@
 <span class="c1"># ----------------------------------------------------------------------------</span>
 <span class="c1"># attitude and complete initial state</span>
 
-<span class="n">_METHODS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"quest"</span><span class="p">,</span> <span class="s2">"triad"</span><span class="p">,</span> <span class="s2">"tracker"</span><span class="p">)</span>
+<span class="n">_METHODS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"quest"</span><span class="p">,</span> <span class="s2">"triad"</span><span class="p">,</span> <span class="s2">"q_method"</span><span class="p">,</span> <span class="s2">"tracker"</span><span class="p">)</span>
 <span class="n">_ATTITUDE_SIGMA_FLOOR</span> <span class="o">=</span> <span class="mf">1.0e-6</span>  <span class="c1"># rad; the same floor vector_observations uses</span>
 
 
@@ -875,7 +876,7 @@
 
 <span class="sd">    :param method: ``"auto"`` (a quaternion star tracker when one has a reading,</span>
 <span class="sd">        otherwise QUEST), ``"quest"``, ``"triad"`` (the two most precise</span>
-<span class="sd">        directions) or ``"tracker"``.</span>
+<span class="sd">        directions), ``"q_method"`` or ``"tracker"``.</span>
 <span class="sd">    :param rate: ``"gyro"`` or the initial angular rate in rad/s.</span>
 <span class="sd">    :param wheel_momentum: ``"readings"`` or the initial wheel momenta.</span>
 <span class="sd">    :param act_bias: Initial actuator biases (default zeros).</span>
@@ -960,9 +961,9 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AttitudeSolution</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The attitude at the time of one raw measurement vector.</span>
 
-<span class="sd">    ``"quest"`` solves Wahba's problem over every direction observation</span>
-<span class="sd">    (:func:`vector_observations`), ``"triad"`` uses the two most precise</span>
-<span class="sd">    ones, ``"tracker"`` takes the reading of a quaternion star tracker, and</span>
+<span class="sd">    ``"quest"`` and ``"q_method"`` solve Wahba's problem over every direction</span>
+<span class="sd">    observation (:func:`vector_observations`), ``"triad"`` uses the two most</span>
+<span class="sd">    precise ones, ``"tracker"`` takes a quaternion star tracker reading, and</span>
 <span class="sd">    ``"auto"`` takes the tracker when one has a finite reading and QUEST</span>
 <span class="sd">    otherwise. The solution's covariance is the small-angle attitude-error</span>
 <span class="sd">    covariance in the body frame, in rad^2.</span>
@@ -1003,7 +1004,7 @@
         <span class="n">body</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">observation</span><span class="o">.</span><span class="n">body</span> <span class="k">for</span> <span class="n">observation</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
         <span class="n">reference</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">observation</span><span class="o">.</span><span class="n">reference</span> <span class="k">for</span> <span class="n">observation</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
         <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">observation</span><span class="o">.</span><span class="n">sigma</span> <span class="k">for</span> <span class="n">observation</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">quest</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">reference</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">q_method</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">reference</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span> <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"q_method"</span> <span class="k">else</span> <span class="n">quest</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">reference</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">; pass the initial attitude explicitly"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span></div>
 

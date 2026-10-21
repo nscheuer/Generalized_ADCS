@@ -8,12 +8,12 @@
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
         <title>ADCS.estimators.initialization module - Generalized ADCS 2026 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4f7aa7b9" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=2c4d9473" />
     
     
 
@@ -230,7 +230,8 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_0_estimation_framework.html">2.0 New Estimation Framework</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_1_attitude_determination_and_speed.html">0.2.1 Attitude Determination and Performance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_0_estimation_framework.html">0.2.0 New Estimation Framework</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_8_installable.html">0.1.8 Available on PyPI (2026-08-19)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
@@ -668,7 +669,7 @@ satellite estimates such parameters, and a value you supply yourself
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>method</strong> (<em>str</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> (a quaternion star tracker when one has a reading,
 otherwise QUEST), <code class="docutils literal notranslate"><span class="pre">&quot;quest&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;triad&quot;</span></code> (the two most precise
-directions) or <code class="docutils literal notranslate"><span class="pre">&quot;tracker&quot;</span></code>.</p></li>
+directions), <code class="docutils literal notranslate"><span class="pre">&quot;q_method&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;tracker&quot;</span></code>.</p></li>
 <li><p><strong>rate</strong> (<em>Any</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;gyro&quot;</span></code> or the initial angular rate in rad/s.</p></li>
 <li><p><strong>wheel_momentum</strong> (<em>Any</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;readings&quot;</span></code> or the initial wheel momenta.</p></li>
 <li><p><strong>act_bias</strong> (<em>Any</em>) – Initial actuator biases (default zeros).</p></li>
@@ -794,9 +795,9 @@ squares over the gyros with finite readings.</p>
 <dt class="sig sig-object py" id="ADCS.estimators.initialization.attitude_from_readings">
 <span class="sig-prename descclassname"><span class="pre">ADCS.estimators.initialization.</span></span><span class="sig-name descname"><span class="pre">attitude_from_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">readings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">star_references</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/initialization.html#attitude_from_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.initialization.attitude_from_readings" title="Link to this definition">¶</a></dt>
 <dd><p>The attitude at the time of one raw measurement vector.</p>
-<p><code class="docutils literal notranslate"><span class="pre">&quot;quest&quot;</span></code> solves Wahba’s problem over every direction observation
-(<a class="reference internal" href="#ADCS.estimators.initialization.vector_observations" title="ADCS.estimators.initialization.vector_observations"><code class="xref py py-func docutils literal notranslate"><span class="pre">vector_observations()</span></code></a>), <code class="docutils literal notranslate"><span class="pre">&quot;triad&quot;</span></code> uses the two most precise
-ones, <code class="docutils literal notranslate"><span class="pre">&quot;tracker&quot;</span></code> takes the reading of a quaternion star tracker, and
+<p><code class="docutils literal notranslate"><span class="pre">&quot;quest&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;q_method&quot;</span></code> solve Wahba’s problem over every direction
+observation (<a class="reference internal" href="#ADCS.estimators.initialization.vector_observations" title="ADCS.estimators.initialization.vector_observations"><code class="xref py py-func docutils literal notranslate"><span class="pre">vector_observations()</span></code></a>), <code class="docutils literal notranslate"><span class="pre">&quot;triad&quot;</span></code> uses the two most
+precise ones, <code class="docutils literal notranslate"><span class="pre">&quot;tracker&quot;</span></code> takes a quaternion star tracker reading, and
 <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> takes the tracker when one has a finite reading and QUEST
 otherwise. The solution’s covariance is the small-angle attitude-error
 covariance in the body frame, in rad^2.</p>

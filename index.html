@@ -8,12 +8,12 @@
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
         <title>Generalized ADCS 2026 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4f7aa7b9" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=2c4d9473" />
     
     
 
@@ -230,7 +230,8 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_0_estimation_framework.html">2.0 New Estimation Framework</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_1_attitude_determination_and_speed.html">0.2.1 Attitude Determination and Performance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_0_estimation_framework.html">0.2.0 New Estimation Framework</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_8_installable.html">0.1.8 Available on PyPI (2026-08-19)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
@@ -603,16 +604,25 @@ environment without black-box solvers.</p>
 <section id="latest-release-notes">
 <h1>Latest Release Notes<a class="headerlink" href="#latest-release-notes" title="Link to this heading">¶</a></h1>
 <div class="release-grid">
-  <a class="release-card release-card-featured" href="release_notes/0_2_0_estimation_framework.html">
-    <img src="_static/release_notes/0_2_0_advanced_MEKF.png" alt="Advanced MEKF estimation results">
+  <a class="release-card release-card-featured" href="release_notes/0_2_1_attitude_determination_and_speed.html">
+    <img src="_static/release_notes/0_2_1_filter_tradeoff.png" alt="EKF, MEKF, UKF, and SRUKF simulation time per step versus attitude error at 100 seconds">
     <div class="release-card-copy">
-      <div class="release-card-kicker">Release 2.0</div>
-      <h3>New Estimation Framework</h3>
-      <p>Named state and covariance classes, a canonical measurement stack, shared process models and noise, a new attitude-estimator base, and eight new attitude estimators.</p>
-      <span>Explore release note 2.0</span>
+      <div class="release-card-kicker">Release 0.2.1</div>
+      <h3>Attitude Determination and Performance</h3>
+      <p>MEKF warm starts for large attitude errors, a 100x+ faster default geomagnetic field model, and robust estimator and simulation updates.</p>
+      <span>Explore release note 0.2.1</span>
     </div>
   </a>
-  <a class="release-card release-card-featured" href="papers/generalized_acs.html">
+  <a class="release-card" href="release_notes/0_2_0_estimation_framework.html">
+    <img src="_static/release_notes/0_2_0_advanced_MEKF.png" alt="Advanced MEKF estimation results">
+    <div class="release-card-copy">
+      <div class="release-card-kicker">Release 0.2.0</div>
+      <h3>New Estimation Framework</h3>
+      <p>Named state and covariance classes, a canonical measurement stack, shared process models and noise, a new attitude-estimator base, and eight new attitude estimators.</p>
+      <span>Explore release note 0.2.0</span>
+    </div>
+  </a>
+  <a class="release-card" href="papers/generalized_acs.html">
     <img src="_static/release_notes/0_1_8_smallsat_logo.png" alt="SmallSat 2026 logo">
     <div class="release-card-copy">
       <div class="release-card-kicker">Update 0.1.8</div>

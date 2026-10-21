@@ -8,12 +8,12 @@
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
         <title>ADCS.helpers.math_helpers module - Generalized ADCS 2026 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4f7aa7b9" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=2c4d9473" />
     
     
 
@@ -230,7 +230,8 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_0_estimation_framework.html">2.0 New Estimation Framework</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_1_attitude_determination_and_speed.html">0.2.1 Attitude Determination and Performance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_2_0_estimation_framework.html">0.2.0 New Estimation Framework</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_8_installable.html">0.1.8 Available on PyPI (2026-08-19)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
@@ -629,6 +630,37 @@ q_0\mathbf{I}_3 + [\mathbf{q}_v]_\times
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.angle_between_vectors">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">angle_between_vectors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">first</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#angle_between_vectors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.angle_between_vectors" title="Link to this definition">¶</a></dt>
+<dd><p>Unsigned angle in radians, or NaN for zero or nonfinite vectors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>first</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>second</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.axes_from_az_el_deg">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">axes_from_az_el_deg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">az_el_deg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#axes_from_az_el_deg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.axes_from_az_el_deg" title="Link to this definition">¶</a></dt>
+<dd><p>Convert rows of azimuth/elevation angles in degrees to unit vectors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>az_el_deg</strong> (<em>ndarray</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="ADCS.helpers.math_helpers.cayley_to_quat">
 <span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">cayley_to_quat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cly</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#cayley_to_quat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.cayley_to_quat" title="Link to this definition">¶</a></dt>
 <dd><p>Convert Cayley parameters to a quaternion.</p>
@@ -769,6 +801,36 @@ torque linearization.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.legendre_p_and_dp">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">legendre_p_and_dp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_degree</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#legendre_p_and_dp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.legendre_p_and_dp" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate Legendre polynomials and their first derivatives at <code class="docutils literal notranslate"><span class="pre">s</span></code>.</p>
+<p>Uses the standard upward recurrences</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[n P_n = (2n-1)\, s\, P_{n-1} - (n-1) P_{n-2}, \qquad
+P_n' = n\, P_{n-1} + s\, P_{n-1}',\]</div>
+</div>
+<p>which are stable everywhere on <span class="math notranslate nohighlight">\(s\in[-1,1]\)</span> (no division by
+<span class="math notranslate nohighlight">\(1-s^2\)</span>, so they hold over the poles) and are analytic in <code class="docutils literal notranslate"><span class="pre">s</span></code>,
+so the routine is safe for complex-step differentiation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>s</strong> (<em>float</em><em> or </em><em>complex</em>) – Argument of the polynomials (<code class="docutils literal notranslate"><span class="pre">sin</span></code> of geocentric latitude). May be a
+real or complex scalar.</p></li>
+<li><p><strong>max_degree</strong> (<em>int</em>) – Highest polynomial degree to evaluate.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple <code class="docutils literal notranslate"><span class="pre">(P,</span> <span class="pre">dP)</span></code> of lists indexed by degree <code class="docutils literal notranslate"><span class="pre">0..max_degree</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[list, list]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1196,6 +1258,113 @@ has no factor of 2, and <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quaternion_angle">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quaternion_angle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">first</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quaternion_angle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quaternion_angle" title="Link to this definition">¶</a></dt>
+<dd><p>Shortest rotation angle in radians between scalar-first quaternions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>first</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>second</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quaternion_delta_from_vector">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quaternion_delta_from_vector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vector</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quaternion_delta_from_vector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quaternion_delta_from_vector" title="Link to this definition">¶</a></dt>
+<dd><p>Convert local attitude coordinates to a scalar-first unit delta quaternion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vector</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>mode</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quaternion_delta_to_vector">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quaternion_delta_to_vector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quaternion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">shortest</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quaternion_delta_to_vector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quaternion_delta_to_vector" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a scalar-first delta quaternion to local attitude coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quaternion</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>mode</strong> (<em>str</em>)</p></li>
+<li><p><strong>shortest</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quaternion_mean">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quaternion_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quaternion_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quaternion_mean" title="Link to this definition">¶</a></dt>
+<dd><p>Solve sum(w_i * chart(q^-1 q_i)) = 0, including signed weights.</p>
+<p>Newton steps use rotation vectors, so the solver never retracts an
+out-of-domain quaternion-vector correction. Backtracking limits each step
+and reduces the residual, unlike the undamped chart fixed point. Both
+state and measurement means use this same definition; covariance errors
+remain in the requested chart. The analytic 3x3 Jacobian avoids repeated
+state copies and numerical differentiation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>weights</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>mode</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quaternion_tangent_scale">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quaternion_tangent_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quaternion_tangent_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quaternion_tangent_scale" title="Link to this definition">¶</a></dt>
+<dd><p>Derivative scale at the identity for a three-parameter attitude chart.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mode</strong> (<em>str</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quaternion_vector_reset_jacobian">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quaternion_vector_reset_jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vector</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quaternion_vector_reset_jacobian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quaternion_vector_reset_jacobian" title="Link to this definition">¶</a></dt>
+<dd><p>Attitude error reset Jacobian for quaternion-vector coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vector</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>order</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="ADCS.helpers.math_helpers.random_n_unit_vec">
 <span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">random_n_unit_vec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#random_n_unit_vec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.random_n_unit_vec" title="Link to this definition">¶</a></dt>
 <dd><p>Generate a random unit-norm vector in <span class="math notranslate nohighlight">\(\mathbb{R}^n\)</span>.</p>
@@ -1282,6 +1451,75 @@ q_0^2+q_1^2-q_2^2-q_3^2 &amp; 2(q_1q_2-q_0q_3) &amp; 2(q_1q_3+q_0q_2) \\
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.rot_mat_batch">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">rot_mat_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quaternions</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#rot_mat_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.rot_mat_batch" title="Link to this definition">¶</a></dt>
+<dd><p>Return body-to-inertial DCMs for scalar-first unit quaternions.</p>
+<p>Accepts shape <code class="docutils literal notranslate"><span class="pre">(4,)</span></code> or <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">4)</span></code> and mirrors <a class="reference internal" href="#ADCS.helpers.math_helpers.rot_mat" title="ADCS.helpers.math_helpers.rot_mat"><code class="xref py py-func docutils literal notranslate"><span class="pre">rot_mat()</span></code></a>’s
+quadratic formula even if the input is not exactly unit length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>quaternions</strong> (<em>ndarray</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.rotate_covariance">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">rotate_covariance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">covariance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#rotate_covariance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.rotate_covariance" title="Link to this definition">¶</a></dt>
+<dd><p>Apply a linear coordinate transform to covariance: <code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">P</span> <span class="pre">T.T</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>covariance</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>transform</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.rotation_between_vectors">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">rotation_between_vectors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">first</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#rotation_between_vectors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.rotation_between_vectors" title="Link to this definition">¶</a></dt>
+<dd><p>Return a proper 3D rotation carrying <code class="docutils literal notranslate"><span class="pre">first</span></code> onto <code class="docutils literal notranslate"><span class="pre">second</span></code>.</p>
+<p>Zero length inputs retain the historical identity fallback. For opposite
+directions, choose a deterministic perpendicular axis for the half turn.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>first</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>second</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.rotation_vector_reset_jacobian">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">rotation_vector_reset_jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vector</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#rotation_vector_reset_jacobian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.rotation_vector_reset_jacobian" title="Link to this definition">¶</a></dt>
+<dd><p>Attitude error reset Jacobian for rotation-vector coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vector</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>order</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="ADCS.helpers.math_helpers.skewsym">
 <span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">skewsym</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#skewsym"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.skewsym" title="Link to this definition">¶</a></dt>
 <dd><p>Construct the skew-symmetric matrix associated with a 3D vector.</p>
@@ -1309,6 +1547,19 @@ v_3 &amp; 0 &amp; -v_1 \\
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.skewsym_batch">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">skewsym_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#skewsym_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.skewsym_batch" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vectors</strong> (<em>ndarray</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1455,6 +1706,26 @@ component.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.vector_alignment_error">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">vector_alignment_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eci_goal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_boresight</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#vector_alignment_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.vector_alignment_error" title="Link to this definition">¶</a></dt>
+<dd><p>Return the shortest body-frame quaternion-vector error for boresight alignment.</p>
+<p>Inputs are converted to floating-point arrays before entering the compiled
+kernel, so integer arrays and ordinary Python sequences are accepted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>eci_goal</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>body_boresight</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
 </dd>
 </dl>
 </dd></dl>
