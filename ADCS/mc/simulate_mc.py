@@ -8,6 +8,7 @@ import pickle
 import hashlib
 import inspect
 import numpy as np
+from pathlib import Path
 from typing import Optional, Any, Dict, List, Union
 from contextlib import contextmanager
 from scipy.integrate import solve_ivp
@@ -446,6 +447,7 @@ def simulate_mc(
     num_runs: int = 100,
     max_workers: Optional[int] = None,
     base_seed: int = 0,
+    viz_log: Optional[str | Path] = None,
 ) -> SimulationResults:
     r"""
     Run a Monte Carlo ensemble of ADCS simulations using parallel workers.
@@ -567,6 +569,14 @@ def simulate_mc(
         ``base_seed + run_id``.
     :type base_seed:
         int
+
+    :param viz_log:
+        If given, also write all runs as one ``adcs-vizlog`` directory at this
+        path (one vizlog run per Monte Carlo run, keyed by run id), replacing
+        any vizlog already there. Written by the parent process after all
+        runs complete; workers are unaffected.
+    :type viz_log:
+        str | pathlib.Path | None
 
     :return:
         Aggregated results for all completed runs, including a list of per-run
@@ -730,4 +740,8 @@ def simulate_mc(
     configs = [entry.get("applied", {}) for entry in cleaned]
     run_ids = [entry.get("run_id") for entry in cleaned]
 
-    return SimulationResults(runs=runs, configs=configs, run_ids=run_ids)
+    results = SimulationResults(runs=runs, configs=configs, run_ids=run_ids)
+    if viz_log is not None:
+        from ADCS.viz.from_results import results_to_vizlog
+        results_to_vizlog(results, viz_log, ephem=ephem, overwrite=True)
+    return results

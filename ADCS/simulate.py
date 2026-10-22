@@ -2,6 +2,7 @@ __all__ = ["simulate"]
 
 import numpy as np
 import time
+from pathlib import Path
 from typing import Optional
 from tqdm import tqdm
 from scipy.integrate import solve_ivp
@@ -43,6 +44,7 @@ def simulate(
     dt: float = 1.0,
     tf: float = 500.0,
     show_planned_trajectory: bool = True,
+    viz_log: Optional[str | Path] = None,
 ) -> SimulationResults:
     r"""
     Run a time-domain simulation of the spacecraft Attitude Determination and Control
@@ -124,6 +126,14 @@ def simulate(
         simulation starts. Set ``False`` for headless or batch runs.
     :type show_planned_trajectory:
         bool
+
+    :param viz_log:
+        If given, also write the results as an ``adcs-vizlog`` directory at this
+        path for the 3-D viewer (see :func:`~ADCS.viz.results_to_vizlog`). The
+        log is written after the simulation finishes, replacing any vizlog
+        already at that path; the simulation loop itself is unaffected.
+    :type viz_log:
+        str | pathlib.Path | None
 
     :return:
         Container holding all recorded simulation data, including true and estimated
@@ -433,4 +443,8 @@ def simulate(
             dynamics_time=dynamics_time_s,
         )
 
-    return SimulationResults(runs=[run_capsule])
+    results = SimulationResults(runs=[run_capsule])
+    if viz_log is not None:
+        from ADCS.viz.from_results import results_to_vizlog
+        results_to_vizlog(results, viz_log, ephem=os0.ephem, overwrite=True)
+    return results
