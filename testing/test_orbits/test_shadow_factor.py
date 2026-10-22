@@ -80,3 +80,16 @@ def test_agrees_with_binary_eclipse_outside_the_penumbra():
         assert os.is_sunlit() == (nu == 1.0), f"theta={th:.3f}, nu={nu}"
         checked += 1
     assert checked > 60
+
+
+def test_scalar_path_matches_the_vectorized_path():
+    # Single positions take a math-module fast path; it must agree everywhere,
+    # including through the penumbra.
+    theta = np.linspace(np.deg2rad(100.0), np.deg2rad(170.0), 4001)
+    r = 7000.0 * np.column_stack([np.cos(theta), np.sin(theta), 0.01 * np.ones_like(theta)])
+    vec = shadow_factor(r, np.tile(SUN, (theta.size, 1)))
+    scal = np.array([shadow_factor(rk, SUN) for rk in r])
+    np.testing.assert_allclose(scal, vec, rtol=0, atol=1e-12)
+    annular = np.array([-1.0e4, 0.0, 0.0])
+    assert shadow_factor(annular, SUN, R_occ=1.0) == pytest.approx(
+        float(shadow_factor(annular[None, :], SUN[None, :], R_occ=1.0)[0]), abs=1e-15)

@@ -1,5 +1,7 @@
 __all__ = ["shadow_factor"]
 
+import math
+
 import numpy as np
 
 from ADCS.orbits.universal_constants import EarthConstants
@@ -65,6 +67,9 @@ def shadow_factor(
     r_sat = np.asarray(r_sat, dtype=float)
     r_sun = np.asarray(r_sun, dtype=float)
     scalar = r_sat.ndim == 1
+    if scalar and r_sat.shape == (3,) and r_sun.shape == (3,):
+        # Per-step callers (live streaming) pay ~10x less without numpy overhead.
+        return _shadow_factor_scalar(r_sat.tolist(), r_sun.tolist(), R_occ, R_sun)
     r_sat = np.atleast_2d(r_sat)
     r_sun = np.atleast_2d(r_sun)
     if r_sat.shape[-1] != 3 or r_sun.shape[-1] != 3:
@@ -103,3 +108,28 @@ def shadow_factor(
 
     nu = np.clip(nu, 0.0, 1.0)
     return float(nu[0]) if scalar else nu
+
+
+def _shadow_factor_scalar(r: list, sun: list, R_occ: float, R_sun: float) -> float:
+    """Same model as :func:`shadow_factor` for one position, with the math module."""
+    s = [sun[0] - r[0], sun[1] - r[1], sun[2] - r[2]]
+    r_norm = math.sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2])
+    s_norm = math.sqrt(s[0] * s[0] + s[1] * s[1] + s[2] * s[2])
+    if r_norm <= R_occ:
+        raise ValueError("spacecraft position lies inside the occulting body")
+    a = math.asin(min(R_sun / s_norm, 1.0))
+    b = math.asin(min(R_occ / r_norm, 1.0))
+    cos_c = -(r[0] * s[0] + r[1] * s[1] + r[2] * s[2]) / (r_norm * s_norm)
+    c = math.acos(max(-1.0, min(1.0, cos_c)))
+    if c >= a + b:
+        return 1.0
+    if c <= b - a:
+        return 0.0
+    if c <= a - b:
+        return min(1.0, max(0.0, 1.0 - (b / a) ** 2))
+    x = (c * c + a * a - b * b) / (2.0 * c)
+    y = math.sqrt(max(a * a - x * x, 0.0))
+    area = (a * a * math.acos(max(-1.0, min(1.0, x / a)))
+            + b * b * math.acos(max(-1.0, min(1.0, (c - x) / b)))
+            - c * y)
+    return min(1.0, max(0.0, 1.0 - area / (math.pi * a * a)))

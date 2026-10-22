@@ -43,6 +43,18 @@ def _generator() -> Dict[str, Any]:
             "git_sha": sha, "python": platform.python_version()}
 
 
+def manifest_metadata(ephem: Ephemeris) -> Dict[str, Any]:
+    r"""Manifest entries describing the producer, ephemeris and body models."""
+    return {
+        "generator": _generator(),
+        "ephemeris": ephem.provenance(),
+        "earth": {"model": "WGS84", "a_km": 6378.137, "f": 1.0 / 298.257223563,
+                  "R_e_sim_km": EarthConstants.R_e},
+        "bodies": {"sun_radius_km": EarthConstants.R_sun, "moon_radius_km": EarthConstants.R_moon},
+        "shadow_model": "conical (Montenbruck & Gill 3.4.2), occulter radius R_e_sim_km",
+    }
+
+
 def _orbital_states(run: RunResults, ephem: Ephemeris) -> List[Orbital_State]:
     hist = run.os_hist or []
     return [os if isinstance(os, Orbital_State) else Orbital_State.from_dict(os, ephem=ephem) for os in hist]
@@ -113,6 +125,10 @@ def _run_columns(run: RunResults, ephem: Ephemeris, torques: str) -> Tuple[Dict[
 
     cols: Dict[str, np.ndarray] = {
         "_j2000": j2000,
+        # Elapsed seconds as the simulation recorded them (k * dt), which are
+        # exact; differencing J2000 centuries loses ~1e-8 s.
+        "_time_s": (np.array(run.time_s, dtype=float) if run.time_s is not None and len(run.time_s) == n
+                    else (j2000 - j2000[0]) * TimeConstants.cent2sec),
         "r_sc": R,
         "v_sc": V,
         "q_gcrs_body": q,
@@ -246,22 +262,14 @@ def results_to_vizlog(
     epoch_jd = float(j2000_to_jd_tt(epoch_j2000))
     epoch_iso = ephem.ts.tt_jd(epoch_jd).utc_iso(places=3)
 
-    metadata = {
-        "generator": _generator(),
-        "ephemeris": ephem.provenance(),
-        "earth": {"model": "WGS84", "a_km": 6378.137, "f": 1.0 / 298.257223563,
-                  "R_e_sim_km": EarthConstants.R_e},
-        "bodies": {"sun_radius_km": EarthConstants.R_sun, "moon_radius_km": EarthConstants.R_moon},
-        "shadow_model": "conical (Montenbruck & Gill 3.4.2), occulter radius R_e_sim_km",
-    }
-
     with VizLogWriter(path, channels, epoch_jd_tt=epoch_jd, epoch_iso_utc=epoch_iso,
-                      scene=build_scene(sim.runs[0].satellite), metadata=metadata,
+                      scene=build_scene(sim.runs[0].satellite), metadata=manifest_metadata(ephem),
                       overwrite=overwrite) as writer:
         run_ids = sim.run_ids or list(range(len(sim.runs)))
         for rid, (cols, _) in zip(run_ids, per_run):
             j2000 = cols.pop("_j2000")
-            cols["t_s"] = (j2000 - epoch_j2000) * TimeConstants.cent2sec
+            elapsed = cols.pop("_time_s")
+            cols["t_s"] = (j2000[0] - epoch_j2000) * TimeConstants.cent2sec + (elapsed - elapsed[0])
             dt = float(np.median(np.diff(cols["t_s"]))) if len(j2000) > 1 else None
             writer.write_run(rid, {k: v for k, v in cols.items() if k in names}, dt_s=dt)
     return Path(path)

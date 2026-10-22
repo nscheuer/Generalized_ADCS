@@ -216,6 +216,9 @@ packages = [
 # FileNotFoundError on the first field evaluation -- which is exactly how the
 # pyIGRF and igrf packages on PyPI are currently broken.
 "ADCS.environment" = ["*.shc"]
+# Pinned viewer release (URL + SHA-256 per platform); without it the viewer
+# launcher cannot find or verify a download.
+"ADCS.viz" = ["_viewer_manifest.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]

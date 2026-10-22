@@ -1,0 +1,138 @@
+__all__ = ["LiveRecorder"]
+
+from pathlib import Path
+from typing import List, Optional
+
+import numpy as np
+
+from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.shadow import shadow_factor
+from ADCS.orbits.universal_constants import TimeConstants
+from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.state import State
+from ADCS.viz.derive import derive_environment, j2000_to_jd_tt
+from ADCS.viz.from_results import manifest_metadata
+from ADCS.viz.scene import build_scene
+from ADCS.viz.schema import REQUIRED_CHANNELS, Channel, channel_spec
+from ADCS.viz.stream import VizServer
+from ADCS.viz.writer import VizLogWriter, make_manifest
+
+
+class LiveRecorder:
+    r"""
+    Stream a running simulation to a :class:`~ADCS.viz.stream.VizServer`.
+
+    Created by :func:`~ADCS.simulate` when ``viz_stream`` is given. Sun, Moon
+    and Earth orientation are derived for the whole time grid up front (one
+    vectorized pass), so each step only packs a preallocated row and hands it
+    to the server.
+
+    Live rows contain the required channels plus ``r_moon``,
+    ``sunlit_binary``, wheel momentum/speed and actuator commands. Torques,
+    goals, estimates and sensor channels are only in the full post-run log
+    (``viz_log``).
+
+    :param server: Server to publish to. In lockstep mode the recorder waits
+        up to ``wait_for_viewer`` seconds for a viewer before the first step.
+    :param satellite: True satellite model (for the scene and wheel inertia).
+    :param ephem: Ephemeris of the simulation.
+    :param start_j2000: Start time, J2000 centuries (TT).
+    :param dt: Step [s].
+    :param n_steps: Number of steps.
+    :param run_id: Run identifier in the stream.
+    :param tee_path: Also append the streamed rows to a vizlog at this path.
+    :param wait_for_viewer: Seconds to wait for a viewer in lockstep mode.
+    """
+
+    def __init__(
+        self,
+        server: VizServer,
+        satellite: Satellite,
+        ephem: Ephemeris,
+        start_j2000: float,
+        dt: float,
+        n_steps: int,
+        run_id: str = "0",
+        tee_path: Optional[str | Path] = None,
+        wait_for_viewer: Optional[float] = 30.0,
+    ) -> None:
+        self.server = server
+        self.run_id = str(run_id)
+        self.start_j2000 = float(start_j2000)
+        self.dt = float(dt)
+
+        j2000 = self.start_j2000 + np.arange(n_steps) * self.dt * TimeConstants.sec2cent
+        self._env = derive_environment(ephem, j2000_to_jd_tt(j2000))
+        self._rw_J = np.array([rw.J for rw in satellite.rw_actuators], dtype=float)
+
+        channels: List[Channel] = [channel_spec(n) for n in REQUIRED_CHANNELS]
+        channels += [channel_spec("r_moon"), channel_spec("sunlit_binary")]
+        scene = build_scene(satellite)
+        if satellite.number_RW > 0:
+            rw_ids = [a["id"] for a in scene["actuators"] if a["type"] == "rw"]
+            channels += [channel_spec("h_wheel", satellite.number_RW, labels=rw_ids),
+                         channel_spec("wheel_speed", satellite.number_RW, labels=rw_ids)]
+        if satellite.control_len > 0:
+            channels.append(channel_spec("u_cmd", satellite.control_len,
+                                         labels=[a["id"] for a in scene["actuators"]]))
+        self.channels = channels
+
+        offsets, i = {}, 0
+        for c in channels:
+            offsets[c.name] = slice(i, i + c.width)
+            i += c.width
+        self._slices = offsets
+        self._row = np.zeros(i, dtype="<f8")
+        self._last_q: Optional[np.ndarray] = None
+
+        epoch_jd = float(j2000_to_jd_tt(self.start_j2000))
+        epoch_iso = ephem.ts.tt_jd(epoch_jd).utc_iso(places=3)
+        metadata = manifest_metadata(ephem)
+        manifest = make_manifest(channels, epoch_jd, epoch_iso, metadata)
+        manifest["runs"] = [{"id": self.run_id, "n_rows": int(n_steps), "dt_s": self.dt}]
+
+        self._tee = None
+        if tee_path is not None:
+            self._tee = VizLogWriter(tee_path, channels, epoch_jd_tt=epoch_jd, epoch_iso_utc=epoch_iso,
+                                     scene=scene, metadata=metadata, overwrite=True)
+            self._tee.begin_run(self.run_id, dt_s=self.dt)
+
+        server.begin_live(manifest, scene)
+        if server.mode == "lockstep":
+            server.wait_for_client(wait_for_viewer)
+
+    def step(self, k: int, x: State, os: Orbital_State, u: Optional[np.ndarray]) -> None:
+        r"""Publish the state at step ``k`` (the start of the step, as recorded)."""
+        s, row, env = self._slices, self._row, self._env
+        q = np.asarray(x.q, dtype=float)
+        if self._last_q is not None and q @ self._last_q < 0.0:
+            q = -q
+        self._last_q = q
+
+        row[s["t_s"]] = k * self.dt
+        row[s["r_sc"]] = os.R
+        row[s["v_sc"]] = os.V
+        row[s["q_gcrs_body"]] = q
+        row[s["w_body"]] = x.w
+        row[s["r_sun"]] = env["r_sun"][k]
+        row[s["q_itrs_gcrs"]] = env["q_itrs_gcrs"][k]
+        row[s["shadow_factor"]] = shadow_factor(os.R, env["r_sun"][k])
+        row[s["r_moon"]] = env["r_moon"][k]
+        row[s["sunlit_binary"]] = float(os.is_sunlit())
+        if "h_wheel" in s:
+            row[s["h_wheel"]] = x.h
+            row[s["wheel_speed"]] = np.asarray(x.h, dtype=float) / self._rw_J
+        if "u_cmd" in s:
+            row[s["u_cmd"]] = np.nan if u is None else u
+
+        self.server.publish_row(self.run_id, row)
+        if self._tee is not None:
+            self._tee.append(self.run_id, **{c.name: row[s[c.name]] for c in self.channels})
+
+    def close(self) -> None:
+        r"""End the run and the session; complete the tee log."""
+        self.server.end_run(self.run_id)
+        self.server.end_session()
+        if self._tee is not None:
+            self._tee.close()

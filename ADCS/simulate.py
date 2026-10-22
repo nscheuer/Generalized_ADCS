@@ -3,7 +3,7 @@ __all__ = ["simulate"]
 import numpy as np
 import time
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from tqdm import tqdm
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
@@ -25,6 +25,9 @@ from ADCS.state import EstimatorState, State
 
 from ADCS.helpers.simresults import SimulationResults, RunResults
 
+if TYPE_CHECKING:
+    from ADCS.viz.stream import VizServer
+
 
 def _supports_planning(controller: Controller) -> bool:
     """Return True if controller exposes plan-and-track style methods."""
@@ -45,6 +48,7 @@ def simulate(
     tf: float = 500.0,
     show_planned_trajectory: bool = True,
     viz_log: Optional[str | Path] = None,
+    viz_stream: Optional["VizServer"] = None,
 ) -> SimulationResults:
     r"""
     Run a time-domain simulation of the spacecraft Attitude Determination and Control
@@ -134,6 +138,15 @@ def simulate(
         already at that path; the simulation loop itself is unaffected.
     :type viz_log:
         str | pathlib.Path | None
+
+    :param viz_stream:
+        If given, stream each step to a 3-D viewer connected to this
+        :class:`~ADCS.viz.stream.VizServer` while the simulation runs (see
+        :class:`~ADCS.viz.live.LiveRecorder`). In ``broadcast`` mode the
+        simulation never waits for the viewer; in ``lockstep`` mode it waits
+        for each row to be acknowledged. The caller owns the server and closes it.
+    :type viz_stream:
+        ADCS.viz.stream.VizServer | None
 
     :return:
         Container holding all recorded simulation data, including true and estimated
@@ -232,6 +245,11 @@ def simulate(
             controller.set_active_trajectory(trajectory)
 
     run_capsule = RunResults(satellite=satellite, est_satellite=est_satellite)
+
+    live = None
+    if viz_stream is not None:
+        from ADCS.viz.live import LiveRecorder
+        live = LiveRecorder(viz_stream, satellite, os0.ephem, start_time, dt, N)
 
     _skip_jac = (estimator is None)
 
@@ -402,6 +420,9 @@ def simulate(
                     else:
                         est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
 
+        if live is not None:
+            live.step(k, x_k, os_k, u)
+
         run_capsule.record(
             k=k,
             time_J2000=J2000_k,
@@ -442,6 +463,9 @@ def simulate(
             env_local_time=env_local_time_s,
             dynamics_time=dynamics_time_s,
         )
+
+    if live is not None:
+        live.close()
 
     results = SimulationResults(runs=[run_capsule])
     if viz_log is not None:

@@ -1,4 +1,4 @@
-__all__ = ["VizLogWriter"]
+__all__ = ["VizLogWriter", "make_manifest"]
 
 import json
 import os
@@ -32,6 +32,45 @@ def _jsonable(obj: Any) -> Any:
     if isinstance(obj, float) and not np.isfinite(obj):
         return None
     return obj
+
+
+def make_manifest(
+    channels: Iterable[Channel],
+    epoch_jd_tt: float,
+    epoch_iso_utc: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    r"""
+    Build the ``manifest.json`` content, without runs.
+
+    Shared by :class:`VizLogWriter` and the live stream, so a streamed session
+    describes itself exactly as a file would.
+
+    :param channels: Channels every run contains.
+    :param epoch_jd_tt: Julian date (TT) that ``t_s = 0`` refers to.
+    :param epoch_iso_utc: Same instant as ISO-8601 UTC, for humans.
+    :param metadata: Extra manifest entries.
+    :return: Manifest dictionary with an empty ``runs`` list.
+    """
+    whole = float(np.floor(epoch_jd_tt))
+    manifest: Dict[str, Any] = {
+        "format": FORMAT,
+        "schema_version": SCHEMA_VERSION,
+        "epoch": {"jd_tt_whole": whole, "jd_tt_frac": float(epoch_jd_tt) - whole,
+                  "iso_utc": epoch_iso_utc},
+        "time_scale": "TT",
+        "frames": {
+            "GCRS": "geocentric, ICRS-aligned axes (Skyfield 'ICRF' at Earth centre)",
+            "ITRS": "Earth-fixed",
+            "BODY": "spacecraft body frame",
+        },
+        "quaternion_convention": QUATERNION_CONVENTION,
+        "channels": [c.to_json() for c in channels],
+        "runs": [],
+    }
+    if metadata:
+        manifest.update(metadata)
+    return manifest
 
 
 def _write_json_atomic(path: Path, data: Any) -> None:
@@ -99,24 +138,7 @@ class VizLogWriter:
             shutil.rmtree(self.path)
         (self.path / "runs").mkdir(parents=True)
 
-        whole = float(np.floor(epoch_jd_tt))
-        self.manifest: Dict[str, Any] = {
-            "format": FORMAT,
-            "schema_version": SCHEMA_VERSION,
-            "epoch": {"jd_tt_whole": whole, "jd_tt_frac": float(epoch_jd_tt) - whole,
-                      "iso_utc": epoch_iso_utc},
-            "time_scale": "TT",
-            "frames": {
-                "GCRS": "geocentric, ICRS-aligned axes (Skyfield 'ICRF' at Earth centre)",
-                "ITRS": "Earth-fixed",
-                "BODY": "spacecraft body frame",
-            },
-            "quaternion_convention": QUATERNION_CONVENTION,
-            "channels": [c.to_json() for c in self.channels],
-            "runs": [],
-        }
-        if metadata:
-            self.manifest.update(metadata)
+        self.manifest = make_manifest(self.channels, epoch_jd_tt, epoch_iso_utc, metadata)
         self._runs: Dict[str, Dict[str, Any]] = {}
         self._buffers: Dict[str, List[Dict[str, np.ndarray]]] = {}
         self._flush_every = int(flush_every)
@@ -164,7 +186,8 @@ class VizLogWriter:
         values = {}
         for c in self.channels:
             v = row.get(c.name)
-            arr = np.full(c.width, np.nan) if v is None else np.asarray(v, dtype="<f8").reshape(-1)
+            # Copy: callers may reuse one row buffer between appends.
+            arr = np.full(c.width, np.nan) if v is None else np.array(v, dtype="<f8").reshape(-1)
             if arr.size != c.width:
                 raise ValueError(f"channel {c.name!r} expects {c.width} values, got {arr.size}")
             values[c.name] = arr
