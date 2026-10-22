@@ -220,10 +220,12 @@ packages = [
 # our annotations instead of discarding them. Only safe now that the public
 # signatures are correct -- see the 0.1.9 release note.
 [tool.setuptools.package-data]
-"*" = ["textures/*.jpg"]
 "ADCS.helpers.animations" = ["assets/*.ttf", "assets/*.txt"]
 "ADCS" = ["py.typed"]
 "ADCS.environment.kernels" = ["IGRF14.shc", "de442s.bsp", "bsc5_catalog.gz"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["textures/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]

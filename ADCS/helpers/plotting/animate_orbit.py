@@ -7,6 +7,7 @@ from matplotlib.widgets import Button, RadioButtons
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  # needed for 3D projection
 from pathlib import Path
 from typing import List, Optional, Union, Sequence
+from ADCS.helpers.animations._texture_assets import ensure_textures
 
 # Anchor the texture to this file, not to the process working directory. The
 # previous CWD-relative literal meant animate_orbit() raised FileNotFoundError
@@ -280,7 +281,7 @@ def animate_orbit(
     # way the PyVista animators do -- a missing decorative texture should not
     # take down the whole animation.
     tex_path = Path(texture_path).expanduser() if texture_path is not None \
-        else DEFAULT_TEXTURE_PATH
+        else ensure_textures(('2k_earth_daymap.jpg',))['2k_earth_daymap.jpg']
     try:
         earth_img = plt.imread(tex_path)
     except (FileNotFoundError, OSError, ValueError) as exc:

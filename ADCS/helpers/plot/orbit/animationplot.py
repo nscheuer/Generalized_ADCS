@@ -10,6 +10,7 @@ from ADCS.helpers.math_helpers import rotation_between_vectors as _get_rotation_
 
 from ..subplot import Subplot
 from ADCS.state import State
+from ADCS.helpers.animations._texture_assets import ensure_textures
 
 # Keep PyVista happy in headless / CI
 os.environ.setdefault("MESA_LOADER_DRIVER_OVERRIDE", "llvmpipe")
@@ -502,7 +503,7 @@ class AnimationPlot(Subplot):
 
         earth_mesh = pv.Sphere(radius=R_e, theta_resolution=120, phi_resolution=120)
 
-        default_texture = Path(__file__).resolve().parent / "textures" / "2k_earth_daymap.jpg"
+        default_texture = ensure_textures(('2k_earth_daymap.jpg',))['2k_earth_daymap.jpg'] if self.texture_path is None else None
         texture_path = (
             Path(self.texture_path).expanduser().resolve()
             if self.texture_path is not None

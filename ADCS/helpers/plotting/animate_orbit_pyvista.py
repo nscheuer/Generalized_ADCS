@@ -17,6 +17,7 @@ from scipy.spatial.transform import Rotation as R_scipy
 from scipy.spatial.transform import Slerp
 from scipy.interpolate import interp1d
 from typing import List, Optional, Sequence
+from ADCS.helpers.animations._texture_assets import ensure_textures
 
 from ADCS.CONOPS.goals import Coordinate_Goal
 from ADCS.orbits.orbital_state import Orbital_State
@@ -203,7 +204,7 @@ def animate_orbit_pyvista(
     earth_mesh = pv.Sphere(radius=R_e, theta_resolution=120, phi_resolution=120)
 
     if texture_path is None:
-        texture_path = DEFAULT_TEXTURE_PATH
+        texture_path = ensure_textures(('2k_earth_daymap.jpg',))['2k_earth_daymap.jpg']
     else:
         texture_path = Path(texture_path).expanduser().resolve()
 

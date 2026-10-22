@@ -9,7 +9,9 @@ from scipy.spatial.transform import Rotation, Slerp
 class PlaybackClock:
     """A UTC clock that keeps advancing beyond recorded simulation intervals."""
 
-    SPEEDS = (0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0)
+    SPEEDS = (0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0,
+              256.0, 1024.0, 4096.0, 16384.0, 65536.0, 262144.0,
+              1.0e6, 1.0e7, 1.0e8)
 
     def __init__(self, time_hist=None, start_utc: datetime | None = None) -> None:
         self.time = np.asarray([] if time_hist is None else time_hist, dtype=float).reshape(-1)
