@@ -12,7 +12,8 @@ def _convert(args: argparse.Namespace) -> int:
 
     ephem = Ephemeris(name=args.ephem)
     sim = SimulationResults.load(args.input, ephem=ephem)
-    out = results_to_vizlog(sim, args.output, ephem=ephem, torques=args.torques, overwrite=args.overwrite)
+    out = results_to_vizlog(sim, args.output, ephem=ephem, torques=args.torques, overwrite=args.overwrite,
+                            model=args.model)
     print(f"wrote {out}")
     return 0
 
@@ -95,6 +96,7 @@ def main(argv=None) -> int:
     p.add_argument("--ephem", default="de421", choices=["de421", "de440s", "de442s"],
                    help="ephemeris for recomputed quantities (default: de421, as the simulation)")
     p.add_argument("--torques", default="nominal", choices=["nominal", "none"])
+    p.add_argument("--model", type=Path, help="spacecraft model sidecar (.viz.json) from ADCS.viz.mesh_import")
     p.add_argument("--overwrite", action="store_true")
     p.set_defaults(func=_convert)
 

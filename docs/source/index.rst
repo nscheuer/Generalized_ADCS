@@ -131,6 +131,7 @@ objects intentionally do not support NumPy indexing or implicit conversion.
    viz/vizlog_v1
    viz/protocol_v1
    viz/assets
+   viz/spacecraft_models
 
 .. toctree::
    :maxdepth: 1

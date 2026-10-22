@@ -1,6 +1,9 @@
 __all__ = ["build_scene", "sensor_layout"]
 
-from typing import Any, Dict, List
+import hashlib
+import json
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -41,7 +44,7 @@ def sensor_layout(satellite: Satellite) -> List[Dict[str, Any]]:
     return layout
 
 
-def build_scene(satellite: Satellite) -> Dict[str, Any]:
+def build_scene(satellite: Satellite, model: Optional[str | Path] = None) -> Dict[str, Any]:
     r"""
     Static description of a spacecraft for ``scene.json``.
 
@@ -50,6 +53,9 @@ def build_scene(satellite: Satellite) -> Dict[str, Any]:
     frame, lengths in metres.
 
     :param satellite: The (true) satellite model.
+    :param model: Optional ``.viz.json`` sidecar from
+        :func:`~ADCS.viz.mesh_import.import_spacecraft`. The scene then points
+        to the imported model and links actuators and sensors to its nodes.
     :return: JSON-serializable dictionary (numpy arrays allowed; the writer
         converts them).
     """
@@ -101,6 +107,23 @@ def build_scene(satellite: Satellite) -> Dict[str, Any]:
             seen[key] = panel
             panels.append(panel)
 
+    mesh = None
+    if model is not None:
+        side_path = Path(model).resolve()
+        side = json.loads(side_path.read_text(encoding="utf-8"))
+        if side.get("format") != "adcs-spacecraft-model":
+            raise ValueError(f"{side_path} is not a spacecraft model sidecar")
+        mesh = {
+            "sidecar": str(side_path),
+            "sha256": hashlib.sha256(side_path.read_bytes()).hexdigest(),
+            "coords": side["coords"], "units": side["units"],
+            "lods": [{**lod, "path": str(side_path.parent / lod["file"])} for lod in side["lods"]],
+        }
+        for node, entry in side["nodes"].items():
+            for item in actuators if "actuator" in entry else sensors if "sensor" in entry else []:
+                if item["id"] == entry.get("actuator", entry.get("sensor")):
+                    item["node"] = node
+
     return {
         "spacecraft": {
             "mass_kg": float(satellite.mass),
@@ -108,7 +131,7 @@ def build_scene(satellite: Satellite) -> Dict[str, Any]:
             "inertia_ref_kgm2": np.asarray(satellite.J_0, dtype=float),
             "inertia_com_kgm2": np.asarray(satellite.J_COM, dtype=float),
         },
-        "mesh": None,
+        "mesh": mesh,
         "panels": panels,
         "actuators": actuators,
         "sensors": sensors,

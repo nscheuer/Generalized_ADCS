@@ -215,6 +215,7 @@ def results_to_vizlog(
     ephem: Optional[Ephemeris] = None,
     torques: str = "nominal",
     overwrite: bool = False,
+    model: Optional[str | Path] = None,
 ) -> Path:
     r"""
     Write simulation results as an ``adcs-vizlog`` directory.
@@ -239,6 +240,9 @@ def results_to_vizlog(
         recorded orbital states use, else a new :class:`Ephemeris`.
     :param torques: ``"nominal"`` or ``"none"``.
     :param overwrite: Replace an existing vizlog at ``path``.
+    :param model: Spacecraft model sidecar (``.viz.json``) from
+        :func:`~ADCS.viz.mesh_import.import_spacecraft`, referenced from
+        ``scene.json``. Without it the viewer draws the drag/SRP panels.
     :return: The vizlog path.
     """
     if ephem is None:
@@ -263,7 +267,7 @@ def results_to_vizlog(
     epoch_iso = ephem.ts.tt_jd(epoch_jd).utc_iso(places=3)
 
     with VizLogWriter(path, channels, epoch_jd_tt=epoch_jd, epoch_iso_utc=epoch_iso,
-                      scene=build_scene(sim.runs[0].satellite), metadata=manifest_metadata(ephem),
+                      scene=build_scene(sim.runs[0].satellite, model=model), metadata=manifest_metadata(ephem),
                       overwrite=overwrite) as writer:
         run_ids = sim.run_ids or list(range(len(sim.runs)))
         for rid, (cols, _) in zip(run_ids, per_run):

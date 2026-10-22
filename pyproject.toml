@@ -87,6 +87,11 @@ viz = [
 viz-assets = [
     "Pillow>=10",
 ]
+# Spacecraft model import for the viewer (python -m ADCS.viz.mesh_import).
+viz-mesh = [
+    "trimesh>=4.0",
+    "fast-simplification>=0.1.7",
+]
 
 # Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
 #
@@ -197,6 +202,7 @@ packages = [
     "ADCS.satellite_hardware.sensors",
     "ADCS.viz",
     "ADCS.viz.assets",
+    "ADCS.viz.mesh_import",
     "ADCS.pipeline",
     "ADCS.pipeline.allocation",
     "ADCS.pipeline.compensation",
