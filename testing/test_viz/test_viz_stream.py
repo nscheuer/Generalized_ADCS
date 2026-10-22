@@ -274,3 +274,27 @@ def test_install_viewer_rejects_path_traversal(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="escapes"):
         binary_manager.install_viewer("test-x86_64", manifest)
     assert not (tmp_path / "escape").exists()
+
+
+def test_playback_sends_the_spacecraft_model_as_assets(tmp_path):
+    trimesh = pytest.importorskip("trimesh")
+    pytest.importorskip("fast_simplification")
+    from ADCS.viz.mesh_import import import_spacecraft
+    from ADCS.viz.scene import build_scene
+
+    trimesh.creation.box(extents=(0.1, 0.1, 0.2)).export(tmp_path / "sat.glb")
+    res = import_spacecraft({"name": "sat", "mesh": str(tmp_path / "sat.glb"), "lods": [1.0, 0.5]}, tmp_path / "model")
+    sat = ADCS.Satellite(mass=1.0, J_0=np.eye(3) * 0.01)
+    rng = np.random.default_rng(1)
+    with VizLogWriter(tmp_path / "m.vizlog", [channel_spec(c) for c in REQUIRED_CHANNELS], epoch_jd_tt=2459580.5,
+                      scene=build_scene(sat, model=res.sidecar)) as w:
+        w.write_run(0, {c: rng.standard_normal((4, s.width)) for c, s in REQUIRED_CHANNELS.items()})
+    with VizServer() as server:
+        server.serve_log(VizLog.open(tmp_path / "m.vizlog"))
+        with VizClient(*server.address, server.token) as client:
+            client.connect()
+            client.read_all(timeout=10)
+    assert sorted(client.assets) == ["sat_lod0.glb", "sat_lod1.glb"]
+    for name, (meta, data) in client.assets.items():
+        assert data == (tmp_path / "model" / name).read_bytes()
+        assert meta["kind"] == "model_lod" and meta["sha256"] == hashlib.sha256(data).hexdigest()

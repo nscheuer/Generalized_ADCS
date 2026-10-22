@@ -229,6 +229,9 @@ def test_levels_of_detail_keep_nodes_and_body_coordinates(tmp_path):
     tri = [lod["triangles"] for lod in side["lods"]]
     assert tri[0] == 20480 and 0.2 * tri[0] < tri[1] < 0.3 * tri[0]
     for path in res.lods:
+        data = path.read_bytes()
+        doc = json.loads(data[20:20 + struct.unpack_from("<I", data, 12)[0]])
+        assert "NORMAL" in doc["meshes"][0]["primitives"][0]["attributes"]  # viewers need them for lighting
         back = trimesh.load_scene(path)
         assert list(back.graph.nodes_geometry) == ["dish"]
         T, g = back.graph["dish"]
@@ -281,3 +284,15 @@ def test_reduced_levels_of_textured_models_use_the_average_colour(tmp_path):
     assert full.visual.uv is not None  # full detail keeps the texture
     color = reduced.visual.main_color if hasattr(reduced.visual, "main_color") else reduced.visual.material.main_color
     np.testing.assert_allclose(np.asarray(color)[:3], [100, 0, 100], atol=2)
+
+
+def test_flat_faces_get_hard_normals(tmp_path):
+    sc = trimesh.Scene()
+    sc.add_geometry(trimesh.creation.box(extents=(0.1, 0.1, 0.2)), node_name="bus", geom_name="bus")
+    sc.export(tmp_path / "box.glb")
+    res = import_spacecraft({"name": "box", "mesh": str(tmp_path / "box.glb"), "lods": [1.0]}, tmp_path / "out")
+    m = list(trimesh.load_scene(res.lods[0]).geometry.values())[0]
+    assert len(m.vertices) == 24  # 8 corners split per face
+    face_n = m.face_normals[np.repeat(np.arange(len(m.faces)), 3)]
+    vert_n = m.vertex_normals[m.faces.reshape(-1)]
+    assert np.allclose((face_n * vert_n).sum(1), 1.0, atol=1e-5)

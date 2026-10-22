@@ -384,11 +384,13 @@ def import_spacecraft(
             lod_scene = trimesh.Scene()
             tris = 0
             for n, m in meshes.items():
-                mm = _simplify(m, ratio)
+                mm = _shade(_simplify(m, ratio))
                 tris += len(mm.faces)
                 lod_scene.add_geometry(mm, node_name=n, geom_name=n)
             path = out / f"{name}_lod{i}.glb"
-            lod_scene.export(path)
+            # Always write normals: glTF viewers (Godot included) do not
+            # generate them, and a model without them only receives ambient light.
+            path.write_bytes(trimesh.exchange.gltf.export_glb(lod_scene, include_normals=True))
             result.lods.append(path)
             lod_entries.append({"file": path.name, "ratio": ratio, "triangles": tris, "sha256": _sha256(path)})
 
@@ -411,6 +413,20 @@ def import_spacecraft(
     except _Abort as e:
         result.errors.append(str(e))
     return result
+
+
+#: Edges sharper than this get split vertices (flat faces); smoother ones share
+#: vertices (smooth shading), as CAD renderers do.
+SHARP_EDGE_DEG = 30.0
+
+
+def _shade(mesh: Any) -> Any:
+    """Vertex normals that suit CAD geometry: hard at sharp edges, smooth elsewhere."""
+    import trimesh
+
+    if getattr(mesh.visual, "kind", None) == "texture":
+        return mesh  # UV seams already define where vertices must be split
+    return trimesh.graph.smooth_shade(mesh, angle=np.radians(SHARP_EDGE_DEG))
 
 
 def _simplify(mesh: Any, ratio: float) -> Any:

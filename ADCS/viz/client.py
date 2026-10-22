@@ -9,6 +9,7 @@ from ADCS.viz.protocol import (
     PROTOCOL_VERSION,
     MsgType,
     ProtocolError,
+    decode_asset,
     decode_block,
     decode_json,
     decode_row,
@@ -38,6 +39,8 @@ class VizClient:
         self.hello: Dict[str, Any] = {}
         self.names: List[str] = []
         self.widths: List[int] = []
+        #: Files received as ASSET messages: ``{name: (meta, bytes)}``.
+        self.assets: Dict[str, Tuple[Dict[str, Any], bytes]] = {}
         self._ack_seq = 0
 
     @property
@@ -104,6 +107,9 @@ class VizClient:
                 if rid is None:
                     return
                 yield kind, rid
+            elif kind == MsgType.ASSET:
+                name, meta, data = decode_asset(payload)
+                self.assets[name] = (meta, data)
             elif kind == MsgType.ERROR:
                 raise ConnectionError(decode_json(payload).get("message", "server error"))
             else:

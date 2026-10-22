@@ -42,7 +42,8 @@ def _view(args: argparse.Namespace) -> int:
     from ADCS.viz.launcher import view
 
     try:
-        return view(args.path, binary=args.viewer, host=args.host, port=args.port, launch=not args.no_launch)
+        return view(args.path, binary=args.viewer, host=args.host, port=args.port, launch=not args.no_launch,
+                    project=args.viewer_project, assets=args.assets)
     except ViewerNotFoundError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
@@ -111,6 +112,9 @@ def main(argv=None) -> int:
     p.add_argument("--port", type=int, default=0)
     p.add_argument("--no-launch", action="store_true",
                    help="only serve; print the arguments for a viewer started by hand")
+    p.add_argument("--viewer-project", type=Path,
+                   help="Godot project when --viewer is a plain Godot binary (default: the repo's viewer/)")
+    p.add_argument("--assets", type=Path, help="asset cache (default: python -m ADCS.viz.assets path)")
     p.set_defaults(func=_view)
 
     p = sub.add_parser("listen", help="reference client: connect to a server and print what it sends")

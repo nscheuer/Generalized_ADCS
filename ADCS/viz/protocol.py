@@ -30,6 +30,8 @@ __all__ = [
     "decode_row",
     "encode_block",
     "decode_block",
+    "encode_asset",
+    "decode_asset",
     "MAX_PAYLOAD",
 ]
 
@@ -60,6 +62,7 @@ class MsgType(IntEnum):
     ACK = 5      #: client -> server, acknowledges header seq (lockstep mode)
     CONNECT = 6  #: client -> server, JSON {token, client, protocol}
     ERROR = 7    #: either direction, JSON {"message"}; the sender then closes
+    ASSET = 8    #: server -> client, a file the scene refers to (e.g. spacecraft model), see encode_asset
 
 
 class ProtocolError(RuntimeError):
@@ -167,3 +170,23 @@ def decode_block(payload: bytes, widths: Sequence[int]) -> Tuple[str, int, List[
     if off != len(payload):
         raise ProtocolError(f"block has {len(payload) - off} trailing bytes")
     return run_id, row_start, cols
+
+
+def encode_asset(name: str, meta: dict, data: bytes) -> bytes:
+    r"""
+    ASSET payload: ``u16 n, name[n] (UTF-8), u32 m, meta[m] (JSON), data``.
+
+    Sent after HELLO for each file the scene refers to (the spacecraft model's
+    levels of detail), so a viewer never needs the Python side's file paths.
+    ``meta`` carries at least ``{"kind", "sha256"}``.
+    """
+    raw = name.encode("utf-8")
+    js = encode_json(meta)
+    return struct.pack("<H", len(raw)) + raw + struct.pack("<I", len(js)) + js + data
+
+
+def decode_asset(payload: bytes) -> Tuple[str, dict, bytes]:
+    name, off = _decode_run_id(payload)
+    (m,) = struct.unpack_from("<I", payload, off)
+    meta = decode_json(payload[off + 4:off + 4 + m])
+    return name, meta, payload[off + 4 + m:]

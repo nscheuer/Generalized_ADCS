@@ -1,0 +1,61 @@
+# .github/workflows/viewer.yml
+
+name: Viewer Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "viewer/**"
+      - "ADCS/viz/**"
+      - "testing/test_viz/**"
+      - ".github/workflows/viewer.yml"
+  # No base-branch filter, for the same reason as ci.yml (stacked PRs).
+  pull_request:
+    paths:
+      - "viewer/**"
+      - "ADCS/viz/**"
+      - "testing/test_viz/**"
+      - ".github/workflows/viewer.yml"
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  viewer_unit_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 📦 Install Dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+          pip uninstall -y cmake
+
+      # Official build, checked against the release's SHA512-SUMS before use.
+      - name: 🎮 Install Godot ${{ env.GODOT_VERSION }}
+        run: |
+          base=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
+          zip=Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
+          curl -sSL -o "$zip" "$base/$zip"
+          curl -sSL -o SHA512-SUMS.txt "$base/SHA512-SUMS.txt"
+          grep " $zip\$" SHA512-SUMS.txt | sha512sum -c -
+          unzip -q "$zip" -d "$HOME/godot"
+          echo "ADCS_GODOT_BIN=$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+
+      # Headless: logic tests only (no GPU on hosted runners). Rendering checks
+      # run on a machine with a GPU: tools/viz_validation/run_viewer_checks.py.
+      - name: 🧪 Run viewer unit tests
+        run: |
+          source .venv/bin/activate
+          pytest testing/test_viz/test_viewer_godot.py -v

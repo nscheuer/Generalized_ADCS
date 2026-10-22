@@ -69,11 +69,13 @@ class VizLog:
         run_dir = self._run_dir(run_id)
         with open(run_dir / "rows.json", encoding="utf-8") as f:
             rows = json.load(f)
-        on_disk = min(
+        if rows.get("complete"):
+            return int(rows["n_rows"])
+        # Only an incomplete run needs the (slow on network/WSL drives) file scan.
+        return int(min(
             (run_dir / f"{c.name}.f64").stat().st_size // (8 * c.width)
             for c in self.channels.values()
-        )
-        return int(rows["n_rows"]) if rows.get("complete") else int(on_disk)
+        ))
 
     def read(self, run_id: int | str, name: str) -> np.ndarray:
         r"""

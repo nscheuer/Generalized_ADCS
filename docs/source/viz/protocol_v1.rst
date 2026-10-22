@@ -12,7 +12,7 @@ Usage
 
 .. code-block:: bash
 
-   python -m ADCS.viz view run.vizlog                 # serve a log and launch the viewer
+   python -m ADCS.viz view run.vizlog                 # serve a log and launch the viewer (see viewer page)
    python -m ADCS.viz view run.vizlog --no-launch     # serve only; print args for a viewer started by hand
    python -m ADCS.viz listen 127.0.0.1:PORT --token T # reference client: print what a server sends
 
@@ -113,16 +113,24 @@ Messages
      - ERROR
      - either
      - JSON ``{"message"}``; the sender then closes the connection.
+   * - 8
+     - ASSET
+     - server → viewer
+     - ``u16 n, name[n] (UTF-8), u32 m, meta[m] (JSON), data``: a file the
+       scene refers to, sent right after ``HELLO``. Used for the spacecraft
+       model's levels of detail (``meta = {"kind": "model_lod", "lod", "sha256",
+       "triangles"}``), so a viewer never needs the Python side's file paths
+       (e.g. a Windows viewer and a simulation inside WSL).
 
 Sessions
 --------
 
-**Playback.** ``HELLO``, then for each run its ``BLOCK`` messages (rows in
+**Playback.** ``HELLO``, ``ASSET`` messages (if the scene has a model), then for each run its ``BLOCK`` messages (rows in
 order) and ``END {"run_id"}``, then ``END {}``. The connection stays open until
 the viewer closes it; every viewer that connects receives the whole log, so a
 viewer can hold all rows in memory and scrub freely.
 
-**Live, broadcast** (default). ``HELLO``, then ``ROW`` messages as the
+**Live, broadcast** (default). ``HELLO``, ``ASSET`` messages, then ``ROW`` messages as the
 simulation produces them, ``END {"run_id"}`` and ``END {}``. The simulation
 never waits for the viewer: rows wait in a bounded queue (default 4096) and the
 oldest are dropped if the viewer is slow or absent. Rows produced before the

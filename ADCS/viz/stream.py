@@ -5,7 +5,8 @@ import socket
 import threading
 import warnings
 from collections import deque
-from typing import Any, Deque, Dict, Optional, Tuple
+from pathlib import Path
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -15,6 +16,7 @@ from ADCS.viz.protocol import (
     MsgType,
     ProtocolError,
     decode_json,
+    encode_asset,
     encode_block,
     encode_json,
     encode_row,
@@ -85,6 +87,7 @@ class VizServer:
         self._lock = threading.Lock()
         self._cond = threading.Condition(self._lock)
         self._hello: Optional[Dict[str, Any]] = None
+        self._assets: List[bytes] = []
         self._log: Optional[VizLog] = None
         self._client: Optional[socket.socket] = None
         self._queue: Deque[bytes] = deque(maxlen=int(queue_size))
@@ -122,6 +125,7 @@ class VizServer:
             self._log = log
             self._hello = {"protocol": PROTOCOL_VERSION, "mode": "playback",
                            "manifest": manifest, "scene": log.scene}
+            self._assets = _scene_assets(log.scene)
 
     def begin_live(self, manifest: Dict[str, Any], scene: Dict[str, Any]) -> None:
         r"""
@@ -135,6 +139,7 @@ class VizServer:
                 raise RuntimeError("server already has a session")
             self._hello = {"protocol": PROTOCOL_VERSION, "mode": f"live-{self.mode}",
                            "manifest": manifest, "scene": scene}
+            self._assets = _scene_assets(scene)
             self._cond.notify_all()
         if self.mode == "broadcast":
             self._sender_thread = threading.Thread(target=self._sender_loop, name="VizServer-send", daemon=True)
@@ -282,6 +287,8 @@ class VizServer:
                 if self._client is not None or self._live_failed:
                     return self._reject(conn, "a viewer is already connected to this live session")
                 conn.sendall(pack_frame(MsgType.HELLO, encode_json(hello), self._next_seq()))
+                for asset in self._assets:
+                    conn.sendall(pack_frame(MsgType.ASSET, asset, self._next_seq()))
                 self._client = conn
                 self._cond.notify_all()
         except (OSError, ConnectionError, ProtocolError, ValueError):
@@ -298,6 +305,8 @@ class VizServer:
 
         try:
             send(MsgType.HELLO, encode_json(hello))
+            for asset in self._assets:
+                send(MsgType.ASSET, asset)
             names = list(log.channels)
             row_bytes = 8 * sum(c.width for c in log.channels.values())
             rows_per_block = max(1, (MAX_PAYLOAD // 4) // max(row_bytes, 1))
@@ -334,3 +343,21 @@ def _close_quietly(sock: socket.socket) -> None:
         sock.close()
     except OSError:
         pass
+
+
+def _scene_assets(scene: Dict[str, Any]) -> List[bytes]:
+    """ASSET payloads for the files a scene refers to (spacecraft model levels of detail)."""
+    out = []
+    mesh = (scene or {}).get("mesh") or {}
+    for i, lod in enumerate(mesh.get("lods", [])):
+        path = Path(lod.get("path", ""))
+        if not path.is_file():
+            warnings.warn(f"VizServer: scene refers to missing model file {path}", stacklevel=3)
+            continue
+        data = path.read_bytes()
+        if len(data) > MAX_PAYLOAD - 4096:
+            warnings.warn(f"VizServer: {path.name} is too large to stream ({len(data)} bytes)", stacklevel=3)
+            continue
+        meta = {"kind": "model_lod", "lod": i, "sha256": lod.get("sha256"), "triangles": lod.get("triangles")}
+        out.append(encode_asset(path.name, meta, data))
+    return out
