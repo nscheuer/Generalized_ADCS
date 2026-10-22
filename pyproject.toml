@@ -82,6 +82,11 @@ ppigrf = [
 viz = [
     "pyvista>=0.44",
 ]
+# Visualization asset pipeline (python -m ADCS.viz.assets). Pillow usually
+# arrives with matplotlib already; listed so the pipeline never depends on that.
+viz-assets = [
+    "Pillow>=10",
+]
 
 # Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
 #
@@ -191,6 +196,7 @@ packages = [
     "ADCS.satellite_hardware.satellite",
     "ADCS.satellite_hardware.sensors",
     "ADCS.viz",
+    "ADCS.viz.assets",
     "ADCS.pipeline",
     "ADCS.pipeline.allocation",
     "ADCS.pipeline.compensation",
@@ -219,6 +225,8 @@ packages = [
 # Pinned viewer release (URL + SHA-256 per platform); without it the viewer
 # launcher cannot find or verify a download.
 "ADCS.viz" = ["_viewer_manifest.json"]
+# Pinned raw inputs (URL, size, SHA-256) of the visualization asset pipeline.
+"ADCS.viz.assets" = ["sources.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]

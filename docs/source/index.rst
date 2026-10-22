@@ -130,6 +130,7 @@ objects intentionally do not support NumPy indexing or implicit conversion.
    satellite_factory/index
    viz/vizlog_v1
    viz/protocol_v1
+   viz/assets
 
 .. toctree::
    :maxdepth: 1
