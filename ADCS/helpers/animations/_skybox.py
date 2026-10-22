@@ -53,7 +53,7 @@ class Starfield:
     def update(self, source_camera, camera_distance: float) -> None:
         """Follow camera translation without inheriting camera rotation."""
         self.root.setPos(source_camera.getPos(self.base.render))
-        radius = max(1.0, float(camera_distance) * 80.0)
+        radius = max(10.0, float(camera_distance) * 80.0)
         if radius != self._radius:
             self.root.setScale(radius)
             self._radius = radius

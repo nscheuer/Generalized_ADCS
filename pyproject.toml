@@ -87,6 +87,7 @@ viz = [
 ]
 panda3d = [
     "panda3d>=1.10.16,<1.11",
+    "DracoPy>=2.0",
 ]
 
 # Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).

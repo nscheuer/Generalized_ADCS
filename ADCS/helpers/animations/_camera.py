@@ -60,6 +60,8 @@ class OrbitCamera:
                     window.getXSize() /
                     (window.getYSize() * (1.0 - reserved_bottom))
                 )
+        if hasattr(self, 'near_lens'):
+            self.near_lens.setAspectRatio(self.base.camLens.getAspectRatio())
 
     def begin_drag(self, mouse) -> None:
         self.dragging = True
@@ -109,6 +111,12 @@ class OrbitCamera:
         self.base.camera.lookAt(focus_position)
         # Keep depth precision stable over the range from a planetary close-up
         # to a view wider than Neptune's orbit.
+        # The planetary pass needs a kilometre-scale near plane.  Trying to
+        # include a centimetre-scale spacecraft in the same projection makes
+        # the near and far planes indistinguishable in float32 on the GPU.
         self.base.camLens.setNearFar(max(1.0, self.distance * 0.001),
-                                     self.distance * 100.0)
+                                     max(1.0e7, self.distance * 100.0))
+        if hasattr(self, 'near_lens'):
+            self.near_lens.setNearFar(max(1e-8, self.distance * 0.001),
+                                      max(1.0, self.distance * 100.0))
         self._last_focus_position = focus_position
