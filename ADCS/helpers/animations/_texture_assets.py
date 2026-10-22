@@ -50,7 +50,7 @@ def texture_path(name: str) -> Path:
     return _cache_dir() / name
 
 
-def ensure_textures(names) -> dict[str, Path]:
+def ensure_textures(names, on_progress=None) -> dict[str, Path]:
     """Prompt once with the total size, then download the missing textures."""
     names = tuple(dict.fromkeys(names))
     missing = [name for name in names if not texture_path(name).is_file()]
@@ -64,6 +64,8 @@ def ensure_textures(names) -> dict[str, Path]:
             sizes[name] = int(length)
     if missing:
         total = sum(sizes.values())
+        if on_progress is not None:
+            on_progress(0, total, 'Preparing graphics')
         print(f"Graphics textures: {len(missing)} files, {total / 1048576:.1f} MiB total")
         sys.stdout.flush()
         if not sys.stdin.isatty():
@@ -86,6 +88,8 @@ def ensure_textures(names) -> dict[str, Path]:
                             target.write(block)
                             downloaded += len(block)
                             progress.update(len(block))
+                            if on_progress is not None:
+                                on_progress(progress.n, total, name)
                     if downloaded != sizes[name]:
                         raise IOError(f"Incomplete texture download: {name} ({downloaded} of {sizes[name]} bytes)")
                     temporary.replace(cache / name)
@@ -96,6 +100,8 @@ def ensure_textures(names) -> dict[str, Path]:
                             clean.save(cache / name.replace('.tif', '.png'))
                 finally:
                     temporary.unlink(missing_ok=True)
+        if on_progress is not None:
+            on_progress(total, total, 'Finishing graphics')
     return {name: texture_path(name) for name in names}
 
 

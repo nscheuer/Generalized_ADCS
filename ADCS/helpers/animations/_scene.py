@@ -5,6 +5,7 @@ from typing import Protocol
 
 from ._geometry import uv_sphere
 from ._earth_material import EarthMaterial
+from ._atmosphere import EarthAtmosphere
 from ._texture_assets import texture_path as asset_texture_path, tier_name
 
 DEFAULT_TEXTURE = Path(__file__).resolve().parents[1] / "plotting/textures/2k_earth_daymap.jpg"
@@ -44,6 +45,7 @@ class EarthBody:
         self.node.setTwoSided(True)
         self.node.setDepthTest(True)
         self.node.setDepthWrite(True)
+        self.atmosphere = EarthAtmosphere(self.root, radius)
 
         self._custom_texture = Path(texture_path).expanduser() if texture_path is not None else None
         path = self._custom_texture or asset_texture_path(tier_name(tier, '2k_earth_daymap.jpg'))
@@ -81,6 +83,7 @@ class EarthBody:
         self.sunlight.lookAt(self.root, Point3(*(-v for v in self._sun_direction_root)))
         direction = self.node.getQuat(self.root).conjugate().xform(Point3(*self._sun_direction_root))
         self._material.set_sun_direction(direction)
+        self.atmosphere.set_sun_direction(self._sun_direction_root)
         if self.lod == 'simple_2k':
             self.node.setShaderInput('sun_direction', *direction)
 
@@ -93,6 +96,9 @@ class EarthBody:
         from panda3d.core import Point3
         camera_position = self.node.getRelativePoint(self._base.camera, Point3(0, 0, 0))
         self._material.set_camera_position(camera_position)
+        self.atmosphere.set_camera_position(
+            self.root.getRelativePoint(self._base.camera, Point3(0, 0, 0))
+        )
 
     def set_cloud_time(self, utc: float) -> None:
         # A five-day drift cycle gives the cloud deck visible motion while
@@ -124,6 +130,10 @@ class EarthBody:
 
     def set_lod_detail(self, diameter_pixels: float) -> None:
         """Fade in Earth detail as its visible disc grows on screen."""
+        self.atmosphere.set_intensity(
+            self._fade(diameter_pixels, 24.0, 80.0)
+            if self.graphics_quality == 'high' else 0.0
+        )
         texture_blend = self._fade(diameter_pixels, 6.0, 32.0)
         if self.lod == 'simple_2k':
             self.node.setShaderInput('texture_blend', texture_blend)
@@ -159,6 +169,8 @@ class EarthBody:
         self.lod = 'color'
         self.node.setColor(0.33, 0.55, 0.83, 1)
         self.graphics_quality = tier
+        if tier != 'high':
+            self.atmosphere.set_intensity(0.0)
         self._low_graphics = tier == 'low'
         self.texture_path = self._custom_texture or asset_texture_path(tier_name(tier, '2k_earth_daymap.jpg'))
         self._material.set_quality(tier)
@@ -193,6 +205,7 @@ class EarthBody:
     def close(self) -> None:
         self._release_texture_quality()
         self._material.close()
+        self.atmosphere.close()
 
 
 class EarthLayer:

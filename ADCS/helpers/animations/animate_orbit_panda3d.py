@@ -17,6 +17,7 @@ from ADCS.state import State
 from ._camera import OrbitCamera
 from ._context_menu import BodyContextMenu
 from ._history import PlaybackClock
+from ._loading_overlay import LoadingOverlay
 from ._runtime import configure_runtime
 from ._scene import EarthBody, SceneGraph
 from ._timeline import TimelinePanel
@@ -54,6 +55,7 @@ frame conversion is completed before the render loop starts.
         timeline_config: TimelineConfig | None = None,
         timeline_model: TimelineModel | None = None,
         ephemeris=None,
+        graphics_quality: str | None = None,
     ) -> None:
         # The extra histories preserve the established PyVista call signature.
         # Scene layers may consume them as they are implemented.
@@ -90,8 +92,9 @@ frame conversion is completed before the render loop starts.
         from direct.showbase.ShowBase import ShowBase
         from panda3d.core import loadPrcFileData
 
-        self.graphics_quality = 'medium'
-        ensure_textures(tier_textures(self.graphics_quality))
+        self.graphics_quality = graphics_quality or 'low'
+        if self.graphics_quality not in ('low', 'medium', 'high'):
+            raise ValueError("graphics_quality must be 'low', 'medium', or 'high'")
         configure_runtime(loadPrcFileData)
         self.base = ShowBase(windowType=window_type)
         self._window_type = window_type
@@ -105,14 +108,28 @@ frame conversion is completed before the render loop starts.
         self.base.camLens.setNearFar(1, 1e7)
         self.base.camLens.setFov(42)
 
-        self.starfield = Starfield(self.base, self.graphics_quality)
-        earth_radius = float(EarthConstants.R_e)
-        self.earth_body = EarthBody(self.base, earth_radius, texture_path, self.graphics_quality)
-        self.earth = self.earth_body.node
-        if ephemeris is None and has_any_core_history and os_hist:
-            ephemeris = os_hist[0].ephem
-        self.solar_system = SolarSystemLayer(self.base, self.earth_body, ephemeris, self.graphics_quality)
-        self.solar_system.update(self.playback.current, self.playback.speed)
+        loading = LoadingOverlay(self.base)
+        try:
+            ensure_textures(
+                tier_textures(self.graphics_quality),
+                on_progress=lambda done, total, name: loading.update(
+                    0.7 * done / max(total, 1), f'Downloading {name}'
+                ),
+            )
+            loading.update(0.72, 'Loading star map')
+            self.starfield = Starfield(self.base, self.graphics_quality)
+            loading.update(0.82, 'Loading Earth')
+            earth_radius = float(EarthConstants.R_e)
+            self.earth_body = EarthBody(self.base, earth_radius, texture_path, self.graphics_quality)
+            self.earth = self.earth_body.node
+            if ephemeris is None and has_any_core_history and os_hist:
+                ephemeris = os_hist[0].ephem
+            loading.update(0.90, 'Loading solar system')
+            self.solar_system = SolarSystemLayer(self.base, self.earth_body, ephemeris, self.graphics_quality)
+            self.solar_system.update(self.playback.current, self.playback.speed)
+            loading.update(1.0, 'Ready')
+        finally:
+            loading.close()
         self.scene = SceneGraph()
         self.camera = OrbitCamera(self.base, self.earth_body.root, earth_radius)
         self.starfield.update(self.base.camera, self.camera.distance)
@@ -225,16 +242,32 @@ frame conversion is completed before the render loop starts.
     def set_graphics_quality(self, tier: str) -> None:
         if tier == self.graphics_quality:
             return
+        if tier not in ('low', 'medium', 'high'):
+            raise ValueError("tier must be 'low', 'medium', or 'high'")
+        loading = LoadingOverlay(self.base)
         try:
-            ensure_textures(tier_textures(tier))
+            ensure_textures(
+                tier_textures(tier),
+                on_progress=lambda done, total, name: loading.update(
+                    0.7 * done / max(total, 1), f'Downloading {name}'
+                ),
+            )
         except (OSError, RuntimeError, ValueError) as exc:
             print(f'Graphics quality unchanged: {exc}')
+            loading.close()
             return
-        self.starfield.set_quality(tier)
-        self.earth_body.set_graphics_quality(tier)
-        self.solar_system.set_quality(tier)
-        self.graphics_quality = tier
-        self.solar_system.update_lod()
+        try:
+            loading.update(0.75, 'Loading star map')
+            self.starfield.set_quality(tier)
+            loading.update(0.85, 'Loading planet textures')
+            self.earth_body.set_graphics_quality(tier)
+            self.solar_system.set_quality(tier)
+            self.graphics_quality = tier
+            loading.update(0.95, 'Updating scene')
+            self.solar_system.update_lod()
+            loading.update(1.0, 'Ready')
+        finally:
+            loading.close()
 
     def reset_view(self) -> None:
         """Restore the default Earth focus, distance, and orbit angles."""
@@ -395,6 +428,7 @@ def animate_orbit_panda3d(
     timeline_config: TimelineConfig | None = None,
     timeline_model: TimelineModel | None = None,
     ephemeris=None,
+    graphics_quality: str | None = None,
 ) -> None:
     """Open the viewer, optionally using the histories from an ADCS simulation.
 
@@ -410,10 +444,13 @@ def animate_orbit_panda3d(
     the Sun, E returns to Earth, and Tab cycles through bodies. The solar
     scene uses the first recorded orbit's ephemeris when available, otherwise
     the bundled DE442s ephemeris; pass ``ephemeris`` to select one explicitly.
+    ``graphics_quality`` accepts ``'low'``, ``'medium'``, or ``'high'`` and
+    defaults to ``'low'``.
     """
     OrbitPanda3D(
         time_hist, state_hist, os_hist, est_state_hist, est_os_hist,
         boresight_goal_hist, coord_goal, texture_path,
         start_utc=start_utc, timeline_config=timeline_config,
         timeline_model=timeline_model, ephemeris=ephemeris,
+        graphics_quality=graphics_quality,
     ).run()
