@@ -42,6 +42,7 @@ def simulate(
     os0: Optional[Orbital_State] = None,
     dt: float = 1.0,
     tf: float = 500.0,
+    show_planned_trajectory: bool = True,
 ) -> SimulationResults:
     r"""
     Run a time-domain simulation of the spacecraft Attitude Determination and Control
@@ -117,6 +118,13 @@ def simulate(
     :type tf:
         float
 
+    :param show_planned_trajectory:
+        If ``True`` and the controller plans a trajectory, plot the open-loop
+        planned trajectory and call :func:`matplotlib.pyplot.show` before the
+        simulation starts. Set ``False`` for headless or batch runs.
+    :type show_planned_trajectory:
+        bool
+
     :return:
         Container holding all recorded simulation data, including true and estimated
         states, controls, sensor readings, biases, and targets for the entire run.
@@ -173,7 +181,7 @@ def simulate(
                 verbose=False
             )
 
-            if True:
+            if show_planned_trajectory:
                 target_hist = []
                 w_target_hist = []
                 boresight_hist = []

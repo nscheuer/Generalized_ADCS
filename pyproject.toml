@@ -190,6 +190,7 @@ packages = [
     "ADCS.satellite_hardware.errors.helpers",
     "ADCS.satellite_hardware.satellite",
     "ADCS.satellite_hardware.sensors",
+    "ADCS.viz",
     "ADCS.pipeline",
     "ADCS.pipeline.allocation",
     "ADCS.pipeline.compensation",
