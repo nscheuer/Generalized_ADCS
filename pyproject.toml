@@ -85,6 +85,9 @@ nrlmsise = [
 viz = [
     "pyvista>=0.44",
 ]
+panda3d = [
+    "panda3d>=1.10.16,<1.11",
+]
 
 # Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
 #
@@ -174,6 +177,7 @@ packages = [
     "ADCS.flight_software.single_core",
     "ADCS.flight_software.tasks",
     "ADCS.helpers",
+    "ADCS.helpers.animations",
     "ADCS.helpers.math",
     "ADCS.helpers.plot",
     "ADCS.helpers.plot.control",
@@ -217,6 +221,7 @@ packages = [
 # signatures are correct -- see the 0.1.9 release note.
 [tool.setuptools.package-data]
 "*" = ["textures/*.jpg"]
+"ADCS.helpers.animations" = ["assets/*.ttf", "assets/*.txt"]
 "ADCS" = ["py.typed"]
 "ADCS.environment.kernels" = ["IGRF14.shc", "de442s.bsp", "bsc5_catalog.gz"]
 
