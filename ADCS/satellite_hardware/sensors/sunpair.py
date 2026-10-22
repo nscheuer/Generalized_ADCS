@@ -110,6 +110,8 @@ class SunPair(Sensor):
         bias: Optional[Bias] = None,
         noise: Optional[Noise] = None,
         estimate_bias: bool = False,
+        scale_factor: float = 1.0,
+        misalignment: Optional[np.ndarray] = None,
     ):
         r"""
         Initialize a dual-hemisphere coarse Sun sensor.
@@ -140,7 +142,7 @@ class SunPair(Sensor):
             self.efficiency = (efficiency, efficiency)
         self.attitude_sensor = False
 
-        super().__init__(
+        super().__init__(scale_factor=scale_factor, misalignment=misalignment, 
             sample_time=sample_time,
             output_length=1,
             bias=bias,
@@ -175,9 +177,9 @@ class SunPair(Sensor):
 
         sun_dir = normalize(vecs["s"] - vecs["r"])
 
-        proj = float(np.dot(self.axis, sun_dir))
+        proj = float(np.dot(self.sensing_axis, sun_dir))
         eff = self.efficiency[0] if proj > 0.0 else self.efficiency[1]
-        return proj * eff
+        return self.scale_factor * proj * eff
 
     def bias_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
@@ -274,8 +276,8 @@ class SunPair(Sensor):
         sun_dir = normalize(sunvec)
 
         dsun_dir__dq = normed_vec_jac(sunvec, vecs["ds"] - vecs["dr"])
-        proj = float(np.dot(self.axis, sun_dir))
+        proj = float(np.dot(self.sensing_axis, sun_dir))
         eff = self.efficiency[0] if proj > 0.0 else self.efficiency[1]
-        return np.vstack(
-            [np.zeros((3, 1)), eff * np.expand_dims(dsun_dir__dq @ self.axis, 1)]
+        return self.scale_factor * np.vstack(
+            [np.zeros((3, 1)), eff * np.expand_dims(dsun_dir__dq @ self.sensing_axis, 1)]
         )
