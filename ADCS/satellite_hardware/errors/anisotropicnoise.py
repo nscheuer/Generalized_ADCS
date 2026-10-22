@@ -34,14 +34,14 @@ class AnisotropicNoise(Noise):
             bounds=self.bounds
         )
     
-    def _update_noise(self) -> None:
+    def _update_noise(self, sample_time: float | None = None) -> None:  # per reading; no density
         noise_aligned = np.random.normal(loc=0.0, scale=self.std_noise)
         
         self.noise = self._R_noise @ noise_aligned
         
         self.noise = np.clip(self.noise, self.bounds[0], self.bounds[1])
 
-    def cov(self) -> np.ndarray:
+    def cov(self, sample_time: float | None = None) -> np.ndarray:
         cov_aligned = np.diag(self.std_noise**2)
         return self._R_noise @ cov_aligned @ self._R_noise.T
     
