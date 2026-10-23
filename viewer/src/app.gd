@@ -66,6 +66,8 @@ func _ready() -> void:
 	rig.frame_kind = String(opts.get("frame", "lvlh"))
 	if String(opts.get("mode", "orbit")) == "earth":
 		rig.mode = CameraRig.Mode.EARTH
+	world.set_exposure(String(opts.get("exposure", "artistic")), float(opts.get("ev", 0.0)))
+	world.set_quality(String(opts.get("quality", "balanced")))
 	triad = Overlays.create({"type": "triad", "length_m": 1.5 * world.craft.radius}, source.scene)
 	triad.visible = false
 	world.craft.add_child(triad)
@@ -147,6 +149,7 @@ func _status_lines() -> PackedStringArray:
 	if f.has("pointing_err"):
 		lines.append("Pointing error %.3f deg" % rad_to_deg((f["pointing_err"] as PackedFloat64Array)[0]))
 	lines.append(rig.describe())
+	lines.append("Exposure: %s %+.0f EV   quality: %s" % [world.exposure_mode, world.exposure_ev, world.quality])
 	var live := "   LIVE" if source.live and clock.follow_live else ""
 	lines.append("%d fps   model: %s%s" % [Engine.get_frames_per_second(), world.craft.source, live])
 	return lines
@@ -178,6 +181,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_L: clock.follow_live = source.live
 			KEY_A: triad.visible = not triad.visible
 			KEY_H: hud.help.visible = not hud.help.visible
+			KEY_E: world.set_exposure("physical" if world.exposure_mode == "artistic" else "artistic", world.exposure_ev)
+			KEY_Q:
+				var names := World.QUALITY.keys()
+				world.set_quality(names[(names.find(world.quality) + 1) % names.size()])
+			KEY_BRACKETLEFT: world.set_exposure(world.exposure_mode, world.exposure_ev - 1.0)
+			KEY_BRACKETRIGHT: world.set_exposure(world.exposure_mode, world.exposure_ev + 1.0)
 			KEY_HOME:
 				rig.fit_to_craft(world.craft.radius)
 				rig.yaw = deg_to_rad(-140.0)

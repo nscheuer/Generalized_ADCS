@@ -68,6 +68,8 @@ func run(name: String) -> void:
 		"capture": result = await capture(cfg)
 		"light": result = await light_probe()
 		"live": result = await live(cfg)
+		"pose": result = await pose(cfg)
+		"perf": result = await perf(cfg)
 		_: result = {"error": "unknown check " + name}
 	result["check"] = name
 	result["source"] = "stream" if app.opts.has("connect") else "file"
@@ -99,6 +101,7 @@ func shots(cfg: Dictionary) -> Dictionary:
 		else:
 			rig.dist = float(s.get("dist", 4.0 * app.world.craft.radius))
 		var t: float = s.get("t", app.clock.t_min)
+		app.world.set_exposure(String(s.get("exposure_mode", "artistic")), float(s.get("ev", 0.0)))
 		if s.get("sunward", false):
 			# Angles relative to the Sun direction (inertial frame), so the lit side faces the camera.
 			var f: Dictionary = app.source.store.sample(t)
@@ -178,8 +181,9 @@ func terminator() -> Dictionary:
 	var s_itrs := D.unit(D.mat_vec(r, f["r_sun"]))
 	var subsolar := {"lon_deg": rad_to_deg(atan2(s_itrs[1], s_itrs[0])), "lat_deg": rad_to_deg(asin(s_itrs[2]))}
 	var mat: ShaderMaterial = app.world.earth_mat
-	for p: String in ["has_day", "has_night", "has_clouds", "has_normals", "has_ocean"]:
+	for p: String in ["has_day", "has_night", "has_clouds", "has_normals", "has_ocean", "has_atmosphere"]:
 		mat.set_shader_parameter(p, false)
+	app.world.shell.visible = false  # geometry check: no haze or twilight reddening
 	mat.set_shader_parameter("albedo", Vector3.ONE)
 	app.world.craft.visible = false
 	app.world.moon.visible = false
@@ -213,7 +217,7 @@ func terminator() -> Dictionary:
 				ls.append(lin)
 		if xs.size() >= 4:
 			offsets.append(_zero_crossing(xs, ls) - w / 2.0)
-	var focal := (h / 2.0) / tan(deg_to_rad(app.world.camera.fov) / 2.0)
+	var focal: float = app.world.focal_px()
 	return {"subsolar": subsolar, "offsets_px": offsets, "disk_radius_px": focal * tan(asin(R_EARTH / dist))}
 
 
@@ -239,8 +243,9 @@ static func _zero_crossing(xs: PackedFloat64Array, ls: PackedFloat64Array) -> fl
 func landmarks(cfg: Dictionary) -> Dictionary:
 	var mat: ShaderMaterial = app.world.earth_mat
 	mat.set_shader_parameter("ambient", 1.0)
-	for p: String in ["has_night", "has_clouds", "has_normals", "has_ocean"]:
+	for p: String in ["has_night", "has_clouds", "has_normals", "has_ocean", "has_atmosphere"]:
 		mat.set_shader_parameter(p, false)
+	app.world.shell.visible = false
 	app.world.craft.visible = false
 	var f: Dictionary = app.render_at(app.clock.t_min)
 	var dist := 3.0 * R_EARTH
@@ -255,7 +260,7 @@ func landmarks(cfg: Dictionary) -> Dictionary:
 		img.save_png(_out("landmark_%s.png" % lm["name"]))
 		var c := _red_centroid(img)
 		out.append({"name": lm["name"], "cx": c.x, "cy": c.y, "center": [img.get_width() / 2.0, img.get_height() / 2.0]})
-	var focal: float = (app.world.viewport.size.y / 2.0) / tan(deg_to_rad(app.world.camera.fov) / 2.0)
+	var focal: float = app.world.focal_px()
 	return {"points": out, "focal_px": focal, "altitude_m": dist - R_EARTH, "has_day": app.loaded_assets.has("earth_day")}
 
 
@@ -363,4 +368,88 @@ func live(cfg: Dictionary) -> Dictionary:
 	app.clock.set_range(app.source.store.t_min(), app.source.store.t_max())
 	return {"live": app.source.live, "finished": app.source.finished, "rows": app.source.store.n_rows,
 		"rows_at_start": first_rows, "frames": frames, "follow_lag_s": lags, "t_max": app.clock.t_max}
+
+
+# ------------------------------------------------------------------ explicit camera poses
+## shots: [{name, t, cam_pos (GCRS m), look_at (GCRS m), up (GCRS), fov_deg, hide: ["craft", "moon"]}]
+## Renders exactly the requested view (e.g. from DSCOVR for an EPIC comparison).
+func pose(cfg: Dictionary) -> Dictionary:
+	var out := []
+	for s: Dictionary in cfg.get("shots", []):
+		var hide: Array = s.get("hide", [])
+		app.world.craft.visible = not hide.has("craft")
+		app.world.fov_deg = float(s.get("fov_deg", app.world.fov_deg))
+		# Optional display overrides, e.g. linear tone mapping for photometric comparisons.
+		var tm: String = s.get("tonemap", "agx")
+		app.world.env.tonemap_mode = Environment.TONE_MAPPER_LINEAR if tm == "linear" else Environment.TONE_MAPPER_AGX
+		app.world.env.glow_enabled = tm != "linear"
+		app.world.set_exposure(String(s.get("exposure_mode", "artistic")), float(s.get("ev", 0.0)))
+		var t: float = s.get("t", app.clock.t_min)
+		var f: Dictionary = app.source.store.sample(t)
+		var cam := PackedFloat64Array(s["cam_pos"])
+		var target := PackedFloat64Array(s.get("look_at", [0.0, 0.0, 0.0]))
+		var rot := D.look_rot(D.sub(target, cam), PackedFloat64Array(s.get("up", [0.0, 0.0, 1.0])))
+		for i in int(s.get("settle_frames", 3)):
+			app.world.update(f, cam, rot)
+			app.world.moon.visible = app.world.moon.visible and not hide.has("moon")
+			await RenderingServer.frame_post_draw
+		var img := _image()
+		var file := "%s.png" % s.get("name", "pose_%d" % out.size())
+		img.save_png(_out(file))
+		out.append({"name": file, "t": t, "fov_deg": app.world.fov_deg, "info": app.world.info.duplicate()})
+	return {"shots": out}
+
+
+# ------------------------------------------------------------------ performance
+## Frame times with the full scene: orbit the spacecraft while zooming from
+## metres to Earth-scale distances, vsync off.
+func perf(cfg: Dictionary) -> Dictionary:
+	var frames: int = cfg.get("frames", 600)
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	for feature: String in cfg.get("disable", []):
+		match feature:
+			"atmosphere":
+				app.world.earth_mat.set_shader_parameter("has_atmosphere", false)
+				app.world.shell.visible = false
+			"msaa":
+				app.world.viewport.msaa_3d = Viewport.MSAA_DISABLED
+			"glow":
+				app.world.env.glow_enabled = false
+			"clouds":
+				app.world.earth_mat.set_shader_parameter("has_clouds", false)
+			"textures":
+				for p: String in ["has_day", "has_night", "has_clouds", "has_normals", "has_ocean"]:
+					app.world.earth_mat.set_shader_parameter(p, false)
+	if cfg.get("fxaa", false):
+		app.world.viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+	for k: String in ["pixel_steps", "limb_band_lo", "limb_band_hi"]:
+		if cfg.has(k):
+			app.world.earth_mat.set_shader_parameter(k, cfg[k])
+	if cfg.has("shell_steps"):
+		app.world.shell_mat.set_shader_parameter("atm_steps", int(cfg["shell_steps"]))
+	if cfg.has("atm_steps"):
+		app.world.earth_mat.set_shader_parameter("atm_steps", int(cfg["atm_steps"]))
+		app.world.shell_mat.set_shader_parameter("atm_steps", int(cfg["atm_steps"]))
+	var rid: RID = app.world.viewport.get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(rid, true)
+	var rig: CameraRig = app.rig
+	rig.mode = CameraRig.Mode.ORBIT
+	rig.frame_kind = "inertial"
+	var gpu := PackedFloat64Array()
+	var wall := PackedFloat64Array()
+	var last := Time.get_ticks_usec()
+	for i in frames + 30:
+		var u := float(i) / frames
+		rig.dist = exp(log(1.0) + (log(3.0e7) - log(1.0)) * (0.5 - 0.5 * cos(TAU * u)))
+		rig.yaw = TAU * u * 1.5
+		rig.pitch = 0.3
+		app.render_at(app.clock.t_min + u * (app.clock.t_max - app.clock.t_min))
+		await RenderingServer.frame_post_draw
+		var now := Time.get_ticks_usec()
+		if i >= 30:
+			gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(rid))
+			wall.append((now - last) / 1000.0)
+		last = now
+	return {"gpu_ms": gpu, "frame_ms": wall, "res": [app.world.viewport.size.x, app.world.viewport.size.y],
+		"atmosphere": app.loaded_assets.has("atmosphere")}
 

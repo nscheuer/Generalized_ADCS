@@ -118,6 +118,11 @@ Products
      - 512²
      - MOON_ME (as published)
      - object-space normal, RGB = 127.5 (n + 1)
+   * - ``atmosphere``
+     - 256×64 + 32×32
+     - (computed)
+     - float32 RGB tables: transmittance and multiple scattering (Hillaire
+       2020; Bruneton 2017 parameterisation), plus ``atmosphere.json``
    * - ``stars``
      - V ≤ 7 (9050 stars)
      - ICRS, J2000
@@ -130,6 +135,12 @@ them with the raw body-fixed direction, e.g. ``texture(earth_day, n_itrs)``,
 and Earth's orientation comes from the vizlog's ``q_itrs_gcrs`` alone. Normals
 are stored in object space (not tangent space), which suits the viewer's
 object-space shading of scaled far bodies.
+
+**Atmosphere**: computed, not downloaded (~8 s). Standard clear-sky Earth:
+Rayleigh (5.802, 13.558, 33.1)×10⁻⁶ m⁻¹, scale height 8 km; Mie 3.996×10⁻⁶
+(extinction 4.44×10⁻⁶) m⁻¹, 1.2 km, g = 0.8; ozone tent at 25 ± 15 km; ground
+albedo 0.3; top 100 km above the equatorial radius. Tested: the zenith optical
+depth from the table equals the analytic column (R 0.0615, G 0.142, B 0.271).
 
 **Stars**: B−V → temperature (Ballesteros 2012) → blackbody chromaticity
 integrated against the CIE 1931 colour-matching functions (Wyman et al. 2013
@@ -156,8 +167,6 @@ On the real data:
 Not yet included
 ----------------
 
-* Precomputed atmospheric-scattering tables (Phase 6, with the atmosphere
-  shader).
 * Daily same-date clouds from NASA GIBS, for comparisons against EPIC/GOES
   photographs.
 * 500 m streaming tiles; KTX2/BC7 GPU compression (the viewer's importer

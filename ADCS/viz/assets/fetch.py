@@ -77,7 +77,7 @@ def fetch(
     :raises ValueError: On a size or checksum mismatch, or an unaccepted licence.
     """
     sources = sources or load_sources()
-    ids = list(ids or sources)
+    ids = list(sources) if ids is None else list(ids)  # [] means nothing, not everything
     accepted = set(accept)
     out = []
     for sid in ids:

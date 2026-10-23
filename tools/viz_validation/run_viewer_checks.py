@@ -52,7 +52,7 @@ from ADCS.viz.launcher import (  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ALL = ["assets", "file_source", "shots", "jitter", "jitter_control", "terminator", "landmarks", "scrub", "capture",
-       "live"]
+       "live", "moon", "exposure", "perf_1080p", "perf_1440p", "perf_1440p_high"]
 
 
 # ------------------------------------------------------------------ data
@@ -161,6 +161,7 @@ class Runner:
             extra: tuple = (), engine: tuple = (), via_file: bool = False) -> dict:
         out = self.work / name
         out.mkdir(parents=True, exist_ok=True)
+        (out / "result.json").unlink(missing_ok=True)  # never judge a stale result from an earlier run
         (out / "config.json").write_text(json.dumps(cfg or {}))
         args = ["--check", check, "--config", self.host(out / "config.json"), "--out", self.host(out), *extra]
         asset_dir = assets if assets is not None else self.assets
@@ -231,6 +232,72 @@ def run_live(runner: "Runner") -> dict:
             "follow_lag_s": stats(lag) if len(lag) else None}
 
 
+def run_photoreal(runner: "Runner", name: str, sim_log: Path) -> dict:
+    """Phase 6 checks: Moon close-up, physical exposure, frame times with the full scene."""
+    from PIL import Image
+
+    log = VizLog.open(sim_log)
+    r_moon = log.read("0", "r_moon")[0] * 1000.0
+    r_sun = log.read("0", "r_sun")[0] * 1000.0
+    north = [0.0, 0.0, 1.0]
+    if name == "moon":
+        # From 20 000 km, on the line between Moon and Sun, slightly off: a gibbous Moon.
+        to_sun = (r_sun - r_moon) / np.linalg.norm(r_sun - r_moon)
+        side = np.cross(to_sun, north)
+        view = to_sun * np.cos(0.6) + side / np.linalg.norm(side) * np.sin(0.6)
+        cam = (r_moon + view * 2.0e7).tolist()
+        r = runner.run("moon", "pose", sim_log, {"shots": [{"name": "moon", "cam_pos": cam, "look_at": r_moon.tolist(),
+                                                              "up": north, "fov_deg": 12.0, "hide": ["craft"]}]},
+                       extra=("--res", "1280x720"))
+        if "error" in r:
+            return r
+        a = np.asarray(Image.open(runner.work / "moon" / "moon.png").convert("RGB"), float) / 255
+        lit = a.mean(2) > 0.05
+        return {"passed": bool(0.05 < lit.mean() < 0.6), "criterion": "Moon rendered and lit (gibbous phase fills the frame partly)",
+                "lit_fraction": float(lit.mean()), "image": str(runner.work / "moon" / "moon.png")}
+    if name == "exposure":
+        # Physical exposure: (1) Earth in view at 0 EV, the sky around it must stay black (stars are ~1e-3 of a
+        # sunlit surface); (2) camera above the pole looking away from Earth and Sun at +16 EV: stars appear.
+        shots = [{"name": "physical_earth", "mode": "earth", "dist": 2.0e7, "sunward": True, "yaw_deg": 20,
+                  "exposure_mode": "physical", "ev": 0.0}]
+        s_hat = r_sun / np.linalg.norm(r_sun)
+        pole = np.array([0.0, 0.0, 1.0])
+        away = pole - s_hat * (pole @ s_hat)
+        away /= np.linalg.norm(away)
+        look = away * np.cos(0.3) - s_hat * np.sin(0.3)  # >90 deg from Earth and >100 deg from the Sun
+        cam = away * 2.0e7
+        deep = {"cam_pos": cam.tolist(), "look_at": (cam + look * 1.0e7).tolist(), "up": s_hat.tolist(), "fov_deg": 60.0,
+                "hide": ["craft"]}
+        r1 = runner.run("exposure", "shots", sim_log, {"shots": shots}, extra=("--res", "1280x720"))
+        r2 = runner.run("exposure_deep", "pose", sim_log, {"shots": [
+            {"name": "physical_+16ev", "exposure_mode": "physical", "ev": 16.0, **deep},
+            {"name": "physical_0ev", "exposure_mode": "physical", "ev": 0.0, **deep},
+            {"name": "artistic", "exposure_mode": "artistic", "ev": 0.0, **deep}]}, extra=("--res", "1280x720"))
+        for rr in (r1, r2):
+            if "error" in rr:
+                return rr
+        load = lambda d, n: np.asarray(Image.open(runner.work / d / f"{n}.png").convert("RGB"), float) / 255
+        earth = load("exposure", "physical_earth")
+        from scipy import ndimage
+        space = ~ndimage.binary_dilation(earth.mean(2) > 0.03, iterations=25)
+        # A V = 2 star is ~4e-6 of a sunlit surface per pixel: visible only at long exposure. Sky background is 0.
+        count = lambda img: int((img.max(2) > 4 / 255).sum())
+        n12, n0, nart = (count(load("exposure_deep", n)) for n in ("physical_+16ev", "physical_0ev", "artistic"))
+        return {"passed": float(earth[space].max()) < 3 / 255 and n0 == 0 and n12 > 20,
+                "criterion": "physical: no stars beside a sunlit Earth or in deep space at 0 EV; > 20 star pixels at +16 EV",
+                "max_sky_px_next_to_earth_0ev": float(earth[space].max()), "star_px_physical_0ev": n0,
+                "star_px_physical_+16ev": n12, "star_px_artistic": nart}
+    res = {"perf_1080p": "1920x1080", "perf_1440p": "2560x1440", "perf_1440p_high": "2560x1440"}[name]
+    quality = "high" if name.endswith("high") else "balanced"
+    r = runner.run(name, "perf", sim_log, {"frames": 600}, extra=("--res", res, "--quality", quality))
+    if "error" in r:
+        return r
+    g, f = stats(r["gpu_ms"]), stats(r["frame_ms"])
+    return {"passed": None, "criterion": f"frame time, quality '{quality}', atmosphere + clouds + model (recorded; "
+            "RTX 3060 budget: GPU p99 < 8.3 ms at 1440p)", "gpu_ms": g, "frame_ms": f, "atmosphere": r["atmosphere"],
+            "res": r["res"], "quality": quality}
+
+
 # ------------------------------------------------------------------ judging
 def stats(a) -> dict:
     a = np.asarray(a, float)
@@ -257,7 +324,8 @@ def main() -> int:
     for name in args.checks:
         if name == "assets":
             r = runner.run("assets", "assets", sim_log)
-            want = {"earth_day", "earth_night", "earth_clouds", "earth_normals", "earth_ocean_mask", "moon_color", "moon_normals"}
+            want = {"earth_day", "earth_night", "earth_clouds", "earth_normals", "earth_ocean_mask", "moon_color", "moon_normals",
+                    "atmosphere"}
             ok = "error" not in r and want <= set(r["loaded"]) and r["loaded"].get("stars", 0) > 9000 \
                 and r["model"] == "model" and r["model_lods"] == 3 and r["wheels"] == 9 and r["source"] == "stream"
             report(name, r if "error" in r else {"passed": ok, "criterion": "all 8 asset products, model (3 LODs, 3 wheels x 3 LODs) over the stream",
@@ -341,11 +409,18 @@ def main() -> int:
 
     if "live" in args.checks:
         report("live", run_live(runner))
+    for name in [c for c in args.checks if c in ("moon", "exposure") or c.startswith("perf")]:
+        report(name, run_photoreal(runner, name, sim_log))
 
     meta = {"date": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "godot": str(runner.godot)}
     out_root = HERE / "results"
     out_root.mkdir(exist_ok=True)
-    (out_root / "viewer_latest.json").write_text(json.dumps({"meta": meta, "results": results}, indent=1, default=str))
+    # Merge with earlier runs, so running a subset of checks keeps the other rows.
+    latest = out_root / "viewer_latest.json"
+    previous = json.loads(latest.read_text()).get("results", {}) if latest.exists() else {}
+    results = {**{k: v for k, v in previous.items() if k not in results}, **results}
+    results = {k: results[k] for k in ALL if k in results}
+    latest.write_text(json.dumps({"meta": meta, "results": results}, indent=1, default=str))
     lines = ["# Viewer end-to-end checks", "", f"Generated {meta['date']} by `tools/viz_validation/run_viewer_checks.py`.", "",
              "| Check | Result | Details | Criterion |", "|---|---|---|---|"]
     for name, r in results.items():

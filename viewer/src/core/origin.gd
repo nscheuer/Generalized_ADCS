@@ -56,9 +56,16 @@ func place(node: Node3D, p: PackedFloat64Array, rot: PackedFloat64Array, k: floa
 		node.transform = Transform3D(b, D.to_godot(D.scale(rel, k)))
 
 
-## Camera node transform for orientation `rot` (camera local -> GCRS).
-func place_camera(camera: Camera3D, rot: PackedFloat64Array) -> void:
+## Camera node transform for orientation `rot` (camera local -> GCRS) and
+## vertical field of view. Godot refuses fov < 1 deg, so narrow views use the
+## equivalent frustum projection (near-plane height 2 near tan(fov/2)).
+func place_camera(camera: Camera3D, rot: PackedFloat64Array, fov_deg: float = 45.0) -> void:
 	camera.basis = D.basis_from(rot)
 	camera.position = D.to_godot(cam_pos) if absolute else Vector3.ZERO
-	camera.near = near
-	camera.far = far
+	if fov_deg >= 1.0:
+		camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+		camera.fov = fov_deg
+		camera.near = near
+		camera.far = far
+	else:
+		camera.set_frustum(2.0 * near * tan(deg_to_rad(fov_deg) / 2.0), Vector2.ZERO, near, far)

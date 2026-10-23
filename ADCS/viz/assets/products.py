@@ -154,6 +154,21 @@ def _build_stars(product: Product, inputs: Dict[str, Path], out: Path) -> List[D
              "sha256": file_sha256(out / "stars.f32")}]
 
 
+def _build_atmosphere(product: Product, inputs: Dict[str, Path], out: Path) -> List[Dict[str, Any]]:
+    from ADCS.viz.assets.atmosphere import AtmosphereParams, build_tables, params_json
+
+    p = AtmosphereParams()
+    tables = build_tables(p)
+    files = []
+    for name, arr in tables.items():
+        path = out / f"{name}.f32"
+        path.write_bytes(np.ascontiguousarray(arr, dtype="<f4").tobytes())
+        files.append({"name": path.name, "shape": list(arr.shape), "dtype": "<f4", "sha256": file_sha256(path)})
+    (out / "atmosphere.json").write_text(json.dumps(params_json(p), indent=1))
+    files.append({"name": "atmosphere.json", "sha256": file_sha256(out / "atmosphere.json")})
+    return files
+
+
 def _products() -> Dict[str, Product]:
     defs = [
         Product("earth_day", ["bmng_topo_bathy_200407"], {"face_size": 4096}, "cube",
@@ -172,6 +187,9 @@ def _products() -> Dict[str, Product]:
         Product("moon_normals", ["svs_moon_ldem_4"], {"face_size": 512, "exaggeration": 1.0}, "cube",
                 "Lunar terrain normals from LOLA", "MOON_ME (as published by SVS)",
                 "object-space normal, RGB = 127.5 (n + 1)"),
+        Product("atmosphere", [], {"model": "hillaire2020", "transmittance": [256, 64], "multiscattering": [32, 32]},
+                "atmosphere", "Precomputed atmosphere tables (transmittance, multiple scattering)",
+                "-", "little-endian float32 (rows, cols, RGB); see atmosphere.json"),
         Product("stars", ["bsc5_cds"], {"max_vmag": 7.0}, "stars",
                 "Naked-eye star table from BSC5", "ICRS (J2000 equinox, epoch 2000.0)",
                 "little-endian float32 rows, see columns"),
@@ -225,7 +243,7 @@ def build(
         base = PRODUCTS[name]
         product = Product(base.name, base.inputs, {**base.params, **overrides.get(name, {})}, base.kind,
                           base.description, base.frame, base.encoding)
-        paths = dict(zip(product.inputs, fetch(product.inputs, sources=sources, log=log)))
+        paths = dict(zip(product.inputs, fetch(product.inputs, sources=sources, log=log))) if product.inputs else {}
         input_sha = {sid: file_sha256(p) for sid, p in paths.items()}
         rh = recipe_hash(product, sources, input_sha)
         out = cache_dir() / "processed" / name / rh[:16]
@@ -236,7 +254,8 @@ def build(
             out.mkdir(parents=True, exist_ok=True)
             t0 = time.perf_counter()
             log(f"build {name}: {product.params} ...")
-            files = (_build_stars if product.kind == "stars" else _build_cube)(product, paths, out)
+            builder = {"stars": _build_stars, "atmosphere": _build_atmosphere}.get(product.kind, _build_cube)
+            files = builder(product, paths, out)
             manifest = {
                 "product": name, "description": product.description, "kind": product.kind,
                 "recipe_hash": rh, "params": product.params, "code_version": CODE_VERSION,

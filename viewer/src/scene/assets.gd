@@ -57,6 +57,15 @@ func cubemap(product: String) -> Cubemap:
 	return cube if err == OK else null
 
 
+## Atmosphere tables, or null if not built.
+func atmosphere() -> RefCounted:
+	if not has("atmosphere"):
+		return null
+	var atm: RefCounted = load("res://src/scene/atmosphere.gd").new()
+	var dir := root.path_join("processed").path_join(current["atmosphere"])
+	return atm if atm.load_from(dir, _manifest("atmosphere")) else null
+
+
 ## Star table rows: x, y, z, vmag, b_v, r, g, b, illuminance_lux, pm_ra_mas, pm_dec_mas.
 func stars() -> Dictionary:
 	if not has("stars"):

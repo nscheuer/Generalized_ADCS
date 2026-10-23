@@ -68,9 +68,25 @@ How it works
   with on-screen size. Without a model, the drag/SRP panels are drawn. Wheels
   spin with the logged wheel speed. Sunlight on the spacecraft is scaled by
   the logged ``shadow_factor``.
-* **Not yet:** atmosphere, cloud shadows and physical exposure (Phase 6);
-  vector, cone and track overlays (Phase 7); video export (Phase 8). The Moon
+* **Atmosphere** (Hillaire 2020): tables from the asset pipeline, ray-marched
+  in the shaders. Sunlight reaching the ground is attenuated (reddened
+  terminator); the air between camera and ground is applied per vertex over
+  most of the disk and per pixel near the limb; a transparent shell draws the
+  limb glow. Clouds cast shadows. Sunlight on the spacecraft is coloured by
+  the atmosphere when the Sun is seen through the limb; earthshine lights it
+  from the nadir.
+* **Moon**: Lommel–Seeliger reflectance (no limb darkening at full Moon). Its
   frame is approximated (near side toward Earth, libration ignored).
+* **Exposure** (E, [ ]): *artistic* (default) compresses stars and the Sun so
+  they show next to a lit Earth; *physical* keeps true relative brightness:
+  a star's flux lands in one pixel (π E / (Ω_pixel E_sun)), so stars vanish
+  beside a sunlit Earth and appear at long exposures, as for a real camera.
+* **Quality** (Q, ``--quality``): ``high`` (MSAA 4×), ``balanced`` (FXAA,
+  default), ``fast`` (no glow, fewer atmosphere steps). Measured on an Intel
+  Arc 140V (integrated) with atmosphere, clouds and a model, GPU p50/p99:
+  balanced 1080p 5.1/10.4 ms, 1440p 6.9/19.0 ms.
+* **Not yet:** vector, cone and track overlays (Phase 7); video export
+  (Phase 8).
 
 Checks
 ------
@@ -82,3 +98,7 @@ Checks
   viewer through ``python -m ADCS.viz view``'s code path, on a real
   closed-loop simulation with an imported model. Results in
   ``tools/viz_validation/VIEWER_CHECKS.md``.
+* ``tools/viz_validation/run_epic_check.py``: renders the Earth from DSCOVR's
+  position at the time of a real EPIC photograph and compares disk geometry,
+  orientation (surface pattern vs time) and cloud-free colour. Results in
+  ``tools/viz_validation/EPIC_CHECK.md``.

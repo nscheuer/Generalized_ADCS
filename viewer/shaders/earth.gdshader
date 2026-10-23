@@ -2,9 +2,12 @@
 // sampled with the ITRS direction, so the texture follows Earth orientation
 // from the vizlog alone. Lighting is done here (unshaded) because the body is
 // drawn in scaled space; all vectors are in object (ITRS) space.
-// Atmosphere and cloud shadows come in Phase 6.
+//
+// Display units: a white Lambertian surface under the full Sun reads 1.
 shader_type spatial;
 render_mode unshaded, cull_back;
+
+#include "res://shaders/atmosphere.gdshaderinc"
 
 uniform samplerCube day_tex : source_color, filter_linear_mipmap;
 uniform samplerCube night_tex : source_color, filter_linear_mipmap;
@@ -22,13 +25,29 @@ uniform float sun_scale = 1.0;
 uniform float night_gain = 0.45;
 uniform vec3 night_tint = vec3(1.0, 0.78, 0.52);  // sodium/LED mix
 uniform float cloud_opacity = 0.9;
+uniform float cloud_height = 6000.0;     // m, for cloud shadows
+uniform float cloud_shadow = 0.55;
 uniform float ambient = 0.0;
 uniform float specular_strength = 0.6;
 
+// Aerial perspective is computed per vertex (it varies smoothly over the
+// disk; ~27x fewer evaluations than per pixel) and per pixel only where the
+// view grazes the surface near the limb, where it changes steeply.
+uniform float limb_band_lo = 0.18;   // cos(view angle to the surface normal)
+uniform float limb_band_hi = 0.32;
+uniform int pixel_steps = 16;
+
 varying vec3 p_itrs;
+varying vec3 ap_L;
+varying vec3 ap_T;
 
 void vertex() {
 	p_itrs = VERTEX;
+	ap_L = vec3(0.0);
+	ap_T = vec3(1.0);
+	if (has_atmosphere) {
+		atm_aerial(VERTEX, sun_dir_itrs, atm_steps, ap_L, ap_T);
+	}
 }
 
 void fragment() {
@@ -39,26 +58,54 @@ void fragment() {
 	}
 	vec3 base = has_day ? texture(day_tex, n_geo).rgb : albedo;
 	float mu_geo = dot(n_geo, sun_dir_itrs);
-	float lit = max(dot(n, sun_dir_itrs), 0.0) * smoothstep(-0.02, 0.02, mu_geo) * sun_scale;
+
+	// Sunlight reaching the ground: attenuated (and reddened) by the atmosphere.
+	vec3 sun_ground = vec3(1.0);
+	if (has_atmosphere) {
+		sun_ground = atm_transmittance(atm_bottom, mu_geo) * atm_sun_visible(atm_bottom + 1.0, mu_geo);
+	}
+	float terminator = smoothstep(-0.02, 0.02, mu_geo);
+	vec3 lit = max(dot(n, sun_dir_itrs), 0.0) * terminator * sun_scale * sun_ground;
+
+	float cloud = has_clouds ? texture(cloud_tex, n_geo).r : 0.0;
+	if (has_clouds && mu_geo > 0.0) {
+		// Shadow of the cloud layer: look up the cloud where the ray toward the Sun crosses it.
+		vec3 q = normalize(n_geo * atm_bottom + sun_dir_itrs * (cloud_height / max(mu_geo, 0.05)));
+		lit *= 1.0 - cloud_shadow * texture(cloud_tex, q).r * cloud_opacity;
+	}
 	vec3 color = base * (lit + ambient);
 
+	vec3 view = normalize(cam_local - p_itrs);
 	if (has_ocean) {
-		// Sun glint on water (Blinn-Phong), view vector in object space.
-		vec3 cam = (inverse(MODEL_MATRIX) * vec4(CAMERA_POSITION_WORLD, 1.0)).xyz;
-		vec3 v = normalize(cam - p_itrs);
-		vec3 h = normalize(v + sun_dir_itrs);
+		// Sun glint on water (Blinn-Phong).
+		vec3 h = normalize(view + sun_dir_itrs);
 		float water = texture(ocean_tex, n_geo).r;
 		color += water * specular_strength * pow(max(dot(n_geo, h), 0.0), 120.0) * lit;
 	}
 	if (has_clouds) {
-		float c = texture(cloud_tex, n_geo).r * cloud_opacity;
-		color = mix(color, vec3(max(mu_geo, 0.0) * sun_scale + ambient), c);
+		vec3 cloud_lit = max(mu_geo, 0.0) * terminator * sun_scale * sun_ground + ambient;
+		color = mix(color, cloud_lit, cloud * cloud_opacity);
 	}
 	if (has_night) {
 		// City lights fade in across twilight (sun 3 deg above to 9 deg below the horizon).
 		float dark = smoothstep(0.05, -0.15, mu_geo);
-		float cloud = has_clouds ? texture(cloud_tex, n_geo).r : 0.0;
 		color += texture(night_tex, n_geo).rgb * night_tint * night_gain * dark * (1.0 - 0.7 * cloud);
+	}
+
+	if (has_atmosphere) {
+		// Aerial perspective: the atmosphere between the camera and this point.
+		vec3 L = ap_L;
+		vec3 T = ap_T;
+		float grazing = dot(n_geo, view);
+		if (grazing < limb_band_hi) {
+			vec3 Lp;
+			vec3 Tp;
+			atm_aerial(p_itrs, sun_dir_itrs, pixel_steps, Lp, Tp);
+			float w = smoothstep(limb_band_lo, limb_band_hi, grazing);
+			L = mix(Lp, L, w);
+			T = mix(Tp, T, w);
+		}
+		color = color * T + L * PI * sun_scale;
 	}
 	ALBEDO = color;
 }
