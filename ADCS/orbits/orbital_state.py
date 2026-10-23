@@ -177,7 +177,7 @@ class Orbital_State:
 
     :param ephem:
         Ephemeris object used for Earth and Sun position queries. If omitted,
-        the default environment supplies DE442s.
+        the default environment supplies DE421.
     :type ephem: Ephemeris
 
     :param J2000:

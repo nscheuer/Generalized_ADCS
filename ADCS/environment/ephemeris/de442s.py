@@ -4,11 +4,10 @@ from .de442 import DE442
 
 
 class DE442s(DE442):
-    """Use the bundled 31 MB DE442s kernel for years 1849 through 2150.
+    """Use the optional DE442s kernel for years 1849 through 2150.
 
-    The source checkout and wheel include ``de442s.bsp`` in
-    ``environment/kernels``. If that file is missing, the parent loader can
-    fetch it from the official JPL NAIF archive into the user cache.
+    If the kernel is missing, the parent loader can fetch it from the
+    official JPL NAIF archive into the user cache.
     ``position_eci`` and ``sun_position_eci`` match the other DE models.
     """
 

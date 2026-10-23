@@ -232,3 +232,5 @@ ADCS/environment/kernels/
 ADCS/environment/kernels/*
 !ADCS/environment/kernels/__init__.py
 !ADCS/environment/kernels/de421.bsp
+!ADCS/environment/kernels/IGRF14.shc
+!ADCS/environment/kernels/bsc5_catalog.gz

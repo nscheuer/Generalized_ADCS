@@ -217,7 +217,7 @@ packages = [
 [tool.setuptools.package-data]
 "*" = ["textures/*.jpg"]
 "ADCS" = ["py.typed"]
-"ADCS.environment.kernels" = ["de421.bsp"]
+"ADCS.environment.kernels" = ["de421.bsp", "IGRF14.shc", "bsc5_catalog.gz"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]

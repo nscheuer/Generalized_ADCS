@@ -56,7 +56,7 @@ def create_random_circular_os(
     :param J2000: The current time in J2000 centuries. Defaults to 0.22.
     :type J2000: float
     :param ephem: Optional ephemeris object. If None, a new one is created.
-    :type ephem: :class:`~ADCS.environment.ephemeris.DE442s`, optional
+    :type ephem: :class:`~ADCS.environment.ephemeris.DE421`, optional
     :param magnetic_model: Geomagnetic field model; one of
         :data:`ADCS.environment.MAGNETIC_MODELS`.
     :type magnetic_model: str
