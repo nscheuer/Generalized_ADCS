@@ -16,7 +16,7 @@ Space  play / pause        , .  slower / faster
 1  spacecraft, LVLH        2  spacecraft, inertial
 3  spacecraft, body        4  Earth-centred
 L  follow live             Home  reset view
-A  body axes               H  this help
+A  axes   O  all overlays   H  this help
 E  physical / artistic exposure    [ ]  exposure -/+ 1 EV
 Q  quality: high / balanced / fast"""
 

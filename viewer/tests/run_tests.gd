@@ -14,6 +14,12 @@ const Origin := preload("res://src/core/origin.gd")
 const Protocol := preload("res://src/io/protocol.gd")
 const FileSource := preload("res://src/io/file_source.gd")
 const World := preload("res://src/scene/world.gd")
+const Registry := preload("res://src/overlays/registry.gd")
+
+
+class FakeWorld:
+	extends RefCounted
+	var info := {"k_earth": 0.5}
 
 var failures := PackedStringArray()
 var checks := 0
@@ -26,7 +32,7 @@ func _init() -> void:
 		if argv[i] == "--fixture" and i + 1 < argv.size():
 			args["fixture"] = argv[i + 1]
 	for t: Callable in [test_rot_mat, test_look_rot, test_slerp, test_hermite, test_frame_store, test_clock,
-			test_origin, test_protocol_frames, test_moon_frame]:
+			test_origin, test_protocol_frames, test_moon_frame, test_arrow_lengths, test_tracks]:
 		t.call()
 	if args.has("fixture"):
 		test_file_source(args["fixture"])
@@ -195,6 +201,63 @@ func test_protocol_frames() -> void:
 
 
 # ------------------------------------------------------------------ file source
+# ------------------------------------------------------------------ overlays
+func _arrow_ctx(store: RefCounted, rot: PackedFloat64Array) -> Dictionary:
+	var f := {"r_sc": D.v3(7.0e6, 0, 0), "r_sun": D.v3(7.0e6, 1.5e11, 0), "v_sc": D.v3(0, 7500, 0)}
+	return {"frame": f, "store": store, "d_craft": 2.0, "k_craft": 1.0, "focal": 1000.0, "rot": rot,
+		"t": 0.0, "frames": {"tau": "BODY", "b": "GCRS"}}
+
+
+func test_arrow_lengths() -> void:
+	var store := FrameStore.new(PackedStringArray(["t_s", "tau", "b"]), PackedInt32Array([1, 3, 3]))
+	store.append_row(PackedFloat64Array([0.0, 100.0, 0, 0, 1, 0, 0]))
+	var rotz := D.rot_mat(PackedFloat64Array([cos(PI / 4), 0, 0, sin(PI / 4)]))  # body -> GCRS: 90 deg about z
+	var ctx := _arrow_ctx(store, rotz)
+	var cases := [  # descriptor, expected length [px], expected BODY direction
+		[{"source": "tau", "scale": "log", "ref": 1.0}, 24.0 + 40.0 * 2.0, Vector3(1, 0, 0)],
+		[{"source": "tau", "scale": "log", "ref": 1.0e-6}, 180.0, Vector3(1, 0, 0)],  # clamped
+		[{"source": "tau", "scale": "physical", "units_per_m": 50.0}, 2.0 * 1000.0 / 2.0, Vector3(1, 0, 0)],
+		[{"source": "b", "scale": "fixed_px", "px": 90.0}, 90.0, Vector3(0, -1, 0)],  # GCRS +x = body -y
+		[{"source": "@sun", "scale": "fixed_px", "px": 60.0}, 60.0, Vector3(1, 0, 0)],  # GCRS +y -> body +x
+	]
+	for c: Array in cases:
+		var d: Dictionary = c[0]
+		d["type"] = "arrow"
+		var a: Node3D = Registry.create(d, {})
+		a.update(ctx)
+		var info: Dictionary = a.diagnostics()
+		near(info["length_px"], c[1], 1e-6, "arrow %s length" % d)
+		var dir: Array = info["dir_body"]
+		near(Vector3(dir[0], dir[1], dir[2]).distance_to(c[2]), 0.0, 1e-6, "arrow %s direction" % d)
+		# Drawn length on screen: local metres x focal / distance.
+		near(a.mesh_node.basis.y.length() * 1000.0 / 2.0, c[1], 1e-3, "arrow %s mesh length" % d)
+		a.free()
+
+
+func test_tracks() -> void:
+	var store := FrameStore.new(PackedStringArray(["t_s", "r_sc", "q_itrs_gcrs"]), PackedInt32Array([1, 3, 4]))
+	var qz := PackedFloat64Array([cos(PI / 4), 0, 0, sin(PI / 4)])
+	for row: Array in [[0.0, 7000.0, 0.0], [100.0, 0.0, 7000.0], [200.0, -7000.0, 0.0]]:
+		store.append_row(PackedFloat64Array([row[0], row[1], row[2], 0.0]) + qz)
+	var cam := D.v3(7.0e6 + 1.0, 0, 0)
+	var ctx := {"store": store, "t": 0.0, "cam_pos": cam, "world": FakeWorld.new(),
+		"frame": {"r_sc": D.v3(7.0e6, 0, 0), "q_itrs_gcrs": qz}}
+	for kind: String in ["orbit", "ground"]:
+		var tr: Node3D = Registry.create({"type": "polyline", "track": kind, "past_s": 1000.0, "future_s": 1000.0}, {})
+		tr.update(ctx)
+		var verts: PackedVector3Array = tr.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		expect(verts.size() == 3, "%s track: one vertex per row" % kind)
+		var xf: Transform3D = tr.mesh_node.transform
+		for i in verts.size():
+			var r := D.scale(store.get_row("r_sc", i), 1000.0)
+			if kind == "ground":  # Earth-fixed point above the sub-satellite point (constant rotation here)
+				r = D.scale(D.unit(r), 6378137.0 + 3000.0)
+			var want := D.to_godot(D.scale(D.sub(r, cam), 0.5))
+			var tol := 1e-4 if i == 0 and kind == "orbit" else 2.0  # metre-level far away, exact near the anchor
+			near((xf * verts[i]).distance_to(want), 0.0, tol, "%s track vertex %d" % [kind, i])
+		tr.free()
+
+
 func test_file_source(path: String) -> void:
 	var fs := FileSource.new()
 	expect(fs.open(path), "fixture vizlog opens: %s" % fs.error_message)

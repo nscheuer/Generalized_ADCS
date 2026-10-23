@@ -149,6 +149,7 @@ def _run_columns(run: RunResults, ephem: Ephemeris, torques: str) -> Tuple[Dict[
         J = np.array([rw.J for rw in sat.rw_actuators], dtype=float)
         rw_ids = [a for a in actuator_ids if a.startswith("rw")]
         cols["h_wheel"], cols["wheel_speed"] = h, h / J
+        cols["h_rw_body"] = h @ np.vstack([rw.axis for rw in sat.rw_actuators])
         specs["h_wheel"] = channel_spec("h_wheel", sat.number_RW, labels=rw_ids)
         specs["wheel_speed"] = channel_spec("wheel_speed", sat.number_RW, labels=rw_ids)
 
@@ -216,6 +217,8 @@ def results_to_vizlog(
     torques: str = "nominal",
     overwrite: bool = False,
     model: Optional[str | Path] = None,
+    overlays: Any = "default",
+    extra_channels: Optional[Dict[str, np.ndarray]] = None,
 ) -> Path:
     r"""
     Write simulation results as an ``adcs-vizlog`` directory.
@@ -243,6 +246,13 @@ def results_to_vizlog(
     :param model: Spacecraft model sidecar (``.viz.json``) from
         :func:`~ADCS.viz.mesh_import.import_spacecraft`, referenced from
         ``scene.json``. Without it the viewer draws the drag/SRP panels.
+    :param overlays: Overlays for the viewer (:mod:`ADCS.viz.overlays`):
+        ``"default"`` (:func:`~ADCS.viz.overlays.default_overlays`), a list of
+        overlay objects/descriptors, or ``None``.
+    :param extra_channels: Additional per-row channels, ``{name: array (n_rows,
+        width)}``, e.g. ``joint_<node>`` angles [rad] that drive hinged model
+        parts, or ``user_<name>`` vectors for arrows. Applied to every run, so
+        all runs must have that many rows.
     :return: The vizlog path.
     """
     if ephem is None:
@@ -257,6 +267,14 @@ def results_to_vizlog(
         for name, spec in specs.items():
             if name in s and s[name].width != spec.width:
                 raise ValueError(f"run {i}: channel {name!r} width {s[name].width} != {spec.width}")
+    for name, arr in (extra_channels or {}).items():
+        arr = np.asarray(arr, dtype=float)
+        arr = arr.reshape(len(arr), -1)
+        for i, (cols, specs_i) in enumerate(per_run):
+            if len(arr) != len(cols["_j2000"]):
+                raise ValueError(f"extra channel {name!r} has {len(arr)} rows, run {i} has {len(cols['_j2000'])}")
+            cols[name] = arr
+            specs_i[name] = channel_spec(name, arr.shape[1])
     required = [n for n in REQUIRED_CHANNELS if n != "t_s"]
     ordered = required + [n for n in specs if n not in REQUIRED_CHANNELS]
     channels = [channel_spec("t_s")] + [specs[n] for n in ordered]
@@ -266,8 +284,24 @@ def results_to_vizlog(
     epoch_jd = float(j2000_to_jd_tt(epoch_j2000))
     epoch_iso = ephem.ts.tt_jd(epoch_jd).utc_iso(places=3)
 
+    scene = build_scene(sim.runs[0].satellite, model=model)
+    if overlays is not None:
+        from ADCS.viz.overlays import default_overlays, validate_overlays
+
+        info = {c.name: c.to_json() for c in channels}
+        if isinstance(overlays, str) and overlays == "default":
+            first = per_run[0][0]
+            ref = {}
+            for ch in ("tau_act_body", "tau_dist_body", "h_rw_body"):
+                if ch in first:
+                    mags = np.linalg.norm(first[ch], axis=1)
+                    mags = mags[np.isfinite(mags) & (mags > 0)]
+                    if len(mags):
+                        ref[ch] = float(np.percentile(mags, 10))
+            overlays = default_overlays(info, scene, ref)
+        scene["overlays"] = validate_overlays(overlays, info, scene)
     with VizLogWriter(path, channels, epoch_jd_tt=epoch_jd, epoch_iso_utc=epoch_iso,
-                      scene=build_scene(sim.runs[0].satellite, model=model), metadata=manifest_metadata(ephem),
+                      scene=scene, metadata=manifest_metadata(ephem),
                       overwrite=overwrite) as writer:
         run_ids = sim.run_ids or list(range(len(sim.runs)))
         for rid, (cols, _) in zip(run_ids, per_run):

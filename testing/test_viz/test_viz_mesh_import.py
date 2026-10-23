@@ -248,6 +248,17 @@ def test_scene_links_the_model(tmp_path, sat):
     assert scene["sensors"][0]["node"] == "tracker"
 
 
+def test_scene_carries_node_roles_and_hinges(tmp_path, sat):
+    _cubesat_scene().export(tmp_path / "sat.glb")
+    cfg = _config(tmp_path / "sat.glb")
+    cfg["nodes"]["bus"].update(articulation="hinge", axis_body=[0, 0, 1], pivot_body=[0.05, 0.05, 0.0])
+    res = import_spacecraft(cfg, tmp_path / "out", satellite=sat)
+    nodes = build_scene(sat, model=res.sidecar)["mesh"]["nodes"]
+    assert nodes["rw_y"] == {"role": "rw", "actuator": "rw1", "articulation": "spin", "axis_body": [0.0, 1.0, 0.0]}
+    assert nodes["bus"]["articulation"] == "hinge" and nodes["bus"]["pivot_body"] == [0.05, 0.05, 0.0]
+    assert np.allclose(nodes["bus"]["axis_body"], [0, 0, 1])
+
+
 def test_cli_exit_codes(tmp_path, sat, monkeypatch):
     _cubesat_scene(rw_tilt_deg=10.0).export(tmp_path / "tilt.glb")
     cfg_path = tmp_path / "cfg.json"

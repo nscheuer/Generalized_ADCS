@@ -94,6 +94,7 @@ OPTIONAL_CHANNELS: Dict[str, Channel] = {c.name: c for c in [
     _ch("rho", 1, "kg/m^3", "-", description="atmospheric density"),
     _ch("h_wheel", 0, "N m s", "-", description="wheel momentum relative to the body, per wheel"),
     _ch("wheel_speed", 0, "rad/s", "-", description="wheel spin rate relative to the body, per wheel"),
+    _ch("h_rw_body", 3, "N m s", "BODY", description="total wheel momentum as a body vector (sum h_i a_i)"),
     _ch("u_cmd", 0, "mixed", "-",
         description="actuator commands in satellite.actuators order (MTQ A m^2, RW N m)"),
     _ch("tau_act_body", 3, "N m", "BODY", description="total actuator torque"),
@@ -115,8 +116,10 @@ def channel_spec(name: str, width: Optional[int] = None, **overrides: Any) -> Ch
     r"""
     Look up a registered channel, filling in a per-log width if needed.
 
-    Unregistered names starting with ``sensor_`` are allowed (one channel per
-    attitude sensor); they must be given ``width`` and ``unit``.
+    Unregistered names with a family prefix are allowed: ``sensor_`` (one per
+    attitude sensor; give ``width`` and ``unit``), ``joint_`` (an articulated
+    part's angle, rad, width 1) and ``user_`` (anything else the caller adds;
+    give ``width``).
 
     :param name: Channel name.
     :param width: Width for variable-width channels (registry width ``0``).
@@ -128,11 +131,16 @@ def channel_spec(name: str, width: Optional[int] = None, **overrides: Any) -> Ch
     """
     spec = REQUIRED_CHANNELS.get(name) or OPTIONAL_CHANNELS.get(name)
     if spec is None:
-        if not name.startswith("sensor_"):
+        if name.startswith("joint_"):
+            if width not in (None, 1):
+                raise ValueError(f"joint channel {name!r} has width 1")
+            spec = Channel(name, 1, "rad", "-", description=overrides.pop("description", "joint angle"))
+        elif name.startswith(("sensor_", "user_")):
+            if width is None:
+                raise ValueError(f"channel {name!r} needs a width")
+            spec = Channel(name, int(width), overrides.pop("unit", "-"), overrides.pop("frame", "-"))
+        else:
             raise KeyError(f"unknown vizlog channel {name!r}")
-        if width is None:
-            raise ValueError(f"sensor channel {name!r} needs a width")
-        spec = Channel(name, int(width), overrides.pop("unit", "-"), overrides.pop("frame", "-"))
     elif spec.width == 0:
         if width is None or int(width) < 1:
             raise ValueError(f"channel {name!r} is variable-width; pass width >= 1")

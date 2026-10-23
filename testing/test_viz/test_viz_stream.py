@@ -195,6 +195,10 @@ def test_live_tee_writes_the_streamed_rows(tmp_path):
     log = VizLog.open(tmp_path / "tee.vizlog")
     assert log.n_rows("0") == 3 and log.is_complete("0")
     np.testing.assert_allclose(log.read("0", "t_s")[:, 0], [0.0, DT, 2 * DT])
+    # Live sessions carry overlays too (only for the channels a live row has) and the body-frame wheel momentum.
+    sources = {d.get("source") for d in log.scene["overlays"]}
+    assert {"h_rw_body", "@sun"} <= sources and "tau_act_body" not in sources
+    np.testing.assert_allclose(log.read("0", "h_rw_body"), log.read("0", "h_wheel") @ np.eye(3))
 
 
 # ---------------------------------------------------------------- launcher

@@ -148,12 +148,19 @@ Optional channels
 ``r_moon`` (km, GCRS, apparent), ``sunlit_binary`` (the eclipse flag the
 simulation itself used), ``b_field`` (T, GCRS), ``rho`` (kg/m³), ``h_wheel``
 (N·m·s, wheel momentum relative to the body, one column per wheel),
+``h_rw_body`` (N·m·s, BODY, total wheel momentum ``h_wheel @ axes``),
 ``wheel_speed`` (rad/s, ``h_wheel / J``), ``u_cmd`` (actuator commands, columns
 labelled by actuator id), ``tau_act_body`` and ``tau_dist_body`` (N·m, BODY),
 ``target_kind`` / ``target`` / ``w_target`` / ``boresight_body`` /
 ``pointing_err`` (active goal; see below), ``q_est`` / ``w_est`` / ``r_est`` /
 ``v_est`` (estimates), and ``sensor_<id>`` (one channel per sensor block of the
 simulation's reading vector, unit ``native``).
+
+Two more families may be added by the caller
+(``results_to_vizlog(..., extra_channels={...})``): ``joint_<node>`` (rad,
+width 1) turns the hinged model node ``<node>`` about its ``axis_body``, and
+``user_<name>`` (any width; give it 3 columns to draw it as an arrow) carries
+anything else.
 
 ``target_kind``: 0 none, 1 direction (``target = [nan, unit vector GCRS]``),
 2 attitude (``target = q_gcrs_body``), 3 position (``target = [nan, position
@@ -171,7 +178,9 @@ Static, body-frame description of the spacecraft (lengths in metres):
 * ``spacecraft``: ``mass_kg``, ``com_body_m``, ``inertia_ref_kgm2``,
   ``inertia_com_kgm2``.
 * ``mesh``: ``null`` until a model is imported; the viewer then draws boxes
-  from ``panels``.
+  from ``panels``. Otherwise ``{sidecar, sha256, coords, units, lods,
+  nodes}``; ``nodes`` maps a model node to ``{role, actuator?, sensor?,
+  articulation?: "spin"|"hinge", axis_body?, pivot_body?}``.
 * ``panels``: surfaces used by drag/SRP, ``{area_m2, center_body_m,
   normal_body, eta_s, eta_d, eta_a, CD, used_by}``.
 * ``actuators``: ``{id, index, type: "mtq"|"rw", axis_body, u_max, J_kgm2?,
@@ -180,6 +189,9 @@ Static, body-frame description of the spacecraft (lengths in metres):
   fov_assumed?, bidirectional?, node}``. Fields of view are always half-cone
   angles in radians, whatever convention the sensor class uses.
 * ``boresights``: named body-frame boresights; ``disturbances``: class names.
+* ``overlays`` (optional): what the viewer draws over the scene, a list of
+  descriptors written by :mod:`ADCS.viz.overlays` (each has ``type`` and a
+  unique ``id``; see :doc:`viewer`). Readers ignore unknown types.
 
 Validation
 ----------

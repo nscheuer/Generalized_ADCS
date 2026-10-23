@@ -1,9 +1,16 @@
 extends RefCounted
-## Overlay type name -> script. Phase 7 adds arrow, cone, polyline, target_line, label.
+## Overlay type name (scene.json "type") -> script.
 
 const TYPES := {
+	"arrow": preload("res://src/overlays/arrow.gd"),
 	"triad": preload("res://src/overlays/triad.gd"),
+	"cone": preload("res://src/overlays/cone.gd"),
+	"polyline": preload("res://src/overlays/track.gd"),
+	"target_line": preload("res://src/overlays/target_line.gd"),
+	"label": preload("res://src/overlays/label.gd"),
 }
+## Drawn at the spacecraft (children of its node); the rest live in the scene root.
+const ATTACHED := ["arrow", "triad", "cone", "label"]
 
 
 static func create(descriptor: Dictionary, scene: Dictionary) -> Node3D:

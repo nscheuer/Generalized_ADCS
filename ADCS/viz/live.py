@@ -72,7 +72,9 @@ class LiveRecorder:
         if satellite.number_RW > 0:
             rw_ids = [a["id"] for a in scene["actuators"] if a["type"] == "rw"]
             channels += [channel_spec("h_wheel", satellite.number_RW, labels=rw_ids),
-                         channel_spec("wheel_speed", satellite.number_RW, labels=rw_ids)]
+                         channel_spec("wheel_speed", satellite.number_RW, labels=rw_ids),
+                         channel_spec("h_rw_body")]
+            self._rw_axes = np.vstack([rw.axis for rw in satellite.rw_actuators])
         if satellite.control_len > 0:
             channels.append(channel_spec("u_cmd", satellite.control_len,
                                          labels=[a["id"] for a in scene["actuators"]]))
@@ -85,6 +87,11 @@ class LiveRecorder:
         self._slices = offsets
         self._row = np.zeros(i, dtype="<f8")
         self._last_q: Optional[np.ndarray] = None
+
+        from ADCS.viz.overlays import default_overlays, validate_overlays
+
+        info = {c.name: c.to_json() for c in channels}
+        scene["overlays"] = validate_overlays(default_overlays(info, scene), info, scene)
 
         epoch_jd = float(j2000_to_jd_tt(self.start_j2000))
         epoch_iso = ephem.ts.tt_jd(epoch_jd).utc_iso(places=3)
@@ -123,6 +130,7 @@ class LiveRecorder:
         if "h_wheel" in s:
             row[s["h_wheel"]] = x.h
             row[s["wheel_speed"]] = np.asarray(x.h, dtype=float) / self._rw_J
+            row[s["h_rw_body"]] = np.asarray(x.h, dtype=float) @ self._rw_axes
         if "u_cmd" in s:
             row[s["u_cmd"]] = np.nan if u is None else u
 

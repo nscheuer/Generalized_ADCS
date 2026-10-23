@@ -118,6 +118,9 @@ def build_scene(satellite: Satellite, model: Optional[str | Path] = None) -> Dic
             "sha256": hashlib.sha256(side_path.read_bytes()).hexdigest(),
             "coords": side["coords"], "units": side["units"],
             "lods": [{**lod, "path": str(side_path.parent / lod["file"])} for lod in side["lods"]],
+            "nodes": {n: {k: v for k, v in e.items() if k in ("role", "actuator", "sensor", "articulation", "axis_body",
+                                                               "pivot_body")}
+                      for n, e in side["nodes"].items()},
         }
         for node, entry in side["nodes"].items():
             for item in actuators if "actuator" in entry else sensors if "sensor" in entry else []:

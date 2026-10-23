@@ -7,6 +7,7 @@ const Origin := preload("res://src/core/origin.gd")
 const Assets := preload("res://src/scene/assets.gd")
 const Spacecraft := preload("res://src/scene/spacecraft.gd")
 const Atmosphere := preload("res://src/scene/atmosphere.gd")
+const OverlayManager := preload("res://src/overlays/manager.gd")
 
 const R_EARTH := 6378137.0
 const R_MOON := 1737400.0
@@ -35,6 +36,7 @@ var exposure_ev := 0.0
 ## DSCOVR/EPIC's 0.62 deg, the camera uses an equivalent frustum projection.
 var fov_deg := 45.0
 var quality := "balanced"
+var overlays := OverlayManager.new()
 var origin := Origin.new()
 var earth: MeshInstance3D
 var earth_mat: ShaderMaterial
@@ -299,6 +301,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 
 	info = {"near": origin.near, "far": origin.far, "k_craft": k_craft, "k_earth": k_earth, "k_moon": k_moon,
 		"craft_near": craft_near, "lod": craft.lod, "d_craft": d_craft}
+	overlays.update(frame, self, cam_pos, cam_rot)
 
 
 ## Quality presets. Measured on an Intel Arc 140V at 1080p (GPU p50/p99):

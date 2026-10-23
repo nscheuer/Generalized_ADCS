@@ -48,7 +48,8 @@ Configuration
      "nodes": {
        "bus":     {"role": "body"},
        "wheel_x": {"role": "rw", "actuator": "rw0"},
-       "array_1": {"role": "panel", "articulation": "hinge", "axis_body": [0, 1, 0]},
+       "array_1": {"role": "panel", "articulation": "hinge", "axis_body": [0, 1, 0],
+                   "pivot_body": [0.05, 0.0, 0.1]},
        "tracker": {"role": "sensor", "sensor": "startracker0", "boresight_local": [0, 0, 1]}
      },
      "lods": [1.0, 0.25, 0.05],
@@ -62,6 +63,11 @@ Configuration
   conversion that Blender and most CAD tools apply when writing glTF.
 * ``mass_kg`` defaults to the satellite's mass; ``density_kg_m3`` can be given
   instead when there is no satellite.
+* A ``hinge`` node turns about ``axis_body`` through ``pivot_body`` (BODY
+  metres; default: the corner of the part nearest the body origin) by the
+  vizlog channel ``joint_<node>`` in radians, 0 being the pose in the file:
+  ``results_to_vizlog(..., extra_channels={"joint_array_1": angles})``.
+  Wheel nodes spin about their actuator's axis automatically.
 * Node ids for ``actuator`` and ``sensor`` are the ones in the vizlog
   ``scene.json``: ``mtq0``, ``rw0``, ``startracker0``, ``sunsensor1``, … in the
   satellite's order.

@@ -11,6 +11,8 @@ var lods: Array[Node3D] = []
 var source := "none"
 var wheel_nodes: Dictionary = {}  ## [rw index, lod id] -> [Node3D, axis, rest Transform3D, pivot]
 var _wheel_angle: Dictionary = {}
+var hinge_nodes: Array = []  ## [Node3D, axis, pivot, rest Transform3D, channel]
+var _joint_store: RefCounted
 var _last_t := NAN
 
 
@@ -41,6 +43,7 @@ func build(scene: Dictionary, assets: Dictionary) -> void:
 		source = "panels" if not (scene.get("panels", []) as Array).is_empty() else "box"
 	radius = maxf(_bounding_radius(lods[0]), 0.05)
 	_find_wheels(scene)
+	_find_hinges(scene)
 	choose_lod(1e9)
 
 
@@ -169,6 +172,59 @@ func _find_wheels(scene: Dictionary) -> void:
 		rw_index += 1
 
 
+## Hinged parts: model nodes with articulation "hinge", driven by the channel
+## "joint_<node>" (rad) when the log has it. Pivot: "pivot_body" from the model
+## config, else the corner of the part nearest the body origin.
+func _find_hinges(scene: Dictionary) -> void:
+	hinge_nodes.clear()
+	var mesh: Variant = scene.get("mesh")
+	if source != "model" or not mesh is Dictionary:
+		return
+	for node_name: String in (mesh.get("nodes", {}) as Dictionary):
+		var entry: Dictionary = mesh["nodes"][node_name]
+		if entry.get("articulation") != "hinge" or not entry.has("axis_body"):
+			continue
+		var ax: Array = entry["axis_body"]
+		for l in lods:
+			var n := l.find_child(node_name, true, false) as Node3D
+			if n == null:
+				continue
+			var pivot: Vector3
+			if entry.has("pivot_body"):
+				var p: Array = entry["pivot_body"]
+				pivot = Vector3(p[0], p[1], p[2])
+			else:
+				var box := _node_aabb(n)
+				pivot = Vector3(clampf(0.0, box.position.x, box.end.x), clampf(0.0, box.position.y, box.end.y),
+					clampf(0.0, box.position.z, box.end.z))
+			hinge_nodes.append([n, Vector3(ax[0], ax[1], ax[2]).normalized(), pivot, n.transform, "joint_" + node_name])
+
+
+static func _node_aabb(node: Node3D) -> AABB:
+	var acc := AABB()
+	var first := true
+	for mi in [node] + node.find_children("*", "MeshInstance3D", true, false):
+		if mi is MeshInstance3D:
+			var box := node.transform * _relative_transform(mi as Node3D, node) * (mi as MeshInstance3D).get_aabb()
+			acc = box if first else acc.merge(box)
+			first = false
+	return acc
+
+
+## Where each hinged part is now (BODY metres), for checks.
+func hinge_report() -> Array:
+	var out := []
+	for h: Array in hinge_nodes:
+		if lods[lod].is_ancestor_of(h[0] as Node3D):  # the current level of detail
+			var c := _node_aabb(h[0] as Node3D).get_center()
+			out.append({"channel": h[4], "center_body": [c.x, c.y, c.z]})
+	return out
+
+
+func set_joint_store(store: RefCounted) -> void:
+	_joint_store = store
+
+
 ## Pick a level of detail from the projected radius in pixels.
 func choose_lod(radius_px: float) -> void:
 	var want := 0 if radius_px > 200.0 else (1 if radius_px > 40.0 else 2)
@@ -177,8 +233,16 @@ func choose_lod(radius_px: float) -> void:
 		lods[i].visible = i == lod
 
 
-## Spin wheel nodes by integrating the logged wheel speed (display only).
+## Spin wheel nodes by integrating the logged wheel speed (display only) and
+## set hinge angles from joint_<node> channels.
 func update_articulation(frame: Dictionary) -> void:
+	if _joint_store != null:
+		for h: Array in hinge_nodes:
+			if _joint_store.has(h[4]):
+				var angle: float = _joint_store.value(h[4], frame["t"])[0]
+				var pivot: Vector3 = h[2]
+				(h[0] as Node3D).transform = Transform3D(Basis(), pivot) * Transform3D(Basis(h[1] as Vector3, angle), Vector3.ZERO) \
+					* Transform3D(Basis(), -pivot) * (h[3] as Transform3D)
 	if wheel_nodes.is_empty() or not frame.has("wheel_speed"):
 		return
 	var ts: float = frame["t"]

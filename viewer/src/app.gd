@@ -15,7 +15,6 @@ const Assets := preload("res://src/scene/assets.gd")
 const World := preload("res://src/scene/world.gd")
 const CameraRig := preload("res://src/camera/camera_rig.gd")
 const Hud := preload("res://src/ui/hud.gd")
-const Overlays := preload("res://src/overlays/registry.gd")
 const Checks := preload("res://src/checks.gd")
 
 var opts: Dictionary = {}
@@ -25,7 +24,6 @@ var assets := Assets.new()
 var world: World
 var rig := CameraRig.new()
 var hud: Hud
-var triad: Node3D
 var loaded_assets: Dictionary = {}
 var last_frame: Dictionary = {}
 var _fps_t := 0.0
@@ -68,9 +66,12 @@ func _ready() -> void:
 		rig.mode = CameraRig.Mode.EARTH
 	world.set_exposure(String(opts.get("exposure", "artistic")), float(opts.get("ev", 0.0)))
 	world.set_quality(String(opts.get("quality", "balanced")))
-	triad = Overlays.create({"type": "triad", "length_m": 1.5 * world.craft.radius}, source.scene)
-	triad.visible = false
-	world.craft.add_child(triad)
+	var scene: Dictionary = source.scene.duplicate()
+	if not scene.has("overlays"):
+		scene["overlays"] = [{"id": "body_axes", "type": "triad", "frame": "body", "visible": false}]
+	world.overlays.build(scene, source.manifest, source.store, world.craft, world.viewport)
+	world.craft.set_joint_store(source.store)
+	_log("overlays: %d" % world.overlays.nodes.size())
 
 	_update_range()
 	clock.t = clock.t_min
@@ -179,7 +180,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_3: _orbit("body")
 			KEY_4: rig.mode = CameraRig.Mode.EARTH
 			KEY_L: clock.follow_live = source.live
-			KEY_A: triad.visible = not triad.visible
+			KEY_A:
+				for n in world.overlays.nodes:
+					if n.desc.get("type") == "triad":
+						n.visible = not n.visible
+			KEY_O: world.overlays.set_enabled(not world.overlays.enabled)
 			KEY_H: hud.help.visible = not hud.help.visible
 			KEY_E: world.set_exposure("physical" if world.exposure_mode == "artistic" else "artistic", world.exposure_ev)
 			KEY_Q:

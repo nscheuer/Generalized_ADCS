@@ -45,8 +45,10 @@ Controls
      - around the spacecraft in the LVLH / inertial / body frame
    * - 4
      - around Earth
-   * - L, A, H, Home
-     - follow live data, body axes, help, reset view
+   * - O, A
+     - all overlays on/off, axis triads on/off
+   * - L, H, Home
+     - follow live data, help, reset view
 
 The timeline at the bottom scrubs through the run; the HUD shows UTC,
 altitude, speed, eclipse state, pointing error and frame rate.
@@ -85,8 +87,65 @@ How it works
   default), ``fast`` (no glow, fewer atmosphere steps). Measured on an Intel
   Arc 140V (integrated) with atmosphere, clouds and a model, GPU p50/p99:
   balanced 1080p 5.1/10.4 ms, 1440p 6.9/19.0 ms.
-* **Not yet:** vector, cone and track overlays (Phase 7); video export
-  (Phase 8).
+* **Articulation.** Model nodes marked ``"articulation": "hinge"`` in the
+  model config turn about ``axis_body`` through ``pivot_body`` by the logged
+  ``joint_<node>`` angle (0 = as modelled); wheels spin from ``wheel_speed``.
+* **Not yet:** video export (Phase 8).
+
+Overlays
+--------
+
+What is drawn over the scene is decided in Python and stored in the log's
+``scene.json``, so a recorded log and a live stream show the same thing.
+:func:`~ADCS.viz.results_to_vizlog` and live streams add
+:func:`~ADCS.viz.overlays.default_overlays`: body axes, control and
+disturbance torque, wheel momentum (``h_rw_body``), magnetic field and Sun
+direction, sensor fields of view (not for assumed ones), orbit and ground
+tracks, and the pointing target. Choose your own with ``overlays=[...]``:
+
+.. code-block:: python
+
+   from ADCS.viz import overlays as ov
+   results_to_vizlog(results, "run.vizlog", overlays=[
+       ov.Triad("lvlh"),
+       ov.Arrow("tau_act_body", label="control torque"),               # log scale
+       ov.Arrow("user_thrust", scale="physical", units_per_m=0.01),     # 0.01 N per metre
+       ov.Arrow("@sun", label="Sun", scale="fixed_px", px=100),
+       ov.SensorCone("startracker0"),
+       ov.OrbitTrack(past_s=5400, future_s=1800), ov.GroundTrack(),
+   ], extra_channels={"user_thrust": thrust_body})                    # (n_rows, 3) array
+
+.. list-table::
+   :widths: 22 78
+
+   * - ``Arrow``
+     - from the centre of mass. ``source``: a 3-wide channel (BODY or GCRS,
+       from the manifest) or ``@sun``, ``@nadir``, ``@velocity``,
+       ``@boresight:<name>``. ``scale``: ``log`` (``px_min`` at ``ref``, the
+       10th percentile of the log by default, +``px_per_decade`` per factor
+       10, at most ``px_max``), ``fixed_px`` (direction only) or ``physical``
+       (``units_per_m``). Vectors that are not available (NaN) are hidden.
+   * - ``Triad``
+     - X/Y/Z axes of the ``body``, ``lvlh`` (Z nadir, Y −orbit normal) or
+       ``gcrs`` frame.
+   * - ``SensorCone``
+     - half-angle and boresight from the scene's sensor entry.
+   * - ``OrbitTrack``, ``GroundTrack``
+     - the logged path from ``past_s`` before to ``future_s`` after now;
+       the ground track is fixed on the rotating Earth, 3 km above the
+       surface. One-pixel lines, hidden behind the Earth.
+   * - ``TargetLine``
+     - toward the active target (``target_kind`` / ``target``).
+   * - ``Label``
+     - text next to the spacecraft.
+
+Spacecraft-attached overlays keep a constant size on screen whatever the
+zoom, labels are 15 px high and pushed apart when they overlap, and arrows are
+drawn over the model (``on_top``). The ``overlays`` check in
+``run_viewer_checks.py`` compares rendered arrows and tracks with a float64
+projection of the logged data, and ``perf_overlays`` measures their CPU cost
+(about 0.26 ms per frame for the default set and 1 ms for 50 labelled arrows,
+GDScript).
 
 Checks
 ------

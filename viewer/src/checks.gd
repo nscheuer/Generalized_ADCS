@@ -131,6 +131,7 @@ func jitter(cfg: Dictionary) -> Dictionary:
 	# body frame while the controller slews.
 	app.world.dynamic_lighting = false
 	app.world.env.ambient_light_color = Color(0.8, 0.8, 0.8)
+	app.world.overlays.set_enabled(false)  # vectors change with the data; the model alone must not move
 	var rig: CameraRig = app.rig
 	rig.mode = CameraRig.Mode.ORBIT
 	rig.frame_kind = "body"
@@ -371,13 +372,28 @@ func live(cfg: Dictionary) -> Dictionary:
 
 
 # ------------------------------------------------------------------ explicit camera poses
-## shots: [{name, t, cam_pos (GCRS m), look_at (GCRS m), up (GCRS), fov_deg, hide: ["craft", "moon"]}]
+## shots: [{name, t, cam_pos (GCRS m), look_at (GCRS m), up (GCRS), fov_deg,
+##          hide: ["craft", "model", "earth", "moon", "stars", "sun"], overlays: [ids] | absent (all), labels}]
 ## Renders exactly the requested view (e.g. from DSCOVR for an EPIC comparison).
+## "model" hides the spacecraft's geometry but keeps its overlays.
 func pose(cfg: Dictionary) -> Dictionary:
 	var out := []
+	var ov: RefCounted = app.world.overlays
+	var w: RefCounted = app.world
+	var parts: Array[Node3D] = [w.earth, w.shell, w.stars, w.sun]
+	for c in w.craft.get_children():
+		if c is Node3D and not ov.nodes.has(c):
+			parts.append(c)
+	var shown := parts.map(func(n: Node3D) -> bool: return n.visible)
 	for s: Dictionary in cfg.get("shots", []):
+		for i in parts.size():
+			parts[i].visible = shown[i]
 		var hide: Array = s.get("hide", [])
 		app.world.craft.visible = not hide.has("craft")
+		var keep: Array = s.get("overlays", [])
+		for n: Node3D in ov.nodes:
+			n.visible = keep.has(String(n.name)) if s.has("overlays") else bool(n.desc.get("visible", true))
+		ov.show_labels = bool(s.get("labels", true))
 		app.world.fov_deg = float(s.get("fov_deg", app.world.fov_deg))
 		# Optional display overrides, e.g. linear tone mapping for photometric comparisons.
 		var tm: String = s.get("tonemap", "agx")
@@ -392,12 +408,29 @@ func pose(cfg: Dictionary) -> Dictionary:
 		for i in int(s.get("settle_frames", 3)):
 			app.world.update(f, cam, rot)
 			app.world.moon.visible = app.world.moon.visible and not hide.has("moon")
+			_hide_parts(hide)
 			await RenderingServer.frame_post_draw
 		var img := _image()
 		var file := "%s.png" % s.get("name", "pose_%d" % out.size())
 		img.save_png(_out(file))
-		out.append({"name": file, "t": t, "fov_deg": app.world.fov_deg, "info": app.world.info.duplicate()})
+		out.append({"name": file, "t": t, "fov_deg": app.world.fov_deg, "info": app.world.info.duplicate(),
+			"overlays": ov.summary(), "hinges": w.craft.hinge_report()})
 	return {"shots": out}
+
+
+func _hide_parts(hide: Array) -> void:
+	var w: RefCounted = app.world
+	if hide.has("earth"):
+		w.earth.visible = false
+		w.shell.visible = false
+	if hide.has("stars"):
+		w.stars.visible = false
+	if hide.has("sun"):
+		w.sun.visible = false
+	if hide.has("model"):
+		for c in w.craft.get_children():
+			if c is Node3D and not w.overlays.nodes.has(c):
+				c.visible = false
 
 
 # ------------------------------------------------------------------ performance
@@ -417,6 +450,8 @@ func perf(cfg: Dictionary) -> Dictionary:
 				app.world.env.glow_enabled = false
 			"clouds":
 				app.world.earth_mat.set_shader_parameter("has_clouds", false)
+			"overlays":
+				app.world.overlays.set_enabled(false)
 			"textures":
 				for p: String in ["has_day", "has_night", "has_clouds", "has_normals", "has_ocean"]:
 					app.world.earth_mat.set_shader_parameter(p, false)
@@ -430,8 +465,17 @@ func perf(cfg: Dictionary) -> Dictionary:
 	if cfg.has("atm_steps"):
 		app.world.earth_mat.set_shader_parameter("atm_steps", int(cfg["atm_steps"]))
 		app.world.shell_mat.set_shader_parameter("atm_steps", int(cfg["atm_steps"]))
+	# Stress: extra labelled arrows on the spacecraft (overlay cost scaling).
+	for i in int(cfg.get("extra_arrows", 0)):
+		var n: Node3D = preload("res://src/overlays/registry.gd").create({"type": "arrow", "id": "stress%d" % i,
+			"source": "@sun", "scale": "fixed_px", "px": 40.0 + i, "label": "arrow %d" % i}, app.source.scene)
+		app.world.craft.add_child(n)
+		app.world.overlays.nodes.append(n)
+		app.world.overlays.labels.append(n.label)
 	var rid: RID = app.world.viewport.get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(rid, true)
+	var ov_us := PackedFloat64Array()
+	var layout_us := PackedFloat64Array()
 	var rig: CameraRig = app.rig
 	rig.mode = CameraRig.Mode.ORBIT
 	rig.frame_kind = "inertial"
@@ -448,8 +492,11 @@ func perf(cfg: Dictionary) -> Dictionary:
 		var now := Time.get_ticks_usec()
 		if i >= 30:
 			gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(rid))
+			ov_us.append(app.world.overlays.cost_us)
+			layout_us.append(app.world.overlays.layout_us)
 			wall.append((now - last) / 1000.0)
 		last = now
-	return {"gpu_ms": gpu, "frame_ms": wall, "res": [app.world.viewport.size.x, app.world.viewport.size.y],
+	return {"gpu_ms": gpu, "frame_ms": wall, "overlay_cpu_us": ov_us, "label_layout_us": layout_us, "n_overlays": app.world.overlays.nodes.size(),
+		"res": [app.world.viewport.size.x, app.world.viewport.size.y],
 		"atmosphere": app.loaded_assets.has("atmosphere")}
 

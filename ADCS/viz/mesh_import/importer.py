@@ -316,7 +316,7 @@ def import_spacecraft(
         for n, m in meshes.items():
             c = node_cfg.get(n, {})
             entry = {"role": c.get("role", "body"), "triangles": int(len(m.faces)), "closed_volume": closed[n]}
-            for key in ("actuator", "sensor", "articulation", "axis_body"):
+            for key in ("actuator", "sensor", "articulation", "axis_body", "pivot_body"):
                 if key in c:
                     entry[key] = c[key]
             if "actuator" in c:
