@@ -15,7 +15,7 @@ var finished := false
 var error_message := ""
 
 
-func open(host: String, port: int, token: String) -> bool:
+func open(host: String, port: int, token: String, wanted_run: String = "") -> bool:
 	if not client.connect_to(host, port, token):
 		error_message = client.error_message
 		return false
@@ -23,7 +23,7 @@ func open(host: String, port: int, token: String) -> bool:
 	scene = client.hello.get("scene", {})
 	live = String(client.hello.get("mode", "")).begins_with("live")
 	var runs: Array = manifest.get("runs", [])
-	run_id = str(runs[0]["id"]) if runs.size() > 0 else "0"
+	run_id = wanted_run if wanted_run != "" else (str(runs[0]["id"]) if runs.size() > 0 else "0")
 	store = FrameStore.new(client.names, client.widths)
 	assets = client.assets
 	return true

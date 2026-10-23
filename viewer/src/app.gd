@@ -5,7 +5,8 @@ extends Node
 ##   <viewer> -- --log RUN.vizlog [--run ID] [--assets DIR]       (read a vizlog from disk)
 ##
 ## Options: --res WxH (fixed render size), --mode orbit|earth, --frame lvlh|inertial|body,
-## --rate R, --max-face N (downscale textures), --check NAME --config FILE --out DIR.
+## --rate R, --max-face N (downscale textures), --check NAME --config FILE --out DIR,
+## --render JOB.json --out DIR (offline video frames, see src/render.gd).
 
 const D := preload("res://src/core/dmath.gd")
 const Clock := preload("res://src/core/viz_clock.gd")
@@ -16,6 +17,7 @@ const World := preload("res://src/scene/world.gd")
 const CameraRig := preload("res://src/camera/camera_rig.gd")
 const Hud := preload("res://src/ui/hud.gd")
 const Checks := preload("res://src/checks.gd")
+const Renderer := preload("res://src/render.gd")
 
 var opts: Dictionary = {}
 var source: RefCounted  ## StreamSource or FileSource
@@ -28,6 +30,7 @@ var loaded_assets: Dictionary = {}
 var last_frame: Dictionary = {}
 var _fps_t := 0.0
 var checks: RefCounted
+var renderer: RefCounted
 
 
 func _ready() -> void:
@@ -46,6 +49,8 @@ func _ready() -> void:
 		var msg: String = source.error_message if source != null else "nothing to show"
 		if opts.has("check"):
 			Checks.finish(self, {"error": msg})
+		elif opts.has("render"):
+			Renderer.new(self)._finish(String(opts.get("out", OS.get_user_data_dir())), {"error": msg})
 		else:
 			hud.status.text = "Cannot open data: %s\n\nRun from Python: python -m ADCS.viz view run.vizlog" % msg
 			set_process(false)
@@ -81,6 +86,11 @@ func _ready() -> void:
 	hud.setup(clock, source)
 
 	_log("ready")
+	if opts.has("render"):
+		set_process(false)
+		renderer = Renderer.new(self)  # keep a reference (see checks below)
+		renderer.run(String(opts["render"]))
+		return
 	if opts.has("check"):
 		set_process(false)
 		# Keep a reference: a RefCounted freed mid-await silently drops its coroutine.
@@ -93,7 +103,7 @@ func _open_source() -> bool:
 		var s := StreamSource.new()
 		source = s
 		var hp := String(opts["connect"]).rsplit(":", true, 1)
-		if not s.open(hp[0], int(hp[1]), String(opts.get("token", ""))):
+		if not s.open(hp[0], int(hp[1]), String(opts.get("token", "")), String(opts.get("run", ""))):
 			return false
 		if not s.live:
 			return s.receive_all(120.0)

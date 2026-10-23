@@ -52,7 +52,7 @@ from ADCS.viz.launcher import (  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ALL = ["assets", "file_source", "shots", "jitter", "jitter_control", "terminator", "landmarks", "scrub", "capture",
-       "live", "moon", "exposure", "perf_1080p", "perf_1440p", "perf_1440p_high", "overlays", "perf_overlays", "timeline", "timeline_perf", "sun_occlusion", "layers"]
+       "live", "moon", "exposure", "perf_1080p", "perf_1440p", "perf_1440p_high", "overlays", "perf_overlays", "timeline", "timeline_perf", "sun_occlusion", "layers", "render"]
 ARRAY_PIVOT = [0.05, 0.05, 0.0]    # hinge line of the test model's deployable panel (BODY m)
 ARRAY_CENTER = [0.051, 0.10, 0.0]  # panel centre when deployed (joint angle 0)
 
@@ -741,6 +741,85 @@ def run_layers(runner: "Runner", sim_log: Path) -> dict:
             "chip_rects": r["chips"]}
 
 
+# ------------------------------------------------------------------ offline video (Phase 8)
+def run_render(runner: "Runner", sim_log: Path) -> dict:
+    """
+    python -m ADCS.viz render's code path on the real viewer: the same job twice gives bit-identical frames;
+    the video has the requested frames, size and rate; motion-blur sub-frames are drawn without overlays and the
+    overlays come back sharp; supersampling renders at the multiple; --ui puts the timeline into the frames.
+    """
+    from PIL import Image
+
+    from ADCS.viz.render import CameraKey, RenderJob, find_ffmpeg, render_video
+
+    ffmpeg = find_ffmpeg()
+    if ffmpeg is None:
+        return {"error": "no ffmpeg (pip install imageio-ffmpeg)"}
+    out_dir = runner.work / "render"
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True)
+    keys = [CameraKey(at=0.0, dist_m=1.2, yaw_deg=-140.0, pitch_deg=18.0),
+            CameraKey(at=0.8, dist_m=6.0, yaw_deg=-100.0, pitch_deg=25.0)]
+    base = dict(duration_s=0.8, fps=10.0, width=480, height=270, t_start=300.0, t_end=420.0, quality="balanced",
+                keys=keys)
+    go = lambda name, **kw: render_video(sim_log, RenderJob(**{**base, **kw}), out_dir / f"{name}.mp4",
+                                         binary=runner.godot, assets=runner.assets, keep_frames=True, keep_work=True,
+                                         log=lambda *_: None)
+    try:
+        a, b = go("plain"), go("plain_again")
+        c = go("blur", supersample=2, motion_blur=4)
+        u = go("ui", ui=True, width=960, height=540)
+        p540 = go("plain_540", width=960, height=540)
+    except Exception as e:  # noqa: BLE001 - report any failure of the pipeline
+        return {"error": f"{type(e).__name__}: {e}"}
+    load = lambda d, i: np.asarray(Image.open(Path(d) / f"{i:06d}.png").convert("RGB"))
+    out, ok = {}, True
+    n = 8
+    same = all(np.array_equal(load(a.frames_dir, i), load(b.frames_dir, i)) for i in range(n))
+    out["deterministic"] = same
+    ok &= same
+
+    def probe(path):
+        txt = subprocess.run([ffmpeg, "-i", str(path), "-f", "null", "-"], capture_output=True, text=True,
+                             check=False).stderr
+        import re
+        return {"frames": int(re.findall(r"frame=\s*(\d+)", txt)[-1]), "size": re.search(r"(\d{2,5})x(\d{2,5})", txt).group(0),
+                "fps": float(re.search(r"([\d.]+) fps", txt).group(1))}
+    out["video"] = {k: probe(r.video) for k, r in (("plain", a), ("blur", c), ("ui", u))}
+    ok &= all(v == {"frames": n, "size": "960x540" if k == "ui" else "480x270", "fps": 10.0}
+              for k, v in out["video"].items())
+    ok &= c.metadata["render_size"] == "960x540" and c.metadata["sub_frames"] == n * 6
+    # Motion blur: scene sub-frames have no overlays; the sharp layer puts them back.
+    raw = Path(c.metadata["work_dir"]) / "raw"
+    i = 4
+    allx, scene = (np.asarray(Image.open(raw / f"{i:06d}_{j:02d}.png").convert("RGB")).astype(int) for j in (4, 5))
+    overlay_px = int((np.abs(allx - scene).max(2) > 2).sum())
+    out["overlay_pixels_in_sharp_layer"] = overlay_px
+    ok &= overlay_px > 500
+    # Those pixels in the final frame equal the sharp layer (downsampled), not a blur of it.
+    from ADCS.viz.render import average_linear
+    sharp_only = average_linear([allx.astype(np.uint8)], 2)
+    mask = (np.abs(allx - scene).max(2) > 2).reshape(270, 2, 480, 2).all(axis=(1, 3))
+    final = load(c.frames_dir, i).astype(int)
+    out["overlay_max_diff"] = int(np.abs(final[mask] - sharp_only[mask]).max()) if mask.any() else None
+    ok &= out["overlay_max_diff"] is not None and out["overlay_max_diff"] <= 2
+    # The camera keys move the camera: the first and last frames differ substantially.
+    out["first_last_mean_diff"] = float(np.abs(load(a.frames_dir, 0).astype(int) - load(a.frames_dir, n - 1)).mean())
+    ok &= out["first_last_mean_diff"] > 1.0
+    # --ui: the timeline is in the bottom of the frame.
+    bottom = lambda d: load(d, 3)[-60:].astype(int)
+    out["ui_bottom_diff"] = float(np.abs(bottom(u.frames_dir) - bottom(p540.frames_dir)).mean())
+    ok &= out["ui_bottom_diff"] > 5.0
+    out["ms_per_sub_frame"] = c.metadata["viewer"]["ms_per_sub_frame"]
+    out["viewer"] = {k: c.metadata["viewer"][k] for k in ("adapter", "driver", "godot", "renderer")}
+    for r in (a, b, c, u, p540):
+        shutil.rmtree(Path(r.metadata["work_dir"]), ignore_errors=True)
+    return {"passed": bool(ok), "criterion": "same job twice: bit-identical frames; videos have the requested frame "
+            "count, size and rate; supersample renders at 2x; motion-blur sub-frames omit overlays and the overlays "
+            "come back unblurred (<= 2/255); camera keys move the camera; --ui draws the timeline", **out}
+
+
 # ------------------------------------------------------------------ judging
 def stats(a) -> dict:
     a = np.asarray(a, float)
@@ -870,6 +949,8 @@ def main() -> int:
         report("sun_occlusion", run_sun_occlusion(runner, sim_log))
     if "layers" in args.checks:
         report("layers", run_layers(runner, sim_log))
+    if "render" in args.checks:
+        report("render", run_render(runner, sim_log))
 
     meta = {"date": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "godot": str(runner.godot)}
     out_root = HERE / "results"

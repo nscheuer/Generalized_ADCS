@@ -1,4 +1,4 @@
-"""Command line: ``python -m ADCS.viz {convert,info,view,listen,install-viewer} ...``."""
+"""Command line: ``python -m ADCS.viz {convert,info,view,render,listen,install-viewer} ...``."""
 
 import argparse
 import sys
@@ -76,6 +76,31 @@ def _listen(args: argparse.Namespace) -> int:
     return 0
 
 
+def _render(args: argparse.Namespace) -> int:
+    from dataclasses import replace
+
+    from ADCS.viz.binary_manager import ViewerNotFoundError
+    from ADCS.viz.render import RenderJob, load_job, parse_key, render_video
+
+    job = load_job(args.job) if args.job else RenderJob()
+    w, h = (int(x) for x in args.res.split("x")) if args.res else (job.width, job.height)
+    over = {k: v for k, v in {"duration_s": args.duration, "fps": args.fps, "t_start": args.start, "t_end": args.end,
+                              "supersample": args.supersample, "motion_blur": args.motion_blur,
+                              "quality": args.quality}.items() if v is not None}
+    job = replace(job, width=w, height=h, ui=job.ui or args.ui, **over)
+    if args.key:
+        job = replace(job, keys=[parse_key(k) for k in args.key])
+    try:
+        res = render_video(args.path, job, args.out, binary=args.viewer, project=args.viewer_project,
+                           assets=args.assets, codec=args.codec, crf=args.crf, keep_frames=args.keep_frames,
+                           run_id=args.run)
+    except (ViewerNotFoundError, RuntimeError, ValueError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    print(res.video or res.frames_dir)
+    return 0
+
+
 def _install_viewer(args: argparse.Namespace) -> int:
     from ADCS.viz.binary_manager import ViewerNotFoundError, install_viewer
 
@@ -116,6 +141,34 @@ def main(argv=None) -> int:
                    help="Godot project when --viewer is a plain Godot binary (default: the repo's viewer/)")
     p.add_argument("--assets", type=Path, help="asset cache (default: python -m ADCS.viz.assets path)")
     p.set_defaults(func=_view)
+
+    p = sub.add_parser("render", help="render a vizlog to a video (offline, frame-exact)",
+                       description="Examples:\n  python -m ADCS.viz render run.vizlog run.mp4 --duration 10 --res 1920x1080 "
+                       "--supersample 2 --motion-blur 4\n  python -m ADCS.viz render run.vizlog fly.mp4 "
+                       "--key at=0,dist=1.5 --key at=8,dist=2e6,yaw=-60,pitch=30\n  python -m ADCS.viz render run.vizlog "
+                       "out.mp4 --job job.json", formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("path", type=Path)
+    p.add_argument("out", type=Path, help="output video (.mp4 / .mov), or a directory with --codec none")
+    p.add_argument("--job", type=Path, help="RenderJob as JSON (fields of ADCS.viz.render.RenderJob)")
+    p.add_argument("--duration", type=float, help="video length [s] (default 10)")
+    p.add_argument("--fps", type=float)
+    p.add_argument("--res", help="WxH, e.g. 1920x1080")
+    p.add_argument("--start", type=float, help="simulation time of the first frame [s]")
+    p.add_argument("--end", type=float, help="simulation time of the last frame [s]")
+    p.add_argument("--supersample", type=int, choices=[1, 2, 3, 4])
+    p.add_argument("--motion-blur", type=int, help="sub-frames per frame (1 = none)")
+    p.add_argument("--quality", choices=["high", "balanced", "fast"])
+    p.add_argument("--ui", action="store_true", help="draw the timeline and HUD into the video")
+    p.add_argument("--key", action="append", help="camera key: at=T,mode=orbit|earth,frame=lvlh|inertial|body,"
+                   "dist=M,yaw=DEG,pitch=DEG,fov=DEG,ease=smooth|linear (repeat)")
+    p.add_argument("--codec", default="h264", choices=["h264", "h265", "prores", "none"])
+    p.add_argument("--crf", type=int, default=16, help="h264/h265 quality (lower is better)")
+    p.add_argument("--keep-frames", action="store_true")
+    p.add_argument("--run", help="run id (default: the first)")
+    p.add_argument("--viewer", type=Path)
+    p.add_argument("--viewer-project", type=Path)
+    p.add_argument("--assets", type=Path)
+    p.set_defaults(func=_render)
 
     p = sub.add_parser("listen", help="reference client: connect to a server and print what it sends")
     p.add_argument("address", help="host:port")

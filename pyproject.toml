@@ -87,6 +87,13 @@ viz = [
 viz-assets = [
     "Pillow>=10",
 ]
+# Offline video from the viewer (python -m ADCS.viz render). Uses ffmpeg from
+# PATH if present, else the binary shipped by imageio-ffmpeg (an LGPL/GPL
+# ffmpeg build downloaded by pip, not part of this package).
+viz-video = [
+    "Pillow>=10",
+    "imageio-ffmpeg>=0.5",
+]
 # Spacecraft model import for the viewer (python -m ADCS.viz.mesh_import).
 viz-mesh = [
     "trimesh>=4.0",

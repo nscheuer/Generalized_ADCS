@@ -144,7 +144,56 @@ How it works
 * **Articulation.** Model nodes marked ``"articulation": "hinge"`` in the
   model config turn about ``axis_body`` through ``pivot_body`` by the logged
   ``joint_<node>`` angle (0 = as modelled); wheels spin from ``wheel_speed``.
-* **Not yet:** video export (Phase 8).
+* **Video export**: see `Video`_ below.
+
+Video
+-----
+
+``python -m ADCS.viz render`` (or :func:`ADCS.viz.render.render_video`) renders
+a log to a video offline, frame by frame. Every frame is drawn at a fixed
+simulation time and camera, never from the wall clock, so the same job gives
+the same frames on the same machine.
+
+.. code-block:: bash
+
+   pip install "generalized-adcs[viz-video]"      # ffmpeg via imageio-ffmpeg, unless ffmpeg is on PATH
+   python -m ADCS.viz render run.vizlog run.mp4 --duration 12 --res 1920x1080 --supersample 2 --motion-blur 8
+   python -m ADCS.viz render run.vizlog fly.mp4 --key at=0,dist=1.5 --key at=8,dist=2e6,yaw=-60,pitch=30
+   python -m ADCS.viz render run.vizlog out.mp4 --job job.json --codec prores
+
+.. code-block:: python
+
+   from ADCS.viz.render import CameraKey, RenderJob, render_video
+   job = RenderJob(duration_s=12, fps=30, width=1920, height=1080, supersample=2, motion_blur=8,
+                   t_start=0, t_end=1800, overlays={"tracks": False}, keys=[
+       CameraKey(at=0, mode="orbit", frame="lvlh", dist_m=1.5, yaw_deg=-140, pitch_deg=18),
+       CameraKey(at=8, mode="orbit", frame="lvlh", dist_m=2.0e6, yaw_deg=-60, pitch_deg=30),
+       CameraKey(at=10, mode="earth", dist_m=2.0e7, yaw_deg=20, pitch_deg=10),   # a cut
+   ])
+   render_video("run.vizlog", job, "run.mp4")
+
+* **Time.** Simulation time runs linearly from ``t_start`` to ``t_end`` (by
+  default the whole run) over ``duration_s``; the speed pill in a ``--ui``
+  video shows that rate.
+* **Camera keys** are placed in video time: orbit the spacecraft (LVLH,
+  inertial or body frame) or the Earth at a distance, yaw, pitch and field of
+  view. Between keys of the same mode and frame the camera eases (or moves
+  linearly with ``ease="linear"``), distance logarithmically, yaw the short way
+  round; a key with another mode or frame is a cut.
+* **Quality.** ``supersample`` (1-4) renders at that multiple of the output
+  size and box-filters down; ``motion_blur`` averages that many sub-frames
+  spread over ``shutter`` (default half) of each frame interval, both in linear
+  light. Overlays, labels and the HUD are kept sharp: they are drawn once at the
+  frame time and laid over the blurred scene. Fast camera motion needs more
+  sub-frames (8 or more) to streak rather than strobe.
+* **Output.** ``h264`` (default, ``--crf 16``), ``h265``, ``prores`` (10-bit,
+  for editing) or ``none`` (PNG frames). ``<out>.json`` records the job, the
+  viewer, GPU, driver and Godot version, ffmpeg version and timings.
+  ``--ui`` draws the timeline, chips and labels into the video (needs
+  ``supersample 1`` and at least 960x540); ``overlays={"vectors": False}``
+  hides overlay groups.
+* About 30-50 ms per rendered image on an Intel Arc 140V at 960x540-1280x720:
+  a 12 s, 30 fps, 2x-supersampled, 8-sub-frame 1080p video is ~3600 images.
 
 Overlays
 --------
@@ -221,6 +270,10 @@ Checks
   the playhead is drawn there; lanes equal the Python reference; the state
   card equals an independent roll / pitch / yaw; bookmarks survive a restart;
   drawing cost on a 24 h log.
+* ``render`` (in ``run_viewer_checks.py``): the same job twice gives
+  bit-identical frames; videos have the requested frame count, size and rate;
+  motion-blur sub-frames omit the overlays and they come back unblurred; camera
+  keys move the camera; ``--ui`` draws the timeline.
 * ``tools/viz_validation/run_epic_check.py``: renders the Earth from DSCOVR's
   position at the time of a real EPIC photograph and compares disk geometry,
   orientation (surface pattern vs time) and cloud-free colour. Results in
