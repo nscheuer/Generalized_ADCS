@@ -52,7 +52,7 @@ from ADCS.viz.launcher import (  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ALL = ["assets", "file_source", "shots", "jitter", "jitter_control", "terminator", "landmarks", "scrub", "capture",
-       "live", "moon", "exposure", "perf_1080p", "perf_1440p", "perf_1440p_high", "overlays", "perf_overlays", "timeline", "timeline_perf"]
+       "live", "moon", "exposure", "perf_1080p", "perf_1440p", "perf_1440p_high", "overlays", "perf_overlays", "timeline", "timeline_perf", "sun_occlusion", "layers"]
 ARRAY_PIVOT = [0.05, 0.05, 0.0]    # hinge line of the test model's deployable panel (BODY m)
 ARRAY_CENTER = [0.051, 0.10, 0.0]  # panel centre when deployed (joint angle 0)
 
@@ -665,6 +665,82 @@ def run_timeline_perf(runner: "Runner") -> dict:
             "lanes_full_ms": r["lanes_full_ms"], "passes_per_site": n_pass, "eclipse_spans": len(r["eclipse"])}
 
 
+# ------------------------------------------------------------------ occlusion and layer toggles
+def run_sun_occlusion(runner: "Runner", sim_log: Path) -> dict:
+    """
+    The Sun must be hidden by the Earth (camera far away, and camera next to the spacecraft in eclipse) and by
+    the spacecraft, and visible in matching control views. Each view looks straight at the Sun; the judge is the
+    brightness at the image centre.
+    """
+    from PIL import Image
+
+    log = VizLog.open(sim_log)
+    ts = log.read("0", "t_s")[:, 0]
+    sf = log.read("0", "shadow_factor")[:, 0]
+    k_dark, k_lit = int(np.argmax(sf <= 0.0)), int(np.argmax(sf >= 1.0))
+    if sf[k_dark] > 0.0 or sf[k_lit] < 1.0:
+        return {"error": "the check log needs both an eclipse and a sunlit row"}
+    north = np.array([0.0, 0.0, 1.0])
+    shots, expect = [], {}
+
+    def add(name, k, cam, hidden, hide):
+        r_sun = log.read("0", "r_sun")[k] * 1000.0
+        shots.append({"name": name, "t": float(ts[k]), "cam_pos": cam.tolist(), "look_at": r_sun.tolist(),
+                      "up": north.tolist(), "fov_deg": 20.0, "hide": hide, "overlays": []})
+        expect[name] = hidden
+
+    s_hat = lambda k: (log.read("0", "r_sun")[k] / np.linalg.norm(log.read("0", "r_sun")[k]))
+    side = lambda k: np.cross(s_hat(k), north) / np.linalg.norm(np.cross(s_hat(k), north))
+    r_sc = lambda k: log.read("0", "r_sc")[k] * 1000.0
+    add("far_behind_earth", k_lit, -3.0e7 * s_hat(k_lit), True, ["craft", "moon", "stars"])
+    add("far_control", k_lit, 3.0e7 * side(k_lit), False, ["craft", "moon", "stars"])
+    add("near_eclipse", k_dark, r_sc(k_dark) + 2.0 * side(k_dark), True, ["model", "moon", "stars"])
+    add("near_sunlit_control", k_lit, r_sc(k_lit) + 2.0 * side(k_lit), False, ["model", "moon", "stars"])
+    add("behind_spacecraft", k_lit, r_sc(k_lit) - 0.6 * s_hat(k_lit), True, ["moon", "stars"])
+    r = runner.run("sun_occlusion", "pose", sim_log, {"shots": shots}, extra=("--res", "960x540"))
+    if "error" in r:
+        return r
+    out, ok = {}, True
+    for name, hidden in expect.items():
+        a = np.asarray(Image.open(runner.work / "sun_occlusion" / f"{name}.png").convert("RGB"), float) / 255
+        h, w = a.shape[:2]
+        c = float(a[h // 2 - 4:h // 2 + 5, w // 2 - 4:w // 2 + 5].mean(2).max())
+        out[name] = {"centre_max": c, "sun_expected_hidden": hidden}
+        ok &= (c < 0.6) if hidden else (c > 0.95)
+    return {"passed": bool(ok), "criterion": "looking straight at the Sun: centre brightness < 0.6 when the Earth "
+            "(far camera; camera beside the spacecraft in eclipse) or the spacecraft is in front, > 0.95 in the "
+            "matching control views", **out}
+
+
+def run_layers(runner: "Runner", sim_log: Path) -> dict:
+    """The show/hide chips (clicked through the GUI) and keys V / A / G / O, and the drawn result."""
+    from PIL import Image
+
+    r = runner.run("layers", "layers", sim_log, {}, extra=("--res", "1600x900"))
+    if "error" in r:
+        return r
+    ok = set(r["groups"]) == {"vectors", "axes", "tracks"} and all(r["initial"].values())
+    steps = r["steps"]
+    for st in steps:  # each step must flip exactly its group(s) and the node visibility must follow
+        ok &= st["visible"] == st["shown"]
+    want = [("click vectors", {"vectors": False, "axes": True, "tracks": True}),
+            ("click vectors", {"vectors": True, "axes": True, "tracks": True}),
+            ("key A", {"vectors": True, "axes": False, "tracks": True}),
+            ("key G", {"vectors": True, "axes": False, "tracks": False}),
+            ("key O", {"vectors": False, "axes": False, "tracks": False}),
+            ("key O", {"vectors": True, "axes": True, "tracks": True}),
+            ("key V", {"vectors": False, "axes": True, "tracks": True})]
+    ok &= [(s["action"], s["shown"]) for s in steps] == want
+    load = lambda n: np.asarray(Image.open(runner.work / "layers" / f"{n}.png").convert("RGB"), float) / 255
+    on, off = load("vectors_on"), load("vectors_off")
+    diff = float(np.abs(on - off).max(2).__gt__(0.2).sum())
+    ok &= diff > 200
+    return {"passed": bool(ok), "criterion": "chips clicked through the GUI and keys V/A/G/O flip exactly their "
+            "groups, overlay nodes follow, and hiding the vectors removes them from the image (> 200 px change)",
+            "groups": r["groups"], "steps": [(s["action"], s["shown"]) for s in steps], "pixels_changed": diff,
+            "chip_rects": r["chips"]}
+
+
 # ------------------------------------------------------------------ judging
 def stats(a) -> dict:
     a = np.asarray(a, float)
@@ -790,6 +866,10 @@ def main() -> int:
         report("timeline", run_timeline(runner, sim_log))
     if "timeline_perf" in args.checks:
         report("timeline_perf", run_timeline_perf(runner))
+    if "sun_occlusion" in args.checks:
+        report("sun_occlusion", run_sun_occlusion(runner, sim_log))
+    if "layers" in args.checks:
+        report("layers", run_layers(runner, sim_log))
 
     meta = {"date": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "godot": str(runner.godot)}
     out_root = HERE / "results"

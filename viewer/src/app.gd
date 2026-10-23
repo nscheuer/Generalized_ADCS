@@ -67,10 +67,11 @@ func _ready() -> void:
 	world.set_exposure(String(opts.get("exposure", "artistic")), float(opts.get("ev", 0.0)))
 	world.set_quality(String(opts.get("quality", "balanced")))
 	var scene: Dictionary = source.scene.duplicate()
-	if not scene.has("overlays"):
+	if not scene.has("overlays"):  # always offer body axes (off until toggled)
 		scene["overlays"] = [{"id": "body_axes", "type": "triad", "frame": "body", "visible": false}]
 	world.overlays.build(scene, source.manifest, source.store, world.craft, world.viewport)
 	world.craft.set_joint_store(source.store)
+	hud.layers.setup(world.overlays)
 	_log("overlays: %d" % world.overlays.nodes.size())
 
 	_update_range()
@@ -188,11 +189,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_3: _orbit("body")
 			KEY_4: rig.mode = CameraRig.Mode.EARTH
 			KEY_L: clock.follow_live = source.live
-			KEY_A:
-				for n in world.overlays.nodes:
-					if n.desc.get("type") == "triad":
-						n.visible = not n.visible
-			KEY_O: world.overlays.set_enabled(not world.overlays.enabled)
+			KEY_V: world.overlays.toggle_group("vectors")
+			KEY_A: world.overlays.toggle_group("axes")
+			KEY_G: world.overlays.toggle_group("tracks")
+			KEY_O: world.overlays.toggle_all()
 			KEY_H: hud.help.visible = not hud.help.visible
 			KEY_E: world.set_exposure("physical" if world.exposure_mode == "artistic" else "artistic", world.exposure_ev)
 			KEY_Q:

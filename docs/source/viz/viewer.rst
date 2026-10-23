@@ -45,8 +45,9 @@ Controls
      - around the spacecraft in the LVLH / inertial / body frame
    * - 4
      - around Earth
-   * - O, A
-     - all overlays on/off, axis triads on/off
+   * - V, A, G, O
+     - show / hide the spacecraft's vectors, the axis triads, the orbit and ground tracks, everything
+       (also the chips at the top right)
    * - ← →, Shift+← →
      - previous / next sample, previous / next event or bookmark
    * - B, T, F, I
@@ -191,6 +192,11 @@ tracks, and the pointing target. Choose your own with ``overlays=[...]``:
      - toward the active target (``target_kind`` / ``target``).
    * - ``Label``
      - text next to the spacecraft.
+
+The chips at the top right of the window (or V, A, G; O for all) show and hide
+the overlays by group: **Vectors** (arrows, sensor cones, target line, labels),
+**Axes** (triads) and **Tracks** (orbit and ground tracks). A group starts
+visible if any of its overlays is declared visible.
 
 Spacecraft-attached overlays keep a constant size on screen whatever the
 zoom, labels are 15 px high and pushed apart when they overlap, and arrows are

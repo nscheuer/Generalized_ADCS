@@ -4,18 +4,20 @@ extends Control
 
 const Timeline := preload("res://src/ui/timeline/timeline.gd")
 const StateCard := preload("res://src/ui/timeline/state_card.gd")
+const Layers := preload("res://src/ui/layers.gd")
 
 var status: Label
 var help: Label
 var timeline: Timeline
 var card: StateCard
+var layers: Layers
 
 const HELP := """Mouse: drag to orbit, wheel to zoom
 Space  play / pause        , .  slower / faster
 1  spacecraft, LVLH        2  spacecraft, inertial
 3  spacecraft, body        4  Earth-centred
 L  follow live             Home  reset view
-A  axes   O  all overlays   H  this help
+V  vectors   A  axes   G  tracks   O  all overlays   H  this help
 E  physical / artistic exposure    [ ]  exposure -/+ 1 EV
 Q  quality: high / balanced / fast
 
@@ -39,6 +41,8 @@ func _ready() -> void:
 	add_child(timeline)
 	card = StateCard.new()
 	add_child(card)
+	layers = Layers.new()
+	add_child(layers)
 
 
 func _label(pos: Vector2) -> Label:
@@ -60,6 +64,7 @@ func setup(clock: RefCounted, source: RefCounted) -> void:
 func refresh(clock: RefCounted, frame: Dictionary, lines: PackedStringArray) -> void:
 	status.text = "\n".join(lines)
 	timeline.refresh()
+	layers.refresh()
 	var paused: bool = clock.paused and not clock.follow_live
 	if card.theme == null or not is_equal_approx(card.get_meta("ui", 0.0), timeline.ui):
 		card.theme = timeline.Th.ui_theme(timeline.ui)

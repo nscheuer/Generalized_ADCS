@@ -292,7 +292,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	stars.transform = Transform3D(D.basis_from(PackedFloat64Array([1, 0, 0, 0, 1, 0, 0, 0, 1])).scaled(Vector3.ONE * k_stars),
 		camera.position)
 	var sun_from_cam := D.unit(D.sub(r_sun, cam_pos))
-	var dist := 0.9 * origin.far
+	var dist := 0.92 * origin.far  # behind the far bodies (<= 0.9 x far), in front of the stars (0.95)
 	var true_half := dist * tan(SUN_ANGULAR_RADIUS)
 	var half := maxf(true_half, 3.0 * dist / focal) / 0.35  # disk >= 3 px radius
 	_update_exposure(focal, (true_half / 0.35) / half)

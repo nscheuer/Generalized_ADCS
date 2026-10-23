@@ -1,6 +1,8 @@
 // Sun disk with limb darkening and a soft halo; HDR values feed the glow pass.
+// Depth-tested: drawn just inside the far plane, behind every far body (scaled
+// space puts their centres at <= 0.9 x far), so Earth, Moon and the spacecraft hide it.
 shader_type spatial;
-render_mode unshaded, cull_disabled, blend_add, depth_draw_never, depth_test_disabled;
+render_mode unshaded, cull_disabled, blend_add, depth_draw_never;
 
 uniform float intensity = 40.0;
 uniform float disk_fraction = 0.35;  // disk radius / quad half-size

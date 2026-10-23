@@ -71,6 +71,7 @@ func run(name: String) -> void:
 		"pose": result = await pose(cfg)
 		"perf": result = await perf(cfg)
 		"timeline": result = await timeline(cfg)
+		"layers": result = await layers(cfg)
 		_: result = {"error": "unknown check " + name}
 	result["check"] = name
 	result["source"] = "stream" if app.opts.has("connect") else "file"
@@ -708,4 +709,52 @@ func timeline(cfg: Dictionary) -> Dictionary:
 		out["static_frame"] = static_frame
 		out["static_draws"] = tl.static_draws - static0
 		out["refresh_us"] = upd
+	return out
+
+
+# ------------------------------------------------------------------ overlay group toggles
+## Click each chip and press the keys; report the group state and node visibility after each step,
+## and screenshots of the spacecraft with the vectors shown and hidden.
+func layers(_cfg: Dictionary) -> Dictionary:
+	var ov: RefCounted = app.world.overlays
+	var chips: Control = app.hud.layers
+	DisplayServer.window_set_size(app.world.viewport.size)
+	app.world.resize_to(Vector2(app.world.viewport.size))
+	app.rig.fit_to_craft(app.world.craft.radius)
+	app.clock.paused = true
+	app.clock.t = app.clock.t_min + 0.5 * (app.clock.t_max - app.clock.t_min)
+	for i in 4:
+		await _tick()
+	var out := {"groups": ov.groups(), "initial": ov.shown.duplicate(), "steps": [], "chips": []}
+	for c: Dictionary in chips._chips:
+		var r: Rect2 = c["rect"]
+		out["chips"].append({"group": c["group"], "rect": [chips.global_position.x + r.position.x,
+			chips.global_position.y + r.position.y, r.size.x, r.size.y]})
+	var record := func(action: String) -> void:
+		var vis := {}
+		for g: String in ov.shown:
+			vis[g] = ov.nodes.filter(func(n: Node3D) -> bool: return ov.group_of(n) == g).all(
+				func(n: Node3D) -> bool: return n.visible == bool(ov.shown[g]))
+			vis[g] = bool(ov.shown[g]) if vis[g] else not bool(ov.shown[g])
+		out["steps"].append({"action": action, "shown": ov.shown.duplicate(), "visible": vis})
+	var vec_rect := Rect2()
+	for c: Dictionary in chips._chips:
+		if c["group"] == "vectors":
+			vec_rect = c["rect"]
+	var centre := chips.global_position + vec_rect.get_center()
+	_root_image().save_png(_out("vectors_on.png"))
+	for i in 2:
+		_mouse(centre, MOUSE_BUTTON_LEFT, true)
+		_mouse(centre, MOUSE_BUTTON_LEFT, false)
+		await _tick()
+		record.call("click vectors")
+		if i == 0:
+			await _tick()
+			_root_image().save_png(_out("vectors_off.png"))
+	for k: Array in [[KEY_A, "key A"], [KEY_G, "key G"], [KEY_O, "key O"], [KEY_O, "key O"], [KEY_V, "key V"]]:
+		_key(k[0])
+		await _tick()
+		record.call(k[1])
+	await _tick()
+	_root_image().save_png(_out("chips.png"))
 	return out

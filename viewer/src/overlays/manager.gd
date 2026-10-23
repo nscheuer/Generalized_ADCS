@@ -12,6 +12,12 @@ var enabled := true
 var labels: Array[Label3D] = []
 var show_labels := true
 var _label_w := {}  ## Label3D -> text width [font px] (texts are fixed)
+## Display groups the user toggles (on-screen chips, keys V / A / G). A group starts
+## shown if any of its overlays is declared visible; toggling it shows or hides all.
+const GROUP := {"arrow": "vectors", "cone": "vectors", "target_line": "vectors", "label": "vectors",
+	"triad": "axes", "polyline": "tracks"}
+const GROUPS := ["vectors", "axes", "tracks"]
+var shown := {}  ## group -> bool, for the groups present
 var cost_us := 0  ## CPU time of the last update (all overlays + label layout)
 var layout_us := 0  ## of which label layout
 
@@ -32,12 +38,46 @@ func build(scene: Dictionary, manifest: Dictionary, data_store: RefCounted, craf
 	for n in nodes:
 		for l in n.find_children("*", "Label3D", true, false):
 			labels.append(l)
+		var g := group_of(n)
+		shown[g] = bool(shown.get(g, false)) or bool(n.desc.get("visible", true))
+	_apply()
+
+
+static func group_of(n: Node3D) -> String:
+	return GROUP.get(String(n.desc.get("type", "")), "vectors")
+
+
+## Groups present in this scene, in display order.
+func groups() -> Array:
+	return GROUPS.filter(func(g: String) -> bool: return shown.has(g))
+
+
+func set_group(group: String, on: bool) -> void:
+	if shown.has(group):
+		shown[group] = on
+		_apply()
+
+
+func toggle_group(group: String) -> void:
+	set_group(group, not bool(shown.get(group, false)))
+
+
+## O: everything off if anything is shown, else everything on.
+func toggle_all() -> void:
+	var any: bool = shown.values().any(func(v: bool) -> bool: return v)
+	for g: String in shown:
+		shown[g] = not any
+	_apply()
 
 
 func set_enabled(on: bool) -> void:
 	enabled = on
+	_apply()
+
+
+func _apply() -> void:
 	for n in nodes:
-		n.visible = on and bool(n.desc.get("visible", true))
+		n.visible = enabled and bool(shown.get(group_of(n), true))
 
 
 func update(frame: Dictionary, world: RefCounted, cam_pos: PackedFloat64Array, cam_rot: PackedFloat64Array) -> void:
