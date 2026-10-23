@@ -139,7 +139,7 @@ class Ephemeris:
             existing = self._find_existing_ephemeris(filename)
             if existing is not None:
                 self.planets = load(str(existing))
-                print(f"✅ Loaded Ephemeris: {filename}")
+                print(f"Loaded Ephemeris: {filename}")
             else:
                 self.planets = self._download_ephemeris(
                     self._get_default_ephemeris_path(filename)
@@ -201,7 +201,7 @@ class Ephemeris:
             except Exception as e:
                 errors.append(f"{url}: {e}")
         else:
-            raise RuntimeError("❌ Failed to load IERS finals2000A.all: " + "; ".join(errors))
+            raise RuntimeError("Failed to load IERS finals2000A.all: " + "; ".join(errors))
         # finals2000A.all is now cached, so this reads it instead of downloading.
         ts = loader.timescale(builtin=False)
         iers.install_polar_motion_table(ts, finals)
@@ -344,7 +344,7 @@ class Ephemeris:
             print(f"✅ Ephemeris downloaded to: {planets.path}")
             return planets
         except Exception as e:
-            raise RuntimeError(f"❌ Failed to download {save_path.name} ephemeris: {e}") from e
+            raise RuntimeError(f"Failed to download {save_path.name} ephemeris: {e}") from e
 
 
 def _sha256(path: Path) -> str:

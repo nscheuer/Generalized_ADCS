@@ -27,15 +27,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: ⬇️ Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: 📦 Install Dependencies
+      - name: Install Dependencies
         run: |
           python -m venv .venv
           source .venv/bin/activate
@@ -43,7 +43,7 @@ jobs:
           pip uninstall -y cmake
 
       # Official build, checked against the release's SHA512-SUMS before use.
-      - name: 🎮 Install Godot ${{ env.GODOT_VERSION }}
+      - name: Install Godot ${{ env.GODOT_VERSION }}
         run: |
           base=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
           zip=Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
@@ -55,7 +55,7 @@ jobs:
 
       # Headless: logic tests only (no GPU on hosted runners). Rendering checks
       # run on a machine with a GPU: tools/viz_validation/run_viewer_checks.py.
-      - name: 🧪 Run viewer unit tests
+      - name: Run viewer unit tests
         run: |
           source .venv/bin/activate
           pytest testing/test_viz/test_viewer_godot.py -v

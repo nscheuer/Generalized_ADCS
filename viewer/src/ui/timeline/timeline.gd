@@ -667,7 +667,7 @@ func _draw_buttons() -> void:
 		if bn in ["speed", "live"]:
 			var on: bool = bn == "live" and clock.follow_live
 			_ci.draw_style_box(_box["pill_on"] if on else (_box["pill_hot"] if hot else _box["pill"]), r)
-			var label := (_fmt_rate(clock.rate) + "×") if bn == "speed" else "● LIVE"
+			var label := (_fmt_rate(clock.rate) + "×") if bn == "speed" else "LIVE"
 			_text(Vector2(r.position.x, r.position.y + r.size.y * 0.5 + _fs(Th.FONT_SIZE) * 0.36), label, Th.FONT_SIZE,
 				Th.ACCENT if on else c, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 			continue

@@ -63,8 +63,8 @@ Timeline
 
 .. code-block:: text
 
-   ▶ ⏮ ⏭ [60×]   2026-03-14 12:41:07.2 UTC  T+00:41:07 · sample 1234     ⧉ ★ ☰ ↔
-   Sun     ░░░░sunlit░░░░▓▓▓▓umbra▓▓▓▓░░░░░░░    ◆ bookmarks on the ruler
+   [play][<|][|>][60x]   2026-03-14 12:41:07.2 UTC  T+00:41:07 · sample 1234   [copy][+bm][list][fit]
+   Sun     ░░░░sunlit░░░░▓▓▓▓umbra▓▓▓▓░░░░░░░    bookmarks: diamonds on the ruler
    Boston          ▬▬▬▬            ▬▬▬            one lane per ground site
            [=========window=========]             the whole run
 
@@ -83,7 +83,7 @@ Timeline
   the quaternion, body rates, pointing error, altitude, light and passes in
   progress (I hides it; Copy puts it on the clipboard as JSON).
 * **Come back to it.** B bookmarks the playhead and lets you name it; the list
-  (☰) jumps to, renames or deletes bookmarks and copies them all, with the
+  (list button) jumps to, renames or deletes bookmarks and copies them all, with the
   state at each, as JSON. Your bookmarks are saved per run (in the viewer's
   user data folder) and return when the same run is opened again; bookmarks
   from the log are shown locked.
