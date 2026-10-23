@@ -52,7 +52,7 @@ from ADCS.viz.launcher import (  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 ALL = ["assets", "file_source", "shots", "jitter", "jitter_control", "terminator", "landmarks", "scrub", "capture",
-       "live", "moon", "exposure", "perf_1080p", "perf_1440p", "perf_1440p_high", "overlays", "perf_overlays"]
+       "live", "moon", "exposure", "perf_1080p", "perf_1440p", "perf_1440p_high", "overlays", "perf_overlays", "timeline", "timeline_perf"]
 ARRAY_PIVOT = [0.05, 0.05, 0.0]    # hinge line of the test model's deployable panel (BODY m)
 ARRAY_CENTER = [0.051, 0.10, 0.0]  # panel centre when deployed (joint angle 0)
 
@@ -122,6 +122,20 @@ def build_sim_log(work: Path) -> Path:
     t = np.array(results.runs[0].time_s, dtype=float)
     deploy = np.radians(90.0) * np.clip(1.0 - t / 300.0, 0.0, 1.0)
     results_to_vizlog(results, path, model=res.sidecar, overwrite=True, extra_channels={"joint_array": deploy})
+    # Timeline: the goal's site (Boston) and a site under the ground track at t = 700 s (a guaranteed pass),
+    # plus two bookmarks from the log.
+    from ADCS.viz.timeline import Bookmark, GroundSite
+    log = VizLog.open(path)
+    k = int(np.argmin(np.abs(log.read("0", "t_s")[:, 0] - 700.0)))
+    w, x, y, z = log.read("0", "q_itrs_gcrs")[k]
+    R = np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+                  [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+                  [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]])
+    sub = R @ log.read("0", "r_sc")[k]
+    lat, lon = np.degrees(np.arcsin(sub[2] / np.linalg.norm(sub))), np.degrees(np.arctan2(sub[1], sub[0]))
+    results_to_vizlog(results, path, model=res.sidecar, overwrite=True, extra_channels={"joint_array": deploy},
+                      sites=[GroundSite("Boston", 42.36, -71.09), GroundSite("Overhead", float(lat), float(lon))],
+                      bookmarks=[Bookmark(t_s=300.0, label="array deployed"), Bookmark(t_s=900.0, label="settled")])
     return path
 
 
@@ -480,6 +494,177 @@ def run_overlay_perf(runner: "Runner", sim_log: Path) -> dict:
             **res}
 
 
+# ------------------------------------------------------------------ timeline
+def _expected_click(st: dict, x: float, ts: np.ndarray, snap_px: float = 5.0) -> float:
+    """Where a click at x must land: x -> t on the reported window, then the nearest sample if within 5 px."""
+    v0, v1 = st["view"]
+    t = float(np.clip(v0 + (x - st["track_x0"]) / st["track_w"] * (v1 - v0), ts[0], ts[-1]))
+    k = int(np.argmin(np.abs(ts - t)))
+    px = st["track_w"] / (v1 - v0)
+    return float(ts[k]) if abs(ts[k] - t) * px <= snap_px * st["ui"] else t
+
+
+def _x_of(st: dict, t: float) -> float:
+    v0, v1 = st["view"]
+    return st["track_x0"] + (t - v0) / (v1 - v0) * st["track_w"]
+
+
+def _eclipse_reference(ts: np.ndarray, sf: np.ndarray) -> list:
+    kind = np.where(sf >= 0.999, 0, np.where(sf <= 0.001, 2, 1))
+    spans, t0 = [], ts[0]
+    for k in range(1, len(ts)):
+        if kind[k] != kind[k - 1]:
+            a, b = kind[k - 1], kind[k]
+            thr = 0.999 if 1 in (a, b) and 0 in (a, b) else (0.001 if 1 in (a, b) else 0.5)
+            tb = ts[k - 1] + (ts[k] - ts[k - 1]) * np.clip((thr - sf[k - 1]) / (sf[k] - sf[k - 1]), 0, 1)
+            spans.append([t0, tb, int(a)])
+            t0 = tb
+    spans.append([t0, ts[-1], int(kind[-1])])
+    return spans
+
+
+def run_timeline(runner: "Runner", sim_log: Path) -> dict:
+    """
+    The timeline through the real GUI: clicks, wheel zoom and drag-scrubs sent as mouse events, keys, typed times;
+    lanes against ADCS.viz.timeline (passes) and the shadow factor (eclipse); the drawn pass span against its times;
+    the state card against an independent LVLH roll/pitch/yaw; bookmarks saved by one run and read by the next.
+    """
+    from PIL import Image
+
+    from ADCS.viz.timeline import GroundSite, ground_passes
+
+    log = VizLog.open(sim_log)
+    ts = log.read("0", "t_s")[:, 0]
+    epoch_iso = log.manifest["epoch"]["iso_utc"]
+    epoch = datetime.fromisoformat(epoch_iso.replace("Z", "+00:00"))
+    utc120 = (epoch.timestamp() + 120.0)
+    utc_text = datetime.fromtimestamp(utc120, timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    cfg = {"clicks": [0.1, 0.37, 0.8], "zoom_notches": 3, "drag": [0.2, 0.7], "t_key": float(ts[0]) + 0.5 * (ts[1] - ts[0]),
+           "type": ["T+00:10:00", "+300", utc_text, "nonsense", "T+99:00:00"], "add_bookmark_at": 450.0, "shots": True,
+           "t_shot": 600.0}
+    r1 = runner.run("timeline", "timeline", sim_log, cfg, extra=("--res", "1600x900"))
+    if "error" in r1:
+        return r1
+    r2 = runner.run("timeline_reopen", "timeline", sim_log, {"remove_user_bookmarks": True}, extra=("--res", "1600x900"))
+    if "error" in r2:
+        return r2
+    out, ok = {}, True
+
+    # Clicks: land where the window says, playhead drawn there, playback state kept.
+    errs, ph = [], []
+    for c in r1["clicks"]:
+        want = _expected_click(c["state"], c["x"], ts)
+        errs.append(abs(c["t_after"] - want))
+        px = c["playhead_px"]
+        ph.append(abs(np.mean(px) - _x_of(c["state"], c["t_after"])) if px else np.inf)
+    out["click_t_err_s"], out["playhead_px_err"] = float(max(errs)), float(max(ph))
+    ok &= max(errs) < 1e-6 and max(ph) < 1.5 and all(c["paused_after"] for c in r1["clicks"])
+    # Zoom: 1.25 per notch about the cursor.
+    zb, za, xz = r1["zoom"]["before"], r1["zoom"]["after"], r1["zoom"]["x"]
+    span_b, span_a = zb["view"][1] - zb["view"][0], za["view"][1] - za["view"][0]
+    t_under = lambda st: st["view"][0] + (xz - st["track_x0"]) / st["track_w"] * (st["view"][1] - st["view"][0])
+    out["zoom_ratio"] = span_b / span_a
+    out["zoom_anchor_err_s"] = abs(t_under(za) - t_under(zb))
+    ok &= abs(out["zoom_ratio"] - 1.25 ** cfg["zoom_notches"]) < 1e-6 and out["zoom_anchor_err_s"] < 1e-6 * span_b
+    # Drag-scrub ends at the release point.
+    d = r1["drag"]
+    out["drag_t_err_s"] = abs(d["t_after"] - _expected_click(d["state"], d["x_end"], ts))
+    ok &= out["drag_t_err_s"] < 1e-6
+    # Keys: samples and the first event.
+    k = r1["keys"]
+    events = sorted([b["t_s"] for b in r1["bookmarks"]] + [s[1] for s in r1["eclipse"][:-1]]
+                    + [x for p in r1["passes"] for q in p["passes"] for x in (q[0], q[1])])
+    want_keys = {"right": ts[1], "right2": ts[2], "left": ts[1], "next_event": min(e for e in events if e > ts[0] + 1e-6)}
+    out["keys_ok"] = all(abs(k[n] - want_keys[n]) < 1e-6 for n in want_keys)
+    ok &= out["keys_ok"]
+    # Typed times (the last two are rejected: the time stays where it was).
+    typed = {t["text"]: t["t"] for t in r1["typed"]}
+    want_typed = {"T+00:10:00": 600.0, "+300": 300.0, utc_text: 120.0, "nonsense": ts[0], "T+99:00:00": ts[0]}
+    out["typed_err_s"] = float(max(abs(typed[n] - want_typed[n]) for n in want_typed))
+    ok &= out["typed_err_s"] < 2e-3  # the ISO epoch is rounded to 1 ms
+    # Bookmarks: the log's two (locked) + B at 450 s; the second run reads it back from disk.
+    b1 = {(round(b["t_s"], 6), b["locked"]) for b in r1["bookmarks"]}
+    b2 = {(round(b["t_s"], 6), b["locked"]) for b in r2["bookmarks"]}
+    out["bookmarks_run1"], out["bookmarks_run2"] = sorted(b1), sorted(b2)
+    ok &= {(300.0, True), (900.0, True), (450.0, False)} <= b1 and (450.0, False) in b2
+    # Lanes vs the Python reference.
+    sites = [GroundSite(**{k: v for k, v in s.items() if k in GroundSite.__dataclass_fields__})
+             for s in log.scene["timeline"]["sites"]]
+    pass_err, counts = 0.0, {}
+    for s, got in zip(sites, r1["passes"]):
+        ref = ground_passes(log, s)
+        counts[s.name] = (len(ref), len(got["passes"]))
+        if len(ref) != len(got["passes"]):
+            ok = False
+            continue
+        for a, b in zip(ref, got["passes"]):
+            pass_err = max(pass_err, abs(a.t_rise - b[0]), abs(a.t_set - b[1]))
+    out["passes_ref_vs_viewer"], out["pass_edge_err_s"] = counts, pass_err
+    ok &= pass_err < 0.05 and counts.get("Overhead", (0, 0))[0] >= 1
+    ecl_ref = _eclipse_reference(ts, log.read("0", "shadow_factor")[:, 0])
+    out["eclipse_spans"] = len(ecl_ref)
+    ok &= len(ecl_ref) == len(r1["eclipse"]) and all(
+        abs(a[0] - b[0]) < 1e-6 and abs(a[1] - b[1]) < 1e-6 and a[2] == b[2] for a, b in zip(ecl_ref, r1["eclipse"]))
+    # The drawn pass span (zoomed screenshot) against its rise and set.
+    img = np.asarray(Image.open(runner.work / "timeline" / "timeline_zoomed.png").convert("RGB"), float) / 255
+    st = r1["zoomed_state"]
+    lane = st["lanes_px"][-1]
+    row = img[int(round(0.5 * (lane["y0"] + lane["y1"])))]
+    site_rgb = np.array([0x7c, 0xc6, 0xff]) / 255
+    cols = np.nonzero(np.linalg.norm(row - site_rgb, axis=1) < 0.12)[0]
+    p = r1["passes"][-1]["passes"][0]
+    if len(cols):
+        out["pass_px_err"] = float(max(abs(cols.min() - _x_of(st, p[0])), abs(cols.max() + 1 - _x_of(st, p[1]))))
+    else:
+        out["pass_px_err"] = None
+    ok &= out["pass_px_err"] is not None and out["pass_px_err"] < 1.5
+    # State card vs an independent roll/pitch/yaw (3-2-1, LVLH: Z nadir, Y -orbit normal).
+    kk = int(np.argmin(np.abs(ts - cfg["t_shot"])))
+    r, v, q = log.read("0", "r_sc")[kk], log.read("0", "v_sc")[kk], log.read("0", "q_gcrs_body")[kk]
+    z = -r / np.linalg.norm(r)
+    y = -np.cross(r, v) / np.linalg.norm(np.cross(r, v))
+    L = np.vstack([np.cross(y, z), y, z])
+    M = L @ quat_mat(q)
+    rpy = np.degrees([np.arctan2(M[2, 1], M[2, 2]), -np.arcsin(M[2, 0]), np.arctan2(M[1, 0], M[0, 0])])
+    card = r1.get("card", {})
+    out["card_rpy_err_deg"] = float(np.max(np.abs(np.array(card.get("rpy_lvlh_deg", [np.nan] * 3)) - rpy)))
+    ok &= bool(r1.get("card_visible")) and out["card_rpy_err_deg"] < 1e-6
+    out["screens"] = [str(runner.work / "timeline" / n) for n in ("timeline_fit.png", "timeline_zoomed.png")]
+    return {"passed": bool(ok), "criterion": "clicks/drags land on the time under the cursor (snapping to samples within 5 px) "
+            "and the playhead is drawn there (< 1.5 px); wheel zoom 1.25x/notch about the cursor; keys and typed times; "
+            "bookmarks persist across runs; pass edges = ADCS.viz.timeline.ground_passes (< 0.05 s) and drawn within "
+            "1.5 px; eclipse spans = shadow-factor thresholds; state card roll/pitch/yaw = independent LVLH 3-2-1",
+            **out}
+
+
+def run_timeline_perf(runner: "Runner") -> dict:
+    """Timeline cost on a 24 h log (86 401 rows) with a ground site: lane computation and per-frame draw/update."""
+    from ADCS.viz.timeline import GroundSite, validate_timeline
+
+    log = runner.work / "day_timeline.vizlog"
+    build_log(log, seconds=86400)
+    scene_path = log / "scene.json"
+    scene = json.loads(scene_path.read_text())
+    scene["timeline"] = validate_timeline([], [GroundSite("Boston", 42.36, -71.06), GroundSite("Kiruna", 67.86, 20.96)])
+    scene_path.write_text(json.dumps(scene))
+    r = runner.run("timeline_perf", "timeline", log, {"perf_frames": 300}, extra=("--res", "1920x1080"))
+    if "error" in r:
+        return r
+    d = np.asarray(r["draw_us"]) / 1000.0
+    sf = np.asarray(r["static_frame"], bool)
+    dyn, full = stats(d[~sf]), (stats(d[sf]) if sf.any() else None)
+    upd = stats(np.asarray(r["refresh_us"]) / 1000.0)
+    n_pass = [len(p["passes"]) for p in r["passes"]]
+    return {"passed": bool(dyn["p50"] < 0.5 and dyn["p99"] < 1.0 and (full is None or full["p50"] < 2.5)
+                           and upd["p99"] < 2.5 and n_pass[0] > 3 and n_pass[1] >= 1),
+            "criterion": "86 401 rows, 2 sites (Boston, Kiruna near the edge of a 51.6 deg orbit's reach), playing "
+            "through the day: per-frame draw (time, playhead) p50 < 0.5 ms, p99 < 1 ms (wall-clock, includes OS "
+            "jitter); full redraw (only when the view, lanes, bookmarks or hover change) p50 < 2.5 ms; update "
+            "p99 < 2.5 ms (lanes fill within a 2 ms budget per frame)",
+            "draw_per_frame_ms": dyn, "draw_full_ms": full, "full_redraws": int(sf.sum()), "refresh_ms": upd,
+            "lanes_full_ms": r["lanes_full_ms"], "passes_per_site": n_pass, "eclipse_spans": len(r["eclipse"])}
+
+
 # ------------------------------------------------------------------ judging
 def stats(a) -> dict:
     a = np.asarray(a, float)
@@ -601,6 +786,10 @@ def main() -> int:
         report("overlays", run_overlays(runner, sim_log))
     if "perf_overlays" in args.checks:
         report("perf_overlays", run_overlay_perf(runner, sim_log))
+    if "timeline" in args.checks:
+        report("timeline", run_timeline(runner, sim_log))
+    if "timeline_perf" in args.checks:
+        report("timeline_perf", run_timeline_perf(runner))
 
     meta = {"date": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "godot": str(runner.godot)}
     out_root = HERE / "results"

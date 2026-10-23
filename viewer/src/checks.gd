@@ -70,6 +70,7 @@ func run(name: String) -> void:
 		"live": result = await live(cfg)
 		"pose": result = await pose(cfg)
 		"perf": result = await perf(cfg)
+		"timeline": result = await timeline(cfg)
 		_: result = {"error": "unknown check " + name}
 	result["check"] = name
 	result["source"] = "stream" if app.opts.has("connect") else "file"
@@ -500,3 +501,211 @@ func perf(cfg: Dictionary) -> Dictionary:
 		"res": [app.world.viewport.size.x, app.world.viewport.size.y],
 		"atmosphere": app.loaded_assets.has("atmosphere")}
 
+
+
+# ------------------------------------------------------------------ timeline
+## One interactive frame: pose the world, refresh the HUD, draw.
+func _tick() -> void:
+	app.render_at(app.clock.t)
+	app.hud.refresh(app.clock, app.last_frame, app._status_lines())
+	await RenderingServer.frame_post_draw
+
+
+func _mouse(pos: Vector2, button: int, pressed: bool, shift := false, double := false) -> void:
+	var e := InputEventMouseButton.new()
+	e.position = pos
+	e.global_position = pos
+	e.button_index = button as MouseButton
+	e.pressed = pressed
+	e.shift_pressed = shift
+	e.double_click = double
+	app.get_viewport().push_input(e)
+
+
+func _motion(pos: Vector2, held: bool) -> void:
+	var e := InputEventMouseMotion.new()
+	e.position = pos
+	e.global_position = pos
+	e.button_mask = MOUSE_BUTTON_MASK_LEFT if held else 0
+	app.get_viewport().push_input(e)
+
+
+func _key(code: Key, shift := false) -> void:
+	for down: bool in [true, false]:
+		var e := InputEventKey.new()
+		e.keycode = code
+		e.physical_keycode = code
+		e.pressed = down
+		e.shift_pressed = shift
+		app.get_viewport().push_input(e)
+
+
+func _root_image() -> Image:
+	var img: Image = app.get_viewport().get_texture().get_image()
+	img.convert(Image.FORMAT_RGBA8)
+	return img
+
+
+func _tl_state(tl: Control) -> Dictionary:
+	var tr: Rect2 = tl._rects["track"]
+	var lanes_px := []
+	for row: Dictionary in tl._lane_rows:
+		var r: Rect2 = row["rect"]
+		lanes_px.append({"label": row["label"], "kind": row["kind"], "y0": tl.global_position.y + r.position.y,
+			"y1": tl.global_position.y + r.end.y})
+	return {"t": app.clock.t, "view": [tl.view0, tl.view1], "fit": tl.fit,
+		"track_x0": tl.global_position.x + tr.position.x, "track_w": tr.size.x, "ui": tl.ui, "lanes_px": lanes_px}
+
+
+## cfg: {clicks: [fractions], zoom_notches, drag: [f0, f1], type: [texts], add_bookmark_at, shots: bool,
+##       perf_frames}. Everything is reported; run_viewer_checks.py judges it.
+func timeline(cfg: Dictionary) -> Dictionary:
+	var tl: Control = app.hud.timeline
+	var clock: RefCounted = app.clock
+	DisplayServer.window_set_size(app.world.viewport.size)
+	app.world.resize_to(Vector2(app.world.viewport.size))
+	clock.paused = true
+	clock.t = float(cfg.get("t0", clock.t_min))
+	var t_lanes := Time.get_ticks_usec()
+	while not tl.lanes.done:
+		tl.lanes.update()
+	var lanes_ms := (Time.get_ticks_usec() - t_lanes) / 1000.0
+	for i in 4:
+		await _tick()
+	var out := {"lanes_full_ms": lanes_ms, "rows": app.source.store.n_rows}
+	var y_lane: float = tl.global_position.y + (tl._lane_rows[0]["rect"] as Rect2).get_center().y
+	# Clicks on the Sun lane at fractions of the track, from the whole-run view.
+	var clicks := []
+	for f: float in cfg.get("clicks", []):
+		tl.fit_view()
+		await _tick()
+		var st := _tl_state(tl)
+		var x: float = st["track_x0"] + f * st["track_w"]
+		_mouse(Vector2(x, y_lane), MOUSE_BUTTON_LEFT, true)
+		_mouse(Vector2(x, y_lane), MOUSE_BUTTON_LEFT, false)
+		await _tick()
+		var img := _root_image()
+		var playhead := []  # columns of accent pixels on the ruler row above the lanes
+		var yr := int(st["lanes_px"][0]["y0"]) - 6
+		for px in range(maxi(0, int(x) - 12), mini(img.get_width(), int(x) + 13)):
+			var c := img.get_pixel(px, yr)
+			if c.b > 0.8 and c.r < 0.6 and c.g > 0.45:
+				playhead.append(px)
+		clicks.append({"frac": f, "x": x, "state": st, "t_after": clock.t, "paused_after": clock.paused,
+			"playhead_px": playhead})
+	out["clicks"] = clicks
+	# Wheel zoom about the middle of the track.
+	tl.fit_view()
+	await _tick()
+	var st0 := _tl_state(tl)
+	var xm: float = st0["track_x0"] + 0.5 * st0["track_w"]
+	for i in int(cfg.get("zoom_notches", 3)):
+		_mouse(Vector2(xm, y_lane), MOUSE_BUTTON_WHEEL_UP, true)
+	await _tick()
+	out["zoom"] = {"before": st0, "after": _tl_state(tl), "x": xm}
+	# Drag-scrub between two fractions of the zoomed window.
+	var dr: Array = cfg.get("drag", [0.2, 0.7])
+	var st1 := _tl_state(tl)
+	var xa: float = st1["track_x0"] + float(dr[0]) * st1["track_w"]
+	var xb: float = st1["track_x0"] + float(dr[1]) * st1["track_w"]
+	_mouse(Vector2(xa, y_lane), MOUSE_BUTTON_LEFT, true)
+	for i in 10:
+		_motion(Vector2(lerpf(xa, xb, (i + 1) / 10.0), y_lane), true)
+		await _tick()
+	_mouse(Vector2(xb, y_lane), MOUSE_BUTTON_LEFT, false)
+	await _tick()
+	out["drag"] = {"state": st1, "x_end": xb, "t_after": clock.t}
+	# Keyboard: next sample, next event; typed times.
+	var keys := {}
+	clock.t = float(cfg.get("t_key", clock.t_min + 1.0))
+	_key(KEY_RIGHT)
+	keys["right"] = clock.t
+	_key(KEY_RIGHT)
+	keys["right2"] = clock.t
+	_key(KEY_LEFT)
+	keys["left"] = clock.t
+	clock.t = clock.t_min
+	_key(KEY_RIGHT, true)
+	keys["next_event"] = clock.t
+	out["keys"] = keys
+	var typed := []
+	for text: String in cfg.get("type", []):
+		clock.t = clock.t_min
+		tl._on_time_submitted(text)
+		typed.append({"text": text, "t": clock.t})
+	out["typed"] = typed
+	# Bookmarks: the log's, plus one added with B (persisted for the next run).
+	if cfg.has("add_bookmark_at"):
+		clock.t = float(cfg["add_bookmark_at"])
+		_key(KEY_B)
+		await _tick()
+		tl.list_popup.hide()
+	out["bookmarks"] = tl.bookmarks.items.duplicate(true)
+	out["bookmark_file"] = tl.bookmarks.path
+	if cfg.get("remove_user_bookmarks", false):
+		for b: Dictionary in tl.bookmarks.items.duplicate():
+			tl.bookmarks.remove(b["id"])
+	# Lanes as computed.
+	out["eclipse"] = tl.lanes.eclipse_spans()
+	var passes := []
+	for i in tl.lanes.sites.size():
+		passes.append({"site": tl.lanes.sites[i]["name"], "passes": tl.lanes.passes(i)})
+	out["passes"] = passes
+	# Screenshots: whole run with the state card (paused), then zoomed on a pass with the hover card.
+	if cfg.get("shots", false):
+		tl.fit_view()
+		clock.t = float(cfg.get("t_shot", clock.t_min))
+		for i in 3:
+			await _tick()
+		_root_image().save_png(_out("timeline_fit.png"))
+		out["fit_state"] = _tl_state(tl)
+		var card: Control = app.hud.card
+		out["card"] = card.last.duplicate()
+		out["card_visible"] = card.visible
+		if not passes.is_empty() and not (passes[-1]["passes"] as Array).is_empty():
+			var p: Array = passes[-1]["passes"][0]
+			var span: float = (float(p[1]) - float(p[0])) * 1.25
+			tl.set_view(float(p[2]) - span / 2.0, float(p[2]) + span / 2.0)
+			await _tick()
+			var stz := _tl_state(tl)
+			var xh: float = tl.global_position.x + tl.t_to_x(float(p[2]))
+			_motion(Vector2(xh, stz["lanes_px"][-1]["y0"] + 4.0), false)
+			for i in 3:
+				await _tick()
+			_root_image().save_png(_out("timeline_zoomed.png"))
+			out["zoomed_state"] = _tl_state(tl)
+		tl.open_list()
+		for i in 3:
+			await _tick()
+		_root_image().save_png(_out("timeline_bookmarks.png"))
+		tl.list_popup.hide()
+		tl.open_time_entry()
+		tl.time_edit.text = "T+00:12:30"
+		for i in 3:
+			await _tick()
+		_root_image().save_png(_out("timeline_type.png"))
+		tl.time_edit.visible = false
+	# Draw and update cost while playing.
+	var nf := int(cfg.get("perf_frames", 0))
+	if nf > 0:
+		var draw := PackedFloat64Array()
+		var upd := PackedFloat64Array()
+		var static0: int = tl.static_draws
+		var static_frame := []
+		clock.paused = false
+		clock.rate = (clock.t_max - clock.t_min) / (nf / 60.0)
+		clock.t = clock.t_min
+		for i in nf:
+			clock.advance(1.0 / 60.0)
+			var t0 := Time.get_ticks_usec()
+			app.hud.timeline.refresh()
+			upd.append(Time.get_ticks_usec() - t0)
+			var before: int = tl.static_draws
+			await _tick()
+			draw.append(tl.draw_us)
+			static_frame.append(tl.static_draws > before)
+		out["draw_us"] = draw
+		out["static_frame"] = static_frame
+		out["static_draws"] = tl.static_draws - static0
+		out["refresh_us"] = upd
+	return out

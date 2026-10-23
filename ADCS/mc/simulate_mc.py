@@ -743,5 +743,6 @@ def simulate_mc(
     results = SimulationResults(runs=runs, configs=configs, run_ids=run_ids)
     if viz_log is not None:
         from ADCS.viz.from_results import results_to_vizlog
-        results_to_vizlog(results, viz_log, ephem=ephem, overwrite=True)
+        from ADCS.viz.timeline import sites_from_goals
+        results_to_vizlog(results, viz_log, ephem=ephem, overwrite=True, sites=sites_from_goals(goal))
     return results

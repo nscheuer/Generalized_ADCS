@@ -1,7 +1,7 @@
 __all__ = ["LiveRecorder"]
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 
@@ -43,6 +43,8 @@ class LiveRecorder:
     :param run_id: Run identifier in the stream.
     :param tee_path: Also append the streamed rows to a vizlog at this path.
     :param wait_for_viewer: Seconds to wait for a viewer in lockstep mode.
+    :param bookmarks: Timeline bookmarks (:mod:`ADCS.viz.timeline`), by ``t_s``.
+    :param sites: Ground sites whose passes the timeline shows.
     """
 
     def __init__(
@@ -56,6 +58,8 @@ class LiveRecorder:
         run_id: str = "0",
         tee_path: Optional[str | Path] = None,
         wait_for_viewer: Optional[float] = 30.0,
+        bookmarks: Optional[List[Any]] = None,
+        sites: Optional[List[Any]] = None,
     ) -> None:
         self.server = server
         self.run_id = str(run_id)
@@ -92,6 +96,10 @@ class LiveRecorder:
 
         info = {c.name: c.to_json() for c in channels}
         scene["overlays"] = validate_overlays(default_overlays(info, scene), info, scene)
+        if bookmarks or sites:
+            from ADCS.viz.timeline import validate_timeline
+
+            scene["timeline"] = validate_timeline(bookmarks, sites, t_range=(0.0, (n_steps - 1) * self.dt))
 
         epoch_jd = float(j2000_to_jd_tt(self.start_j2000))
         epoch_iso = ephem.ts.tt_jd(epoch_jd).utc_iso(places=3)

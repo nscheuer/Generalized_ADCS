@@ -249,7 +249,8 @@ def simulate(
     live = None
     if viz_stream is not None:
         from ADCS.viz.live import LiveRecorder
-        live = LiveRecorder(viz_stream, satellite, os0.ephem, start_time, dt, N)
+        from ADCS.viz.timeline import sites_from_goals
+        live = LiveRecorder(viz_stream, satellite, os0.ephem, start_time, dt, N, sites=sites_from_goals(goal_list))
 
     _skip_jac = (estimator is None)
 
@@ -470,5 +471,6 @@ def simulate(
     results = SimulationResults(runs=[run_capsule])
     if viz_log is not None:
         from ADCS.viz.from_results import results_to_vizlog
-        results_to_vizlog(results, viz_log, ephem=os0.ephem, overwrite=True)
+        from ADCS.viz.timeline import sites_from_goals
+        results_to_vizlog(results, viz_log, ephem=os0.ephem, overwrite=True, sites=sites_from_goals(goal_list))
     return results

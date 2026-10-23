@@ -47,11 +47,64 @@ Controls
      - around Earth
    * - O, A
      - all overlays on/off, axis triads on/off
+   * - ← →, Shift+← →
+     - previous / next sample, previous / next event or bookmark
+   * - B, T, F, I
+     - bookmark, type a time, fit the timeline, state card
    * - L, H, Home
      - follow live data, help, reset view
 
-The timeline at the bottom scrubs through the run; the HUD shows UTC,
-altitude, speed, eclipse state, pointing error and frame rate.
+The HUD (top left) shows altitude, speed, eclipse state, pointing error and
+frame rate; the timeline (below) shows the time.
+
+Timeline
+--------
+
+.. code-block:: text
+
+   ▶ ⏮ ⏭ [60×]   2026-03-14 12:41:07.2 UTC  T+00:41:07 · sample 1234     ⧉ ★ ☰ ↔
+   Sun     ░░░░sunlit░░░░▓▓▓▓umbra▓▓▓▓░░░░░░░    ◆ bookmarks on the ruler
+   Boston          ▬▬▬▬            ▬▬▬            one lane per ground site
+           [=========window=========]             the whole run
+
+* **Find a moment.** Drag on the track to scrub (playback pauses while you
+  drag); the wheel zooms about the cursor, from the whole run down to 1 s;
+  Shift+wheel or a right/middle drag pans; double-click or F fits the run.
+  Hovering shows the UTC time, altitude, light and passes at that point.
+* **Land on it exactly.** Scrubbing snaps to logged samples when they are a few
+  pixels apart, and the readout says ``sample k`` or ``interpolated``. Left /
+  Right step one sample; Shift+Left / Right jump to the previous / next eclipse
+  change, pass rise or set, or bookmark. Click the time (or press T) to type
+  one: a UTC date-time (``2026-03-14 12:41:07``), a UTC clock time on the date
+  shown (``12:41``), or elapsed time (``T+41:07``, ``+2460``, ``T+1h2m``).
+* **See the attitude.** While paused, the state card shows roll / pitch / yaw
+  relative to LVLH (3-2-1 sequence; LVLH: Z nadir, Y negative orbit normal),
+  the quaternion, body rates, pointing error, altitude, light and passes in
+  progress (I hides it; Copy puts it on the clipboard as JSON).
+* **Come back to it.** B bookmarks the playhead and lets you name it; the list
+  (☰) jumps to, renames or deletes bookmarks and copies them all, with the
+  state at each, as JSON. Your bookmarks are saved per run (in the viewer's
+  user data folder) and return when the same run is opened again; bookmarks
+  from the log are shown locked.
+
+Lanes come from the log: light from ``shadow_factor`` (sunlit ≥ 0.999,
+umbra ≤ 0.001, penumbra between), passes from ``r_sc`` and ``q_itrs_gcrs`` for
+each ground site in ``scene.json``, by the same rule as
+:func:`ADCS.viz.timeline.ground_passes` (geodetic elevation above the site's
+``min_elev_deg``, rise and set interpolated between rows). They also fill in
+during a live stream.
+
+.. code-block:: python
+
+   from ADCS.viz import timeline as tl
+   results_to_vizlog(results, "run.vizlog",
+       sites=[tl.GroundSite("Boston", 42.36, -71.06, min_elev_deg=10)],
+       bookmarks=[tl.Bookmark(t_s=840, label="detumble done"),
+                  tl.Bookmark(utc="2026-03-14T12:41:07Z", label="first contact")])
+   tl.ground_passes(VizLog.open("run.vizlog"), tl.GroundSite("Boston", 42.36, -71.06))
+   # -> [Pass(t_rise, t_set, t_max, max_elev_deg, partial), ...]
+
+:func:`~ADCS.simulate` adds a site for every ``Coordinate_Goal`` target.
 
 How it works
 ------------
@@ -157,6 +210,11 @@ Checks
   viewer through ``python -m ADCS.viz view``'s code path, on a real
   closed-loop simulation with an imported model. Results in
   ``tools/viz_validation/VIEWER_CHECKS.md``.
+* ``timeline`` / ``timeline_perf`` (in ``run_viewer_checks.py``): mouse and
+  key events sent through the real GUI land on the time under the cursor and
+  the playhead is drawn there; lanes equal the Python reference; the state
+  card equals an independent roll / pitch / yaw; bookmarks survive a restart;
+  drawing cost on a 24 h log.
 * ``tools/viz_validation/run_epic_check.py``: renders the Earth from DSCOVR's
   position at the time of a real EPIC photograph and compares disk geometry,
   orientation (surface pattern vs time) and cloud-free colour. Results in

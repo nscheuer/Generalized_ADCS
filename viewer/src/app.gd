@@ -77,9 +77,7 @@ func _ready() -> void:
 	clock.t = clock.t_min
 	clock.rate = float(opts.get("rate", 1.0 if clock.t_max - clock.t_min < 3600.0 else 60.0))
 	clock.follow_live = source.live
-	hud.set_range(clock.t_min, clock.t_max)
-	hud.seek_requested.connect(func(v: float) -> void: clock.seek(v))
-	hud.play_toggled.connect(func() -> void: clock.toggle_pause())
+	hud.setup(clock, source)
 
 	_log("ready")
 	if opts.has("check"):
@@ -123,11 +121,10 @@ func _process(delta: float) -> void:
 		_log("first frame")
 	if source.live and source.poll():
 		_update_range()
-		hud.set_range(clock.t_min, clock.t_max)
 	clock.advance(delta)
 	render_at(clock.t)
 	_fps_t += delta
-	hud.refresh(clock.t, clock.rate, clock.paused and not clock.follow_live, _status_lines())
+	hud.refresh(clock, last_frame, _status_lines())
 
 
 ## Pose the world for time t with the current camera. Returns the frame sample.
@@ -140,8 +137,7 @@ func render_at(t: float) -> Dictionary:
 
 func _status_lines() -> PackedStringArray:
 	var f := last_frame
-	var lines := PackedStringArray()
-	lines.append(utc_string(clock.t))
+	var lines := PackedStringArray()  # the time itself is on the timeline
 	var alt := (D.norm(f["r_sc"]) - World.R_EARTH) / 1000.0
 	var speed := D.norm(f["v_sc"]) / 1000.0
 	lines.append("Altitude %.1f km   speed %.3f km/s" % [alt, speed])
@@ -170,8 +166,20 @@ func utc_string(t: float) -> String:
 func _unhandled_input(event: InputEvent) -> void:
 	if rig.handle_input(event):
 		return
-	if event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
-		match (event as InputEventKey).keycode:
+	var key := event as InputEventKey
+	if key != null and key.pressed and key.keycode in [KEY_LEFT, KEY_RIGHT]:  # repeats while held
+		var d := -1 if key.keycode == KEY_LEFT else 1
+		if key.shift_pressed:
+			hud.timeline.jump_event(d)
+		else:
+			hud.timeline.step_row(d)
+		return
+	if key != null and key.pressed and not key.echo:
+		match key.keycode:
+			KEY_B: hud.timeline.add_bookmark()
+			KEY_T: hud.timeline.open_time_entry()
+			KEY_F: hud.timeline.fit_view()
+			KEY_I: hud.card.enabled = not hud.card.enabled
 			KEY_SPACE: clock.toggle_pause()
 			KEY_PERIOD: clock.faster()
 			KEY_COMMA: clock.slower()

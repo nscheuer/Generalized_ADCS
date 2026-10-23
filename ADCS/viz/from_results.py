@@ -219,6 +219,8 @@ def results_to_vizlog(
     model: Optional[str | Path] = None,
     overlays: Any = "default",
     extra_channels: Optional[Dict[str, np.ndarray]] = None,
+    bookmarks: Optional[List[Any]] = None,
+    sites: Optional[List[Any]] = None,
 ) -> Path:
     r"""
     Write simulation results as an ``adcs-vizlog`` directory.
@@ -253,6 +255,10 @@ def results_to_vizlog(
         width)}``, e.g. ``joint_<node>`` angles [rad] that drive hinged model
         parts, or ``user_<name>`` vectors for arrows. Applied to every run, so
         all runs must have that many rows.
+    :param bookmarks: Named moments for the viewer's timeline
+        (:class:`~ADCS.viz.timeline.Bookmark`, by ``t_s`` or ``utc``).
+    :param sites: Ground sites whose passes the timeline shows
+        (:class:`~ADCS.viz.timeline.GroundSite`).
     :return: The vizlog path.
     """
     if ephem is None:
@@ -300,6 +306,14 @@ def results_to_vizlog(
                         ref[ch] = float(np.percentile(mags, 10))
             overlays = default_overlays(info, scene, ref)
         scene["overlays"] = validate_overlays(overlays, info, scene)
+    if bookmarks or sites:
+        from ADCS.viz.timeline import validate_timeline
+
+        t_last = max((float(c["_j2000"][0]) - epoch_j2000) * TimeConstants.cent2sec
+                     + float(c["_time_s"][-1] - c["_time_s"][0]) for c, _ in per_run)
+        scene["timeline"] = validate_timeline(
+            bookmarks, sites, t_range=(0.0, t_last),
+            utc_to_t_s=lambda d: (ephem.ts.from_datetime(d).tt - epoch_jd) * 86400.0)
     with VizLogWriter(path, channels, epoch_jd_tt=epoch_jd, epoch_iso_utc=epoch_iso,
                       scene=scene, metadata=manifest_metadata(ephem),
                       overwrite=overwrite) as writer:

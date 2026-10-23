@@ -189,6 +189,10 @@ Static, body-frame description of the spacecraft (lengths in metres):
   fov_assumed?, bidirectional?, node}``. Fields of view are always half-cone
   angles in radians, whatever convention the sensor class uses.
 * ``boresights``: named body-frame boresights; ``disturbances``: class names.
+* ``timeline`` (optional): ``{bookmarks: [{id, t_s, label, note, color}],
+  sites: [{name, lat_deg, lon_deg, alt_m, min_elev_deg, color, itrs_m,
+  up_itrs}]}`` from :mod:`ADCS.viz.timeline`; ``itrs_m`` / ``up_itrs`` are the
+  site's WGS84 position [m] and local vertical, so readers need no geodesy.
 * ``overlays`` (optional): what the viewer draws over the scene, a list of
   descriptors written by :mod:`ADCS.viz.overlays` (each has ``type`` and a
   unique ``id``; see :doc:`viewer`). Readers ignore unknown types.
