@@ -227,8 +227,4 @@ docs/source/*.rst
 !docs/source/index.rst
 
 # Keep only the offline defaults in the source tree and wheel.
-ADCS/environment/kernels/*
-!ADCS/environment/kernels/__init__.py
-!ADCS/environment/kernels/IGRF14.shc
-!ADCS/environment/kernels/de442s.bsp
-!ADCS/environment/kernels/bsc5_catalog.gz
+ADCS/environment/kernels/

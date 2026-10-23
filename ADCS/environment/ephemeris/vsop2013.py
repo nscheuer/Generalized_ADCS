@@ -9,6 +9,7 @@ from numba import njit
 from skyfield.api import load
 
 from ._download import download_with_progress, kernel_path
+from ADCS.helpers.asset_manager import Asset, AssetManager
 from .ephemeris import Ephemeris
 
 
@@ -124,6 +125,8 @@ class VSOP2013(Ephemeris):
         :rtype: pathlib.Path
         """
         path = self.kernel_dir / filename if self.kernel_dir is not None else kernel_path(filename)
+        if self.kernel_dir is None:
+            return AssetManager(registry={filename: Asset(filename, self.BASE_URL + filename, filename)}).get(filename)
         if not path.is_file():
             path.parent.mkdir(parents=True, exist_ok=True)
             temporary_path = path.with_name(path.name + ".part")

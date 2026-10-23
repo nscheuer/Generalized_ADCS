@@ -7,7 +7,7 @@ from .de442s import DE442s, DE442S
 from .de441 import DE441
 from .vsop2013 import VSOP2013
 
-EphemerisModel = DE442s
+EphemerisModel = DE421
 Ephemeris.DE421 = DE421
 Ephemeris.DE442 = DE442
 Ephemeris.DE442s = DE442s

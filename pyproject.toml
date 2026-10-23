@@ -210,15 +210,15 @@ packages = [
 # data files at all, so the Earth textures were missing and the orbit
 # animation silently lost its texture.
 #
-# DE442s is the bundled offline default. Larger optional kernels are cached
-# outside the installation when requested.
+# DE421 is downloaded to the user cache on first use; optional kernels are
+# cached outside the installation when requested.
 # py.typed marks the package as PEP 561 typed, so downstream type checkers use
 # our annotations instead of discarding them. Only safe now that the public
 # signatures are correct -- see the 0.1.9 release note.
 [tool.setuptools.package-data]
 "*" = ["textures/*.jpg"]
 "ADCS" = ["py.typed"]
-"ADCS.environment.kernels" = ["IGRF14.shc", "de442s.bsp", "bsc5_catalog.gz"]
+"ADCS.environment.kernels" = ["IGRF14.shc", "bsc5_catalog.gz"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]

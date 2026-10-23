@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from .catalogue import NavigationStar, StarCatalog
+from ADCS.helpers.asset_manager import AssetManager
 
 
 class BrightStarCatalog(StarCatalog):
@@ -42,7 +43,7 @@ class BrightStarCatalog(StarCatalog):
         self.kernel_path = (
             Path(kernel_path).expanduser()
             if kernel_path is not None
-            else Path(__file__).resolve().parents[1] / "kernels" / self.FILENAME
+            else AssetManager().get("bsc5")
         )
         self._stars: list[NavigationStar] | None = None
 

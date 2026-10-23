@@ -1,4 +1,4 @@
-"""JPL's compact DE442s planetary ephemeris, bundled for offline use."""
+"""JPL's compact DE442s planetary ephemeris."""
 
 from .de442 import DE442
 

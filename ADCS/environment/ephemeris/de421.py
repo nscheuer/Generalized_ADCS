@@ -9,6 +9,7 @@ import numpy as np
 
 from .ephemeris import Ephemeris as EphemerisBase
 from ._download import download_with_progress
+from ADCS.helpers.asset_manager import AssetManager
 
 class DE421(EphemerisBase):
     KERNEL_FILENAME = "de421.bsp"
@@ -109,14 +110,7 @@ class DE421(EphemerisBase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 self.planets = self._download_ephemeris(path)
         else:
-            existing = self._find_existing_ephemeris()
-            if existing is not None:
-                self.planets = load(str(existing))
-                print(f"✅ Loaded Ephemeris: {self.KERNEL_FILENAME}")
-            else:
-                self.planets = self._download_ephemeris(
-                    self._get_default_ephemeris_path()
-                )
+            self.planets = load(str(AssetManager().get(self.KERNEL_FILENAME.removesuffix(".bsp"))))
 
         # Extract common bodies
         self.sun = self.planets['sun']

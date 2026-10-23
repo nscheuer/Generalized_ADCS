@@ -4,16 +4,16 @@ import numpy as np
 from skyfield.api import load
 
 from ADCS.environment import Environment
-from ADCS.environment.ephemeris import DE442s
+from ADCS.environment.ephemeris import DE421
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 
 
-def test_default_environment_has_offline_kernels():
+def test_default_environment_uses_de421():
     environment = Environment()
-    assert isinstance(environment.ephemeris, DE442s)
-    assert environment.ephemeris._packaged_ephemeris_path().is_file()
+    assert isinstance(environment.ephemeris, DE421)
+    assert environment.ephemeris._packaged_ephemeris_path().name == "de421.bsp"
     assert environment.magnetic_field.name == "igrf_numba"
     assert len(environment.star_catalogue.stars) == 30
 

@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 
 from ADCS.environment.ephemeris._download import download_with_progress, kernel_path
+from ADCS.helpers.asset_manager import AssetManager
 
 from .catalogue import NavigationStar, StarCatalog
 
@@ -33,7 +34,7 @@ class HipparcosCatalog(StarCatalog):
         :rtype: None
         """
         self.max_vmag = max_vmag
-        self.kernel_dir = Path(kernel_dir) if kernel_dir is not None else kernel_path(self.FILENAME).parent
+        self.kernel_dir = Path(kernel_dir) if kernel_dir is not None else AssetManager().get("hipparcos").parent
         self._stars: list[NavigationStar] | None = None
 
     @property

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .atmosphere import Atmosphere, SMADAtmosphere
-from .ephemeris import DE442s, Ephemeris
+from .ephemeris import DE421, Ephemeris
 from .magnetic_field import IGRF14, MagneticField
 from .star_catalogue import StarCatalogue
 
@@ -34,7 +34,7 @@ class Environment:
         :type magnetic_field: MagneticField or None
         :param atmosphere: Density model; defaults to SMAD.
         :type atmosphere: Atmosphere or None
-        :param ephemeris: Planetary ephemeris; defaults to bundled DE442s.
+        :param ephemeris: Planetary ephemeris; defaults to DE421, downloaded on first use.
         :type ephemeris: Ephemeris or None
         :param star_catalogue: Star catalogue; defaults to curated navigation stars.
         :type star_catalogue: StarCatalogue or None
@@ -43,7 +43,7 @@ class Environment:
         """
         self.magnetic_field = magnetic_field if magnetic_field is not None else IGRF14()
         self.atmosphere = atmosphere if atmosphere is not None else SMADAtmosphere()
-        self.ephemeris = ephemeris if ephemeris is not None else DE442s()
+        self.ephemeris = ephemeris if ephemeris is not None else DE421()
         self._star_catalogue_explicit = star_catalogue is not None
         self.star_catalogue = star_catalogue if star_catalogue is not None else StarCatalogue()
 
