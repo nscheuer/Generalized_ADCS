@@ -307,3 +307,21 @@ def test_flat_faces_get_hard_normals(tmp_path):
     face_n = m.face_normals[np.repeat(np.arange(len(m.faces)), 3)]
     vert_n = m.vertex_normals[m.faces.reshape(-1)]
     assert np.allclose((face_n * vert_n).sum(1), 1.0, atol=1e-5)
+
+
+def test_crease_normals_match_trimesh_and_scale_to_cad_meshes():
+    import time
+
+    from ADCS.viz.mesh_import.importer import _shade
+
+    cyl = trimesh.creation.cylinder(radius=1, height=2, sections=24)
+    ours, ref = _shade(cyl), trimesh.graph.smooth_shade(cyl, angle=np.radians(30))
+    assert len(ours.vertices) == len(ref.vertices) == 98  # same hard/smooth split: 2 cap rings + the side
+    corner = ours.vertex_normals[ours.faces]
+    assert np.einsum("fkj,fj->fk", corner, ours.face_normals).min() > np.cos(np.radians(30))
+    # A finely tessellated sphere (~330k faces) in seconds: trimesh's version takes minutes at this size.
+    big = trimesh.creation.icosphere(subdivisions=7)
+    t0 = time.perf_counter()
+    shaded = _shade(big)
+    assert time.perf_counter() - t0 < 30.0
+    assert len(shaded.vertices) == len(big.vertices)  # all smooth: no splits

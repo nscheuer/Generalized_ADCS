@@ -426,7 +426,56 @@ def _shade(mesh: Any) -> Any:
 
     if getattr(mesh.visual, "kind", None) == "texture":
         return mesh  # UV seams already define where vertices must be split
-    return trimesh.graph.smooth_shade(mesh, angle=np.radians(SHARP_EDGE_DEG))
+    vertices, faces, normals = crease_normals(np.asarray(mesh.vertices), np.asarray(mesh.faces),
+                                              np.radians(SHARP_EDGE_DEG))
+    out = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_normals=normals, process=False)
+    if getattr(mesh.visual, "kind", None) == "face":
+        out.visual = trimesh.visual.ColorVisuals(out, face_colors=np.asarray(mesh.visual.face_colors))
+    return out
+
+
+def crease_normals(vertices: np.ndarray, faces: np.ndarray, angle: float) -> tuple:
+    r"""
+    Per-corner normals with sharp edges kept (vectorized; linear in the corners
+    for bounded vertex valence).
+
+    Each face corner gets the area-weighted mean normal of the faces around its
+    vertex whose normals are within ``angle`` of its own face's normal. Corners
+    of one vertex with the same result share a vertex; others are split, so
+    edges sharper than ``angle`` stay hard. (trimesh.graph.smooth_shade gives the
+    same result but is impractically slow on large CAD meshes.)
+
+    :return: ``(vertices, faces, vertex_normals)`` of the split mesh.
+    """
+    v = np.asarray(vertices, np.float64)
+    f = np.asarray(faces, np.int64)
+    cross = np.cross(v[f[:, 1]] - v[f[:, 0]], v[f[:, 2]] - v[f[:, 0]])
+    area2 = np.linalg.norm(cross, axis=1)
+    fn = cross / np.maximum(area2, 1e-300)[:, None]
+    corner_v = f.ravel()
+    corner_f = np.repeat(np.arange(len(f)), 3)
+    order = np.argsort(corner_v, kind="stable")
+    cv, cf = corner_v[order], corner_f[order]
+    starts = np.flatnonzero(np.r_[True, cv[1:] != cv[:-1]])
+    counts = np.diff(np.r_[starts, len(cv)])
+    group = np.repeat(np.arange(len(starts)), counts)
+    rep = counts[group]  # for each corner, how many corners share its vertex
+    i = np.repeat(np.arange(len(cv)), rep)
+    j = starts[group][i] + (np.arange(len(i)) - np.repeat(np.cumsum(rep) - rep, rep))
+    keep = np.einsum("ij,ij->i", fn[cf[i]], fn[cf[j]]) >= np.cos(angle)
+    i, j = i[keep], j[keep]
+    w = (fn[cf[j]] * area2[cf[j]][:, None])
+    acc = np.zeros((len(cv), 3))
+    for k in range(3):
+        acc[:, k] = np.bincount(i, weights=w[:, k], minlength=len(cv))
+    norm = np.linalg.norm(acc, axis=1)
+    acc = np.where(norm[:, None] > 0, acc / np.maximum(norm, 1e-300)[:, None], fn[cf])
+    corner_n = np.empty_like(acc)
+    corner_n[order] = acc
+    # One output vertex per (input vertex, normal); corners with equal normals share it.
+    key = np.c_[corner_v, np.round(corner_n * 1e6).astype(np.int64)]
+    uniq, first, inverse = np.unique(key, axis=0, return_index=True, return_inverse=True)
+    return v[corner_v[first]], inverse.reshape(-1, 3), corner_n[first]
 
 
 def _simplify(mesh: Any, ratio: float) -> Any:

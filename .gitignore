@@ -227,3 +227,4 @@ docs/source/*.rst
 
 # Visualization logs written by examples and tutorials
 *.vizlog/
+tutorial_9_output/
