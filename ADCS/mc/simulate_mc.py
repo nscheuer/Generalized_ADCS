@@ -611,6 +611,8 @@ def simulate_mc(
     x_base = x.copy()
     os0_base_payload = _freeze_os0(os0)
 
+    run_goals: Dict[int, Any] = {}  # the goal each run used (base or sampled), for the vizlog's ground sites
+
     def _build_run_cfg(run_id: int) -> Dict[str, Any]:
         seed = int(base_seed) + int(run_id)
         rng = np.random.default_rng(seed)
@@ -715,6 +717,7 @@ def simulate_mc(
         if orbit_mode == "seq":
             cfg["orbit_os_seq"] = orbit_os_seq
 
+        run_goals[int(run_id)] = goal_i
         return cfg
 
     runner = MonteCarloRunner(
@@ -744,5 +747,7 @@ def simulate_mc(
     if viz_log is not None:
         from ADCS.viz.from_results import results_to_vizlog
         from ADCS.viz.timeline import sites_from_goals
-        results_to_vizlog(results, viz_log, ephem=ephem, overwrite=True, sites=sites_from_goals(goal))
+        # Every target any written run pointed at (runs may sample their own goal through mc_config).
+        sites = sites_from_goals(*(run_goals.get(int(r)) for r in run_ids if r is not None))
+        results_to_vizlog(results, viz_log, ephem=ephem, overwrite=True, sites=sites)
     return results

@@ -43,20 +43,26 @@ def test_samples_without_motion_blur():
     job = RenderJob(duration_s=2.0, fps=5.0, t_start=100.0, t_end=300.0)
     s = rd.samples(job, 0.0, 1000.0)
     assert len(s) == 10 and {x["layer"] for x in s} == {"all"}
-    np.testing.assert_allclose([x["u"] for x in s], np.arange(10) / 5.0)
-    np.testing.assert_allclose([x["t"] for x in s], 100.0 + 200.0 * np.arange(10) / 5.0 / 2.0)
+    np.testing.assert_allclose([x["u"] for x in s], np.arange(10) * 2.0 / 9)
+    np.testing.assert_allclose([x["t"] for x in s], np.linspace(100.0, 300.0, 10))
+    assert s[0]["t"] == 100.0 and s[-1]["t"] == 300.0  # the frames span both ends of the window
+    keys = [CameraKey(at=0.0, dist_m=1.0), CameraKey(at=2.0, dist_m=50.0)]
+    last = rd.samples(RenderJob(duration_s=2.0, fps=5.0, keys=keys), 0.0, 10.0)[-1]
+    assert last["cam"]["dist_m"] == pytest.approx(50.0)  # the camera reaches the last key
 
 
 def test_samples_with_motion_blur_are_centred_and_add_the_sharp_layer():
-    job = RenderJob(duration_s=1.0, fps=4.0, motion_blur=4, shutter=0.5)
+    job = RenderJob(duration_s=1.5, fps=4.0, motion_blur=4, shutter=0.5)  # 6 frames, spacing 0.3 s
     s = rd.samples(job, 0.0, 100.0)
-    assert len(s) == 4 * (4 + 2)
+    assert len(s) == 6 * (4 + 2)
     frame2 = [x for x in s if x["i"] == 2]
     scene = [x for x in frame2 if x["j"] < 4]
     assert all(x["layer"] == "scene" for x in scene)
-    np.testing.assert_allclose([x["u"] for x in scene], 0.5 + 0.125 * (np.array([0.5, 1.5, 2.5, 3.5]) / 4 - 0.5))
-    assert np.mean([x["u"] for x in scene]) == pytest.approx(0.5)  # centred on the frame time
-    assert [(x["j"], x["layer"], x["u"]) for x in frame2[4:]] == [(4, "all", 0.5), (5, "scene", 0.5)]
+    np.testing.assert_allclose([x["u"] for x in scene], 0.6 + 0.15 * (np.array([0.5, 1.5, 2.5, 3.5]) / 4 - 0.5))
+    assert np.mean([x["u"] for x in scene]) == pytest.approx(0.6)  # centred on the frame time
+    assert [(x["j"], x["layer"]) for x in frame2[4:]] == [(4, "all"), (5, "scene")]
+    assert all(x["u"] == pytest.approx(0.6) for x in frame2[4:])
+    assert max(x["u"] for x in s) == 1.5  # clamped at the end
     assert min(x["u"] for x in s) == 0.0  # clamped at the start
 
 

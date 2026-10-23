@@ -49,8 +49,8 @@ def shadow_factor(
         or ``(N, 3)``, in km.
     :type r_sat: numpy.ndarray
     :param r_sun:
-        Sun position relative to the occulting body's centre, same shape and
-        units as ``r_sat``.
+        Sun position relative to the occulting body's centre, in km: ``(3,)`` or
+        ``(N, 3)``. One position is paired with every row of the other input.
     :type r_sun: numpy.ndarray
     :param R_occ:
         Radius of the occulting body in km. Defaults to Earth's equatorial radius.
@@ -60,20 +60,21 @@ def shadow_factor(
     :type R_sun: float
 
     :return:
-        Visible solar-disk fraction in ``[0, 1]``: a float for ``(3,)`` input,
-        otherwise an array of shape ``(N,)``.
+        Visible solar-disk fraction in ``[0, 1]``: a float when both inputs are
+        ``(3,)``, otherwise an array of shape ``(N,)``.
     :rtype: float | numpy.ndarray
     """
     r_sat = np.asarray(r_sat, dtype=float)
     r_sun = np.asarray(r_sun, dtype=float)
-    scalar = r_sat.ndim == 1
-    if scalar and r_sat.shape == (3,) and r_sun.shape == (3,):
+    if r_sat.shape == (3,) and r_sun.shape == (3,):
         # Per-step callers (live streaming) pay ~10x less without numpy overhead.
         return _shadow_factor_scalar(r_sat.tolist(), r_sun.tolist(), R_occ, R_sun)
-    r_sat = np.atleast_2d(r_sat)
-    r_sun = np.atleast_2d(r_sun)
-    if r_sat.shape[-1] != 3 or r_sun.shape[-1] != 3:
-        raise ValueError("r_sat and r_sun must have a trailing dimension of 3")
+    if r_sat.shape[-1:] != (3,) or r_sun.shape[-1:] != (3,) or r_sat.ndim > 2 or r_sun.ndim > 2:
+        raise ValueError("r_sat and r_sun must have shape (3,) or (N, 3)")
+    try:  # one position against many (either way round) broadcasts
+        r_sat, r_sun = np.broadcast_arrays(np.atleast_2d(r_sat), np.atleast_2d(r_sun))
+    except ValueError:
+        raise ValueError(f"r_sat {r_sat.shape} and r_sun {r_sun.shape} have different numbers of rows") from None
 
     s = r_sun - r_sat
     r_norm = np.linalg.norm(r_sat, axis=-1)
@@ -106,8 +107,7 @@ def shadow_factor(
         )
         nu[partial] = 1.0 - area / (np.pi * ap**2)
 
-    nu = np.clip(nu, 0.0, 1.0)
-    return float(nu[0]) if scalar else nu
+    return np.clip(nu, 0.0, 1.0)
 
 
 def _shadow_factor_scalar(r: list, sun: list, R_occ: float, R_sun: float) -> float:

@@ -65,7 +65,7 @@ class RenderJob:
     What to render.
 
     :param t_start: Simulation time of the first frame [s since the log epoch]; default: the start of the log.
-    :param t_end: Simulation time of the last frame; default: the end of the log.
+    :param t_end: Simulation time of the last frame (frames span both ends); default: the end of the log.
     :param duration_s: Video length [s].
     :param supersample: Rendered at this multiple of the output size per axis (1-4), then averaged.
     :param motion_blur: Sub-frames per frame, spread over ``shutter`` of the frame interval (1 = none).
@@ -164,10 +164,12 @@ def samples(job: RenderJob, t_first: float, t_last: float) -> List[Dict[str, Any
     """
     Every image to render: ``{i, j, u, t, cam, layer}`` (frame i, image j, video time u, simulation time t).
 
-    Frame i is at u = i / fps. Without motion blur it is one image of everything (``layer="all"``). With
-    ``motion_blur = m``, images 0..m-1 are the scene without overlays at times centred on the frame and spread
-    evenly over ``shutter`` / fps; image m is everything and m+1 the scene alone, both at the frame time (the
-    overlays are taken from their difference, so they stay sharp).
+    The frames span the video inclusively: frame i is at u = i * h with h = duration_s / (n_frames - 1), so
+    the first frame shows ``t_start`` and the last ``t_end``, and the camera reaches the last key. Without
+    motion blur a frame is one image of everything (``layer="all"``). With ``motion_blur = m``, images
+    0..m-1 are the scene without overlays at times centred on the frame and spread evenly over ``shutter`` x h;
+    image m is everything and m+1 the scene alone, both at the frame time (the overlays are taken from their
+    difference, so they stay sharp).
     """
     t0 = t_first if job.t_start is None else job.t_start
     t1 = t_last if job.t_end is None else job.t_end
@@ -175,6 +177,7 @@ def samples(job: RenderJob, t_first: float, t_last: float) -> List[Dict[str, Any
         raise ValueError(f"t_start/t_end [{t0}, {t1}] must lie inside the log [{t_first}, {t_last}] and increase")
     out = []
     n, m = job.n_frames, job.motion_blur
+    h = job.duration_s / (n - 1) if n > 1 else 1.0 / job.fps  # frame spacing in video time
 
     def at(i, j, u, layer):
         u = min(max(u, 0.0), job.duration_s)
@@ -182,15 +185,16 @@ def samples(job: RenderJob, t_first: float, t_last: float) -> List[Dict[str, Any
         return {"i": i, "j": j, "u": u, "t": float(min(max(t, t0), t1)), "cam": camera_at(job.keys, u), "layer": layer}
 
     for i in range(n):
+        u_i = i * h
         if m == 1:
-            out.append(at(i, 0, i / job.fps, "all"))
+            out.append(at(i, 0, u_i, "all"))
             continue
         # Motion blur: the scene alone at each sub-frame time, then the frame time with and without the overlays
         # (and HUD) so they can be laid over the blurred scene sharp.
         for j in range(m):
-            out.append(at(i, j, i / job.fps + (job.shutter / job.fps) * ((j + 0.5) / m - 0.5), "scene"))
-        out.append(at(i, m, i / job.fps, "all"))
-        out.append(at(i, m + 1, i / job.fps, "scene"))
+            out.append(at(i, j, u_i + job.shutter * h * ((j + 0.5) / m - 0.5), "scene"))
+        out.append(at(i, m, u_i, "all"))
+        out.append(at(i, m + 1, u_i, "scene"))
     return out
 
 

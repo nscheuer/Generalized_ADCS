@@ -94,6 +94,7 @@ class VizServer:
         self._dropped = 0
         self._seq = 0
         self._closing = False
+        self._sending = False  # a batch taken off the queue is still being sent
         self._live_failed = False
 
         self._accept_thread = threading.Thread(target=self._accept_loop, name="VizServer-accept", daemon=True)
@@ -164,11 +165,16 @@ class VizServer:
     def end_session(self) -> None:
         self._end({})
 
-    def close(self) -> None:
-        r"""Flush pending rows (briefly), then stop serving."""
+    def close(self, flush_timeout: float = 10.0) -> None:
+        r"""
+        Send what is still queued (including a batch already being sent), then stop serving.
+
+        :param flush_timeout: Longest wait for a slow viewer [s]; what is not sent by then is dropped.
+        """
         if self._sender_thread is not None:
             with self._cond:
-                self._cond.wait_for(lambda: not self._queue or self._client is None, timeout=2.0)
+                self._cond.wait_for(lambda: (not self._queue and not self._sending) or self._client is None,
+                                    timeout=flush_timeout)
         with self._cond:
             self._closing = True
             client, self._client = self._client, None
@@ -241,7 +247,7 @@ class VizServer:
                 # not per row.
                 batch = b"".join(self._queue)
                 self._queue.clear()
-                self._cond.notify_all()
+                self._sending = True
                 client = self._client
             try:
                 client.sendall(batch)
@@ -249,8 +255,11 @@ class VizServer:
                 with self._cond:
                     if self._client is client:
                         self._client = None
-                        self._cond.notify_all()
                 _close_quietly(client)
+            finally:
+                with self._cond:
+                    self._sending = False
+                    self._cond.notify_all()
 
     def _accept_loop(self) -> None:
         while not self._closing:

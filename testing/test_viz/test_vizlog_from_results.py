@@ -148,3 +148,30 @@ def test_simulate_mc_writes_one_vizlog_run_per_run(tmp_path):
     assert sorted(log.run_ids) == sorted(str(r) for r in res.run_ids)
     for rid in log.run_ids:
         assert log.n_rows(rid) == 3 and log.is_complete(rid)
+
+
+class _AlternatingGoal:
+    """mc_config.goal sampler: run 0 gets the first target, run 1 the second, ..."""
+
+    def __init__(self, goals):
+        self.goals, self.i = goals, 0
+
+    def __call__(self):
+        g = self.goals[self.i % len(self.goals)]
+        self.i += 1
+        return g
+
+
+def test_simulate_mc_vizlog_sites_include_per_run_goals(tmp_path):
+    from ADCS.mc.mcconfig import MCConfig
+
+    boston = ADCS.goals.Coordinate_Goal(lat=42.36, lon=-71.06, alt=0)
+    tokyo = ADCS.goals.Coordinate_Goal(lat=35.68, lon=139.69, alt=0)
+    sat = ADCS.Satellite(J_0=np.eye(3), sensors=[ADCS.MTM(a) for a in np.eye(3)])
+    x0 = State(w=np.array([0.02, -0.01, 0.015]), q=normalize(np.array([0.9, 0.2, -0.3, 0.1])))
+    simulate_mc(x=x0, satellite=sat, os0=_os0(), dt=10.0, tf=20.0, num_runs=2, max_workers=1, base_seed=0,
+                goal=None, mc_config=MCConfig(goal=_AlternatingGoal([boston, tokyo])),
+                viz_log=tmp_path / "mc.vizlog")
+    sites = VizLog.open(tmp_path / "mc.vizlog").scene["timeline"]["sites"]
+    assert sorted((s["lat_deg"], s["lon_deg"]) for s in sites) == [(35.68, 139.69), (42.36, -71.06)]
+    assert sorted(s["name"] for s in sites) == ["target 1", "target 2"]

@@ -302,3 +302,69 @@ def test_playback_sends_the_spacecraft_model_as_assets(tmp_path):
     for name, (meta, data) in client.assets.items():
         assert data == (tmp_path / "model" / name).read_bytes()
         assert meta["kind"] == "model_lod" and meta["sha256"] == hashlib.sha256(data).hexdigest()
+
+
+def test_broadcast_close_delivers_the_batch_in_flight_and_the_end(monkeypatch):
+    # close() right after the last rows: the sender has taken them off the queue but is still sending (here
+    # slowed down, as with a slow viewer or a busy network). Every row and the session END must still arrive.
+    import time
+
+    real_sendall = socket.socket.sendall
+
+    def slow_sendall(sock, data, *args):
+        if threading.current_thread().name.startswith("VizServer-send"):
+            time.sleep(0.3)
+        return real_sendall(sock, data, *args)
+
+    monkeypatch.setattr(socket.socket, "sendall", slow_sendall)
+    n, width = 200, 8
+    out = {}
+
+    def run(server):
+        try:
+            with VizClient(*server.address, server.token) as client:
+                client.connect()
+                rows = 0
+                for kind, _ in client.messages(timeout=20):
+                    rows += kind == MsgType.ROW
+                out.update(rows=rows, ended=True)  # messages() returns only at the session END
+        except Exception as e:  # noqa: BLE001 - the failure is the finding
+            out["error"] = repr(e)
+
+    with VizServer(mode="broadcast", queue_size=2 * n) as server:
+        server.begin_live({"channels": [{"name": "x", "width": width}], "epoch": {}}, {})
+        t = threading.Thread(target=run, args=(server,), daemon=True)
+        t.start()
+        assert server.wait_for_client(10)
+        row = np.arange(width, dtype=float)
+        for _ in range(n):
+            server.publish_row("0", row)
+        server.end_run("0")
+        server.end_session()
+    t.join(timeout=30)
+    assert out == {"rows": n, "ended": True}
+
+
+def test_a_failing_simulation_still_ends_the_live_stream(tmp_path):
+    # The controller raises part-way through: the exception reaches the caller, and the viewer still gets the
+    # rows so far and the session END (instead of waiting forever); the tee log is completed.
+    class Boom(ADCS.controller.MTQ_w_RW):
+        calls = 0
+
+        def find_u(self, *a, **kw):
+            Boom.calls += 1
+            if Boom.calls == 4:
+                raise RuntimeError("controller failure")
+            return super().find_u(*a, **kw)
+
+    args = _sim_args()
+    ctrl = Boom(est_sat=args["satellite"], p_gain=0.1, d_gain=0.7, c_gain=0.1, h_target=np.zeros(3))
+    out = {}
+    with VizServer(mode="broadcast") as server:
+        t = _collect_in_thread(server, out)
+        with pytest.raises(RuntimeError, match="controller failure"):
+            ADCS.simulate(**args, controller=ctrl, goal=ADCS.goals.Coordinate_Goal(lat=42.4, lon=-71.1, alt=0),
+                          viz_stream=server)
+        t.join(timeout=30)
+    assert not t.is_alive()  # the client saw the session END
+    assert 1 <= len(out["rows"]) < N

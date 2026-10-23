@@ -136,20 +136,24 @@ def _spans(t: np.ndarray, e: np.ndarray, offset: float) -> List[Pass]:
     return out
 
 
-def sites_from_goals(goal: Any) -> List[GroundSite]:
-    """Ground sites for the coordinate goals in a goal or goal list (unique by position)."""
-    goals = getattr(goal, "goals", None) or ([goal] if goal is not None else [])
-    out, seen = [], set()
-    for g in goals:
+def sites_from_goals(*goals: Any) -> List[GroundSite]:
+    """
+    Ground sites for the coordinate goals among ``goals`` (goals, goal lists or ``None``), unique by position:
+    ``"target"`` if there is one, else ``"target 1"``, ``"target 2"``, ... in order of first appearance.
+    """
+    flat: List[Any] = []
+    for goal in goals:
+        flat += getattr(goal, "goals", None) or ([goal] if goal is not None else [])
+    found, seen = [], set()
+    for g in flat:
         if not all(hasattr(g, a) for a in ("lat_deg", "lon_deg", "alt_km")):
             continue
         key = (round(float(g.lat_deg), 6), round(float(g.lon_deg), 6))
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(GroundSite(f"target {len(out) + 1}" if len(goals) > 1 else "target",
-                              float(g.lat_deg), float(g.lon_deg), float(g.alt_km) * 1000.0))
-    return out
+        if key not in seen:
+            seen.add(key)
+            found.append(g)
+    return [GroundSite("target" if len(found) == 1 else f"target {i + 1}", float(g.lat_deg), float(g.lon_deg),
+                       float(g.alt_km) * 1000.0) for i, g in enumerate(found)]
 
 
 def _utc_to_t_s(utc: str, to_t_s: Callable[[datetime], float]) -> float:

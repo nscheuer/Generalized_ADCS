@@ -93,3 +93,19 @@ def test_scalar_path_matches_the_vectorized_path():
     annular = np.array([-1.0e4, 0.0, 0.0])
     assert shadow_factor(annular, SUN, R_occ=1.0) == pytest.approx(
         float(shadow_factor(annular[None, :], SUN[None, :], R_occ=1.0)[0]), abs=1e-15)
+
+
+def test_one_position_broadcasts_against_many():
+    # A fixed spacecraft against a Sun history, and the reverse, give the same values as matching rows.
+    r = np.array([7000.0, 0.0, 0.0])
+    suns = np.array([[-1.5e8, 0.0, 0.0], [1.5e8, 0.0, 0.0], [0.0, 1.5e8, 0.0]])
+    nu = shadow_factor(r, suns)
+    assert nu.shape == (3,)
+    np.testing.assert_allclose(nu, [shadow_factor(r, s) for s in suns])
+    assert nu[0] == 0.0 and nu[1] == 1.0  # Sun behind the Earth / behind the spacecraft
+    sats = np.array([[7000.0, 0.0, 0.0], [-7000.0, 0.0, 0.0]])
+    np.testing.assert_allclose(shadow_factor(sats, suns[1]), [1.0, 0.0])
+    with pytest.raises(ValueError, match="different numbers of rows"):
+        shadow_factor(sats, suns)
+    with pytest.raises(ValueError, match=r"\(3,\) or \(N, 3\)"):
+        shadow_factor(np.zeros((2, 2)), suns[0])
