@@ -148,8 +148,9 @@ class EarthMaterial:
         self.enabled = False
 
     def _paths_for(self, tier):
+        maps = {"day_map": EARTH_MAPS["day_map"]} if tier == "low" else EARTH_MAPS
         paths = {key: texture_path(tier_name(tier, filename))
-                 for key, filename in EARTH_MAPS.items()}
+                 for key, filename in maps.items()}
         if self.day_texture_path is not None:
             paths["day_map"] = Path(self.day_texture_path).expanduser()
         return paths

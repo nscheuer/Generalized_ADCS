@@ -119,7 +119,7 @@ frame conversion is completed before the render loop starts.
             ensure_textures(
                 tier_textures(self.graphics_quality),
                 on_progress=lambda done, total, name: loading.update(
-                    0.7 * done / max(total, 1), f'Downloading {name}'
+                    0.7 * done / max(total, 1), name if name.startswith('Check terminal:') else f'Downloading {name}'
                 ),
             )
             loading.update(0.72, 'Loading star map')
@@ -346,7 +346,7 @@ frame conversion is completed before the render loop starts.
             ensure_textures(
                 tier_textures(tier),
                 on_progress=lambda done, total, name: loading.update(
-                    0.7 * done / max(total, 1), f'Downloading {name}'
+                    0.7 * done / max(total, 1), name if name.startswith('Check terminal:') else f'Downloading {name}'
                 ),
             )
         except (OSError, RuntimeError, ValueError) as exc:

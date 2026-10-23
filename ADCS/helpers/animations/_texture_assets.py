@@ -65,7 +65,7 @@ def ensure_textures(names, on_progress=None) -> dict[str, Path]:
     if missing:
         total = sum(sizes.values())
         if on_progress is not None:
-            on_progress(0, total, 'Preparing graphics')
+            on_progress(0, total, 'Check terminal: download prompt [y/N]')
         print(f"Graphics textures: {len(missing)} files, {total / 1048576:.1f} MiB total")
         sys.stdout.flush()
         if not sys.stdin.isatty():
