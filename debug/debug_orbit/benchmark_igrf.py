@@ -24,7 +24,7 @@ import numpy as np
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.environment import MAGNETIC_MODELS, field_gc
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants

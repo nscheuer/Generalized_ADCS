@@ -14,7 +14,7 @@ import numpy as np
 import ADCS
 from ADCS.helpers.math_helpers import normalize, quat_mult
 from ADCS.mc.simulate_mc import simulate_mc
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.satellite import EstimatedSatellite, Satellite
 from ADCS.satellite_hardware.sensors import MTM

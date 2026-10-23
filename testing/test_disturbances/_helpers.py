@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from ADCS.helpers.math_helpers import normalize
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.disturbances import GeometryConfig, GeometryFace
 from ADCS.satellite_hardware.satellite import Satellite

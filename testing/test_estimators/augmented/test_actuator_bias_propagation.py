@@ -12,7 +12,7 @@ import numpy as np
 
 from ADCS.estimators.attitude_estimators import AugmentedMEKF, AugmentedSRUKF, AugmentedUKF
 from ADCS.estimators.process_model import propagate_state
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ

@@ -12,7 +12,7 @@ from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.plan_and_track import PlannerSettings, Trajectory, planner_settings
 from ADCS.controller.plan_and_track.planner_subsettings import CostWeights
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants

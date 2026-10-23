@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from ADCS.helpers.math_helpers import rot_mat
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.state import State

@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 
 from ADCS.estimators.attitude_estimators import MEKF, AugmentedMEKF
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware import disturbances as D
 from ADCS.satellite_hardware.errors import Bias, Noise

@@ -12,7 +12,7 @@ from __future__ import annotations
 import numpy as np
 
 import ADCS
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Disturbance, Torque_Disturbance

@@ -11,7 +11,7 @@ from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_m
 from ADCS.environment.environment import Environment
 from ADCS.environment.ephemeris.ephemeris import sunlit_from_vectors
 from ADCS.environment.magnetic_field import make_magnetic_field
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
 from ADCS.helpers.math_helpers import normalize, rot_mat, drotmatTvecdq, ddrotmatTvecdqdq, legendre_p_and_dp
 from ADCS.state import State

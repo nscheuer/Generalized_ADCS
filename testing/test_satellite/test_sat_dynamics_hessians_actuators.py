@@ -4,7 +4,7 @@ import pytest
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.state import State
 

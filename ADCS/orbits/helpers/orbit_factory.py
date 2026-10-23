@@ -7,7 +7,7 @@ import numpy as np
 from typing import Optional
 
 from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL
-from ADCS.environment.ephemeris import DE442s as Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.universal_constants import TimeConstants, EarthConstants

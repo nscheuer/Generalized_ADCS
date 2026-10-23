@@ -35,7 +35,7 @@ from .helpers import plot as plots
 from .helpers.plot import plot
 from .helpers.simresults import RunResults, SimulationResults
 from .mc import MCConfig, simulate_mc
-from .environment.ephemeris import DE442s as Ephemeris
+from .environment.ephemeris import DE421 as Ephemeris
 from .environment import (
     Environment,
     MagneticField,
