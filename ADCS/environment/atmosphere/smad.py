@@ -1,4 +1,8 @@
-"""SMAD tabulated atmosphere with log-linear density interpolation."""
+"""SMAD tabulated atmosphere with log-linear density interpolation.
+
+Reference data are from *Space Mission Analysis and Design* (Wertz and Larson,
+eds.). See the project citation guide for bibliographic details.
+"""
 
 import numpy as np
 

@@ -61,6 +61,9 @@ class DE421(EphemerisBase):
     and provides sufficient accuracy for most Earth-orbiting spacecraft
     analyses.
 
+    Source: JPL Solar System Dynamics, DE421; see the project citation guide
+    for the DE421 memorandum and Skyfield software reference.
+
     :param filepath:
         Optional path for the JPL DE421 ephemeris file. If it is missing,
         the kernel is downloaded there. If ``None``, the user cache and

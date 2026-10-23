@@ -20,6 +20,9 @@ class BrightStarCatalog(StarCatalog):
     epoch; no proper-motion or aberration correction is applied.
 
     Stars use Harvard Revised identifiers in ``hr_id`` and have ``hip_id=None``.
+
+    Source: Hoffleit and Warren, 5th Revised Edition (1991), CDS catalogue
+    V/50. See the project citation guide.
     """
 
     FILENAME = "bsc5_catalog.gz"

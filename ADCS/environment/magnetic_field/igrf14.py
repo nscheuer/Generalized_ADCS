@@ -6,6 +6,10 @@ from .magnetic_field import MagneticField
 class IGRF14(MagneticField):
     """IGRF-14 with either the Numba or ppigrf backend.
 
+    Coefficients are published by IAGA Division V Working Group V-MOD.
+    Cite Beggan et al. (2025), doi:10.1186/s40623-025-02360-0, and the IGRF-14
+    coefficient data DOI listed in the project citation guide.
+
     ``field(position_ecef_km, date)`` accepts one ECEF position or an ``(N, 3)``
     array and returns ECEF field vectors in tesla. Dates may be a single
     ``datetime`` or one date per position.

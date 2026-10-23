@@ -19,6 +19,9 @@ class NRLMSISE00(Atmosphere):
 
     ``interpolate`` is provided for altitude-profile plotting and evaluates at
     the configured reference date and location (defaults: J2000-01-01, 0°, 0°).
+
+    Source: U.S. Naval Research Laboratory NRLMSISE-00 model; Picone et al.
+    (2002), doi:10.1029/2002JA009430. See the project citation guide.
     """
 
     def __init__(
