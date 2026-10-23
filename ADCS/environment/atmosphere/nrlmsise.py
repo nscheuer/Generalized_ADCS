@@ -123,7 +123,10 @@ class NRLMSISE00(Atmosphere):
         from skyfield.units import Distance
 
         ts = load.timescale()
-        datetimes = [date.astype("datetime64[us]").astype(datetime) for date in dates]
+        datetimes = [
+            date.astype("datetime64[us]").astype(datetime).replace(tzinfo=timezone.utc)
+            for date in dates
+        ]
         times = ts.from_datetimes(datetimes)
         distance = Distance(km=position.T)
         inertial = ICRF(distance.au, t=times, center=399, target=0)
