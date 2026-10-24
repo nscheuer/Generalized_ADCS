@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 
 
 @pytest.fixture(autouse=True)
@@ -75,9 +75,9 @@ def test_platform_default_without_xdg(monkeypatch):
 def test_packaged_path_points_at_the_package(monkeypatch):
     packaged = Ephemeris._packaged_ephemeris_path()
     assert packaged.name == "de421.bsp"
-    assert packaged.parent.name == "environment"
+    assert packaged.parent.name == "kernels"
     # must sit under the ADCS package, not the repo root
-    assert packaged.parent.parent.name == "ADCS"
+    assert packaged.parent.parent.parent.name == "ADCS"
 
 
 def test_search_order_prefers_the_cache_over_the_packaged_copy(monkeypatch, tmp_path):

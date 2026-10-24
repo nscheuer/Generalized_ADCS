@@ -64,14 +64,38 @@ planetary ephemerides and geomagnetic-field calculations.
      - Documentation
      - Original citation
      - Reference
-   * - Planetary ephemeris and celestial-body positions
-     - ``ADCS.orbits.ephemeris.Ephemeris``
-     - B. Rhodes, "Skyfield: High precision research-grade positions for planets and Earth satellites in Python," 2019, ASCL: `ascl:1907.024 <https://ascl.net/1907.024>`__.
-     - `Skyfield documentation <https://rhodesmill.org/skyfield/>`__
+   * - Planetary ephemeris and celestial-body positions (default DE421)
+     - ``ADCS.environment.ephemeris.DE421``; alternatives: ``DE442``, ``DE442s``, ``DE441``
+     - W. M. Folkner, J. G. Williams, and D. H. Boggs, *The Planetary and Lunar Ephemeris DE421*, JPL IOM 343.R-08-003 (2008). Skyfield provides the Python interface used to read these JPL kernels.
+     - `JPL DE421 references <https://iaaras.ru/en/dept/ephemeris/online/references/>`__; `Skyfield ASCL: 1907.024 <https://ascl.net/1907.024>`__
    * - IGRF geomagnetic field
      - ``ADCS.orbits.orbital_state.Orbital_State``
      - International Association of Geomagnetism and Aeronomy, *IGRF-14* (2024), coefficient dataset. Also cite C. Beggan et al., "International geomagnetic reference field: the fourteenth generation," *Earth, Planets and Space*, 78, 127 (2026), and IAGA-VMOD, *ppigrf: Pure Python IGRF* for the legacy backend.
      - `IGRF-14 coefficient dataset, doi:10.5281/zenodo.14012302 <https://doi.org/10.5281/zenodo.14012302>`__; `IGRF-14 paper, doi:10.1186/s40623-025-02360-0 <https://doi.org/10.1186/s40623-025-02360-0>`__; `ppigrf <https://github.com/IAGA-VMOD/ppigrf>`__
+   * - WMM2025 geomagnetic field
+     - ``ADCS.environment.magnetic_field.WMM2025``
+     - U.S. National Oceanic and Atmospheric Administration (NOAA), National Centers for Environmental Information (NCEI), *World Magnetic Model 2025*; developed with the British Geological Survey (BGS).
+     - `NOAA WMM 2025 <https://www.ncei.noaa.gov/products/world-magnetic-model>`__
+   * - CHAOS-8.7 internal geomagnetic field
+     - ``ADCS.environment.magnetic_field.CHAOS8``
+     - DTU Space geomagnetic field model team, CHAOS-8.7 core and lithospheric coefficient data.
+     - `CHAOS-8.7 data, Zenodo record 22959079 <https://zenodo.org/records/22959079>`__
+   * - NRLMSISE-00 neutral atmosphere
+     - ``ADCS.environment.atmosphere.NRLMSISE00``
+     - J. M. Picone, A. E. Hedin, D. P. Drob, and A. C. Aikin, “NRLMSISE-00 empirical model of the atmosphere: Statistical comparisons and scientific issues,” *J. Geophys. Res.*, 107(A12), 1468 (2002), doi:10.1029/2002JA009430. Developed at the U.S. Naval Research Laboratory (NRL).
+     - `doi:10.1029/2002JA009430 <https://doi.org/10.1029/2002JA009430>`__
+   * - Standard tabulated atmosphere (SMAD)
+     - ``ADCS.environment.atmosphere.SMADAtmosphere``
+     - Wertz and Larson (eds.), *Space Mission Analysis and Design*, Microcosm Press and Kluwer Academic Publishers. This implementation uses tabulated reference densities and log-linear interpolation.
+     - `Publisher information <https://www.microcosm.com/>`__
+   * - Bright Star Catalogue
+     - ``ADCS.environment.star_catalogue.BrightStarCatalog``
+     - D. Hoffleit and W. H. Warren, Jr., *The Bright Star Catalogue*, 5th Revised Edition, Yale University Observatory (1991); distributed by CDS Strasbourg as catalogue V/50.
+     - `CDS V/50 ReadMe <https://cdsarc.cds.unistra.fr/viz-bin/ReadMe/V/50?format=html&tex=true>`__
+   * - Hipparcos main catalogue
+     - ``ADCS.environment.star_catalogue.HipparcosCatalog``
+     - ESA, *The Hipparcos and Tycho Catalogues*, ESA SP-1200 (1997); catalogue I/239 distributed by CDS Strasbourg.
+     - `CDS I/239 ReadMe <https://cdsarc.cds.unistra.fr/viz-bin/ReadMe/I/239?format=html&tex=true>`__
 
 Estimators
 ----------
