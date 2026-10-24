@@ -11,7 +11,7 @@ import pytest
 
 import ADCS.remote.controller_rpc as rpc
 from ADCS.CONOPS.goals import ECI_Goal, No_Goal
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.state import EstimatorState, State

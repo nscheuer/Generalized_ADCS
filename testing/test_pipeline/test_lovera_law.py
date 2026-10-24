@@ -20,7 +20,7 @@ from ADCS.pipeline import PipelineController
 from ADCS.pipeline.control_law import PD_Law, Lovera_Law
 from ADCS.pipeline.data import AllocationConfig, CompensationConfig
 from ADCS.CONOPS.goals import ECI_Goal, No_Goal
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants

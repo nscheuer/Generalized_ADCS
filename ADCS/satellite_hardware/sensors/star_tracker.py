@@ -160,6 +160,7 @@ class StarTracker(Sensor):
         self.sun_exclusion = float(sun_exclusion)
         
         self.catalog = star_catalog if star_catalog is not None else StarCatalog()
+        self._catalog_explicit = star_catalog is not None
         self.current_star: Optional[NavigationStar] = None
 
         # 2. Calculate Rotation (Aligned -> Body)
@@ -251,10 +252,15 @@ class StarTracker(Sensor):
         # Memoize on the exact (attitude, orbital state) so clean_reading and
         # basestate_jac evaluated at the same state share one catalog query,
         # while a different state always re-selects.
+        environment = getattr(os, "environment", None)
+        catalog = self.catalog
+        if not self._catalog_explicit and getattr(environment, "_star_catalogue_explicit", False):
+            catalog = environment.star_catalogue
         key = (
             np.asarray(q, dtype=float).tobytes(),
             float(os.J2000),
             np.asarray(os.R, dtype=float).tobytes(),
+            id(catalog),
         )
         cached = getattr(self, "_star_selection", None)
         if cached is not None and cached[0] == key:
@@ -265,7 +271,7 @@ class StarTracker(Sensor):
         sun_eci = self._get_sun_eci(os)
         moon_eci = self._get_moon_eci(os)
 
-        visible = self.catalog.get_visible_stars(
+        visible = catalog.get_visible_stars(
             boresight_eci=boresight_eci,
             fov_rad=self.fov,
             r_sat_eci=r_sat_eci,
