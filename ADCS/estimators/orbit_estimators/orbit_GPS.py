@@ -1,6 +1,7 @@
 __all__ = ["Orbit_GPS"]
 
 import numpy as np
+from skyfield import framelib
 from typing import List, Optional, Sequence
 from scipy.linalg import block_diag
 
@@ -11,7 +12,7 @@ from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.helpers.math_helpers import rotate_covariance
 
 
-def _sensor_axes_to_eci(covariance: np.ndarray, os: Orbital_State) -> np.ndarray:
+def _sensor_axes_to_eci(covariance: np.ndarray, rotation: np.ndarray) -> np.ndarray:
     """Rotate a 6x6 covariance given in ECEF axes into ECI axes.
 
     A GPS receiver reports its noise per ECEF axis. The estimate lives in ECI,
@@ -20,7 +21,6 @@ def _sensor_axes_to_eci(covariance: np.ndarray, os: Orbital_State) -> np.ndarray
     specification is attached to the wrong axes and the estimate's stated
     uncertainty is inconsistent with its actual error.
     """
-    rotation = np.column_stack([os.ecef_to_eci(axis) for axis in np.eye(3)])
     rotated = np.zeros((6, 6))
     for block in (slice(0, 3), slice(3, 6)):
         rotated[block, block] = rotate_covariance(covariance[block, block], rotation)
@@ -233,22 +233,15 @@ class Orbit_GPS(Orbit_Estimator):
 
         m = np.asarray(GPS_measurements[0]).reshape(-1)
 
-        # 1. Create a temporary state at current J2000 to handle frame conversion.
-        #    We inherit the physics models (Ephemeris) from the template.
-        temp_os = Orbital_State(
-            ephem=self.os_template.ephem,
-            J2000=J2000,
-            R=np.zeros(3), # Dummy values
-            V=np.zeros(3),
-            density_model=self.os_template.density_model,
-            magnetic_model=self.os_template.magnetic_model,
-        )
+        # Earth orientation depends on time, so no temporary orbital state is needed.
+        t = self.os_template.ts.tt_jd(J2000 * 36525.0 + 2451545.0)
+        ecef_to_eci = framelib.itrs.rotation_at(t).T
 
         # 2. Convert ECEF Measurement -> ECI State
         if m.size == 3:
             # Position only
             r_ecef = m
-            r_eci = temp_os.ecef_to_eci(r_ecef)
+            r_eci = ecef_to_eci @ r_ecef
 
             if self.os_hat:
                 v_eci = self.os_hat.os.V
@@ -269,32 +262,30 @@ class Orbit_GPS(Orbit_Estimator):
             std_vel = 1000.0  # High uncertainty for unmeasured velocity
             P = np.diag(np.concatenate([std_pos ** 2,
                                         np.full(3, std_vel ** 2)]))
-            P = _sensor_axes_to_eci(P, temp_os)
+            P = _sensor_axes_to_eci(P, ecef_to_eci)
 
         elif m.size == 6:
             # Position + Velocity
             r_ecef = m[0:3]
             v_ecef = m[3:6]
 
-            r_eci = temp_os.ecef_to_eci(r_ecef)
-            v_eci = temp_os.ecef_to_eci(v_ecef)
+            r_eci = ecef_to_eci @ r_ecef
+            v_eci = ecef_to_eci @ v_ecef
 
             std = np.asarray(self.gps_std, dtype=float).reshape(-1)
             if std.size == 1:
                 std = np.repeat(std, 6)
-            P = _sensor_axes_to_eci(np.diag(std[:6] ** 2), temp_os)
+            P = _sensor_axes_to_eci(np.diag(std[:6] ** 2), ecef_to_eci)
             
         else:
             raise ValueError(f"Unknown GPS measurement size: {m.size}")
 
         # 3. Create the new State
         new_os = Orbital_State(
-            ephem=self.os_template.ephem,
             J2000=J2000,
             R=r_eci,
             V=v_eci,
-            density_model=self.os_template.density_model,
-            magnetic_model=self.os_template.magnetic_model,
+            environment=self.os_template.environment,
         )
 
         # 4. Return Estimated State

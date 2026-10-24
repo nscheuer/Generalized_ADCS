@@ -21,7 +21,7 @@ from ADCS.estimators.attitude_estimators import (
 )
 from ADCS.estimators.initialization import WarmStart, attitude_from_readings, initial_state_from_readings
 from ADCS.helpers.math_helpers import normalize, quat_mult
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import RW

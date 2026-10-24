@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_factory.sensors import create_generic_earth_horizon, create_irst_horizon_sensor
 from ADCS.satellite_hardware.errors import ErrorMode, Noise

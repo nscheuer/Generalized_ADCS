@@ -1,12 +1,20 @@
-__all__ = ["Ephemeris"]
+__all__ = ["DE421", "Ephemeris"]
 
 import os
 import sys
 from pathlib import Path
 from skyfield.api import load, Loader
 from typing import Optional
+import numpy as np
 
-class Ephemeris:
+from .ephemeris import Ephemeris as EphemerisBase
+from ._download import download_with_progress
+from ADCS.helpers.asset_manager import AssetManager
+
+class DE421(EphemerisBase):
+    KERNEL_FILENAME = "de421.bsp"
+    ENV_PATH_VARIABLE = "ADCS_EPHEMERIS_PATH"
+    DOWNLOAD_URL = None  # Skyfield's Loader knows the DE421 download URL.
     r"""
     High-precision planetary ephemeris interface based on Skyfield.
 
@@ -53,10 +61,14 @@ class Ephemeris:
     and provides sufficient accuracy for most Earth-orbiting spacecraft
     analyses.
 
+    Source: JPL Solar System Dynamics, DE421; see the project citation guide
+    for the DE421 memorandum and Skyfield software reference.
+
     :param filepath:
-        Optional path to a pre-downloaded JPL DE421 ephemeris file.
-        If ``None``, a default location under
-        ``ADCS/environment/de421.bsp`` is used.
+        Optional path for the JPL DE421 ephemeris file. If it is missing,
+        the kernel is downloaded there. If ``None``, the user cache and
+        ``ADCS/environment/kernels/de421.bsp`` are checked before downloading
+        to the user cache.
     :type filepath: pathlib.Path | None
 
     :raises RuntimeError:
@@ -65,7 +77,7 @@ class Ephemeris:
     .. note::
 
         This class internally initializes a shared Skyfield
-        :class:`~ADCS.etc.Ephemeris` timescale object, which should be reused
+        Skyfield timescale object, which should be reused
         across all time-dependent orbital computations to ensure consistency.
 
     """
@@ -75,7 +87,7 @@ class Ephemeris:
         Initialize the ephemeris loader and planetary body objects.
 
         This constructor loads the JPL DE421 ephemeris file either from a
-        user-specified path or from the default project directory. If the
+        user-specified path, the user cache, or the package kernel directory. If the
         file does not exist locally, it is automatically downloaded using
         Skyfield’s loader utilities.
 
@@ -84,7 +96,8 @@ class Ephemeris:
 
         :param filepath:
             Optional filesystem path to a DE421 ephemeris file.
-            If ``None``, a default project-relative path is used.
+            If ``None``, existing local kernels are checked and the user cache
+            is used for a download when necessary.
         :type filepath: pathlib.Path | None
 
         :return:
@@ -93,17 +106,14 @@ class Ephemeris:
 
         """
         if filepath is not None:
-            # User-provided file path
-            self.planets = load(str(filepath))
-        else:
-            existing = self._find_existing_ephemeris()
-            if existing is not None:
-                self.planets = load(str(existing))
-                print("✅ Loaded Ephemeris: de421.bsp")
+            path = Path(filepath).expanduser()
+            if path.is_file():
+                self.planets = load(str(path))
             else:
-                self.planets = self._download_ephemeris(
-                    self._get_default_ephemeris_path()
-                )
+                path.parent.mkdir(parents=True, exist_ok=True)
+                self.planets = self._download_ephemeris(path)
+        else:
+            self.planets = load(str(AssetManager().get(self.KERNEL_FILENAME.removesuffix(".bsp"))))
 
         # Extract common bodies
         self.sun = self.planets['sun']
@@ -113,19 +123,93 @@ class Ephemeris:
         self.ts = load.timescale()
         self._closed = False
 
+    @property
+    def available_bodies(self) -> tuple[str, ...]:
+        r"""List targets and aliases in the loaded DE421 kernel.
+
+        :return: Sorted lower-case body names and aliases.
+        :rtype: tuple[str, ...]
+        """
+        names = self.planets.names()
+        return tuple(sorted({alias.lower() for aliases in names.values() for alias in aliases}))
+
+    def position_eci(self, target, j2000, *, observer="earth", apparent=True):
+        """Return a body's position relative to an observer in ECI coordinates [km].
+
+        ``target`` and ``observer`` are names or NAIF integer IDs accepted by
+        the loaded kernel. J2000 epochs are expressed in Julian centuries.
+        Scalar epochs return ``(3,)``; arrays return ``(..., 3)``. Apparent
+        positions are computed by default, matching :meth:`sun_position_eci`.
+
+        :param target: Target body name or NAIF identifier.
+        :type target: str or int
+        :param j2000: Epoch or epochs in Julian centuries since J2000.
+        :type j2000: float or numpy.ndarray
+        :param observer: Origin body name or NAIF identifier.
+        :type observer: str or int
+        :param apparent: Apply apparent-position corrections when true.
+        :type apparent: bool
+        :return: Relative ECI position vector or vectors [km].
+        :rtype: numpy.ndarray
+        """
+        epochs = np.asarray(j2000, dtype=float)
+        times = self.ts.tt_jd(epochs * 36525.0 + 2451545.0)
+        position = self.planets[observer].at(times).observe(self.planets[target])
+        if apparent:
+            position = position.apparent()
+        position = np.asarray(position.position.km, dtype=float)
+        if epochs.ndim == 0:
+            return position.reshape(3)
+        return np.moveaxis(position, 0, -1)
+
+    def sun_position_eci(self, j2000):
+        r"""Find the apparent Earth to Sun position in ECI coordinates.
+
+        :param j2000: Epoch or epochs in Julian centuries since J2000.
+        :type j2000: float or numpy.ndarray
+        :return: Earth to Sun vector or vectors [km].
+        :rtype: numpy.ndarray
+        """
+        return self.position_eci("sun", j2000)
+
     def close(self) -> None:
-        """Close the underlying Skyfield kernel and its BSP file handle."""
+        r"""Close the Skyfield kernel and its BSP file handle.
+
+        :return: None
+        :rtype: None
+        """
         if not getattr(self, "_closed", True):
             self.planets.close()
             self._closed = True
 
     def __enter__(self):
+        r"""Enter a context that closes the kernel on exit.
+
+        :return: This ephemeris instance.
+        :rtype: DE421
+        """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        r"""Close the kernel when leaving a context.
+
+        :param exc_type: Exception type, if one occurred.
+        :type exc_type: type or None
+        :param exc_value: Exception value, if one occurred.
+        :type exc_value: BaseException or None
+        :param traceback: Exception traceback, if one occurred.
+        :type traceback: traceback or None
+        :return: None, allowing an exception to propagate.
+        :rtype: None
+        """
         self.close()
 
     def __del__(self):
+        r"""Close an unclosed kernel during object finalization.
+
+        :return: None
+        :rtype: None
+        """
         # Keep existing call sites safe even when they do not yet explicitly
         # close their Ephemeris instance.
         try:
@@ -142,10 +226,10 @@ class Ephemeris:
         the wheel, but a source checkout has one here, and so does an
         installation where a user or sysadmin placed one deliberately.
 
-        :return: Path to ``ADCS/environment/de421.bsp``.
+        :return: Path to ``ADCS/environment/kernels/de421.bsp``.
         :rtype: pathlib.Path
         """
-        return Path(__file__).resolve().parents[1] / "environment" / "de421.bsp"
+        return Path(__file__).resolve().parents[1] / "kernels" / DE421.KERNEL_FILENAME
 
     @staticmethod
     def _cache_ephemeris_path() -> Path:
@@ -161,7 +245,7 @@ class Ephemeris:
         :return: Path the ephemeris would be cached at.
         :rtype: pathlib.Path
         """
-        override = os.environ.get("ADCS_EPHEMERIS_PATH")
+        override = os.environ.get(DE421.ENV_PATH_VARIABLE)
         if override:
             return Path(override).expanduser()
 
@@ -174,7 +258,7 @@ class Ephemeris:
             base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
         else:
             base = Path.home() / ".cache"
-        return base / "generalized_adcs" / "de421.bsp"
+        return base / "generalized_adcs" / DE421.KERNEL_FILENAME
 
     @classmethod
     def _find_existing_ephemeris(cls) -> Path | None:
@@ -208,7 +292,7 @@ class Ephemeris:
         r"""
         Download and load the JPL DE421 ephemeris file.
 
-        This method uses Skyfield’s :class:`~ADCS.etc.Ephemeris` loader
+        This method uses Skyfield's loader
         mechanism to retrieve the DE421 ephemeris from official JPL mirrors
         and store it at the specified location. If the file already exists,
         it is reused.
@@ -227,8 +311,18 @@ class Ephemeris:
         """
         try:
             loader = Loader(str(save_path.parent))
-            planets = loader("de421.bsp")  # downloads if missing
-            print(f"✅ Ephemeris downloaded to: {planets.path}")
+            url = loader.build_url(self.KERNEL_FILENAME)
+            temporary_path = save_path.with_name(save_path.name + ".part")
+            download_with_progress(url, temporary_path, self.KERNEL_FILENAME)
+            temporary_path.replace(save_path)
+            planets = load(str(save_path))
+            print(f"✅ Ephemeris downloaded to: {save_path}")
             return planets
         except Exception as e:
+            if "temporary_path" in locals():
+                temporary_path.unlink(missing_ok=True)
             raise RuntimeError(f"❌ Failed to download DE421 ephemeris: {e}") from e
+
+
+# Import compatibility for existing callers. The implementation lives here.
+Ephemeris = DE421

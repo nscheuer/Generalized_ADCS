@@ -78,6 +78,9 @@ dependencies = [
 ppigrf = [
     "ppigrf>=2.0",
 ]
+nrlmsise = [
+    "pymsis>=0.12",
+]
 # 3-D orbit animation helpers (ADCS/helpers/plotting/animate_orbit_pyvista.py).
 viz = [
     "pyvista>=0.44",
@@ -158,6 +161,11 @@ packages = [
     "ADCS.controller.plan_and_track",
     "ADCS.controller.saltro",
     "ADCS.environment",
+    "ADCS.environment.atmosphere",
+    "ADCS.environment.ephemeris",
+    "ADCS.environment.kernels",
+    "ADCS.environment.magnetic_field",
+    "ADCS.environment.star_catalogue",
     "ADCS.estimators",
     "ADCS.estimators.attitude_estimators",
     "ADCS.estimators.estimator_helpers",
@@ -166,6 +174,7 @@ packages = [
     "ADCS.flight_software.single_core",
     "ADCS.flight_software.tasks",
     "ADCS.helpers",
+    "ADCS.helpers.math",
     "ADCS.helpers.plot",
     "ADCS.helpers.plot.control",
     "ADCS.helpers.plot.orbit",
@@ -201,20 +210,14 @@ packages = [
 # data files at all, so the Earth textures were missing and the orbit
 # animation silently lost its texture.
 #
-# de421.bsp (16 MB) is deliberately NOT shipped -- Ephemeris() downloads it on
-# first use, and a 16 MB payload on every install is a poor trade for a file
-# most users never touch. Pass `Ephemeris(filepath=...)` to point at an
-# existing copy.
+# DE421 is bundled for offline use; optional kernels are cached on demand.
 # py.typed marks the package as PEP 561 typed, so downstream type checkers use
 # our annotations instead of discarding them. Only safe now that the public
 # signatures are correct -- see the 0.1.9 release note.
 [tool.setuptools.package-data]
 "*" = ["textures/*.jpg"]
 "ADCS" = ["py.typed"]
-# The IGRF coefficients. Without this the wheel imports fine and then raises
-# FileNotFoundError on the first field evaluation -- which is exactly how the
-# pyIGRF and igrf packages on PyPI are currently broken.
-"ADCS.environment" = ["*.shc"]
+"ADCS.environment.kernels" = ["de421.bsp", "IGRF14.shc", "bsc5_catalog.gz"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]

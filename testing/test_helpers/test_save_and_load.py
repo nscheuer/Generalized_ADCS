@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from ADCS.helpers.save_and_load.save_and_load import load_data, load_orbital_states, save_data
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 
 
