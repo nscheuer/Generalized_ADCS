@@ -45,6 +45,7 @@ class _EarthConstants:
     """
     R_e: float = 6378.1363            # km
     R_moon: float = 1737.4            # km
+    R_sun: float = 695700.0           # km (IAU 2015 nominal solar radius)
     mu_e: float = 398600.4415         # km^3/s^2
     J2coeff: float = 1.082635854e-3
     J3coeff: float = -2.53265649e-6

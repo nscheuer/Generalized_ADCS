@@ -128,6 +128,11 @@ objects intentionally do not support NumPy indexing or implicit conversion.
 
    ADCS
    satellite_factory/index
+   viz/vizlog_v1
+   viz/protocol_v1
+   viz/assets
+   viz/spacecraft_models
+   viz/viewer
 
 .. toctree::
    :maxdepth: 1

@@ -8,6 +8,7 @@ import pickle
 import hashlib
 import inspect
 import numpy as np
+from pathlib import Path
 from typing import Optional, Any, Dict, List, Union
 from contextlib import contextmanager
 from scipy.integrate import solve_ivp
@@ -446,6 +447,7 @@ def simulate_mc(
     num_runs: int = 100,
     max_workers: Optional[int] = None,
     base_seed: int = 0,
+    viz_log: Optional[str | Path] = None,
 ) -> SimulationResults:
     r"""
     Run a Monte Carlo ensemble of ADCS simulations using parallel workers.
@@ -568,6 +570,14 @@ def simulate_mc(
     :type base_seed:
         int
 
+    :param viz_log:
+        If given, also write all runs as one ``adcs-vizlog`` directory at this
+        path (one vizlog run per Monte Carlo run, keyed by run id), replacing
+        any vizlog already there. Written by the parent process after all
+        runs complete; workers are unaffected.
+    :type viz_log:
+        str | pathlib.Path | None
+
     :return:
         Aggregated results for all completed runs, including a list of per-run
         :class:`~ADCS.helpers.simresults.RunResults`, optional per-run configuration
@@ -600,6 +610,8 @@ def simulate_mc(
 
     x_base = x.copy()
     os0_base_payload = _freeze_os0(os0)
+
+    run_goals: Dict[int, Any] = {}  # the goal each run used (base or sampled), for the vizlog's ground sites
 
     def _build_run_cfg(run_id: int) -> Dict[str, Any]:
         seed = int(base_seed) + int(run_id)
@@ -705,6 +717,7 @@ def simulate_mc(
         if orbit_mode == "seq":
             cfg["orbit_os_seq"] = orbit_os_seq
 
+        run_goals[int(run_id)] = goal_i
         return cfg
 
     runner = MonteCarloRunner(
@@ -730,4 +743,11 @@ def simulate_mc(
     configs = [entry.get("applied", {}) for entry in cleaned]
     run_ids = [entry.get("run_id") for entry in cleaned]
 
-    return SimulationResults(runs=runs, configs=configs, run_ids=run_ids)
+    results = SimulationResults(runs=runs, configs=configs, run_ids=run_ids)
+    if viz_log is not None:
+        from ADCS.viz.from_results import results_to_vizlog
+        from ADCS.viz.timeline import sites_from_goals
+        # Every target any written run pointed at (runs may sample their own goal through mc_config).
+        sites = sites_from_goals(*(run_goals.get(int(r)) for r in run_ids if r is not None))
+        results_to_vizlog(results, viz_log, ephem=ephem, overwrite=True, sites=sites)
+    return results

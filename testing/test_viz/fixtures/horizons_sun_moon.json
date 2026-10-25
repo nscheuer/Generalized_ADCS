@@ -1,0 +1,226 @@
+{
+ "source": "JPL Horizons API (ssd.jpl.nasa.gov/api/horizons.api), ephemeris DE441",
+ "notes": "RA/Dec: apparent, geocentric, true equator and equinox of date. Hour angle: apparent, site geodetic lon 0 lat 0 alt 0, hours.",
+ "records": [
+  {
+   "jd_tt": 2447892.5,
+   "date_tt": "1990-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 281.20827879,
+   "sun_dec_app_deg": -23.042304301,
+   "sun_delta_au": 0.98333607098306,
+   "moon_ra_app_deg": 328.473826131,
+   "moon_dec_app_deg": -11.843484601,
+   "moon_delta_au": 0.00254516909662,
+   "sun_local_hour_angle_greenwich_h": 11.9293969
+  },
+  {
+   "jd_tt": 2448500.25,
+   "date_tt": "1991-Aug-31 18:00:00.000",
+   "sun_ra_app_deg": 159.504539573,
+   "sun_dec_app_deg": 8.632683013,
+   "sun_delta_au": 1.0093771958922,
+   "moon_ra_app_deg": 51.373654698,
+   "moon_dec_app_deg": 22.941430055,
+   "moon_delta_au": 0.00251278965169,
+   "sun_local_hour_angle_greenwich_h": 5.978033852
+  },
+  {
+   "jd_tt": 2449352.75,
+   "date_tt": "1993-Dec-31 06:00:00.000",
+   "sun_ra_app_deg": 280.415670843,
+   "sun_dec_app_deg": -23.093337254,
+   "sun_delta_au": 0.9833135292538,
+   "moon_ra_app_deg": 129.117459187,
+   "moon_dec_app_deg": 13.727254403,
+   "moon_delta_au": 0.00252633810638,
+   "sun_local_hour_angle_greenwich_h": -6.065984545
+  },
+  {
+   "jd_tt": 2450083.5,
+   "date_tt": "1996-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 280.704369715,
+   "sun_dec_app_deg": -23.072457269,
+   "sun_delta_au": 0.98325677991103,
+   "moon_ra_app_deg": 44.805300785,
+   "moon_dec_app_deg": 14.912595178,
+   "moon_delta_au": 0.00267006567803,
+   "sun_local_hour_angle_greenwich_h": 11.931804249
+  },
+  {
+   "jd_tt": 2450814.125,
+   "date_tt": "1997-Dec-31 15:00:00.000",
+   "sun_ra_app_deg": 280.850395193,
+   "sun_dec_app_deg": -23.062064731,
+   "sun_delta_au": 0.98333979594904,
+   "moon_ra_app_deg": 306.254905766,
+   "moon_dec_app_deg": -16.07181311,
+   "moon_delta_au": 0.00248823027202,
+   "sun_local_hour_angle_greenwich_h": 2.930855032
+  },
+  {
+   "jd_tt": 2451544.5,
+   "date_tt": "2000-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 280.725217146,
+   "sun_dec_app_deg": -23.071178237,
+   "sun_delta_au": 0.98333186522143,
+   "moon_ra_app_deg": 216.660958677,
+   "moon_dec_app_deg": -8.991502393,
+   "moon_delta_au": 0.0026798168449,
+   "sun_local_hour_angle_greenwich_h": 11.931498846
+  },
+  {
+   "jd_tt": 2451623.9,
+   "date_tt": "2000-Mar-20 09:36:00.000",
+   "sun_ra_app_deg": 0.075685056,
+   "sun_dec_app_deg": 0.032893417,
+   "sun_delta_au": 0.99598434340622,
+   "moon_ra_app_deg": 184.160083744,
+   "moon_dec_app_deg": 3.019516503,
+   "moon_delta_au": 0.00254325977033,
+   "sun_local_hour_angle_greenwich_h": -2.541321134
+  },
+  {
+   "jd_tt": 2452275.6,
+   "date_tt": "2002-Jan-01 02:24:00.000",
+   "sun_ra_app_deg": 281.404081704,
+   "sun_dec_app_deg": -23.024772205,
+   "sun_delta_au": 0.98329685019983,
+   "moon_ra_app_deg": 125.585543976,
+   "moon_dec_app_deg": 22.562485807,
+   "moon_delta_au": 0.00244849686503,
+   "sun_local_hour_angle_greenwich_h": -9.673588237
+  },
+  {
+   "jd_tt": 2453006.5,
+   "date_tt": "2004-Jan-02 00:00:00.000",
+   "sun_ra_app_deg": 281.864607698,
+   "sun_dec_app_deg": -22.992115578,
+   "sun_delta_au": 0.98328745774729,
+   "moon_ra_app_deg": 37.27608258,
+   "moon_dec_app_deg": 13.776418909,
+   "moon_delta_au": 0.00270053690426,
+   "sun_local_hour_angle_greenwich_h": 11.923125104
+  },
+  {
+   "jd_tt": 2453736.5,
+   "date_tt": "2006-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 281.334576884,
+   "sun_dec_app_deg": -23.031889358,
+   "sun_delta_au": 0.98335376819615,
+   "moon_ra_app_deg": 295.056384874,
+   "moon_dec_app_deg": -26.375575311,
+   "moon_delta_au": 0.00242304189947,
+   "sun_local_hour_angle_greenwich_h": 11.926729691
+  },
+  {
+   "jd_tt": 2454467.3,
+   "date_tt": "2008-Jan-01 19:12:00.000",
+   "sun_ra_app_deg": 281.682557042,
+   "sun_dec_app_deg": -23.005865955,
+   "sun_delta_au": 0.98328335481865,
+   "moon_ra_app_deg": 203.302911556,
+   "moon_dec_app_deg": -14.402489894,
+   "moon_delta_au": 0.00269973711657,
+   "sun_local_hour_angle_greenwich_h": 7.124445318
+  },
+  {
+   "jd_tt": 2455197.5,
+   "date_tt": "2010-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 281.366730579,
+   "sun_dec_app_deg": -23.027353682,
+   "sun_delta_au": 0.98330292154015,
+   "moon_ra_app_deg": 104.453560983,
+   "moon_dec_app_deg": 23.501523085,
+   "moon_delta_au": 0.00240221332999,
+   "sun_local_hour_angle_greenwich_h": 11.92661153
+  },
+  {
+   "jd_tt": 2455927.8,
+   "date_tt": "2012-Jan-01 07:12:00.000",
+   "sun_ra_app_deg": 281.163852236,
+   "sun_dec_app_deg": -23.039779952,
+   "sun_delta_au": 0.98332336364881,
+   "moon_ra_app_deg": 7.969886642,
+   "moon_dec_app_deg": 8.541304512,
+   "moon_delta_au": 0.00269434875244,
+   "sun_local_hour_angle_greenwich_h": -4.872302435
+  },
+  {
+   "jd_tt": 2456658.5,
+   "date_tt": "2014-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 281.397123272,
+   "sun_dec_app_deg": -23.021510235,
+   "sun_delta_au": 0.98335740233548,
+   "moon_ra_app_deg": 273.994192139,
+   "moon_dec_app_deg": -19.08615838,
+   "moon_delta_au": 0.00239099288245,
+   "sun_local_hour_angle_greenwich_h": 11.926198676
+  },
+  {
+   "jd_tt": 2457388.5,
+   "date_tt": "2016-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 280.858328949,
+   "sun_dec_app_deg": -23.059146404,
+   "sun_delta_au": 0.98331367141167,
+   "moon_ra_app_deg": 177.02754556,
+   "moon_dec_app_deg": 1.462726133,
+   "moon_delta_au": 0.00269234610951,
+   "sun_local_hour_angle_greenwich_h": 11.929870263
+  },
+  {
+   "jd_tt": 2458119.5,
+   "date_tt": "2018-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 281.427887386,
+   "sun_dec_app_deg": -23.01916713,
+   "sun_delta_au": 0.9833010421182,
+   "moon_ra_app_deg": 84.489067007,
+   "moon_dec_app_deg": 19.318353924,
+   "moon_delta_au": 0.00238914284334,
+   "sun_local_hour_angle_greenwich_h": 11.925358649
+  },
+  {
+   "jd_tt": 2458849.5,
+   "date_tt": "2020-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 280.887954318,
+   "sun_dec_app_deg": -23.058884361,
+   "sun_delta_au": 0.98329306030155,
+   "moon_ra_app_deg": 349.159513327,
+   "moon_dec_app_deg": -9.978225508,
+   "moon_delta_au": 0.00269988256685,
+   "sun_local_hour_angle_greenwich_h": 11.929332587
+  },
+  {
+   "jd_tt": 2459580.5,
+   "date_tt": "2022-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 281.450846014,
+   "sun_dec_app_deg": -23.020178598,
+   "sun_delta_au": 0.98335558862029,
+   "moon_ra_app_deg": 254.072173285,
+   "moon_dec_app_deg": -23.917474668,
+   "moon_delta_au": 0.0023989447715,
+   "sun_local_hour_angle_greenwich_h": 11.925743504
+  },
+  {
+   "jd_tt": 2460310.5,
+   "date_tt": "2024-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 280.920066553,
+   "sun_dec_app_deg": -23.058528914,
+   "sun_delta_au": 0.98331829110915,
+   "moon_ra_app_deg": 159.109638435,
+   "moon_dec_app_deg": 12.631569561,
+   "moon_delta_au": 0.00270480955441,
+   "sun_local_hour_angle_greenwich_h": 11.92948642
+  },
+  {
+   "jd_tt": 2461041.5,
+   "date_tt": "2026-Jan-01 00:00:00.000",
+   "sun_ra_app_deg": 281.493815565,
+   "sun_dec_app_deg": -23.017313019,
+   "sun_delta_au": 0.9833266769527,
+   "moon_ra_app_deg": 63.907182041,
+   "moon_dec_app_deg": 26.401525406,
+   "moon_delta_au": 0.00241344543165,
+   "sun_local_hour_angle_greenwich_h": 11.925319761
+  }
+ ]
+}

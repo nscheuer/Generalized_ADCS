@@ -2,7 +2,8 @@ __all__ = ["simulate"]
 
 import numpy as np
 import time
-from typing import Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional
 from tqdm import tqdm
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
@@ -24,6 +25,9 @@ from ADCS.state import EstimatorState, State
 
 from ADCS.helpers.simresults import SimulationResults, RunResults
 
+if TYPE_CHECKING:
+    from ADCS.viz.stream import VizServer
+
 
 def _supports_planning(controller: Controller) -> bool:
     """Return True if controller exposes plan-and-track style methods."""
@@ -42,6 +46,9 @@ def simulate(
     os0: Optional[Orbital_State] = None,
     dt: float = 1.0,
     tf: float = 500.0,
+    show_planned_trajectory: bool = True,
+    viz_log: Optional[str | Path] = None,
+    viz_stream: Optional["VizServer"] = None,
 ) -> SimulationResults:
     r"""
     Run a time-domain simulation of the spacecraft Attitude Determination and Control
@@ -117,6 +124,30 @@ def simulate(
     :type tf:
         float
 
+    :param show_planned_trajectory:
+        If ``True`` and the controller plans a trajectory, plot the open-loop
+        planned trajectory and call :func:`matplotlib.pyplot.show` before the
+        simulation starts. Set ``False`` for headless or batch runs.
+    :type show_planned_trajectory:
+        bool
+
+    :param viz_log:
+        If given, also write the results as an ``adcs-vizlog`` directory at this
+        path for the 3-D viewer (see :func:`~ADCS.viz.results_to_vizlog`). The
+        log is written after the simulation finishes, replacing any vizlog
+        already at that path; the simulation loop itself is unaffected.
+    :type viz_log:
+        str | pathlib.Path | None
+
+    :param viz_stream:
+        If given, stream each step to a 3-D viewer connected to this
+        :class:`~ADCS.viz.stream.VizServer` while the simulation runs (see
+        :class:`~ADCS.viz.live.LiveRecorder`). In ``broadcast`` mode the
+        simulation never waits for the viewer; in ``lockstep`` mode it waits
+        for each row to be acknowledged. The caller owns the server and closes it.
+    :type viz_stream:
+        ADCS.viz.stream.VizServer | None
+
     :return:
         Container holding all recorded simulation data, including true and estimated
         states, controls, sensor readings, biases, and targets for the entire run.
@@ -173,7 +204,7 @@ def simulate(
                 verbose=False
             )
 
-            if True:
+            if show_planned_trajectory:
                 target_hist = []
                 w_target_hist = []
                 boresight_hist = []
@@ -215,214 +246,234 @@ def simulate(
 
     run_capsule = RunResults(satellite=satellite, est_satellite=est_satellite)
 
-    _skip_jac = (estimator is None)
+    live = None
+    if viz_stream is not None:
+        from ADCS.viz.live import LiveRecorder
+        from ADCS.viz.timeline import sites_from_goals
+        live = LiveRecorder(viz_stream, satellite, os0.ephem, start_time, dt, N, sites=sites_from_goals(goal_list))
 
-    for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
-        env_t0 = time.perf_counter()
-        J2000_k = start_time + k * dt * TimeConstants.sec2cent
-        os_k = orb.get_os(J2000=J2000_k)
-        os_k._skip_jacobians = _skip_jac
+    # Close the stream however the loop ends (an exception or Ctrl+C included), so the viewer gets END and
+    # the server is free for the next run.
+    try:
+        _skip_jac = (estimator is None)
 
-        J2000_kp1 = start_time + (k + 1) * dt * TimeConstants.sec2cent
-        os_kp1 = orb.get_os(J2000=J2000_kp1)
-        os_kp1._skip_jacobians = _skip_jac
-        # Draw this step's plant error realizations (actuator noise and bias walks,
-        # wheel tachometer samples) before measuring and integrating; the
-        # integrator holds them for the whole step (zero-order hold).
-        satellite.update_errors(J2000_k)
+        for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
+            env_t0 = time.perf_counter()
+            J2000_k = start_time + k * dt * TimeConstants.sec2cent
+            os_k = orb.get_os(J2000=J2000_k)
+            os_k._skip_jacobians = _skip_jac
 
-        y = satellite.sensor_readings(x=x, os=os_k)
-        y_clean = satellite.noiseless_sensor_readings(x=x, os=os_k)
+            J2000_kp1 = start_time + (k + 1) * dt * TimeConstants.sec2cent
+            os_kp1 = orb.get_os(J2000=J2000_kp1)
+            os_kp1._skip_jacobians = _skip_jac
+            # Draw this step's plant error realizations (actuator noise and bias walks,
+            # wheel tachometer samples) before measuring and integrating; the
+            # integrator holds them for the whole step (zero-order hold).
+            satellite.update_errors(J2000_k)
 
-        if orbit_estimator is not None:
-            gps = satellite.GPS_readings(x=x, os=os_k)
-            os_hat = orbit_estimator.update(GPS_measurements=gps, J2000=J2000_k)
-            # Downstream consumers (attitude estimator, controller, goals) need an
-            # Orbital_State; the estimate wrapper only carries one as .os.
-            os_for_gnc = os_hat.os if os_hat is not None else os_k
-        else:
-            os_hat = None
-            os_for_gnc = os_k
+            y = satellite.sensor_readings(x=x, os=os_k)
+            y_clean = satellite.noiseless_sensor_readings(x=x, os=os_k)
 
-        if estimator is not None:
-            if not hasattr(estimator, "step"):
-                # A remote proxy or another one-call estimator: it only speaks
-                # update(u, sensors, os).
-                x_hat = estimator.update(u, y, os_for_gnc)
-            elif previous_estimator_os is None:
-                estimator.step(y, os_for_gnc)
+            if orbit_estimator is not None:
+                gps = satellite.GPS_readings(x=x, os=os_k)
+                os_hat = orbit_estimator.update(GPS_measurements=gps, J2000=J2000_k)
+                # Downstream consumers (attitude estimator, controller, goals) need an
+                # Orbital_State; the estimate wrapper only carries one as .os.
+                os_for_gnc = os_hat.os if os_hat is not None else os_k
             else:
-                # No midpoint on purpose: the propagation averages the two
-                # orbital states, which is what the integrator stages need.
-                estimator.predict(u, previous_estimator_os, os_for_gnc)
-                estimator.step(y, os_for_gnc)
-            if hasattr(estimator, "step"):
-                x_hat = estimator.update()
-            previous_estimator_os = os_for_gnc
-            x_for_ctrl = x_hat
-        else:
-            x_for_ctrl = x
+                os_hat = None
+                os_for_gnc = os_k
 
-        active_goal = goal_list.get_active_goal(J2000_k, time_units="centuries")
+            if estimator is not None:
+                if not hasattr(estimator, "step"):
+                    # A remote proxy or another one-call estimator: it only speaks
+                    # update(u, sensors, os).
+                    x_hat = estimator.update(u, y, os_for_gnc)
+                elif previous_estimator_os is None:
+                    estimator.step(y, os_for_gnc)
+                else:
+                    # No midpoint on purpose: the propagation averages the two
+                    # orbital states, which is what the integrator stages need.
+                    estimator.predict(u, previous_estimator_os, os_for_gnc)
+                    estimator.step(y, os_for_gnc)
+                if hasattr(estimator, "step"):
+                    x_hat = estimator.update()
+                previous_estimator_os = os_for_gnc
+                x_for_ctrl = x_hat
+            else:
+                x_for_ctrl = x
 
-        if controller is not None:
-            u = controller.find_u(
-                x_hat=x_for_ctrl,
-                sens=y,
-                est_sat=est_satellite,
-                os_hat=os_for_gnc,
-                goal=active_goal,
+            active_goal = goal_list.get_active_goal(J2000_k, time_units="centuries")
+
+            if controller is not None:
+                u = controller.find_u(
+                    x_hat=x_for_ctrl,
+                    sens=y,
+                    est_sat=est_satellite,
+                    os_hat=os_for_gnc,
+                    goal=active_goal,
+                )
+            else:
+                u[:] = 0.0
+
+            env_local_time_s = time.perf_counter() - env_t0
+
+            # The state this step's readings, estimate and control refer to. It is
+            # what gets recorded: everything else in the record (time, orbital
+            # state, readings, estimate, control) belongs to the start of the step.
+            x_k = x
+            dyn_t0 = time.perf_counter()
+            out = solve_ivp(
+                fun=satellite.dynamics_for_solver,
+                t_span=(0, dt),
+                y0=x.as_array(),
+                method="RK45",
+                args=(u, os_k, os_kp1),
+                rtol=1e-7,
+                atol=1e-7,
             )
-        else:
-            u[:] = 0.0
+            dynamics_time_s = time.perf_counter() - dyn_t0
+            x = State.from_array(out.y[:, -1])
+            x = x.normalized()
 
-        env_local_time_s = time.perf_counter() - env_t0
+            target, w_target = active_goal.to_ref(os_for_gnc) 
 
-        # The state this step's readings, estimate and control refer to. It is
-        # what gets recorded: everything else in the record (time, orbital
-        # state, readings, estimate, control) belongs to the start of the step.
-        x_k = x
-        dyn_t0 = time.perf_counter()
-        out = solve_ivp(
-            fun=satellite.dynamics_for_solver,
-            t_span=(0, dt),
-            y0=x.as_array(),
-            method="RK45",
-            args=(u, os_k, os_kp1),
-            rtol=1e-7,
-            atol=1e-7,
-        )
-        dynamics_time_s = time.perf_counter() - dyn_t0
-        x = State.from_array(out.y[:, -1])
-        x = x.normalized()
+            # Get the boresight vector for the current goal
+            boresight_vec = None
+            try:
+                boresight_vec = est_satellite.get_boresight(active_goal.boresight_name)
+            except (AttributeError, KeyError, ValueError, TypeError):
+                pass
 
-        target, w_target = active_goal.to_ref(os_for_gnc) 
+            est_act_bias_snapshot = None
+            est_sens_bias_snapshot = None
 
-        # Get the boresight vector for the current goal
-        boresight_vec = None
-        try:
-            boresight_vec = est_satellite.get_boresight(active_goal.boresight_name)
-        except (AttributeError, KeyError, ValueError, TypeError):
-            pass
+            if estimator is not None and x_hat is not None and est_satellite is not None:
+                # State layout per EstimatorState:
+                # [w(3), q(4), h_rw(n_rw), b_act(n_ab), b_sens(n_sb), theta_dist(n_dp)]
+                n_rw = getattr(est_satellite, "number_RW", 0)
+                n_ab = getattr(est_satellite, "act_bias_len", 0)
+                n_sb = getattr(est_satellite, "att_sens_bias_len", 0)
 
-        est_act_bias_snapshot = None
-        est_sens_bias_snapshot = None
+                base = 7 + int(n_rw)
+                ab0, ab1 = base, base + int(n_ab)
+                sb0, sb1 = ab1, ab1 + int(n_sb)
 
-        if estimator is not None and x_hat is not None and est_satellite is not None:
-            # State layout per EstimatorState:
-            # [w(3), q(4), h_rw(n_rw), b_act(n_ab), b_sens(n_sb), theta_dist(n_dp)]
-            n_rw = getattr(est_satellite, "number_RW", 0)
-            n_ab = getattr(est_satellite, "act_bias_len", 0)
-            n_sb = getattr(est_satellite, "att_sens_bias_len", 0)
+                # Guard against unexpected shapes
+                if isinstance(x_hat, EstimatorState):
+                    b_act_hat = x_hat.act_bias
+                    b_sens_hat = x_hat.sens_bias
 
-            base = 7 + int(n_rw)
-            ab0, ab1 = base, base + int(n_ab)
-            sb0, sb1 = ab1, ab1 + int(n_sb)
+                    # Actuator biases: slice b_act_hat according to per-actuator bias dimension
+                    act_parts = []
+                    ai = 0
+                    if getattr(satellite, "actuators", None):
+                        for act in satellite.actuators:
+                            dim = int(np.atleast_1d(act.bias.bias).size) if hasattr(act, "bias") else 0
+                            # only include if bias exists (act.bias has __bool__)
+                            if hasattr(act, "bias") and bool(act.bias) and ai + dim <= b_act_hat.size:
+                                # The TRUE actuator has a bias AND the estimator
+                                # actually estimates it (enough entries remain in
+                                # b_act_hat). A real bias the estimator does NOT
+                                # estimate (b_act_hat empty/short) must fall through
+                                # to the None placeholder -- otherwise this slices
+                                # past the (possibly size-0) estimator bias vector
+                                # and raises "cannot reshape array of size 0".
+                                act_parts.append(b_act_hat[ai:ai + dim].reshape(dim, 1) if dim == 1 else b_act_hat[ai:ai + dim])
+                                ai += dim
+                            else:
+                                # Preserve the actuator's position in the history.
+                                # NaN keeps non-estimated channels blank in plots
+                                # instead of shifting later estimates left.
+                                act_parts.append(np.full(dim, np.nan))
 
-            # Guard against unexpected shapes
-            if isinstance(x_hat, EstimatorState):
-                b_act_hat = x_hat.act_bias
-                b_sens_hat = x_hat.sens_bias
-
-                # Actuator biases: slice b_act_hat according to per-actuator bias dimension
-                act_parts = []
-                ai = 0
-                if getattr(satellite, "actuators", None):
-                    for act in satellite.actuators:
-                        dim = int(np.atleast_1d(act.bias.bias).size) if hasattr(act, "bias") else 0
-                        # only include if bias exists (act.bias has __bool__)
-                        if hasattr(act, "bias") and bool(act.bias) and ai + dim <= b_act_hat.size:
-                            # The TRUE actuator has a bias AND the estimator
-                            # actually estimates it (enough entries remain in
-                            # b_act_hat). A real bias the estimator does NOT
-                            # estimate (b_act_hat empty/short) must fall through
-                            # to the None placeholder -- otherwise this slices
-                            # past the (possibly size-0) estimator bias vector
-                            # and raises "cannot reshape array of size 0".
-                            act_parts.append(b_act_hat[ai:ai + dim].reshape(dim, 1) if dim == 1 else b_act_hat[ai:ai + dim])
-                            ai += dim
-                        else:
-                            # Preserve the actuator's position in the history.
-                            # NaN keeps non-estimated channels blank in plots
-                            # instead of shifting later estimates left.
-                            act_parts.append(np.full(dim, np.nan))
-
-                # If the estimator’s actuator-bias length doesn't match the sum of per-actuator dims,
-                # fall back to storing the raw vector as a single entry.
-                if len(act_parts) == 0:
-                    est_act_bias_snapshot = None
-                else:
-                    # If our slicing didn't consume exactly the block, it's safer to store raw.
-                    if ai != b_act_hat.size:
-                        est_act_bias_snapshot = np.array([b_act_hat.copy()], dtype=object)
+                    # If the estimator’s actuator-bias length doesn't match the sum of per-actuator dims,
+                    # fall back to storing the raw vector as a single entry.
+                    if len(act_parts) == 0:
+                        est_act_bias_snapshot = None
                     else:
-                        est_act_bias_snapshot = np.array(act_parts, dtype=object)
-
-                # Sensor biases: slice b_sens_hat according to per-sensor bias dimension
-                sens_parts = []
-                si = 0
-                if getattr(satellite, "sensors", None):
-                    for sens in satellite.sensors:
-                        dim = int(np.atleast_1d(sens.bias.bias).size) if hasattr(sens, "bias") else 0
-                        if hasattr(sens, "bias") and bool(sens.bias) and si + dim <= b_sens_hat.size:
-                            # TRUE sensor has a bias AND the estimator
-                            # estimates it; otherwise fall through to None
-                            # (do not index past a possibly size-0 b_sens_hat).
-                            sens_parts.append(b_sens_hat[si:si + dim].reshape(dim, 1) if dim == 1 else b_sens_hat[si:si + dim])
-                            si += dim
+                        # If our slicing didn't consume exactly the block, it's safer to store raw.
+                        if ai != b_act_hat.size:
+                            est_act_bias_snapshot = np.array([b_act_hat.copy()], dtype=object)
                         else:
-                            # Keep the sensor index stable for plotting.  A
-                            # missing estimate is intentionally represented as
-                            # NaN rather than removed from the history.
-                            sens_parts.append(np.full(dim, np.nan))
+                            est_act_bias_snapshot = np.array(act_parts, dtype=object)
 
-                if len(sens_parts) == 0:
-                    est_sens_bias_snapshot = None
-                else:
-                    if si != b_sens_hat.size:
-                        est_sens_bias_snapshot = np.array([b_sens_hat.copy()], dtype=object)
+                    # Sensor biases: slice b_sens_hat according to per-sensor bias dimension
+                    sens_parts = []
+                    si = 0
+                    if getattr(satellite, "sensors", None):
+                        for sens in satellite.sensors:
+                            dim = int(np.atleast_1d(sens.bias.bias).size) if hasattr(sens, "bias") else 0
+                            if hasattr(sens, "bias") and bool(sens.bias) and si + dim <= b_sens_hat.size:
+                                # TRUE sensor has a bias AND the estimator
+                                # estimates it; otherwise fall through to None
+                                # (do not index past a possibly size-0 b_sens_hat).
+                                sens_parts.append(b_sens_hat[si:si + dim].reshape(dim, 1) if dim == 1 else b_sens_hat[si:si + dim])
+                                si += dim
+                            else:
+                                # Keep the sensor index stable for plotting.  A
+                                # missing estimate is intentionally represented as
+                                # NaN rather than removed from the history.
+                                sens_parts.append(np.full(dim, np.nan))
+
+                    if len(sens_parts) == 0:
+                        est_sens_bias_snapshot = None
                     else:
-                        est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
+                        if si != b_sens_hat.size:
+                            est_sens_bias_snapshot = np.array([b_sens_hat.copy()], dtype=object)
+                        else:
+                            est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
 
-        run_capsule.record(
-            k=k,
-            time_J2000=J2000_k,
-            time_s=k * dt,
-            os=os_k,
-            est_os=os_hat,
-            os_cov=(getattr(getattr(orbit_estimator, "os_hat", None), "P", None)
-                    if orbit_estimator is not None else None),
-            state=x_k,
-            est_state=x_hat,
-            # The new-generation filters expose their estimate as .state; the
-            # returned x_hat carries the covariance directly.
-            state_cov=(getattr(x_hat, "cov", getattr(getattr(estimator, "x_hat", None), "cov", None))
-                       if estimator is not None else None),
+            if live is not None:
+                live.step(k, x_k, os_k, u)
 
-            # --- real biases (existing) ---
-            actuator_bias=(
-                np.array([np.atleast_1d(act.bias.bias) for act in satellite.actuators], dtype=object)
-                if getattr(satellite, "actuators", None) else None
-            ),
-            sensor_bias=(
-                np.array([np.atleast_1d(sens.bias.bias) for sens in satellite.sensors], dtype=object)
-                if getattr(satellite, "sensors", None) else None
-            ),
+            run_capsule.record(
+                k=k,
+                time_J2000=J2000_k,
+                time_s=k * dt,
+                os=os_k,
+                est_os=os_hat,
+                os_cov=(getattr(getattr(orbit_estimator, "os_hat", None), "P", None)
+                        if orbit_estimator is not None else None),
+                state=x_k,
+                est_state=x_hat,
+                # The new-generation filters expose their estimate as .state; the
+                # returned x_hat carries the covariance directly.
+                state_cov=(getattr(x_hat, "cov", getattr(getattr(estimator, "x_hat", None), "cov", None))
+                           if estimator is not None else None),
 
-            # --- estimated biases (NEW) ---
-            est_actuator_bias=est_act_bias_snapshot,
-            est_sensor_bias=est_sens_bias_snapshot,
+                # --- real biases (existing) ---
+                actuator_bias=(
+                    np.array([np.atleast_1d(act.bias.bias) for act in satellite.actuators], dtype=object)
+                    if getattr(satellite, "actuators", None) else None
+                ),
+                sensor_bias=(
+                    np.array([np.atleast_1d(sens.bias.bias) for sens in satellite.sensors], dtype=object)
+                    if getattr(satellite, "sensors", None) else None
+                ),
 
-            target=target,
-            w_target=w_target,
-            boresight=boresight_vec,
-            clean_sensor=y_clean,
-            sensor=y,
-            control=u,
-            control_rpc_time=getattr(controller, "last_roundtrip_s", None) if controller is not None else None,
-            control_rpc_server_time=getattr(controller, "last_server_s", None) if controller is not None else None,
-            env_local_time=env_local_time_s,
-            dynamics_time=dynamics_time_s,
-        )
+                # --- estimated biases (NEW) ---
+                est_actuator_bias=est_act_bias_snapshot,
+                est_sensor_bias=est_sens_bias_snapshot,
 
-    return SimulationResults(runs=[run_capsule])
+                target=target,
+                w_target=w_target,
+                boresight=boresight_vec,
+                clean_sensor=y_clean,
+                sensor=y,
+                control=u,
+                control_rpc_time=getattr(controller, "last_roundtrip_s", None) if controller is not None else None,
+                control_rpc_server_time=getattr(controller, "last_server_s", None) if controller is not None else None,
+                env_local_time=env_local_time_s,
+                dynamics_time=dynamics_time_s,
+            )
+    finally:
+        if live is not None:
+            live.close()
+
+    results = SimulationResults(runs=[run_capsule])
+    if viz_log is not None:
+        from ADCS.viz.from_results import results_to_vizlog
+        from ADCS.viz.timeline import sites_from_goals
+        results_to_vizlog(results, viz_log, ephem=os0.ephem, overwrite=True, sites=sites_from_goals(goal_list))
+    return results

@@ -82,6 +82,23 @@ ppigrf = [
 viz = [
     "pyvista>=0.44",
 ]
+# Visualization asset pipeline (python -m ADCS.viz.assets). Pillow usually
+# arrives with matplotlib already; listed so the pipeline never depends on that.
+viz-assets = [
+    "Pillow>=10",
+]
+# Offline video from the viewer (python -m ADCS.viz render). Uses ffmpeg from
+# PATH if present, else the binary shipped by imageio-ffmpeg (an LGPL/GPL
+# ffmpeg build downloaded by pip, not part of this package).
+viz-video = [
+    "Pillow>=10",
+    "imageio-ffmpeg>=0.5",
+]
+# Spacecraft model import for the viewer (python -m ADCS.viz.mesh_import).
+viz-mesh = [
+    "trimesh>=4.0",
+    "fast-simplification>=0.1.7",
+]
 
 # Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
 #
@@ -190,6 +207,9 @@ packages = [
     "ADCS.satellite_hardware.errors.helpers",
     "ADCS.satellite_hardware.satellite",
     "ADCS.satellite_hardware.sensors",
+    "ADCS.viz",
+    "ADCS.viz.assets",
+    "ADCS.viz.mesh_import",
     "ADCS.pipeline",
     "ADCS.pipeline.allocation",
     "ADCS.pipeline.compensation",
@@ -215,6 +235,11 @@ packages = [
 # FileNotFoundError on the first field evaluation -- which is exactly how the
 # pyIGRF and igrf packages on PyPI are currently broken.
 "ADCS.environment" = ["*.shc"]
+# Pinned viewer release (URL + SHA-256 per platform); without it the viewer
+# launcher cannot find or verify a download.
+"ADCS.viz" = ["_viewer_manifest.json"]
+# Pinned raw inputs (URL, size, SHA-256) of the visualization asset pipeline.
+"ADCS.viz.assets" = ["sources.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]
