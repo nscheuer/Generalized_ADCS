@@ -3,7 +3,7 @@ __all__ = ["Sentman_Drag_Disturbance"]
 
 import numpy as np
 from scipy.special import erf
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from ADCS.state import State
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
@@ -117,6 +117,22 @@ class Sentman_Drag_Disturbance(Disturbance):
     :param m_amu: Mean molecular mass of the gas [amu]; 16 for atomic oxygen,
         which dominates between roughly 200 km and 600 km.
     :type m_amu: float
+
+    References
+    ----------
+    L. H. Sentman, *Free Molecule Flow Theory and Its Application to the
+    Determination of Aerodynamic Forces*, Lockheed Missiles & Space Company,
+    report LMSC-448514 (1961).
+
+    K. Moe and M. M. Moe, "Gas–surface interactions and satellite drag
+    coefficients," *Planetary and Space Science*, Vol. 53, No. 8, 2005,
+    pp. 793–801. `doi:10.1016/j.pss.2005.03.005
+    <https://doi.org/10.1016/j.pss.2005.03.005>`__
+
+    E. Doornbos, *Thermospheric Density and Wind Determination from Satellite
+    Dynamics*, Springer (2012), section 3.4.
+    `doi:10.1007/978-3-642-25129-0
+    <https://doi.org/10.1007/978-3-642-25129-0>`__
     """
 
     def __init__(
@@ -202,17 +218,17 @@ class Sentman_Drag_Disturbance(Disturbance):
 
     # --------------------------------------------------------------- interface
     @staticmethod
-    def _velocity_and_density(x: State, os: Orbital_State | Dict[str, np.ndarray]):
+    def _velocity_and_density(x: State, os: Orbital_State):
         vecs = os.get_state_vector(x=x)
         V_B = np.asarray(vecs["v"], dtype=float).reshape(3) * 1000.0  # km/s -> m/s
         return vecs, V_B, float(vecs["rho"])
 
-    def force(self, sat: Satellite, x: State, os: Orbital_State | Dict[str, np.ndarray]) -> np.ndarray:
+    def force(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""Total aerodynamic force in the body frame [N], shape ``(3,)``."""
         _, V_B, rho = self._velocity_and_density(x, os)
         return self.face_forces(V_B, rho).sum(axis=0)
 
-    def torque(self, sat: Satellite, x: State, os: Orbital_State | Dict[str, np.ndarray]) -> np.ndarray:
+    def torque(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""Total aerodynamic torque about the centre of mass [N·m], shape ``(3,)``."""
         _, V_B, rho = self._velocity_and_density(x, os)
         return self._torque_from_velocity(V_B, rho, sat.COM)
