@@ -102,3 +102,34 @@ def resolve_method(obj, *names: str):
         if hasattr(obj, name):
             return getattr(obj, name)
     raise AttributeError(f"{obj!r} does not define any of {names!r}")
+
+
+def fd_quat_jac_raw(fun, x: State, eps: float = 1.0e-7) -> np.ndarray:
+    """Central-difference quaternion Jacobian without renormalising ``q``.
+
+    The analytic ``*_qjac`` methods differentiate with respect to the four
+    raw quaternion components.  ``fd_quat_jac`` renormalises each perturbed
+    quaternion, which removes the radial component of the derivative, so it
+    only agrees with the analytic result when the output is small enough to
+    hide inside the tolerance.
+    """
+    jac = np.zeros((4, 3))
+    for index in range(4):
+        delta = np.zeros(4)
+        delta[index] = eps
+        plus = fun(State(w=x.w, q=x.q + delta))
+        minus = fun(State(w=x.w, q=x.q - delta))
+        jac[index, :] = (plus - minus) / (2.0 * eps)
+    return jac
+
+
+def fd_quat_hess_raw(fun, x: State, eps: float = 1.0e-5) -> np.ndarray:
+    """Central-difference quaternion Hessian without renormalising ``q``."""
+    hess = np.zeros((4, 4, 3))
+    for index in range(4):
+        delta = np.zeros(4)
+        delta[index] = eps
+        plus = fd_quat_jac_raw(fun, State(w=x.w, q=x.q + delta), eps=eps)
+        minus = fd_quat_jac_raw(fun, State(w=x.w, q=x.q - delta), eps=eps)
+        hess[index, :, :] = (plus - minus) / (2.0 * eps)
+    return hess
