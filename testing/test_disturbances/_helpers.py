@@ -117,8 +117,12 @@ def fd_quat_jac_raw(fun, x: State, eps: float = 1.0e-7) -> np.ndarray:
     for index in range(4):
         delta = np.zeros(4)
         delta[index] = eps
-        plus = fun(State(w=x.w, q=x.q + delta))
-        minus = fun(State(w=x.w, q=x.q - delta))
+        x_plus = x.copy()
+        x_minus = x.copy()
+        x_plus.q = x.q + delta
+        x_minus.q = x.q - delta
+        plus = fun(x_plus)
+        minus = fun(x_minus)
         jac[index, :] = (plus - minus) / (2.0 * eps)
     return jac
 
@@ -129,7 +133,11 @@ def fd_quat_hess_raw(fun, x: State, eps: float = 1.0e-5) -> np.ndarray:
     for index in range(4):
         delta = np.zeros(4)
         delta[index] = eps
-        plus = fd_quat_jac_raw(fun, State(w=x.w, q=x.q + delta), eps=eps)
-        minus = fd_quat_jac_raw(fun, State(w=x.w, q=x.q - delta), eps=eps)
+        x_plus = x.copy()
+        x_minus = x.copy()
+        x_plus.q = x.q + delta
+        x_minus.q = x.q - delta
+        plus = fd_quat_jac_raw(fun, x_plus, eps=eps)
+        minus = fd_quat_jac_raw(fun, x_minus, eps=eps)
         hess[index, :, :] = (plus - minus) / (2.0 * eps)
     return hess

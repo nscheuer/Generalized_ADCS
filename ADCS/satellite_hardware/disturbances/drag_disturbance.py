@@ -250,7 +250,7 @@ class Drag_Disturbance(Disturbance):
         return _drag_torque_kernel(V_B, rho, sat.COM,
                                    self.normals, self.areas, self.centroids, self.CDs)
 
-    def force(self, sat: Satellite, x: State, os: Orbital_State | Dict[str, np.ndarray]) -> np.ndarray:
+    def force(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""Compute the aerodynamic drag force in the body frame.
 
         The orbital-state interface supplies the relative atmospheric velocity
@@ -281,7 +281,7 @@ class Drag_Disturbance(Disturbance):
             express the flow in body coordinates.
         :type x: :class:`~ADCS.state.State`
         :param os: Orbital state providing relative velocity and atmospheric density.
-        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State` or dict
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Total aerodynamic force in body coordinates, shape ``(3,)`` [N].
         :rtype: :class:`numpy.ndarray`
         """
