@@ -50,6 +50,22 @@ Control Laws
      - P. McKeen, N. Scheuer, and K. Cahoy, "Generalized Attitude Control for Small Spacecraft," 40th Annual Small Satellite Conference, Poster Session 2, SSC26-P2-54, 2026.
      - `USU DigitalCommons <https://digitalcommons.usu.edu/smallsat/2026/all2026/253/>`__
 
+Aerodynamics
+------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 25 40 15
+
+   * - Model
+     - Documentation
+     - Original citation
+     - Paper or source
+   * - Sentman free-molecular drag
+     - :doc:`Sentman_Drag_Disturbance <../ADCS.satellite_hardware.disturbances.sentman_drag_disturbance>`
+     - L. H. Sentman, *Free Molecule Flow Theory and Its Application to the Determination of Aerodynamic Forces*, Lockheed Missiles & Space Company, report LMSC-448514 (1961). The diffuse re-emission and gas-surface assumptions are also informed by K. Moe and M. M. Moe, "Gas–surface interactions and satellite drag coefficients," *Planetary and Space Science*, Vol. 53, No. 8, 2005, pp. 793–801, and E. Doornbos, *Thermospheric Density and Wind Determination from Satellite Dynamics*, Springer (2012), section 3.4.
+     - `Sentman report <https://citeseerx.ist.psu.edu/document?doi=474aab2a5070e9c012e0d6f21b43d11c838207b3&repid=rep1&type=pdf>`__; `Moe & Moe, doi:10.1016/j.pss.2005.03.005 <https://doi.org/10.1016/j.pss.2005.03.005>`__; `Doornbos, doi:10.1007/978-3-642-25129-0 <https://doi.org/10.1007/978-3-642-25129-0>`__
+
 Orbits
 ------
 

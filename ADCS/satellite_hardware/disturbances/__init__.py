@@ -1,6 +1,7 @@
 from .disturbance import Disturbance
 from .srp_disturbance import SRP_Disturbance
 from .drag_disturbance import Drag_Disturbance
+from .sentman_drag_disturbance import Sentman_Drag_Disturbance
 from .general_disturbance import General_Disturbance
 from .prop_disturbance import Prop_Disturbance
 from .thrust_disturbance import Thrust_Disturbance
@@ -10,4 +11,4 @@ from .gg_disturbance import GG_Disturbance
 from .helpers.geometry_config import GeometryFace, GeometryConfig
 
 
-__all__ = ["Disturbance", "SRP_Disturbance", "Drag_Disturbance", "General_Disturbance", "Prop_Disturbance", "Thrust_Disturbance", "Dipole_Disturbance", "Torque_Disturbance", "GG_Disturbance", "GeometryFace", "GeometryConfig"]
+__all__ = ["Disturbance", "SRP_Disturbance", "Drag_Disturbance", "Sentman_Drag_Disturbance", "General_Disturbance", "Prop_Disturbance", "Thrust_Disturbance", "Dipole_Disturbance", "Torque_Disturbance", "GG_Disturbance", "GeometryFace", "GeometryConfig"]
