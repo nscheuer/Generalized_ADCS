@@ -35,6 +35,13 @@ def _drag_torque_kernel(V_B, rho, COM, normals, areas, centroids, CDs):
     out[2] = ct * (wx*V_B[1] - wy*V_B[0])
     return out
 
+
+def _drag_force_kernel(V_B, rho, normals, areas, CDs):
+    """Aerodynamic drag force summed over geometry faces, in body coordinates."""
+    cos_alpha = np.maximum(0.0, normals @ V_B)
+    face_factors = CDs * areas * cos_alpha
+    return -0.5 * rho * np.sum(face_factors) * V_B
+
 if TYPE_CHECKING:
     from ADCS.satellite_hardware.satellite.satellite import Satellite
 
@@ -242,6 +249,155 @@ class Drag_Disturbance(Disturbance):
 
         return _drag_torque_kernel(V_B, rho, sat.COM,
                                    self.normals, self.areas, self.centroids, self.CDs)
+
+    def force(self, sat: Satellite, x: State, os: Orbital_State | Dict[str, np.ndarray]) -> np.ndarray:
+        r"""Compute the aerodynamic drag force in the body frame.
+
+        The orbital-state interface supplies the relative atmospheric velocity
+        and density through ``os.get_state_vector(x=x)``:
+
+        - ``"v"``: body-frame relative velocity in km/s
+        - ``"rho"``: atmospheric mass density in kg/m³
+
+        Velocity is converted to m/s. For each face, the clipped incidence and
+        force contribution are:
+
+        .. math::
+
+            s_i = \max(0, \mathbf{n}_i^\top\mathbf{V}_b),
+            \qquad
+            \mathbf{F}_i = -\tfrac{1}{2}\rho C_{D,i} A_i s_i\mathbf{V}_b.
+
+        The total force is :math:`\sum_i \mathbf{F}_i` and has units N. This
+        returns force rather than acceleration; divide by spacecraft mass when
+        an acceleration is required.
+
+        The incidence clipping is piecewise, with the force contribution from
+        a face set to zero when its normal points away from the incoming flow.
+
+        :param sat: Satellite instance (accepted for consistency with the torque API).
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Spacecraft state containing the attitude quaternion used to
+            express the flow in body coordinates.
+        :type x: :class:`~ADCS.state.State`
+        :param os: Orbital state providing relative velocity and atmospheric density.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State` or dict
+        :return: Total aerodynamic force in body coordinates, shape ``(3,)`` [N].
+        :rtype: :class:`numpy.ndarray`
+        """
+        vecs = os.get_state_vector(x=x)
+        V_B = np.asarray(vecs["v"], dtype=float).reshape(3) * 1000.0
+        rho = float(vecs["rho"])
+        return _drag_force_kernel(V_B, rho, self.normals, self.areas, self.CDs)
+
+    def force_qjac(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
+        r"""Compute the Jacobian of drag force with respect to attitude quaternion.
+
+        The orbital state supplies body-frame velocity ``"v"`` [km/s], density
+        ``"rho"`` [kg/m³], and its quaternion derivative ``"dv"`` through
+        :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.
+        Velocity and its derivative are converted to m/s before evaluating drag.
+
+        For face incidence
+
+        .. math::
+
+            s_i = \max(0, \mathbf{n}_i^\top\mathbf{V}_b),
+
+        the piecewise derivative is gated by whether the face is exposed to the
+        flow. Defining
+
+        .. math::
+
+            C = \sum_i C_{D,i}A_i s_i,
+            \qquad \mathbf{F}_{drag}=-\tfrac{1}{2}\rho C\mathbf{V}_b,
+
+        the Jacobian applies the product rule to both :math:`C` and
+        :math:`\mathbf{V}_b`. Incidence-boundary distribution terms are omitted.
+
+        The returned tensor uses quaternion component first and force component
+        last, shape ``(4, 3)``. Its units are N per quaternion component.
+
+        :param sat: Satellite instance (accepted for consistency with the torque API).
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Spacecraft state containing the attitude quaternion.
+        :type x: :class:`~ADCS.state.State`
+        :param os: Orbital state supplying ``"v"``, ``"rho"``, and ``"dv"``.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Quaternion Jacobian :math:`\partial\mathbf{F}_{drag}/\partial\mathbf{q}`, shape ``(4, 3)``.
+        :rtype: :class:`numpy.ndarray`
+        """
+        vecs = os.get_state_vector(x=x)
+        V_B = np.asarray(vecs["v"], dtype=float).reshape(3) * 1000.0
+        rho = float(vecs["rho"])
+        dV__dq = np.asarray(vecs["dv"], dtype=float).reshape(4, 3) * 1000.0
+
+        incidence = self.normals @ V_B
+        face_lit = incidence > 0.0
+        weights = self.CDs * self.areas
+        face_factors = weights * np.maximum(incidence, 0.0)
+        total_factor = float(np.sum(face_factors))
+
+        # d(sum_i CD_i A_i max(n_i . V, 0))/dq, shape (4,).
+        dtotal_factor__dq = (dV__dq @ self.normals.T) @ (weights * face_lit)
+        return -0.5 * rho * (
+            dtotal_factor__dq[:, np.newaxis] * V_B[np.newaxis, :]
+            + total_factor * dV__dq
+        )
+
+    def force_qqhess(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
+        r"""Compute the Hessian of drag force with respect to attitude quaternion.
+
+        The orbital state supplies body-frame velocity ``"v"`` [km/s], density
+        ``"rho"`` [kg/m³], and its first and second quaternion derivatives
+        ``"dv"`` and ``"ddv"``. Velocity and both derivatives are converted to
+        m/s, consistent with :meth:`force`.
+
+        Let :math:`C=\sum_i C_{D,i}A_i\max(0,\mathbf{n}_i^\top\mathbf{V}_b)`.
+        The force is :math:`-\tfrac{1}{2}\rho C\mathbf{V}_b`; its Hessian
+        contains the second derivative of :math:`C`, both mixed first-derivative
+        terms, and the second derivative of velocity. Derivatives of the clipped
+        face incidence are evaluated piecewise: exposed faces contribute and
+        wake-side faces contribute zero. Distributional terms at zero incidence
+        are neglected.
+
+        The returned tensor is ordered ``(q_i, q_j, force_component)`` with
+        shape ``(4, 4, 3)`` and units N per pair of quaternion components.
+
+        :param sat: Satellite instance (accepted for consistency with the torque API).
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Spacecraft state containing the attitude quaternion.
+        :type x: :class:`~ADCS.state.State`
+        :param os: Orbital state supplying ``"v"``, ``"rho"``, ``"dv"``, and ``"ddv"``.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Quaternion Hessian :math:`\partial^2\mathbf{F}_{drag}/\partial\mathbf{q}^2`, shape ``(4, 4, 3)``.
+        :rtype: :class:`numpy.ndarray`
+        """
+        vecs = os.get_state_vector(x=x)
+        V_B = np.asarray(vecs["v"], dtype=float).reshape(3) * 1000.0
+        rho = float(vecs["rho"])
+        dV__dq = np.asarray(vecs["dv"], dtype=float).reshape(4, 3) * 1000.0
+        ddV__dqdq = np.asarray(vecs["ddv"], dtype=float).reshape(4, 4, 3) * 1000.0
+
+        incidence = self.normals @ V_B
+        face_lit = incidence > 0.0
+        weights = self.CDs * self.areas
+        face_factors = weights * np.maximum(incidence, 0.0)
+        total_factor = float(np.sum(face_factors))
+
+        dincidence__dq = dV__dq @ self.normals.T  # (4, Nfaces)
+        ddincidence__dqdq = np.einsum("ija,na->ijn", ddV__dqdq, self.normals)
+        dtotal_factor__dq = dincidence__dq @ (weights * face_lit)
+        ddtotal_factor__dqdq = np.einsum(
+            "ijn,n->ij", ddincidence__dqdq, weights * face_lit
+        )
+
+        return -0.5 * rho * (
+            ddtotal_factor__dqdq[:, :, np.newaxis] * V_B[np.newaxis, np.newaxis, :]
+            + dtotal_factor__dq[:, np.newaxis, np.newaxis] * dV__dq[np.newaxis, :, :]
+            + dtotal_factor__dq[np.newaxis, :, np.newaxis] * dV__dq[:, np.newaxis, :]
+            + total_factor * ddV__dqdq
+        )
     
     def torque_qjac(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
