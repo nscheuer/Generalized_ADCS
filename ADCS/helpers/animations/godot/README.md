@@ -16,6 +16,14 @@ window displays a notice to check the terminal while those prompts are active.
 Downloads use `AssetManager`; declining leaves the viewer running with built-in
 colors and any maps already cached.
 
+The Python playback server uses the bundled DE421 ephemeris. Logged rows carry
+Earth, Sun, Moon, and planet states during the simulation. After the final row,
+the viewer requests celestial positions and orientations at the timeline time;
+the satellite remains at its final state while Earth, the Moon, Sun, and planets
+continue moving and rotating. DE421 queries are available only within the
+kernel's date range. Direct Godot `--log` playback displays the logged states
+without the Python ephemeris service.
+
 The Linux x86_64 Godot 4.7.2 executable is bundled as a verified ZIP in the
 wheel. On first use it is unpacked into `ADCS/helpers/animations/assets/bin`.
 For other platforms, pass `binary=` or set `ADCS_VIEWER_BIN` until their

@@ -13,6 +13,7 @@ from ADCS.satellite_hardware.satellite import Satellite
 from ADCS.state import State
 from ADCS.helpers.animations.godot.derive import derive_environment, j2000_to_jd_tt
 from ADCS.helpers.animations.godot.from_results import manifest_metadata
+from ADCS.helpers.animations.godot.planetary import orientation
 from ADCS.helpers.animations.godot.scene import build_scene
 from ADCS.helpers.animations.godot.schema import REQUIRED_CHANNELS, Channel, channel_spec
 from ADCS.helpers.animations.godot.stream import VizServer
@@ -68,10 +69,12 @@ class LiveRecorder:
 
         j2000 = self.start_j2000 + np.arange(n_steps) * self.dt * TimeConstants.sec2cent
         self._env = derive_environment(ephem, j2000_to_jd_tt(j2000))
+        self._sun_q = orientation("sun", j2000_to_jd_tt(j2000))
+        self._moon_q = orientation("moon", j2000_to_jd_tt(j2000))
         self._rw_J = np.array([rw.J for rw in satellite.rw_actuators], dtype=float)
 
         channels: List[Channel] = [channel_spec(n) for n in REQUIRED_CHANNELS]
-        channels += [channel_spec("r_moon"), channel_spec("sunlit_binary")]
+        channels += [channel_spec("r_moon"), channel_spec("q_sun_gcrs"), channel_spec("q_moon_gcrs"), channel_spec("sunlit_binary")]
         scene = build_scene(satellite)
         if satellite.number_RW > 0:
             rw_ids = [a["id"] for a in scene["actuators"] if a["type"] == "rw"]
@@ -134,6 +137,8 @@ class LiveRecorder:
         row[s["q_itrs_gcrs"]] = env["q_itrs_gcrs"][k]
         row[s["shadow_factor"]] = shadow_factor(os.R, env["r_sun"][k])
         row[s["r_moon"]] = env["r_moon"][k]
+        row[s["q_sun_gcrs"]] = self._sun_q[k]
+        row[s["q_moon_gcrs"]] = self._moon_q[k]
         row[s["sunlit_binary"]] = float(os.is_sunlit())
         if "h_wheel" in s:
             row[s["h_wheel"]] = x.h

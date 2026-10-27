@@ -161,9 +161,12 @@ func _process(delta: float) -> void:
 	_frame_count += 1
 	if _frame_count == 1:
 		_log("first frame")
-	if source.live and source.poll():
+	var new_rows: bool = source.poll()
+	if source.live and new_rows:
 		_update_range()
 	clock.advance(delta)
+	if source.has_method("request_ephemeris"):
+		source.request_ephemeris(clock.t)
 	render_at(clock.t)
 	_fps_t += delta
 	hud.refresh(clock, last_frame, _status_lines())
@@ -172,6 +175,8 @@ func _process(delta: float) -> void:
 ## Pose the world for time t with the current camera. Returns the frame sample.
 func render_at(t: float) -> Dictionary:
 	last_frame = source.store.sample_extended(t)
+	if source.has_method("apply_ephemeris"):
+		source.apply_ephemeris(last_frame, t)
 	var cam: Array = rig.compute(last_frame)
 	world.update(last_frame, cam[0], cam[1])
 	return last_frame

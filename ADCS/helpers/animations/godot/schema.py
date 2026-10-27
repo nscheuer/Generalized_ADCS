@@ -88,6 +88,8 @@ REQUIRED_CHANNELS: Dict[str, Channel] = {c.name: c for c in [
 #: Optional channels. ``width`` of ``0`` means it is set per log (e.g. number of wheels).
 OPTIONAL_CHANNELS: Dict[str, Channel] = {c.name: c for c in [
     _ch("r_moon", 3, "km", "GCRS", description="apparent geocentric Moon position"),
+    _ch("q_sun_gcrs", 4, "-", "-", description="Sun body-to-GCRS orientation"),
+    _ch("q_moon_gcrs", 4, "-", "-", description="Moon body-to-GCRS orientation"),
     *[_ch(f"r_{body}", 3, "km", "GCRS", description=f"geocentric {body} position") for body in
       ("mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune")],
     *[_ch(f"q_{body}_gcrs", 4, "-", "-", description=f"{body} body-to-GCRS orientation") for body in

@@ -13,6 +13,10 @@ var run_id := ""
 var live := false
 var finished := false
 var error_message := ""
+var ephemeris_state: Dictionary = {}
+var _ephemeris_pending := false
+var _ephemeris_wanted := NAN
+var _ephemeris_failed_from := INF
 
 
 func open(host: String, port: int, token: String, wanted_run: String = "") -> bool:
@@ -34,6 +38,17 @@ func poll() -> bool:
 	var before := store.n_rows
 	for m: Array in client.poll_messages():
 		match m[0]:
+			Protocol.Msg.EPHEMERIS_STATE:
+				var state: Variant = JSON.parse_string((m[2] as PackedByteArray).get_string_from_utf8())
+				_ephemeris_pending = false
+				if state is Dictionary:
+					if state.has("error"):
+						error_message = String(state["error"])
+						_ephemeris_failed_from = minf(_ephemeris_failed_from, float(state["t_s"]))
+					else:
+						ephemeris_state = state
+				if not is_nan(_ephemeris_wanted):
+					request_ephemeris(_ephemeris_wanted)
 			Protocol.Msg.BLOCK:
 				var b: Array = client.decode_block(m[2])
 				if b[0] == run_id:
@@ -47,6 +62,32 @@ func poll() -> bool:
 	finished = client.session_ended
 	assets = client.assets
 	return store.n_rows != before
+
+
+## Request DE421 state outside the logged interval. One request stays in flight;
+## a timeline jump replaces the next requested time instead of queuing work.
+func request_ephemeris(t_s: float) -> void:
+	if live or t_s <= store.t_max() or t_s >= _ephemeris_failed_from:
+		return
+	_ephemeris_wanted = t_s
+	if _ephemeris_pending:
+		return
+	if not ephemeris_state.is_empty() and absf(float(ephemeris_state["t_s"]) - t_s) < 1.0:
+		_ephemeris_wanted = NAN
+		return
+	_ephemeris_pending = true
+	_ephemeris_wanted = NAN
+	client.send(Protocol.Msg.EPHEMERIS_QUERY, JSON.stringify({"t_s": t_s}).to_utf8_buffer())
+
+
+func apply_ephemeris(frame: Dictionary, t_s: float) -> void:
+	if t_s <= store.t_max() or ephemeris_state.is_empty():
+		return
+	if absf(float(ephemeris_state["t_s"]) - t_s) > 300.0:
+		return
+	for key: String in ephemeris_state:
+		if key != "t_s":
+			frame[key] = PackedFloat64Array(ephemeris_state[key])
 
 
 ## Block until the whole playback session (or timeout) has arrived.

@@ -138,6 +138,8 @@ def _run_columns(run: RunResults, ephem: Ephemeris, torques: str) -> Tuple[Dict[
         "q_itrs_gcrs": env["q_itrs_gcrs"],
         "shadow_factor": shadow_factor(R, env["r_sun"]),
         "r_moon": env["r_moon"],
+        "q_sun_gcrs": quat_continuity(orientation("sun", j2000_to_jd_tt(j2000))),
+        "q_moon_gcrs": quat_continuity(orientation("moon", j2000_to_jd_tt(j2000))),
         "sunlit_binary": np.array([float(o.is_sunlit()) for o in oss]),
         "b_field": np.array([getattr(o, "B", np.full(3, np.nan)) for o in oss], dtype=float),
         "rho": np.array([getattr(o, "rho", np.nan) for o in oss], dtype=float),

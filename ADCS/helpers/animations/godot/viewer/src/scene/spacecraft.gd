@@ -14,6 +14,8 @@ var _wheel_angle: Dictionary = {}
 var hinge_nodes: Array = []  ## [Node3D, axis, pivot, rest Transform3D, channel]
 var _joint_store: RefCounted
 var _last_t := NAN
+var _end_materials: Array = []  ## [MeshInstance3D, surface, original override, faded material]
+var _after_simulation := false
 
 
 ## Build from the scene description and the model files received as assets.
@@ -21,6 +23,8 @@ func build(scene: Dictionary, assets: Dictionary) -> void:
 	for c in get_children():
 		c.queue_free()
 	lods.clear()
+	_end_materials.clear()
+	_after_simulation = false
 	var mesh: Variant = scene.get("mesh")
 	if mesh is Dictionary and not assets.is_empty():
 		var names := assets.keys()
@@ -42,6 +46,7 @@ func build(scene: Dictionary, assets: Dictionary) -> void:
 		lods.append(fallback)
 		source = "panels" if not (scene.get("panels", []) as Array).is_empty() else "box"
 	radius = maxf(_bounding_radius(lods[0]), 0.05)
+	_cache_end_materials()
 	_find_wheels(scene)
 	_find_hinges(scene)
 	choose_lod(1e9)
@@ -76,6 +81,35 @@ static func _apply_vertex_colors(node: Node) -> void:
 				mat.metallic = 0.2
 				mat.roughness = 0.6
 			(mi as MeshInstance3D).set_surface_override_material(surf, mat)
+
+
+func _cache_end_materials() -> void:
+	if source != "model":
+		return
+	for lod_node in lods:
+		for child in [lod_node] + lod_node.find_children("*", "MeshInstance3D", true, false):
+			if not child is MeshInstance3D or child.mesh == null:
+				continue
+			var mi := child as MeshInstance3D
+			for surf in mi.mesh.get_surface_count():
+				var original: Material = mi.get_surface_override_material(surf)
+				var active := mi.get_active_material(surf)
+				var faded := active.duplicate() as StandardMaterial3D if active is StandardMaterial3D else StandardMaterial3D.new()
+				faded.albedo_color = Color(0.65, 0.65, 0.65, 0.8)
+				faded.albedo_texture = null
+				faded.vertex_color_use_as_albedo = false
+				faded.emission_enabled = false
+				faded.detail_enabled = false
+				faded.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				_end_materials.append([mi, surf, original, faded])
+
+
+func set_after_simulation(active: bool) -> void:
+	if active == _after_simulation:
+		return
+	_after_simulation = active
+	for entry: Array in _end_materials:
+		(entry[0] as MeshInstance3D).set_surface_override_material(entry[1], entry[3] if active else entry[2])
 
 
 func _panel_boxes(scene: Dictionary) -> Node3D:

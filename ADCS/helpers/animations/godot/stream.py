@@ -306,6 +306,7 @@ class VizServer:
     def _serve_playback(self, conn: socket.socket, hello: Dict[str, Any], log: VizLog) -> None:
         # Playback messages use their own sequence numbers per connection.
         seq = 0
+        ephem = None
 
         def send(kind: MsgType, payload: bytes) -> None:
             nonlocal seq
@@ -331,12 +332,25 @@ class VizServer:
             while not self._closing:
                 conn.settimeout(0.5)
                 try:
-                    read_frame(conn)
+                    kind, _, payload = read_frame(conn)
                 except socket.timeout:
                     continue
+                if kind == MsgType.EPHEMERIS_QUERY:
+                    request = decode_json(payload)
+                    t_s = float(request["t_s"])
+                    try:
+                        if ephem is None:
+                            from ADCS.environment.ephemeris import DE421
+                            ephem = DE421()
+                        state = _ephemeris_state(ephem, hello["manifest"], t_s)
+                    except Exception as error:  # Keep the viewer connection usable after an out-of-range query.
+                        state = {"t_s": t_s, "error": str(error)}
+                    send(MsgType.EPHEMERIS_STATE, encode_json(state))
         except (OSError, ConnectionError, ProtocolError):
             pass
         finally:
+            if ephem is not None:
+                ephem.close()
             _close_quietly(conn)
 
     def _reject(self, conn: socket.socket, message: str) -> None:
@@ -352,6 +366,33 @@ def _close_quietly(sock: socket.socket) -> None:
         sock.close()
     except OSError:
         pass
+
+
+def _ephemeris_state(ephem, manifest: Dict[str, Any], t_s: float) -> Dict[str, Any]:
+    """Celestial state at the viewer clock time, relative to Earth in metres."""
+    from ADCS.helpers.animations.godot.derive import derive_environment
+    from ADCS.helpers.animations.godot.planetary import orientation
+
+    epoch = manifest["epoch"]
+    jd_tt = float(epoch["jd_tt_whole"]) + float(epoch["jd_tt_frac"]) + t_s / 86400.0
+    environment = derive_environment(ephem, np.array([jd_tt]))
+    state: Dict[str, Any] = {
+        "t_s": t_s,
+        "r_sun": environment["r_sun"][0] * 1000.0,
+        "r_moon": environment["r_moon"][0] * 1000.0,
+        "q_itrs_gcrs": environment["q_itrs_gcrs"][0],
+        "q_moon_gcrs": orientation("moon", np.array([jd_tt]))[0],
+        "q_sun_gcrs": orientation("sun", np.array([jd_tt]))[0],
+    }
+    for name in ("mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune"):
+        target = f"{name} barycenter" if name in {"jupiter", "saturn", "uranus", "neptune"} else name
+        try:
+            position = ephem.position_eci(target, (jd_tt - 2451545.0) / 36525.0)
+        except (KeyError, ValueError):
+            position = ephem.position_eci(f"{name} barycenter", (jd_tt - 2451545.0) / 36525.0)
+        state[f"r_{name}"] = np.asarray(position, dtype=float) * 1000.0
+        state[f"q_{name}_gcrs"] = orientation(name, np.array([jd_tt]))[0]
+    return state
 
 
 def _scene_assets(scene: Dict[str, Any]) -> List[bytes]:

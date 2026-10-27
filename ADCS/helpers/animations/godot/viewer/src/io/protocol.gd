@@ -6,7 +6,8 @@ extends RefCounted
 const MAGIC := "ADVZ"
 const VERSION := 1
 const HEADER_SIZE := 20
-enum Msg { HELLO = 1, BLOCK = 2, ROW = 3, END = 4, ACK = 5, CONNECT = 6, ERROR = 7, ASSET = 8 }
+enum Msg { HELLO = 1, BLOCK = 2, ROW = 3, END = 4, ACK = 5, CONNECT = 6, ERROR = 7, ASSET = 8,
+	EPHEMERIS_QUERY = 9, EPHEMERIS_STATE = 10 }
 
 var tcp := StreamPeerTCP.new()
 var _buf := PackedByteArray()

@@ -252,6 +252,7 @@ static func moon_rotation(r_moon: PackedFloat64Array) -> PackedFloat64Array:
 ## Pose everything for one frame. frame: FrameStore.sample() (metres).
 func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat64Array) -> void:
 	last_camera_position = cam_pos
+	craft.set_after_simulation(bool(frame.get("after_simulation", false)))
 	var r_sc: PackedFloat64Array = frame["r_sc"]
 	var r_sun: PackedFloat64Array = frame["r_sun"]
 	var d_craft := D.norm(D.sub(r_sc, cam_pos))
@@ -304,7 +305,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	if frame.has("r_moon"):
 		var r_moon: PackedFloat64Array = frame["r_moon"]
 		_body_lod(moon, R_MOON, R_MOON * focal / maxf(D.norm(D.sub(r_moon, cam_pos)), 1.0))
-		var rot := moon_rotation(r_moon)
+		var rot := D.rot_mat(frame["q_moon_gcrs"]) if frame.has("q_moon_gcrs") else moon_rotation(r_moon)
 		k_moon = origin.far_scale(D.norm(D.sub(r_moon, cam_pos)))
 		origin.place(moon, r_moon, rot, k_moon)
 		var s_local := D.unit(D.mat_t_vec(rot, D.sub(r_sun, r_moon)))
@@ -321,6 +322,15 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	stars.transform = Transform3D(D.basis_from(PackedFloat64Array([1, 0, 0, 0, 1, 0, 0, 0, 1])).scaled(Vector3.ONE * k_stars),
 		camera.position)
 	var sun_from_cam := D.unit(D.sub(r_sun, cam_pos))
+	if frame.has("q_sun_gcrs"):
+		var sun_rot := D.rot_mat(frame["q_sun_gcrs"])
+		var camera_right := D.mat_t_vec(sun_rot, PackedFloat64Array([cam_rot[0], cam_rot[3], cam_rot[6]]))
+		var camera_up := D.mat_t_vec(sun_rot, PackedFloat64Array([cam_rot[1], cam_rot[4], cam_rot[7]]))
+		var camera_back := D.mat_t_vec(sun_rot, PackedFloat64Array([cam_rot[2], cam_rot[5], cam_rot[8]]))
+		(sun.material_override as ShaderMaterial).set_shader_parameter("camera_to_sun", Basis(
+			Vector3(camera_right[0], camera_right[1], camera_right[2]),
+			Vector3(camera_up[0], camera_up[1], camera_up[2]),
+			Vector3(camera_back[0], camera_back[1], camera_back[2])))
 	var dist := 0.92 * origin.far  # behind the far bodies (<= 0.9 x far), in front of the stars (0.95)
 	var true_half := dist * tan(SUN_ANGULAR_RADIUS)
 	var half := maxf(true_half, 3.0 * dist / focal) / 0.35  # disk >= 3 px radius

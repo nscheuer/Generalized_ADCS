@@ -109,6 +109,10 @@ func sample(ts: float) -> Dictionary:
 	}
 	if has("r_moon"):
 		out["r_moon"] = D.scale(value("r_moon", ts), 1000.0)
+	if has("q_sun_gcrs"):
+		out["q_sun_gcrs"] = D.slerp(get_row("q_sun_gcrs", k), get_row("q_sun_gcrs", k1), s)
+	if has("q_moon_gcrs"):
+		out["q_moon_gcrs"] = D.slerp(get_row("q_moon_gcrs", k), get_row("q_moon_gcrs", k1), s)
 	for body: String in ["mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune"]:
 		if has("r_" + body):
 			out["r_" + body] = D.scale(value("r_" + body, ts), 1000.0)

@@ -63,6 +63,8 @@ class MsgType(IntEnum):
     CONNECT = 6  #: client -> server, JSON {token, client, protocol}
     ERROR = 7    #: either direction, JSON {"message"}; the sender then closes
     ASSET = 8    #: server -> client, a file the scene refers to (e.g. spacecraft model), see encode_asset
+    EPHEMERIS_QUERY = 9  #: client -> server, JSON {t_s}; TT seconds since log epoch
+    EPHEMERIS_STATE = 10  #: server -> client, JSON celestial positions and orientations
 
 
 class ProtocolError(RuntimeError):
