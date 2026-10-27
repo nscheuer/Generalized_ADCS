@@ -58,8 +58,8 @@ def test_an_estimator_write_back_is_kept():
 
 def test_the_estimator_rate_covers_the_instability():
     bias = BiasWithInstability(bias=0.0, std_bias=2.0e-4, instability_std=1.0e-3, instability_time=50.0)
-    np.testing.assert_allclose(bias.process_psd().as_matrix(), [[4.0e-8 + 2.0 * 1.0e-6 / 50.0]])
-    np.testing.assert_allclose(bias.process_covariance(2.0).as_matrix(), [[2.0 * (4.0e-8 + 2.0 * 1.0e-6 / 50.0)]])
+    np.testing.assert_allclose(bias.process_psd().as_matrix(), [[4.0e-8 + 2.0 * 1.0e-6 * 50.0]])
+    np.testing.assert_allclose(bias.process_covariance(2.0).as_matrix(), [[2.0 * (4.0e-8 + 2.0 * 1.0e-6 * 50.0)]])
 
 
 def test_configuration_is_validated_and_carried():

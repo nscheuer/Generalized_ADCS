@@ -38,7 +38,7 @@ class BiasWithInstability(Bias):
     is unchanged; only the step and the process PSD differ.
 
     For a filter with a random-walk bias state, the instability is covered by
-    adding its low-frequency power density :math:`2\sigma_g^2/\tau` to the
+    adding its low-frequency power density :math:`2\sigma_g^2\tau` to the
     walk rate squared in :meth:`process_psd`.
 
     Parameters
@@ -109,8 +109,8 @@ class BiasWithInstability(Bias):
         return result
 
     def process_psd(self, *, form: str = "full") -> Covariance:
-        r"""Random-walk PSD plus the instability's low-frequency density :math:`2\sigma_g^2/\tau`."""
-        rate_squared = self.std_bias * self.std_bias + 2.0 * self.instability_std**2 / self.instability_time
+        r"""Random-walk PSD plus the instability's low-frequency density :math:`2\sigma_g^2\tau`."""
+        rate_squared = self.std_bias * self.std_bias + 2.0 * self.instability_std**2 * self.instability_time
         return Covariance(np.diagflat(rate_squared), form=form, coordinates="bias_rate")
 
     def _update_bias(self, j2000: float) -> None:
