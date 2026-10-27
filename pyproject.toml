@@ -68,6 +68,7 @@ dependencies = [
     "skyfield>=1.45",
     "tqdm>=4.60",
     "rich>=13.0",
+    "DracoPy>=2.2",
 ]
 
 # Optional extras

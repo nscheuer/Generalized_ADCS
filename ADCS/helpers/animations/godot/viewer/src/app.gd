@@ -37,6 +37,13 @@ var pointer_down := Vector2.ZERO
 var asset_prompt_file := ""
 var asset_ready_file := ""
 var asset_prompt_finished := false
+var selected_model := "simulation"
+var pending_model_request := ""
+
+const NASA_MODELS := {
+	"cloudsat": "CloudSat (C)", "cubesat_1ru": "CubeSat 1 RU", "cubesat_2ru": "CubeSat 2 RU",
+	"icecube": "CubeSat - ICECube", "mirata": "CubeSat MiRaTa", "icesat2": "ICESat-2",
+}
 
 
 func _ready() -> void:
@@ -81,6 +88,7 @@ func _ready() -> void:
 	world.solar.load_textures(String(opts.get("assets", "")), world.earth_mat, world.moon_mat, world.sun.material_override)
 	_log("textures loaded: %s" % [assets.load_ms])
 	world.craft.build(source.scene, source.assets)
+	selected_model = "simulation" if world.craft.source == "model" else "box"
 	_log("spacecraft: %s, %d levels of detail, radius %.3f m" % [world.craft.source, world.craft.lods.size(), world.craft.radius])
 	rig.fit_to_craft(world.craft.radius)
 	rig.frame_kind = String(opts.get("frame", "lvlh"))
@@ -101,6 +109,7 @@ func _ready() -> void:
 	clock.rate = float(opts.get("rate", 1.0 if clock.t_max - clock.t_min < 3600.0 else 60.0))
 	clock.follow_live = source.live
 	hud.setup(clock, source)
+	hud.setup_model_handler(_on_model_selected, selected_model)
 	hud.timeline.reset_camera_requested.connect(reset_camera)
 
 	_log("ready")
@@ -158,6 +167,7 @@ func _process(delta: float) -> void:
 		asset_prompt_finished = true
 		hud.show_asset_notice(false)
 		world.solar.load_textures(String(opts.get("assets", "")), world.earth_mat, world.moon_mat, world.sun.material_override)
+	_poll_model_request()
 	_frame_count += 1
 	if _frame_count == 1:
 		_log("first frame")
@@ -170,6 +180,79 @@ func _process(delta: float) -> void:
 	render_at(clock.t)
 	_fps_t += delta
 	hud.refresh(clock, last_frame, _status_lines())
+
+
+func _on_model_selected(name: String) -> void:
+	pending_model_request = ""
+	hud.show_asset_notice(false)
+	if name == "box":
+		world.craft.set_box(source.scene)
+		world.craft.source = "Box"
+		_fit_model_view()
+		selected_model = name
+		hud._update_model_label(name)
+		return
+	if name == "simulation":
+		world.craft.build(source.scene, source.assets)
+		world.craft.source = "Simulation"
+		_fit_model_view()
+		selected_model = name
+		hud._update_model_label(name)
+		return
+	if not NASA_MODELS.has(name):
+		return
+	var model_path := String(opts.get("assets", "")).path_join("spacecraft_models").path_join(name + ".godot.glb")
+	if FileAccess.file_exists(model_path) and world.craft.set_catalog_model(model_path, NASA_MODELS[name]):
+		_fit_model_view()
+		selected_model = name
+		hud._update_model_label(name)
+		return
+	var request_path := String(opts.get("model-request-file", ""))
+	if request_path == "" or String(opts.get("model-response-file", "")) == "":
+		push_warning("NASA spacecraft models require launching through the Python viewer so AssetManager can request downloads.")
+		return
+	pending_model_request = "%s-%d" % [name, Time.get_ticks_usec()]
+	hud.show_asset_notice(true)
+	var file := FileAccess.open(request_path, FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify({"id": pending_model_request, "model": name}))
+		file.close()
+	else:
+		pending_model_request = ""
+		hud.show_asset_notice(false)
+		push_warning("Could not request the selected NASA spacecraft model.")
+
+
+func _poll_model_request() -> void:
+	if pending_model_request == "":
+		return
+	var response_path := String(opts.get("model-response-file", ""))
+	if not FileAccess.file_exists(response_path):
+		return
+	var response: Variant = JSON.parse_string(FileAccess.get_file_as_string(response_path))
+	if not response is Dictionary or String(response.get("id", "")) != pending_model_request:
+		return
+	var requested_name := ""
+	for key: String in NASA_MODELS:
+		if pending_model_request.begins_with(key + "-"):
+			requested_name = key
+			break
+	var succeeded := bool(response.get("ok", false)) and requested_name != ""
+	if succeeded:
+		var path := String(opts.get("assets", "")).path_join("spacecraft_models").path_join(requested_name + ".godot.glb")
+		succeeded = world.craft.set_catalog_model(path, NASA_MODELS[requested_name])
+	if succeeded:
+		_fit_model_view()
+		selected_model = requested_name
+		hud._update_model_label(requested_name)
+	else:
+		hud._update_model_label(selected_model)
+	pending_model_request = ""
+	hud.show_asset_notice(false)
+
+
+func _fit_model_view() -> void:
+	rig.fit_to_craft(world.craft.radius)
 
 
 ## Pose the world for time t with the current camera. Returns the frame sample.
@@ -194,7 +277,7 @@ func _status_lines() -> PackedStringArray:
 		lines.append("Pointing error %.3f deg" % rad_to_deg((f["pointing_err"] as PackedFloat64Array)[0]))
 	lines.append(rig.describe())
 	var live := "   LIVE" if source.live and clock.follow_live else ""
-	lines.append("%d fps   model: %s%s" % [Engine.get_frames_per_second(), world.craft.source, live])
+	lines.append("%d fps%s" % [Engine.get_frames_per_second(), live])
 	return lines
 
 

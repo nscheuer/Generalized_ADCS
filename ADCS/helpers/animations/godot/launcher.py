@@ -1,6 +1,7 @@
 __all__ = ["viewer_command", "launch_viewer", "view", "viewer_project"]
 
 import contextlib
+import json
 import os
 import shutil
 import signal
@@ -80,6 +81,8 @@ def viewer_command(binary: str | Path, host: str, port: int, token: str,
     cmd += ["--", "--connect", f"{host}:{port}", "--token", token]
     if assets is not None:
         cmd += ["--assets", _host_path(assets, binary)]
+        cmd += ["--model-request-file", _host_path(Path(assets) / ".spacecraft-model-request.json", binary),
+                "--model-response-file", _host_path(Path(assets) / ".spacecraft-model-response.json", binary)]
     return cmd + list(extra_args)
 
 
@@ -105,6 +108,56 @@ def _stop(proc: subprocess.Popen) -> None:
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait()
+
+
+class _ModelRequestBroker:
+    """Resolve spacecraft model requests written by the viewer's dropdown."""
+
+    def __init__(self, root: Path):
+        self.root = root
+        self.request = root / ".spacecraft-model-request.json"
+        self.response = root / ".spacecraft-model-response.json"
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self._run, name="adcs-model-assets", daemon=True)
+
+    def start(self) -> None:
+        self.thread.start()
+
+    def prepare(self) -> None:
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.request.unlink(missing_ok=True)
+        self.response.unlink(missing_ok=True)
+
+    def stop(self) -> None:
+        self.stop_event.set()
+        if self.thread.is_alive():
+            self.thread.join(timeout=2.0)
+        self.request.unlink(missing_ok=True)
+        self.response.unlink(missing_ok=True)
+
+    def _run(self) -> None:
+        last_id = ""
+        while not self.stop_event.is_set():
+            try:
+                if self.request.is_file():
+                    request = json.loads(self.request.read_text(encoding="utf-8"))
+                    request_id = str(request.get("id", ""))
+                    if request_id and request_id != last_id:
+                        last_id = request_id
+                        from ADCS.helpers.animations.godot.assets.spacecraft import ensure_model
+                        name = str(request.get("model", ""))
+                        try:
+                            path = ensure_model(name, root=self.root)
+                            result = {"id": request_id, "ok": path is not None}
+                        except (OSError, RuntimeError, ValueError) as error:
+                            print(f"NASA model download failed: {error}", flush=True)
+                            result = {"id": request_id, "ok": False}
+                        temporary = self.response.with_suffix(".tmp")
+                        temporary.write_text(json.dumps(result), encoding="utf-8")
+                        temporary.replace(self.response)
+            except (OSError, ValueError, json.JSONDecodeError):
+                pass
+            self.stop_event.wait(0.1)
 
 
 @contextlib.contextmanager
@@ -180,6 +233,8 @@ def view(
                     server.wait_for_client(timeout=3600)
             except KeyboardInterrupt:
                 return 0
+        model_broker = _ModelRequestBroker(asset_dir)
+        model_broker.prepare()
         proc = launch_viewer(exe, h, p, server.token, extra_args, viewer_project(exe, project), asset_dir)
         with _sigterm_as_interrupt():
             try:
@@ -196,10 +251,12 @@ def view(
                         print(f"Texture preparation failed; continuing with available maps: {error}")
                     finally:
                         completion_file.touch()
+                model_broker.start()
                 return proc.wait()
             except KeyboardInterrupt:
                 return 130
             finally:
+                model_broker.stop()
                 _stop(proc)
                 if completion_file is not None:
                     completion_file.unlink(missing_ok=True)

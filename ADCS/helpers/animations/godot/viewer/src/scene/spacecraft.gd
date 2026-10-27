@@ -21,11 +21,7 @@ var _after_simulation := false
 
 ## Build from the scene description and the model files received as assets.
 func build(scene: Dictionary, assets: Dictionary) -> void:
-	for c in get_children():
-		c.queue_free()
-	lods.clear()
-	_end_materials.clear()
-	_after_simulation = false
+	_clear_models()
 	var mesh: Variant = scene.get("mesh")
 	if mesh is Dictionary and not assets.is_empty():
 		var names := assets.keys()
@@ -52,6 +48,45 @@ func build(scene: Dictionary, assets: Dictionary) -> void:
 	_find_wheels(scene)
 	_find_hinges(scene)
 	choose_lod(1e9)
+
+
+func set_box(scene: Dictionary) -> void:
+	_clear_models()
+	var fallback := _panel_boxes(scene)
+	add_child(fallback)
+	lods.append(fallback)
+	source = "panels" if not (scene.get("panels", []) as Array).is_empty() else "box"
+	radius = maxf(_bounding_radius(fallback), 0.05)
+	average_color = Color(0.72, 0.72, 0.75)
+	choose_lod(1e9)
+
+
+func set_catalog_model(path: String, label: String) -> bool:
+	var data := FileAccess.get_file_as_bytes(path)
+	if data.is_empty():
+		return false
+	var node := _load_glb(data)
+	if node == null:
+		return false
+	_clear_models()
+	node.name = label
+	add_child(node)
+	lods.append(node)
+	source = "model"
+	radius = maxf(_bounding_radius(node), 0.05)
+	average_color = _average_model_color(node)
+	_cache_end_materials()
+	choose_lod(1e9)
+	return true
+
+
+func _clear_models() -> void:
+	for node in lods:
+		if is_instance_valid(node):
+			node.queue_free()
+	lods.clear()
+	_end_materials.clear()
+	_after_simulation = false
 
 
 func _load_glb(data: PackedByteArray) -> Node3D:

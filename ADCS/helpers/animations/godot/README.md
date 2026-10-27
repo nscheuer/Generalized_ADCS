@@ -16,6 +16,16 @@ window displays a notice to check the terminal while those prompts are active.
 Downloads use `AssetManager`; declining leaves the viewer running with built-in
 colors and any maps already cached.
 
+The HUD's `model:` menu switches between the simulation model, a box, and six
+optional spacecraft from [NASA 3D Resources](https://science.nasa.gov/3d-resources/):
+CloudSat (C), generic 1 RU and 2 RU CubeSats, ICECube, MiRaTa, and ICESat-2.
+NASA models download only when selected, after a terminal y/n prompt, and are
+cached under `spacecraft_models` alongside the other visualization assets.
+Their NASA GLBs use Draco mesh compression, so the viewer creates a separate
+Godot-compatible copy after download; the original file is kept unchanged.
+NASA requests attribution; see each linked NASA 3D Resources model page for
+the credited contributor.
+
 The Python playback server uses the bundled DE421 ephemeris. Logged rows carry
 Earth, Sun, Moon, and planet states during the simulation. After the final row,
 the viewer requests celestial positions and orientations at the timeline time;

@@ -14,6 +14,7 @@ var layers: Layers
 var focus: Label
 var settings: MenuButton
 var quality_menu: MenuButton
+var model_menu: MenuButton
 var quality_row: HBoxContainer
 var exposure_label: Label
 var quality_prefix: Label
@@ -21,6 +22,9 @@ var fps_status: Label
 var branding: Label
 var settings_world: RefCounted
 var asset_notice: Label
+var model_handler: Callable
+var model_names := ["box", "simulation", "cloudsat", "cubesat_1ru", "cubesat_2ru", "icecube", "mirata", "icesat2"]
+var model_labels := ["Box", "Simulation", "CloudSat (C)", "CubeSat 1 RU", "CubeSat 2 RU", "CubeSat - ICECube", "CubeSat MiRaTa", "ICESat-2"]
 
 const HELP := """Mouse: drag to orbit, wheel to zoom
 Space  play / pause        R  reset time        , .  slower / faster
@@ -48,7 +52,7 @@ func _ready() -> void:
 	focus.text = "FOCUS: SPACECRAFT"
 	status.position.y = 40
 	asset_notice = _label(Vector2.ZERO)
-	asset_notice.text = "Planet textures are missing. Check the terminal to approve downloading them."
+	asset_notice.text = "An asset is missing. Check the terminal to approve downloading it."
 	asset_notice.add_theme_font_size_override("font_size", 20)
 	asset_notice.add_theme_color_override("font_color", Color(1.0, 0.86, 0.48))
 	asset_notice.visible = false
@@ -80,6 +84,20 @@ func _ready() -> void:
 	quality_popup.add_item("Balanced", 1)
 	quality_popup.add_item("High", 2)
 	quality_popup.id_pressed.connect(_on_quality_selected)
+	var model_prefix := Label.new()
+	model_prefix.text = "model:"
+	quality_row.add_child(model_prefix)
+	model_menu = MenuButton.new()
+	model_menu.text = "Simulation  ▾"
+	model_menu.custom_minimum_size = Vector2(150, 28)
+	model_menu.add_theme_stylebox_override("normal", quality_style)
+	model_menu.add_theme_stylebox_override("hover", quality_hover)
+	model_menu.add_theme_stylebox_override("pressed", quality_hover)
+	quality_row.add_child(model_menu)
+	var model_popup := model_menu.get_popup()
+	for i in model_labels.size():
+		model_popup.add_item(model_labels[i], i)
+	model_popup.id_pressed.connect(_on_model_selected)
 	fps_status = _label(Vector2(16, 0))
 	settings = MenuButton.new()
 	settings.text = "Settings"
@@ -116,6 +134,11 @@ func setup_settings(world: RefCounted) -> void:
 	settings_world = world
 
 
+func setup_model_handler(handler: Callable, selected: String = "simulation") -> void:
+	model_handler = handler
+	_update_model_label(selected)
+
+
 func show_asset_notice(show: bool) -> void:
 	asset_notice.visible = show
 	if show:
@@ -136,6 +159,17 @@ func _on_setting(id: int) -> void:
 func _on_quality_selected(id: int) -> void:
 	settings_world.set_quality(["fast", "balanced", "high"][clampi(id, 0, 2)])
 	_update_quality_label()
+
+
+func _on_model_selected(id: int) -> void:
+	if id >= 0 and id < model_names.size() and model_handler.is_valid():
+		model_handler.call(model_names[id])
+
+
+func _update_model_label(name: String) -> void:
+	var index := model_names.find(name)
+	if index >= 0 and model_menu != null:
+		model_menu.text = model_labels[index] + "  ▾"
 
 
 func _update_quality_label() -> void:
