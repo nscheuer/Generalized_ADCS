@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 _MANIFEST = Path(__file__).with_name("_viewer_manifest.json")
+_GODOT_VERSION = "4.7.2"
 _BUNDLED_ARCHIVE_SHA256 = "cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4"
 _BUNDLED_BINARY_SHA256 = "8d106cbe6144c2dc7e881d61d2429c1a8a76e6b22ef48bd5e48dcf934953f71e"
 
@@ -117,7 +118,22 @@ def find_viewer(explicit: Optional[str | Path] = None) -> Path:
             if not path.exists():
                 raise ViewerNotFoundError(f"viewer not found at {path}")
             return path
-    if sys.platform == "linux" and platform.machine().lower() in ("x86_64", "amd64"):
+
+    # On WSL, prefer native Windows Godot so WSLg does not route the 3-D
+    # viewport through the Linux software renderer (LLVMpipe). The project is
+    # copied to Windows by launcher.viewer_project().
+    if is_wsl():
+        windows_godot = (cache_dir() / _GODOT_VERSION / "windows-x86_64"
+                         / f"Godot_v{_GODOT_VERSION}-stable_win64.exe")
+        if windows_godot.is_file():
+            return windows_godot
+
+    manifest = viewer_manifest()
+    installed = _installed(manifest, platform_key())
+    if installed is not None:
+        return installed
+
+    if sys.platform == "linux" and not is_wsl() and platform.machine().lower() in ("x86_64", "amd64"):
         archive = Path(__file__).with_name("bin") / "godot-linux-x86_64.zip"
         if archive.is_file():
             target = Path(__file__).resolve().parents[1] / "assets" / "bin" / "godot"
@@ -135,11 +151,10 @@ def find_viewer(explicit: Optional[str | Path] = None) -> Path:
             temporary.chmod(0o755)
             os.replace(temporary, target)
             return target
-    manifest = viewer_manifest()
-    installed = _installed(manifest, platform_key())
-    if installed is not None:
-        return installed
     if not manifest.get("version"):
+        if is_wsl():
+            raise ViewerNotFoundError(
+                "no native Windows Godot viewer found in the WSL cache; install Godot for Windows or set ADCS_VIEWER_BIN")
         raise ViewerNotFoundError(
             "no viewer release is published yet. Run the viewer from the Godot editor and "
             "connect it to `python -m ADCS.helpers.animations.godot view <log> --no-launch`, or set ADCS_VIEWER_BIN.")

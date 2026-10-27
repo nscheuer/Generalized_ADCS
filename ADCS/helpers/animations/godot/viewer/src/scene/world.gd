@@ -22,6 +22,7 @@ const EARTH_ALBEDO := 0.3
 
 var viewport: SubViewport
 var view_rect: TextureRect
+var rays_mat: ShaderMaterial
 var camera: Camera3D
 var env: Environment
 var light: DirectionalLight3D
@@ -71,6 +72,9 @@ func _init(parent: Node, size: Vector2i = Vector2i.ZERO) -> void:
 	view_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	view_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	view_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rays_mat = ShaderMaterial.new()
+	rays_mat.shader = load("res://shaders/volumetric_rays.gdshader")
+	view_rect.material = rays_mat
 	parent.add_child(view_rect)
 
 	env = Environment.new()
@@ -397,8 +401,14 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	var true_half := dist * tan(SUN_ANGULAR_RADIUS)
 	var half := maxf(true_half, 3.0 * dist / focal) / 0.35  # disk >= 3 px radius
 	_update_exposure(focal, (true_half / 0.35) / half)
-	sun.transform = Transform3D(camera.basis.scaled(Vector3.ONE * 2.0 * half),
-		camera.position + D.to_godot(D.scale(sun_from_cam, dist)))
+	var sun_position := camera.position + D.to_godot(D.scale(sun_from_cam, dist))
+	sun.transform = Transform3D(camera.basis.scaled(Vector3.ONE * 2.0 * half), sun_position)
+	var sun_screen := camera.unproject_position(sun_position)
+	var sun_uv := Vector2(sun_screen.x / float(viewport.size.x), sun_screen.y / float(viewport.size.y))
+	rays_mat.set_shader_parameter("sun_uv", sun_uv)
+	rays_mat.set_shader_parameter("rays_enabled", quality == "high"
+		and not camera.is_position_behind(sun_position)
+		and sun_uv.x >= 0.0 and sun_uv.x <= 1.0 and sun_uv.y >= 0.0 and sun_uv.y <= 1.0)
 
 	info = {"near": origin.near, "far": origin.far, "k_craft": k_craft, "k_earth": k_earth, "k_moon": k_moon,
 		"craft_near": craft_near, "lod": craft.lod, "d_craft": d_craft}
@@ -423,10 +433,10 @@ func pick_body(screen: Vector2, frame: Dictionary) -> String:
 	return ""
 
 
-## Quality presets. Measured on an Intel Arc 140V at 1080p (GPU p50/p99):
-## high (MSAA 4x) ~13/29 ms, balanced ~6/11 ms, fast lower still.
+## High adds denser atmospheric integration and screen-space light shafts;
+## it is intended for a discrete GPU. Balanced and fast keep the lighter path.
 const QUALITY := {
-	"high": {"msaa": Viewport.MSAA_4X, "fxaa": false, "glow": true, "shell_steps": 24, "pixel_steps": 16, "vertex_steps": 24},
+	"high": {"msaa": Viewport.MSAA_4X, "fxaa": false, "glow": true, "shell_steps": 48, "pixel_steps": 32, "vertex_steps": 40, "scattering_gain": 1.35},
 	"balanced": {"msaa": Viewport.MSAA_DISABLED, "fxaa": true, "glow": true, "shell_steps": 12, "pixel_steps": 12, "vertex_steps": 24},
 	"fast": {"msaa": Viewport.MSAA_DISABLED, "fxaa": true, "glow": false, "shell_steps": 8, "pixel_steps": 8, "vertex_steps": 16},
 }
@@ -443,6 +453,9 @@ func set_quality(name: String) -> void:
 	shell_mat.set_shader_parameter("atm_steps", q["shell_steps"])
 	earth_mat.set_shader_parameter("pixel_steps", q["pixel_steps"])
 	earth_mat.set_shader_parameter("atm_steps", q["vertex_steps"])
+	for material: ShaderMaterial in [earth_mat, shell_mat]:
+		material.set_shader_parameter("scattering_gain", q.get("scattering_gain", 1.0))
+	rays_mat.set_shader_parameter("rays_enabled", name == "high")
 
 
 ## Focal length in pixels for the current field of view and viewport height.

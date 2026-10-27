@@ -12,6 +12,7 @@ uniform bool has_atmosphere = false;
 uniform bool use_atmosphere_lut = false;
 uniform float atm_bottom = 6378137.0;
 uniform float atm_top = 6478137.0;
+uniform float scattering_gain = 1.0;
 uniform vec3 rayleigh_scattering = vec3(5.802e-6, 13.558e-6, 33.1e-6);
 uniform float rayleigh_h = 8000.0;
 uniform vec3 mie_scattering = vec3(3.996e-6);
@@ -123,6 +124,7 @@ void atm_integrate_n(vec3 o, vec3 d, float t0, float t1, vec3 sun, int steps, ou
 		L += T * S * (1.0 - step_t) / max(ext, vec3(1e-12));  // exact for constant S over the step
 		T *= step_t;
 	}
+	L *= scattering_gain;
 }
 
 void atm_integrate(vec3 o, vec3 d, float t0, float t1, vec3 sun, out vec3 L, out vec3 T) {
