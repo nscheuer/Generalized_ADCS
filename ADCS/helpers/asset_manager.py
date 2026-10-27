@@ -6,7 +6,7 @@ import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.request import urlretrieve
+from urllib.request import Request, urlopen
 
 from tqdm.auto import tqdm
 
@@ -58,16 +58,15 @@ class AssetManager:
         target.parent.mkdir(parents=True, exist_ok=True)
         partial = target.with_name(target.name + ".part")
         try:
-            downloaded = 0
+            request = Request(asset.url, headers={"User-Agent": "Mozilla/5.0 (compatible; Generalized-ADCS asset downloader)"})
             with tqdm(unit="B", unit_scale=True, unit_divisor=1024, desc=name) as bar:
-                def report(block, size, total):
-                    nonlocal downloaded
-                    if total > 0 and bar.total is None:
-                        bar.total = total
-                    current = block * size
-                    bar.update(max(0, current - downloaded))
-                    downloaded = current
-                urlretrieve(asset.url, partial, reporthook=report)
+                with urlopen(request) as response, partial.open("wb") as output:
+                    length = response.headers.get("Content-Length")
+                    if length is not None:
+                        bar.total = int(length)
+                    while chunk := response.read(1024 * 1024):
+                        output.write(chunk)
+                        bar.update(len(chunk))
             if asset.sha256:
                 import hashlib
                 if hashlib.sha256(partial.read_bytes()).hexdigest() != asset.sha256:

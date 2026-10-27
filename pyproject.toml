@@ -1,6 +1,6 @@
 [build-system]
 # >=77 for PEP 639 SPDX license metadata (`license = "MIT"` + license-files).
-requires = ["setuptools>=77"]
+requires = ["setuptools>=77", "wheel>=0.43"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -174,6 +174,10 @@ packages = [
     "ADCS.flight_software.single_core",
     "ADCS.flight_software.tasks",
     "ADCS.helpers",
+    "ADCS.helpers.animations",
+    "ADCS.helpers.animations.godot",
+    "ADCS.helpers.animations.godot.assets",
+    "ADCS.helpers.animations.godot.mesh_import",
     "ADCS.helpers.math",
     "ADCS.helpers.plot",
     "ADCS.helpers.plot.control",
@@ -215,9 +219,13 @@ packages = [
 # our annotations instead of discarding them. Only safe now that the public
 # signatures are correct -- see the 0.1.9 release note.
 [tool.setuptools.package-data]
-"*" = ["textures/*.jpg"]
 "ADCS" = ["py.typed"]
 "ADCS.environment.kernels" = ["de421.bsp", "IGRF14.shc", "bsc5_catalog.gz"]
+"ADCS.helpers.animations.godot" = ["bin/godot-linux-x86_64.zip", "bin/LICENSE-GODOT.txt", "bin/COPYRIGHT-GODOT.txt", "viewer/*.godot", "viewer/*.tscn", "viewer/shaders/*.gdshader", "viewer/shaders/*.gdshaderinc", "viewer/src/*.gd", "viewer/src/*/*.gd", "viewer/src/*/*/*.gd", "viewer/tests/*.gd", "_viewer_manifest.json"]
+"ADCS.helpers.animations.godot.assets" = ["sources.json"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["textures/*", "assets/raw/*", "assets/processed/*", "*.jpg", "*.png", "*.exr", "*.tif"]
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]

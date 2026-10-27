@@ -234,3 +234,8 @@ ADCS/environment/kernels/*
 !ADCS/environment/kernels/de421.bsp
 !ADCS/environment/kernels/IGRF14.shc
 !ADCS/environment/kernels/bsc5_catalog.gz
+# Visualization assets are requested explicitly and remain local.
+/ADCS/helpers/animations/assets/
+/ADCS/helpers/animations/godot/viewer/.godot/
+/ADCS/helpers/plot/orbit/textures/
+/ADCS/helpers/plotting/textures/
