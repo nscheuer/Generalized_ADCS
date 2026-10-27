@@ -38,8 +38,14 @@ downloading. Scene assets are optional: without them the viewer uses flat
 colors and procedural stars. Spacecraft models use a `.viz.json` sidecar whose
 LOD entries reference `.glb` files.
 
-Planet maps, including Earth's day, night, normal, and specular maps, are stored
+Planet maps, including Earth's day, night, cloud, normal, and specular maps, are stored
 in `ADCS/helpers/animations/assets/planet_textures`. Low graphics uses 2K maps;
 high graphics switches to the locally available 8K maps when a body's projected
 radius is at least 128 pixels. Solar System Scope offers Venus at 4K and Uranus
 and Neptune at 2K, so those use the closest available resolution.
+
+The Earth atmosphere is enabled without an asset download. It uses exponential
+Rayleigh and Mie density, scattering, and aerial perspective following NVIDIA's
+GPU Gems 2 atmospheric scattering chapter. If locally built atmosphere tables
+are present, the viewer uses their higher accuracy transmittance and multiple
+scattering data instead.

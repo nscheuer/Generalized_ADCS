@@ -44,6 +44,9 @@ func load_from(dir: String, manifest: Dictionary) -> bool:
 
 func apply(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("has_atmosphere", true)
+	mat.set_shader_parameter("use_atmosphere_lut", transmittance_tex != null and multiscatter_tex != null)
+	if transmittance_tex == null or multiscatter_tex == null:
+		return
 	mat.set_shader_parameter("transmittance_lut", transmittance_tex)
 	mat.set_shader_parameter("multiscatter_lut", multiscatter_tex)
 	mat.set_shader_parameter("atm_bottom", bottom)
@@ -64,6 +67,21 @@ func apply(mat: ShaderMaterial) -> void:
 
 ## Transmittance from radius r (<= top) to the top along zenith cosine mu (CPU, bilinear).
 func transmittance(r: float, mu: float) -> Vector3:
+	if _t.is_empty():
+		var h := maxf(r - bottom, 0.0)
+		var closest := r * sqrt(maxf(1.0 - mu * mu, 0.0))
+		var h_along := maxf((closest if mu < 0.0 else r) - bottom, 0.0)
+		var rayleigh_depth := 8000.0 * exp(-h_along / 8000.0) / sqrt(mu * mu + 8000.0 / bottom)
+		var mie_depth := 1200.0 * exp(-h_along / 1200.0) / sqrt(mu * mu + 1200.0 / bottom)
+		if mu < 0.0:
+			rayleigh_depth *= 2.0
+			mie_depth *= 2.0
+		var ozone_fraction := clampf((40000.0 - h) / 30000.0, 0.0, 1.0)
+		var ozone_depth := 15000.0 * ozone_fraction / sqrt(mu * mu + 15000.0 / bottom)
+		return Vector3(
+			exp(-(5.802e-6 * rayleigh_depth + 4.44e-6 * mie_depth + 0.65e-6 * ozone_depth)),
+			exp(-(13.558e-6 * rayleigh_depth + 4.44e-6 * mie_depth + 1.881e-6 * ozone_depth)),
+			exp(-(33.1e-6 * rayleigh_depth + 4.44e-6 * mie_depth + 0.085e-6 * ozone_depth)))
 	var H := sqrt(top * top - bottom * bottom)
 	var rho := sqrt(maxf(r * r - bottom * bottom, 0.0))
 	var d := maxf(-r * mu + sqrt(maxf(r * r * (mu * mu - 1.0) + top * top, 0.0)), 0.0)
@@ -89,8 +107,6 @@ func _px(x: int, y: int) -> Vector3:
 ## Colour of sunlight arriving at GCRS position p (m, Earth-centred) from direction s:
 ## the transmittance of the ray's chord through the atmosphere, (0,0,0) if it hits the ground.
 func sunlight(p: PackedFloat64Array, s: PackedFloat64Array) -> Vector3:
-	if _t.is_empty():
-		return Vector3.ONE
 	var r := D.norm(p)
 	var mu := D.dot(p, s) / r
 	if r <= top:

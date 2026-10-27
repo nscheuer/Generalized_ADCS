@@ -180,11 +180,14 @@ func load_assets(assets: Assets) -> Dictionary:
 	_build_stars(assets.stars())
 	loaded["stars"] = stars.get_meta("count", 0)
 	atmosphere = assets.atmosphere()
-	if atmosphere != null:
-		atmosphere.apply(earth_mat)
-		atmosphere.apply(shell_mat)
-		shell.visible = true
-		loaded["atmosphere"] = true
+	var using_lut := atmosphere != null
+	if atmosphere == null:
+		atmosphere = Atmosphere.new()
+	atmosphere.apply(earth_mat)
+	atmosphere.apply(shell_mat)
+	shell.visible = true
+	loaded["atmosphere"] = true
+	loaded["atmosphere_mode"] = "lut" if using_lut else "procedural"
 	return loaded
 
 

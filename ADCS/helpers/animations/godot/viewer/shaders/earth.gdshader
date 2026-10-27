@@ -1,7 +1,8 @@
-// Earth surface. Mesh vertices are in ITRS metres and every map is a cube map
-// sampled with the ITRS direction, so the texture follows Earth orientation
-// from the vizlog alone. Lighting is done here (unshaded) because the body is
-// drawn in scaled space; all vectors are in object (ITRS) space.
+// Earth surface. Mesh vertices and light directions are in ITRS metres. The
+// Solar System Scope maps use equirectangular longitude/latitude coordinates;
+// locally built products use object-space cube maps. Both stay fixed to Earth
+// as the vizlog's ITRS orientation changes. Lighting is computed in object
+// space because the body is drawn in scaled space.
 //
 // Display units: a white Lambertian surface under the full Sun reads 1.
 shader_type spatial;
@@ -14,10 +15,11 @@ uniform samplerCube night_tex : source_color, filter_linear_mipmap;
 uniform samplerCube cloud_tex : filter_linear_mipmap;
 uniform samplerCube normal_tex : filter_linear_mipmap;
 uniform samplerCube ocean_tex : filter_linear_mipmap;
-uniform sampler2D day_map : source_color, filter_linear_mipmap;
-uniform sampler2D night_map : source_color, filter_linear_mipmap;
-uniform sampler2D normal_map : filter_linear_mipmap;
-uniform sampler2D specular_map : filter_linear_mipmap;
+uniform sampler2D day_map : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D night_map : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D cloud_map : filter_linear_mipmap, repeat_enable;
+uniform sampler2D normal_map : filter_linear_mipmap, repeat_enable;
+uniform sampler2D specular_map : filter_linear_mipmap, repeat_enable;
 uniform bool has_day = false;
 uniform bool has_night = false;
 uniform bool has_clouds = false;
@@ -25,6 +27,7 @@ uniform bool has_normals = false;
 uniform bool has_ocean = false;
 uniform bool has_day_map = false;
 uniform bool has_night_map = false;
+uniform bool has_cloud_map = false;
 uniform bool has_normal_map = false;
 uniform bool has_specular_map = false;
 uniform vec3 albedo = vec3(0.3, 0.4, 0.6);      // used without a day map (and by checks)
@@ -51,6 +54,13 @@ varying vec3 ap_T;
 
 vec2 equirect_uv(vec3 n) {
 	return vec2(atan(n.y, n.x) / (2.0 * PI) + 0.5, 0.5 - asin(clamp(n.z, -1.0, 1.0)) / PI);
+}
+
+float cloud_coverage(vec3 n) {
+	if (has_cloud_map) {
+		return texture(cloud_map, equirect_uv(n)).r;
+	}
+	return has_clouds ? texture(cloud_tex, n).r : 0.0;
 }
 
 void vertex() {
@@ -86,14 +96,16 @@ void fragment() {
 		sun_ground = atm_transmittance(atm_bottom, mu_geo) * atm_sun_visible(atm_bottom + 1.0, mu_geo);
 	}
 	float terminator = smoothstep(-0.02, 0.02, mu_geo);
-	vec3 lit = max(dot(n, sun_dir_itrs), 0.0) * terminator * sun_scale * sun_ground;
+	float cloud_light = 1.0;
 
-	float cloud = has_clouds ? texture(cloud_tex, n_geo).r : 0.0;
-	if (has_clouds && mu_geo > 0.0) {
+	float cloud = cloud_coverage(n_geo);
+	if ((has_clouds || has_cloud_map) && mu_geo > 0.0) {
 		// Shadow of the cloud layer: look up the cloud where the ray toward the Sun crosses it.
 		vec3 q = normalize(n_geo * atm_bottom + sun_dir_itrs * (cloud_height / max(mu_geo, 0.05)));
-		lit *= 1.0 - cloud_shadow * texture(cloud_tex, q).r * cloud_opacity;
+		cloud_light = 1.0 - cloud_shadow * cloud_coverage(q) * cloud_opacity;
 	}
+	vec3 sun_irradiance = terminator * sun_scale * sun_ground * cloud_light;
+	vec3 lit = max(dot(n, sun_dir_itrs), 0.0) * sun_irradiance;
 	vec3 color = base * (lit + ambient);
 
 	vec3 view = normalize(cam_local - p_itrs);
@@ -101,15 +113,15 @@ void fragment() {
 		// Sun glint on water (Blinn-Phong).
 		vec3 h = normalize(view + sun_dir_itrs);
 		float water = has_specular_map ? texture(specular_map, uv).r : texture(ocean_tex, n_geo).r;
-		color += water * specular_strength * pow(max(dot(n_geo, h), 0.0), 120.0) * lit;
+		color += water * specular_strength * pow(max(dot(n_geo, h), 0.0), 120.0) * sun_irradiance;
 	}
-	if (has_clouds) {
+	if (has_clouds || has_cloud_map) {
 		vec3 cloud_lit = max(mu_geo, 0.0) * terminator * sun_scale * sun_ground + ambient;
 		color = mix(color, cloud_lit, cloud * cloud_opacity);
 	}
 	if (has_night || has_night_map) {
 		// City lights fade in across twilight (sun 3 deg above to 9 deg below the horizon).
-		float dark = smoothstep(0.05, -0.15, mu_geo);
+		float dark = 1.0 - smoothstep(-0.15, 0.05, mu_geo);
 		vec3 night = has_night_map ? texture(night_map, uv).rgb : texture(night_tex, n_geo).rgb;
 		color += night * night_tint * night_gain * dark * (1.0 - 0.7 * cloud);
 	}

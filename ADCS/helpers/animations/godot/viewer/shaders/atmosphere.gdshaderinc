@@ -1,7 +1,6 @@
-// Atmospheric scattering after Hillaire (2020), "A Scalable and Production
-// Ready Sky and Atmosphere Rendering Technique" (reference code MIT,
-// github.com/sebh/UnrealEngineSkyAtmosphere), transmittance texture
-// parameterised as in Bruneton (2017). Tables come from ADCS.viz.assets.atmosphere.
+// Rayleigh/Mie scattering and exponential density following NVIDIA GPU Gems 2,
+// chapter 16 (Sean O'Neil). Optional transmittance and multiple-scattering
+// tables use Hillaire (2020) and Bruneton (2017) when they are built locally.
 //
 // Everything is in the body's object space (ITRS metres for Earth). Radiance is
 // per unit solar irradiance; multiply by PI to get the viewer's display units,
@@ -10,6 +9,7 @@
 uniform sampler2D transmittance_lut : filter_linear, repeat_disable;
 uniform sampler2D multiscatter_lut : filter_linear, repeat_disable;
 uniform bool has_atmosphere = false;
+uniform bool use_atmosphere_lut = false;
 uniform float atm_bottom = 6378137.0;
 uniform float atm_top = 6478137.0;
 uniform vec3 rayleigh_scattering = vec3(5.802e-6, 13.558e-6, 33.1e-6);
@@ -37,9 +37,27 @@ vec2 atm_transmittance_uv(float r, float mu) {
 	return vec2(0.5 / size.x + x_mu * (1.0 - 1.0 / size.x), 0.5 / size.y + x_r * (1.0 - 1.0 / size.y));
 }
 
+// Approximate optical depth without a lookup table. The curvature term keeps
+// the horizon finite, while the signed branch accounts for rays dipping toward
+// the planet before leaving the atmosphere (views from orbit).
+float atm_column(float r, float mu, float scale_h) {
+	float closest_r = r * sqrt(max(1.0 - mu * mu, 0.0));
+	float h = max((mu < 0.0 ? closest_r : r) - atm_bottom, 0.0);
+	float secant = 1.0 / sqrt(mu * mu + scale_h / atm_bottom);
+	return scale_h * exp(-h / scale_h) * secant * (mu < 0.0 ? 2.0 : 1.0);
+}
+
 // Transmittance from radius r to the top of the atmosphere along zenith cosine mu.
 vec3 atm_transmittance(float r, float mu) {
-	return textureLod(transmittance_lut, atm_transmittance_uv(min(r, atm_top), mu), 0.0).rgb;  // vertex-stage safe
+	if (use_atmosphere_lut) {
+		return textureLod(transmittance_lut, atm_transmittance_uv(min(r, atm_top), mu), 0.0).rgb;
+	}
+	float rayleigh_depth = atm_column(r, mu, rayleigh_h);
+	float mie_depth = atm_column(r, mu, mie_h);
+	float h = max(r - atm_bottom, 0.0);
+	float ozone_fraction = clamp((ozone_center + ozone_half_width - h) / (2.0 * ozone_half_width), 0.0, 1.0);
+	float ozone_depth = ozone_half_width * ozone_fraction / sqrt(mu * mu + ozone_half_width / atm_bottom);
+	return exp(-(rayleigh_scattering * rayleigh_depth + mie_extinction * mie_depth + ozone_absorption * ozone_depth));
 }
 
 // Sun visible (not behind the Earth) from radius r at sun zenith cosine mu_s.
@@ -48,6 +66,9 @@ float atm_sun_visible(float r, float mu_s) {
 }
 
 vec3 atm_multiscatter(float r, float mu_s) {
+	if (!use_atmosphere_lut) {
+		return vec3(0.0);
+	}
 	vec2 uv = vec2(clamp(mu_s * 0.5 + 0.5, 0.0, 1.0),
 		clamp((r - atm_bottom) / (atm_top - atm_bottom), 0.0, 1.0));
 	return textureLod(multiscatter_lut, uv, 0.0).rgb;

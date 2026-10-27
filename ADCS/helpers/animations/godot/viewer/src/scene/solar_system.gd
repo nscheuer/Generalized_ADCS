@@ -39,6 +39,7 @@ func load_textures(root: String, earth_material: ShaderMaterial, moon_material: 
 		_apply_texture(name, "2k")
 	_apply_texture("earth", "2k")
 	_apply_texture("earth_night", "2k")
+	_apply_texture("earth_clouds", "2k")
 	_apply_texture("earth_normal", "2k")
 	_apply_texture("earth_specular", "2k")
 	_apply_texture("moon", "2k")
@@ -52,6 +53,8 @@ func _filename(name: String, lod: String) -> String:
 		return lod + "_earth_daymap.jpg"
 	if name == "earth_night":
 		return lod + "_earth_nightmap.jpg"
+	if name == "earth_clouds":
+		return lod + "_earth_clouds.jpg"
 	if name == "earth_normal":
 		return lod + "_earth_normal_map.png"
 	if name == "earth_specular":
@@ -97,6 +100,10 @@ func _apply_texture(name: String, lod: String) -> void:
 			if texture != null:
 				earth_mat.set_shader_parameter("night_map", texture)
 			earth_mat.set_shader_parameter("has_night_map", texture != null)
+		"earth_clouds":
+			if texture != null:
+				earth_mat.set_shader_parameter("cloud_map", texture)
+			earth_mat.set_shader_parameter("has_cloud_map", texture != null)
 		"earth_normal":
 			if texture != null:
 				earth_mat.set_shader_parameter("normal_map", texture)
@@ -215,6 +222,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, qua
 	var detailed := quality == "high" and earth_px >= 128.0
 	_apply_texture("earth", "8k" if detailed else "2k")
 	_apply_texture("earth_night", "8k" if detailed else "2k")
+	_apply_texture("earth_clouds", "8k" if detailed else "2k")
 	_apply_texture("earth_normal", "8k" if detailed else "2k")
 	_apply_texture("earth_specular", "8k" if detailed else "2k")
 	_apply_texture("moon", "8k" if quality == "high" and moon_px >= 128.0 else "2k")

@@ -14,6 +14,7 @@ FILES = {
     "venus": {"2k": "2k_venus_atmosphere.jpg", "8k": "4k_venus_atmosphere.jpg"},
     "earth": {"2k": "2k_earth_daymap.jpg", "8k": "8k_earth_daymap.jpg"},
     "earth_night": {"2k": "2k_earth_nightmap.jpg", "8k": "8k_earth_nightmap.jpg"},
+    "earth_clouds": {"2k": "2k_earth_clouds.jpg", "8k": "8k_earth_clouds.jpg"},
     "earth_normal": {"2k": "2k_earth_normal_map.tif", "8k": "8k_earth_normal_map.tif"},
     "earth_specular": {"2k": "2k_earth_specular_map.tif", "8k": "8k_earth_specular_map.tif"},
     "moon": {"2k": "2k_moon.jpg", "8k": "8k_moon.jpg"},
