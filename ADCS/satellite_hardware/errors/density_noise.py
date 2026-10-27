@@ -8,13 +8,15 @@ from ADCS.satellite_hardware.errors.noise import Noise
 
 class DensityNoise(Noise):
     r"""
-    Reading noise specified as a **noise density**, so it scales with the sample rate.
+    Noise specified as a **noise density**, converted for the model's averaging interval.
 
     Data sheets quote sensor noise as a density: a gyro's angle random walk
     in deg/√h or rad/s/√Hz, a magnetometer's noise in nT/√Hz. A reading
-    averaged over a sample interval :math:`\Delta t` then has standard
-    deviation :math:`\eta/\sqrt{\Delta t}`: sample faster and each reading is
-    noisier, sample slower and the average is cleaner. A plain
+    averaged over an interval :math:`\Delta t` then has standard
+    deviation :math:`\eta/\sqrt{\Delta t}`: shorter averages are noisier and
+    longer averages are cleaner. This interval describes the measurement
+    represented by the noise model; it need not match how often software polls
+    a sensor. A plain
     :class:`~ADCS.satellite_hardware.errors.noise.Noise` has one standard
     deviation whatever the rate, which is right for quantisation and
     electronics noise but wrong for the density part.
@@ -29,9 +31,8 @@ class DensityNoise(Noise):
     where :math:`\sigma_n` (``std_noise``) is the rate-independent floor. The
     result is stored in ``std_noise`` of the base class, so every consumer
     (the reading draw, the measurement covariance the estimator builds, the
-    warm-start weights) sees the scaled value with no change. Give it the
-    same ``sample_time`` as the sensor it belongs to; :meth:`at_sample_time`
-    re-derives the model for another rate.
+    warm-start weights) sees the scaled value with no change.
+    :meth:`at_sample_time` re-derives the model for another interval.
 
     Parameters
     ----------
@@ -39,7 +40,10 @@ class DensityNoise(Noise):
         Noise density :math:`\eta` in reading units per root hertz
         (equivalently reading units times :math:`\sqrt{\mathrm{s}}`).
     sample_time : float
-        Sample interval :math:`\Delta t` in seconds, the sensor's.
+        Averaging interval :math:`\Delta t` in seconds. ``density`` must be
+        in reading units per :math:`\sqrt{\mathrm{Hz}}` (reading units times
+        :math:`\sqrt{\mathrm{s}}`). Convert densities quoted per another time
+        unit before passing them.
     std_noise : float or array, optional
         Rate-independent part :math:`\sigma_n` of the standard deviation (default 0).
     noise : float or array, optional

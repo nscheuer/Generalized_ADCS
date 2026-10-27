@@ -19,6 +19,8 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import DensityNoise, Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import MTM, Gyro
+from ADCS.satellite_hardware.sensors import GPS
+from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.state import State
 
 TRUTH = State(w=np.array([0.02, -0.01, 0.015]), q=np.array([1.0, 0.0, 0.0, 0.0]))
@@ -91,3 +93,30 @@ def test_warm_start_uses_the_scaled_standard_deviation():
 def test_plain_noise_is_unchanged():
     assert not hasattr(Noise(std_noise=1.0e-3), "density")
     np.testing.assert_allclose(Noise(std_noise=1.0e-3).std_noise, [1.0e-3])
+
+
+def test_noise_interval_is_independent_of_sensor_polling_interval():
+    gyro = Gyro(
+        np.array([1.0, 0.0, 0.0]), sample_time=0.01,
+        noise=DensityNoise(2.0e-3, sample_time=4.0),
+    )
+    np.testing.assert_allclose(gyro.noise.std_noise, [1.0e-3])
+    np.testing.assert_allclose(gyro.measurement_covariance().as_matrix(), [[1.0e-6]])
+
+
+def test_vector_sensor_broadcast_keeps_density_model():
+    gps = GPS(sample_time=0.1, noise=DensityNoise(3.0e-2, sample_time=9.0))
+    assert isinstance(gps.noise, DensityNoise)
+    np.testing.assert_allclose(gps.noise.std_noise, np.full(6, 1.0e-2))
+    np.testing.assert_allclose(gps.measurement_covariance().as_matrix(), np.eye(6) * 1.0e-4)
+
+
+def test_actuator_and_wheel_measurement_noise_use_density_derived_std():
+    mtq = MTQ(np.array([1.0, 0.0, 0.0]), max_torque=1.0, noise=DensityNoise(2.0e-3, sample_time=4.0))
+    np.testing.assert_allclose(mtq.control_covariance().as_matrix(), [[1.0e-6]])
+    wheel = RW(
+        axis=np.array([1.0, 0.0, 0.0]), max_torque=1.0, J=1.0e-3,
+        h=0.0, h_max=1.0, h_meas_noise=DensityNoise(3.0e-2, sample_time=9.0),
+    )
+    assert isinstance(wheel.h_meas_noise, DensityNoise)
+    np.testing.assert_allclose(wheel.momentum_measurement_covariance().as_matrix(), [[1.0e-4]])
