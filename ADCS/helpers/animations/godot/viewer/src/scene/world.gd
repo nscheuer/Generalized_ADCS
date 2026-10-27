@@ -46,6 +46,10 @@ var moon_mat: ShaderMaterial
 var stars: MeshInstance3D
 var sun: MeshInstance3D
 var craft: Spacecraft
+var craft_pixel: MeshInstance3D
+var earth_pixel: MeshInstance3D
+var moon_pixel: MeshInstance3D
+var craft_label: Label
 var solar: RefCounted
 var fixed_size := Vector2i.ZERO
 var info: Dictionary = {}  ## per-frame diagnostics (near/far, scales, LOD)
@@ -120,6 +124,35 @@ func _init(parent: Node, size: Vector2i = Vector2i.ZERO) -> void:
 	viewport.add_child(sun)
 	craft = Spacecraft.new()
 	viewport.add_child(craft)
+	earth_pixel = _pixel_marker(Color(0.18, 0.31, 0.43))
+	moon_pixel = _pixel_marker(Color(0.48, 0.46, 0.43))
+	craft_pixel = _pixel_marker(craft.average_color)
+	viewport.add_child(earth_pixel)
+	viewport.add_child(moon_pixel)
+	viewport.add_child(craft_pixel)
+	craft_label = Label.new()
+	craft_label.add_theme_color_override("font_color", Color(0.82, 0.88, 1.0))
+	craft_label.add_theme_color_override("font_shadow_color", Color.BLACK)
+	craft_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	craft_label.visible = false
+	parent.add_child(craft_label)
+
+
+static func _pixel_marker(color: Color) -> MeshInstance3D:
+	var marker := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 1.0
+	sphere.height = 2.0
+	sphere.radial_segments = 8
+	sphere.rings = 4
+	marker.mesh = sphere
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.albedo_color = color
+	marker.material_override = material
+	marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	marker.visible = false
+	return marker
 
 
 func resize_to(size: Vector2i) -> void:
@@ -264,7 +297,23 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	var k_craft := 1.0 if craft_near else origin.far_scale(d_craft)
 	origin.place(craft, r_sc, D.rot_mat(frame["q_gcrs_body"]), k_craft)
 	var focal := focal_px()
-	craft.choose_lod(craft.radius * focal / maxf(d_craft, 1e-6))
+	var craft_px := craft.radius * focal / maxf(d_craft, 1.0)
+	craft.choose_lod(craft_px)
+	var craft_marker_radius := maxf(craft.radius, 0.75 * d_craft / maxf(focal, 1.0))
+	origin.place(craft_pixel, r_sc, PackedFloat64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]),
+		k_craft * craft_marker_radius)
+	craft_pixel.visible = craft_px < 1.0
+	var craft_pixel_material := craft_pixel.material_override as StandardMaterial3D
+	var after_simulation := bool(frame.get("after_simulation", false))
+	craft_pixel_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if after_simulation else BaseMaterial3D.TRANSPARENCY_DISABLED
+	craft_pixel_material.albedo_color = Color(0.65, 0.65, 0.65, 0.8) if after_simulation else craft.average_color
+	var craft_screen_ok := not camera.is_position_behind(craft_pixel.global_position)
+	var craft_screen := camera.unproject_position(craft_pixel.global_position) if craft_screen_ok else Vector2(-1, -1)
+	craft_label.visible = craft_px < 1.0 and craft_screen_ok and craft_screen.x >= 0.0 and craft_screen.y >= 0.0 \
+		and craft_screen.x < viewport.size.x and craft_screen.y < viewport.size.y
+	if craft_label.visible:
+		craft_label.text = "< SATELLITE"
+		craft_label.position = craft_screen + Vector2(8, -8)
 	if dynamic_lighting:
 		craft.update_articulation(frame)
 
@@ -291,10 +340,16 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	earthshine.visible = earthshine.light_energy > 1e-4
 
 	var r_itrs_gcrs := D.rot_mat(frame["q_itrs_gcrs"])  # v_itrs = R v_gcrs
-	_body_lod(earth, R_EARTH, R_EARTH * focal / maxf(D.norm(cam_pos), 1.0))
-	_body_lod(shell, R_EARTH + 100500.0, R_EARTH * focal / maxf(D.norm(cam_pos), 1.0))
+	var earth_px := R_EARTH * focal / maxf(D.norm(cam_pos), 1.0)
+	_body_lod(earth, R_EARTH, earth_px)
+	_body_lod(shell, R_EARTH + 100500.0, earth_px)
 	var k_earth := origin.far_scale(D.norm(cam_pos))
 	origin.place(earth, D.v3(0.0, 0.0, 0.0), D.transpose(r_itrs_gcrs), k_earth)
+	var earth_marker_radius := maxf(R_EARTH, 0.75 * D.norm(cam_pos) / maxf(focal, 1.0))
+	origin.place(earth_pixel, D.v3(0, 0, 0), PackedFloat64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]),
+		k_earth * earth_marker_radius)
+	earth.visible = earth_px >= 1.0
+	earth_pixel.visible = earth_px < 1.0
 	var s_itrs := D.unit(D.mat_vec(r_itrs_gcrs, r_sun))
 	var c_itrs := D.mat_vec(r_itrs_gcrs, cam_pos)  # camera in ITRS, float64 until here
 	for m: ShaderMaterial in [earth_mat, shell_mat]:
@@ -304,17 +359,24 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	var k_moon := 0.0
 	if frame.has("r_moon"):
 		var r_moon: PackedFloat64Array = frame["r_moon"]
-		_body_lod(moon, R_MOON, R_MOON * focal / maxf(D.norm(D.sub(r_moon, cam_pos)), 1.0))
+		var d_moon := D.norm(D.sub(r_moon, cam_pos))
+		var moon_px := R_MOON * focal / maxf(d_moon, 1.0)
+		_body_lod(moon, R_MOON, moon_px)
 		var rot := D.rot_mat(frame["q_moon_gcrs"]) if frame.has("q_moon_gcrs") else moon_rotation(r_moon)
-		k_moon = origin.far_scale(D.norm(D.sub(r_moon, cam_pos)))
+		k_moon = origin.far_scale(d_moon)
 		origin.place(moon, r_moon, rot, k_moon)
+		var moon_marker_radius := maxf(R_MOON, 0.75 * d_moon / maxf(focal, 1.0))
+		origin.place(moon_pixel, r_moon, PackedFloat64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]),
+			k_moon * moon_marker_radius)
+		moon.visible = moon_px >= 1.0
+		moon_pixel.visible = moon_px < 1.0
 		var s_local := D.unit(D.mat_t_vec(rot, D.sub(r_sun, r_moon)))
 		moon_mat.set_shader_parameter("sun_dir_local", Vector3(s_local[0], s_local[1], s_local[2]))
 		var c_local := D.mat_t_vec(rot, D.sub(cam_pos, r_moon))
 		moon_mat.set_shader_parameter("cam_local", Vector3(c_local[0], c_local[1], c_local[2]))
-		moon.visible = true
 	else:
 		moon.visible = false
+		moon_pixel.visible = false
 	solar.update(frame, cam_pos, focal, quality)
 
 	# Stars and Sun: at infinity, just inside the far plane, never translating.

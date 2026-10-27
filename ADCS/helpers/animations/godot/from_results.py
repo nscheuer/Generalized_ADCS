@@ -2,6 +2,7 @@ __all__ = ["results_to_vizlog"]
 
 import copy
 import platform
+import re
 import subprocess
 import warnings
 from pathlib import Path
@@ -31,6 +32,19 @@ _NOMINAL_MODE = ErrorMode(add_bias=True, add_noise=False, update_bias=False, upd
 def _generator() -> Dict[str, Any]:
     import ADCS
 
+    version = getattr(ADCS, "__version__", None)
+    if not version or version == "0.0.0.dev0":
+        for parent in Path(__file__).resolve().parents:
+            pyproject = parent / "pyproject.toml"
+            if not pyproject.is_file():
+                continue
+            try:
+                match = re.search(r"(?m)^version\s*=\s*['\"]([^'\"]+)['\"]", pyproject.read_text(encoding="utf-8"))
+            except OSError:
+                match = None
+            if match:
+                version = match.group(1)
+                break
     sha = None
     try:
         repo = Path(__file__).resolve().parents[2]
@@ -40,7 +54,7 @@ def _generator() -> Dict[str, Any]:
             sha = out.stdout.strip()
     except (OSError, subprocess.SubprocessError):
         pass
-    return {"name": "Generalized_ADCS", "version": getattr(ADCS, "__version__", None),
+    return {"name": "Generalized_ADCS", "version": version,
             "git_sha": sha, "python": platform.python_version()}
 
 

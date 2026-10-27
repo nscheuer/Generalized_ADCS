@@ -14,6 +14,7 @@ const SPECS := {
 
 var nodes: Dictionary = {}
 var meshes: Dictionary = {}
+var pixel_markers: Dictionary = {}
 var labels: Dictionary = {}
 var projected: Dictionary = {}
 var focal := 1.0
@@ -145,6 +146,9 @@ func _init(ui_parent: Node, viewport: SubViewport, cam: Camera3D, scene_origin: 
 		body.visible = false
 		root.add_child(body)
 		meshes[name] = body
+		var marker := _pixel_marker(SPECS[name][1])
+		viewport.add_child(marker)
+		pixel_markers[name] = marker
 		if name == "saturn":
 			var rings := MeshInstance3D.new()
 			var quad := QuadMesh.new()
@@ -182,6 +186,23 @@ static func _mesh(radius: float, segments: int, rings: int) -> SphereMesh:
 	return mesh
 
 
+static func _pixel_marker(color: Color) -> MeshInstance3D:
+	var marker := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 1.0
+	sphere.height = 2.0
+	sphere.radial_segments = 8
+	sphere.rings = 4
+	marker.mesh = sphere
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.albedo_color = color
+	marker.material_override = material
+	marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	marker.visible = false
+	return marker
+
+
 func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, quality: String) -> void:
 	focal = focal_px
 	projected.clear()
@@ -191,12 +212,18 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, qua
 		var label: Label = labels[name]
 		if not frame.has("r_" + name):
 			body.visible = false
+			pixel_markers[name].visible = false
 			label.visible = false
 			continue
 		var p: PackedFloat64Array = frame["r_" + name]
 		var d := D.norm(D.sub(p, cam_pos))
 		var radius: float = SPECS[name][0]
 		var px := radius * focal_px / maxf(d, 1.0)
+		var marker: MeshInstance3D = pixel_markers[name]
+		var marker_radius := maxf(radius, 0.75 * d / maxf(focal_px, 1.0))
+		origin.place(marker, p, PackedFloat64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]),
+			origin.far_scale(d) * marker_radius)
+		marker.visible = px < 1.0
 		var lod := 0 if px < 2.0 else (1 if px < 40.0 or quality == "fast" else 2)
 		_apply_texture(name, "8k" if quality == "high" and px >= 128.0 else "2k")
 		if body.get_meta("lod", -1) != lod:
@@ -216,7 +243,8 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, qua
 		projected[name] = [screen, px] if visible else []
 		label.visible = visible and px < 1.0 and screen.x >= 0.0 and screen.y >= 0.0
 		if label.visible:
-			label.position = screen + Vector2(6, -8)
+			label.text = "< " + name.to_upper()
+			label.position = screen + Vector2(8, -8)
 	var earth_px := 6378137.0 * focal_px / maxf(D.norm(cam_pos), 1.0)
 	var moon_px := 1737400.0 * focal_px / maxf(D.norm(D.sub(frame.get("r_moon", D.v3(0, 0, 0)), cam_pos)), 1.0)
 	var detailed := quality == "high" and earth_px >= 128.0
@@ -244,7 +272,8 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, qua
 		var screen := camera.unproject_position(pos) if visible else Vector2(-1, -1)
 		label.visible = visible and px < 1.0 and screen.x >= 0.0 and screen.y >= 0.0
 		if label.visible:
-			label.position = screen + Vector2(6, -8)
+			label.text = "< " + name.to_upper()
+			label.position = screen + Vector2(8, -8)
 
 
 func pick(screen: Vector2) -> String:

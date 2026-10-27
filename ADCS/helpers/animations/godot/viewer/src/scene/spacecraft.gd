@@ -9,6 +9,7 @@ var radius := 0.5  ## bounding radius [m], drives the frustum and LOD choice
 var lod := 0
 var lods: Array[Node3D] = []
 var source := "none"
+var average_color := Color(0.72, 0.72, 0.75)
 var wheel_nodes: Dictionary = {}  ## [rw index, lod id] -> [Node3D, axis, rest Transform3D, pivot]
 var _wheel_angle: Dictionary = {}
 var hinge_nodes: Array = []  ## [Node3D, axis, pivot, rest Transform3D, channel]
@@ -46,6 +47,7 @@ func build(scene: Dictionary, assets: Dictionary) -> void:
 		lods.append(fallback)
 		source = "panels" if not (scene.get("panels", []) as Array).is_empty() else "box"
 	radius = maxf(_bounding_radius(lods[0]), 0.05)
+	average_color = _average_model_color(lods[0]) if source == "model" else Color(0.72, 0.72, 0.75)
 	_cache_end_materials()
 	_find_wheels(scene)
 	_find_hinges(scene)
@@ -81,6 +83,37 @@ static func _apply_vertex_colors(node: Node) -> void:
 				mat.metallic = 0.2
 				mat.roughness = 0.6
 			(mi as MeshInstance3D).set_surface_override_material(surf, mat)
+
+
+static func _average_model_color(root: Node3D) -> Color:
+	var total := Color(0, 0, 0, 0)
+	var count := 0
+	for child in [root] + root.find_children("*", "MeshInstance3D", true, false):
+		if not child is MeshInstance3D or child.mesh == null:
+			continue
+		var mesh := child as MeshInstance3D
+		for surface in mesh.mesh.get_surface_count():
+			var material := mesh.get_active_material(surface)
+			if not material is StandardMaterial3D:
+				continue
+			var standard := material as StandardMaterial3D
+			var color := standard.albedo_color
+			if standard.vertex_color_use_as_albedo:
+				var arrays := mesh.mesh.surface_get_arrays(surface)
+				var vertex_colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+				if not vertex_colors.is_empty():
+					var vertex_average := Color(0, 0, 0, 0)
+					for vertex_color in vertex_colors:
+						vertex_average += vertex_color
+					color *= vertex_average / float(vertex_colors.size())
+			if standard.albedo_texture != null:
+				var image := standard.albedo_texture.get_image()
+				if image != null and not image.is_empty():
+					image.resize(1, 1, Image.INTERPOLATE_LANCZOS)
+					color *= image.get_pixel(0, 0)
+			total += color
+			count += 1
+	return total / float(count) if count > 0 else Color(0.72, 0.72, 0.75)
 
 
 func _cache_end_materials() -> void:

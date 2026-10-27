@@ -18,6 +18,7 @@ var quality_row: HBoxContainer
 var exposure_label: Label
 var quality_prefix: Label
 var fps_status: Label
+var branding: Label
 var settings_world: RefCounted
 var asset_notice: Label
 
@@ -97,9 +98,16 @@ func _ready() -> void:
 	help.text = HELP
 	help.visible = false
 	timeline = Timeline.new()
+	timeline.z_index = 2
 	add_child(timeline)
 	card = StateCard.new()
+	card.z_index = 1
 	add_child(card)
+	branding = _label(Vector2.ZERO)
+	branding.z_index = 3
+	branding.add_theme_color_override("font_color", Color(0.76, 0.81, 0.88, 0.92))
+	branding.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	branding.add_theme_font_size_override("font_size", 13)
 	layers = Layers.new()
 	add_child(layers)
 
@@ -153,6 +161,9 @@ func _label(pos: Vector2) -> Label:
 func setup(clock: RefCounted, source: RefCounted) -> void:
 	timeline.setup(clock, source)
 	card.epoch = timeline.epoch
+	var version := String(source.manifest.get("generator", {}).get("version", ""))
+	branding.text = "Generalized ADCS" + ("  v" + version if version != "" else "")
+	branding.size = branding.get_combined_minimum_size()
 
 
 func refresh(clock: RefCounted, frame: Dictionary, lines: PackedStringArray) -> void:
@@ -180,3 +191,5 @@ func refresh(clock: RefCounted, frame: Dictionary, lines: PackedStringArray) -> 
 		card.reset_size()
 		card.position = Vector2(timeline.position.x + timeline.size.x - card.size.x,
 			timeline.position.y - card.size.y - 10.0 * timeline.ui)
+	branding.size = branding.get_combined_minimum_size()
+	branding.position = Vector2(timeline.position.x, timeline.position.y - branding.size.y - 7.0 * timeline.ui)

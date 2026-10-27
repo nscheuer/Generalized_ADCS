@@ -83,8 +83,9 @@ func request_ephemeris(t_s: float) -> void:
 func apply_ephemeris(frame: Dictionary, t_s: float) -> void:
 	if t_s <= store.t_max() or ephemeris_state.is_empty():
 		return
-	if absf(float(ephemeris_state["t_s"]) - t_s) > 300.0:
-		return
+	# Keep the newest response applied while a faster playback rate advances
+	# the clock beyond its timestamp. Rejecting stale responses here made the
+	# scene snap back to the final logged Earth/Sun state during playback.
 	for key: String in ephemeris_state:
 		if key != "t_s":
 			frame[key] = PackedFloat64Array(ephemeris_state[key])
