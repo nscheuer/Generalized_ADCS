@@ -53,6 +53,7 @@ varying vec3 ap_L;
 varying vec3 ap_T;
 
 vec2 equirect_uv(vec3 n) {
+	// ITRS +X is Greenwich (u = 0.5), +Y is 90° east, +Z is north.
 	return vec2(atan(n.y, n.x) / (2.0 * PI) + 0.5, 0.5 - asin(clamp(n.z, -1.0, 1.0)) / PI);
 }
 
