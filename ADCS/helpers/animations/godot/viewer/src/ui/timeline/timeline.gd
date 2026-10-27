@@ -1,14 +1,14 @@
 extends Control
 ## The timeline dock at the bottom of the viewer.
 ##
-##   [play][<|][|>][60x]      2026-03-14 12:41:07.2 UTC  T+00:41:07 · sample 1234     [copy][+bm][list][fit]
+##   [play][<|][|>][60x]  [camera]  2026-03-14 12:41:07.2 UTC  T+00:41:07     [copy][+bm][list][fit]
 ##   Sun     |  ░░░sunlit░░░▓▓umbra▓▓░░░░  (ruler with UTC ticks above, bookmark pins on it)
 ##   Boston  |        ▬▬▬                  (one lane per ground site: passes)
-##           [====window====]              (whole run; the visible window)
+##           [====simulation====]          (the logged span within the visible window)
 ##
-## Mouse: drag on the track to scrub (snaps to logged samples when they are a
-## few pixels apart), wheel to zoom about the cursor, Shift+wheel or right/middle
-## drag to pan, double-click to fit. Click the time to type one.
+## Mouse: click the track to seek (snaps to nearby logged samples), drag to pan,
+## wheel to zoom about the cursor, Shift+wheel or right/middle drag to pan,
+## double-click to fit. Click the time to type one.
 
 const Th := preload("res://src/ui/timeline/theme.gd")
 const TF := preload("res://src/ui/timeline/time_fmt.gd")
@@ -19,8 +19,9 @@ const Att := preload("res://src/ui/timeline/attitude.gd")
 const RATES: Array[float] = [-1000.0, -100.0, -10.0, -1.0, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0,
 	120.0, 300.0, 600.0, 1800.0, 3600.0, 10000.0]
 
-const MIN_SPAN := 1.0  ## s, deepest zoom
-const TIPS := {"play": "Play / pause (Space)", "reset": "Reset to simulation start (R)", "back": "Previous sample (Left)", "fwd": "Next sample (Right)",
+signal reset_camera_requested
+
+const TIPS := {"play": "Play / pause (Space)", "reset": "Reset to simulation start (R)", "camera": "Reset camera to spacecraft (Home)", "back": "Previous sample (Left)", "fwd": "Next sample (Right)",
 	"speed": "Playback speed (, .)", "live": "Follow live data (L)", "fit": "Show the whole run (F)",
 	"list": "Bookmarks", "bookmark": "Bookmark this moment (B)", "copy": "Copy the time"}
 const SNAP_PX := 5.0
@@ -46,12 +47,11 @@ var _hover_btn := ""
 var _hover_pin := ""
 var _hover_frame: Dictionary = {}
 var _hover_t := NAN
-var _drag := ""  ## "scrub" | "pan" | "overview"
+var _drag := ""  ## "seek_pending" | "pan" | "overview"
 var _drag_x0 := 0.0
 var _drag_view := Vector2.ZERO
-var _was_paused := false
 var _ticks: Array = []
-var _ticks_key := Vector3.ZERO
+var _ticks_key: Array = []
 var _error_until := 0
 var draw_us := 0  ## drawing cost this frame, both layers [us]
 var static_draws := 0  ## how often the static layer was redrawn
@@ -90,7 +90,7 @@ func setup(data_clock: RefCounted, source: RefCounted) -> void:
 	bookmarks.changed.connect(_rebuild_list)
 	bookmarks.changed.connect(queue_redraw)
 	view0 = clock.t_min
-	view1 = maxf(clock.t_max, clock.t_min + MIN_SPAN)
+	view1 = maxf(clock.t_max, clock.t_min + 1.0)
 	_relayout()
 
 
@@ -155,7 +155,9 @@ func _relayout() -> void:
 		xr -= b
 		_buttons.append({"name": bn, "rect": Rect2(xr, top.position.y, b, b)})
 		xr -= 2.0 * ui
-	_rects["time"] = Rect2(x + 76.0 * ui, top.position.y, xr - x - 90.0 * ui, b)
+	var time_x := x + 76.0 * ui
+	_buttons.append({"name": "camera", "rect": Rect2(time_x, top.position.y, b, b)})
+	_rects["time"] = Rect2(time_x + b + 4.0 * ui, top.position.y, xr - time_x - b - 4.0 * ui, b)
 	var gutter := 70.0 * ui
 	var y := top.end.y + 8.0 * ui
 	var track_x := pad + gutter
@@ -201,7 +203,7 @@ static func _round(c: Color, radius: float) -> StyleBoxFlat:
 # ------------------------------------------------------------------ mapping
 func t_to_x(t: float) -> float:
 	var r: Rect2 = _rects["track"]
-	return r.position.x + (t - view0) / maxf(view1 - view0, 1e-9) * r.size.x
+	return r.position.x + (t - view0) / (view1 - view0) * r.size.x
 
 
 func x_to_t(x: float) -> float:
@@ -210,16 +212,11 @@ func x_to_t(x: float) -> float:
 
 
 func set_view(t0: float, t1: float) -> void:
-	var lo: float = clock.t_min
-	var hi: float = maxf(clock.t_max, lo + MIN_SPAN)
-	var span := clampf(t1 - t0, MIN_SPAN, hi - lo)
-	fit = span >= (hi - lo) * 0.9999
-	if fit:
-		view0 = lo
-		view1 = hi
-	else:
-		view0 = clampf(t0, lo, hi - span)
-		view1 = view0 + span
+	if is_nan(t0) or is_nan(t1) or is_inf(t0) or is_inf(t1) or t1 <= t0:
+		return
+	fit = false
+	view0 = t0
+	view1 = t1
 	queue_redraw()
 
 
@@ -245,7 +242,10 @@ func seek(t: float) -> void:
 
 
 func fit_view() -> void:
-	set_view(clock.t_min, clock.t_max)
+	fit = true
+	view0 = clock.t_min
+	view1 = maxf(clock.t_max, clock.t_min + 1.0)
+	queue_redraw()
 
 
 # ------------------------------------------------------------------ per frame
@@ -254,7 +254,10 @@ func refresh() -> void:
 	var changed := lanes.update()
 	if fit:
 		view0 = clock.t_min
-		view1 = maxf(clock.t_max, clock.t_min + MIN_SPAN)
+		view1 = maxf(clock.t_max, clock.t_min + 1.0)
+		if clock.t > view1:
+			var span := view1 - view0
+			set_view(clock.t - 0.1 * span, clock.t + 0.9 * span)
 	elif _drag == "" and (not clock.paused or clock.follow_live) and (clock.t > view1 or clock.t < view0):
 		var span := view1 - view0  # playing: page so the playhead is near the left edge
 		set_view(clock.t - 0.1 * span, clock.t + 0.9 * span)
@@ -278,8 +281,11 @@ func _gui_input(event: InputEvent) -> void:
 		_hover = m.position
 		_update_hover()
 		match _drag:
-			"scrub":
-				seek(snap(clampf(x_to_t(m.position.x), clock.t_min, clock.t_max)))
+			"seek_pending":
+				if absf(m.position.x - _drag_x0) >= 4.0 * ui:
+					_drag = "pan"
+					var dt: float = (m.position.x - _drag_x0) / _rects["track"].size.x * (_drag_view.y - _drag_view.x)
+					set_view(_drag_view.x - dt, _drag_view.y - dt)
 			"pan":
 				var dt: float = (m.position.x - _drag_x0) / _rects["track"].size.x * (_drag_view.y - _drag_view.x)
 				set_view(_drag_view.x - dt, _drag_view.y - dt)
@@ -305,8 +311,8 @@ func _gui_input(event: InputEvent) -> void:
 			if e.pressed:
 				_press(e)
 			elif _drag != "":
-				if _drag == "scrub":
-					clock.paused = _was_paused
+				if _drag == "seek_pending":
+					seek(snap(maxf(x_to_t(e.position.x), clock.t_min)))
 				_drag = ""
 		elif e.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE] and in_track:
 			if e.pressed:
@@ -347,15 +353,13 @@ func _press(e: InputEventMouseButton) -> void:
 			_drag_x0 = e.position.x
 			_drag_view = Vector2(view0, view1)
 			return
-		_drag = "scrub"
-		_was_paused = clock.paused
-		clock.paused = true
-		seek(snap(clampf(x_to_t(e.position.x), clock.t_min, clock.t_max)))
+		_drag = "seek_pending"
+		_drag_x0 = e.position.x
+		_drag_view = Vector2(view0, view1)
 
 
 func _overview_to(x: float) -> void:
-	var r: Rect2 = _rects["overview"]
-	var tc: float = clock.t_min + (x - r.position.x) / r.size.x * (clock.t_max - clock.t_min)
+	var tc := x_to_t(x)
 	var span := view1 - view0
 	if not fit:
 		set_view(tc - span / 2.0, tc + span / 2.0)
@@ -366,6 +370,7 @@ func _button(bn: String) -> void:
 		"reset":
 			clock.seek(clock.t_min)
 			clock.paused = true
+		"camera": reset_camera_requested.emit()
 		"play": clock.toggle_pause()
 		"back": step_row(-1)
 		"fwd": step_row(1)
@@ -410,8 +415,8 @@ func _update_hover() -> void:
 			TF.clock_label(epoch + float(b["t_s"]), true) if not is_nan(epoch) else "", TF.elapsed(b["t_s"])]]
 		_hover_t = NAN
 	elif in_track and (is_nan(_hover_t) or absf(t_to_x(t) - t_to_x(_hover_t)) >= 1.0):
-		_hover_t = clampf(t, clock.t_min, clock.t_max)
-		_hover_frame = store.sample(_hover_t)
+		_hover_t = maxf(t, clock.t_min)
+		_hover_frame = store.sample_extended(_hover_t)
 		_hover_x_t = t_to_x(_hover_t)
 		_hover_lines = _hover_text(_hover_t, _hover_frame)
 	elif not in_track:
@@ -506,11 +511,10 @@ func open_time_entry() -> void:
 
 func _on_time_submitted(text: String) -> void:
 	var t := TF.parse(text, epoch, clock.t)
-	if is_nan(t) or t < clock.t_min - 1e-6 or t > clock.t_max + 1e-6:
+	if is_nan(t) or t < clock.t_min - 1e-6:
 		_error_until = Time.get_ticks_msec() + 1600
 		time_edit.add_theme_color_override("font_color", Th.ERROR)
-		time_edit.tooltip_text = "Can't read that time" if is_nan(t) else "Outside the run (%s to %s)" % [
-			TF.elapsed(clock.t_min), TF.elapsed(clock.t_max)]
+		time_edit.tooltip_text = "Can't read that time" if is_nan(t) else "Before the simulation start (%s)" % TF.elapsed(clock.t_min)
 		return
 	_clear_time_error()
 	time_edit.visible = false
@@ -679,6 +683,11 @@ func _draw_buttons() -> void:
 		var ctr := r.get_center()
 		var s := 7.0 * ui
 		match bn:
+			"camera":
+				var body := Rect2(ctr + Vector2(-s, -s * 0.55), Vector2(2.0 * s, 1.45 * s))
+				_ci.draw_rect(body, c, false, 1.6 * ui)
+				_ci.draw_rect(Rect2(ctr + Vector2(-s * 0.55, -s * 0.9), Vector2(s * 0.8, s * 0.35)), c)
+				_ci.draw_arc(ctr + Vector2(0, s * 0.15), s * 0.42, 0.0, TAU, 20, c, 1.6 * ui)
 			"reset":
 				_ci.draw_line(ctr + Vector2(-s, -s), ctr + Vector2(-s, s), c, 1.6 * ui)
 				_ci.draw_colored_polygon(PackedVector2Array([ctr + Vector2(-s * 0.6, 0),
@@ -756,7 +765,8 @@ func _draw_time() -> void:
 	var ks: Array = store.locate(t)
 	var k: int = ks[0] if float(ks[1]) < 0.5 else mini(int(ks[0]) + 1, store.n_rows - 1)
 	var on: bool = absf(store.t(k) - t) < 1e-6
-	var sub := "%s  ·  %s" % [TF.elapsed(t), ("sample %d / %d" % [k, store.n_rows - 1]) if on else "interpolated"]
+	var sample_text := "after simulation" if t > clock.t_max else (("sample %d / %d" % [k, store.n_rows - 1]) if on else "interpolated")
+	var sub := "%s  ·  %s" % [TF.elapsed(t), sample_text]
 	_text(Vector2(x, base), sub, Th.FONT_SMALL, Th.TEXT_DIM if not hot else Th.TEXT)
 	if hot:
 		_ci.draw_line(Vector2(r.position.x, r.end.y - 3.0 * ui), Vector2(x + 200.0 * ui, r.end.y - 3.0 * ui), Th.ACCENT_SOFT, 1.0)
@@ -764,7 +774,12 @@ func _draw_time() -> void:
 
 func _draw_ruler() -> void:
 	var r: Rect2 = _rects["ruler"]
-	var key := Vector3(view0, view1, r.size.x)
+	var segment_start := clampf(t_to_x(clock.t_min), r.position.x, r.end.x)
+	var segment_end := clampf(t_to_x(clock.t_max), r.position.x, r.end.x)
+	if segment_end > segment_start:
+		_ci.draw_rect(Rect2(segment_start, r.end.y - 4.0 * ui, segment_end - segment_start, 4.0 * ui), Th.ACCENT_SOFT)
+		_ci.draw_line(Vector2(segment_end, r.end.y - 6.0 * ui), Vector2(segment_end, r.end.y), Th.ACCENT, 1.5 * ui)
+	var key := [view0, view1, r.size.x]
 	if key != _ticks_key:
 		_ticks = Ticks.make(view0, view1, epoch, r.size.x, 7.0 * ui)
 		_ticks_key = key
@@ -848,18 +863,17 @@ func _draw_playhead() -> void:
 func _draw_overview() -> void:
 	var r: Rect2 = _rects["overview"]
 	_ci.draw_style_box(_box["over"], r)
-	var lo: float = clock.t_min
-	var span: float = maxf(clock.t_max - lo, 1e-9)
-	var xw0 := r.position.x + (view0 - lo) / span * r.size.x
-	var xw1 := r.position.x + (view1 - lo) / span * r.size.x
-	_ci.draw_style_box(_box["win_fit"] if fit else _box["win"], Rect2(xw0, r.position.y, maxf(xw1 - xw0, 3.0 * ui), r.size.y))
+	var x0 := clampf(t_to_x(clock.t_min), r.position.x, r.end.x)
+	var x1 := clampf(t_to_x(clock.t_max), r.position.x, r.end.x)
+	if x1 > x0:
+		_ci.draw_style_box(_box["win"], Rect2(x0, r.position.y, maxf(x1 - x0, 1.0 * ui), r.size.y))
 
 
 func _draw_overview_head() -> void:
 	var r: Rect2 = _rects["overview"]
-	var lo: float = clock.t_min
-	var span: float = maxf(clock.t_max - lo, 1e-9)
-	var xp: float = r.position.x + (clock.t - lo) / span * r.size.x
+	if clock.t < view0 or clock.t > view1:
+		return
+	var xp := t_to_x(clock.t)
 	_ci.draw_line(Vector2(xp, r.position.y - 1.0 * ui), Vector2(xp, r.end.y + 1.0 * ui), Th.ACCENT, 2.0 * ui)
 
 

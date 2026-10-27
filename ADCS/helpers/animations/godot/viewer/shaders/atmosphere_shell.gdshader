@@ -1,6 +1,6 @@
 // The atmosphere seen against space (limb glow): rays that pass through the
-// shell without reaching the ground. Rays that hit the ground are handled by
-// earth.gdshader (aerial perspective), so they are discarded here.
+// shell without reaching the ground. A narrow overlap at the limb covers the
+// gap between the analytic ground sphere and the rasterized Earth mesh.
 shader_type spatial;
 render_mode unshaded, cull_front, depth_draw_never, blend_premul_alpha, shadows_disabled;
 
@@ -17,14 +17,25 @@ void vertex() {
 
 void fragment() {
 	vec3 d = normalize(p_local - cam_local);
+	float closest_r = length(cam_local - d * dot(cam_local, d));
+	float overlap_m = max(3000.0, 1.5 * fwidth(closest_r));
 	vec2 top = atm_ray_sphere(cam_local, d, atm_top);
-	vec2 ground = atm_ray_sphere(cam_local, d, atm_bottom);
-	if (!has_atmosphere || top.y < 0.0 || ground.x > 0.0) {
+	if (!has_atmosphere || top.y < 0.0) {
 		discard;
+	}
+	vec2 ground = atm_ray_sphere(cam_local, d, atm_bottom);
+	float end_t = top.y;
+	if (ground.x > 0.0) {
+		// The Earth mesh covers most ground-facing rays. Only fill the thin
+		// silhouette mismatch; never march through the solid planet.
+		if (closest_r < atm_bottom - overlap_m) {
+			discard;
+		}
+		end_t = min(end_t, ground.x);
 	}
 	vec3 L;
 	vec3 T;
-	atm_integrate(cam_local, d, max(top.x, 0.0), top.y, sun_dir_itrs, L, T);
+	atm_integrate(cam_local, d, max(top.x, 0.0), end_t, sun_dir_itrs, L, T);
 	ALBEDO = L * PI * sun_scale;
 	ALPHA = clamp(1.0 - dot(T, vec3(1.0 / 3.0)), 0.0, 1.0);  // stars behind the limb dim
 }

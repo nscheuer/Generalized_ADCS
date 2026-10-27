@@ -101,6 +101,7 @@ func _ready() -> void:
 	clock.rate = float(opts.get("rate", 1.0 if clock.t_max - clock.t_min < 3600.0 else 60.0))
 	clock.follow_live = source.live
 	hud.setup(clock, source)
+	hud.timeline.reset_camera_requested.connect(reset_camera)
 
 	_log("ready")
 	_signal_asset_ready()
@@ -170,7 +171,7 @@ func _process(delta: float) -> void:
 
 ## Pose the world for time t with the current camera. Returns the frame sample.
 func render_at(t: float) -> Dictionary:
-	last_frame = source.store.sample(t)
+	last_frame = source.store.sample_extended(t)
 	var cam: Array = rig.compute(last_frame)
 	world.update(last_frame, cam[0], cam[1])
 	return last_frame
@@ -252,9 +253,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_BRACKETLEFT: world.set_exposure(world.exposure_mode, world.exposure_ev - 1.0)
 			KEY_BRACKETRIGHT: world.set_exposure(world.exposure_mode, world.exposure_ev + 1.0)
 			KEY_HOME:
-				rig.fit_to_craft(world.craft.radius)
-				rig.yaw = deg_to_rad(-140.0)
-				rig.pitch = deg_to_rad(18.0)
+				reset_camera()
+
+
+func reset_camera() -> void:
+	_orbit("lvlh")
+	rig.fit_to_craft(world.craft.radius)
+	rig.yaw = deg_to_rad(-140.0)
+	rig.pitch = deg_to_rad(18.0)
 
 
 func _orbit(kind: String) -> void:

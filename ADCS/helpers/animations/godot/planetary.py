@@ -22,6 +22,11 @@ def orientation(name: str, jd_tt: np.ndarray) -> np.ndarray:
     ra = np.deg2rad(ra0 + ra_rate * centuries + 90.0)
     dec = np.deg2rad(90.0 - dec0 - dec_rate * centuries)
     w = np.deg2rad(w0 + spin * days)
-    mats = Rotation.from_euler("z", ra).as_matrix() @ Rotation.from_euler("x", dec).as_matrix() @ Rotation.from_euler("z", w).as_matrix()
+    # SciPy expects the final angles axis to have one entry per Euler axis,
+    # even for a single-axis rotation. Keep the leading axis as the time
+    # dimension so each date produces one rotation matrix.
+    mats = (Rotation.from_euler("z", ra[:, None]).as_matrix()
+            @ Rotation.from_euler("x", dec[:, None]).as_matrix()
+            @ Rotation.from_euler("z", w[:, None]).as_matrix())
     xyzw = Rotation.from_matrix(mats).as_quat()
     return xyzw[:, [3, 0, 1, 2]]

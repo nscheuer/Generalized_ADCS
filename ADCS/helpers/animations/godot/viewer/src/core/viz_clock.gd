@@ -28,14 +28,12 @@ func advance(wall_dt: float) -> void:
 		return
 	if paused:
 		return
-	t = clampf(t + wall_dt * rate, t_min, t_max)
-	if t >= t_max and rate > 0.0:
-		paused = true
+	t = maxf(t_min, t + wall_dt * rate)
 
 
 func seek(ts: float) -> void:
 	follow_live = false
-	t = clampf(ts, t_min, t_max)
+	t = maxf(ts, t_min)
 
 
 func faster() -> void:
@@ -54,7 +52,5 @@ func _step_rate(d: int) -> void:
 
 
 func toggle_pause() -> void:
-	if paused and t >= t_max and rate > 0.0:
-		t = t_min  # replay from the start
 	paused = not paused
 	follow_live = false

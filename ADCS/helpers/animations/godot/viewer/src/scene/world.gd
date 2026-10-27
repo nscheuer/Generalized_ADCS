@@ -154,8 +154,12 @@ func _body_lod(node: MeshInstance3D, radius: float, pixels: float) -> void:
 	var mesh := SphereMesh.new()
 	mesh.radius = radius
 	mesh.height = 2.0 * radius
-	mesh.radial_segments = 8 if level == 0 else (24 if level == 1 else 96)
-	mesh.rings = 4 if level == 0 else (12 if level == 1 else 48)
+	# Use matching tessellation for Earth and its atmosphere shell so their
+	# silhouettes share the same vertices. The shell is intentionally denser
+	# than before to avoid a faceted ground sphere showing through its smooth rim.
+	var detail := 32 if level == 0 else (128 if level == 1 else (256 if quality == "high" else 192))
+	mesh.radial_segments = detail
+	mesh.rings = detail / 2
 	node.mesh = mesh
 	node.set_meta("lod", level)
 

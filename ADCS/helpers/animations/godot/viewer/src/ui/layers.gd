@@ -1,8 +1,6 @@
 extends Control
-## Show / hide chips for the overlay groups (top right):
-##   [-> Vectors] [+ Axes] [~ Tracks]
-## Click a chip or press its key (V, A, G; O toggles all). Only groups the log
-## has are shown.
+## Overlay menus (top right). Keys V, A, G toggle a whole group; each menu
+## controls its individual overlays.
 
 const Th := preload("res://src/ui/timeline/theme.gd")
 const KEYS := {"vectors": "V", "axes": "A", "tracks": "G"}
@@ -14,11 +12,21 @@ var font: Font
 var _chips: Array = []  ## [{group, rect}]
 var _hover := ""
 var _key := []  ## what was drawn, to redraw only on change
+var _menus: Dictionary = {}
 
 
 func _ready() -> void:
 	font = Th.font()
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	for g: String in ["vectors", "axes", "tracks"]:
+		var menu := PopupMenu.new()
+		add_child(menu)
+		_menus[g] = menu
+		menu.id_pressed.connect(func(id: int) -> void:
+			var keys: Array = menu.get_meta("keys", [])
+			if id >= 0 and id < keys.size():
+				overlays.toggle_item(g, String(keys[id]))
+				queue_redraw())
 	get_viewport().size_changed.connect(_relayout)
 
 
@@ -37,7 +45,7 @@ func _relayout() -> void:
 	var x := pad
 	_chips.clear()
 	for g: String in overlays.groups():
-		var w := 34.0 * ui + font.get_string_size(NAMES[g], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 12.0 * ui
+		var w := 46.0 * ui + font.get_string_size(NAMES[g], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 12.0 * ui
 		_chips.append({"group": g, "rect": Rect2(x, pad, w, h)})
 		x += w + 4.0 * ui
 	visible = not _chips.is_empty()
@@ -50,7 +58,11 @@ func _relayout() -> void:
 func refresh() -> void:
 	if overlays == null:
 		return
-	var key := [overlays.shown.duplicate(), _hover, ui]
+	var states := []
+	for g: String in overlays.groups():
+		for item: Dictionary in overlays.menu_items(g):
+			states.append([item["key"], item["checked"]])
+	var key := [overlays.shown.duplicate(), states, _hover, ui]
 	if key != _key:
 		_key = key
 		queue_redraw()
@@ -61,16 +73,34 @@ func _gui_input(event: InputEvent) -> void:
 		var h := _chip_at((event as InputEventMouseMotion).position)
 		if h != _hover:
 			_hover = h
-			tooltip_text = "%s: show / hide (%s)" % [NAMES[h], KEYS[h]] if h != "" else ""
+			tooltip_text = "%s options (%s toggles all)" % [NAMES[h], KEYS[h]] if h != "" else ""
 			queue_redraw()
 	elif event is InputEventMouseButton:
 		var e := event as InputEventMouseButton
 		if e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 			var g := _chip_at(e.position)
 			if g != "":
-				overlays.toggle_group(g)
-				queue_redraw()
+				_open_menu(g)
 		accept_event()
+
+
+func _open_menu(group: String) -> void:
+	var menu: PopupMenu = _menus[group]
+	menu.clear()
+	var keys := []
+	for item: Dictionary in overlays.menu_items(group):
+		var id := keys.size()
+		keys.append(item["key"])
+		menu.add_check_item(String(item["label"]), id)
+		menu.set_item_checked(id, bool(item["checked"]))
+	menu.set_meta("keys", keys)
+	var r := Rect2()
+	for chip: Dictionary in _chips:
+		if chip["group"] == group:
+			r = chip["rect"]
+			break
+	menu.position = Vector2i(global_position + Vector2(r.position.x, r.end.y + 4.0 * ui))
+	menu.popup()
 
 
 func _notification(what: int) -> void:
@@ -106,9 +136,10 @@ func _draw() -> void:
 		_icon(g, Vector2(r.position.x + 17.0 * ui, r.get_center().y), col if not on else Th.ACCENT)
 		draw_string(font, Vector2(r.position.x + 30.0 * ui, r.get_center().y + fs * 0.36), NAMES[g],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
-		if not on:  # struck-through eye convention: a slash over the icon
-			var a := Vector2(r.position.x + 11.0 * ui, r.get_center().y + 6.0 * ui)
-			draw_line(a, a + Vector2(12.0, -12.0) * ui, col, 1.5 * ui)
+		var cx := r.end.x - 13.0 * ui
+		var cy := r.get_center().y
+		draw_colored_polygon(PackedVector2Array([Vector2(cx - 4.0 * ui, cy - 2.0 * ui),
+			Vector2(cx + 4.0 * ui, cy - 2.0 * ui), Vector2(cx, cy + 3.0 * ui)]), col)
 
 
 func _icon(group: String, c: Vector2, col: Color) -> void:

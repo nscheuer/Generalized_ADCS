@@ -18,7 +18,6 @@ const GROUP := {"arrow": "vectors", "cone": "vectors", "target_line": "vectors",
 	"triad": "axes", "polyline": "tracks"}
 const GROUPS := ["vectors", "axes", "tracks"]
 var shown := {}  ## group -> bool, for the groups present
-var _group_overridden := {}  ## keep per-overlay defaults until the user changes a whole group
 var cost_us := 0  ## CPU time of the last update (all overlays + label layout)
 var layout_us := 0  ## of which label layout
 
@@ -28,23 +27,35 @@ func build(scene: Dictionary, manifest: Dictionary, data_store: RefCounted, craf
 	for c: Dictionary in manifest.get("channels", []):
 		frames[c["name"]] = String(c.get("frame", "-"))
 	for d: Dictionary in scene.get("overlays", []):
-		var n := Registry.create(d, scene)
-		if n == null:
-			continue
-		if Registry.ATTACHED.has(String(d.get("type", ""))):
-			craft.add_child(n)
-		else:
-			root.add_child(n)
-		nodes.append(n)
+		var parts: Array = [d]
+		if d.get("type") == "polyline" and d.get("track") == "orbit" \
+				and float(d.get("past_s", 0.0)) > 0.0 and float(d.get("future_s", 0.0)) > 0.0:
+			var behind := d.duplicate()
+			behind["id"] = String(d.get("id", "orbit")) + "_behind"
+			behind["future_s"] = 0.0
+			var ahead := d.duplicate()
+			ahead["id"] = String(d.get("id", "orbit")) + "_ahead"
+			ahead["past_s"] = 0.0
+			parts = [behind, ahead]
+		for part: Dictionary in parts:
+			var n := Registry.create(part, scene)
+			if n == null:
+				continue
+			if Registry.ATTACHED.has(String(part.get("type", ""))):
+				craft.add_child(n)
+			else:
+				root.add_child(n)
+			n.set_meta("enabled", bool(part.get("visible", true)))
+			nodes.append(n)
 	for n in nodes:
 		for l in n.find_children("*", "Label3D", true, false):
 			labels.append(l)
-		var g := group_of(n)
-		shown[g] = bool(shown.get(g, false)) or bool(n.desc.get("visible", true))
 	_apply()
 
 
 static func group_of(n: Node3D) -> String:
+	if n.desc.get("type") == "arrow" and String(n.desc.get("source", "")).begins_with("user_inertia_axis_"):
+		return "axes"
 	return GROUP.get(String(n.desc.get("type", "")), "vectors")
 
 
@@ -53,10 +64,65 @@ func groups() -> Array:
 	return GROUPS.filter(func(g: String) -> bool: return shown.has(g))
 
 
+static func item_key(n: Node3D) -> String:
+	var d: Dictionary = n.desc
+	match String(d.get("type", "")):
+		"triad": return "axes_" + String(d.get("frame", "body"))
+		"arrow":
+			var src := String(d.get("source", ""))
+			return "axes_principal" if src.begins_with("user_inertia_axis_") else "vector_" + src
+		"polyline":
+			if d.get("track") == "ground":
+				return "ground_track"
+			return "orbit_ahead" if float(d.get("past_s", 0.0)) == 0.0 else "orbit_behind"
+	return "overlay_" + String(d.get("id", n.name))
+
+
+static func item_label(n: Node3D) -> String:
+	var key := item_key(n)
+	var labels := {"vector_@nadir": "Nadir", "vector_@sun": "Sun", "vector_@velocity": "Velocity",
+		"axes_body": "Satellite body axes", "axes_gcrs": "Inertial space axes",
+		"axes_lvlh": "Orbital frame axes", "axes_principal": "Satellite principal axes",
+		"orbit_ahead": "Orbit track ahead", "orbit_behind": "Orbit track behind", "ground_track": "Ground track"}
+	return String(labels.get(key, n.desc.get("label", n.desc.get("id", n.name))))
+
+
+func menu_items(group: String) -> Array:
+	var items := []
+	var keys := {}
+	for n in nodes:
+		if group_of(n) != group:
+			continue
+		var key := item_key(n)
+		if keys.has(key):
+			continue
+		keys[key] = true
+		items.append({"key": key, "label": item_label(n), "checked": bool(n.get_meta("enabled", true))})
+	var order := ["vector_@nadir", "vector_@sun", "vector_@velocity",
+		"axes_body", "axes_gcrs", "axes_principal", "axes_lvlh",
+		"orbit_ahead", "orbit_behind", "ground_track"]
+	items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var ai := order.find(a["key"])
+		var bi := order.find(b["key"])
+		return (ai if ai >= 0 else 1000) < (bi if bi >= 0 else 1000))
+	return items
+
+
+func toggle_item(group: String, key: String) -> void:
+	var selected: Array = nodes.filter(func(n: Node3D) -> bool: return group_of(n) == group and item_key(n) == key)
+	if selected.is_empty():
+		return
+	var on := not bool(selected[0].get_meta("enabled", true))
+	for n in selected:
+		n.set_meta("enabled", on)
+	_apply()
+
+
 func set_group(group: String, on: bool) -> void:
 	if shown.has(group):
-		shown[group] = on
-		_group_overridden[group] = true
+		for n in nodes:
+			if group_of(n) == group:
+				n.set_meta("enabled", on)
 		_apply()
 
 
@@ -67,9 +133,8 @@ func toggle_group(group: String) -> void:
 ## O: everything off if anything is shown, else everything on.
 func toggle_all() -> void:
 	var any: bool = shown.values().any(func(v: bool) -> bool: return v)
-	for g: String in shown:
-		shown[g] = not any
-		_group_overridden[g] = true
+	for n in nodes:
+		n.set_meta("enabled", not any)
 	_apply()
 
 
@@ -79,11 +144,12 @@ func set_enabled(on: bool) -> void:
 
 
 func _apply() -> void:
+	shown.clear()
 	for n in nodes:
 		var group := group_of(n)
-		var group_on := bool(shown.get(group, true))
-		var item_on := bool(n.desc.get("visible", true))
-		n.visible = enabled and (group_on if _group_overridden.get(group, false) else item_on)
+		var item_on := bool(n.get_meta("enabled", true))
+		shown[group] = bool(shown.get(group, false)) or item_on
+		n.visible = enabled and item_on
 
 
 func update(frame: Dictionary, world: RefCounted, cam_pos: PackedFloat64Array, cam_rot: PackedFloat64Array) -> void:

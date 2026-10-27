@@ -117,3 +117,12 @@ func sample(ts: float) -> Dictionary:
 		if has(opt):
 			out[opt] = value(opt, ts)
 	return out
+
+
+## After the log ends, keep returning the exact final frame. The time cursor
+## continues, but the rendered simulation state does not advance.
+func sample_extended(ts: float) -> Dictionary:
+	var end_t := t_max()
+	var frame := sample(minf(ts, end_t))
+	frame["after_simulation"] = ts > end_t
+	return frame

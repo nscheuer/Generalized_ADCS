@@ -33,6 +33,24 @@ static func make(t0: float, t1: float, epoch: float, width_px: float, char_px: f
 	var step: Array = STEPS[choose(t1 - t0, width_px, char_px)]
 	var major: float = step[0]
 	var minor: float = step[1]
+	var target := (t1 - t0) * label_px(major, char_px) / maxf(width_px, 1.0)
+	if target < STEPS[0][0] or target > STEPS[STEPS.size() - 1][0]:
+		var magnitude := pow(10.0, floorf(log(target) / log(10.0)))
+		var scaled := target / magnitude
+		major = (1.0 if scaled <= 1.0 else (2.0 if scaled <= 2.0 else (5.0 if scaled <= 5.0 else 10.0))) * magnitude
+		minor = major / 5.0
+	if major < 0.1:
+		# UTC seconds cannot retain submicrosecond precision at Unix epoch scale.
+		var first := int(ceilf(t0 / minor))
+		var last := int(floorf(t1 / minor))
+		if last - first > 4000:
+			return out
+		var decimals := clampi(int(ceilf(-log(major) / log(10.0))) + 1, 1, 9)
+		for k in range(first, last + 1):
+			var value := k * minor
+			var on_major := k % 5 == 0
+			out.append({"t": value, "major": on_major, "label": (("%." + str(decimals) + "f s") % value) if on_major else ""})
+		return out
 	var k0 := int(ceilf((e + t0) / minor - 1e-9))
 	var k1 := int(floorf((e + t1) / minor + 1e-9))
 	if k1 - k0 > 4000:  # never draw absurd numbers of ticks
