@@ -12,7 +12,6 @@ var timeline: Timeline
 var card: StateCard
 var layers: Layers
 var focus: Label
-var settings: MenuButton
 var quality_menu: MenuButton
 var model_menu: MenuButton
 var quality_row: HBoxContainer
@@ -99,19 +98,6 @@ func _ready() -> void:
 		model_popup.add_item(model_labels[i], i)
 	model_popup.id_pressed.connect(_on_model_selected)
 	fps_status = _label(Vector2(16, 0))
-	settings = MenuButton.new()
-	settings.text = "Settings"
-	settings.anchor_left = 1.0
-	settings.anchor_right = 1.0
-	settings.offset_left = -105
-	settings.offset_right = -12
-	settings.offset_top = 10
-	settings.offset_bottom = 38
-	add_child(settings)
-	var menu := settings.get_popup()
-	for item: String in ["Vectors", "Axes", "Tracks", "All overlays"]:
-		menu.add_item(item)
-	menu.id_pressed.connect(_on_setting)
 	help = _label(Vector2(16, 150))
 	help.text = HELP
 	help.visible = false
@@ -143,17 +129,6 @@ func show_asset_notice(show: bool) -> void:
 	asset_notice.visible = show
 	if show:
 		asset_notice.position = Vector2((size.x - asset_notice.get_minimum_size().x) * 0.5, 54)
-
-
-func _on_setting(id: int) -> void:
-	if id == 0:
-		settings_world.overlays.toggle_group("vectors")
-	elif id == 1:
-		settings_world.overlays.toggle_group("axes")
-	elif id == 2:
-		settings_world.overlays.toggle_group("tracks")
-	else:
-		settings_world.overlays.toggle_all()
 
 
 func _on_quality_selected(id: int) -> void:

@@ -20,12 +20,14 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	for g: String in ["vectors", "axes", "tracks"]:
 		var menu := PopupMenu.new()
+		menu.hide_on_checkable_item_selection = false
 		add_child(menu)
 		_menus[g] = menu
 		menu.id_pressed.connect(func(id: int) -> void:
 			var keys: Array = menu.get_meta("keys", [])
 			if id >= 0 and id < keys.size():
 				overlays.toggle_item(g, String(keys[id]))
+				menu.set_item_checked(id, not menu.is_item_checked(id))
 				queue_redraw())
 	get_viewport().size_changed.connect(_relayout)
 
@@ -80,18 +82,31 @@ func _gui_input(event: InputEvent) -> void:
 		if e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 			var g := _chip_at(e.position)
 			if g != "":
-				_open_menu(g)
+				if _arrow_at(g, e.position):
+					_open_menu(g)
+				else:
+					overlays.toggle_group(g)
+					queue_redraw()
 		accept_event()
 
 
 func _open_menu(group: String) -> void:
 	var menu: PopupMenu = _menus[group]
+	if menu.visible:
+		menu.hide()
+		return
+	for other: PopupMenu in _menus.values():
+		if other.visible:
+			other.hide()
 	menu.clear()
 	var keys := []
 	for item: Dictionary in overlays.menu_items(group):
 		var id := keys.size()
 		keys.append(item["key"])
-		menu.add_check_item(String(item["label"]), id)
+		var label := String(item["label"])
+		if not label.is_empty():
+			label = label.left(1).to_upper() + label.substr(1)
+		menu.add_check_item(label, id)
 		menu.set_item_checked(id, bool(item["checked"]))
 	menu.set_meta("keys", keys)
 	var r := Rect2()
@@ -114,6 +129,14 @@ func _chip_at(p: Vector2) -> String:
 		if (c["rect"] as Rect2).has_point(p):
 			return c["group"]
 	return ""
+
+
+func _arrow_at(group: String, p: Vector2) -> bool:
+	for chip: Dictionary in _chips:
+		if chip["group"] == group:
+			var r: Rect2 = chip["rect"]
+			return p.x >= r.end.x - 24.0 * ui
+	return false
 
 
 func _draw() -> void:

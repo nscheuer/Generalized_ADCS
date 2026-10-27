@@ -57,6 +57,10 @@ var info: Dictionary = {}  ## per-frame diagnostics (near/far, scales, LOD)
 var last_camera_position := PackedFloat64Array()
 ## Checks that measure geometry only switch off time-varying light and animation.
 var dynamic_lighting := true
+var rays_strength := 0.0
+var _rays_start_strength := 0.0
+var _rays_target_strength := 0.0
+var _rays_transition_start_ms := 0
 
 
 func _init(parent: Node, size: Vector2i = Vector2i.ZERO) -> void:
@@ -406,10 +410,12 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	var sun_screen := camera.unproject_position(sun_position)
 	var sun_uv := Vector2(sun_screen.x / float(viewport.size.x), sun_screen.y / float(viewport.size.y))
 	rays_mat.set_shader_parameter("sun_uv", sun_uv)
-	rays_mat.set_shader_parameter("rays_enabled", quality == "high"
-		and not camera.is_position_behind(sun_position)
-		and sun_uv.x >= 0.0 and sun_uv.x <= 1.0 and sun_uv.y >= 0.0 and sun_uv.y <= 1.0)
-
+	var sun_direction := Vector3(sun_from_cam[0], sun_from_cam[1], sun_from_cam[2])
+	rays_mat.set_shader_parameter("rays_visibility", smoothstep(0.0, 0.12, sun_direction.dot(-camera.basis.z)))
+	var ramp := clampf(float(Time.get_ticks_msec() - _rays_transition_start_ms) / 1200.0, 0.0, 1.0)
+	ramp = ramp * ramp * (3.0 - 2.0 * ramp)
+	rays_strength = lerpf(_rays_start_strength, _rays_target_strength, ramp)
+	rays_mat.set_shader_parameter("rays_strength", rays_strength)
 	info = {"near": origin.near, "far": origin.far, "k_craft": k_craft, "k_earth": k_earth, "k_moon": k_moon,
 		"craft_near": craft_near, "lod": craft.lod, "d_craft": d_craft}
 	overlays.update(frame, self, cam_pos, cam_rot)
@@ -433,7 +439,7 @@ func pick_body(screen: Vector2, frame: Dictionary) -> String:
 	return ""
 
 
-## High adds denser atmospheric integration and screen-space light shafts;
+## High adds denser atmospheric integration and gently faded screen-space light shafts;
 ## it is intended for a discrete GPU. Balanced and fast keep the lighter path.
 const QUALITY := {
 	"high": {"msaa": Viewport.MSAA_4X, "fxaa": false, "glow": true, "shell_steps": 48, "pixel_steps": 32, "vertex_steps": 40, "scattering_gain": 1.35},
@@ -455,7 +461,9 @@ func set_quality(name: String) -> void:
 	earth_mat.set_shader_parameter("atm_steps", q["vertex_steps"])
 	for material: ShaderMaterial in [earth_mat, shell_mat]:
 		material.set_shader_parameter("scattering_gain", q.get("scattering_gain", 1.0))
-	rays_mat.set_shader_parameter("rays_enabled", name == "high")
+	_rays_start_strength = rays_strength
+	_rays_target_strength = 0.04 if name == "high" else 0.0
+	_rays_transition_start_ms = Time.get_ticks_msec()
 
 
 ## Focal length in pixels for the current field of view and viewport height.

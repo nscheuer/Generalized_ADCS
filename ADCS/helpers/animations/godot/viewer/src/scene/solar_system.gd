@@ -11,9 +11,27 @@ const SPECS := {
 	"uranus": [25559000.0, Color(0.62, 0.84, 0.91)],
 	"neptune": [24764000.0, Color(0.39, 0.57, 0.99)],
 }
+## Approximate visible haze layers. The shared atmosphere shader uses these
+## radii and scattering coefficients in metres, as it does for Earth.
+const ATMOSPHERES := {
+	"venus": {"height": 180000.0, "scale": 16000.0, "rayleigh": Vector3(1.3e-6, 1.0e-6, 0.6e-6), "mie": 7.0e-6, "gain": 2.8, "haze": Color(0.98, 0.80, 0.54)},
+	"mars": {"height": 110000.0, "scale": 18000.0, "rayleigh": Vector3(0.7e-6, 0.4e-6, 0.25e-6), "mie": 1.5e-6, "gain": 3.4, "haze": Color(0.95, 0.51, 0.32)},
+	"jupiter": {"height": 3000000.0, "scale": 650000.0, "rayleigh": Vector3(0.8e-6, 0.6e-6, 0.4e-6), "mie": 0.8e-6, "haze": Color(0.94, 0.80, 0.65)},
+	"saturn": {"height": 2600000.0, "scale": 600000.0, "rayleigh": Vector3(0.8e-6, 0.7e-6, 0.5e-6), "mie": 0.7e-6, "haze": Color(0.95, 0.85, 0.67)},
+	"uranus": {"height": 1200000.0, "scale": 350000.0, "rayleigh": Vector3(0.4e-6, 0.9e-6, 1.4e-6), "mie": 0.4e-6, "haze": Color(0.66, 0.88, 0.94)},
+	"neptune": {"height": 1200000.0, "scale": 350000.0, "rayleigh": Vector3(0.3e-6, 0.6e-6, 1.6e-6), "mie": 0.3e-6, "haze": Color(0.38, 0.61, 1.0)},
+}
+const GAS_BANDS := {
+	"jupiter": [Color(0.77, 0.52, 0.39), 0.72],
+	"saturn": [Color(0.73, 0.65, 0.50), 0.38],
+	"uranus": [Color(0.48, 0.72, 0.82), 0.18],
+	"neptune": [Color(0.27, 0.42, 0.84), 0.24],
+}
 
 var nodes: Dictionary = {}
 var meshes: Dictionary = {}
+var shells: Dictionary = {}
+var ring_mesh: MeshInstance3D
 var pixel_markers: Dictionary = {}
 var labels: Dictionary = {}
 var projected: Dictionary = {}
@@ -141,24 +159,53 @@ func _init(ui_parent: Node, viewport: SubViewport, cam: Camera3D, scene_origin: 
 		var mat := ShaderMaterial.new()
 		mat.shader = load("res://shaders/planet.gdshader")
 		mat.set_shader_parameter("base_color", SPECS[name][1])
+		if ATMOSPHERES.has(name):
+			var haze: Color = ATMOSPHERES[name]["haze"]
+			mat.set_shader_parameter("haze_color", Vector3(haze.r, haze.g, haze.b))
+			mat.set_shader_parameter("haze_strength", 0.88 if name == "venus" else (0.72 if name == "mars" else 0.65))
+		if GAS_BANDS.has(name):
+			var band: Color = GAS_BANDS[name][0]
+			mat.set_shader_parameter("gas_giant", true)
+			mat.set_shader_parameter("band_color", Vector3(band.r, band.g, band.b))
+			mat.set_shader_parameter("band_strength", GAS_BANDS[name][1])
 		body.material_override = mat
 		body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		body.visible = false
 		root.add_child(body)
 		meshes[name] = body
+		if ATMOSPHERES.has(name):
+			var atmosphere: Dictionary = ATMOSPHERES[name]
+			var radius: float = SPECS[name][0]
+			var shell := MeshInstance3D.new()
+			shell.mesh = _mesh(radius + atmosphere["height"], 96, 48)
+			var shell_mat := ShaderMaterial.new()
+			shell_mat.shader = load("res://shaders/atmosphere_shell.gdshader")
+			shell_mat.set_shader_parameter("has_atmosphere", true)
+			shell_mat.set_shader_parameter("atm_bottom", radius)
+			shell_mat.set_shader_parameter("atm_top", radius + atmosphere["height"])
+			shell_mat.set_shader_parameter("rayleigh_scattering", atmosphere["rayleigh"])
+			shell_mat.set_shader_parameter("rayleigh_h", atmosphere["scale"])
+			shell_mat.set_shader_parameter("mie_scattering", Vector3.ONE * atmosphere["mie"])
+			shell_mat.set_shader_parameter("mie_extinction", Vector3.ONE * atmosphere["mie"] * 1.12)
+			shell_mat.set_shader_parameter("mie_h", atmosphere["scale"] * 0.7)
+			shell_mat.set_shader_parameter("ozone_absorption", Vector3.ZERO)
+			shell_mat.set_shader_parameter("scattering_gain", atmosphere.get("gain", 1.15))
+			shell.material_override = shell_mat
+			shell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			shell.visible = false
+			root.add_child(shell)
+			shells[name] = shell
 		var marker := _pixel_marker(SPECS[name][1])
 		viewport.add_child(marker)
 		pixel_markers[name] = marker
 		if name == "saturn":
-			var rings := MeshInstance3D.new()
-			var quad := QuadMesh.new()
-			quad.size = Vector2.ONE * 2.0 * 140180000.0
-			rings.mesh = quad
+			ring_mesh = MeshInstance3D.new()
+			ring_mesh.mesh = _saturn_rings()
 			var ring_mat := ShaderMaterial.new()
 			ring_mat.shader = load("res://shaders/rings.gdshader")
-			rings.material_override = ring_mat
-			rings.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			root.add_child(rings)
+			ring_mesh.material_override = ring_mat
+			ring_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			root.add_child(ring_mesh)
 		var label := Label.new()
 		label.text = name.capitalize()
 		label.add_theme_color_override("font_color", Color(0.82, 0.88, 1.0))
@@ -183,6 +230,35 @@ static func _mesh(radius: float, segments: int, rings: int) -> SphereMesh:
 	mesh.height = 2.0 * radius
 	mesh.radial_segments = segments
 	mesh.rings = rings
+	return mesh
+
+
+## Main C/B/A rings and the narrow F ring, in Saturn's equatorial (local XY)
+## plane. Radial UV is measured in thousands of kilometres for the shader.
+static func _saturn_rings() -> ArrayMesh:
+	var vertices := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var indices := PackedInt32Array()
+	var radii := PackedFloat64Array([74510000.0, 92000000.0, 117580000.0,
+		122170000.0, 136780000.0, 140180000.0, 140230000.0])
+	var sides := 256
+	for r in radii:
+		for i in sides + 1:
+			var angle := TAU * float(i) / float(sides)
+			vertices.append(Vector3(r * cos(angle), r * sin(angle), 0.0))
+			uvs.append(Vector2(r / 1.0e6, float(i) / float(sides)))
+	for band in radii.size() - 1:
+		for i in sides:
+			var a := band * (sides + 1) + i
+			var b := a + sides + 1
+			indices.append_array(PackedInt32Array([a, b, a + 1, a + 1, b, b + 1]))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
 
 
@@ -212,6 +288,10 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, qua
 		var label: Label = labels[name]
 		if not frame.has("r_" + name):
 			body.visible = false
+			if shells.has(name):
+				shells[name].visible = false
+			if name == "saturn":
+				ring_mesh.visible = false
 			pixel_markers[name].visible = false
 			label.visible = false
 			continue
@@ -226,17 +306,34 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, qua
 		marker.visible = px < 1.0
 		var lod := 0 if px < 2.0 else (1 if px < 40.0 or quality == "fast" else 2)
 		_apply_texture(name, "8k" if quality == "high" and px >= 128.0 else "2k")
-		if body.get_meta("lod", -1) != lod:
-			body.mesh = _mesh(radius, 8 if lod == 0 else (24 if lod == 1 else 64),
-				4 if lod == 0 else (12 if lod == 1 else 32))
-			body.set_meta("lod", lod)
-		origin.place(root, p, D.rot_mat(frame["q_" + name + "_gcrs"]), origin.far_scale(d))
+		var detail := 12 if lod == 0 else (48 if lod == 1 else (192 if quality == "high" and px >= 128.0 else 96))
+		if body.get_meta("segments", -1) != detail:
+			body.mesh = _mesh(radius, detail, detail / 2)
+			body.set_meta("segments", detail)
+		var body_rot: PackedFloat64Array = D.rot_mat(frame["q_" + name + "_gcrs"])
+		origin.place(root, p, body_rot, origin.far_scale(d))
 		var sun_dir := D.unit(D.sub(frame["r_sun"], p))
 		var mat: ShaderMaterial = body.material_override
-		mat.set_shader_parameter("sun_dir_world", Vector3(sun_dir[0], sun_dir[1], sun_dir[2]))
+		mat.set_shader_parameter("sun_dir_world", D.to_godot(sun_dir))
+		if shells.has(name):
+			var shell: MeshInstance3D = shells[name]
+			shell.visible = px >= 1.0 and quality != "fast"
+			if shell.visible:
+				var shell_detail := 192 if quality == "high" and px >= 128.0 else 96
+				if shell.get_meta("segments", -1) != shell_detail:
+					shell.mesh = _mesh(radius + ATMOSPHERES[name]["height"], shell_detail, shell_detail / 2)
+					shell.set_meta("segments", shell_detail)
+				var shell_mat: ShaderMaterial = shell.material_override
+				var local_sun := D.mat_t_vec(body_rot, sun_dir)
+				var local_cam := D.mat_t_vec(body_rot, D.sub(cam_pos, p))
+				shell_mat.set_shader_parameter("sun_dir_itrs", Vector3(local_sun[0], local_sun[1], local_sun[2]))
+				shell_mat.set_shader_parameter("cam_local", Vector3(local_cam[0], local_cam[1], local_cam[2]))
+				shell_mat.set_shader_parameter("atm_steps", 24 if quality == "high" else 12)
 		if name == "saturn":
-			var ring_mat: ShaderMaterial = (root.get_child(1) as MeshInstance3D).material_override
-			ring_mat.set_shader_parameter("sun_dir_world", Vector3(sun_dir[0], sun_dir[1], sun_dir[2]))
+			ring_mesh.visible = px >= 1.0
+			var ring_mat: ShaderMaterial = ring_mesh.material_override
+			var ring_sun := D.mat_t_vec(body_rot, sun_dir)
+			ring_mat.set_shader_parameter("sun_dir_local", Vector3(ring_sun[0], ring_sun[1], ring_sun[2]))
 		body.visible = px >= 1.0
 		var visible := not camera.is_position_behind(root.global_position)
 		var screen := camera.unproject_position(root.global_position) if visible else Vector2(-1, -1)

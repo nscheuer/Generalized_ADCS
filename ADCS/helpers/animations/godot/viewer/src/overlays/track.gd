@@ -36,13 +36,27 @@ func configure(descriptor: Dictionary, scene_desc: Dictionary) -> void:
 	add_child(mesh_node)
 
 
-## Track point of row k: GCRS position (orbit) or the ITRS point 3 km above
-## the sub-satellite point (ground).
-func _point(store: RefCounted, k: int) -> PackedFloat64Array:
-	var r := D.scale(store.get_row("r_sc", k), 1000.0)
+## Interpolated track point: Hermite position (GCRS) and slerped Earth
+## orientation (ground), so a finite log sample interval does not become a
+## visibly faceted orbit line.
+func _point_at(store: RefCounted, t: float) -> PackedFloat64Array:
+	var ks: Array = store.locate(t)
+	var k: int = ks[0]
+	var s: float = ks[1]
+	var k1 := mini(k + 1, store.n_rows - 1)
+	var h: float = store.t(k1) - store.t(k)
+	var r0: PackedFloat64Array = store.get_row("r_sc", k)
+	var r1: PackedFloat64Array = store.get_row("r_sc", k1)
+	var r_km: PackedFloat64Array
+	if h > 0.0 and store.has("v_sc"):
+		r_km = D.hermite(r0, store.get_row("v_sc", k), r1, store.get_row("v_sc", k1), h, s)
+	else:
+		r_km = D.add(D.scale(r0, 1.0 - s), D.scale(r1, s))
+	var r := D.scale(r_km, 1000.0)
 	if not ground:
 		return r
-	var q: PackedFloat64Array = store.get_row("q_itrs_gcrs", k)
+	var q: PackedFloat64Array = D.slerp(store.get_row("q_itrs_gcrs", k),
+		store.get_row("q_itrs_gcrs", k1), s)
 	var qn := sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3])
 	var qu := PackedFloat64Array([q[0] / qn, q[1] / qn, q[2] / qn, q[3] / qn])
 	return D.scale(D.unit(D.mat_vec(D.rot_mat(qu), r)), R_EARTH + 3000.0)
@@ -56,18 +70,30 @@ func _rebuild(store: RefCounted, t: float, anchor: PackedFloat64Array) -> void:
 	var row_dt: float = (store.t_max() - store.t_min()) / maxf(store.n_rows - 1.0, 1.0)
 	var spacing := (past + future) / maxf(float(desc.get("samples", 600)), 2.0)
 	var stride := maxi(1, int(spacing / maxf(row_dt, 1e-9)))
+	var subdivisions := 4 if desc.has("samples") else 1
 	var verts := PackedVector3Array()
 	var uvs := PackedVector2Array()
 	_anchor = anchor
 	_t_ref = t
 	var k := k0
 	while true:
-		var p := _point(store, k)
-		verts.append(Vector3(p[0] - anchor[0], p[1] - anchor[1], p[2] - anchor[2]))
-		uvs.append(Vector2(store.t(k) - _t_ref, 0.0))
-		if k == k1:
+		var next_k := mini(k + stride, k1)
+		var t0: float = store.t(k)
+		var t1: float = store.t(next_k)
+		# Subdivide each stored interval with Hermite interpolation. Four
+		# segments smooth the visible line without allocating thousands of
+		# vertices for every rebuild.
+		for j in subdivisions:
+			var ti: float = lerpf(t0, t1, float(j) / float(subdivisions))
+			var p := _point_at(store, ti)
+			verts.append(Vector3(p[0] - anchor[0], p[1] - anchor[1], p[2] - anchor[2]))
+			uvs.append(Vector2(ti - _t_ref, 0.0))
+		if next_k == k1:
+			var p_end := _point_at(store, t1)
+			verts.append(Vector3(p_end[0] - anchor[0], p_end[1] - anchor[1], p_end[2] - anchor[2]))
+			uvs.append(Vector2(t1 - _t_ref, 0.0))
 			break
-		k = mini(k + stride, k1)
+		k = next_k
 	mesh.clear_surfaces()
 	if verts.size() >= 2:
 		var arrays := []

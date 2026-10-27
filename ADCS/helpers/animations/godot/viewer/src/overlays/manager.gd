@@ -80,6 +80,8 @@ static func item_key(n: Node3D) -> String:
 
 static func item_label(n: Node3D) -> String:
 	var key := item_key(n)
+	if n.desc.get("type") == "target_line":
+		return "goal direction"
 	var labels := {"vector_@nadir": "Nadir", "vector_@sun": "Sun", "vector_@velocity": "Velocity",
 		"axes_body": "Satellite body axes", "axes_gcrs": "Inertial space axes",
 		"axes_lvlh": "Orbital frame axes", "axes_principal": "Satellite principal axes",
