@@ -58,8 +58,40 @@ def test_an_estimator_write_back_is_kept():
 
 def test_the_estimator_rate_covers_the_instability():
     bias = BiasWithInstability(bias=0.0, std_bias=2.0e-4, instability_std=1.0e-3, instability_time=50.0)
-    np.testing.assert_allclose(bias.process_psd().as_matrix(), [[4.0e-8 + 2.0 * 1.0e-6 * 50.0]])
-    np.testing.assert_allclose(bias.process_covariance(2.0).as_matrix(), [[2.0 * (4.0e-8 + 2.0 * 1.0e-6 * 50.0)]])
+    np.testing.assert_allclose(bias.process_psd().as_matrix(), [[4.0e-8 + 2.0 * 1.0e-6 / 50.0]])
+    np.testing.assert_allclose(bias.process_covariance(2.0).as_matrix(), [[2.0 * (4.0e-8 + 2.0 * 1.0e-6 / 50.0)]])
+
+
+def test_the_psd_term_is_the_short_step_variance_rate_of_the_instability():
+    # The Gauss-Markov step has variance sigma_g^2 (1 - exp(-2 dt / tau)). For dt << tau
+    # that is (2 sigma_g^2 / tau) dt: a rate in bias^2 per second, the same units as
+    # std_bias^2, which is what process_psd adds to the random walk.
+    sigma_g, tau = 1.0e-3, 50.0
+    bias = BiasWithInstability(bias=0.0, std_bias=0.0, instability_std=sigma_g, instability_time=tau)
+    dt = tau / 1000.0
+    step_variance = sigma_g**2 * (1.0 - np.exp(-2.0 * dt / tau))
+    np.testing.assert_allclose(bias.process_psd().as_matrix(), [[step_variance / dt]], rtol=2.0e-3)
+    # The alternative 2 sigma_g^2 tau is 2500x off here and has units of bias^2 * seconds.
+    assert not np.isclose(bias.process_psd().as_matrix()[0, 0], 2.0 * sigma_g**2 * tau, rtol=0.5)
+
+
+def test_the_psd_term_matches_the_simulated_instability_growth():
+    # Draw many one-step instability increments from a known start and compare the sample
+    # variance per second with the PSD term. Monte Carlo, seeded; 5 % tolerance.
+    sigma_g, tau, dt_s = 1.0e-3, 50.0, 0.05
+    rng_state = np.random.get_state()
+    try:
+        np.random.seed(7)
+        draws = []
+        for _ in range(20000):
+            bias = BiasWithInstability(bias=0.0, std_bias=0.0, instability_std=sigma_g, instability_time=tau)
+            bias._update_bias(T0)
+            bias._update_bias(T0 + dt_s * TimeConstants.sec2cent)
+            draws.append(bias.bias[0])
+    finally:
+        np.random.set_state(rng_state)
+    rate_from_sim = np.var(draws) / dt_s
+    np.testing.assert_allclose(rate_from_sim, bias.process_psd().as_matrix()[0, 0], rtol=0.05)
 
 
 def test_configuration_is_validated_and_carried():
