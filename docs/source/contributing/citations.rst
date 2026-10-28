@@ -151,3 +151,7 @@ derived from a specific paper or validated against a published formulation.
      - :doc:`attitude_determination <../ADCS.estimators.attitude_determination>`
      - F. L. Markley and D. Mortari, "Quaternion Attitude Estimation Using Vector Observations," *Journal of the Astronautical Sciences*, Vol. 48, No. 2-3, 2000, pp. 359-380.
      - (journal article)
+   * - Right-invariant quaternion EKF for spacecraft attitude
+     - :doc:`IEKF math <../estimators/iekf>`; :doc:`augmented IEKF math <../estimators/augmented_iekf>`
+     - H. Gui and A. H. J. de Ruiter, "Quaternion Invariant Extended Kalman Filtering for Spacecraft Attitude Estimation," *Journal of Guidance, Control, and Dynamics*, Vol. 41, No. 4, 2018, pp. 863–878.
+     - `doi:10.2514/1.G003177 <https://doi.org/10.2514/1.G003177>`__

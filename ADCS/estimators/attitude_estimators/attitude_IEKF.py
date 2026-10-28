@@ -27,6 +27,13 @@ __all__ = ["IEKF"]
 class IEKF(AttitudeEstimator):
     r"""Lie-group EKF with a right-invariant attitude error by default.
 
+    The spacecraft-specific quaternion invariant EKF reference is Gui and de
+    Ruiter, *Quaternion Invariant Extended Kalman Filtering for Spacecraft
+    Attitude Estimation*, Journal of Guidance, Control, and Dynamics, 41(4),
+    863–878 (2018), doi:10.2514/1.G003177. This implementation uses its
+    right-invariant attitude-error convention together with this package's
+    general spacecraft tangent-linearized process model.
+
     ``quaternion_order='left'`` gives ``R_true R_hat.T``; choosing ``'right'``
     gives ``R_hat.T R_true``. Both use the SO(3) logarithm and exponential,
     while rates and wheel momentum retain additive errors. The right-error

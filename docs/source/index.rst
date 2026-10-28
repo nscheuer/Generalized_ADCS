@@ -119,6 +119,7 @@ objects intentionally do not support NumPy indexing or implicit conversion.
 
    installation/index
    tutorials/index
+   estimators/index
    release_notes/index
    papers/index
 

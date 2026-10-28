@@ -17,6 +17,12 @@ __all__ = ["AugmentedIEKF"]
 class AugmentedIEKF(IEKF):
     """IEKF for the full :class:`~ADCS.state.EstimatorState` layout.
 
+    This is the package's additive bias and disturbance-parameter extension
+    of the spacecraft IEKF. Its attitude-error convention is based on the
+    spacecraft formulation of Gui and de Ruiter (2018), cited in the IEKF
+    documentation; that paper does not describe these augmented parameter
+    blocks.
+
     The estimated parameter blocks are Euclidean factors in the filter state.
     Their random-walk noise and process/measurement Jacobians are supplied by
     ``EstimatedSatellite`` and the shared estimator plumbing. The invariant
