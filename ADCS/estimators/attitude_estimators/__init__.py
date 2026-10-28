@@ -1,5 +1,6 @@
 from .attitude_estimator import AttitudeEstimator
 from .attitude_AugmentedMEKF import AugmentedMEKF
+from .attitude_AugmentedIEKF import AugmentedIEKF
 from .attitude_AugmentedEKF import AugmentedEKF
 from .attitude_AugmentedUKF import AugmentedUKF
 from .attitude_AugmentedSRUKF import AugmentedSRUKF
@@ -12,6 +13,7 @@ from .attitude_UKF import UKF
 __all__ = [
     "AttitudeEstimator",
     "AugmentedMEKF",
+    "AugmentedIEKF",
     "AugmentedEKF",
     "AugmentedUKF",
     "AugmentedSRUKF",

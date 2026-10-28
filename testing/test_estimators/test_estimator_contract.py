@@ -13,6 +13,7 @@ from ADCS.estimators.attitude_estimators import (
     SRUKF,
     AugmentedEKF,
     AugmentedMEKF,
+    AugmentedIEKF,
     AugmentedUKF,
     AugmentedSRUKF,
 )
@@ -32,6 +33,7 @@ FILTERS = [
     (SRUKF, 6),
     (AugmentedEKF, 7),
     (AugmentedMEKF, 6),
+    (AugmentedIEKF, 6),
     (AugmentedUKF, 6),
     (AugmentedSRUKF, 6),
 ]

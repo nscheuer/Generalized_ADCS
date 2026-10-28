@@ -12,6 +12,7 @@ from ADCS.estimators.attitude_determination import attitude_error
 from ADCS.estimators.attitude_estimators import (
     AugmentedEKF,
     AugmentedMEKF,
+    AugmentedIEKF,
     AugmentedSRUKF,
     AugmentedUKF,
     EKF,
@@ -334,6 +335,7 @@ FILTERS = [
     pytest.param(SRUKF, {}, id="srukf"),
     pytest.param(AugmentedEKF, AUGMENTED, id="augmented_ekf"),
     pytest.param(AugmentedMEKF, AUGMENTED, id="augmented_mekf"),
+    pytest.param(AugmentedIEKF, AUGMENTED, id="augmented_iekf"),
     pytest.param(AugmentedUKF, AUGMENTED, id="augmented_ukf"),
     pytest.param(AugmentedSRUKF, AUGMENTED, id="augmented_srukf"),
 ]
@@ -367,6 +369,7 @@ def test_every_filter_starts_from_its_first_readings(filter_class, augmentation)
         satellite, readings, os, recipe,
         covariance_coordinates=estimator.covariance_coordinates,
         quaternion_mode=estimator.correction_mode if estimator.covariance_coordinates == "tangent" else "quaternion_vector",
+            quaternion_order=estimator.quaternion_order,
     )
     np.testing.assert_allclose(started.as_estimator_array(), expected.as_estimator_array(), atol=1.0e-15)
     np.testing.assert_allclose(started.cov, expected.cov, atol=1.0e-15)

@@ -15,6 +15,7 @@ import pytest
 from ADCS.estimators.attitude_estimators import (
     AugmentedEKF,
     AugmentedMEKF,
+    AugmentedIEKF,
     AugmentedSRUKF,
     AugmentedUKF,
     EKF,
@@ -46,6 +47,7 @@ FILTERS = [
     pytest.param(SRUKF, 6, id="srukf"),
     pytest.param(AugmentedEKF, 7, id="augmented_ekf"),
     pytest.param(AugmentedMEKF, 6, id="augmented_mekf"),
+    pytest.param(AugmentedIEKF, 6, id="augmented_iekf"),
     pytest.param(AugmentedUKF, 6, id="augmented_ukf"),
     pytest.param(AugmentedSRUKF, 6, id="augmented_srukf"),
 ]

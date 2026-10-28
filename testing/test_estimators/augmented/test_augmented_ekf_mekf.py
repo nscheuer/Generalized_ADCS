@@ -9,6 +9,7 @@ from scipy.linalg import block_diag
 from ADCS.estimators.attitude_estimators import (
     AugmentedEKF,
     AugmentedMEKF,
+    AugmentedIEKF,
     AugmentedUKF,
     AugmentedSRUKF,
 )
@@ -52,7 +53,7 @@ def _orbital_state() -> Orbital_State:
     )
 
 
-@pytest.mark.parametrize("filter_type", [AugmentedEKF, AugmentedMEKF, AugmentedUKF, AugmentedSRUKF])
+@pytest.mark.parametrize("filter_type", [AugmentedEKF, AugmentedMEKF, AugmentedIEKF, AugmentedUKF, AugmentedSRUKF])
 def test_augmented_filters_recover_constant_gyro_biases_in_tracking_regime(filter_type):
     """Bias states converge once a coarse attitude solution has been acquired.
 
@@ -123,7 +124,7 @@ def test_augmented_filters_recover_constant_gyro_biases_in_tracking_regime(filte
     assert estimate.covariance.dimension == covariance.shape[0]
 
 
-@pytest.mark.parametrize("filter_type", [AugmentedEKF, AugmentedMEKF, AugmentedUKF, AugmentedSRUKF])
+@pytest.mark.parametrize("filter_type", [AugmentedEKF, AugmentedMEKF, AugmentedIEKF, AugmentedUKF, AugmentedSRUKF])
 def test_augmented_filters_recover_active_dipole_disturbance(filter_type):
     """A nonzero residual dipole is recovered through the dynamics path."""
     np.random.seed(7)
