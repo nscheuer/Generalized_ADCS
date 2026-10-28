@@ -473,6 +473,7 @@ def _initial_state(
     *,
     covariance_coordinates: str,
     quaternion_mode: str,
+    quaternion_order: str = "right",
 ) -> tuple[EstimatorState, AttitudeSolution]:
     if covariance_coordinates not in ("tangent", "full"):
         raise ValueError("covariance_coordinates must be 'tangent' or 'full'")
@@ -525,6 +526,14 @@ def _initial_state(
     # The attitude block lives in the filter's chart: a small rotation of
     # theta rad is a chart vector of theta / (2 s), s the chart's scale.
     chart_covariance = attitude_covariance / (2.0 * _quaternion_tangent_scale(quaternion_mode)) ** 2
+    if quaternion_order == "left":
+        # The single-frame attitude solver reports body-frame small-angle
+        # uncertainty. A left-composed/right-invariant error is inertial.
+        from ADCS.helpers.math_helpers import rot_mat
+        rotation = rot_mat(solution.quaternion)
+        chart_covariance = rotation @ chart_covariance @ rotation.T
+    elif quaternion_order != "right":
+        raise ValueError("quaternion_order must be 'right' or 'left'")
     tangent_covariance = block_diag(
         rate_covariance, chart_covariance, momentum_covariance,
         act_bias_covariance, sens_bias_covariance, dist_param_covariance,
@@ -547,6 +556,7 @@ def initial_state_from_readings(
     *,
     covariance_coordinates: str = "tangent",
     quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
+    quaternion_order: str = "right",
 ) -> EstimatorState:
     """A complete initial estimator state from one raw measurement vector.
 
@@ -573,5 +583,6 @@ def initial_state_from_readings(
     state, _ = _initial_state(
         satellite, readings, orbital_state, warm_start or WarmStart(),
         covariance_coordinates=covariance_coordinates, quaternion_mode=quaternion_mode,
+        quaternion_order=quaternion_order,
     )
     return state

@@ -170,6 +170,7 @@ class AttitudeEstimator:
         state, solution = _initialization._initial_state(
             self.satellite, measurements, orbital_state, self._warm_start,
             covariance_coordinates=self.covariance_coordinates, quaternion_mode=chart,
+            quaternion_order=self.quaternion_order,
         )
         previous = self._previous_orbital_state  # the update() adapter records it before correcting
         self.reset(state)
@@ -414,6 +415,9 @@ class AttitudeEstimator:
             quaternion_mode=self.measurement_quaternion_mode,
             quaternion_order=self.quaternion_order,
         )
+        residual, measurement_jacobian, measurement_noise = self._transform_innovation(
+            stack, active, residual, measurement_jacobian, measurement_noise
+        )
 
         prior = self._state
         covariance_size = prior.covariance.dimension
@@ -467,6 +471,17 @@ class AttitudeEstimator:
             corrected_covariance=self._state.covariance.as_matrix(),
         )
         return self.state
+
+    def _transform_innovation(
+        self,
+        stack: Any,
+        active: np.ndarray,
+        residual: np.ndarray,
+        jacobian: np.ndarray,
+        noise: Covariance,
+    ) -> tuple[np.ndarray, np.ndarray, Covariance]:
+        """Map the measurement error into a filter-specific output frame."""
+        return residual, jacobian, noise
 
     def step(
         self,

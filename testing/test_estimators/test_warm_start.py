@@ -15,12 +15,13 @@ from ADCS.estimators.attitude_estimators import (
     AugmentedSRUKF,
     AugmentedUKF,
     EKF,
+    IEKF,
     MEKF,
     SRUKF,
     UKF,
 )
 from ADCS.estimators.initialization import WarmStart, attitude_from_readings, initial_state_from_readings
-from ADCS.helpers.math_helpers import normalize, quat_mult
+from ADCS.helpers.math_helpers import normalize, quat_mult, rot_mat
 from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
@@ -156,6 +157,27 @@ def test_attitude_block_follows_the_chart_and_the_full_covariance_does_not():
         full_covariances.append(full.cov)
     for covariance in full_covariances[1:]:
         np.testing.assert_allclose(covariance, full_covariances[0], atol=1.0e-12)
+
+
+def test_left_invariant_warm_start_rotates_body_attitude_covariance():
+    satellite = _satellite()
+    os = _orbital_state()
+    readings = satellite.noiseless_sensor_readings(TRUTH, os)
+    right = initial_state_from_readings(
+        satellite, readings, os, quaternion_mode="rotation_vector"
+    )
+    left = initial_state_from_readings(
+        satellite, readings, os,
+        quaternion_mode="rotation_vector", quaternion_order="left",
+    )
+    rotation = rot_mat(left.q)
+    np.testing.assert_allclose(
+        _block(left, "attitude"),
+        rotation @ _block(right, "attitude") @ rotation.T,
+        rtol=1e-12, atol=1e-14,
+    )
+    estimator = IEKF.from_readings(satellite, readings, os, dt=1.0)
+    np.testing.assert_allclose(_block(estimator.state, "attitude"), _block(left, "attitude"))
 
 
 def test_values_can_be_supplied_and_then_need_their_standard_deviations():

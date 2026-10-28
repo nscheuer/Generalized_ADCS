@@ -326,9 +326,10 @@ class MeasurementStack:
     ) -> np.ndarray:
         r"""Return compact innovations in their proper local coordinates.
 
-        Additive sources use ``z - h(x)``.  A quaternion star tracker uses the
-        right relative quaternion ``q_pred^{-1} * q_measured`` and converts it
-        to the three attitude coordinates selected by ``quaternion_mode``.
+        Additive sources use ``z - h(x)``. A quaternion star tracker uses
+        ``q_pred^{-1} * q_measured`` for ``quaternion_order='right'`` or
+        ``q_measured * q_pred^{-1}`` for ``'left'``, then converts it to the
+        three attitude coordinates selected by ``quaternion_mode``.
         """
         measurements = self._raw_measurements(measurements)
         predicted = self._raw_measurements(predicted, name="predicted")
@@ -368,7 +369,7 @@ class MeasurementStack:
         quaternion_order: str = "right",
         predicted: Any | None = None,
     ) -> Covariance:
-        """Return active residual covariance ``R`` using right-error coordinates.
+        """Return active residual covariance ``R`` in the selected error chart.
 
         When ``predicted`` (the raw prediction from :meth:`predict`) is given,
         an active entry with a non-finite prediction raises, the same contract
@@ -413,7 +414,7 @@ class MeasurementStack:
         quaternion_order: str = "right",
         predicted: Any | None = None,
     ) -> np.ndarray:
-        r"""Return the active right-error measurement Jacobian ``H``.
+        r"""Return the active measurement Jacobian ``H`` in the selected error chart.
 
         An active entry whose sensor Jacobian is non-finite at the estimate
         (the measurement is unavailable there) raises with the entry name;

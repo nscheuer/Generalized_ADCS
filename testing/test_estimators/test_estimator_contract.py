@@ -8,6 +8,7 @@ import pytest
 from ADCS.estimators.attitude_estimators import (
     EKF,
     MEKF,
+    IEKF,
     UKF,
     SRUKF,
     AugmentedEKF,
@@ -26,6 +27,7 @@ from ADCS.state import EstimatorState
 FILTERS = [
     (EKF, 7),
     (MEKF, 6),
+    (IEKF, 6),
     (UKF, 6),
     (SRUKF, 6),
     (AugmentedEKF, 7),
