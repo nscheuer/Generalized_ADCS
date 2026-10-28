@@ -324,6 +324,7 @@ class MEKF(AttitudeEstimator):
         dt: float,
         unmodeled_dynamics_psd: Any = 0.0,
         quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = "right",
     ) -> None:
         super().__init__(
             satellite,
@@ -332,5 +333,6 @@ class MEKF(AttitudeEstimator):
             covariance_coordinates="tangent",
             correction_mode=quaternion_mode,
             measurement_quaternion_mode=quaternion_mode,
+            quaternion_order=quaternion_order,
             unmodeled_dynamics_psd=unmodeled_dynamics_psd,
         )

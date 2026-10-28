@@ -46,6 +46,7 @@ class AttitudeEstimator:
         covariance_coordinates: str,
         correction_mode: str,
         measurement_quaternion_mode: str,
+        quaternion_order: str = "right",
         unmodeled_dynamics_psd: Any = 0.0,
     ) -> None:
         if not isinstance(state, (EstimatorState, WarmStart)):
@@ -66,6 +67,9 @@ class AttitudeEstimator:
         self._covariance_coordinates = covariance_coordinates
         self._correction_mode = correction_mode
         self._measurement_quaternion_mode = measurement_quaternion_mode
+        if quaternion_order not in ("right", "left"):
+            raise ValueError("quaternion_order must be 'right' or 'left'")
+        self._quaternion_order = quaternion_order
         # A WarmStart is a recipe, not a state: the state is built from the
         # first measurement vector (see correct). Until then a placeholder of
         # the right layout keeps the constructors' checks meaningful.
@@ -100,6 +104,11 @@ class AttitudeEstimator:
     def measurement_quaternion_mode(self) -> str:
         """Attitude chart used for quaternion residuals and their Jacobians."""
         return self._measurement_quaternion_mode
+
+    @property
+    def quaternion_order(self) -> str:
+        """Side on which tangent attitude errors compose with the nominal."""
+        return self._quaternion_order
 
     @property
     def state(self) -> EstimatorState:
@@ -314,7 +323,7 @@ class AttitudeEstimator:
             include_control_noise=True,
             unmodeled_dynamics_psd=self.unmodeled_dynamics_psd,
             quaternion_mode=self.correction_mode,
-            quaternion_order="right",
+            quaternion_order=self.quaternion_order,
         )
         process_noise = self._add_state_process_noise(process_noise)
         predicted_covariance = prior.covariance.predicted_linear(
@@ -389,18 +398,21 @@ class AttitudeEstimator:
             predicted_measurements,
             active,
             quaternion_mode=self.measurement_quaternion_mode,
+            quaternion_order=self.quaternion_order,
         )
         measurement_jacobian = stack.jacobian(
             self._state,
             orbital_state,
             active,
             quaternion_mode=self.measurement_quaternion_mode,
+            quaternion_order=self.quaternion_order,
             coordinates=self.covariance_coordinates,
         )
         measurement_noise = stack.covariance(
             self._state,
             active,
             quaternion_mode=self.measurement_quaternion_mode,
+            quaternion_order=self.quaternion_order,
         )
 
         prior = self._state
@@ -421,18 +433,18 @@ class AttitudeEstimator:
             reset_jacobian = prior.retraction_jacobian(
                 correction,
                 quaternion_mode=self.correction_mode,
-                quaternion_order="right",
+                quaternion_order=self.quaternion_order,
             )
             corrected_covariance = prior.transport_covariance(
                 joseph_covariance,
                 correction,
                 quaternion_mode=self.correction_mode,
-                quaternion_order="right",
+                quaternion_order=self.quaternion_order,
             )
             corrected = prior.plus(
                 correction,
                 quaternion_mode=self.correction_mode,
-                quaternion_order="right",
+                quaternion_order=self.quaternion_order,
             )
             corrected.covariance = corrected_covariance
             self._state = corrected

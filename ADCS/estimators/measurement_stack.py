@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 
 from ADCS.covariance import Covariance
-from ADCS.helpers.math_helpers import quat_diff
+from ADCS.helpers.math_helpers import quat_diff, quat_inv, quat_mult
 from ADCS.satellite_hardware.sensors import StarTrackerQuaternion
 from ADCS.state import EstimatorState, State
 
@@ -322,6 +322,7 @@ class MeasurementStack:
         active_mask: Any,
         *,
         quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = "right",
     ) -> np.ndarray:
         r"""Return compact innovations in their proper local coordinates.
 
@@ -344,7 +345,12 @@ class MeasurementStack:
                     "recompute active_mask(..., predicted=predicted)"
                 )
             if entry.is_quaternion_attitude:
-                relative = quat_diff(expected, measured)
+                if quaternion_order == "right":
+                    relative = quat_diff(expected, measured)
+                elif quaternion_order == "left":
+                    relative = quat_mult(measured, quat_inv(expected))
+                else:
+                    raise ValueError("quaternion_order must be 'right' or 'left'")
                 parts.append(
                     State.quaternion_delta_to_vector(relative, mode=quaternion_mode)
                 )
@@ -359,6 +365,7 @@ class MeasurementStack:
         *,
         form: str = "full",
         quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
+        quaternion_order: str = "right",
         predicted: Any | None = None,
     ) -> Covariance:
         """Return active residual covariance ``R`` using right-error coordinates.
@@ -385,7 +392,7 @@ class MeasurementStack:
                 attitude_full = state.slice("attitude", coordinates="full")
                 reduction = state.tangent_pinv(
                     quaternion_mode=quaternion_mode,
-                    quaternion_order="right",
+                    quaternion_order=quaternion_order,
                 )[attitude_tangent, attitude_full]
                 block = reduction @ block @ reduction.T
             blocks.append(block)
@@ -403,6 +410,7 @@ class MeasurementStack:
         *,
         quaternion_mode: str = State.DEFAULT_QUATERNION_MODE,
         coordinates: str = "tangent",
+        quaternion_order: str = "right",
         predicted: Any | None = None,
     ) -> np.ndarray:
         r"""Return the active right-error measurement Jacobian ``H``.
@@ -428,7 +436,7 @@ class MeasurementStack:
         else:
             coordinate_map = state.tangent_map(
                 quaternion_mode=quaternion_mode,
-                quaternion_order="right",
+                quaternion_order=quaternion_order,
             )
         base_size = state.slice("physical", coordinates="full").stop
         wheel_coordinates = state.slice("wheel_momentum", coordinates=coordinates)
@@ -452,7 +460,7 @@ class MeasurementStack:
                     attitude_full = state.slice("attitude", coordinates="full")
                     row[:, attitude_full] = state.tangent_pinv(
                         quaternion_mode=quaternion_mode,
-                        quaternion_order="right",
+                        quaternion_order=quaternion_order,
                     )[attitude_tangent, attitude_full] @ coordinate_map[
                         attitude_full, attitude_full
                     ]
