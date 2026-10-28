@@ -96,7 +96,9 @@ void fragment() {
 	if (has_atmosphere) {
 		sun_ground = atm_transmittance(atm_bottom, mu_geo) * atm_sun_visible(atm_bottom + 1.0, mu_geo);
 	}
-	float terminator = smoothstep(-0.02, 0.02, mu_geo);
+	// Let the atmosphere carry sunlight into civil twilight instead of ending
+	// it at a nearly geometric one-degree terminator.
+	float terminator = smoothstep(-0.08, 0.04, mu_geo);
 	float cloud_light = 1.0;
 
 	float cloud = cloud_coverage(n_geo);
