@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from ADCS.estimators.attitude_estimators import AugmentedIEKF, AugmentedMEKF, AugmentedSRUKF, AugmentedUKF
+from ADCS.estimators.attitude_estimators import AugmentedIEKF, AugmentedMEKF, AugmentedSRUKF, AugmentedUKF, EQF
 from ADCS.estimators.process_model import propagate_state
 from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
@@ -62,7 +62,7 @@ def test_augmented_filters_recover_a_magnetorquer_bias():
     est_sat = EstimatedSatellite(J_0=np.diag([0.5, 0.8, 1.2]), sensors=_sensors(), actuators=_actuators(estimate=True))
     assert est_sat.act_bias_len == 3
 
-    for cls in (AugmentedMEKF, AugmentedIEKF, AugmentedUKF, AugmentedSRUKF):
+    for cls in (AugmentedMEKF, AugmentedIEKF, AugmentedUKF, AugmentedSRUKF, EQF):
         size = 6 + 3
         cov = np.diag([1.0e-6] * 3 + [1.0e-4] * 3 + [1.0e-2] * 3)
         state = EstimatorState(w=[0.02, -0.015, 0.01], q=[0.9, 0.2, -0.3, 0.1], act_bias=np.zeros(3),

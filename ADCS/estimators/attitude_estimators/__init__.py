@@ -5,6 +5,7 @@ from .attitude_AugmentedEKF import AugmentedEKF
 from .attitude_AugmentedUKF import AugmentedUKF
 from .attitude_AugmentedSRUKF import AugmentedSRUKF
 from .attitude_EKF import EKF
+from .attitude_EQF import EQF
 from .attitude_IEKF import IEKF
 from .attitude_MEKF import MEKF
 from .attitude_SRUKF import SRUKF
@@ -18,6 +19,7 @@ __all__ = [
     "AugmentedUKF",
     "AugmentedSRUKF",
     "EKF",
+    "EQF",
     "IEKF",
     "MEKF",
     "SRUKF",

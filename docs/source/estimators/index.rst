@@ -8,4 +8,5 @@ Lie-group attitude filters.
    :maxdepth: 1
 
    iekf
+   eqf
    augmented_iekf
