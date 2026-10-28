@@ -68,9 +68,10 @@ func _rebuild(store: RefCounted, t: float, anchor: PackedFloat64Array) -> void:
 	var k0: int = store.locate(t - 2.0 * past)[0]
 	var k1: int = mini(store.locate(t + 2.0 * future)[0] + 1, store.n_rows - 1)
 	var row_dt: float = (store.t_max() - store.t_min()) / maxf(store.n_rows - 1.0, 1.0)
-	var spacing := (past + future) / maxf(float(desc.get("samples", 600)), 2.0)
+	var span := past + future
+	var spacing := span / maxf(float(desc.get("samples", 600)), 2.0)
 	var stride := maxi(1, int(spacing / maxf(row_dt, 1e-9)))
-	var subdivisions := 4 if desc.has("samples") else 1
+	var subdivisions := 8 if desc.has("samples") else 1
 	var verts := PackedVector3Array()
 	var uvs := PackedVector2Array()
 	_anchor = anchor
@@ -94,6 +95,23 @@ func _rebuild(store: RefCounted, t: float, anchor: PackedFloat64Array) -> void:
 			uvs.append(Vector2(t1 - _t_ref, 0.0))
 			break
 		k = next_k
+	# Ensure the spacecraft's current interpolated position is an actual vertex.
+	# Shader clipping alone can end each independently rendered strip on a
+	# different pixel when the cutoff falls between sampled vertices.
+	if not ground and t >= store.t(k0) and t <= store.t(k1):
+		var p_now := _point_at(store, t)
+		var insert_at := verts.size()
+		var has_now := false
+		for i in verts.size():
+			if is_equal_approx(uvs[i].x, t - _t_ref):
+				has_now = true
+				break
+			if uvs[i].x > t - _t_ref:
+				insert_at = i
+				break
+		if not has_now:
+			verts.insert(insert_at, Vector3(p_now[0] - anchor[0], p_now[1] - anchor[1], p_now[2] - anchor[2]))
+			uvs.insert(insert_at, Vector2(t - _t_ref, 0.0))
 	mesh.clear_surfaces()
 	if verts.size() >= 2:
 		var arrays := []

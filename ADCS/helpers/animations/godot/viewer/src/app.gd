@@ -100,6 +100,7 @@ func _ready() -> void:
 	if not scene.has("overlays"):  # always offer body axes (off until toggled)
 		scene["overlays"] = [{"id": "body_axes", "type": "triad", "frame": "body", "visible": false}]
 	world.overlays.build(scene, source.manifest, source.store, world.craft, world.viewport)
+	world.overlays.set_label_controller(Callable(world, "set_label_visibility"))
 	world.craft.set_joint_store(source.store)
 	hud.layers.setup(world.overlays)
 	_log("overlays: %d" % world.overlays.nodes.size())

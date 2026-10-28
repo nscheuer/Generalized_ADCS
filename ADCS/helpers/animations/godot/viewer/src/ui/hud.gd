@@ -31,6 +31,7 @@ Space  play / pause        R  reset time        , .  slower / faster
 3  spacecraft, body        4  Earth-centred
 L  follow live             Home  reset view
 V  vectors   A  axes   G  tracks   O  all overlays   H  this help
+Labels menu: satellite and planet labels
 E  physical / artistic exposure    [ ]  exposure -/+ 1 EV
 Q  quality: high / balanced / fast
 

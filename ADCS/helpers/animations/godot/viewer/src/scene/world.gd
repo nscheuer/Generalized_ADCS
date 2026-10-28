@@ -51,6 +51,7 @@ var craft_pixel: MeshInstance3D
 var earth_pixel: MeshInstance3D
 var moon_pixel: MeshInstance3D
 var craft_label: Label
+var satellite_label_enabled := true
 var solar: RefCounted
 var fixed_size := Vector2i.ZERO
 var info: Dictionary = {}  ## per-frame diagnostics (near/far, scales, LOD)
@@ -166,6 +167,11 @@ static func _pixel_marker(color: Color) -> MeshInstance3D:
 func resize_to(size: Vector2i) -> void:
 	if fixed_size == Vector2i.ZERO and size.x > 0 and size.y > 0:
 		viewport.size = size
+
+
+func set_label_visibility(satellite: bool, planets: bool) -> void:
+	satellite_label_enabled = satellite
+	solar.set_labels_enabled(planets)
 
 
 func _material(path: String) -> ShaderMaterial:
@@ -317,7 +323,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	craft_pixel_material.albedo_color = Color(0.65, 0.65, 0.65, 0.8) if after_simulation else craft.average_color
 	var craft_screen_ok := not camera.is_position_behind(craft_pixel.global_position)
 	var craft_screen := camera.unproject_position(craft_pixel.global_position) if craft_screen_ok else Vector2(-1, -1)
-	craft_label.visible = craft_px < 1.0 and craft_screen_ok and craft_screen.x >= 0.0 and craft_screen.y >= 0.0 \
+	craft_label.visible = satellite_label_enabled and craft_px < 1.0 and craft_screen_ok and craft_screen.x >= 0.0 and craft_screen.y >= 0.0 \
 		and craft_screen.x < viewport.size.x and craft_screen.y < viewport.size.y
 	if craft_label.visible:
 		craft_label.text = "< SATELLITE"

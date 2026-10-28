@@ -12,12 +12,13 @@ var enabled := true
 var labels: Array[Label3D] = []
 var show_labels := true
 var _label_w := {}  ## Label3D -> text width [font px] (texts are fixed)
-## Display groups the user toggles (on-screen chips, keys V / A / G). A group starts
-## shown if any of its overlays is declared visible; toggling it shows or hides all.
+## Display groups the user toggles from the layer chips and menus.
 const GROUP := {"arrow": "vectors", "cone": "vectors", "target_line": "vectors", "label": "vectors",
 	"triad": "axes", "polyline": "tracks"}
-const GROUPS := ["vectors", "axes", "tracks"]
+const GROUPS := ["vectors", "labels", "axes", "tracks"]
 var shown := {}  ## group -> bool, for the groups present
+var label_visibility := {"satellite": true, "planets": true}
+var label_setter: Callable
 var cost_us := 0  ## CPU time of the last update (all overlays + label layout)
 var layout_us := 0  ## of which label layout
 
@@ -27,26 +28,15 @@ func build(scene: Dictionary, manifest: Dictionary, data_store: RefCounted, craf
 	for c: Dictionary in manifest.get("channels", []):
 		frames[c["name"]] = String(c.get("frame", "-"))
 	for d: Dictionary in scene.get("overlays", []):
-		var parts: Array = [d]
-		if d.get("type") == "polyline" and d.get("track") == "orbit" \
-				and float(d.get("past_s", 0.0)) > 0.0 and float(d.get("future_s", 0.0)) > 0.0:
-			var behind := d.duplicate()
-			behind["id"] = String(d.get("id", "orbit")) + "_behind"
-			behind["future_s"] = 0.0
-			var ahead := d.duplicate()
-			ahead["id"] = String(d.get("id", "orbit")) + "_ahead"
-			ahead["past_s"] = 0.0
-			parts = [behind, ahead]
-		for part: Dictionary in parts:
-			var n := Registry.create(part, scene)
-			if n == null:
-				continue
-			if Registry.ATTACHED.has(String(part.get("type", ""))):
-				craft.add_child(n)
-			else:
-				root.add_child(n)
-			n.set_meta("enabled", bool(part.get("visible", true)))
-			nodes.append(n)
+		var n := Registry.create(d, scene)
+		if n == null:
+			continue
+		if Registry.ATTACHED.has(String(d.get("type", ""))):
+			craft.add_child(n)
+		else:
+			root.add_child(n)
+		n.set_meta("enabled", bool(d.get("visible", true)))
+		nodes.append(n)
 	for n in nodes:
 		for l in n.find_children("*", "Label3D", true, false):
 			labels.append(l)
@@ -64,6 +54,11 @@ func groups() -> Array:
 	return GROUPS.filter(func(g: String) -> bool: return shown.has(g))
 
 
+func set_label_controller(setter: Callable) -> void:
+	label_setter = setter
+	_apply()
+
+
 static func item_key(n: Node3D) -> String:
 	var d: Dictionary = n.desc
 	match String(d.get("type", "")):
@@ -74,7 +69,7 @@ static func item_key(n: Node3D) -> String:
 		"polyline":
 			if d.get("track") == "ground":
 				return "ground_track"
-			return "orbit_ahead" if float(d.get("past_s", 0.0)) == 0.0 else "orbit_behind"
+			return "orbit_track"
 	return "overlay_" + String(d.get("id", n.name))
 
 
@@ -85,11 +80,16 @@ static func item_label(n: Node3D) -> String:
 	var labels := {"vector_@nadir": "Nadir", "vector_@sun": "Sun", "vector_@velocity": "Velocity",
 		"axes_body": "Satellite body axes", "axes_gcrs": "Inertial space axes",
 		"axes_lvlh": "Orbital frame axes", "axes_principal": "Satellite principal axes",
-		"orbit_ahead": "Orbit track ahead", "orbit_behind": "Orbit track behind", "ground_track": "Ground track"}
+		"orbit_track": "Orbit track", "ground_track": "Ground track"}
 	return String(labels.get(key, n.desc.get("label", n.desc.get("id", n.name))))
 
 
 func menu_items(group: String) -> Array:
+	if group == "labels":
+		return [
+			{"key": "satellite_label", "label": "Satellite label", "checked": label_visibility["satellite"]},
+			{"key": "planet_labels", "label": "Planet labels", "checked": label_visibility["planets"]},
+		]
 	var items := []
 	var keys := {}
 	for n in nodes:
@@ -102,7 +102,7 @@ func menu_items(group: String) -> Array:
 		items.append({"key": key, "label": item_label(n), "checked": bool(n.get_meta("enabled", true))})
 	var order := ["vector_@nadir", "vector_@sun", "vector_@velocity",
 		"axes_body", "axes_gcrs", "axes_principal", "axes_lvlh",
-		"orbit_ahead", "orbit_behind", "ground_track"]
+		"orbit_track", "ground_track"]
 	items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		var ai := order.find(a["key"])
 		var bi := order.find(b["key"])
@@ -111,6 +111,15 @@ func menu_items(group: String) -> Array:
 
 
 func toggle_item(group: String, key: String) -> void:
+	if group == "labels":
+		if key == "satellite_label":
+			label_visibility["satellite"] = not bool(label_visibility["satellite"])
+		elif key == "planet_labels":
+			label_visibility["planets"] = not bool(label_visibility["planets"])
+		else:
+			return
+		_apply()
+		return
 	var selected: Array = nodes.filter(func(n: Node3D) -> bool: return group_of(n) == group and item_key(n) == key)
 	if selected.is_empty():
 		return
@@ -121,7 +130,11 @@ func toggle_item(group: String, key: String) -> void:
 
 
 func set_group(group: String, on: bool) -> void:
-	if shown.has(group):
+	if group == "labels":
+		label_visibility["satellite"] = on
+		label_visibility["planets"] = on
+		_apply()
+	elif shown.has(group):
 		for n in nodes:
 			if group_of(n) == group:
 				n.set_meta("enabled", on)
@@ -137,6 +150,8 @@ func toggle_all() -> void:
 	var any: bool = shown.values().any(func(v: bool) -> bool: return v)
 	for n in nodes:
 		n.set_meta("enabled", not any)
+	label_visibility["satellite"] = not any
+	label_visibility["planets"] = not any
 	_apply()
 
 
@@ -152,6 +167,9 @@ func _apply() -> void:
 		var item_on := bool(n.get_meta("enabled", true))
 		shown[group] = bool(shown.get(group, false)) or item_on
 		n.visible = enabled and item_on
+	shown["labels"] = bool(label_visibility["satellite"]) or bool(label_visibility["planets"])
+	if label_setter.is_valid():
+		label_setter.call(bool(label_visibility["satellite"]), bool(label_visibility["planets"]))
 
 
 func update(frame: Dictionary, world: RefCounted, cam_pos: PackedFloat64Array, cam_rot: PackedFloat64Array) -> void:

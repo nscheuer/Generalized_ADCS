@@ -44,6 +44,11 @@ var moon_mat: ShaderMaterial
 var sun_mat: ShaderMaterial
 var current_texture_lod: Dictionary = {}
 var textures_2k: Dictionary = {}
+var labels_enabled := true
+
+
+func set_labels_enabled(on: bool) -> void:
+	labels_enabled = on
 
 
 func load_textures(root: String, earth_material: ShaderMaterial, moon_material: ShaderMaterial,
@@ -338,7 +343,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, qua
 		var visible := not camera.is_position_behind(root.global_position)
 		var screen := camera.unproject_position(root.global_position) if visible else Vector2(-1, -1)
 		projected[name] = [screen, px] if visible else []
-		label.visible = visible and px < 1.0 and screen.x >= 0.0 and screen.y >= 0.0
+		label.visible = labels_enabled and visible and px < 1.0 and screen.x >= 0.0 and screen.y >= 0.0
 		if label.visible:
 			label.text = "< " + name.to_upper()
 			label.position = screen + Vector2(8, -8)
@@ -367,7 +372,8 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, qua
 		var pos := D.to_godot(D.scale(D.sub(p, cam_pos), origin.far_scale(d)))
 		var visible := not camera.is_position_behind(pos)
 		var screen := camera.unproject_position(pos) if visible else Vector2(-1, -1)
-		label.visible = visible and px < 1.0 and screen.x >= 0.0 and screen.y >= 0.0
+		var label_enabled := labels_enabled if name == "earth" else true
+		label.visible = label_enabled and visible and px < 1.0 and screen.x >= 0.0 and screen.y >= 0.0
 		if label.visible:
 			label.text = "< " + name.to_upper()
 			label.position = screen + Vector2(8, -8)

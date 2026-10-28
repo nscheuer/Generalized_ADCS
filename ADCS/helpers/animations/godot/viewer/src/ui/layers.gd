@@ -3,8 +3,8 @@ extends Control
 ## controls its individual overlays.
 
 const Th := preload("res://src/ui/timeline/theme.gd")
-const KEYS := {"vectors": "V", "axes": "A", "tracks": "G"}
-const NAMES := {"vectors": "Vectors", "axes": "Axes", "tracks": "Tracks"}
+const KEYS := {"vectors": "V", "labels": "", "axes": "A", "tracks": "G"}
+const NAMES := {"vectors": "Vectors", "labels": "Labels", "axes": "Axes", "tracks": "Tracks"}
 
 var overlays: RefCounted  ## OverlayManager
 var ui := 1.0
@@ -18,7 +18,7 @@ var _menus: Dictionary = {}
 func _ready() -> void:
 	font = Th.font()
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	for g: String in ["vectors", "axes", "tracks"]:
+	for g: String in ["vectors", "labels", "axes", "tracks"]:
 		var menu := PopupMenu.new()
 		menu.hide_on_checkable_item_selection = false
 		add_child(menu)
@@ -75,7 +75,7 @@ func _gui_input(event: InputEvent) -> void:
 		var h := _chip_at((event as InputEventMouseMotion).position)
 		if h != _hover:
 			_hover = h
-			tooltip_text = "%s options (%s toggles all)" % [NAMES[h], KEYS[h]] if h != "" else ""
+			tooltip_text = ("%s options%s" % [NAMES[h], " (%s toggles all)" % KEYS[h] if KEYS[h] != "" else ""]) if h != "" else ""
 			queue_redraw()
 	elif event is InputEventMouseButton:
 		var e := event as InputEventMouseButton
@@ -184,3 +184,6 @@ func _icon(group: String, c: Vector2, col: Color) -> void:
 		"tracks":  # an orbit arc
 			draw_arc(c + Vector2(0, s * 0.9), s * 1.2, PI * 1.05, PI * 1.95, 12, col, w)
 			draw_circle(c + Vector2(s * 0.85, s * 0.05), 1.8 * ui, col)
+		"labels":  # text glyph
+			draw_string(font, c + Vector2(-s * 0.75, s * 0.7), "T", HORIZONTAL_ALIGNMENT_LEFT, -1,
+				int(round(12.0 * ui)), col)
