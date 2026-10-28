@@ -38,8 +38,16 @@ class BiasWithInstability(Bias):
     is unchanged; only the step and the process PSD differ.
 
     For a filter with a random-walk bias state, the instability is covered by
-    adding its low-frequency power density :math:`2\sigma_g^2\tau` to the
-    walk rate squared in :meth:`process_psd`.
+    adding the density of the white noise that drives it,
+    :math:`2\sigma_g^2/\tau`, to the walk rate squared in :meth:`process_psd`.
+    That is the rate at which the instability's variance grows from a known
+    value over steps short compared with :math:`\tau`, the regime a
+    random-walk filter state has to cover: the step above has variance
+    :math:`\sigma_g^2(1 - e^{-2\Delta t/\tau}) \approx (2\sigma_g^2/\tau)\,\Delta t`.
+    It has the units of ``std_bias`` squared (bias² per second), so the two
+    terms can be summed. The value :math:`2\sigma_g^2\tau` is the power
+    density of the instability itself at zero frequency (bias² × seconds),
+    a different quantity that does not belong in a rate PSD.
 
     Parameters
     ----------
@@ -109,8 +117,13 @@ class BiasWithInstability(Bias):
         return result
 
     def process_psd(self, *, form: str = "full") -> Covariance:
-        r"""Random-walk PSD plus the instability's low-frequency density :math:`2\sigma_g^2\tau`."""
-        rate_squared = self.std_bias * self.std_bias + 2.0 * self.instability_std**2 * self.instability_time
+        r"""Random-walk PSD plus the density :math:`2\sigma_g^2/\tau` of the noise driving the instability.
+
+        Both terms are rates (bias² per second). Over a step :math:`\Delta t \ll \tau`
+        the instability's variance grows by :math:`(2\sigma_g^2/\tau)\,\Delta t`, which
+        is what a random-walk bias state in the filter has to absorb.
+        """
+        rate_squared = self.std_bias * self.std_bias + 2.0 * self.instability_std**2 / self.instability_time
         return Covariance(np.diagflat(rate_squared), form=form, coordinates="bias_rate")
 
     def _update_bias(self, j2000: float) -> None:
