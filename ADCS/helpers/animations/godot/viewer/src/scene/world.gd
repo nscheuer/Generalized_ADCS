@@ -86,11 +86,8 @@ func _init(parent: Node, size: Vector2i = Vector2i.ZERO) -> void:
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color.BLACK
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.glow_enabled = true
+	env.glow_enabled = false
 	env.glow_hdr_threshold = 1.5
-	# Fewer, coarser blur levels: the glow is for the Sun and specular highlights.
-	for level in 7:
-		env.set_glow_level(level, 1.0 if level in [2, 3, 4] else 0.0)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.03, 0.035, 0.045)
 
@@ -448,8 +445,10 @@ func pick_body(screen: Vector2, frame: Dictionary) -> String:
 ## High adds denser atmospheric integration and gently faded screen-space light shafts;
 ## it is intended for a discrete GPU. Balanced and fast keep the lighter path.
 const QUALITY := {
-	"high": {"msaa": Viewport.MSAA_4X, "fxaa": false, "glow": true, "shell_steps": 48, "pixel_steps": 32, "vertex_steps": 40, "scattering_gain": 1.35},
-	"balanced": {"msaa": Viewport.MSAA_DISABLED, "fxaa": true, "glow": true, "shell_steps": 12, "pixel_steps": 12, "vertex_steps": 24},
+	# The HDR glow pass blooms forward-scattered limb light into bright flashes on
+	# some AMD/WSL renderers. The Sun keeps its shader-authored soft halo.
+	"high": {"msaa": Viewport.MSAA_4X, "fxaa": false, "glow": false, "shell_steps": 48, "pixel_steps": 32, "vertex_steps": 40, "scattering_gain": 1.35},
+	"balanced": {"msaa": Viewport.MSAA_DISABLED, "fxaa": true, "glow": false, "shell_steps": 12, "pixel_steps": 12, "vertex_steps": 24},
 	"fast": {"msaa": Viewport.MSAA_DISABLED, "fxaa": true, "glow": false, "shell_steps": 8, "pixel_steps": 8, "vertex_steps": 16},
 }
 
