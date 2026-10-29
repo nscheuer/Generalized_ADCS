@@ -22,15 +22,33 @@ orbital limb.
 __all__ = ["AtmosphereParams", "transmittance_table", "multiscattering_table", "transmittance_uv", "build_tables"]
 
 from dataclasses import asdict, dataclass, field
+import json
+from pathlib import Path
 from typing import Dict, Tuple
 
 import numpy as np
 
 
+def _configured_height_m() -> float:
+    """Read the shared viewer/asset atmosphere height setting."""
+    profile = Path(__file__).resolve().parents[1] / "viewer" / "atmosphere_profile.json"
+    try:
+        data = json.loads(profile.read_text(encoding="utf-8"))
+        height = float(data["height_m"])
+        if height > 0.0:
+            return height
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        pass
+    return 1.0e3
+
+
+ATMOSPHERE_HEIGHT_M = _configured_height_m()
+
+
 @dataclass(frozen=True)
 class AtmosphereParams:
     bottom_radius: float = 6378137.0
-    top_radius: float = 6378137.0 + 1.0e3
+    top_radius: float = 6378137.0 + ATMOSPHERE_HEIGHT_M
     rayleigh_scattering: Tuple[float, float, float] = (5.802e-6, 13.558e-6, 33.100e-6)  # 1/m at 680, 550, 440 nm
     rayleigh_scale_height: float = 10500.0
     mie_scattering: Tuple[float, float, float] = (3.996e-6, 3.996e-6, 3.996e-6)

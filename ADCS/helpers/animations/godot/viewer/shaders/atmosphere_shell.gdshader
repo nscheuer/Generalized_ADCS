@@ -42,15 +42,18 @@ void fragment() {
 	float limb_coverage = smoothstep(atm_bottom - overlap_m, atm_bottom + overlap_m, closest_r);
 	// The upper veil's daylight treatment fades with altitude and direct Sun
 	// incidence, leaving the dusk/sunrise profile untouched.
-	float upper_gradient = smoothstep(atm_bottom + daylight_fade_start_m, atm_top, closest_r);
+	float atmosphere_height = max(atm_top - atm_bottom, 1.0);
+	float upper_fade_start = atm_bottom + min(daylight_fade_start_m, 0.1 * atmosphere_height);
+	float upper_gradient = smoothstep(upper_fade_start, atm_top, closest_r);
 	float bright_sunlight = smoothstep(0.35, 0.80, sun_elevation);
 	vec3 physical_shell_color = min(L * PI * sun_scale, vec3(1.0));
-	vec3 sunlit_blue_color = physical_shell_color * vec3(5, 140, 213);
+	vec3 sunlit_blue_color = physical_shell_color * vec3(0.5, 14.0, 21.3);
 	physical_shell_color = mix(physical_shell_color, sunlit_blue_color, bright_sunlight * upper_gradient);
 	// Premultiplied alpha means the color contribution must compensate for the
 	// limb's antialias coverage; otherwise the half-covered tangent pixels form
 	// a dark line against the surface.
-	float lower_atmosphere = 1.0 - smoothstep(atm_bottom + 5000.0, min(atm_bottom + 70000.0, atm_top), closest_r);
+	float lower_fade_start = atm_bottom + min(5000.0, 0.1 * atmosphere_height);
+	float lower_atmosphere = 1.0 - smoothstep(lower_fade_start, atm_top, closest_r);
 	float atmosphere_alpha = clamp(1.0 - dot(T, vec3(1.0 / 3.0)), 0.0, 1.0);
 	float daylight_merge = direct_sunlight * lower_atmosphere;
 	vec3 horizon_match_color = vec3(0.72, 0.70, 0.92) / max(limb_coverage, 0.20);

@@ -11,7 +11,7 @@ uniform sampler2D multiscatter_lut : filter_linear, repeat_disable;
 uniform bool has_atmosphere = false;
 uniform bool use_atmosphere_lut = false;
 uniform float atm_bottom = 6378137.0;
-uniform float atm_top = 6458137.0;
+uniform float atm_top = 6379137.0;
 uniform float scattering_gain = 1.0;
 uniform vec3 rayleigh_scattering = vec3(5.802e-6, 13.558e-6, 33.1e-6);
 uniform float rayleigh_h = 10500.0;
