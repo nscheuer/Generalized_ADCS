@@ -33,17 +33,23 @@ void fragment() {
 	atm_integrate(cam_local, d, max(top.x, 0.0), end_t, sun_dir_itrs, L, T);
 	vec3 limb_point = cam_local - d * dot(cam_local, d);
 	float sun_elevation = dot(normalize(limb_point), sun_dir_itrs);
-	float daylight = smoothstep(0.05, 0.40, sun_elevation);
+	// Direct sunlight blends the lower limb toward the visible daylight horizon.
+	// As the Sun approaches the local horizon this correction fades out,
+	// preserving the warm twilight scattering.
+	float direct_sunlight = smoothstep(0.0, 0.30, sun_elevation);
 	float limb_coverage = smoothstep(atm_bottom - overlap_m, atm_bottom + overlap_m, closest_r);
-	// Preserve coverage and opacity. Drive the daylight limb hue from its
-	// actual scattered radiance: the brighter the lower limb, the warmer it
-	// becomes. The color shift fades smoothly into the natural blue above it.
+	// Brighten and saturate only the spaceward gradient. The increase with
+	// altitude keeps the warm lower twilight and daylight surface match intact.
+	float upper_gradient = smoothstep(atm_bottom + 12000.0, atm_top, closest_r);
+	vec3 physical_shell_color = min(L * PI * sun_scale * (1.0 + 1.6 * upper_gradient)
+		* vec3(0.88, 1.0, 1.34), vec3(1.0));
+	// Preserve coverage and opacity. Premultiplied alpha means the color
+	// contribution must compensate for the limb's antialias coverage; otherwise
+	// the half-covered tangent pixels form a dark line against the surface.
 	float lower_atmosphere = 1.0 - smoothstep(atm_bottom + 5000.0, min(atm_bottom + 70000.0, atm_top), closest_r);
-	vec3 daylight_color = min(L * PI * sun_scale, vec3(1.0));
-	float limb_brightness = dot(daylight_color, vec3(0.2126, 0.7152, 0.0722));
-	float brightness_warmth = smoothstep(0.04, 0.45, limb_brightness);
-	float warm_tint = daylight * lower_atmosphere * brightness_warmth * 0.75;
-	daylight_color *= mix(vec3(1.0), vec3(1.30, 0.90, 0.68), warm_tint);
-	ALBEDO = daylight_color * limb_coverage;
-	ALPHA = clamp(1.0 - dot(T, vec3(1.0 / 3.0)), 0.0, 1.0) * limb_coverage;  // stars behind the limb dim
+	float atmosphere_alpha = clamp(1.0 - dot(T, vec3(1.0 / 3.0)), 0.0, 1.0);
+	float daylight_merge = direct_sunlight * lower_atmosphere;
+	vec3 horizon_match_color = vec3(0.45, 0.40, 0.48) / max(limb_coverage, 0.20);
+	ALBEDO = mix(physical_shell_color, horizon_match_color, daylight_merge) * limb_coverage;
+	ALPHA = atmosphere_alpha * limb_coverage;  // stars behind the limb dim
 }
