@@ -42,7 +42,8 @@ def animate_orbit_godot(
     The first seven positional parameters mirror ``animate_orbit_panda3d``.
     ``results`` preserves all recorded channels and is preferred when available.
     The generated vizlog is kept when ``output`` is provided. Graphics assets
-    are local only; this function never downloads them.
+    are local only. If Godot is missing, the platform build is offered through
+    AssetManager's terminal download prompt.
     """
     if graphics_quality not in {"low", "medium", "high"}:
         raise ValueError("graphics_quality must be low, medium, or high")

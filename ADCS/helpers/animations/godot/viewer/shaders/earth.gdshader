@@ -57,23 +57,6 @@ vec2 equirect_uv(vec3 n) {
 	return vec2(atan(n.y, n.x) / (2.0 * PI) + 0.5, 0.5 - asin(clamp(n.z, -1.0, 1.0)) / PI);
 }
 
-vec3 sample_day_map(vec2 uv, vec2 uv_dx, vec2 uv_dy) {
-	vec3 color = textureGrad(day_map, uv, uv_dx, uv_dy).rgb;
-	float edge = min(uv.x, 1.0 - uv.x);
-	// The equirectangular texture's first and last columns meet over the
-	// Pacific. Blend their nearby interior texels across this narrow seam to
-	// suppress bright border pixels and mipmap/filtering artifacts.
-	if (edge < 0.003) {
-		float seam = 1.0 - smoothstep(0.0, 0.003, edge);
-		vec2 edge_dx = vec2(0.0, uv_dx.y);
-		vec2 edge_dy = vec2(0.0, uv_dy.y);
-		vec3 left_edge = textureGrad(day_map, vec2(0.003, uv.y), edge_dx, edge_dy).rgb;
-		vec3 right_edge = textureGrad(day_map, vec2(0.997, uv.y), edge_dx, edge_dy).rgb;
-		color = mix(color, 0.5 * (left_edge + right_edge), seam);
-	}
-	return color;
-}
-
 float cloud_coverage(vec3 n) {
 	if (has_cloud_map) {
 		return texture(cloud_map, equirect_uv(n)).r;
@@ -94,12 +77,6 @@ void fragment() {
 	vec3 n_geo = normalize(p_itrs);
 	vec2 uv = equirect_uv(n_geo);
 	vec3 n = n_geo;
-	vec2 uv_dx = dFdx(uv);
-	vec2 uv_dy = dFdy(uv);
-	// atan longitude wraps from 1 to 0. Remove that integer jump from the
-	// horizontal derivatives so mip selection stays continuous across the seam.
-	uv_dx.x -= round(uv_dx.x);
-	uv_dy.x -= round(uv_dy.x);
 	if (has_normal_map) {
 		vec3 tangent = vec3(0.0, 1.0, 0.0);
 		if (abs(n_geo.z) < 0.999) {
@@ -111,7 +88,7 @@ void fragment() {
 	} else if (has_normals) {
 		n = normalize(texture(normal_tex, n_geo).xyz * 2.0 - 1.0);
 	}
-	vec3 base = has_day_map ? sample_day_map(uv, uv_dx, uv_dy) : (has_day ? texture(day_tex, n_geo).rgb : albedo);
+	vec3 base = has_day_map ? texture(day_map, uv).rgb : (has_day ? texture(day_tex, n_geo).rgb : albedo);
 	float mu_geo = dot(n_geo, sun_dir_itrs);
 
 	// Sunlight reaching the ground: attenuated (and reddened) by the atmosphere.

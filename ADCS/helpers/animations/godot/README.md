@@ -34,10 +34,10 @@ continue moving and rotating. DE421 queries are available only within the
 kernel's date range. Direct Godot `--log` playback displays the logged states
 without the Python ephemeris service.
 
-The Linux x86_64 Godot 4.7.2 executable is bundled as a verified ZIP in the
-wheel. On first use it is unpacked into `ADCS/helpers/animations/assets/bin`.
-For other platforms, pass `binary=` or set `ADCS_VIEWER_BIN` until their
-bundled builds are added.
+Godot 4.7.2 is fetched from its official release for the detected operating
+system when the viewer is first launched. `AssetManager` asks before
+downloading; the archive and executable are kept in `godot/bin`, which is
+ignored by Git. Pass `binary=` or set `ADCS_VIEWER_BIN` to use another build.
 
 Optional textures and atmosphere data are placed under
 `ADCS/helpers/animations/assets`. They are ignored by Git and excluded from
