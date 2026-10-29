@@ -114,7 +114,7 @@ func _init(parent: Node, size: Vector2i = Vector2i.ZERO) -> void:
 	shell_mat = _material("res://shaders/atmosphere_shell.gdshader")
 	shell = MeshInstance3D.new()
 	var shell_mesh := SphereMesh.new()
-	shell_mesh.radius = R_EARTH + 160.5e3
+	shell_mesh.radius = R_EARTH + 80.5e3
 	shell_mesh.height = 2.0 * shell_mesh.radius
 	# Match Earth's angular tessellation so its depth silhouette never crosses
 	# the atmosphere shell as a dotted arc while the camera moves.
@@ -357,7 +357,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	var r_itrs_gcrs := D.rot_mat(frame["q_itrs_gcrs"])  # v_itrs = R v_gcrs
 	var earth_px := R_EARTH * focal / maxf(D.norm(cam_pos), 1.0)
 	_body_lod(earth, R_EARTH, earth_px)
-	_body_lod(shell, R_EARTH + 160500.0, earth_px)
+	_body_lod(shell, R_EARTH + 80500.0, earth_px)
 	var k_earth := origin.far_scale(D.norm(cam_pos))
 	origin.place(earth, D.v3(0.0, 0.0, 0.0), D.transpose(r_itrs_gcrs), k_earth)
 	var earth_marker_radius := maxf(R_EARTH, 0.75 * D.norm(cam_pos) / maxf(focal, 1.0))

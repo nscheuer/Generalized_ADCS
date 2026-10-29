@@ -8,6 +8,8 @@ render_mode unshaded, cull_front, depth_draw_never, blend_premul_alpha, shadows_
 
 uniform vec3 sun_dir_itrs = vec3(1.0, 0.0, 0.0);
 uniform float sun_scale = 1.0;
+uniform float daylight_top_opacity = 0.0; // fraction of the physical opacity at the top (0 = clear, 1 = unchanged)
+uniform float daylight_fade_start_m = 5000.0;
 
 varying vec3 p_local;
 
@@ -40,7 +42,7 @@ void fragment() {
 	float limb_coverage = smoothstep(atm_bottom - overlap_m, atm_bottom + overlap_m, closest_r);
 	// The upper veil's daylight treatment fades with altitude and direct Sun
 	// incidence, leaving the dusk/sunrise profile untouched.
-	float upper_gradient = smoothstep(atm_bottom + 5000.0, atm_top, closest_r);
+	float upper_gradient = smoothstep(atm_bottom + daylight_fade_start_m, atm_top, closest_r);
 	float bright_sunlight = smoothstep(0.35, 0.80, sun_elevation);
 	vec3 physical_shell_color = min(L * PI * sun_scale, vec3(1.0));
 	vec3 sunlit_blue_color = physical_shell_color * vec3(5, 140, 213);
@@ -52,9 +54,10 @@ void fragment() {
 	float atmosphere_alpha = clamp(1.0 - dot(T, vec3(1.0 / 3.0)), 0.0, 1.0);
 	float daylight_merge = direct_sunlight * lower_atmosphere;
 	vec3 horizon_match_color = vec3(0.72, 0.70, 0.92) / max(limb_coverage, 0.20);
-	ALBEDO = mix(physical_shell_color, horizon_match_color, daylight_merge) * limb_coverage;
-	// Keep the physical dusk opacity curve. In strong direct sunlight, gently
-	// raise the upper veil toward a visible but still translucent 35% opacity.
-	atmosphere_alpha = mix(atmosphere_alpha, max(atmosphere_alpha, 0.01 * upper_gradient), bright_sunlight);
+	float daylight_alpha_scale = mix(1.0, clamp(daylight_top_opacity, 0.0, 1.0), bright_sunlight * upper_gradient);
+	ALBEDO = mix(physical_shell_color, horizon_match_color, daylight_merge) * limb_coverage * daylight_alpha_scale;
+	// Scale both premultiplied color and alpha. Twilight has a scale of 1, so
+	// its physical opacity curve remains unchanged.
+	atmosphere_alpha *= daylight_alpha_scale;
 	ALPHA = atmosphere_alpha * limb_coverage;  // stars behind the limb dim
 }

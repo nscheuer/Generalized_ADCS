@@ -15,7 +15,7 @@ var _t: PackedFloat32Array
 var _tw := 0
 var _th := 0
 var bottom := 6378137.0
-var top := 6538137.0
+var top := 6458137.0
 
 
 func load_from(dir: String, manifest: Dictionary) -> bool:
@@ -26,11 +26,11 @@ func load_from(dir: String, manifest: Dictionary) -> bool:
 	# Older cached LUTs encode a shorter/thinner profile. Stretching them would
 	# break their transmittance mapping, so use the matching procedural profile
 	# until the atmosphere product is rebuilt.
-	if float(params.get("top_radius", 0.0)) < 6538137.0 \
+	if absf(float(params.get("top_radius", 0.0)) - 6458137.0) > 1.0 \
 			or float(params.get("rayleigh_scale_height", 0.0)) < 10500.0 \
 			or float(params.get("mie_scale_height", 0.0)) < 1450.0:
 		bottom = 6378137.0
-		top = 6538137.0
+		top = 6458137.0
 		return false
 	bottom = float(params["bottom_radius"])
 	top = float(params["top_radius"])
