@@ -40,6 +40,6 @@ void fragment() {
 	vec3 L;
 	vec3 T;
 	atm_integrate(cam_local, d, max(top.x, 0.0), end_t, sun_dir_itrs, L, T);
-	ALBEDO = L * PI * sun_scale * limb_coverage;
+	ALBEDO = min(L * PI * sun_scale, vec3(1.0)) * limb_coverage;
 	ALPHA = clamp(1.0 - dot(T, vec3(1.0 / 3.0)), 0.0, 1.0) * limb_coverage;  // stars behind the limb dim
 }

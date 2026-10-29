@@ -42,7 +42,7 @@ uniform float cloud_opacity = 0.9;
 uniform float cloud_height = 6000.0;     // m, for cloud shadows
 uniform float cloud_shadow = 0.55;
 uniform float ambient = 0.0;
-uniform float specular_strength = 0.08;
+uniform float specular_strength = 0.6;
 
 // Aerial perspective is computed per vertex (it varies smoothly over the
 // disk; ~27x fewer evaluations than per pixel) and per pixel only where the
@@ -142,9 +142,7 @@ void fragment() {
 		// Sun glint on water (Blinn-Phong).
 		vec3 h = normalize(view + sun_dir_itrs);
 		float water = has_specular_map ? texture(specular_map, uv).r : texture(ocean_tex, n_geo).r;
-		// Use a broad, low-energy lobe so pixel-sized water glints do not alias
-		// into white sparkles at medium and high output resolutions.
-		color += water * specular_strength * pow(max(dot(n_geo, h), 0.0), 24.0) * sun_irradiance;
+		color += water * specular_strength * pow(max(dot(n_geo, h), 0.0), 120.0) * sun_irradiance;
 	}
 	if (has_clouds || has_cloud_map) {
 		vec3 cloud_lit = max(mu_geo, 0.0) * terminator * sun_scale * sun_ground + ambient;

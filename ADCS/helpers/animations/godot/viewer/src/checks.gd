@@ -93,6 +93,7 @@ func assets_check() -> Dictionary:
 func shots(cfg: Dictionary) -> Dictionary:
 	var out := []
 	for s: Dictionary in cfg.get("shots", []):
+		app.world.env.glow_enabled = not bool(s.get("diagnostic_no_glow", false))
 		var rig: CameraRig = app.rig
 		rig.mode = CameraRig.Mode.EARTH if s.get("mode", "orbit") == "earth" else CameraRig.Mode.ORBIT
 		rig.frame_kind = s.get("frame", "lvlh")
@@ -400,7 +401,7 @@ func pose(cfg: Dictionary) -> Dictionary:
 		# Optional display overrides, e.g. linear tone mapping for photometric comparisons.
 		var tm: String = s.get("tonemap", "agx")
 		app.world.env.tonemap_mode = Environment.TONE_MAPPER_LINEAR if tm == "linear" else Environment.TONE_MAPPER_AGX
-		app.world.env.glow_enabled = tm != "linear"
+		app.world.env.glow_enabled = bool(s.get("glow", tm != "linear"))
 		app.world.set_exposure(String(s.get("exposure_mode", "artistic")), float(s.get("ev", 0.0)))
 		var t: float = s.get("t", app.clock.t_min)
 		var f: Dictionary = app.source.store.sample(t)
