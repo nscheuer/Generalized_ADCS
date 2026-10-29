@@ -15,7 +15,7 @@ var _t: PackedFloat32Array
 var _tw := 0
 var _th := 0
 var bottom := 6378137.0
-var top := 6498137.0
+var top := 6538137.0
 
 
 func load_from(dir: String, manifest: Dictionary) -> bool:
@@ -23,14 +23,14 @@ func load_from(dir: String, manifest: Dictionary) -> bool:
 	if not p is Dictionary:
 		return false
 	params = p
-	# Older cached LUTs encode the previous 100 km / 8 km / 1.2 km profile.
-	# Stretching them would break their transmittance mapping, so use the
-	# matching procedural profile until the atmosphere product is rebuilt.
-	if float(params.get("top_radius", 0.0)) < 6498137.0 \
-			or float(params.get("rayleigh_scale_height", 0.0)) < 9500.0 \
+	# Older cached LUTs encode a shorter/thinner profile. Stretching them would
+	# break their transmittance mapping, so use the matching procedural profile
+	# until the atmosphere product is rebuilt.
+	if float(params.get("top_radius", 0.0)) < 6538137.0 \
+			or float(params.get("rayleigh_scale_height", 0.0)) < 10500.0 \
 			or float(params.get("mie_scale_height", 0.0)) < 1450.0:
 		bottom = 6378137.0
-		top = 6498137.0
+		top = 6538137.0
 		return false
 	bottom = float(params["bottom_radius"])
 	top = float(params["top_radius"])
@@ -80,7 +80,7 @@ func transmittance(r: float, mu: float) -> Vector3:
 		var h := maxf(r - bottom, 0.0)
 		var closest := r * sqrt(maxf(1.0 - mu * mu, 0.0))
 		var h_along := maxf((closest if mu < 0.0 else r) - bottom, 0.0)
-		var rayleigh_depth := 9500.0 * exp(-h_along / 9500.0) / sqrt(mu * mu + 9500.0 / bottom)
+		var rayleigh_depth := 10500.0 * exp(-h_along / 10500.0) / sqrt(mu * mu + 10500.0 / bottom)
 		var mie_depth := 1450.0 * exp(-h_along / 1450.0) / sqrt(mu * mu + 1450.0 / bottom)
 		if mu < 0.0:
 			rayleigh_depth *= 2.0

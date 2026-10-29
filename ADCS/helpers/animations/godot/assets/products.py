@@ -188,7 +188,7 @@ def _products() -> Dict[str, Product]:
                 "Lunar terrain normals from LOLA", "MOON_ME (as published by SVS)",
                 "object-space normal, RGB = 127.5 (n + 1)"),
         Product("atmosphere", [], {"model": "hillaire2020", "transmittance": [256, 64], "multiscattering": [32, 32],
-                "atmosphere": {"top_radius": 6378137.0 + 120.0e3, "rayleigh_scale_height": 9500.0,
+                "atmosphere": {"top_radius": 6378137.0 + 160.0e3, "rayleigh_scale_height": 10500.0,
                                "mie_scale_height": 1450.0}},
                 "atmosphere", "Precomputed atmosphere tables (transmittance, multiple scattering)",
                 "-", "little-endian float32 (rows, cols, RGB); see atmosphere.json"),

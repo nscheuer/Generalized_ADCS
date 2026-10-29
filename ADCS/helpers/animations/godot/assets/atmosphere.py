@@ -30,9 +30,9 @@ import numpy as np
 @dataclass(frozen=True)
 class AtmosphereParams:
     bottom_radius: float = 6378137.0
-    top_radius: float = 6378137.0 + 120.0e3
+    top_radius: float = 6378137.0 + 160.0e3
     rayleigh_scattering: Tuple[float, float, float] = (5.802e-6, 13.558e-6, 33.100e-6)  # 1/m at 680, 550, 440 nm
-    rayleigh_scale_height: float = 9500.0
+    rayleigh_scale_height: float = 10500.0
     mie_scattering: Tuple[float, float, float] = (3.996e-6, 3.996e-6, 3.996e-6)
     mie_extinction: Tuple[float, float, float] = (4.440e-6, 4.440e-6, 4.440e-6)
     mie_scale_height: float = 1450.0
