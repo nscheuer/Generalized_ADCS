@@ -157,7 +157,7 @@ def _build_stars(product: Product, inputs: Dict[str, Path], out: Path) -> List[D
 def _build_atmosphere(product: Product, inputs: Dict[str, Path], out: Path) -> List[Dict[str, Any]]:
     from ADCS.helpers.animations.godot.assets.atmosphere import AtmosphereParams, build_tables, params_json
 
-    p = AtmosphereParams()
+    p = AtmosphereParams(**product.params.get("atmosphere", {}))
     tables = build_tables(p)
     files = []
     for name, arr in tables.items():
@@ -187,7 +187,9 @@ def _products() -> Dict[str, Product]:
         Product("moon_normals", ["svs_moon_ldem_4"], {"face_size": 512, "exaggeration": 1.0}, "cube",
                 "Lunar terrain normals from LOLA", "MOON_ME (as published by SVS)",
                 "object-space normal, RGB = 127.5 (n + 1)"),
-        Product("atmosphere", [], {"model": "hillaire2020", "transmittance": [256, 64], "multiscattering": [32, 32]},
+        Product("atmosphere", [], {"model": "hillaire2020", "transmittance": [256, 64], "multiscattering": [32, 32],
+                "atmosphere": {"top_radius": 6378137.0 + 120.0e3, "rayleigh_scale_height": 9500.0,
+                               "mie_scale_height": 1450.0}},
                 "atmosphere", "Precomputed atmosphere tables (transmittance, multiple scattering)",
                 "-", "little-endian float32 (rows, cols, RGB); see atmosphere.json"),
         Product("stars", ["bsc5_cds"], {"max_vmag": 7.0}, "stars",

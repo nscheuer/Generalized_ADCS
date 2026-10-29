@@ -114,10 +114,12 @@ func _init(parent: Node, size: Vector2i = Vector2i.ZERO) -> void:
 	shell_mat = _material("res://shaders/atmosphere_shell.gdshader")
 	shell = MeshInstance3D.new()
 	var shell_mesh := SphereMesh.new()
-	shell_mesh.radius = R_EARTH + 100.5e3
+	shell_mesh.radius = R_EARTH + 120.5e3
 	shell_mesh.height = 2.0 * shell_mesh.radius
-	shell_mesh.radial_segments = 192
-	shell_mesh.rings = 96
+	# Match Earth's angular tessellation so its depth silhouette never crosses
+	# the atmosphere shell as a dotted arc while the camera moves.
+	shell_mesh.radial_segments = 384
+	shell_mesh.rings = 192
 	shell.mesh = shell_mesh
 	shell.material_override = shell_mat
 	shell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -447,7 +449,7 @@ func pick_body(screen: Vector2, frame: Dictionary) -> String:
 ## High adds denser atmospheric integration and gently faded screen-space light shafts;
 ## it is intended for a discrete GPU. Balanced and fast keep the lighter path.
 const QUALITY := {
-	"high": {"msaa": Viewport.MSAA_4X, "fxaa": false, "glow": true, "shell_steps": 48, "pixel_steps": 32, "vertex_steps": 40, "scattering_gain": 1.35},
+	"high": {"msaa": Viewport.MSAA_4X, "fxaa": false, "glow": true, "shell_steps": 64, "pixel_steps": 40, "vertex_steps": 48, "scattering_gain": 1.6},
 	"balanced": {"msaa": Viewport.MSAA_DISABLED, "fxaa": true, "glow": true, "shell_steps": 12, "pixel_steps": 12, "vertex_steps": 24},
 	"fast": {"msaa": Viewport.MSAA_DISABLED, "fxaa": true, "glow": false, "shell_steps": 8, "pixel_steps": 8, "vertex_steps": 16},
 }

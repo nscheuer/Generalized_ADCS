@@ -42,7 +42,7 @@ uniform float cloud_opacity = 0.9;
 uniform float cloud_height = 6000.0;     // m, for cloud shadows
 uniform float cloud_shadow = 0.55;
 uniform float ambient = 0.0;
-uniform float specular_strength = 0.6;
+uniform float specular_strength = 4.0;
 
 // Aerial perspective is computed per vertex (it varies smoothly over the
 // disk; ~27x fewer evaluations than per pixel) and per pixel only where the

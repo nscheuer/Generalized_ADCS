@@ -14,8 +14,9 @@ pixel with them (the method's path for views from space):
   infinite-order approximation, isotropic phase, ground albedo bounce).
 
 Lengths are metres. The atmosphere sits on Earth's equatorial radius so it
-matches the rendered globe. Standard clear-sky parameters (Rayleigh, Mie,
-ozone) are those of Bruneton and of Hillaire's reference.
+matches the rendered globe. Rayleigh, Mie and ozone coefficients follow
+Bruneton and Hillaire; scale heights are slightly broadened for a more visible
+orbital limb.
 """
 
 __all__ = ["AtmosphereParams", "transmittance_table", "multiscattering_table", "transmittance_uv", "build_tables"]
@@ -29,12 +30,12 @@ import numpy as np
 @dataclass(frozen=True)
 class AtmosphereParams:
     bottom_radius: float = 6378137.0
-    top_radius: float = 6378137.0 + 100.0e3
+    top_radius: float = 6378137.0 + 120.0e3
     rayleigh_scattering: Tuple[float, float, float] = (5.802e-6, 13.558e-6, 33.100e-6)  # 1/m at 680, 550, 440 nm
-    rayleigh_scale_height: float = 8000.0
+    rayleigh_scale_height: float = 9500.0
     mie_scattering: Tuple[float, float, float] = (3.996e-6, 3.996e-6, 3.996e-6)
     mie_extinction: Tuple[float, float, float] = (4.440e-6, 4.440e-6, 4.440e-6)
-    mie_scale_height: float = 1200.0
+    mie_scale_height: float = 1450.0
     mie_g: float = 0.8
     ozone_absorption: Tuple[float, float, float] = (0.650e-6, 1.881e-6, 0.085e-6)
     ozone_center: float = 25.0e3

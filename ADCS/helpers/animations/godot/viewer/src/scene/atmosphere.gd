@@ -15,7 +15,7 @@ var _t: PackedFloat32Array
 var _tw := 0
 var _th := 0
 var bottom := 6378137.0
-var top := 6478137.0
+var top := 6498137.0
 
 
 func load_from(dir: String, manifest: Dictionary) -> bool:
@@ -23,6 +23,15 @@ func load_from(dir: String, manifest: Dictionary) -> bool:
 	if not p is Dictionary:
 		return false
 	params = p
+	# Older cached LUTs encode the previous 100 km / 8 km / 1.2 km profile.
+	# Stretching them would break their transmittance mapping, so use the
+	# matching procedural profile until the atmosphere product is rebuilt.
+	if float(params.get("top_radius", 0.0)) < 6498137.0 \
+			or float(params.get("rayleigh_scale_height", 0.0)) < 9500.0 \
+			or float(params.get("mie_scale_height", 0.0)) < 1450.0:
+		bottom = 6378137.0
+		top = 6498137.0
+		return false
 	bottom = float(params["bottom_radius"])
 	top = float(params["top_radius"])
 	for f: Dictionary in manifest.get("files", []):
@@ -45,12 +54,10 @@ func load_from(dir: String, manifest: Dictionary) -> bool:
 func apply(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("has_atmosphere", true)
 	mat.set_shader_parameter("use_atmosphere_lut", transmittance_tex != null and multiscatter_tex != null)
-	if transmittance_tex == null or multiscatter_tex == null:
-		return
-	mat.set_shader_parameter("transmittance_lut", transmittance_tex)
-	mat.set_shader_parameter("multiscatter_lut", multiscatter_tex)
 	mat.set_shader_parameter("atm_bottom", bottom)
 	mat.set_shader_parameter("atm_top", top)
+	if transmittance_tex == null or multiscatter_tex == null:
+		return
 	var vec := func(k: String) -> Vector3:
 		var a: Array = params[k]
 		return Vector3(a[0], a[1], a[2])
@@ -63,6 +70,8 @@ func apply(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("ozone_absorption", vec.call("ozone_absorption"))
 	mat.set_shader_parameter("ozone_center", float(params["ozone_center"]))
 	mat.set_shader_parameter("ozone_half_width", float(params["ozone_half_width"]))
+	mat.set_shader_parameter("transmittance_lut", transmittance_tex)
+	mat.set_shader_parameter("multiscatter_lut", multiscatter_tex)
 
 
 ## Transmittance from radius r (<= top) to the top along zenith cosine mu (CPU, bilinear).
@@ -71,8 +80,8 @@ func transmittance(r: float, mu: float) -> Vector3:
 		var h := maxf(r - bottom, 0.0)
 		var closest := r * sqrt(maxf(1.0 - mu * mu, 0.0))
 		var h_along := maxf((closest if mu < 0.0 else r) - bottom, 0.0)
-		var rayleigh_depth := 8000.0 * exp(-h_along / 8000.0) / sqrt(mu * mu + 8000.0 / bottom)
-		var mie_depth := 1200.0 * exp(-h_along / 1200.0) / sqrt(mu * mu + 1200.0 / bottom)
+		var rayleigh_depth := 9500.0 * exp(-h_along / 9500.0) / sqrt(mu * mu + 9500.0 / bottom)
+		var mie_depth := 1450.0 * exp(-h_along / 1450.0) / sqrt(mu * mu + 1450.0 / bottom)
 		if mu < 0.0:
 			rayleigh_depth *= 2.0
 			mie_depth *= 2.0
