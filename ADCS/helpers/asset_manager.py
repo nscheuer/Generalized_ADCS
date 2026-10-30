@@ -58,7 +58,10 @@ class AssetManager:
         target.parent.mkdir(parents=True, exist_ok=True)
         partial = target.with_name(target.name + ".part")
         try:
-            request = Request(asset.url, headers={"User-Agent": "Mozilla/5.0 (compatible; Generalized-ADCS asset downloader)"})
+            request = Request(
+                asset.url,
+                headers={"User-Agent": "Generalized-ADCS/0.2 (+https://github.com/nscheuer/Generalized_ADCS)"},
+            )
             with tqdm(unit="B", unit_scale=True, unit_divisor=1024, desc=name) as bar:
                 with urlopen(request) as response, partial.open("wb") as output:
                     length = response.headers.get("Content-Length")
