@@ -66,6 +66,7 @@ from .environment import (
 from .orbits.orbital_state import Orbital_State
 from .orbits.orbit import Orbit
 from .orbits.rk4_orbit import RK4Orbit
+from .orbits.sgp4_orbit import SGP4Orbit
 from .satellite_hardware import disturbances
 from .satellite_hardware.actuators import Actuator, MTQ, RW
 from .satellite_hardware.errors import Bias, Noise
@@ -120,6 +121,7 @@ __all__ = [
     "Orbital_State",
     "Orbit",
     "RK4Orbit",
+    "SGP4Orbit",
     "Ephemeris",
     "Environment",
     "MagneticField",
