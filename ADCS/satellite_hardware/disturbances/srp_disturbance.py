@@ -57,6 +57,23 @@ def _srp_torque_kernel(S_B, R_B, COM, normals, areas, centroids,
     return out
 
 
+@njit(cache=True)
+def _srp_force_kernel(S_B, R_B, normals, areas, eta_s, eta_d, eta_a, solar_constant, c_light):
+    """Solar radiation pressure force summed over spacecraft faces [N]."""
+    sun_direction = S_B - R_B
+    sun_direction = sun_direction / np.sqrt(np.dot(sun_direction, sun_direction))
+    optical_force = np.zeros(3)
+    for i in range(normals.shape[0]):
+        cosine = np.dot(normals[i], sun_direction)
+        if cosine < 0.0:
+            continue
+        projected_area = areas[i] * cosine
+        specular_absorbed = projected_area * (eta_a[i] + eta_d[i])
+        normal_reflection = projected_area * (2.0 * eta_s[i] * cosine + (2.0 / 3.0) * eta_d[i])
+        optical_force += specular_absorbed * sun_direction + normal_reflection * normals[i]
+    return -(solar_constant / c_light) * optical_force
+
+
 if TYPE_CHECKING:
     from ADCS.satellite_hardware.satellite.satellite import Satellite
 
@@ -361,12 +378,11 @@ class SRP_Disturbance(Disturbance):
             return np.zeros(3)
 
         vecs = os.get_state_vector(x=x)
-        s_body = normalize(vecs["s"] - vecs["r"])
-        cos_gamma = np.maximum(0.0, self.normals @ s_body)
-        m_s = self.areas * (self.eta_a + self.eta_d) * cos_gamma
-        m_n = self.areas * cos_gamma * (2.0 * self.eta_s * cos_gamma + (2.0 / 3.0) * self.eta_d)
-        optical_force = np.sum(m_s) * s_body + m_n @ self.normals
-        return -(EarthConstants.solar_constant / EarthConstants.c) * optical_force
+        return _srp_force_kernel(
+            vecs["s"], vecs["r"], self.normals, self.areas,
+            self.eta_s, self.eta_d, self.eta_a,
+            EarthConstants.solar_constant, EarthConstants.c,
+        )
 
     def force_qjac(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""Compute the Jacobian of SRP force with respect to attitude quaternion.

@@ -36,6 +36,7 @@ def _drag_torque_kernel(V_B, rho, COM, normals, areas, centroids, CDs):
     return out
 
 
+@njit(cache=True)
 def _drag_force_kernel(V_B, rho, normals, areas, CDs):
     """Aerodynamic drag force summed over geometry faces, in body coordinates."""
     cos_alpha = np.maximum(0.0, normals @ V_B)

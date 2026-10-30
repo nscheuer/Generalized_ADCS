@@ -16,7 +16,6 @@ from ADCS.estimators.attitude_estimators import AttitudeEstimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.orbits.orbit import Orbit
-from ADCS.orbits.rk4_orbit import RK4Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.environment.environment import Environment
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
@@ -184,7 +183,7 @@ def simulate(
     start_time = os0.J2000
     end_time = start_time + tf * TimeConstants.sec2cent
     orb = orbit if orbit is not None else Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False, environment=environment)
-    coupled_orbit = isinstance(orb, RK4Orbit)
+    coupled_orbit = bool(getattr(orb, "coupled_to_attitude", False))
     if not coupled_orbit and orb.max_time() < end_time - 1e-2 / TimeConstants.cent2sec:
         raise ValueError("the supplied orbit does not cover the simulation duration")
     os0 = orb.get_os(J2000=start_time)
@@ -261,7 +260,8 @@ def simulate(
 
     _skip_jac = (estimator is None)
 
-    for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
+    progress_description = "Simulating ADCS + Orbit" if coupled_orbit else "Simulating ADCS"
+    for k in tqdm(range(N), desc=progress_description, unit="step"):
         env_t0 = time.perf_counter()
         J2000_k = start_time + k * dt * TimeConstants.sec2cent
         os_k = orb.get_os(J2000=J2000_k)
