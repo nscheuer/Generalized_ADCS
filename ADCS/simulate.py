@@ -16,6 +16,7 @@ from ADCS.estimators.attitude_estimators import AttitudeEstimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.orbits.orbit import Orbit
+from ADCS.orbits.rk4_orbit import RK4Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.environment.environment import Environment
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
@@ -44,6 +45,7 @@ def simulate(
     dt: float = 1.0,
     tf: float = 500.0,
     environment: Optional[Environment] = None,
+    orbit: Optional[Orbit] = None,
 ) -> SimulationResults:
     r"""
     Run a time-domain simulation of the spacecraft Attitude Determination and Control
@@ -56,8 +58,10 @@ def simulate(
     simulation data are logged and returned as a :class:`~ADCS.helpers.simresults.SimulationResults`
     object.
 
-    The simulation uses :func:`scipy.integrate.solve_ivp` with RK45 integration and
-    propagates the orbit using :class:`~ADCS.orbits.orbit.Orbit`.
+    Attitude is integrated with :func:`scipy.integrate.solve_ivp` (RK45).
+    By default the orbit is precomputed with :class:`~ADCS.orbits.orbit.Orbit`.
+    A supplied :class:`~ADCS.orbits.rk4_orbit.RK4Orbit` is advanced alongside
+    the attitude with two predictor-corrector passes per simulation step.
 
     :param x:
         Initial true satellite state. Its ``h`` length must match the satellite's
@@ -105,7 +109,8 @@ def simulate(
         or None
 
     :param os0:
-        Initial orbital state at the start of the simulation.
+        Initial orbital state at the start of the simulation. Optional when
+        ``orbit`` supplies its own initial state.
     :type os0:
         :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
@@ -124,6 +129,14 @@ def simulate(
     :type environment:
         :class:`~ADCS.environment.Environment` or None
 
+    :param orbit:
+        Optional orbit instance. ``RK4Orbit`` enables sequential attitude and
+        force-coupled orbit propagation. An ordinary ``Orbit`` supplies a
+        precomputed trajectory. When supplied, its initial state may replace
+        ``os0`` and its environment is used.
+    :type orbit:
+        :class:`~ADCS.orbits.orbit.Orbit` or None
+
     :return:
         Container holding all recorded simulation data, including true and estimated
         states, controls, sensor readings, biases, and targets for the entire run.
@@ -139,7 +152,25 @@ def simulate(
             f"{satellite.state_len}. It must be 7 + N_rw."
         )
 
+    if dt <= 0 or tf < 0:
+        raise ValueError("dt must be positive and tf must be nonnegative")
     N = int(tf / dt)
+
+    if orbit is not None:
+        if not isinstance(orbit, Orbit):
+            raise TypeError("orbit must be an Orbit instance")
+        if environment is not None and environment is not orbit.environment:
+            raise ValueError("orbit already owns an environment; pass it to the orbit constructor")
+        initial = orbit.get_os(orbit.min_time())
+        if os0 is not None and (
+            not np.isclose(os0.J2000, initial.J2000, rtol=0, atol=1e-2 / TimeConstants.cent2sec)
+            or not np.allclose(os0.R, initial.R, rtol=0, atol=1e-9)
+            or not np.allclose(os0.V, initial.V, rtol=0, atol=1e-12)
+        ):
+            raise ValueError("os0 must agree with the supplied orbit's initial state")
+        os0 = initial
+    elif os0 is None:
+        raise TypeError("os0 or orbit is required")
 
     if goal is None:
         goal_list = GoalList({os0.J2000: No_Goal()})
@@ -152,7 +183,10 @@ def simulate(
 
     start_time = os0.J2000
     end_time = start_time + tf * TimeConstants.sec2cent
-    orb = Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False, environment=environment)
+    orb = orbit if orbit is not None else Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False, environment=environment)
+    coupled_orbit = isinstance(orb, RK4Orbit)
+    if not coupled_orbit and orb.max_time() < end_time - 1e-2 / TimeConstants.cent2sec:
+        raise ValueError("the supplied orbit does not cover the simulation duration")
     os0 = orb.get_os(J2000=start_time)
 
     u = np.zeros(satellite.control_len)
@@ -171,6 +205,8 @@ def simulate(
     if controller is not None and _supports_planning(controller):
         has_active_trajectory = getattr(controller, "active_trajectory", None) is not None
         if not has_active_trajectory:
+            if coupled_orbit:
+                raise ValueError("initial trajectory planning requires a precomputed orbit")
             print("Calculating initial trajectory for Plan-and-Track controller...")
             trajectory = controller.calculate_trajectory(
                 t_start=start_time,
@@ -232,8 +268,9 @@ def simulate(
         os_k._skip_jacobians = _skip_jac
 
         J2000_kp1 = start_time + (k + 1) * dt * TimeConstants.sec2cent
-        os_kp1 = orb.get_os(J2000=J2000_kp1)
-        os_kp1._skip_jacobians = _skip_jac
+        if not coupled_orbit:
+            os_kp1 = orb.get_os(J2000=J2000_kp1)
+            os_kp1._skip_jacobians = _skip_jac
         # Draw this step's plant error realizations (actuator noise and bias walks,
         # wheel tachometer samples) before measuring and integrating; the
         # integrator holds them for the whole step (zero-order hold).
@@ -291,18 +328,35 @@ def simulate(
         # state, readings, estimate, control) belongs to the start of the step.
         x_k = x
         dyn_t0 = time.perf_counter()
-        out = solve_ivp(
-            fun=satellite.dynamics_for_solver,
-            t_span=(0, dt),
-            y0=x.as_array(),
-            method="RK45",
-            args=(u, os_k, os_kp1),
-            rtol=1e-7,
-            atol=1e-7,
-        )
+        if coupled_orbit:
+            # Seed the endpoint using the starting attitude. Then alternate
+            # attitude and orbit updates, evaluating force at each RK4 stage.
+            predicted_os = orb.predict(x_k, x_k, satellite, dt)
+            for _ in range(2):
+                out = solve_ivp(
+                    fun=satellite.dynamics_for_solver,
+                    t_span=(0, dt), y0=x_k.as_array(), method="RK45",
+                    args=(u, os_k, predicted_os), rtol=1e-7, atol=1e-7,
+                )
+                if not out.success:
+                    raise RuntimeError(f"attitude integration failed: {out.message}")
+                x = State.from_array(out.y[:, -1]).normalized()
+                predicted_os = orb.predict(x_k, x, satellite, dt)
+            orb._commit(predicted_os)
+        else:
+            out = solve_ivp(
+                fun=satellite.dynamics_for_solver,
+                t_span=(0, dt),
+                y0=x.as_array(),
+                method="RK45",
+                args=(u, os_k, os_kp1),
+                rtol=1e-7,
+                atol=1e-7,
+            )
+            if not out.success:
+                raise RuntimeError(f"attitude integration failed: {out.message}")
+            x = State.from_array(out.y[:, -1]).normalized()
         dynamics_time_s = time.perf_counter() - dyn_t0
-        x = State.from_array(out.y[:, -1])
-        x = x.normalized()
 
         target, w_target = active_goal.to_ref(os_for_gnc) 
 

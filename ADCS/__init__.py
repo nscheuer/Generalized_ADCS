@@ -64,6 +64,8 @@ from .environment import (
     BrightStarCatalog,
 )
 from .orbits.orbital_state import Orbital_State
+from .orbits.orbit import Orbit
+from .orbits.rk4_orbit import RK4Orbit
 from .satellite_hardware import disturbances
 from .satellite_hardware.actuators import Actuator, MTQ, RW
 from .satellite_hardware.errors import Bias, Noise
@@ -116,6 +118,8 @@ __all__ = [
     "MCConfig",
     "simulate_mc",
     "Orbital_State",
+    "Orbit",
+    "RK4Orbit",
     "Ephemeris",
     "Environment",
     "MagneticField",

@@ -46,6 +46,8 @@ class _EarthConstants:
     R_e: float = 6378.1363            # km
     R_moon: float = 1737.4            # km
     mu_e: float = 398600.4415         # km^3/s^2
+    mu_sun: float = 132712440041.27942 # km^3/s^2, JPL astrodynamic parameters
+    mu_moon: float = 4902.800118      # km^3/s^2, JPL astrodynamic parameters
     J2coeff: float = 1.082635854e-3
     J3coeff: float = -2.53265649e-6
     J4coeff: float = -1.61962159e-6
