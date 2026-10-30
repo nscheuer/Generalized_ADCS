@@ -42,6 +42,13 @@ class _EarthConstants:
     polynomial of degree ``n``. Values are the standard EGM96-derived constants
     (sign convention: :math:`J_2,J_6>0`, :math:`J_3,J_4,J_5<0`). They are
     collected in :attr:`Jcoeffs` (degrees 2..6) for the orbit propagator.
+
+    References
+    ----------
+    * EGM96 geopotential model: Lemoine et al.,
+      `NASA/TP-1998-206861 <https://ntrs.nasa.gov/citations/19980218814>`_.
+    * Solar and lunar gravitational parameters: `JPL Astrodynamic Parameters
+      <https://ssd.jpl.nasa.gov/astro_par.html>`_.
     """
     R_e: float = 6378.1363            # km
     R_moon: float = 1737.4            # km

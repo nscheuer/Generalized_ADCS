@@ -88,6 +88,19 @@ class RK4Orbit(Orbit):
 
     ``zonal_J`` has the same meaning as on :class:`Orbit`; Earth central gravity
     is always included. Positions and velocities are ECI km and km/s.
+
+    References
+    ----------
+    * Classical Runge–Kutta integration: J. C. Butcher, “Coefficients for the
+      Study of Runge-Kutta Integration Processes,” *The Computer Journal*,
+      6(1), 1963, pp. 50–54,
+      `doi:10.1093/comjnl/6.1.50 <https://doi.org/10.1093/comjnl/6.1.50>`_.
+    * Earth gravity coefficients: Lemoine et al.,
+      `NASA/TP-1998-206861 (EGM96) <https://ntrs.nasa.gov/citations/19980218814>`_.
+    * Sun and Moon gravitational parameters: `JPL Astrodynamic Parameters
+      <https://ssd.jpl.nasa.gov/astro_par.html>`_.
+    * Drag model: see :class:`ADCS.satellite_hardware.disturbances.Drag_Disturbance`
+      and the corresponding entry in the package citation guide.
     """
 
     coupled_to_attitude = True

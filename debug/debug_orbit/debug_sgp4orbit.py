@@ -1,4 +1,9 @@
-"""Compare TLE-fitted B* with geometry-averaged B* in SGP4Orbit."""
+"""Compare TLE-fitted B* with geometry-averaged B* in SGP4Orbit.
+
+TLE field meanings follow the `CelesTrak TLE FAQ
+<https://celestrak.org/columns/v04n03/>`_; SGP4 follows Vallado et al.,
+`AIAA-2006-6753 <https://celestrak.org/publications/AIAA/2006-6753/>`_.
+"""
 
 from pathlib import Path
 import sys

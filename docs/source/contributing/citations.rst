@@ -61,8 +61,12 @@ Aerodynamics
      - Documentation
      - Original citation
      - Paper or source
+   * - Panel drag and ballistic coefficient
+     - :doc:`Drag_Disturbance <../ADCS.satellite_hardware.disturbances.drag_disturbance>`
+     - The implementation uses the standard quadratic aerodynamic drag law, resolved over body-fixed faces. See D. A. Vallado, *Fundamentals of Astrodynamics and Applications*, 4th ed., Microcosm Press (2013), atmospheric drag discussion.
+     - `CelesTrak TLE/B* FAQ <https://celestrak.org/columns/v04n03/>`__; `Vallado et al., AIAA-2006-6753 <https://celestrak.org/publications/AIAA/2006-6753/>`__
    * - Sentman free-molecular drag
-     - :doc:`Sentman_Drag_Disturbance <../ADCS.satellite_hardware.disturbances.sentman_drag_disturbance>`
+     - :py:class:`~ADCS.satellite_hardware.disturbances.sentman_drag_disturbance.Sentman_Drag_Disturbance`
      - L. H. Sentman, *Free Molecule Flow Theory and Its Application to the Determination of Aerodynamic Forces*, Lockheed Missiles & Space Company, report LMSC-448514 (1961). The diffuse re-emission and gas-surface assumptions are also informed by K. Moe and M. M. Moe, "Gas–surface interactions and satellite drag coefficients," *Planetary and Space Science*, Vol. 53, No. 8, 2005, pp. 793–801, and E. Doornbos, *Thermospheric Density and Wind Determination from Satellite Dynamics*, Springer (2012), section 3.4.
      - `Sentman report <https://citeseerx.ist.psu.edu/document?doi=474aab2a5070e9c012e0d6f21b43d11c838207b3&repid=rep1&type=pdf>`__; `Moe & Moe, doi:10.1016/j.pss.2005.03.005 <https://doi.org/10.1016/j.pss.2005.03.005>`__; `Doornbos, doi:10.1007/978-3-642-25129-0 <https://doi.org/10.1007/978-3-642-25129-0>`__
 
@@ -80,6 +84,26 @@ planetary ephemerides and geomagnetic-field calculations.
      - Documentation
      - Original citation
      - Reference
+   * - SGP4 propagation from TLEs
+     - :doc:`SGP4Orbit <../ADCS.orbits.sgp4_orbit>`
+     - D. A. Vallado, P. Crawford, R. Hujsak, and T. S. Kelso, “Revisiting Spacetrack Report #3,” AIAA/AAS Astrodynamics Specialist Conference, AIAA-2006-6753 (2006). The implementation uses the ``sgp4`` package and Skyfield's vectorized SGP4 interface.
+     - `CelesTrak paper, source code, and test cases <https://celestrak.org/publications/AIAA/2006-6753/>`__; `python-sgp4 documentation <https://pypi.org/project/sgp4/>`__; `Skyfield documentation <https://rhodesmill.org/skyfield/earth-satellites.html>`__
+   * - TLE format and SGP4 B* drag term
+     - :doc:`SGP4Orbit <../ADCS.orbits.sgp4_orbit>`
+     - CelesTrak documents B* as the SGP4 drag-like parameter, adjusted from the aerodynamic ballistic coefficient. The geometry-derived estimate in this package uses the conventional reference-density relation and an isotropic mean projected-area assumption.
+     - `CelesTrak TLE format and B* definition <https://celestrak.org/columns/v04n03/>`__; `NASA HST/Swift orbit-decay study, NASA/TM-20250010561 (2025), reference-density convention <https://ntrs.nasa.gov/citations/20250010561>`__
+   * - RK4 orbit propagation and force model
+     - :doc:`RK4Orbit <../ADCS.orbits.rk4_orbit>`
+     - Classical fourth-order Runge–Kutta integration is used for Cowell-form translational dynamics. The modeled perturbations include Earth zonal gravity, third-body gravity, and spacecraft aerodynamic force.
+     - `Butcher, “Coefficients for the Study of Runge-Kutta Integration Processes,” doi:10.1093/comjnl/6.1.50 <https://doi.org/10.1093/comjnl/6.1.50>`__; Vallado, *Fundamentals of Astrodynamics and Applications*, 4th ed. (2013)
+   * - Earth gravitational parameter, reference radius, and zonal coefficients
+     - :doc:`EarthConstants <../ADCS.orbits.universal_constants>`
+     - The package uses EGM96-derived unnormalized zonal coefficients through degree 6. The selected constants and coefficient convention are documented with ``EarthConstants``.
+     - `Lemoine et al., NASA/TP-1998-206861, EGM96 <https://ntrs.nasa.gov/citations/19980218814>`__; `NGA WGS 84 reference constants <https://earth-info.nga.mil/?action=wgs84&dir=wgs84>`__
+   * - Solar and lunar gravitational parameters
+     - :doc:`RK4Orbit <../ADCS.orbits.rk4_orbit>`
+     - Third-body accelerations use the Sun and Moon gravitational parameters.
+     - `JPL Solar System Dynamics, Astrodynamic Parameters <https://ssd.jpl.nasa.gov/astro_par.html>`__
    * - Planetary ephemeris and celestial-body positions (default DE421)
      - ``ADCS.environment.ephemeris.DE421``; alternatives: ``DE442``, ``DE442s``, ``DE441``
      - W. M. Folkner, J. G. Williams, and D. H. Boggs, *The Planetary and Lunar Ephemeris DE421*, JPL IOM 343.R-08-003 (2008). Skyfield provides the Python interface used to read these JPL kernels.
@@ -102,7 +126,7 @@ planetary ephemerides and geomagnetic-field calculations.
      - `doi:10.1029/2002JA009430 <https://doi.org/10.1029/2002JA009430>`__
    * - Standard tabulated atmosphere (SMAD)
      - ``ADCS.environment.atmosphere.SMADAtmosphere``
-     - Wertz and Larson (eds.), *Space Mission Analysis and Design*, Microcosm Press and Kluwer Academic Publishers. This implementation uses tabulated reference densities and log-linear interpolation.
+     - J. R. Wertz and W. J. Larson (eds.), *Space Mission Analysis and Design*, 3rd ed., Microcosm Press and Kluwer Academic Publishers (1999). This implementation uses tabulated reference densities and log-linear interpolation.
      - `Publisher information <https://www.microcosm.com/>`__
    * - Bright Star Catalogue
      - ``ADCS.environment.star_catalogue.BrightStarCatalog``

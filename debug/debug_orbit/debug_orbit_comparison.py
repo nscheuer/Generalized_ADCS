@@ -1,4 +1,11 @@
-"""Compare drag-induced orbital decay from SGP4 and RK4Orbit."""
+"""Compare drag-induced orbital decay from SGP4 and RK4Orbit.
+
+SGP4 and TLE conventions follow Vallado et al.,
+`AIAA-2006-6753 <https://celestrak.org/publications/AIAA/2006-6753/>`_ and the
+`CelesTrak TLE FAQ <https://celestrak.org/columns/v04n03/>`_. The comparison's
+NRLMSISE-00 density model follows Picone et al. (2002); see the package citation
+guide for its DOI and the reference for the NRLMSISE-00 implementation.
+"""
 
 from pathlib import Path
 import sys

@@ -23,7 +23,12 @@ SMAD_DENSITY_KG_M3 = np.array([
 
 
 class SMADAtmosphere(Atmosphere):
-    """Tabulated SMAD density profile, evaluated from spacecraft position."""
+    """Tabulated SMAD density profile, evaluated from spacecraft position.
+
+    The tabulated reference profile follows Wertz and Larson (eds.),
+    *Space Mission Analysis and Design*; see the project citation guide for
+    bibliographic details. Intermediate values are log-linearly interpolated.
+    """
 
     def __init__(self, altitude_range=None, rho_range=None):
         self.altitude_range = np.array(

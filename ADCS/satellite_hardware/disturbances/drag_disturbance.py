@@ -145,6 +145,13 @@ class Drag_Disturbance(Disturbance):
     follow the piecewise derivatives using a Heaviside-gated term. At the kink,
     derivatives are understood in the piecewise (one-sided) sense used by the code.
 
+    **References**
+
+    The quadratic drag law follows the standard ballistic drag model described in
+    D. A. Vallado, *Fundamentals of Astrodynamics and Applications*, 4th ed.
+    (2013). The TLE-specific B* definition is documented in the
+    `CelesTrak TLE FAQ <https://celestrak.org/columns/v04n03/>`_.
+
     :param config: Geometry and aerodynamic coefficients for each face.
     :type config: :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`
     """

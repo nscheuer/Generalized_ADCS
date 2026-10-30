@@ -34,7 +34,9 @@ def _isotropic_mean_cd_area_kernel(areas: np.ndarray, coefficients: np.ndarray) 
 class SGP4Orbit(Orbit):
     """Precompute an SGP4 trajectory from TLE data.
 
-    Pass either a Skyfield ``EarthSatellite`` or a pair of TLE lines. When a
+    Pass either a Skyfield ``EarthSatellite`` or a pair of TLE lines. TLE mean
+    elements are propagated using the WGS-72 SGP4 model, and Skyfield converts
+    the resulting TEME samples to the package's inertial frame. When a
     ``satellite`` is supplied, its ``Drag_Disturbance`` geometry is reduced to
     an isotropic mean projected area and used to estimate a physical B* value.
     This one-time average is efficient, but does not represent a commanded,
@@ -46,6 +48,16 @@ class SGP4Orbit(Orbit):
 
     ``end_time`` and optional ``start_time`` are Julian centuries since J2000;
     ``dt`` is in seconds, matching :class:`Orbit`.
+
+    References
+    ----------
+    * SGP4 theory and its reference implementation: Vallado et al.,
+      `AIAA-2006-6753 <https://celestrak.org/publications/AIAA/2006-6753/>`_.
+    * TLE fields and the meaning and units of B*: `CelesTrak TLE FAQ
+      <https://celestrak.org/columns/v04n03/>`_.
+    * The B* reference-density conversion uses the convention documented in
+      Koehler et al., `NASA/TM-20250010561
+      <https://ntrs.nasa.gov/citations/20250010561>`_.
     """
 
     def __init__(
