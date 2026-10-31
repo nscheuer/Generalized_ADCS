@@ -1,0 +1,360 @@
+__all__ = ["results_to_vizlog"]
+
+import copy
+import platform
+import re
+import subprocess
+import warnings
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+
+from ADCS.helpers.math_helpers import angle_between_vectors, quaternion_angle, rot_mat
+from ADCS.helpers.simresults import RunResults, SimulationResults
+from ADCS.environment.ephemeris import DE421 as Ephemeris
+from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.helpers.animations.godot.shadow import shadow_factor
+from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
+from ADCS.satellite_hardware.errors import ErrorMode
+from ADCS.helpers.animations.godot.derive import derive_environment, j2000_to_jd_tt
+from ADCS.helpers.animations.godot.planetary import MODELS, orientation
+from ADCS.helpers.animations.godot.interp import quat_continuity
+from ADCS.helpers.animations.godot.scene import build_scene, sensor_layout
+from ADCS.helpers.animations.godot.schema import REQUIRED_CHANNELS, TARGET_KIND, Channel, channel_spec
+from ADCS.helpers.animations.godot.writer import VizLogWriter
+
+#: Disturbance/actuator torques recomputed with bias but no noise, and
+#: without advancing any random state (see results_to_vizlog).
+_NOMINAL_MODE = ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
+
+
+def _generator() -> Dict[str, Any]:
+    import ADCS
+
+    version = getattr(ADCS, "__version__", None)
+    if not version or version == "0.0.0.dev0":
+        for parent in Path(__file__).resolve().parents:
+            pyproject = parent / "pyproject.toml"
+            if not pyproject.is_file():
+                continue
+            try:
+                match = re.search(r"(?m)^version\s*=\s*['\"]([^'\"]+)['\"]", pyproject.read_text(encoding="utf-8"))
+            except OSError:
+                match = None
+            if match:
+                version = match.group(1)
+                break
+    sha = None
+    try:
+        repo = Path(__file__).resolve().parents[2]
+        out = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
+                             capture_output=True, text=True, timeout=5, check=False)
+        if out.returncode == 0:
+            sha = out.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return {"name": "Generalized_ADCS", "version": version,
+            "git_sha": sha, "python": platform.python_version()}
+
+
+def manifest_metadata(ephem: Ephemeris) -> Dict[str, Any]:
+    r"""Manifest entries describing the producer, ephemeris and body models."""
+    return {
+        "generator": _generator(),
+        "ephemeris": ({"name": type(ephem).__name__}),
+        "earth": {"model": "WGS84", "a_km": 6378.137, "f": 1.0 / 298.257223563,
+                  "R_e_sim_km": EarthConstants.R_e},
+        "bodies": {"sun_radius_km": 695700.0, "moon_radius_km": EarthConstants.R_moon},
+        "shadow_model": "conical (Montenbruck & Gill 3.4.2), occulter radius R_e_sim_km",
+    }
+
+
+def _orbital_states(run: RunResults, ephem: Ephemeris) -> List[Orbital_State]:
+    hist = run.os_hist or []
+    return [os if isinstance(os, Orbital_State) else Orbital_State.from_dict(os, ephem=ephem) for os in hist]
+
+
+def _target_columns(target_hist: Any, n: int, R: np.ndarray, q: np.ndarray,
+                    boresight: Optional[np.ndarray]) -> Dict[str, np.ndarray]:
+    kind = np.zeros((n, 1))
+    target = np.full((n, 4), np.nan)
+    err = np.full((n, 1), np.nan)
+    raw = list(target_hist)
+    for k in range(n):
+        t = np.asarray(raw[k], dtype=float).reshape(-1)
+        if t.size == 3:
+            t = np.concatenate([[np.nan], t])
+        if t.size != 4 or not np.any(np.isfinite(t)) or np.allclose(np.nan_to_num(t), 0.0):
+            continue
+        if np.isnan(t[0]):
+            vec = t[1:]
+            if np.linalg.norm(vec) > 10.0:  # a position [km], as AnimationPlot treats it
+                kind[k] = TARGET_KIND["position"]
+                direction = vec - R[k]
+            else:
+                kind[k] = TARGET_KIND["direction"]
+                direction = vec
+            target[k] = t
+            if boresight is not None and np.all(np.isfinite(boresight[k])):
+                err[k] = angle_between_vectors(rot_mat(q[k]) @ boresight[k], direction)
+        else:
+            kind[k] = TARGET_KIND["quaternion"]
+            target[k] = t
+            err[k] = quaternion_angle(q[k], t)
+    return {"target_kind": kind, "target": target, "pointing_err": err}
+
+
+def _nominal_torques(run: RunResults, states: List[Any], oss: List[Orbital_State],
+                     controls: Optional[np.ndarray]) -> Optional[Tuple[np.ndarray, np.ndarray]]:
+    sat = copy.deepcopy(run.satellite)
+    n = len(states)
+    u_zero = np.zeros(sat.control_len)
+    tau_a = np.empty((n, 3))
+    tau_d = np.empty((n, 3))
+    try:
+        for k in range(n):
+            u = controls[k] if controls is not None else u_zero
+            tau_d[k] = sat.dist_torques(x=states[k], os=oss[k], dmode=_NOMINAL_MODE)
+            tau_a[k] = sat.act_torque(x=states[k], u=u, os=oss[k], dmode=_NOMINAL_MODE)
+    except Exception as e:  # noqa: BLE001 - optional channel; report and continue
+        warnings.warn(f"vizlog: torque recompute failed ({type(e).__name__}: {e}); "
+                      "omitting tau_act_body/tau_dist_body", stacklevel=3)
+        return None
+    return tau_a, tau_d
+
+
+def _run_columns(run: RunResults, ephem: Ephemeris, torques: str) -> Tuple[Dict[str, np.ndarray], Dict[str, Channel]]:
+    oss = _orbital_states(run, ephem)
+    states = list(run.state_hist or [])
+    n = len(states)
+    if n == 0 or len(oss) != n:
+        raise ValueError(f"run has {n} states but {len(oss)} orbital states")
+    sat = run.satellite
+
+    j2000 = np.array(run.time_J2000 if run.time_J2000 is not None else [o.J2000 for o in oss], dtype=float)
+    R = np.array([o.R for o in oss], dtype=float)
+    V = np.array([o.V for o in oss], dtype=float)
+    q = quat_continuity(np.array([s.q for s in states], dtype=float))
+    env = derive_environment(ephem, j2000_to_jd_tt(j2000))
+
+    cols: Dict[str, np.ndarray] = {
+        "_j2000": j2000,
+        # Elapsed seconds as the simulation recorded them (k * dt), which are
+        # exact; differencing J2000 centuries loses ~1e-8 s.
+        "_time_s": (np.array(run.time_s, dtype=float) if run.time_s is not None and len(run.time_s) == n
+                    else (j2000 - j2000[0]) * TimeConstants.cent2sec),
+        "r_sc": R,
+        "v_sc": V,
+        "q_gcrs_body": q,
+        "w_body": np.array([s.w for s in states], dtype=float),
+        "r_sun": env["r_sun"],
+        "q_itrs_gcrs": env["q_itrs_gcrs"],
+        "shadow_factor": shadow_factor(R, env["r_sun"]),
+        "r_moon": env["r_moon"],
+        "q_sun_gcrs": quat_continuity(orientation("sun", j2000_to_jd_tt(j2000))),
+        "q_moon_gcrs": quat_continuity(orientation("moon", j2000_to_jd_tt(j2000))),
+        "sunlit_binary": np.array([float(o.is_sunlit()) for o in oss]),
+        "b_field": np.array([getattr(o, "B", np.full(3, np.nan)) for o in oss], dtype=float),
+        "rho": np.array([getattr(o, "rho", np.nan) for o in oss], dtype=float),
+    }
+    moments, axes = np.linalg.eigh(np.asarray(sat.J_COM, dtype=float))
+    for axis in range(3):
+        name = f"user_inertia_axis_{axis}"
+        cols[name] = np.tile(axes[:, axis] * moments[axis], (n, 1))
+    for name in ("mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune"):
+        try:
+            cols[f"r_{name}"] = np.asarray(ephem.position_eci(f"{name} barycenter" if name in
+                {"jupiter", "saturn", "uranus", "neptune"} else name, j2000), dtype=float).reshape(n, 3)
+        except (KeyError, ValueError):
+            # Some kernels omit individual planet centres; use their barycentres.
+            cols[f"r_{name}"] = np.asarray(ephem.position_eci(f"{name} barycenter", j2000), dtype=float).reshape(n, 3)
+        cols[f"q_{name}_gcrs"] = quat_continuity(orientation(name, j2000_to_jd_tt(j2000)))
+    specs: Dict[str, Channel] = {
+        f"user_inertia_axis_{axis}": channel_spec(f"user_inertia_axis_{axis}", 3,
+                                                     unit="kg m²", frame="BODY")
+        for axis in range(3)
+    }
+
+    actuator_ids = [a["id"] for a in build_scene(sat)["actuators"]]
+    if sat.number_RW > 0:
+        h = np.array([s.h for s in states], dtype=float).reshape(n, sat.number_RW)
+        J = np.array([rw.J for rw in sat.rw_actuators], dtype=float)
+        rw_ids = [a for a in actuator_ids if a.startswith("rw")]
+        cols["h_wheel"], cols["wheel_speed"] = h, h / J
+        cols["h_rw_body"] = h @ np.vstack([rw.axis for rw in sat.rw_actuators])
+        specs["h_wheel"] = channel_spec("h_wheel", sat.number_RW, labels=rw_ids)
+        specs["wheel_speed"] = channel_spec("wheel_speed", sat.number_RW, labels=rw_ids)
+
+    controls = None
+    if run.control_hist is not None and sat.control_len > 0:
+        controls = np.array(run.control_hist, dtype=float).reshape(n, sat.control_len)
+        cols["u_cmd"] = controls
+        specs["u_cmd"] = channel_spec("u_cmd", sat.control_len, labels=actuator_ids)
+
+    if torques == "nominal":
+        result = _nominal_torques(run, states, oss, controls)
+        if result is not None:
+            cols["tau_act_body"], cols["tau_dist_body"] = result
+            prov = "nominal_recompute: bias applied, noise off, random state not advanced"
+            specs["tau_act_body"] = channel_spec("tau_act_body", provenance=prov)
+            specs["tau_dist_body"] = channel_spec("tau_dist_body", provenance=prov)
+    elif torques != "none":
+        raise ValueError(f"torques must be 'nominal' or 'none', got {torques!r}")
+
+    boresight = None
+    if run.boresight_hist is not None and len(run.boresight_hist) == n:
+        boresight = np.array([np.asarray(b, dtype=float).reshape(3) for b in run.boresight_hist])
+        cols["boresight_body"] = boresight
+    if run.target_hist is not None and len(run.target_hist) == n:
+        cols.update(_target_columns(run.target_hist, n, R, q, boresight))
+    if run.w_target_hist is not None and len(run.w_target_hist) == n:
+        cols["w_target"] = np.array([np.asarray(w, dtype=float).reshape(3) for w in run.w_target_hist])
+
+    est = run.est_state_hist
+    if est is not None and len(est) == n and all(e is not None for e in est):
+        cols["q_est"] = quat_continuity(np.array([e.q for e in est], dtype=float))
+        cols["w_est"] = np.array([e.w for e in est], dtype=float)
+    est_os = run.est_os_hist
+    if est_os is not None and len(est_os) == n and all(e is not None for e in est_os):
+        def _rv(e: Any, key: str) -> np.ndarray:
+            e = getattr(e, "os", e)
+            return np.asarray(e[key] if isinstance(e, dict) else getattr(e, key), dtype=float)
+        cols["r_est"] = np.array([_rv(e, "R") for e in est_os])
+        cols["v_est"] = np.array([_rv(e, "V") for e in est_os])
+
+    if run.sensor_hist is not None and len(run.sensor_hist) == n:
+        y = np.array([np.asarray(v, dtype=float).reshape(-1) for v in run.sensor_hist])
+        layout = sensor_layout(sat)
+        if layout and layout[-1]["slice"][1] == y.shape[1]:
+            for block in layout:
+                i0, i1 = block["slice"]
+                name = f"sensor_{block['id']}"
+                cols[name] = y[:, i0:i1]
+                specs[name] = channel_spec(name, i1 - i0, unit="native",
+                                           description=f"{block['type']} reading (noisy)")
+        else:
+            warnings.warn("vizlog: sensor_hist width does not match the sensor layout; "
+                          "omitting sensor channels", stacklevel=3)
+
+    for name in cols:
+        if not name.startswith("_") and name not in specs:
+            specs[name] = channel_spec(name)
+    return cols, specs
+
+
+def results_to_vizlog(
+    sim: SimulationResults,
+    path: str | Path,
+    ephem: Optional[Ephemeris] = None,
+    torques: str = "nominal",
+    overwrite: bool = False,
+    model: Optional[str | Path] = None,
+    overlays: Any = "default",
+    extra_channels: Optional[Dict[str, np.ndarray]] = None,
+    bookmarks: Optional[List[Any]] = None,
+    sites: Optional[List[Any]] = None,
+) -> Path:
+    r"""
+    Write simulation results as an ``adcs-vizlog`` directory.
+
+    This is a post-processing pass: it never runs inside the simulation loop.
+    Environment quantities that the results do not keep (Moon, Earth
+    orientation, shadow factor) are recomputed in one vectorized pass from the
+    recorded times.
+
+    Torques (``torques="nominal"``) are recomputed on a copy of the satellite
+    with bias applied but noise disabled, so they are the nominal torques at
+    each recorded state, not bit-identical to what the integrator applied when
+    noise is enabled. The channels carry that note as ``provenance``.
+
+    All runs share one epoch (the first run's first sample); ``t_s`` of later
+    runs is relative to it.
+
+    :param sim: Results from :func:`~ADCS.simulate` or :func:`~ADCS.mc.simulate_mc`.
+    :param path: Output directory.
+    :param ephem: Ephemeris for recomputed quantities and for rebuilding
+        orbital states stored as dictionaries. Defaults to the one the
+        recorded orbital states use, else a new :class:`Ephemeris`.
+    :param torques: ``"nominal"`` or ``"none"``.
+    :param overwrite: Replace an existing vizlog at ``path``.
+    :param model: Spacecraft model sidecar (``.viz.json``) from
+        :func:`~ADCS.helpers.animations.godot.mesh_import.import_spacecraft`, referenced from
+        ``scene.json``. Without it the viewer draws the drag/SRP panels.
+    :param overlays: Overlays for the viewer (:mod:`ADCS.helpers.animations.godot.overlays`):
+        ``"default"`` (:func:`~ADCS.helpers.animations.godot.overlays.default_overlays`), a list of
+        overlay objects/descriptors, or ``None``.
+    :param extra_channels: Additional per-row channels, ``{name: array (n_rows,
+        width)}``, e.g. ``joint_<node>`` angles [rad] that drive hinged model
+        parts, or ``user_<name>`` vectors for arrows. Applied to every run, so
+        all runs must have that many rows.
+    :param bookmarks: Named moments for the viewer's timeline
+        (:class:`~ADCS.helpers.animations.godot.timeline.Bookmark`, by ``t_s`` or ``utc``).
+    :param sites: Ground sites whose passes the timeline shows
+        (:class:`~ADCS.helpers.animations.godot.timeline.GroundSite`).
+    :return: The vizlog path.
+    """
+    if ephem is None:
+        first = (sim.runs[0].os_hist or [None])[0]
+        ephem = getattr(first, "ephem", None) or Ephemeris()
+
+    per_run = [_run_columns(run, ephem, torques) for run in sim.runs]
+
+    # The channel set is that of the first run; later runs must agree on widths.
+    specs = per_run[0][1]
+    for i, (_, s) in enumerate(per_run[1:], start=1):
+        for name, spec in specs.items():
+            if name in s and s[name].width != spec.width:
+                raise ValueError(f"run {i}: channel {name!r} width {s[name].width} != {spec.width}")
+    for name, arr in (extra_channels or {}).items():
+        arr = np.asarray(arr, dtype=float)
+        arr = arr.reshape(len(arr), -1)
+        for i, (cols, specs_i) in enumerate(per_run):
+            if len(arr) != len(cols["_j2000"]):
+                raise ValueError(f"extra channel {name!r} has {len(arr)} rows, run {i} has {len(cols['_j2000'])}")
+            cols[name] = arr
+            specs_i[name] = channel_spec(name, arr.shape[1])
+    required = [n for n in REQUIRED_CHANNELS if n != "t_s"]
+    ordered = required + [n for n in specs if n not in REQUIRED_CHANNELS]
+    channels = [channel_spec("t_s")] + [specs[n] for n in ordered]
+    names = {c.name for c in channels}
+
+    epoch_j2000 = float(per_run[0][0]["_j2000"][0])
+    epoch_jd = float(j2000_to_jd_tt(epoch_j2000))
+    epoch_iso = ephem.ts.tt_jd(epoch_jd).utc_iso(places=3)
+
+    scene = build_scene(sim.runs[0].satellite, model=model)
+    if overlays is not None:
+        from ADCS.helpers.animations.godot.overlays import default_overlays, validate_overlays
+
+        info = {c.name: c.to_json() for c in channels}
+        if isinstance(overlays, str) and overlays == "default":
+            first = per_run[0][0]
+            ref = {}
+            for ch in ("tau_act_body", "tau_dist_body", "h_rw_body"):
+                if ch in first:
+                    mags = np.linalg.norm(first[ch], axis=1)
+                    mags = mags[np.isfinite(mags) & (mags > 0)]
+                    if len(mags):
+                        ref[ch] = float(np.percentile(mags, 10))
+            overlays = default_overlays(info, scene, ref)
+        scene["overlays"] = validate_overlays(overlays, info, scene)
+    if bookmarks or sites:
+        from ADCS.helpers.animations.godot.timeline import validate_timeline
+
+        t_last = max((float(c["_j2000"][0]) - epoch_j2000) * TimeConstants.cent2sec
+                     + float(c["_time_s"][-1] - c["_time_s"][0]) for c, _ in per_run)
+        scene["timeline"] = validate_timeline(
+            bookmarks, sites, t_range=(0.0, t_last),
+            utc_to_t_s=lambda d: (ephem.ts.from_datetime(d).tt - epoch_jd) * 86400.0)
+    with VizLogWriter(path, channels, epoch_jd_tt=epoch_jd, epoch_iso_utc=epoch_iso,
+                      scene=scene, metadata=manifest_metadata(ephem),
+                      overwrite=overwrite) as writer:
+        run_ids = sim.run_ids or list(range(len(sim.runs)))
+        for rid, (cols, _) in zip(run_ids, per_run):
+            j2000 = cols.pop("_j2000")
+            elapsed = cols.pop("_time_s")
+            cols["t_s"] = (j2000[0] - epoch_j2000) * TimeConstants.cent2sec + (elapsed - elapsed[0])
+            dt = float(np.median(np.diff(cols["t_s"]))) if len(j2000) > 1 else None
+            writer.write_run(rid, {k: v for k, v in cols.items() if k in names}, dt_s=dt)
+    return Path(path)
