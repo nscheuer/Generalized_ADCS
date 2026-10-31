@@ -513,6 +513,85 @@ class Orbital_State:
 
     from_tle = from_TLE
 
+    def to_position(self) -> Tuple[float, np.ndarray, np.ndarray]:
+        """Return ``(J2000, R, V)`` in Julian centuries, km, and km/s."""
+        return self.J2000, self.R.copy(), self.V.copy()
+
+    def to_keplerian(self, *, mu: float = EarthConstants.mu_e) -> Tuple[float, float, float, float, float, float]:
+        """Return classical elliptic elements ``(a, e, i, raan, argp, nu)``.
+
+        Angles are in degrees. For circular or equatorial orbits, the
+        undefined angular elements are set to zero and the remaining angle is
+        chosen to preserve the state as far as the classical convention allows.
+        """
+        r, v = self.R, self.V
+        rn, vn = np.linalg.norm(r), np.linalg.norm(v)
+        mu = float(mu)
+        if not np.isfinite(mu) or mu <= 0 or rn == 0:
+            raise ValueError("mu must be finite and positive and position must be nonzero")
+        h = np.cross(r, v)
+        hn = np.linalg.norm(h)
+        if hn == 0:
+            raise ValueError("Keplerian elements are undefined for a radial state")
+        evec = np.cross(v, h) / mu - r / rn
+        e = float(np.linalg.norm(evec))
+        energy = vn * vn / 2.0 - mu / rn
+        if energy >= 0:
+            raise ValueError("classical elliptic elements require a bound orbit")
+        a = -mu / (2.0 * energy)
+        inc = np.arccos(np.clip(h[2] / hn, -1.0, 1.0))
+        nvec = np.cross([0.0, 0.0, 1.0], h)
+        nn = np.linalg.norm(nvec)
+        tol = 1e-12
+        if nn > tol:
+            raan = np.arctan2(nvec[1], nvec[0]) % (2 * np.pi)
+        else:
+            raan = 0.0
+        if e > tol:
+            if nn > tol:
+                argp = np.arctan2(np.dot(np.cross(nvec, evec), h) / (nn * e * hn), np.dot(nvec, evec) / (nn * e)) % (2 * np.pi)
+            else:
+                argp = np.arctan2(evec[1], evec[0]) % (2 * np.pi)
+            nu = np.arctan2(np.dot(np.cross(evec, r), h) / (e * rn * hn), np.dot(evec, r) / (e * rn)) % (2 * np.pi)
+        else:
+            argp = 0.0
+            if nn > tol:
+                nu = np.arctan2(np.dot(np.cross(nvec, r), h) / (nn * rn * hn), np.dot(nvec, r) / (nn * rn)) % (2 * np.pi)
+            else:
+                nu = np.arctan2(r[1], r[0]) % (2 * np.pi)
+        return (float(a), e, *map(float, np.rad2deg([inc, raan, argp, nu])))
+
+    def to_TLE(self, *, satellite_number: int = 99999, classification: str = "U") -> Tuple[str, str]:
+        """Format the osculating state as an approximate two-line element set.
+
+        TLEs store SGP4 mean elements, so these lines are a convenient
+        approximation and are not an SGP4 fit to the state. ``satellite_number``
+        must be in the five-digit range supported by traditional TLEs.
+        """
+        from datetime import datetime, timezone
+
+        satnum = int(satellite_number)
+        if not 0 <= satnum <= 99999:
+            raise ValueError("satellite_number must be between 0 and 99999")
+        if classification not in {"U", "C", "S"}:
+            raise ValueError("classification must be 'U', 'C', or 'S'")
+        a, e, inc, raan, argp, nu = self.to_keplerian()
+        # Solve Kepler's equation for eccentric anomaly, then derive mean anomaly.
+        E = 2.0 * np.arctan2(np.sqrt(1.0 - e) * np.sin(np.deg2rad(nu) / 2.0),
+                             np.sqrt(1.0 + e) * np.cos(np.deg2rad(nu) / 2.0))
+        mean_anomaly = (E - e * np.sin(E)) % (2.0 * np.pi)
+        mean_motion = np.sqrt(self.mu_e / a**3) * 86400.0 / (2.0 * np.pi)
+        epoch_dt = self.sf_pos.t.utc_datetime().astimezone(timezone.utc)
+        year = epoch_dt.year % 100
+        epoch_day = (epoch_dt - datetime(epoch_dt.year, 1, 1, tzinfo=timezone.utc)).total_seconds() / 86400.0 + 1.0
+
+        def checksum(line: str) -> str:
+            return line + str(sum(int(c) if c.isdigit() else (1 if c == "-" else 0) for c in line) % 10)
+
+        line1 = checksum(f"1 {satnum:05d}{classification} 00000A   {year:02d}{epoch_day:012.8f}  .00000000  00000-0  00000-0 0  999")
+        line2 = checksum(f"2 {satnum:05d} {inc:8.4f} {raan:8.4f} {int(round(e * 1e7)):07d} {argp:8.4f} {np.rad2deg(mean_anomaly):8.4f} {mean_motion:11.8f}00000")
+        return line1, line2
+
     def copy(self):
         r"""
         Return a deep copy of the orbital state.
