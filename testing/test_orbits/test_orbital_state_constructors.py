@@ -29,6 +29,20 @@ def test_from_position_matches_cartesian_constructor():
     assert state.environment is environment
 
 
+def test_to_position_returns_epoch_and_independent_cartesian_vectors():
+    state = Orbital_State.from_position(0.22, [7000.0, 10.0, -20.0], [-0.01, 7.5, 0.2])
+
+    epoch, position, velocity = state.to_position()
+
+    assert epoch == state.J2000
+    assert np.array_equal(position, state.R)
+    assert np.array_equal(velocity, state.V)
+    position[0] += 1.0
+    velocity[0] += 1.0
+    assert position[0] != state.R[0]
+    assert velocity[0] != state.V[0]
+
+
 def test_from_keplerian_builds_circular_equatorial_state():
     radius = 7000.0
     state = Orbital_State.from_keplerian(
@@ -43,6 +57,23 @@ def test_from_keplerian_builds_circular_equatorial_state():
 
     assert np.allclose(state.R, [0.0, radius, 0.0], atol=1e-10)
     assert np.allclose(state.V, [-np.sqrt(EarthConstants.mu_e / radius), 0.0, 0.0], atol=1e-12)
+
+
+def test_keplerian_round_trip_and_tle_format():
+    elements = (7200.0, 0.01, 45.0, 120.0, 80.0, 230.0)
+    state = Orbital_State.from_keplerian(
+        J2000=0.22,
+        a=elements[0], e=elements[1], i=elements[2], raan=elements[3],
+        arg_periapsis=elements[4], true_anomaly=elements[5],
+    )
+
+    assert np.allclose(state.to_keplerian(), elements, atol=1e-9)
+    line1, line2 = state.to_TLE(satellite_number=12345)
+    assert len(line1) == len(line2) == 69
+    assert line1.startswith("1 12345")
+    assert line2.startswith("2 12345")
+    # Skyfield's SGP4 parser validates field placement and checksums.
+    EarthSatellite(line1, line2, ts=state.ephem.ts)
 
 
 @pytest.mark.parametrize(
