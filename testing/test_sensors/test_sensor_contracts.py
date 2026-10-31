@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from ADCS.helpers.math_helpers import normalize
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Bias, ErrorMode, Noise
-from ADCS.satellite_hardware.sensors import MTM, SunSensor
+from ADCS.satellite_hardware.sensors import MTM, SunSensor, SunSensorWithEarthshine
 from ADCS.satellite_hardware.sensors.sunpair import SunPair
 from ADCS.state import State
 
@@ -31,6 +31,7 @@ def make_orbital_state(*, sunlit: bool) -> Orbital_State:
     "factory",
     [
         lambda: SunSensor(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=1.0),
+        lambda: SunSensorWithEarthshine(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=1.0),
         lambda: SunPair(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=(1.0, 1.0)),
     ],
 )
@@ -44,6 +45,7 @@ def test_sun_sensor_clean_reading_is_finite_when_sunlit(factory):
     "factory",
     [
         lambda: SunSensor(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=1.0),
+        lambda: SunSensorWithEarthshine(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=1.0),
         lambda: SunPair(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=(1.0, 1.0)),
     ],
 )
@@ -57,6 +59,7 @@ def test_sun_sensor_basestate_jacobian_is_finite_when_sunlit(factory):
     "factory",
     [
         lambda: SunSensor(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=1.0),
+        lambda: SunSensorWithEarthshine(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=1.0),
         lambda: SunPair(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=(1.0, 1.0)),
     ],
 )
@@ -70,6 +73,7 @@ def test_sun_sensor_clean_reading_is_nan_in_eclipse(factory):
     "factory",
     [
         lambda: SunSensor(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=1.0),
+        lambda: SunSensorWithEarthshine(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=1.0),
         lambda: SunPair(axis=normalize(np.array([1.0, 0.2, -0.3])), efficiency=(1.0, 1.0)),
     ],
 )

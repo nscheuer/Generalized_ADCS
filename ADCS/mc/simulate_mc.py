@@ -20,7 +20,7 @@ from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.state import EstimatorState, State
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.helpers.math_helpers import normalize
@@ -84,7 +84,7 @@ def _freeze_os0(os0: Orbital_State) -> Dict[str, Any]:
 
 
 def _thaw_os0(payload: Dict[str, Any], ephem: Ephemeris) -> Orbital_State:
-    return Orbital_State.from_dict(payload, ephem=ephem, density_model=None, fast=True)
+    return Orbital_State.from_dict(payload, ephem=ephem, fast=True)
 
 
 def _freeze_os_hist(hist: Any) -> Any:
@@ -97,7 +97,7 @@ def _thaw_os_hist(hist: Any, ephem: Ephemeris) -> Any:
     if hist is None:
         return None
     return [
-        Orbital_State.from_dict(d, ephem=ephem, density_model=None, fast=True) if d is not None else None
+        Orbital_State.from_dict(d, ephem=ephem, fast=True) if d is not None else None
         for d in hist
     ]
 
