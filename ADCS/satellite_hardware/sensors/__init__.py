@@ -2,6 +2,7 @@ from .sensor import Sensor
 from .gps import GPS
 from .gyro import Gyro
 from .sunsensor import SunSensor
+from .sunsensor_earthshine import SunSensorWithEarthshine
 from .sunpair import SunPair
 from .magnetometer import MTM
 from .star_tracker import StarTracker
@@ -11,6 +12,7 @@ from .earth_horizon import EarthHorizonSensor
 __all__ = [
     "Sensor",
     "SunSensor",
+    "SunSensorWithEarthshine",
     "SunPair",
     "GPS",
     "Gyro",
