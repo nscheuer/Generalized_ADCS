@@ -295,10 +295,13 @@ class Orbital_State:
         self.J2000 = float(J2000)
         self.R = np.asarray(R, dtype=float).reshape(3)
         self.V = np.asarray(V, dtype=float).reshape(3)
-
+        
+        
         self.mu_e = EarthConstants.mu_e
         self.R_e = EarthConstants.R_e
         self.J2coeff = EarthConstants.J2coeff
+        self.G = EarthConstants.G
+        
         # Unnormalized zonal harmonic coefficients [J2, J3, J4, J5, J6]; the
         # higher (degree >= 3) terms are only applied when propagation is asked
         # for zonal_J > 2.
@@ -312,6 +315,154 @@ class Orbital_State:
         # attribute name `self.TAI` is kept for serialization/back-compat.
         self.TAI = self.j2000_to_tai()
         t_sf = self.ts.tt_jd(self.TAI)
+        
+        # Osculating Keplerian elements of the instantaneous ECI state.
+        # These are distinct from the model-dependent mean elements in a TLE.
+        # Size- and Shape-describing
+        self.eccentricity = None                # e
+        self.semi_major_axis = None             # a
+        self.semi_minor_axis = None             # b
+        self.semi_parameter = None              # p
+        self.apoapsis = None                    # ra
+        self.periapsis = None                   # rp
+        
+        # Rotation-describing
+        self.inclination = None                 # i
+        self.longitude_of_ascending_node = None # Omega
+        self.argument_of_periapsis = None       # omega
+        self.longitude_of_periapsis = None      # omega_bar
+        
+        # Motion-over-time-describing
+        self.mean_motion = None                 # n
+        self.orbital_period = None              # P
+        self.mass_of_the_two_bodies = None      # M
+        
+        # Epoch-describing
+        self.epoch = None                                   # t0
+        self.mean_anomaly_at_epoch = None                   # M0
+        self.true_anomaly_at_epoch = None                   # nu0
+        self.eccentric_anomaly_at_epoch = None              # E0
+        self.time_of_periapsis_passage = None               # T0
+        self.mean_longitude_at_epoch = None                 # L0
+        self.true_longitude_at_epoch = None                 # l0
+        self.mean_argument_of_latitude_at_epoch = None      # uM0
+        self.argument_of_latitude_at_epoch = None           # u0
+        
+        # Distances are km, angles radians, mean motion rad/s, and period s.
+        radius = np.linalg.norm(self.R)
+        speed_sq = np.dot(self.V, self.V)
+        if not np.isfinite(radius) or not np.isfinite(speed_sq):
+            raise ValueError("Keplerian elements require finite R and V")
+        # Orbit_GPS uses a zero-position placeholder for epoch-only frame
+        # conversion. Its orbital elements are undefined, but the frame is valid.
+        inverse_radius = 1 / radius if radius > 0 else np.nan
+        self.eccentricity_vector = (
+            (speed_sq - self.mu_e * inverse_radius) * self.R
+            - np.dot(self.R, self.V) * self.V
+        ) / self.mu_e
+        self.eccentricity = float(np.linalg.norm(self.eccentricity_vector))
+        e = self.eccentricity
+        element_tol = 1e-12
+        inverse_a = 2 * inverse_radius - speed_sq / self.mu_e
+        parabolic = abs(inverse_a * radius) <= element_tol
+        self.semi_major_axis = np.inf if parabolic else 1 / inverse_a
+        self.h = np.cross(self.R, self.V)
+        self.n = np.cross(np.array([0, 0, 1]), self.h)
+        h_norm = np.linalg.norm(self.h)
+        node_norm = np.linalg.norm(self.n)
+        self.semi_parameter = h_norm**2 / self.mu_e if radius > 0 else np.nan
+        self.periapsis = self.semi_parameter / (1 + e)
+        self.semi_minor_axis = (
+            np.nan if parabolic
+            else abs(self.semi_major_axis) * np.sqrt(abs(1 - e**2))
+        )
+        radial = radius == 0 or h_norm <= element_tol * radius * max(
+            np.sqrt(speed_sq), np.sqrt(self.mu_e / radius)
+        )
+        elliptic = not radial and not parabolic and inverse_a > 0 and e < 1
+        # No apoapsis, period or elliptic anomalies exist for unbound/radial motion.
+        self.apoapsis = self.semi_major_axis * (1 + e) if elliptic else np.nan
+        self.mean_motion = np.sqrt(self.mu_e / self.semi_major_axis**3) if elliptic else np.nan
+        self.orbital_period = 2 * np.pi / self.mean_motion if elliptic else np.nan
+
+        if radial:
+            self.inclination = np.nan
+            self.longitude_of_ascending_node = np.nan
+            self.argument_of_periapsis = np.nan
+            self.true_anomaly_at_epoch = np.nan
+        else:
+            h_hat = self.h / h_norm
+            self.inclination = np.arctan2(node_norm, self.h[2])
+            equatorial = node_norm <= element_tol * h_norm
+            # Equatorial convention: Omega = 0; measure omega from ECI +x
+            # in the direction of motion (including retrograde orbits).
+            self.longitude_of_ascending_node = (
+                0.0 if equatorial else np.arctan2(self.n[1], self.n[0]) % (2 * np.pi)
+            )
+            node_hat = np.array([1.0, 0.0, 0.0]) if equatorial else self.n / node_norm
+            transverse_hat = np.cross(h_hat, node_hat)
+            circular = e <= element_tol
+            # Circular convention: omega = 0; nu represents argument of latitude.
+            periapsis_hat = node_hat if circular else self.eccentricity_vector / e
+            self.argument_of_periapsis = (
+                0.0 if circular else np.arctan2(
+                    np.dot(periapsis_hat, transverse_hat), np.dot(periapsis_hat, node_hat)
+                ) % (2 * np.pi)
+            )
+            self.true_anomaly_at_epoch = np.arctan2(
+                np.dot(self.R, np.cross(h_hat, periapsis_hat)),
+                np.dot(self.R, periapsis_hat),
+            ) % (2 * np.pi)
+        self.longitude_of_periapsis = (self.longitude_of_ascending_node + self.argument_of_periapsis) % (2 * np.pi)
+
+        # kg; mu_e is Earth's GM, neglecting spacecraft mass. G uses SI units.
+        self.mass_of_the_two_bodies = self.mu_e * 1e9 / self.G
+        self.epoch = self.TAI  # TT Julian date (legacy attribute name).
+        if elliptic:
+            nu = self.true_anomaly_at_epoch
+            self.eccentric_anomaly_at_epoch = np.arctan2(
+                np.sqrt((1 - e) * (1 + e)) * np.sin(nu), e + np.cos(nu)
+            ) % (2 * np.pi)
+            E = self.eccentric_anomaly_at_epoch
+            self.mean_anomaly_at_epoch = (E - e * np.sin(E)) % (2 * np.pi)
+            # For a circle, this is the passage through the chosen nu=0 direction.
+            self.time_of_periapsis_passage = self.epoch - self.mean_anomaly_at_epoch / self.mean_motion / 86400.0
+        else:
+            self.eccentric_anomaly_at_epoch = np.nan
+            self.mean_anomaly_at_epoch = np.nan
+            self.time_of_periapsis_passage = np.nan
+        self.mean_longitude_at_epoch = (self.longitude_of_ascending_node + self.argument_of_periapsis + self.mean_anomaly_at_epoch) % (2 * np.pi)
+        self.true_longitude_at_epoch = (self.longitude_of_ascending_node + self.argument_of_periapsis + self.true_anomaly_at_epoch) % (2 * np.pi)
+        self.mean_argument_of_latitude_at_epoch = (self.argument_of_periapsis + self.mean_anomaly_at_epoch) % (2 * np.pi)
+        self.argument_of_latitude_at_epoch = (self.argument_of_periapsis + self.true_anomaly_at_epoch) % (2 * np.pi)
+
+        # Store the Keplerian Elements in a dictionary for easy access
+        self.keplerian_elements = {
+            "semi_major_axis": self.semi_major_axis,
+            "semi_minor_axis": self.semi_minor_axis,
+            "semi_parameter": self.semi_parameter,
+            "eccentricity": self.eccentricity,
+            "eccentricity_vector": self.eccentricity_vector,
+            "inclination": self.inclination,
+            "longitude_of_ascending_node": self.longitude_of_ascending_node,
+            "argument_of_periapsis": self.argument_of_periapsis,
+            "mean_motion": self.mean_motion,
+            "orbital_period": self.orbital_period,
+            "epoch": self.epoch,
+            "time_of_periapsis_passage": self.time_of_periapsis_passage,
+            "mean_longitude_at_epoch": self.mean_longitude_at_epoch,
+            "true_longitude_at_epoch": self.true_longitude_at_epoch,
+            "mean_argument_of_latitude_at_epoch": self.mean_argument_of_latitude_at_epoch,
+            "argument_of_latitude_at_epoch": self.argument_of_latitude_at_epoch,
+            "true_anomaly": self.true_anomaly_at_epoch,
+            "eccentric_anomaly": self.eccentric_anomaly_at_epoch,
+            "mean_anomaly_at_epoch": self.mean_anomaly_at_epoch,
+            "longitude_of_periapsis": self.longitude_of_periapsis,
+            "apoapsis": self.apoapsis,
+            "periapsis": self.periapsis,
+            "mass_of_the_two_bodies": self.mass_of_the_two_bodies,
+            
+        }
 
         # Construct a Skyfield ICRF position for downstream functionality (e.g. is_sunlit).
         pos = units.Distance(km=self.R.tolist())
@@ -385,6 +536,212 @@ class Orbital_State:
 
         self.vecs: Dict[str, np.ndarray] | None = None
         self._last_x: np.ndarray | None = None
+
+    @classmethod
+    def from_position(
+        cls,
+        J2000: float,
+        R: np.ndarray,
+        V: np.ndarray,
+        *,
+        environment: Environment | None = None,
+        ephem: Ephemeris | None = None,
+        magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
+    ) -> "Orbital_State":
+        r"""Create a state from inertial Cartesian position and velocity.
+
+        This named constructor is equivalent to calling ``Orbital_State``
+        directly, and makes the coordinate convention explicit: ``R`` and
+        ``V`` are ECI/ICRF vectors in km and km/s.
+        """
+        return cls(
+            J2000=J2000,
+            R=R,
+            V=V,
+            environment=environment,
+            ephem=ephem,
+            magnetic_model=magnetic_model,
+        )
+
+    @classmethod
+    def from_keplerian(
+        cls,
+        J2000: float,
+        a: float,
+        e: float,
+        i: float,
+        raan: float,
+        arg_periapsis: float,
+        true_anomaly: float,
+        *,
+        mu: float = EarthConstants.mu_e,
+        environment: Environment | None = None,
+        ephem: Ephemeris | None = None,
+        magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
+    ) -> "Orbital_State":
+        r"""Create an ECI state from classical Keplerian elements.
+
+        ``a`` is semi-major axis in km; ``i``, ``raan``,
+        ``arg_periapsis``, and ``true_anomaly`` are in degrees. The supported
+        conic is an ellipse (``a > 0`` and ``0 <= e < 1``).
+        """
+        a, e = float(a), float(e)
+        if not np.isfinite(a) or a <= 0.0:
+            raise ValueError("a must be a finite positive semi-major axis in km")
+        if not np.isfinite(e) or not 0.0 <= e < 1.0:
+            raise ValueError("e must satisfy 0 <= e < 1 for an elliptic orbit")
+        mu = float(mu)
+        if not np.isfinite(mu) or mu <= 0.0:
+            raise ValueError("mu must be finite and positive")
+
+        inc, omega, argp, nu = np.deg2rad([i, raan, arg_periapsis, true_anomaly])
+        p = a * (1.0 - e * e)
+        radius = p / (1.0 + e * np.cos(nu))
+        r_pf = radius * np.array([np.cos(nu), np.sin(nu), 0.0])
+        v_pf = np.sqrt(mu / p) * np.array([-np.sin(nu), e + np.cos(nu), 0.0])
+
+        co, so = np.cos(omega), np.sin(omega)
+        ci, si = np.cos(inc), np.sin(inc)
+        cw, sw = np.cos(argp), np.sin(argp)
+        rotation = np.array([
+            [co * cw - so * sw * ci, -co * sw - so * cw * ci, so * si],
+            [so * cw + co * sw * ci, -so * sw + co * cw * ci, -co * si],
+            [sw * si, cw * si, ci],
+        ])
+        return cls.from_position(
+            J2000=J2000,
+            R=rotation @ r_pf,
+            V=rotation @ v_pf,
+            environment=environment,
+            ephem=ephem,
+            magnetic_model=magnetic_model,
+        )
+
+    @classmethod
+    def from_TLE(
+        cls,
+        tle,
+        line2: str | None = None,
+        J2000: float | None = None,
+        *,
+        environment: Environment | None = None,
+    ) -> "Orbital_State":
+        r"""Create a state from a Skyfield EarthSatellite or two TLE lines.
+
+        By default, samples the TLE at its epoch. ``J2000`` optionally selects
+        another epoch in Julian centuries since J2000. TLE-derived position and
+        velocity are converted from TEME to the package's inertial frame using
+        Skyfield's position representation.
+        """
+        from skyfield.api import EarthSatellite
+
+        if environment is None:
+            environment = Environment()
+        if isinstance(tle, str):
+            if line2 is None:
+                raise TypeError("line2 is required when tle is supplied as line1 text")
+            satellite = EarthSatellite(tle, line2, ts=environment.ephemeris.ts)
+        else:
+            if line2 is not None:
+                raise TypeError("line2 may only be supplied with a TLE line1 string")
+            satellite = tle
+        if not callable(getattr(satellite, "at", None)) or not hasattr(satellite, "epoch"):
+            raise TypeError("tle must be a Skyfield EarthSatellite or a TLE line1 string with line2")
+
+        if J2000 is None:
+            t = satellite.epoch
+            j2000 = float((t.tt - 2451545.0) / 36525.0)
+        else:
+            j2000 = float(J2000)
+            t = environment.ephemeris.ts.tt_jd(j2000 * 36525.0 + 2451545.0)
+        geocentric = satellite.at(t)
+        return cls.from_position(
+            J2000=j2000,
+            R=np.asarray(geocentric.position.km, dtype=float),
+            V=np.asarray(geocentric.velocity.km_per_s, dtype=float),
+            environment=environment,
+        )
+
+    from_tle = from_TLE
+
+    def to_position(self) -> Tuple[float, np.ndarray, np.ndarray]:
+        """Return ``(J2000, R, V)`` in Julian centuries, km, and km/s."""
+        return self.J2000, self.R.copy(), self.V.copy()
+
+    def to_keplerian(self, *, mu: float = EarthConstants.mu_e) -> Tuple[float, float, float, float, float, float]:
+        """Return classical elliptic elements ``(a, e, i, raan, argp, nu)``.
+
+        Angles are in degrees. For circular or equatorial orbits, the
+        undefined angular elements are set to zero and the remaining angle is
+        chosen to preserve the state as far as the classical convention allows.
+        """
+        r, v = self.R, self.V
+        rn, vn = np.linalg.norm(r), np.linalg.norm(v)
+        mu = float(mu)
+        if not np.isfinite(mu) or mu <= 0 or rn == 0:
+            raise ValueError("mu must be finite and positive and position must be nonzero")
+        h = np.cross(r, v)
+        hn = np.linalg.norm(h)
+        if hn == 0:
+            raise ValueError("Keplerian elements are undefined for a radial state")
+        evec = np.cross(v, h) / mu - r / rn
+        e = float(np.linalg.norm(evec))
+        energy = vn * vn / 2.0 - mu / rn
+        if energy >= 0:
+            raise ValueError("classical elliptic elements require a bound orbit")
+        a = -mu / (2.0 * energy)
+        inc = np.arccos(np.clip(h[2] / hn, -1.0, 1.0))
+        nvec = np.cross([0.0, 0.0, 1.0], h)
+        nn = np.linalg.norm(nvec)
+        tol = 1e-12
+        if nn > tol:
+            raan = np.arctan2(nvec[1], nvec[0]) % (2 * np.pi)
+        else:
+            raan = 0.0
+        if e > tol:
+            if nn > tol:
+                argp = np.arctan2(np.dot(np.cross(nvec, evec), h) / (nn * e * hn), np.dot(nvec, evec) / (nn * e)) % (2 * np.pi)
+            else:
+                argp = np.arctan2(evec[1], evec[0]) % (2 * np.pi)
+            nu = np.arctan2(np.dot(np.cross(evec, r), h) / (e * rn * hn), np.dot(evec, r) / (e * rn)) % (2 * np.pi)
+        else:
+            argp = 0.0
+            if nn > tol:
+                nu = np.arctan2(np.dot(np.cross(nvec, r), h) / (nn * rn * hn), np.dot(nvec, r) / (nn * rn)) % (2 * np.pi)
+            else:
+                nu = np.arctan2(r[1], r[0]) % (2 * np.pi)
+        return (float(a), e, *map(float, np.rad2deg([inc, raan, argp, nu])))
+
+    def to_TLE(self, *, satellite_number: int = 99999, classification: str = "U") -> Tuple[str, str]:
+        """Format the osculating state as an approximate two-line element set.
+
+        TLEs store SGP4 mean elements, so these lines are a convenient
+        approximation and are not an SGP4 fit to the state. ``satellite_number``
+        must be in the five-digit range supported by traditional TLEs.
+        """
+        from datetime import datetime, timezone
+
+        satnum = int(satellite_number)
+        if not 0 <= satnum <= 99999:
+            raise ValueError("satellite_number must be between 0 and 99999")
+        if classification not in {"U", "C", "S"}:
+            raise ValueError("classification must be 'U', 'C', or 'S'")
+        a, e, inc, raan, argp, nu = self.to_keplerian()
+        # Solve Kepler's equation for eccentric anomaly, then derive mean anomaly.
+        E = 2.0 * np.arctan2(np.sqrt(1.0 - e) * np.sin(np.deg2rad(nu) / 2.0),
+                             np.sqrt(1.0 + e) * np.cos(np.deg2rad(nu) / 2.0))
+        mean_anomaly = (E - e * np.sin(E)) % (2.0 * np.pi)
+        mean_motion = np.sqrt(self.mu_e / a**3) * 86400.0 / (2.0 * np.pi)
+        epoch_dt = self.sf_pos.t.utc_datetime().astimezone(timezone.utc)
+        year = epoch_dt.year % 100
+        epoch_day = (epoch_dt - datetime(epoch_dt.year, 1, 1, tzinfo=timezone.utc)).total_seconds() / 86400.0 + 1.0
+
+        def checksum(line: str) -> str:
+            return line + str(sum(int(c) if c.isdigit() else (1 if c == "-" else 0) for c in line) % 10)
+
+        line1 = checksum(f"1 {satnum:05d}{classification} 00000A   {year:02d}{epoch_day:012.8f}  .00000000  00000-0  00000-0 0  999")
+        line2 = checksum(f"2 {satnum:05d} {inc:8.4f} {raan:8.4f} {int(round(e * 1e7)):07d} {argp:8.4f} {np.rad2deg(mean_anomaly):8.4f} {mean_motion:11.8f}00000")
+        return line1, line2
 
     def copy(self):
         r"""
