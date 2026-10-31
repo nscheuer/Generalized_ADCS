@@ -386,6 +386,212 @@ class Orbital_State:
         self.vecs: Dict[str, np.ndarray] | None = None
         self._last_x: np.ndarray | None = None
 
+    @classmethod
+    def from_position(
+        cls,
+        J2000: float,
+        R: np.ndarray,
+        V: np.ndarray,
+        *,
+        environment: Environment | None = None,
+        ephem: Ephemeris | None = None,
+        magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
+    ) -> "Orbital_State":
+        r"""Create a state from inertial Cartesian position and velocity.
+
+        This named constructor is equivalent to calling ``Orbital_State``
+        directly, and makes the coordinate convention explicit: ``R`` and
+        ``V`` are ECI/ICRF vectors in km and km/s.
+        """
+        return cls(
+            J2000=J2000,
+            R=R,
+            V=V,
+            environment=environment,
+            ephem=ephem,
+            magnetic_model=magnetic_model,
+        )
+
+    @classmethod
+    def from_keplerian(
+        cls,
+        J2000: float,
+        a: float,
+        e: float,
+        i: float,
+        raan: float,
+        arg_periapsis: float,
+        true_anomaly: float,
+        *,
+        mu: float = EarthConstants.mu_e,
+        environment: Environment | None = None,
+        ephem: Ephemeris | None = None,
+        magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
+    ) -> "Orbital_State":
+        r"""Create an ECI state from classical Keplerian elements.
+
+        ``a`` is semi-major axis in km; ``i``, ``raan``,
+        ``arg_periapsis``, and ``true_anomaly`` are in degrees. The supported
+        conic is an ellipse (``a > 0`` and ``0 <= e < 1``).
+        """
+        a, e = float(a), float(e)
+        if not np.isfinite(a) or a <= 0.0:
+            raise ValueError("a must be a finite positive semi-major axis in km")
+        if not np.isfinite(e) or not 0.0 <= e < 1.0:
+            raise ValueError("e must satisfy 0 <= e < 1 for an elliptic orbit")
+        mu = float(mu)
+        if not np.isfinite(mu) or mu <= 0.0:
+            raise ValueError("mu must be finite and positive")
+
+        inc, omega, argp, nu = np.deg2rad([i, raan, arg_periapsis, true_anomaly])
+        p = a * (1.0 - e * e)
+        radius = p / (1.0 + e * np.cos(nu))
+        r_pf = radius * np.array([np.cos(nu), np.sin(nu), 0.0])
+        v_pf = np.sqrt(mu / p) * np.array([-np.sin(nu), e + np.cos(nu), 0.0])
+
+        co, so = np.cos(omega), np.sin(omega)
+        ci, si = np.cos(inc), np.sin(inc)
+        cw, sw = np.cos(argp), np.sin(argp)
+        rotation = np.array([
+            [co * cw - so * sw * ci, -co * sw - so * cw * ci, so * si],
+            [so * cw + co * sw * ci, -so * sw + co * cw * ci, -co * si],
+            [sw * si, cw * si, ci],
+        ])
+        return cls.from_position(
+            J2000=J2000,
+            R=rotation @ r_pf,
+            V=rotation @ v_pf,
+            environment=environment,
+            ephem=ephem,
+            magnetic_model=magnetic_model,
+        )
+
+    @classmethod
+    def from_TLE(
+        cls,
+        tle,
+        line2: str | None = None,
+        J2000: float | None = None,
+        *,
+        environment: Environment | None = None,
+    ) -> "Orbital_State":
+        r"""Create a state from a Skyfield EarthSatellite or two TLE lines.
+
+        By default, samples the TLE at its epoch. ``J2000`` optionally selects
+        another epoch in Julian centuries since J2000. TLE-derived position and
+        velocity are converted from TEME to the package's inertial frame using
+        Skyfield's position representation.
+        """
+        from skyfield.api import EarthSatellite
+
+        if environment is None:
+            environment = Environment()
+        if isinstance(tle, str):
+            if line2 is None:
+                raise TypeError("line2 is required when tle is supplied as line1 text")
+            satellite = EarthSatellite(tle, line2, ts=environment.ephemeris.ts)
+        else:
+            if line2 is not None:
+                raise TypeError("line2 may only be supplied with a TLE line1 string")
+            satellite = tle
+        if not callable(getattr(satellite, "at", None)) or not hasattr(satellite, "epoch"):
+            raise TypeError("tle must be a Skyfield EarthSatellite or a TLE line1 string with line2")
+
+        if J2000 is None:
+            t = satellite.epoch
+            j2000 = float((t.tt - 2451545.0) / 36525.0)
+        else:
+            j2000 = float(J2000)
+            t = environment.ephemeris.ts.tt_jd(j2000 * 36525.0 + 2451545.0)
+        geocentric = satellite.at(t)
+        return cls.from_position(
+            J2000=j2000,
+            R=np.asarray(geocentric.position.km, dtype=float),
+            V=np.asarray(geocentric.velocity.km_per_s, dtype=float),
+            environment=environment,
+        )
+
+    from_tle = from_TLE
+
+    def to_position(self) -> Tuple[float, np.ndarray, np.ndarray]:
+        """Return ``(J2000, R, V)`` in Julian centuries, km, and km/s."""
+        return self.J2000, self.R.copy(), self.V.copy()
+
+    def to_keplerian(self, *, mu: float = EarthConstants.mu_e) -> Tuple[float, float, float, float, float, float]:
+        """Return classical elliptic elements ``(a, e, i, raan, argp, nu)``.
+
+        Angles are in degrees. For circular or equatorial orbits, the
+        undefined angular elements are set to zero and the remaining angle is
+        chosen to preserve the state as far as the classical convention allows.
+        """
+        r, v = self.R, self.V
+        rn, vn = np.linalg.norm(r), np.linalg.norm(v)
+        mu = float(mu)
+        if not np.isfinite(mu) or mu <= 0 or rn == 0:
+            raise ValueError("mu must be finite and positive and position must be nonzero")
+        h = np.cross(r, v)
+        hn = np.linalg.norm(h)
+        if hn == 0:
+            raise ValueError("Keplerian elements are undefined for a radial state")
+        evec = np.cross(v, h) / mu - r / rn
+        e = float(np.linalg.norm(evec))
+        energy = vn * vn / 2.0 - mu / rn
+        if energy >= 0:
+            raise ValueError("classical elliptic elements require a bound orbit")
+        a = -mu / (2.0 * energy)
+        inc = np.arccos(np.clip(h[2] / hn, -1.0, 1.0))
+        nvec = np.cross([0.0, 0.0, 1.0], h)
+        nn = np.linalg.norm(nvec)
+        tol = 1e-12
+        if nn > tol:
+            raan = np.arctan2(nvec[1], nvec[0]) % (2 * np.pi)
+        else:
+            raan = 0.0
+        if e > tol:
+            if nn > tol:
+                argp = np.arctan2(np.dot(np.cross(nvec, evec), h) / (nn * e * hn), np.dot(nvec, evec) / (nn * e)) % (2 * np.pi)
+            else:
+                argp = np.arctan2(evec[1], evec[0]) % (2 * np.pi)
+            nu = np.arctan2(np.dot(np.cross(evec, r), h) / (e * rn * hn), np.dot(evec, r) / (e * rn)) % (2 * np.pi)
+        else:
+            argp = 0.0
+            if nn > tol:
+                nu = np.arctan2(np.dot(np.cross(nvec, r), h) / (nn * rn * hn), np.dot(nvec, r) / (nn * rn)) % (2 * np.pi)
+            else:
+                nu = np.arctan2(r[1], r[0]) % (2 * np.pi)
+        return (float(a), e, *map(float, np.rad2deg([inc, raan, argp, nu])))
+
+    def to_TLE(self, *, satellite_number: int = 99999, classification: str = "U") -> Tuple[str, str]:
+        """Format the osculating state as an approximate two-line element set.
+
+        TLEs store SGP4 mean elements, so these lines are a convenient
+        approximation and are not an SGP4 fit to the state. ``satellite_number``
+        must be in the five-digit range supported by traditional TLEs.
+        """
+        from datetime import datetime, timezone
+
+        satnum = int(satellite_number)
+        if not 0 <= satnum <= 99999:
+            raise ValueError("satellite_number must be between 0 and 99999")
+        if classification not in {"U", "C", "S"}:
+            raise ValueError("classification must be 'U', 'C', or 'S'")
+        a, e, inc, raan, argp, nu = self.to_keplerian()
+        # Solve Kepler's equation for eccentric anomaly, then derive mean anomaly.
+        E = 2.0 * np.arctan2(np.sqrt(1.0 - e) * np.sin(np.deg2rad(nu) / 2.0),
+                             np.sqrt(1.0 + e) * np.cos(np.deg2rad(nu) / 2.0))
+        mean_anomaly = (E - e * np.sin(E)) % (2.0 * np.pi)
+        mean_motion = np.sqrt(self.mu_e / a**3) * 86400.0 / (2.0 * np.pi)
+        epoch_dt = self.sf_pos.t.utc_datetime().astimezone(timezone.utc)
+        year = epoch_dt.year % 100
+        epoch_day = (epoch_dt - datetime(epoch_dt.year, 1, 1, tzinfo=timezone.utc)).total_seconds() / 86400.0 + 1.0
+
+        def checksum(line: str) -> str:
+            return line + str(sum(int(c) if c.isdigit() else (1 if c == "-" else 0) for c in line) % 10)
+
+        line1 = checksum(f"1 {satnum:05d}{classification} 00000A   {year:02d}{epoch_day:012.8f}  .00000000  00000-0  00000-0 0  999")
+        line2 = checksum(f"2 {satnum:05d} {inc:8.4f} {raan:8.4f} {int(round(e * 1e7)):07d} {argp:8.4f} {np.rad2deg(mean_anomaly):8.4f} {mean_motion:11.8f}00000")
+        return line1, line2
+
     def copy(self):
         r"""
         Return a deep copy of the orbital state.
