@@ -69,6 +69,19 @@ Aerodynamics
 Orbits
 ------
 
+.. list-table::
+   :header-rows: 1
+   :widths: 25 25 35 15
+
+   * - Model
+     - Documentation
+     - Original citation
+     - Reference
+   * - SGP4 general perturbations orbit propagation
+     - ``ADCS.orbits.sgp4_orbit.SGP4Orbit``
+     - D. A. Vallado, P. Crawford, R. Hujsak, and T. S. Kelso, "Revisiting Spacetrack Report #3," AIAA/AAS Astrodynamics Specialist Conference, AIAA 2006-6753 (2006).
+     - `doi:10.2514/6.2006-6753 <https://doi.org/10.2514/6.2006-6753>`__; `CelesTrak paper and source code <https://celestrak.org/publications/AIAA/2006-6753/>`__
+
 The orbit environment models use the following external Python libraries for
 planetary ephemerides and geomagnetic-field calculations.
 
