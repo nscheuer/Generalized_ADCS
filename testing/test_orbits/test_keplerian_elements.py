@@ -251,3 +251,24 @@ def test_zero_position_placeholder_preserves_frame_conversion(make_state, veloci
 def test_invalid_states_are_rejected(make_state, position, velocity):
     with pytest.raises(ValueError, match="finite R and V"):
         make_state(position, velocity)
+
+
+def test_elements_are_lazy_and_unknown_attributes_still_raise():
+    state = Orbital_State(J2000=0.22, R=np.array([7000.0, 0.0, 0.0]), V=np.array([0.0, 7.5, 0.0]))
+    assert "eccentricity" not in state.__dict__
+    assert np.isfinite(state.eccentricity)
+    assert "keplerian_elements" in state.__dict__
+    with pytest.raises(AttributeError):
+        state.not_an_attribute
+    assert not hasattr(state, "also_not_an_attribute")
+
+
+def test_simulate_runs_with_sgp4_orbit_without_drag():
+    import ADCS
+    from ADCS.orbits.sgp4_orbit import SGP4Orbit
+    sat = ADCS.Satellite(mass=4.0, J_0=np.diag([3.4, 2.9, 1.3]), actuators=[], sensors=[])
+    os0 = Orbital_State(J2000=0.22, R=np.array([7000.0, 0.0, 0.0]), V=np.array([0.0, 7.5, 0.0]))
+    x0 = ADCS.State(w=np.zeros(3), q=np.array([1.0, 0, 0, 0]), h=np.zeros(0))
+    with pytest.warns(UserWarning, match="no Drag_Disturbance"):
+        res = ADCS.simulate(x=x0, satellite=sat, os0=os0, orbit_integrator=SGP4Orbit, dt=10.0, tf=30.0)
+    assert res is not None
