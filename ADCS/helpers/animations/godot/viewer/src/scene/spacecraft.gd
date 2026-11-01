@@ -85,6 +85,8 @@ func _clear_models() -> void:
 		if is_instance_valid(node):
 			node.queue_free()
 	lods.clear()
+	wheel_nodes.clear()
+	hinge_nodes.clear()
 	_end_materials.clear()
 	_after_simulation = false
 

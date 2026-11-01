@@ -28,7 +28,7 @@ def _jsonable(obj: Any) -> Any:
     if isinstance(obj, np.ndarray):
         return _jsonable(obj.tolist())
     if isinstance(obj, np.generic):
-        return obj.item()
+        obj = obj.item()
     if isinstance(obj, float) and not np.isfinite(obj):
         return None
     return obj

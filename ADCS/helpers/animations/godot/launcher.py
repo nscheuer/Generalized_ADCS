@@ -219,8 +219,8 @@ def view(
     ready_file = asset_dir / f".viewer-ready-{uuid.uuid4().hex}" if pending else None
     if completion_file is not None:
         completion_file.parent.mkdir(parents=True, exist_ok=True)
-        extra_args = (*extra_args, "--asset-prompt-file", str(completion_file),
-                      "--asset-ready-file", str(ready_file))
+        extra_args = (*extra_args, "--asset-prompt-file", _host_path(completion_file, exe),
+                      "--asset-ready-file", _host_path(ready_file, exe))
     with VizServer(host=host, port=port) as server:
         server.serve_log(log)
         h, p = server.address

@@ -112,6 +112,8 @@ class DE421(EphemerisBase):
             else:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 self.planets = self._download_ephemeris(path)
+        elif (existing := self._find_existing_ephemeris()) is not None:
+            self.planets = load(str(existing))
         else:
             self.planets = load(str(AssetManager().get(self.KERNEL_FILENAME.removesuffix(".bsp"))))
 

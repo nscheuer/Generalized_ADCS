@@ -1,6 +1,7 @@
 """Open a short, controlled pointing run in the packaged Godot viewer.
 
-Run: .venv/bin/python debug/debug_helpers/debug_animations/debug_orbit_godot_simulation.py
+Run from the repository root, with the project's virtual environment active:
+    python debug/debug_helpers/debug_animations/debug_orbit_godot_simulation.py
 """
 
 import numpy as np

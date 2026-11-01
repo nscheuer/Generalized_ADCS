@@ -1247,6 +1247,7 @@ class Orbital_State:
             rho=d.get("rho"),
             fast=False,
             magnetic_model=magnetic_model if magnetic_model is not None
+            else DEFAULT_MAGNETIC_MODEL if environment is not None
             else d.get("magnetic_model", DEFAULT_MAGNETIC_MODEL),
             environment=environment,
         )

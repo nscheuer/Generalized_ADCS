@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from ADCS.environment.atmosphere import SMADAtmosphere
 
@@ -18,3 +19,10 @@ def test_smad_density_vector_path_matches_scalar_calls():
     density = model.density(positions)
     expected = np.array([model.density(position) for position in positions])
     np.testing.assert_allclose(density, expected, rtol=1e-14, atol=0.0)
+
+
+@pytest.mark.parametrize("rho_range", [[1e-9, 1e-12, 1e-12], [1e-9, 1e-12, 1e-11]])
+def test_rejects_tables_that_do_not_decay_at_the_top(rho_range):
+    """The scale height above the table would be infinite or negative."""
+    with pytest.raises(ValueError, match="decrease"):
+        SMADAtmosphere(altitude_range=[0.0, 500.0, 1000.0], rho_range=rho_range)
