@@ -16,7 +16,9 @@ from ADCS.estimators.attitude_estimators import AttitudeEstimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.orbits.orbit import Orbit
+from ADCS.orbits.orbit import Orbit as OrbitIntegrator
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.sgp4_orbit import SGP4Orbit
 from ADCS.environment.environment import Environment
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.orbits.universal_constants import TimeConstants
@@ -41,6 +43,7 @@ def simulate(
     orbit_estimator: Optional[Orbit_Estimator] = None,
     goal: Optional[Goal | GoalList] = None,
     os0: Optional[Orbital_State] = None,
+    orbit_integrator: Optional[type[OrbitIntegrator]] = None,
     dt: float = 1.0,
     tf: float = 500.0,
     environment: Optional[Environment] = None,
@@ -152,7 +155,12 @@ def simulate(
 
     start_time = os0.J2000
     end_time = start_time + tf * TimeConstants.sec2cent
-    orb = Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False, environment=environment)
+    if orbit_integrator is None:
+        orbit_integrator = Orbit
+    orbit_kwargs = dict(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False, environment=environment)
+    if isinstance(orbit_integrator, type) and issubclass(orbit_integrator, SGP4Orbit):
+        orbit_kwargs["satellite"] = satellite
+    orb = orbit_integrator(**orbit_kwargs)
     os0 = orb.get_os(J2000=start_time)
 
     u = np.zeros(satellite.control_len)
