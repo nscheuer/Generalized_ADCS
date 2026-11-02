@@ -86,6 +86,16 @@ def _executable(key: str) -> Path:
     return _BIN_DIR / _BUILDS[key][1].format(version=_GODOT_VERSION)
 
 
+def _mac_bundle_is_complete() -> bool:
+    """The macOS executable is usable only inside its intact signed app bundle."""
+    bundle = _BIN_DIR / "Godot.app"
+    return all((bundle / path).is_file() for path in (
+        "Contents/Info.plist",
+        "Contents/_CodeSignature/CodeResources",
+        "Contents/MacOS/Godot",
+    ))
+
+
 def _download_and_unpack(key: str, *, interactive: bool, allow_download: bool = False) -> Path:
     archive_name = f"godot-{_GODOT_VERSION}-{key}.zip"
     asset = Asset(f"Godot {_GODOT_VERSION} ({key})", _asset_url(key), archive_name, _SHA256[key])
@@ -93,18 +103,50 @@ def _download_and_unpack(key: str, *, interactive: bool, allow_download: bool = 
     archive = manager.get(key, destination=_BIN_DIR / archive_name, interactive=interactive,
                           allow_download=allow_download)
     exe = _executable(key)
-    if not exe.is_file():
+    mac_bundle = key == "macos-universal"
+    needs_extract = not exe.is_file() or (mac_bundle and not _mac_bundle_is_complete())
+    if needs_extract:
         member = _BUILDS[key][1].format(version=_GODOT_VERSION)
         try:
             with zipfile.ZipFile(archive) as zf:
-                # Extract only the known executable path from the official archive.
-                exe.parent.mkdir(parents=True, exist_ok=True)
-                with zf.open(member) as source, exe.open("wb") as output:
-                    output.write(source.read())
-        except (KeyError, zipfile.BadZipFile) as exc:
-            exe.unlink(missing_ok=True)
+                if mac_bundle:
+                    # Godot's macOS executable must remain inside its complete
+                    # signed .app bundle. Extract every bundle resource, including
+                    # its signature metadata, rather than just Contents/MacOS/Godot.
+                    bundle = _BIN_DIR / "Godot.app"
+                    if bundle.exists():
+                        shutil.rmtree(bundle)
+                    members = [name for name in zf.namelist() if name.startswith("Godot.app/")]
+                    if member not in members:
+                        raise KeyError(member)
+                    if sys.platform == "darwin":
+                        # Apple's ditto preserves the bundle metadata and file
+                        # modes expected by macOS code-signature validation.
+                        subprocess.run(["/usr/bin/ditto", "-x", "-k", str(archive), str(_BIN_DIR)],
+                                       check=True, capture_output=True, text=True)
+                    else:
+                        # Retain support for explicitly installing the macOS
+                        # bundle on another OS, although only macOS can launch it.
+                        zf.extractall(_BIN_DIR, members=members)
+                else:
+                    # Non-macOS builds are standalone executables.
+                    exe.parent.mkdir(parents=True, exist_ok=True)
+                    with zf.open(member) as source, exe.open("wb") as output:
+                        output.write(source.read())
+        except (KeyError, zipfile.BadZipFile, OSError, subprocess.CalledProcessError) as exc:
+            if mac_bundle:
+                shutil.rmtree(_BIN_DIR / "Godot.app", ignore_errors=True)
+            else:
+                exe.unlink(missing_ok=True)
+            if isinstance(exc, subprocess.CalledProcessError):
+                detail = (exc.stderr or str(exc)).strip()
+                raise ViewerNotFoundError(f"could not extract the Godot macOS app bundle: {detail}") from exc
+            if isinstance(exc, OSError) and not isinstance(exc, zipfile.BadZipFile):
+                raise ViewerNotFoundError(f"could not extract Godot viewer: {exc}") from exc
             raise ViewerNotFoundError(f"Godot archive does not contain {member}") from exc
-    if not key.startswith("windows"):
+    if mac_bundle and not _mac_bundle_is_complete():
+        raise ViewerNotFoundError("Godot macOS archive did not contain a complete signed Godot.app bundle")
+    if not key.startswith("windows") and not mac_bundle:
         exe.chmod(exe.stat().st_mode | 0o111)
     return exe
 

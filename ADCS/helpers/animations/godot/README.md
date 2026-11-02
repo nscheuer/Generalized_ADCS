@@ -38,6 +38,9 @@ Godot 4.7.2 is fetched from its official release for the detected operating
 system when the viewer is first launched. `AssetManager` asks before
 downloading; the archive and executable are kept in `godot/bin`, which is
 ignored by Git. Pass `binary=` or set `ADCS_VIEWER_BIN` to use another build.
+On macOS, the full `Godot.app` bundle is extracted so its code signature and
+resources remain intact; an older executable-only cache is replaced on the
+next launch.
 
 Optional textures and atmosphere data are placed under
 `ADCS/helpers/animations/assets`. They are ignored by Git and excluded from
