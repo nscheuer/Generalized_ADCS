@@ -29,6 +29,15 @@ func open(path: String, wanted_run: String = "") -> bool:
 		error_message = "vizlog has no runs"
 		return false
 	run_id = wanted_run if wanted_run != "" else str(runs[0]["id"])
+	var available: PackedStringArray = []
+	var run_exists := false
+	for run: Dictionary in runs:
+		var id := str(run.get("id", ""))
+		available.append(id)
+		run_exists = run_exists or id == run_id
+	if not run_exists:
+		error_message = "no run '%s' in vizlog (available: %s)" % [run_id, ", ".join(available)]
+		return false
 	var run_dir := path.path_join("runs").path_join(run_id)
 	var names := PackedStringArray()
 	var widths := PackedInt32Array()
@@ -56,11 +65,17 @@ func open(path: String, wanted_run: String = "") -> bool:
 	var mesh: Variant = scene.get("mesh")
 	if mesh is Dictionary:
 		for lod: Dictionary in mesh.get("lods", []):
-			var p := host_path(String(lod.get("path", "")))
+			var model_path := String(lod.get("path", ""))
+			if not model_path.is_absolute_path():
+				model_path = path.path_join(model_path)
+			var p := host_path(model_path)
 			if FileAccess.file_exists(p):
 				assets[p.get_file()] = {"meta": {"kind": "model_lod", "sha256": lod.get("sha256")},
 					"data": FileAccess.get_file_as_bytes(p)}
-	return n >= 2
+	if n < 2:
+		error_message = "run '%s' has fewer than 2 usable rows" % run_id
+		return false
+	return true
 
 
 ## A path written on the Python side, as this process can open it: a viewer on

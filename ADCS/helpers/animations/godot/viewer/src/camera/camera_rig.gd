@@ -49,6 +49,8 @@ func reference_frame(frame: Dictionary) -> Array:
 
 ## Camera position (GCRS m) and rotation (camera local -> GCRS, row-major).
 func compute(frame: Dictionary) -> Array:
+	# Keep scripted/offline camera settings below the pole-up fallback too.
+	pitch = clampf(pitch, deg_to_rad(-84.0), deg_to_rad(84.0))
 	var center: PackedFloat64Array
 	var axes: Array
 	var d: float
@@ -92,7 +94,9 @@ func handle_input(event: InputEvent) -> bool:
 	elif event is InputEventMouseMotion and _dragging:
 		var mm := event as InputEventMouseMotion
 		yaw -= mm.relative.x * 0.006
-		pitch = clampf(pitch + mm.relative.y * 0.006, deg_to_rad(-89.0), deg_to_rad(89.0))
+		# Stay below the pole-up fallback in compute(); crossing it changes the
+		# chosen up axis and causes an apparent 180-degree roll.
+		pitch = clampf(pitch + mm.relative.y * 0.006, deg_to_rad(-84.0), deg_to_rad(84.0))
 		return true
 	return false
 

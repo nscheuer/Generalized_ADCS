@@ -54,7 +54,9 @@ the wheel. Prepare them explicitly with:
 Each missing raw asset is resolved through `AssetManager`, which asks before
 downloading. Scene assets are optional: without them the viewer uses flat
 colors and procedural stars. Spacecraft models use a `.viz.json` sidecar whose
-LOD entries reference `.glb` files.
+LOD entries reference `.glb` files. When a vizlog is written, those files are
+copied into `assets/models/` and `scene.json` uses paths relative to the
+vizlog, so the log remains usable after moving it to another machine.
 
 Planet maps, including Earth's day, night, cloud, normal, and specular maps, are stored
 in `ADCS/helpers/animations/assets/planet_textures`. Low graphics uses 2K maps;

@@ -28,6 +28,15 @@ func open(host: String, port: int, token: String, wanted_run: String = "") -> bo
 	live = String(client.hello.get("mode", "")).begins_with("live")
 	var runs: Array = manifest.get("runs", [])
 	run_id = wanted_run if wanted_run != "" else (str(runs[0]["id"]) if runs.size() > 0 else "0")
+	var available: PackedStringArray = []
+	var run_exists := false
+	for run: Dictionary in runs:
+		var id := str(run.get("id", ""))
+		available.append(id)
+		run_exists = run_exists or id == run_id
+	if not run_exists:
+		error_message = "no run '%s' in stream (available: %s)" % [run_id, ", ".join(available)]
+		return false
 	store = FrameStore.new(client.names, client.widths)
 	assets = client.assets
 	return true
@@ -97,4 +106,10 @@ func receive_all(timeout_s: float) -> bool:
 	while not finished and Time.get_ticks_msec() < deadline:
 		poll()
 		OS.delay_msec(1)
-	return finished and store.n_rows >= 2
+	if not finished:
+		error_message = "timed out while receiving run '%s'" % run_id
+		return false
+	if store.n_rows < 2:
+		error_message = "run '%s' has fewer than 2 usable rows" % run_id
+		return false
+	return true

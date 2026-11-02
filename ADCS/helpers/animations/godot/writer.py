@@ -4,6 +4,8 @@ import json
 import os
 import re
 import shutil
+import warnings
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -88,6 +90,7 @@ class VizLogWriter:
 
         <path>/manifest.json            metadata, channel table, runs
         <path>/scene.json               static spacecraft / scene description
+        <path>/assets/models/            model LOD files referenced by the scene
         <path>/runs/<id>/<channel>.f64  little-endian float64, shape (n_rows, width)
         <path>/runs/<id>/rows.json      {"n_rows": N, "complete": bool}
 
@@ -144,7 +147,23 @@ class VizLogWriter:
         self._flush_every = int(flush_every)
         self._closed = False
 
-        _write_json_atomic(self.path / "scene.json", scene or {})
+        scene_data = deepcopy(scene or {})
+        mesh = scene_data.get("mesh")
+        if isinstance(mesh, dict):
+            lod_dir = self.path / "assets" / "models"
+            for i, lod in enumerate(mesh.get("lods", [])):
+                if not isinstance(lod, dict) or not lod.get("path"):
+                    continue
+                source = Path(str(lod["path"]))
+                if not source.is_file():
+                    warnings.warn(f"vizlog scene refers to missing model file {source}; model may not load",
+                                  stacklevel=2)
+                    continue
+                lod_dir.mkdir(parents=True, exist_ok=True)
+                packaged = lod_dir / f"{i:03d}_{source.name}"
+                shutil.copy2(source, packaged)
+                lod["path"] = packaged.relative_to(self.path).as_posix()
+        _write_json_atomic(self.path / "scene.json", scene_data)
         self._write_manifest()
 
     # ------------------------------------------------------------------

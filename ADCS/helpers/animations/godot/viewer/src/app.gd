@@ -148,7 +148,10 @@ func _open_source() -> bool:
 		while s.store.n_rows < 2 and Time.get_ticks_msec() < deadline:
 			s.poll()
 			OS.delay_msec(5)
-		return s.store.n_rows >= 2
+		if s.store.n_rows < 2:
+			s.error_message = "timed out waiting for 2 rows from run '%s'" % s.run_id
+			return false
+		return true
 	if opts.has("log"):
 		var f := FileSource.new()
 		source = f

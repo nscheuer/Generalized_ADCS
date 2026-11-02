@@ -126,7 +126,7 @@ class VizServer:
             self._log = log
             self._hello = {"protocol": PROTOCOL_VERSION, "mode": "playback",
                            "manifest": manifest, "scene": log.scene}
-            self._assets = _scene_assets(log.scene)
+            self._assets = _scene_assets(log.scene, base_dir=log.path)
 
     def begin_live(self, manifest: Dict[str, Any], scene: Dict[str, Any]) -> None:
         r"""
@@ -395,12 +395,14 @@ def _ephemeris_state(ephem, manifest: Dict[str, Any], t_s: float) -> Dict[str, A
     return state
 
 
-def _scene_assets(scene: Dict[str, Any]) -> List[bytes]:
+def _scene_assets(scene: Dict[str, Any], base_dir: Optional[Path] = None) -> List[bytes]:
     """ASSET payloads for the files a scene refers to (spacecraft model levels of detail)."""
     out = []
     mesh = (scene or {}).get("mesh") or {}
     for i, lod in enumerate(mesh.get("lods", [])):
         path = Path(lod.get("path", ""))
+        if not path.is_absolute() and base_dir is not None:
+            path = base_dir / path
         if not path.is_file():
             warnings.warn(f"VizServer: scene refers to missing model file {path}", stacklevel=3)
             continue
