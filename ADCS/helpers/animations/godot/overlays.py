@@ -194,15 +194,15 @@ def validate_overlays(overlays: Iterable[Any], channels: Dict[str, Any], scene: 
 
 def default_overlays(channels: Dict[str, Any], scene: Dict[str, Any], ref: Optional[Dict[str, float]] = None) -> List[_Overlay]:
     r"""
-    A sensible set for what the log contains: body axes, control and
-    disturbance torques, wheel momentum, Sun direction, magnetic field, sensor
-    cones, orbit and ground tracks, and the pointing target.
+    A sensible set for what the log contains: goal and boresight directions
+    start visible, while axes, other vectors, sensor cones and tracks are
+    available to enable from the viewer's layer controls.
 
     :param ref: Optional ``{channel: magnitude}`` for log-scaled arrows (e.g.
         the 10th percentile of each channel's norm), so small values stay visible.
     """
     ref = ref or {}
-    out: List[_Overlay] = [Triad("body"), Triad("gcrs", visible=False), Triad("lvlh", visible=False),
+    out: List[_Overlay] = [Triad("body", visible=False), Triad("gcrs", visible=False), Triad("lvlh", visible=False),
                            Arrow("@nadir", label="Nadir", color="#6ee7ff", scale="fixed_px", visible=False),
                            Arrow("@velocity", label="Along track", color="#82ef94", scale="fixed_px", visible=False)]
     for axis, color in enumerate(("#ff6666", "#66ff66", "#6666ff")):
@@ -210,20 +210,20 @@ def default_overlays(channels: Dict[str, Any], scene: Dict[str, Any], ref: Optio
                          color=color, scale="fixed_px", visible=False))
     for name in scene.get("boresights", {}):
         out.append(Arrow(f"@boresight:{name}", label=f"Boresight {name}", color="#ffdd66",
-                         scale="fixed_px", visible=False))
+                         scale="fixed_px"))
     vectors = [("tau_act_body", "control torque", "#ff8c1a"), ("tau_dist_body", "disturbance torque", "#ff4d4d"),
                ("h_rw_body", "wheel momentum", "#33e0c8"), ("b_field", "magnetic field", "#d47cff")]
     for ch, label, color in vectors:
         if ch in channels:
             if ch == "b_field":
-                out.append(Arrow(ch, label=label, color=color, scale="fixed_px", px=80.0))
+                out.append(Arrow(ch, label=label, color=color, scale="fixed_px", px=80.0, visible=False))
             else:
-                out.append(Arrow(ch, label=label, color=color, scale="log", ref=ref.get(ch)))
-    out.append(Arrow("@sun", label="Sun", color="#ffe066", scale="fixed_px", px=100.0))
+                out.append(Arrow(ch, label=label, color=color, scale="log", ref=ref.get(ch), visible=False))
+    out.append(Arrow("@sun", label="Sun", color="#ffe066", scale="fixed_px", px=100.0, visible=False))
     for s in scene.get("sensors", []):
         if "fov_half_rad" in s and not s.get("fov_assumed", False):
-            out.append(SensorCone(s["id"]))
-    out += [OrbitTrack(), GroundTrack()]
+            out.append(SensorCone(s["id"], visible=False))
+    out += [OrbitTrack(visible=False), GroundTrack(visible=False)]
     if "target" in channels and "target_kind" in channels:
         out.append(TargetLine())
     return out
