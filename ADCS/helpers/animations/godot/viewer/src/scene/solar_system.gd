@@ -43,7 +43,9 @@ var earth_mat: ShaderMaterial
 var moon_mat: ShaderMaterial
 var sun_mat: ShaderMaterial
 var current_texture_lod: Dictionary = {}
-var textures_2k: Dictionary = {}
+## Keep decoded images alive across zoom changes. Keyed by body and actual LOD
+## (which may differ from the requested LOD when an asset is missing).
+var texture_cache: Dictionary = {}
 var labels_enabled := true
 
 
@@ -55,7 +57,7 @@ func load_textures(root: String, earth_material: ShaderMaterial, moon_material: 
 		sun_material: ShaderMaterial) -> void:
 	asset_root = root.path_join("planet_textures") if root != "" else ""
 	current_texture_lod.clear()
-	textures_2k.clear()
+	texture_cache.clear()
 	earth_mat = earth_material
 	moon_mat = moon_material
 	sun_mat = sun_material
@@ -96,16 +98,28 @@ func _load_texture(name: String, lod: String) -> Array:
 		path = asset_root.path_join(_filename(name, actual))
 	if not FileAccess.file_exists(path):
 		return [null, actual]
-	if actual == "2k" and textures_2k.has(name):
-		return [textures_2k[name], actual]
+	var cache_key := name + ":" + actual
+	if texture_cache.has(cache_key):
+		return [texture_cache[cache_key], actual]
 	var image := Image.load_from_file(path)
 	if image == null:
 		return [null, actual]
 	image.generate_mipmaps()
 	var texture := ImageTexture.create_from_image(image)
-	if actual == "2k":
-		textures_2k[name] = texture
+	texture_cache[cache_key] = texture
 	return [texture, actual]
+
+
+## Use a dead band around the 8k threshold to avoid reloading textures while
+## the camera jitters near the boundary. Quality changes to fast/medium still
+## drop to 2k immediately.
+func _texture_lod_for(name: String, px: float, quality: String) -> String:
+	if quality != "high":
+		return "2k"
+	var current := String(current_texture_lod.get(name, "2k"))
+	if current == "8k":
+		return "2k" if px < 112.0 else "8k"
+	return "8k" if px >= 144.0 else "2k"
 
 
 func _apply_texture(name: String, lod: String) -> void:
@@ -310,7 +324,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, qua
 			origin.far_scale(d) * marker_radius)
 		marker.visible = px < 1.0
 		var lod := 0 if px < 2.0 else (1 if px < 40.0 or quality == "fast" else 2)
-		_apply_texture(name, "8k" if quality == "high" and px >= 128.0 else "2k")
+		_apply_texture(name, _texture_lod_for(name, px, quality))
 		var detail := 12 if lod == 0 else (48 if lod == 1 else (192 if quality == "high" and px >= 128.0 else 96))
 		if body.get_meta("segments", -1) != detail:
 			body.mesh = _mesh(radius, detail, detail / 2)
@@ -349,13 +363,12 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, focal_px: float, qua
 			label.position = screen + Vector2(8, -8)
 	var earth_px := 6378137.0 * focal_px / maxf(D.norm(cam_pos), 1.0)
 	var moon_px := 1737400.0 * focal_px / maxf(D.norm(D.sub(frame.get("r_moon", D.v3(0, 0, 0)), cam_pos)), 1.0)
-	var detailed := quality == "high" and earth_px >= 128.0
-	_apply_texture("earth", "8k" if detailed else "2k")
-	_apply_texture("earth_night", "8k" if detailed else "2k")
-	_apply_texture("earth_clouds", "8k" if detailed else "2k")
-	_apply_texture("earth_normal", "8k" if detailed else "2k")
-	_apply_texture("earth_specular", "8k" if detailed else "2k")
-	_apply_texture("moon", "8k" if quality == "high" and moon_px >= 128.0 else "2k")
+	_apply_texture("earth", _texture_lod_for("earth", earth_px, quality))
+	_apply_texture("earth_night", _texture_lod_for("earth_night", earth_px, quality))
+	_apply_texture("earth_clouds", _texture_lod_for("earth_clouds", earth_px, quality))
+	_apply_texture("earth_normal", _texture_lod_for("earth_normal", earth_px, quality))
+	_apply_texture("earth_specular", _texture_lod_for("earth_specular", earth_px, quality))
+	_apply_texture("moon", _texture_lod_for("moon", moon_px, quality))
 	_apply_texture("sun", "2k")
 	for name: String in ["earth", "moon", "sun"]:
 		var label: Label = labels[name]
