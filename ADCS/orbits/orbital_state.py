@@ -229,6 +229,7 @@ class Orbital_State:
         fast: bool = False,
         magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
         environment: Environment | None = None,
+        density_model=None,
     ) -> None:
         r"""
         Initialize a fully defined orbital state.
@@ -271,6 +272,10 @@ class Orbital_State:
             derived from this one (copies, propagation, interpolation).
         :type magnetic_model: str
 
+        :param density_model:
+            Deprecated alias for ``environment.atmosphere``.
+        :type density_model: Atmosphere or None
+
         :return:
             ``None``
         :rtype: None
@@ -279,9 +284,19 @@ class Orbital_State:
         _ = fast  # ignored (kept for backward compatibility)
         if J2000 is None or R is None or V is None:
             raise TypeError("J2000, R, and V are required")
+        if density_model is not None:
+            warnings.warn(
+                "Orbital_State(density_model=...) is deprecated; pass the model as "
+                "Environment(atmosphere=...) instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if environment is not None:
+                raise ValueError("Pass the atmosphere through environment, or use the legacy density_model argument")
         if environment is None:
             environment = Environment(
                 magnetic_field=make_magnetic_field(magnetic_model),
+                atmosphere=density_model,
                 ephemeris=ephem if ephem is not None else Ephemeris(),
             )
         elif ephem is not None or magnetic_model != DEFAULT_MAGNETIC_MODEL:
