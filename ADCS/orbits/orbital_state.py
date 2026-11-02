@@ -8,7 +8,7 @@ from datetime import timezone
 from typing import Dict, Tuple, Optional
 
 from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, field_gc
-from ADCS.environment.environment import Environment
+from ADCS.environment.environment import Environment, default_environment
 from ADCS.environment.ephemeris.ephemeris import sunlit_from_vectors
 from ADCS.environment.magnetic_field import make_magnetic_field
 from ADCS.environment.ephemeris import DE421 as Ephemeris
@@ -294,11 +294,14 @@ class Orbital_State:
             if environment is not None:
                 raise ValueError("Pass the atmosphere through environment, or use the legacy density_model argument")
         if environment is None:
-            environment = Environment(
-                magnetic_field=make_magnetic_field(magnetic_model),
-                atmosphere=density_model,
-                ephemeris=ephem if ephem is not None else Ephemeris(),
-            )
+            if ephem is None and density_model is None and magnetic_model == DEFAULT_MAGNETIC_MODEL:
+                environment = default_environment()
+            else:
+                environment = Environment(
+                    magnetic_field=make_magnetic_field(magnetic_model),
+                    atmosphere=density_model,
+                    ephemeris=ephem if ephem is not None else Ephemeris(),
+                )
         elif ephem is not None or magnetic_model != DEFAULT_MAGNETIC_MODEL:
             raise ValueError("Pass model choices through environment, or use the legacy model arguments")
         self.environment = environment

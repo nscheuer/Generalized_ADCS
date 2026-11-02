@@ -4,12 +4,38 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
+import threading
 from datetime import datetime
 
 from .atmosphere import Atmosphere, NRLMSISE00, SMADAtmosphere
 from .ephemeris import DE421, DE442, DE442s, DE441, VSOP2013, Ephemeris
 from .magnetic_field import CHAOS8, IGRF14, IGRF14Numba, IGRF14Ppigrf, WMM2025, MagneticField
 from .star_catalogue import BrightStarCatalog, HipparcosCatalog, StarCatalogue
+
+_DEFAULT_ENVIRONMENT = None
+_DEFAULT_ENVIRONMENT_LOCK = threading.Lock()
+
+
+def default_environment() -> "Environment":
+    """Return the lazily created process-wide default model set."""
+    global _DEFAULT_ENVIRONMENT
+    if _DEFAULT_ENVIRONMENT is None:
+        with _DEFAULT_ENVIRONMENT_LOCK:
+            if _DEFAULT_ENVIRONMENT is None:
+                _DEFAULT_ENVIRONMENT = Environment()
+    return _DEFAULT_ENVIRONMENT
+
+
+def _reset_default_environment_after_fork() -> None:
+    """Ensure forked workers create their own environment and kernel handles."""
+    global _DEFAULT_ENVIRONMENT, _DEFAULT_ENVIRONMENT_LOCK
+    _DEFAULT_ENVIRONMENT = None
+    _DEFAULT_ENVIRONMENT_LOCK = threading.Lock()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_default_environment_after_fork)
 
 
 class Environment:
