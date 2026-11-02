@@ -375,12 +375,13 @@ class Orbit:
         """
         environment = getattr(self, "environment", getattr(st, "environment", None))
         if environment is not None and getattr(st, "environment", None) is not environment:
-            st = Orbital_State(
-                J2000=st.J2000,
-                R=st.R,
-                V=st.V,
-                environment=environment,
-            )
+            if getattr(st, "magnetic_model", DEFAULT_MAGNETIC_MODEL) != environment.magnetic_model:
+                st = Orbital_State(
+                    J2000=st.J2000,
+                    R=st.R,
+                    V=st.V,
+                    environment=environment,
+                )
         elif environment is None:
             model = getattr(self, "_magnetic_model", DEFAULT_MAGNETIC_MODEL)
             if getattr(st, "magnetic_model", None) != model:
