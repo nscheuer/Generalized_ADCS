@@ -6,6 +6,8 @@ render_mode unshaded, cull_disabled;
 uniform vec3 color = vec3(1.0);
 uniform float t0 = -1e30;
 uniform float t1 = 1e30;
+uniform float gap0 = 1e30;
+uniform float gap1 = -1e30;
 
 varying float vt;
 
@@ -14,7 +16,7 @@ void vertex() {
 }
 
 void fragment() {
-	if (vt < t0 || vt > t1) {
+	if (vt < t0 || vt > t1 || (vt >= gap0 && vt <= gap1)) {
 		discard;
 	}
 	ALBEDO = color;

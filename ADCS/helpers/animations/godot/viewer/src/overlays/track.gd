@@ -14,8 +14,11 @@ const R_EARTH := 6378137.0
 const ANCHOR_RATIO := 1000.0  ## rebuild when |spacecraft - anchor| > this x camera distance
 
 var mesh := ArrayMesh.new()
+var current_mesh := ArrayMesh.new()
 var mat := ShaderMaterial.new()
+var current_mat := ShaderMaterial.new()
 var mesh_node: MeshInstance3D
+var current_mesh_node: MeshInstance3D
 var ground := false
 var _anchor := PackedFloat64Array()  ## GCRS (orbit) or ITRS (ground) metres
 var _t_ref := 0.0
@@ -34,6 +37,17 @@ func configure(descriptor: Dictionary, scene_desc: Dictionary) -> void:
 	mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mesh_node.custom_aabb = AABB(Vector3.ONE * -1.0e12, Vector3.ONE * 2.0e12)
 	add_child(mesh_node)
+	# A tiny per-frame segment replaces the sampled line around the spacecraft.
+	# Only these three positions are interpolated each frame; the rest of the
+	# orbit remains in the cached mesh above.
+	current_mat.shader = preload("res://shaders/track.gdshader")
+	current_mat.set_shader_parameter("color", Vector3(c.r, c.g, c.b))
+	current_mesh_node = MeshInstance3D.new()
+	current_mesh_node.mesh = current_mesh
+	current_mesh_node.material_override = current_mat
+	current_mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	current_mesh_node.custom_aabb = AABB(Vector3.ONE * -1.0e12, Vector3.ONE * 2.0e12)
+	add_child(current_mesh_node)
 
 
 ## Interpolated track point: Hermite position (GCRS) and slerped Earth
@@ -95,23 +109,6 @@ func _rebuild(store: RefCounted, t: float, anchor: PackedFloat64Array) -> void:
 			uvs.append(Vector2(t1 - _t_ref, 0.0))
 			break
 		k = next_k
-	# Ensure the spacecraft's current interpolated position is an actual vertex.
-	# Shader clipping alone can end each independently rendered strip on a
-	# different pixel when the cutoff falls between sampled vertices.
-	if not ground and t >= store.t(k0) and t <= store.t(k1):
-		var p_now := _point_at(store, t)
-		var insert_at := verts.size()
-		var has_now := false
-		for i in verts.size():
-			if is_equal_approx(uvs[i].x, t - _t_ref):
-				has_now = true
-				break
-			if uvs[i].x > t - _t_ref:
-				insert_at = i
-				break
-		if not has_now:
-			verts.insert(insert_at, Vector3(p_now[0] - anchor[0], p_now[1] - anchor[1], p_now[2] - anchor[2]))
-			uvs.insert(insert_at, Vector2(t - _t_ref, 0.0))
 	mesh.clear_surfaces()
 	if verts.size() >= 2:
 		var arrays := []
@@ -120,6 +117,31 @@ func _rebuild(store: RefCounted, t: float, anchor: PackedFloat64Array) -> void:
 		arrays[Mesh.ARRAY_TEX_UV] = uvs
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINE_STRIP, arrays)
 	_chunk = Vector2(store.t(k0), store.t(k1))
+	_update_current_segment(store, t)
+
+
+## Replace only the short portion of the cached line around `t` with three
+## exact-time Hermite points. This keeps the moving endpoint aligned with the
+## spacecraft without rebuilding or re-interpolating the full orbit each frame.
+func _update_current_segment(store: RefCounted, t: float) -> void:
+	if ground or t < store.t_min() or t > store.t_max():
+		current_mesh.clear_surfaces()
+		return
+	var dt := maxf(float(desc.get("past_s", 5400.0)) + float(desc.get("future_s", 1800.0)), 1.0) \
+		/ maxf(float(desc.get("samples", 600)), 2.0)
+	var times := [maxf(t - dt, store.t_min()), t, minf(t + dt, store.t_max())]
+	var verts := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	for ti: float in times:
+		var p := _point_at(store, ti)
+		verts.append(Vector3(p[0] - _anchor[0], p[1] - _anchor[1], p[2] - _anchor[2]))
+		uvs.append(Vector2(ti - _t_ref, 0.0))
+	current_mesh.clear_surfaces()
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	current_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINE_STRIP, arrays)
 
 
 func update(ctx: Dictionary) -> void:
@@ -142,10 +164,18 @@ func update(ctx: Dictionary) -> void:
 		or D.norm(D.sub(here, _anchor)) > ANCHOR_RATIO * D.norm(D.sub(here_gcrs, cam))
 	if stale:
 		_rebuild(store, t, here)
+	else:
+		_update_current_segment(store, t)
 	var m := D.transpose(r_now) if ground else PackedFloat64Array([1, 0, 0, 0, 1, 0, 0, 0, 1])
 	var k: float = ctx["world"].info.get("k_earth", 1.0)
 	var anchor_gcrs := D.mat_vec(m, _anchor)
 	mesh_node.transform = Transform3D(D.basis_from(m).scaled(Vector3.ONE * k), D.to_godot(D.scale(D.sub(anchor_gcrs, cam), k)))
+	current_mesh_node.transform = mesh_node.transform
 	mat.set_shader_parameter("t0", t - past - _t_ref)
 	mat.set_shader_parameter("t1", t + future - _t_ref)
+	var gap := (past + future) / maxf(float(desc.get("samples", 600)), 2.0)
+	mat.set_shader_parameter("gap0", t - gap - _t_ref)
+	mat.set_shader_parameter("gap1", t + gap - _t_ref)
+	current_mat.set_shader_parameter("t0", t - gap - _t_ref)
+	current_mat.set_shader_parameter("t1", t + gap - _t_ref)
 	info = {"k": k, "chunk": [_chunk.x, _chunk.y], "anchor_t": _t_ref}
