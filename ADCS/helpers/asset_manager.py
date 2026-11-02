@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -42,12 +43,22 @@ class AssetManager:
         base = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
         self.cache_dir = Path(cache_dir) if cache_dir is not None else base / "generalized_adcs"
 
+    @staticmethod
+    def _sha256(path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
     def get(self, name: str, *, destination=None, interactive=True, allow_download=False) -> Path:
         asset = self.registry[name]
         candidates = ([Path(destination)] if destination is not None else
                       [self.cache_dir / asset.filename] + [p / asset.filename for p in self.locations])
         for path in candidates:
             if path.is_file():
+                if asset.sha256 and self._sha256(path) != asset.sha256:
+                    raise ValueError(f"Checksum mismatch for {name}: {path}")
                 return path
         target = candidates[0]
         if not allow_download:
@@ -72,8 +83,7 @@ class AssetManager:
                         output.write(chunk)
                         bar.update(len(chunk))
             if asset.sha256:
-                import hashlib
-                if hashlib.sha256(partial.read_bytes()).hexdigest() != asset.sha256:
+                if self._sha256(partial) != asset.sha256:
                     raise ValueError(f"Checksum mismatch for {name}")
             partial.replace(target)
         finally:

@@ -22,6 +22,12 @@ _BUILDS = {
     "windows-x86_64": ("win64.exe", "Godot_v{version}-stable_win64.exe"),
     "macos-universal": ("macos.universal", "Godot.app/Contents/MacOS/Godot"),
 }
+_SHA256 = {
+    "linux-x86_64": "cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4",
+    "linux-arm64": "5dd0d86405cf7e8adf79fb6377b38ba682a2846cb378ffe5364f38c01ad29b9d",
+    "windows-x86_64": "731980f9608d61333e5baf54a2ef17210acc7a538446c0cb9969f002aca1e953",
+    "macos-universal": "c58a24e31d720be9d62f60cb5627c4e695fb72f21b0cfe1bc9ccaa9a3b3ba63e",
+}
 
 
 class ViewerNotFoundError(FileNotFoundError):
@@ -31,7 +37,7 @@ class ViewerNotFoundError(FileNotFoundError):
 def viewer_manifest():
     """Describe the pinned Godot release and its platform archives."""
     return {"version": _GODOT_VERSION, "assets": {
-        key: {"url": _asset_url(key), "executable": exe.format(version=_GODOT_VERSION)}
+        key: {"url": _asset_url(key), "executable": exe.format(version=_GODOT_VERSION), "sha256": _SHA256[key]}
         for key, (_, exe) in _BUILDS.items()
     }}
 
@@ -82,7 +88,7 @@ def _executable(key: str) -> Path:
 
 def _download_and_unpack(key: str, *, interactive: bool) -> Path:
     archive_name = f"godot-{_GODOT_VERSION}-{key}.zip"
-    asset = Asset(f"Godot {_GODOT_VERSION} ({key})", _asset_url(key), archive_name)
+    asset = Asset(f"Godot {_GODOT_VERSION} ({key})", _asset_url(key), archive_name, _SHA256[key])
     manager = AssetManager(registry={key: asset}, locations=[], cache_dir=_BIN_DIR)
     archive = manager.get(key, destination=_BIN_DIR / archive_name, interactive=interactive)
     exe = _executable(key)
