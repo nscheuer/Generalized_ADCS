@@ -11,6 +11,7 @@ const Atmosphere := preload("res://src/scene/atmosphere.gd")
 const OverlayManager := preload("res://src/overlays/manager.gd")
 
 const R_EARTH := 6378137.0
+const AMBIENT_NORMAL := Color(0.03, 0.035, 0.045)
 const R_MOON := 1737400.0
 const SUN_ANGULAR_RADIUS := 0.004652  # rad, mean
 const OBLIQUITY := 0.40909  # rad, J2000; Moon frame approximation
@@ -58,6 +59,7 @@ var info: Dictionary = {}  ## per-frame diagnostics (near/far, scales, LOD)
 var last_camera_position := PackedFloat64Array()
 ## Checks that measure geometry only switch off time-varying light and animation.
 var dynamic_lighting := true
+var always_day := false
 var rays_strength := 0.0
 var _rays_start_strength := 0.0
 var _rays_target_strength := 0.0
@@ -91,7 +93,7 @@ func _init(parent: Node, size: Vector2i = Vector2i.ZERO) -> void:
 	for level in 7:
 		env.set_glow_level(level, 1.0 if level in [2, 3, 4] else 0.0)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.03, 0.035, 0.045)
+	env.ambient_light_color = AMBIENT_NORMAL
 
 	camera = Camera3D.new()
 	camera.fov = fov_deg
@@ -343,7 +345,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	var sun_color := atmosphere.sunlight(r_sc, sun_dir) if atmosphere != null else Vector3.ONE
 	var peak := maxf(sun_color.x, maxf(sun_color.y, sun_color.z))
 	light.light_color = Color(sun_color.x / maxf(peak, 1e-6), sun_color.y / maxf(peak, 1e-6), sun_color.z / maxf(peak, 1e-6))
-	light.light_energy = float(frame["shadow_factor"]) * peak
+	light.light_energy = peak if always_day else float(frame["shadow_factor"]) * peak
 	light.visible = dynamic_lighting and light.light_energy > 1e-4
 	light.directional_shadow_max_distance = clampf(4.0 * d_craft, 2.0, 1.0e4) if craft_near else 0.0
 	light.shadow_enabled = craft_near
@@ -354,7 +356,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	var up := D.scale(r_sc, 1.0 / r_norm)
 	var lit_fraction := 0.5 * (1.0 + D.dot(up, D.unit(r_sun)))
 	earthshine.basis = D.basis_from(D.look_rot(up, _any_perpendicular(up)))  # shines outward from Earth
-	earthshine.light_energy = EARTH_ALBEDO * pow(R_EARTH / r_norm, 2.0) * lit_fraction if dynamic_lighting else 0.0
+	earthshine.light_energy = EARTH_ALBEDO * pow(R_EARTH / r_norm, 2.0) * (1.0 if always_day else lit_fraction) if dynamic_lighting else 0.0
 	earthshine.visible = earthshine.light_energy > 1e-4
 
 	var r_itrs_gcrs := D.rot_mat(frame["q_itrs_gcrs"])  # v_itrs = R v_gcrs
@@ -373,6 +375,7 @@ func update(frame: Dictionary, cam_pos: PackedFloat64Array, cam_rot: PackedFloat
 	for m: ShaderMaterial in [earth_mat, shell_mat]:
 		m.set_shader_parameter("sun_dir_itrs", Vector3(s_itrs[0], s_itrs[1], s_itrs[2]))
 		m.set_shader_parameter("cam_local", Vector3(c_itrs[0], c_itrs[1], c_itrs[2]))
+	earth_mat.set_shader_parameter("always_day", always_day)
 
 	var k_moon := 0.0
 	if frame.has("r_moon"):
@@ -485,6 +488,11 @@ func focal_px() -> float:
 
 ## Exposure: one EV control for everything; stars and Sun either compressed
 ## (artistic) or at their true brightness relative to a sunlit surface (physical).
+func set_always_day(enabled: bool) -> void:
+	always_day = enabled
+	env.ambient_light_color = Color(0.75, 0.78, 0.84) if enabled else AMBIENT_NORMAL
+
+
 func set_exposure(mode: String, ev: float) -> void:
 	exposure_mode = mode
 	exposure_ev = ev

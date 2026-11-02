@@ -103,6 +103,7 @@ func _ready() -> void:
 	world.overlays.set_label_controller(Callable(world, "set_label_visibility"))
 	world.craft.set_joint_store(source.store)
 	hud.layers.setup(world.overlays)
+	hud.layers.setup_lighting_controller(world)
 	_log("overlays: %d" % world.overlays.nodes.size())
 
 	_update_range()

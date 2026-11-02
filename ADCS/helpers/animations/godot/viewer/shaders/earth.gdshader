@@ -35,6 +35,7 @@ uniform bool has_normal_map = false;
 uniform bool has_specular_map = false;
 uniform vec3 albedo = vec3(0.3, 0.4, 0.6);      // used without a day map (and by checks)
 uniform vec3 sun_dir_itrs = vec3(1.0, 0.0, 0.0);
+uniform bool always_day = false;
 uniform float sun_scale = 1.0;
 uniform float night_gain = 0.45;
 uniform vec3 night_tint = vec3(1.0, 0.78, 0.52);  // sodium/LED mix
@@ -116,11 +117,11 @@ void fragment() {
 	}
 	vec3 base = has_day_map ? sample_day_map(uv, uv_dx, uv_dy) : (has_day ? texture(day_tex, n_geo).rgb : albedo);
 	float mu_geo = dot(n_geo, sun_dir_itrs);
-	float terminator = smoothstep(-0.08, 0.04, mu_geo);
+	float terminator = always_day ? 1.0 : smoothstep(-0.08, 0.04, mu_geo);
 
 	// Sunlight reaching the ground: attenuated (and reddened) by the atmosphere.
 	vec3 sun_ground = vec3(1.0);
-	if (has_atmosphere) {
+	if (has_atmosphere && !always_day) {
 		float sun_visibility = atm_sun_visible(atm_bottom + 1.0, mu_geo);
 		// Retain a faint, smooth atmospheric contribution just below the
 		// geometric horizon instead of cutting the terminator at visibility's
@@ -138,11 +139,11 @@ void fragment() {
 		vec3 q = normalize(n_geo * atm_bottom + sun_dir_itrs * (cloud_height / max(mu_geo, 0.05)));
 		cloud_light = 1.0 - cloud_shadow * cloud_coverage(q, uv_dx, uv_dy) * cloud_opacity;
 	}
-	vec3 sun_irradiance = terminator * sun_scale * sun_ground * cloud_light;
-	float normal_light = max(dot(n, sun_dir_itrs), 0.0);
+	vec3 sun_irradiance = terminator * sun_scale * (always_day ? vec3(1.0) : sun_ground * cloud_light);
+	float normal_light = always_day ? 1.0 : max(dot(n, sun_dir_itrs), 0.0);
 	// A small twilight fill lets the smooth geometric terminator remain visible
 	// even where the local surface normal has no direct sunlight component.
-	float twilight_fill = 0.06 * terminator * (1.0 - smoothstep(0.0, 0.04, mu_geo));
+	float twilight_fill = always_day ? 0.0 : 0.06 * terminator * (1.0 - smoothstep(0.0, 0.04, mu_geo));
 	vec3 lit = (normal_light + twilight_fill) * sun_irradiance;
 	vec3 color = base * (lit + ambient);
 
@@ -154,12 +155,12 @@ void fragment() {
 		color += water * specular_strength * pow(max(dot(n_geo, h), 0.0), 120.0) * sun_irradiance;
 	}
 	if (has_clouds || has_cloud_map) {
-		vec3 cloud_lit = max(mu_geo, 0.0) * terminator * sun_scale * sun_ground + ambient;
+		vec3 cloud_lit = (always_day ? 1.0 : max(mu_geo, 0.0)) * terminator * sun_scale * (always_day ? vec3(1.0) : sun_ground) + ambient;
 		color = mix(color, cloud_lit, cloud * cloud_opacity);
 	}
 	if (has_night || has_night_map) {
 		// City lights fade in across twilight (sun 3 deg above to 9 deg below the horizon).
-		float dark = 1.0 - smoothstep(-0.15, 0.05, mu_geo);
+		float dark = always_day ? 0.0 : 1.0 - smoothstep(-0.15, 0.05, mu_geo);
 		vec3 night = has_night_map ? textureGrad(night_map, uv, uv_dx, uv_dy).rgb : texture(night_tex, n_geo).rgb;
 		color += night * night_tint * night_gain * dark * (1.0 - 0.7 * cloud);
 	}
