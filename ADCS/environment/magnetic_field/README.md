@@ -42,8 +42,10 @@ and are not represented by these internal field SHC files. Set
 
 The files `WMM2025.COF`, `CHAOS-8.7_core.shc`, and
 `CHAOS-8.7_static.shc` are read from `ADCS/environment/kernels` when present.
-Otherwise they are downloaded to the user cache and ignored by Git.
-Model constructors accept custom kernel paths for offline use. Sources:
+Otherwise they are downloaded to the user cache and ignored by Git. WMM2025
+is fetched only on its first field evaluation; `AssetManager` asks for terminal
+confirmation before downloading it. Model constructors accept custom kernel
+paths for offline use. Sources:
 
 - [NOAA World Magnetic Model](https://www.ncei.noaa.gov/products/world-magnetic-model)
 - [NOAA WMM2025 test values](https://www.ncei.noaa.gov/sites/default/files/2025-02/WMM2025_TEST_VALUES.txt)

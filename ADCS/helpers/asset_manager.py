@@ -29,6 +29,7 @@ ASSETS.update({
     "bsc5": Asset("bsc5", "https://cdsarc.cds.unistra.fr/ftp/cats/V/50/catalog.gz", "bsc5_catalog.gz"),
     "hipparcos": Asset("hipparcos", "https://cdsarc.cds.unistra.fr/ftp/cats/I/239/hip_main.dat", "hip_main.dat"),
     "igrf14": Asset("igrf14", "https://www.ngdc.noaa.gov/IAGA/vmod/coeffs/igrf14coeffs.txt", "IGRF14.shc"),
+    "wmm2025": Asset("wmm2025", "https://www.ngdc.noaa.gov/geomag/calculators/mobileStatic/WMM.COF", "WMM2025.COF"),
 })
 
 
