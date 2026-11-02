@@ -9,7 +9,7 @@ import threading
 from datetime import datetime
 
 from .atmosphere import Atmosphere, NRLMSISE00, SMADAtmosphere
-from .ephemeris import DE421, DE442, DE442s, DE441, VSOP2013, Ephemeris
+from .ephemeris import DE421, DE442, DE442s, DE441, Ephemeris
 from .magnetic_field import CHAOS8, IGRF14, IGRF14Numba, IGRF14Ppigrf, WMM2025, MagneticField
 from .star_catalogue import BrightStarCatalog, HipparcosCatalog, StarCatalogue
 
@@ -121,9 +121,6 @@ class Environment:
         if role == "ephemeris" and cls is DE441:
             paths = getattr(model.planets, "paths", ())
             return {"kind": "builtin", "name": "DE441", "config": {"filepath": str(paths[0]) if paths else None}}
-        if role == "ephemeris" and cls is VSOP2013:
-            return {"kind": "builtin", "name": "VSOP2013", "config": {
-                "kernel_dir": str(model.kernel_dir) if model.kernel_dir else None}}
         if role == "star_catalogue" and cls is StarCatalogue:
             return {"kind": "builtin", "name": "StarCatalogue", "config": {}}
         if role == "star_catalogue" and cls is BrightStarCatalog:
@@ -182,7 +179,6 @@ class Environment:
                     "DE442": lambda: DE442(filepath=config["filepath"]) if config.get("filepath") else DE442(),
                     "DE442s": lambda: DE442s(filepath=config["filepath"]) if config.get("filepath") else DE442s(),
                     "DE441": lambda: DE441(filepath=config["filepath"]) if config.get("filepath") else DE441(),
-                    "VSOP2013": lambda: VSOP2013(kernel_dir=config["kernel_dir"]),
                     "StarCatalogue": lambda: StarCatalogue(),
                     "BrightStarCatalog": lambda: BrightStarCatalog(**config),
                     "HipparcosCatalog": lambda: HipparcosCatalog(**config),
