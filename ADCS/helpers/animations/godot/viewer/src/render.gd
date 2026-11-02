@@ -83,7 +83,8 @@ func _draw(t: float, ui: bool, layer: String = "all") -> void:
 	var all := layer != "scene"
 	app.world.overlays.enabled = all
 	for n: Node3D in app.world.overlays.nodes:
-		n.visible = all and bool(app.world.overlays.shown.get(app.world.overlays.group_of(n), true))
+		n.visible = all and bool(n.get_meta("enabled", true)) \
+			and bool(app.world.overlays.shown.get(app.world.overlays.group_of(n), true))
 	app.hud.visible = ui and all
 	app.clock.t = t
 	app.render_at(t)
