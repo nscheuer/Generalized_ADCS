@@ -86,11 +86,12 @@ def _executable(key: str) -> Path:
     return _BIN_DIR / _BUILDS[key][1].format(version=_GODOT_VERSION)
 
 
-def _download_and_unpack(key: str, *, interactive: bool) -> Path:
+def _download_and_unpack(key: str, *, interactive: bool, allow_download: bool = False) -> Path:
     archive_name = f"godot-{_GODOT_VERSION}-{key}.zip"
     asset = Asset(f"Godot {_GODOT_VERSION} ({key})", _asset_url(key), archive_name, _SHA256[key])
     manager = AssetManager(registry={key: asset}, locations=[], cache_dir=_BIN_DIR)
-    archive = manager.get(key, destination=_BIN_DIR / archive_name, interactive=interactive)
+    archive = manager.get(key, destination=_BIN_DIR / archive_name, interactive=interactive,
+                          allow_download=allow_download)
     exe = _executable(key)
     if not exe.is_file():
         member = _BUILDS[key][1].format(version=_GODOT_VERSION)
@@ -141,9 +142,9 @@ def find_viewer(explicit: Optional[str | Path] = None) -> Path:
         raise ViewerNotFoundError(str(exc)) from exc
 
 
-def install_viewer(key: Optional[str] = None, manifest=None) -> Path:
+def install_viewer(key: Optional[str] = None, manifest=None, *, allow_download: bool = False) -> Path:
     """Fetch the pinned Godot build for this platform via AssetManager."""
     key = key or platform_key()
     if key not in _BUILDS:
         raise ViewerNotFoundError(f"no viewer release published for {key}")
-    return _download_and_unpack(key, interactive=True)
+    return _download_and_unpack(key, interactive=True, allow_download=allow_download)

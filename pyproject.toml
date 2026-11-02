@@ -230,6 +230,9 @@ packages = [
 
 [tool.pytest.ini_options]
 testpaths = ["testing"]
+markers = [
+    "local: requires locally installed or downloaded tools and is excluded from CI",
+]
 norecursedirs = [
     ".git",
     ".pytest_cache",
