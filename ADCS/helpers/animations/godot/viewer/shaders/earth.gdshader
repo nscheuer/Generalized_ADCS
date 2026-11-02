@@ -77,9 +77,9 @@ vec3 sample_day_map(vec2 uv, vec2 uv_dx, vec2 uv_dy) {
 	return color;
 }
 
-float cloud_coverage(vec3 n) {
+float cloud_coverage(vec3 n, vec2 uv_dx, vec2 uv_dy) {
 	if (has_cloud_map) {
-		return texture(cloud_map, equirect_uv(n)).r;
+		return textureGrad(cloud_map, equirect_uv(n), uv_dx, uv_dy).r;
 	}
 	return has_clouds ? texture(cloud_tex, n).r : 0.0;
 }
@@ -109,39 +109,48 @@ void fragment() {
 			tangent = normalize(vec3(-n_geo.y, n_geo.x, 0.0));
 		}
 		vec3 bitangent = normalize(cross(n_geo, tangent));
-		vec3 tangent_normal = texture(normal_map, uv).xyz * 2.0 - 1.0;
+		vec3 tangent_normal = textureGrad(normal_map, uv, uv_dx, uv_dy).xyz * 2.0 - 1.0;
 		n = normalize(tangent * tangent_normal.x + bitangent * tangent_normal.y + n_geo * tangent_normal.z);
 	} else if (has_normals) {
 		n = normalize(texture(normal_tex, n_geo).xyz * 2.0 - 1.0);
 	}
 	vec3 base = has_day_map ? sample_day_map(uv, uv_dx, uv_dy) : (has_day ? texture(day_tex, n_geo).rgb : albedo);
 	float mu_geo = dot(n_geo, sun_dir_itrs);
+	float terminator = smoothstep(-0.08, 0.04, mu_geo);
 
 	// Sunlight reaching the ground: attenuated (and reddened) by the atmosphere.
 	vec3 sun_ground = vec3(1.0);
 	if (has_atmosphere) {
-		sun_ground = atm_transmittance(atm_bottom, mu_geo) * atm_sun_visible(atm_bottom + 1.0, mu_geo);
+		float sun_visibility = atm_sun_visible(atm_bottom + 1.0, mu_geo);
+		// Retain a faint, smooth atmospheric contribution just below the
+		// geometric horizon instead of cutting the terminator at visibility's
+		// binary Earth-occlusion boundary.
+		sun_visibility = max(sun_visibility, 0.08 * terminator);
+		sun_ground = atm_transmittance(atm_bottom, mu_geo) * sun_visibility;
 	}
 	// Let the atmosphere carry sunlight into civil twilight instead of ending
 	// it at a nearly geometric one-degree terminator.
-	float terminator = smoothstep(-0.08, 0.04, mu_geo);
 	float cloud_light = 1.0;
 
-	float cloud = cloud_coverage(n_geo);
+	float cloud = cloud_coverage(n_geo, uv_dx, uv_dy);
 	if ((has_clouds || has_cloud_map) && mu_geo > 0.0) {
 		// Shadow of the cloud layer: look up the cloud where the ray toward the Sun crosses it.
 		vec3 q = normalize(n_geo * atm_bottom + sun_dir_itrs * (cloud_height / max(mu_geo, 0.05)));
-		cloud_light = 1.0 - cloud_shadow * cloud_coverage(q) * cloud_opacity;
+		cloud_light = 1.0 - cloud_shadow * cloud_coverage(q, uv_dx, uv_dy) * cloud_opacity;
 	}
 	vec3 sun_irradiance = terminator * sun_scale * sun_ground * cloud_light;
-	vec3 lit = max(dot(n, sun_dir_itrs), 0.0) * sun_irradiance;
+	float normal_light = max(dot(n, sun_dir_itrs), 0.0);
+	// A small twilight fill lets the smooth geometric terminator remain visible
+	// even where the local surface normal has no direct sunlight component.
+	float twilight_fill = 0.06 * terminator * (1.0 - smoothstep(0.0, 0.04, mu_geo));
+	vec3 lit = (normal_light + twilight_fill) * sun_irradiance;
 	vec3 color = base * (lit + ambient);
 
 	vec3 view = normalize(cam_local - p_itrs);
 	if (has_ocean || has_specular_map) {
 		// Sun glint on water (Blinn-Phong).
 		vec3 h = normalize(view + sun_dir_itrs);
-		float water = has_specular_map ? texture(specular_map, uv).r : texture(ocean_tex, n_geo).r;
+		float water = has_specular_map ? textureGrad(specular_map, uv, uv_dx, uv_dy).r : texture(ocean_tex, n_geo).r;
 		color += water * specular_strength * pow(max(dot(n_geo, h), 0.0), 120.0) * sun_irradiance;
 	}
 	if (has_clouds || has_cloud_map) {
@@ -151,7 +160,7 @@ void fragment() {
 	if (has_night || has_night_map) {
 		// City lights fade in across twilight (sun 3 deg above to 9 deg below the horizon).
 		float dark = 1.0 - smoothstep(-0.15, 0.05, mu_geo);
-		vec3 night = has_night_map ? texture(night_map, uv).rgb : texture(night_tex, n_geo).rgb;
+		vec3 night = has_night_map ? textureGrad(night_map, uv, uv_dx, uv_dy).rgb : texture(night_tex, n_geo).rgb;
 		color += night * night_tint * night_gain * dark * (1.0 - 0.7 * cloud);
 	}
 

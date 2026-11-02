@@ -48,7 +48,10 @@ void fragment() {
 	float bright_sunlight = smoothstep(0.35, 0.80, sun_elevation);
 	vec3 physical_shell_color = min(L * PI * sun_scale, vec3(1.0));
 	vec3 sunlit_blue_color = physical_shell_color * vec3(0.5, 14.0, 21.3);
-	physical_shell_color = mix(physical_shell_color, sunlit_blue_color, bright_sunlight * upper_gradient);
+	// Ramp the color correction more gradually than the daylight opacity fade;
+	// sharing the linear weight creates an over-bright cyan band at the limb.
+	float blue_boost = bright_sunlight * upper_gradient * upper_gradient;
+	physical_shell_color = mix(physical_shell_color, sunlit_blue_color, blue_boost);
 	// Premultiplied alpha means the color contribution must compensate for the
 	// limb's antialias coverage; otherwise the half-covered tangent pixels form
 	// a dark line against the surface.

@@ -20,7 +20,7 @@ void fragment() {
 		vec2 xy = (UV * 2.0 - 1.0) / disk_fraction;
 		vec3 normal_body = normalize(camera_to_sun * vec3(xy, mu));
 		vec2 map_uv = vec2(atan(normal_body.y, normal_body.x) / (2.0 * PI) + 0.5,
-			0.5 - asin(clamp(normal_body.z, -1.0, 1.0)) / PI);
+			0.5 + asin(clamp(normal_body.z, -1.0, 1.0)) / PI);
 		surface = texture(surface_map, map_uv).rgb;
 	}
 	ALBEDO = surface * intensity * (disk + halo);
