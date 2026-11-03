@@ -159,6 +159,17 @@ def _zonal_perturbation_accel_jac(R, mu_e, R_e, coeffs, start_degree):
     return jac
 
 
+def _wrap_angle(x: float) -> float:
+    """Wrap to ``[0, 2pi)`` and snap values within rounding of ``2pi`` back to ``0``.
+
+    ``arctan2`` returns ``-1e-17`` as easily as ``+1e-17`` for an angle that is
+    exactly zero; a plain modulo turns the first into ``2pi``, so the same orbit
+    would read 360 degrees from one routine and 0 from another.
+    """
+    y = float(x) % (2 * np.pi)
+    return 0.0 if (2 * np.pi - y) < 1e-9 else y
+
+
 def _classical_from_rv(r, v, mu: float) -> Tuple[float, float, float, float, float, float]:
     """Classical elliptic elements ``(a, e, i, raan, argp, nu)`` of an inertial state.
 
@@ -202,7 +213,7 @@ def _classical_from_rv(r, v, mu: float) -> Tuple[float, float, float, float, flo
             nu = np.arctan2(np.dot(np.cross(nvec, r), h) / (nn * rn * hn), np.dot(nvec, r) / (nn * rn)) % (2 * np.pi)
         else:
             nu = np.arctan2(r[1], r[0]) % (2 * np.pi)
-    return float(a), e, float(inc), float(raan), float(argp), float(nu)
+    return float(a), e, float(inc), _wrap_angle(raan), _wrap_angle(argp), _wrap_angle(nu)
 
 
 def _tle_checksum(line: str) -> str:
@@ -305,6 +316,28 @@ class Orbital_State:
         Backward-compatible parameter (ignored). Real environment vectors are always
         computed.
     :type fast: bool
+
+    **Osculating Keplerian elements.** Every state carries the classical
+    elements of its instantaneous ``(R, V)``, computed on first access:
+    ``semi_major_axis``, ``semi_minor_axis``, ``semi_parameter``,
+    ``apoapsis``, ``periapsis``, ``eccentricity``, ``eccentricity_vector``,
+    ``inclination``, ``longitude_of_ascending_node``,
+    ``argument_of_periapsis``, ``longitude_of_periapsis``,
+    ``true_anomaly_at_epoch``, ``eccentric_anomaly_at_epoch``,
+    ``mean_anomaly_at_epoch``, ``mean_longitude_at_epoch``,
+    ``true_longitude_at_epoch``, ``argument_of_latitude_at_epoch``,
+    ``mean_argument_of_latitude_at_epoch``, ``mean_motion``,
+    ``orbital_period``, ``time_of_periapsis_passage``, ``epoch`` and
+    ``mass_of_the_two_bodies``, plus the ``keplerian_elements`` dict of the
+    same values. Units follow the rest of the package: distances in km,
+    **angles in radians** in ``[0, 2pi)``, mean motion in rad/s, period in
+    s, epoch and periapsis passage as TT Julian dates, mass in kg.
+    Undefined elements (radial, parabolic or hyperbolic motion) are ``nan``.
+    These are osculating values and differ from the mean elements in a TLE.
+
+    The conversion methods :meth:`from_keplerian` and :meth:`to_keplerian`
+    speak **degrees by default** because orbits are usually typed that way;
+    both take ``degrees=False`` to use radians and match the attributes.
 
     """
 
@@ -525,14 +558,17 @@ class Orbital_State:
         true_anomaly: float,
         *,
         mu: float = EarthConstants.mu_e,
+        degrees: bool = True,
         environment: Environment | None = None,
         ephem: Ephemeris | None = None,
         magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
     ) -> "Orbital_State":
         r"""Create an ECI state from classical Keplerian elements.
 
-        ``a`` is semi-major axis in km; ``i``, ``raan``,
-        ``arg_periapsis``, and ``true_anomaly`` are in degrees. The supported
+        ``a`` is semi-major axis in km. ``i``, ``raan``, ``arg_periapsis`` and
+        ``true_anomaly`` are in degrees by default; pass ``degrees=False`` to
+        give them in radians, the unit of the element attributes
+        (``inclination``, ``longitude_of_ascending_node``, ...). The supported
         conic is an ellipse (``a > 0`` and ``0 <= e < 1``).
         """
         a, e = float(a), float(e)
@@ -544,7 +580,8 @@ class Orbital_State:
         if not np.isfinite(mu) or mu <= 0.0:
             raise ValueError("mu must be finite and positive")
 
-        inc, omega, argp, nu = np.deg2rad([i, raan, arg_periapsis, true_anomaly])
+        angles = np.asarray([i, raan, arg_periapsis, true_anomaly], dtype=float)
+        inc, omega, argp, nu = np.deg2rad(angles) if degrees else angles
         p = a * (1.0 - e * e)
         radius = p / (1.0 + e * np.cos(nu))
         r_pf = radius * np.array([np.cos(nu), np.sin(nu), 0.0])
@@ -735,6 +772,14 @@ class Orbital_State:
         self.mean_argument_of_latitude_at_epoch = (self.argument_of_periapsis + self.mean_anomaly_at_epoch) % (2 * np.pi)
         self.argument_of_latitude_at_epoch = (self.argument_of_periapsis + self.true_anomaly_at_epoch) % (2 * np.pi)
 
+        for name in ("longitude_of_ascending_node", "argument_of_periapsis", "longitude_of_periapsis",
+                     "true_anomaly_at_epoch", "eccentric_anomaly_at_epoch", "mean_anomaly_at_epoch",
+                     "mean_longitude_at_epoch", "true_longitude_at_epoch",
+                     "mean_argument_of_latitude_at_epoch", "argument_of_latitude_at_epoch"):
+            value = getattr(self, name)
+            if np.isfinite(value):
+                setattr(self, name, _wrap_angle(value))
+
         # Store the Keplerian Elements in a dictionary for easy access
         self.keplerian_elements = {
             "semi_major_axis": self.semi_major_axis,
@@ -767,15 +812,20 @@ class Orbital_State:
         """Return ``(J2000, R, V)`` in Julian centuries, km, and km/s."""
         return self.J2000, self.R.copy(), self.V.copy()
 
-    def to_keplerian(self, *, mu: float = EarthConstants.mu_e) -> Tuple[float, float, float, float, float, float]:
+    def to_keplerian(self, *, mu: float = EarthConstants.mu_e, degrees: bool = True) -> Tuple[float, float, float, float, float, float]:
         """Return classical elliptic elements ``(a, e, i, raan, argp, nu)``.
 
-        Angles are in degrees. For circular or equatorial orbits, the
-        undefined angular elements are set to zero and the remaining angle is
-        chosen to preserve the state as far as the classical convention allows.
+        ``a`` is in km. Angles are in degrees by default; pass
+        ``degrees=False`` for radians, which matches the element attributes
+        (``inclination``, ``longitude_of_ascending_node``,
+        ``argument_of_periapsis``, ``true_anomaly_at_epoch``). For circular or
+        equatorial orbits, the undefined angular elements are set to zero and
+        the remaining angle is chosen to preserve the state as far as the
+        classical convention allows.
         """
         a, e, inc, raan, argp, nu = _classical_from_rv(self.R, self.V, mu)
-        return (a, e, *map(float, np.rad2deg([inc, raan, argp, nu])))
+        angles = [inc, raan, argp, nu]
+        return (a, e, *map(float, np.rad2deg(angles) if degrees else angles))
 
     def to_TLE(self, *, satellite_number: int = 99999, classification: str = "U") -> Tuple[str, str]:
         """Format the osculating state as an approximate two-line element set.

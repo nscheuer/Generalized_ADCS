@@ -272,3 +272,36 @@ def test_simulate_runs_with_sgp4_orbit_without_drag():
     with pytest.warns(UserWarning, match="no Drag_Disturbance"):
         res = ADCS.simulate(x=x0, satellite=sat, os0=os0, orbit_integrator=SGP4Orbit, dt=10.0, tf=30.0)
     assert res is not None
+
+
+def test_to_keplerian_in_radians_matches_the_attributes():
+    state = Orbital_State.from_keplerian(J2000=0.22, a=7000., e=0.01, i=45., raan=20.,
+                                         arg_periapsis=30., true_anomaly=10.)
+    a, e, inc, raan, argp, nu = state.to_keplerian(degrees=False)
+    assert inc == pytest.approx(state.inclination, abs=1e-9)
+    assert raan == pytest.approx(state.longitude_of_ascending_node, abs=1e-9)
+    assert argp == pytest.approx(state.argument_of_periapsis, abs=1e-9)
+    assert nu == pytest.approx(state.true_anomaly_at_epoch, abs=1e-9)
+    assert a == pytest.approx(state.semi_major_axis, rel=1e-9)
+    deg = state.to_keplerian()
+    assert deg[2] == pytest.approx(45.0, abs=1e-9)
+    assert np.allclose(np.deg2rad(deg[2:]), (inc, raan, argp, nu))
+
+
+def test_from_keplerian_in_radians_round_trips_the_attributes():
+    state = Orbital_State.from_keplerian(J2000=0.22, a=7000., e=0.01, i=45., raan=20.,
+                                         arg_periapsis=30., true_anomaly=10.)
+    again = Orbital_State.from_keplerian(
+        J2000=state.J2000, a=state.semi_major_axis, e=state.eccentricity, i=state.inclination,
+        raan=state.longitude_of_ascending_node, arg_periapsis=state.argument_of_periapsis,
+        true_anomaly=state.true_anomaly_at_epoch, degrees=False)
+    np.testing.assert_allclose(again.R, state.R, atol=1e-6)
+    np.testing.assert_allclose(again.V, state.V, atol=1e-9)
+
+
+def test_zero_node_angle_reads_zero_from_both_routines():
+    # arctan2 of a rounding-level negative must not turn 0 into 2*pi (360 deg).
+    state = Orbital_State.from_keplerian(J2000=0.22, a=7000., e=0.001, i=51.6, raan=0.,
+                                         arg_periapsis=70., true_anomaly=40.)
+    assert state.to_keplerian()[3] < 1e-6
+    assert state.longitude_of_ascending_node < 1e-9
