@@ -21,6 +21,66 @@ control and estimation workflows.
   <a href="https://nscheuer.github.io/Generalized_ADCS/contributing/index.html">🤝 Contributing</a>
 </p>
 
+<p align="center">
+  <img src="docs/source/_static/release_notes/0_2_2_animation.gif"
+       alt="ICESat-2 performing attitude maneuvers over Earth at sunset"
+       width="75%">
+</p>
+
+
+## ✨ Key Features
+
+<details>
+  <summary>✅ Python-first, designed for research and experimentation</summary>
+
+  - Built in Python for accessibility, rapid prototyping, and easy customization.
+  - Minimal setup, extensive documentation, and hands-on tutorials.
+  - Easy to inspect, debug, modify, and extend with custom algorithms.
+  - Numba-accelerated numerical kernels for computationally demanding simulations.
+  - Monte Carlo support for statistical analysis and robustness testing.
+</details>
+
+<details>
+  <summary>✅ Generalized 6-DOF spacecraft dynamics</summary>
+
+  - Attitude propagation using SciPy's <code>solve_ivp</code> with RK45 integration.
+  - Fully configurable spacecraft inertia, geometry, and external disturbances.
+  - Support for underactuated and overactuated spacecraft configurations.
+  - Coming soon: Fast, Numba-accelerated RK4 propagation.
+</details>
+
+<details>
+  <summary>✅ Flexible orbit propagation</summary>
+
+  - Initialize orbits from position vectors, orbital elements, or TLEs.
+  - Keplerian, SGP4, and RK4 orbit propagation.
+  - Model atmospheric drag, solar radiation pressure, J2 perturbations, and lunisolar effects.
+</details>
+
+<details>
+  <summary>✅ Advanced attitude estimation</summary>
+
+  - Plug-and-play EKF, MEKF, UKF, and SRUKF estimation frameworks.
+  - Real-time sensor bias and disturbance estimation.
+</details>
+
+<details>
+  <summary>✅ Flexible attitude control and optimization</summary>
+
+  - PD, LQR, projection-based, and magnetorquer-only feedback controllers.
+  - LP and QP control allocation for underactuated systems.
+  - ALTRO-based trajectory optimization.
+</details>
+
+<details>
+  <summary>✅ Realistic sensor and actuator modeling</summary>
+
+  - Configurable noise and bias models.
+  - Sensors: Gyroscopes, magnetometers, sun sensors, star trackers, Earth horizon sensors, and GPS.
+  - Actuators: Reaction wheels and magnetorquers.
+  - Growing catalog of preconfigured CubeSat-scale hardware models.
+  - Explore available models in <code>ADCS/satellite_hardware</code>.
+</details>
 
 ## 📦 Installation
 
@@ -38,33 +98,11 @@ pip install "generalized-adcs[viz]"
 Requires Python 3.10 or newer. For deterministic reproduction of published
 campaign results, see `requirements-repro.txt` in the repository.
 
-
-## ✨ Key Features
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/nscheuer/Generalized_ADCS/main/docs/source/_static/ground_tracking.png"
-       alt="Tracking a ground target"
-       height="300">
-</p>
-
-- ✅ Fully generalized 6-DOF spacecraft attitude dynamics (RK4 integration)
-- ✅ Fully generalized orbit propagation
-- ✅ Estimation frameworks:
-  EKF, MEKF, UKF, SRUKF, augmented EKF/MEKF/UKF/SRUKF, orbital estimators,
-  and custom filters
-- ✅ Controller frameworks:
-  PD, LQR, ALTRO, and user-defined controllers
-- ✅ Sensor modeling:
-  magnetometers, gyroscopes, sun sensors, GPS
-- ✅ Actuator modeling:
-  reaction wheels and magnetorquers
-- ✅ Growing catalog of CubeSat-scale sensors and actuators
-- ✅ Designed for underactuated and overactuated systems
-
 Optional add-ons:
 - trajectory_planner (tplaunch/pysat) and SALTRO (saltro_py) are optional C++ extensions.
-- Core ADCS functionality works without them.
 - Build instructions are in docs/Install_WSL.md and docs/Install_Windows.md.
+
+
 
 ## Papers
 

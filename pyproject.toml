@@ -82,9 +82,11 @@ ppigrf = [
 nrlmsise = [
     "pymsis>=0.12",
 ]
-# 3-D orbit animation helpers (ADCS/helpers/plotting/animate_orbit_pyvista.py).
+# Visualization helpers: PyVista orbit plots, Godot asset texture processing,
+# and Pillow-based rendering/export utilities.
 viz = [
     "pyvista>=0.44",
+    "Pillow>=10.0",
 ]
 
 # Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
