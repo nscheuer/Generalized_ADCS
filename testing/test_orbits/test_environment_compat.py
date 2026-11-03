@@ -22,9 +22,6 @@ needs_kernel = pytest.mark.skipif(not REAL_KERNEL.is_file(), reason="needs a loc
 # Open review items on 2_2/godot_graphics; strict so a fix is noticed.
 pending_download_policy = pytest.mark.xfail(
     strict=True, raises=FileNotFoundError, reason="DE421 asks before downloading; the download policy is still undecided")
-pending_compat_shims = pytest.mark.xfail(
-    strict=True, raises=ModuleNotFoundError,
-    reason="old ADCS.orbits import paths were removed without shims; keep or deprecate is undecided")
 
 
 @pytest.fixture
@@ -70,12 +67,10 @@ def test_de421_downloads_when_missing_without_a_terminal(no_local_kernels, monke
     ("ADCS.orbits.ephemeris", "Ephemeris"),
     ("ADCS.orbits.density_model", "DensityModel"),
 ])
-@pending_compat_shims
 def test_old_import_paths_still_resolve(module, name):
     assert hasattr(importlib.import_module(module), name)
 
 
-@pending_compat_shims
 def test_orbital_state_accepts_density_model_keyword():
     density_model = importlib.import_module("ADCS.orbits.density_model").DensityModel()
 
