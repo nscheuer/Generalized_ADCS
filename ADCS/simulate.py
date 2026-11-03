@@ -16,7 +16,6 @@ from ADCS.estimators.attitude_estimators import AttitudeEstimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.orbits.orbit import Orbit
-from ADCS.orbits.orbit import Orbit as OrbitIntegrator
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.sgp4_orbit import SGP4Orbit
 from ADCS.environment.environment import Environment
@@ -43,7 +42,7 @@ def simulate(
     orbit_estimator: Optional[Orbit_Estimator] = None,
     goal: Optional[Goal | GoalList] = None,
     os0: Optional[Orbital_State] = None,
-    orbit_integrator: Optional[type[OrbitIntegrator]] = None,
+    orbit_integrator: Optional[type[Orbit]] = None,
     dt: float = 1.0,
     tf: float = 500.0,
     environment: Optional[Environment] = None,

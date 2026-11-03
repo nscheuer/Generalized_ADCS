@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from ADCS.orbits.keplerian_orbit import KeplerianOrbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -30,3 +31,21 @@ def test_keplerian_orbit_rejects_unbound_initial_state():
         pass
     else:
         raise AssertionError("unbound orbit should be rejected")
+
+
+def test_keplerian_orbit_accepts_states_built_by_orbit():
+    # States from Orbit.get_os, copy and average skip __init__; the elements
+    # are computed lazily, so these must still work.
+    from ADCS.orbits.orbit import Orbit
+    from ADCS.orbits.keplerian_orbit import KeplerianOrbit
+    initial = Orbital_State.from_keplerian(J2000=0.22, a=7000., e=0.01, i=45., raan=20.,
+                                           arg_periapsis=30., true_anomaly=10.)
+    base = Orbit(initial, end_time=initial.J2000 + 120 * TimeConstants.sec2cent, dt=60., verbose=False)
+    mid = base.get_os(initial.J2000 + 60 * TimeConstants.sec2cent)
+    assert "eccentricity" not in mid.__dict__
+    orbit = KeplerianOrbit(mid, end_time=mid.J2000 + 60 * TimeConstants.sec2cent, dt=30., verbose=False)
+    assert mid.eccentricity == pytest.approx(0.01, abs=2e-3)
+    assert "eccentricity" in mid.__dict__
+    for derived in (initial.copy(), initial.average(mid, 0.5)):
+        assert np.isfinite(derived.semi_major_axis)
+        assert set(derived.keplerian_elements) == set(initial.keplerian_elements)
