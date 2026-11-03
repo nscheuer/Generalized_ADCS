@@ -169,6 +169,7 @@ packages = [
     "ADCS.environment.kernels",
     "ADCS.environment.magnetic_field",
     "ADCS.environment.star_catalogue",
+    "ADCS.examples",
     "ADCS.estimators",
     "ADCS.estimators.attitude_estimators",
     "ADCS.estimators.estimator_helpers",
@@ -224,6 +225,7 @@ packages = [
 # signatures are correct -- see the 0.1.9 release note.
 [tool.setuptools.package-data]
 "ADCS" = ["py.typed"]
+"ADCS.examples" = ["README.md"]
 "ADCS.environment.kernels" = ["de421.bsp", "IGRF14.shc", "WMM2025.COF", "bsc5_catalog.gz"]
 "ADCS.helpers.animations.godot" = ["bin/LICENSE-GODOT.txt", "bin/COPYRIGHT-GODOT.txt", "viewer/*.godot", "viewer/*.tscn", "viewer/shaders/*.gdshader", "viewer/shaders/*.gdshaderinc", "viewer/src/*.gd", "viewer/src/*/*.gd", "viewer/src/*/*/*.gd", "viewer/tests/*.gd", "_viewer_manifest.json"]
 "ADCS.helpers.animations.godot.assets" = ["sources.json"]
