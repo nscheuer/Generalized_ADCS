@@ -305,3 +305,19 @@ def test_zero_node_angle_reads_zero_from_both_routines():
                                          arg_periapsis=70., true_anomaly=40.)
     assert state.to_keplerian()[3] < 1e-6
     assert state.longitude_of_ascending_node < 1e-9
+
+
+@pytest.mark.parametrize("R, V", [
+    ([5000.0, 5000.0, 0.0], [5.0, -5.5, 0.0]),        # retrograde equatorial, eccentric
+    ([4950.0, 4950.0, 0.0], [5.6, -5.6, 0.0]),        # retrograde equatorial, near-circular
+    ([6000.0, 3000.0, 0.0], [-3.5, 7.0, 0.0]),        # prograde equatorial, eccentric
+])
+def test_equatorial_states_built_from_rv_round_trip(R, V):
+    # from_keplerian(i=180) leaves sin(i) ~ 1e-16 and skips the equatorial branch,
+    # so only states built from raw R/V reach it.
+    state = Orbital_State(J2000=0.22, R=np.array(R), V=np.array(V))
+    a, e, inc, raan, argp, nu = state.to_keplerian(degrees=False)
+    again = Orbital_State.from_keplerian(J2000=state.J2000, a=a, e=e, i=inc, raan=raan,
+                                         arg_periapsis=argp, true_anomaly=nu, degrees=False)
+    np.testing.assert_allclose(again.R, state.R, atol=1e-6)
+    np.testing.assert_allclose(again.V, state.V, atol=1e-9)

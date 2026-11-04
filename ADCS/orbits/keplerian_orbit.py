@@ -10,6 +10,18 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 
 
+def _solve_kepler(M, e, tol=1e-12, max_iter=50):
+    """Eccentric anomaly from mean anomaly by Newton's method; raises if it does not converge."""
+    M = np.mod(M, 2.0 * np.pi)
+    E = np.pi if e > 0.8 else M  # E = M stalls just past periapsis for high e
+    for _ in range(max_iter):
+        step = (E - e * np.sin(E) - M) / (1.0 - e * np.cos(E))
+        E -= step
+        if abs(step) < tol:
+            return E
+    raise RuntimeError(f"Kepler's equation did not converge for M={M}, e={e}")
+
+
 class KeplerianOrbit(Orbit):
     r"""Attitude-independent elliptic two-body orbit.
 
@@ -80,9 +92,7 @@ class KeplerianOrbit(Orbit):
         for j in tqdm(range(1, N), desc="Propagating Keplerian Orbit", unit="step", disable=not verbose):
             elapsed = (times_arr[j] - times_arr[0]) * TimeConstants.cent2sec
             M = self._mean_anomaly0 + self._mean_motion * elapsed
-            E = M
-            for _ in range(5):
-                E -= (E - self._e * np.sin(E) - M) / (1.0 - self._e * np.cos(E))
+            E = _solve_kepler(M, self._e)
             nu = 2.0 * np.arctan2(np.sqrt(1.0 + self._e) * np.sin(E / 2.0),
                                   np.sqrt(1.0 - self._e) * np.cos(E / 2.0))
             radius = p / (1.0 + self._e * np.cos(nu))

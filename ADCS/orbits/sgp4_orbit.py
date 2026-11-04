@@ -31,7 +31,8 @@ def _average_bstar(satellite):
     Thus the average drag area is :math:`\overline{C_D A} =
     \frac{1}{4}\sum_i C_{D,i} A_i`. The standard SGP4/TLE ballistic term is
     estimated as :math:`B^* = \frac{1}{2}\rho_0\overline{C_D A}/m`, using
-    :math:`\rho_0=2.461\times10^{-5}` in the SGP4 reference-density convention.
+    :math:`\rho_0=0.15696615\ \mathrm{kg\,m^{-2}\,ER^{-1}}`, the SGP4 reference
+    density (2.461e-5 kg/m²/km) expressed per Earth radius as B* requires.
 
     :param satellite: Satellite with positive mass and a ``Drag_Disturbance``.
         Without a drag disturbance (or without a satellite) B* is 0 and a
@@ -52,8 +53,9 @@ def _average_bstar(satellite):
         raise ValueError("satellite mass must be positive to derive B*")
     # Isotropic attitude average of projected area: integral(max(0,n·u)) dΩ / 4π = 1/4.
     average_cd_area = float(np.sum(drag.CDs * drag.areas)) / 4.0
-    # SGP4's reference density is 2.461e-5 kg/m², yielding standard TLE B* units.
-    return 0.5 * 2.461e-5 * average_cd_area / satellite.mass
+    # SGP4's reference density, 2.461e-5 kg/m²/km, is 0.15696615 kg/m² per Earth radius;
+    # TLE B* is in 1/ER, so the per-ER value is required.
+    return 0.5 * 0.15696615 * average_cd_area / satellite.mass
 
 
 def _equinoctial(a, e, inc, raan, argp, mean_anomaly):

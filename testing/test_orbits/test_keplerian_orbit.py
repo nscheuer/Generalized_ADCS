@@ -49,3 +49,20 @@ def test_keplerian_orbit_accepts_states_built_by_orbit():
     for derived in (initial.copy(), initial.average(mid, 0.5)):
         assert np.isfinite(derived.semi_major_axis)
         assert set(derived.keplerian_elements) == set(initial.keplerian_elements)
+
+
+@pytest.mark.parametrize("e", [0.9, 0.97, 0.99])
+def test_high_eccentricity_states_follow_keplers_equation(e):
+    # Just after periapsis, where a fixed few Newton steps from E = M had not converged.
+    a = 1122.0 / (1.0 - e) + 6378.137
+    initial = Orbital_State.from_keplerian(J2000=0.22, a=a, e=e, i=63.4, raan=40.0,
+                                           arg_periapsis=270.0, true_anomaly=0.0)
+    n = np.sqrt(initial.mu_e / a**3)
+    times = np.linspace(0.0, 0.7 / n, 15)
+    orbit = KeplerianOrbit(initial, end_time=initial.J2000 + times[-1] * TimeConstants.sec2cent,
+                           dt=times[1] - times[0])
+    for t in times[1:]:
+        _, _, _, _, _, nu = orbit.get_os(initial.J2000 + t * TimeConstants.sec2cent).to_keplerian(degrees=False)
+        E = 2.0 * np.arctan2(np.sqrt(1.0 - e) * np.sin(nu / 2.0), np.sqrt(1.0 + e) * np.cos(nu / 2.0))
+        M = np.mod(E - e * np.sin(E), 2.0 * np.pi)
+        assert M == pytest.approx(n * t, abs=1e-8)

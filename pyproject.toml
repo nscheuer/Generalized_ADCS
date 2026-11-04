@@ -223,7 +223,7 @@ packages = [
 [tool.setuptools.package-data]
 "ADCS" = ["py.typed"]
 "ADCS.environment.kernels" = ["de421.bsp", "IGRF14.shc", "WMM2025.COF", "bsc5_catalog.gz"]
-"ADCS.helpers.animations.godot" = ["bin/LICENSE-GODOT.txt", "bin/COPYRIGHT-GODOT.txt", "viewer/*.godot", "viewer/*.tscn", "viewer/shaders/*.gdshader", "viewer/shaders/*.gdshaderinc", "viewer/src/*.gd", "viewer/src/*/*.gd", "viewer/src/*/*/*.gd", "viewer/tests/*.gd", "_viewer_manifest.json"]
+"ADCS.helpers.animations.godot" = ["bin/LICENSE-GODOT.txt", "bin/COPYRIGHT-GODOT.txt", "viewer/*.godot", "viewer/*.tscn", "viewer/*.json", "viewer/shaders/*.gdshader", "viewer/shaders/*.gdshaderinc", "viewer/src/*.gd", "viewer/src/*/*.gd", "viewer/src/*/*/*.gd", "viewer/tests/*.gd", "_viewer_manifest.json"]
 "ADCS.helpers.animations.godot.assets" = ["sources.json"]
 
 [tool.setuptools.exclude-package-data]
@@ -241,6 +241,7 @@ norecursedirs = [
     "venv",
 ]
 addopts = [
+    "-m", "not local",
     "-ra",
     "--tb=short",
     "--durations=15",
