@@ -43,8 +43,8 @@ var earth_mat: ShaderMaterial
 var moon_mat: ShaderMaterial
 var sun_mat: ShaderMaterial
 var current_texture_lod: Dictionary = {}
-## Keep decoded images alive across zoom changes. Keyed by body and actual LOD
-## (which may differ from the requested LOD when an asset is missing).
+## Keep the active texture alive. Keyed by body and actual LOD (which may
+## differ from the requested LOD when an asset is missing).
 var texture_cache: Dictionary = {}
 var labels_enabled := true
 
@@ -131,38 +131,40 @@ func _apply_texture(name: String, lod: String) -> void:
 	current_texture_lod[name] = lod
 	match name:
 		"earth":
-			if texture != null:
-				earth_mat.set_shader_parameter("day_map", texture)
+			earth_mat.set_shader_parameter("day_map", texture)
 			earth_mat.set_shader_parameter("has_day_map", texture != null)
 		"earth_night":
-			if texture != null:
-				earth_mat.set_shader_parameter("night_map", texture)
+			earth_mat.set_shader_parameter("night_map", texture)
 			earth_mat.set_shader_parameter("has_night_map", texture != null)
 		"earth_clouds":
-			if texture != null:
-				earth_mat.set_shader_parameter("cloud_map", texture)
+			earth_mat.set_shader_parameter("cloud_map", texture)
 			earth_mat.set_shader_parameter("has_cloud_map", texture != null)
 		"earth_normal":
-			if texture != null:
-				earth_mat.set_shader_parameter("normal_map", texture)
+			earth_mat.set_shader_parameter("normal_map", texture)
 			earth_mat.set_shader_parameter("has_normal_map", texture != null)
 		"earth_specular":
-			if texture != null:
-				earth_mat.set_shader_parameter("specular_map", texture)
+			earth_mat.set_shader_parameter("specular_map", texture)
 			earth_mat.set_shader_parameter("has_specular_map", texture != null)
 		"moon":
-			if texture != null:
-				moon_mat.set_shader_parameter("color_map", texture)
+			moon_mat.set_shader_parameter("color_map", texture)
 			moon_mat.set_shader_parameter("has_color_map", texture != null)
 		"sun":
-			if texture != null:
-				sun_mat.set_shader_parameter("surface_map", texture)
+			sun_mat.set_shader_parameter("surface_map", texture)
 			sun_mat.set_shader_parameter("has_surface_map", texture != null)
 		_:
 			var mat: ShaderMaterial = meshes[name].material_override
-			if texture != null:
-				mat.set_shader_parameter("albedo_texture", texture)
+			mat.set_shader_parameter("albedo_texture", texture)
 			mat.set_shader_parameter("has_texture", texture != null)
+	_evict_other_texture_lods(name, actual_lod)
+
+
+## Keep only the selected LOD for this body. Once the material has been
+## switched, dropping the old cache reference lets Godot release its texture.
+func _evict_other_texture_lods(name: String, keep_lod: String) -> void:
+	var prefix := name + ":"
+	for key: String in texture_cache.keys():
+		if key.begins_with(prefix) and key != prefix + keep_lod:
+			texture_cache.erase(key)
 
 
 func _init(ui_parent: Node, viewport: SubViewport, cam: Camera3D, scene_origin: RefCounted) -> void:
