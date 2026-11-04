@@ -7,7 +7,7 @@ class DE442s(DE442):
     """Use the optional DE442s kernel for years 1849 through 2150.
 
     If the kernel is missing, the parent loader can fetch it from the
-    official JPL NAIF archive into the user cache.
+    official JPL NAIF archive into ``ADCS/environment/kernels``.
     ``position_eci`` and ``sun_position_eci`` match the other DE models.
     """
 

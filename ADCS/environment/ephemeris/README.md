@@ -1,9 +1,10 @@
 # Ephemeris models
 
-`DE421()` is the default planetary ephemeris. It looks first in the configured
-user cache and then alongside the source package; if no copy exists, it
-downloads JPL's `de421.bsp` into the user cache on first use. The kernel is not
-included in the Python wheel. Set `ADCS_EPHEMERIS_PATH` to use a specific copy.
+`DE421()` is the default planetary ephemeris. Its kernel is bundled for offline
+use. Missing kernels are resolved through `AssetManager`, which asks for
+terminal confirmation before downloading into `ADCS/environment/kernels/`.
+Set `ADCS_EPHEMERIS_PATH` to select a specific copy; a missing file at that
+path also requires confirmation.
 
 ```python
 import ADCS
@@ -13,4 +14,6 @@ environment = ADCS.Environment(ephemeris=ephem)
 sun_eci_km = ephem.sun_position_eci(0.0)  # J2000 epoch
 ```
 
-The alternative DE442 and DE442s models remain available explicitly.
+The alternative DE442, DE442s, and DE441 models remain available explicitly.
+Their kernels are optional and are downloaded into
+`ADCS/environment/kernels/` only after terminal confirmation.

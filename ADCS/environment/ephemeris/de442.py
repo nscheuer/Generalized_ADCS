@@ -9,14 +9,14 @@ from pathlib import Path
 from skyfield.api import load
 
 from .de421 import DE421
-from ._download import download_with_progress
+from ADCS.helpers.asset_manager import AssetManager
 
 
 class DE442(DE421):
     """DE442 implementation with the same interface and lifecycle as DE421.
 
-    The 114 MB kernel is fetched from JPL/NAIF on first use and stored in the
-    user's cache. ``ADCS_DE442_EPHEMERIS_PATH`` can point to a custom cached
+    The 114 MB kernel is fetched from JPL/NAIF on first use and stored in
+    ``ADCS/environment/kernels``. ``ADCS_DE442_EPHEMERIS_PATH`` can point to a custom
     file, or ``filepath`` can be supplied to the constructor.
     """
 
@@ -68,17 +68,8 @@ class DE442(DE421):
         :raises RuntimeError: If download or initialization fails.
         """
         save_path = Path(save_path)
-        temporary_path = save_path.with_name(save_path.name + ".part")
-        try:
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            download_with_progress(self.DOWNLOAD_URL, temporary_path, self.KERNEL_FILENAME)
-            temporary_path.replace(save_path)
-            planets = load(str(save_path))
-            print(f"✅ {self.KERNEL_FILENAME} ephemeris downloaded to: {save_path}")
-            return planets
-        except Exception as exc:
-            temporary_path.unlink(missing_ok=True)
-            raise RuntimeError(f"❌ Failed to download {self.KERNEL_FILENAME}: {exc}") from exc
+        name = self.KERNEL_FILENAME.removesuffix(".bsp")
+        return load(str(AssetManager().get(name, destination=save_path)))
 
 
 __all__ = ["DE442"]

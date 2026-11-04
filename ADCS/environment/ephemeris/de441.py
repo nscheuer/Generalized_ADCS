@@ -11,7 +11,7 @@ from skyfield.api import load
 from skyfield.jpllib import Stack, VectorSum
 
 from .de421 import DE421
-from ._download import download_with_progress
+from ADCS.helpers.asset_manager import AssetManager
 
 
 class _CombinedKernel:
@@ -93,7 +93,7 @@ class DE441(DE421):
     """DE441 with the same interface and lifecycle as :class:`DE421`.
 
     NAIF publishes DE441 as two BSP partitions. Both files are downloaded to
-    the user cache on first use and queried together. Their combined size is
+    ``ADCS/environment/kernels`` on first use and queried together. Their combined size is
     about 3 GB, so construction downloads a substantial amount of data when
     neither file is already available.
     """
@@ -120,12 +120,7 @@ class DE441(DE421):
         else:
             first_path = Path(filepath).expanduser()
             paths = tuple(first_path.parent / name for name in self.KERNEL_FILENAMES)
-            if all(path.is_file() for path in paths):
-                self.planets = _CombinedKernel(paths)
-            else:
-                self.planets = _CombinedKernel(
-                    self._download_ephemeris(first_path)
-                )
+            self.planets = _CombinedKernel(self._download_ephemeris(first_path))
 
         self.sun = self.planets["sun"]
         self.earth = self.planets["earth"]
@@ -172,18 +167,20 @@ class DE441(DE421):
         :return: Both paths, or ``None`` if a complete pair is unavailable.
         :rtype: tuple[pathlib.Path, pathlib.Path] or None
         """
-        for paths in (cls._cache_ephemeris_paths(), cls._packaged_ephemeris_paths()):
-            if all(path.is_file() for path in paths):
-                return paths
-        return None
+        paths = cls._packaged_ephemeris_paths()
+        manager = AssetManager()
+        return tuple(
+            manager.get(filename.removesuffix(".bsp"), destination=path)
+            for filename, path in zip(cls.KERNEL_FILENAMES, paths)
+        )
 
     def _get_default_ephemeris_path(self) -> Path:
-        r"""Create the cache directory and return the first partition path.
+        r"""Create the kernel directory and return the first partition path.
 
         :return: Destination for ``de441_part-1.bsp``.
         :rtype: pathlib.Path
         """
-        paths = self._cache_ephemeris_paths()
+        paths = self._packaged_ephemeris_paths()
         paths[0].parent.mkdir(parents=True, exist_ok=True)
         return paths[0]
 
@@ -200,18 +197,8 @@ class DE441(DE421):
         try:
             paths[0].parent.mkdir(parents=True, exist_ok=True)
             for filename, destination in zip(self.KERNEL_FILENAMES, paths):
-                if destination.is_file():
-                    continue
-                temporary_path = destination.with_name(destination.name + ".part")
-                try:
-                    download_with_progress(
-                        self.DOWNLOAD_BASE_URL + filename,
-                        temporary_path,
-                        filename,
-                    )
-                    temporary_path.replace(destination)
-                finally:
-                    temporary_path.unlink(missing_ok=True)
+                name = filename.removesuffix(".bsp")
+                AssetManager().get(name, destination=destination)
             return paths
         except Exception as exc:
             raise RuntimeError(f"❌ Failed to download DE441 ephemeris: {exc}") from exc

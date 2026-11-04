@@ -32,6 +32,10 @@ ASSETS.update({
     "igrf14": Asset("igrf14", "https://www.ngdc.noaa.gov/IAGA/vmod/coeffs/igrf14coeffs.txt", "IGRF14.shc"),
     "wmm2025": Asset("wmm2025", "https://www.ngdc.noaa.gov/geomag/calculators/mobileStatic/WMM.COF", "WMM2025.COF"),
 })
+ASSETS.update({
+    "chaos8_core": Asset("CHAOS8 core", "https://zenodo.org/records/22959079/files/CHAOS-8.7_core.shc?download=1", "CHAOS-8.7_core.shc"),
+    "chaos8_static": Asset("CHAOS8 static", "https://zenodo.org/records/22959079/files/CHAOS-8.7_static.shc?download=1", "CHAOS-8.7_static.shc"),
+})
 
 
 class AssetManager:
@@ -63,7 +67,10 @@ class AssetManager:
         target = candidates[0]
         if not allow_download:
             if not interactive or not sys.stdin.isatty():
-                raise FileNotFoundError(f"Missing {name}: {target}. Download from {asset.url} with allow_download=True")
+                raise FileNotFoundError(
+                    f"Missing {name}: {target}. Run this in a terminal and approve the download, "
+                    "or place the asset at that path."
+                )
             answer = input(f"Download {name} from {asset.url} to {target}? [y/N] ")
             if answer.strip().lower() not in ("y", "yes"):
                 raise FileNotFoundError(f"Download declined for {name}: {target}")
