@@ -4,10 +4,14 @@ extends RefCounted
 ## Positions in the log are km; sample() returns metres.
 
 const D := preload("res://src/core/dmath.gd")
+const CHUNK_ROWS := 1024
 
 var names: PackedStringArray
 var widths: Dictionary = {}
-var cols: Dictionary = {}  # name -> PackedFloat64Array (row-major, n * width)
+## Completed chunks are immutable packed arrays; the mutable Array tail avoids
+## copy-on-write of all prior rows on each streamed append.
+var chunks: Dictionary = {}  # name -> Array[PackedFloat64Array]
+var tails: Dictionary = {}  # name -> Array (float values for the current chunk)
 var n_rows := 0
 
 
@@ -15,41 +19,58 @@ func _init(channel_names: PackedStringArray, channel_widths: PackedInt32Array) -
 	names = channel_names
 	for i in names.size():
 		widths[names[i]] = channel_widths[i]
-		cols[names[i]] = PackedFloat64Array()
+		chunks[names[i]] = []
+		tails[names[i]] = []
 
 
-## Packed arrays are values (copy-on-write) in GDScript: append to a local and
-## store it back, or the dictionary entry never changes.
+## Bulk input follows the same chunked path as live rows, avoiding copies of
+## previously stored history.
 func append_block(block_cols: Dictionary, rows: int) -> void:
-	for name: String in names:
-		var col: PackedFloat64Array = cols[name]
-		col.append_array(block_cols[name])
-		cols[name] = col
-	n_rows += rows
+	for row in range(rows):
+		var values := PackedFloat64Array()
+		for name: String in names:
+			var w: int = widths[name]
+			var start := row * w
+			var col: PackedFloat64Array = block_cols[name]
+			for j in w:
+				values.append(col[start + j])
+		append_row(values)
 
 
 func append_row(values: PackedFloat64Array) -> void:
 	var off := 0
 	for name: String in names:
 		var w: int = widths[name]
-		var col: PackedFloat64Array = cols[name]
-		col.append_array(values.slice(off, off + w))
-		cols[name] = col
+		var tail: Array = tails[name]
+		for j in w:
+			tail.append(values[off + j])
+		if tail.size() == CHUNK_ROWS * w:
+			(chunks[name] as Array).append(PackedFloat64Array(tail))
+			tails[name] = []
 		off += w
 	n_rows += 1
 
 
 func has(name: String) -> bool:
-	return cols.has(name)
+	return widths.has(name)
 
 
 func get_row(name: String, k: int) -> PackedFloat64Array:
 	var w: int = widths[name]
-	return (cols[name] as PackedFloat64Array).slice(k * w, (k + 1) * w)
+	var chunk_index := int(k / CHUNK_ROWS)
+	var offset := (k % CHUNK_ROWS) * w
+	if chunk_index < (chunks[name] as Array).size():
+		var col: PackedFloat64Array = chunks[name][chunk_index]
+		return col.slice(offset, offset + w)
+	var tail: Array = tails[name]
+	var out := PackedFloat64Array()
+	for j in w:
+		out.append(tail[offset + j])
+	return out
 
 
 func t(k: int) -> float:
-	return (cols["t_s"] as PackedFloat64Array)[k]
+	return get_row("t_s", k)[0]
 
 
 func t_min() -> float:
@@ -62,12 +83,19 @@ func t_max() -> float:
 
 ## Index k and fraction s with t(k) <= ts <= t(k + 1), clamped to the data.
 func locate(ts: float) -> Array:
-	var tcol: PackedFloat64Array = cols["t_s"]
-	var k := clampi(tcol.bsearch(ts, true) - 1, 0, maxi(n_rows - 2, 0))
 	if n_rows < 2:
 		return [0, 0.0]
-	var h := tcol[k + 1] - tcol[k]
-	return [k, clampf((ts - tcol[k]) / h, 0.0, 1.0)]
+	var lo := 0
+	var hi := n_rows
+	while lo < hi:
+		var mid := int((lo + hi) / 2)
+		if t(mid) <= ts:
+			lo = mid + 1
+		else:
+			hi = mid
+	var k := clampi(lo - 1, 0, maxi(n_rows - 2, 0))
+	var h := t(k + 1) - t(k)
+	return [k, clampf((ts - t(k)) / h, 0.0, 1.0)]
 
 
 ## Linear interpolation of any channel.

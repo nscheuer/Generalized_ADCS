@@ -130,6 +130,15 @@ func test_frame_store() -> void:
 	near(fs.value("x", 99.0)[1], 40.0, 1e-12, "clamped past the end")
 	var ks: Array = fs.locate(1.0)
 	expect(ks[0] == 0 and is_equal_approx(ks[1], 1.0) or ks[0] == 1 and is_equal_approx(ks[1], 0.0), "locate at a sample")
+	for i in range(3, 1027):
+		fs.append_row(PackedFloat64Array([float(i), float(i * 10), float(i * 20)]))
+	expect(fs.n_rows == 1027, "row count across a storage chunk boundary")
+	near(fs.get_row("x", 1023)[1], 20460.0, 1e-12, "row before chunk boundary")
+	near(fs.get_row("x", 1024)[0], 10240.0, 1e-12, "row at chunk boundary")
+	near(fs.t(1026), 1026.0, 1e-12, "time lookup in final partial chunk")
+	var boundary: Array = fs.locate(1023.5)
+	expect(boundary[0] == 1023, "binary time lookup across chunk boundary")
+	near(float(boundary[1]), 0.5, 1e-12, "interpolation fraction across chunk boundary")
 
 
 func test_clock() -> void:

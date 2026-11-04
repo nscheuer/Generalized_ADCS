@@ -57,12 +57,12 @@ func update() -> bool:
 func _update_eclipse() -> bool:
 	if not store.has("shadow_factor"):
 		return false
-	var sf: PackedFloat64Array = store.cols["shadow_factor"]
 	var n: int = mini(store.n_rows, _ecl_k + ROWS_PER_CHUNK)
 	if _ecl_k >= n:
 		return false
 	for k in range(_ecl_k, n):
-		var kind := sky_of(sf[k])
+		var sf := float(store.get_row("shadow_factor", k)[0])
+		var kind := sky_of(sf)
 		if _ecl_open[1] < 0:
 			_ecl_open = [store.t(k), kind]
 		elif kind != _ecl_open[1]:
@@ -73,8 +73,8 @@ func _update_eclipse() -> bool:
 				thr = SUNLIT_ABOVE
 			elif prev == Light.PENUMBRA or kind == Light.PENUMBRA:
 				thr = UMBRA_BELOW
-			var a := sf[k - 1]
-			var b := sf[k]
+			var a := float(store.get_row("shadow_factor", k - 1)[0])
+			var b := sf
 			var f := clampf((thr - a) / (b - a), 0.0, 1.0) if b != a else 0.5
 			var tb: float = store.t(k - 1) + f * (store.t(k) - store.t(k - 1))
 			_ecl.append([_ecl_open[0], tb, prev])
@@ -85,16 +85,16 @@ func _update_eclipse() -> bool:
 
 ## Elevation of the spacecraft above the site at row k minus the site's threshold [deg].
 func _elev(k: int, site: Dictionary) -> float:
-	var r: PackedFloat64Array = store.cols["r_sc"]
-	var q: PackedFloat64Array = store.cols["q_itrs_gcrs"]
-	var x := r[3 * k] * 1000.0
-	var y := r[3 * k + 1] * 1000.0
-	var z := r[3 * k + 2] * 1000.0
-	var qn := sqrt(q[4 * k] ** 2 + q[4 * k + 1] ** 2 + q[4 * k + 2] ** 2 + q[4 * k + 3] ** 2)
-	var w := q[4 * k] / qn
-	var a := q[4 * k + 1] / qn
-	var b := q[4 * k + 2] / qn
-	var c := q[4 * k + 3] / qn
+	var r: PackedFloat64Array = store.get_row("r_sc", k)
+	var q: PackedFloat64Array = store.get_row("q_itrs_gcrs", k)
+	var x := r[0] * 1000.0
+	var y := r[1] * 1000.0
+	var z := r[2] * 1000.0
+	var qn := sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3] ** 2)
+	var w := q[0] / qn
+	var a := q[1] / qn
+	var b := q[2] / qn
+	var c := q[3] / qn
 	# ITRS position: R(q) r, R from the scalar-first Hamilton quaternion q_itrs_gcrs.
 	var xi := (1 - 2 * (b * b + c * c)) * x + 2 * (a * b - w * c) * y + 2 * (a * c + w * b) * z
 	var yi := 2 * (a * b + w * c) * x + (1 - 2 * (a * a + c * c)) * y + 2 * (b * c - w * a) * z
