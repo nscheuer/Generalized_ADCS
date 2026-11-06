@@ -69,6 +69,7 @@ dependencies = [
     "tqdm>=4.60",
     "rich>=13.0",
     "DracoPy>=2.2",
+    "DracoPy>=2.2",
 ]
 
 # Optional extras
@@ -182,6 +183,10 @@ packages = [
     "ADCS.helpers.animations.godot",
     "ADCS.helpers.animations.godot.assets",
     "ADCS.helpers.animations.godot.mesh_import",
+    "ADCS.helpers.animations",
+    "ADCS.helpers.animations.godot",
+    "ADCS.helpers.animations.godot.assets",
+    "ADCS.helpers.animations.godot.mesh_import",
     "ADCS.helpers.math",
     "ADCS.helpers.plot",
     "ADCS.helpers.plot.control",
@@ -245,6 +250,7 @@ norecursedirs = [
     "venv",
 ]
 addopts = [
+    "-m", "not local",
     "-ra",
     "--tb=short",
     "--durations=15",

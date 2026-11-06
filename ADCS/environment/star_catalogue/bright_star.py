@@ -43,11 +43,9 @@ class BrightStarCatalog(StarCatalog):
         :rtype: None
         """
         self.max_vmag = max_vmag
-        self.kernel_path = (
-            Path(kernel_path).expanduser()
-            if kernel_path is not None
-            else AssetManager().get("bsc5")
-        )
+        manager = AssetManager()
+        destination = Path(kernel_path).expanduser() if kernel_path is not None else manager.locations[0] / self.FILENAME
+        self.kernel_path = manager.get("bsc5", destination=destination)
         self._stars: list[NavigationStar] | None = None
 
     @property

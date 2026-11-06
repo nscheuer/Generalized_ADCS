@@ -117,11 +117,7 @@ class WMM2025(MagneticField):
         if np.any((years < 2025.0) | (years >= 2030.0)):
             raise ValueError("WMM2025 is valid from 2025-01-01 through 2029-12-31")
         manager = AssetManager()
-        path = (
-            manager.get("wmm2025", destination=self.kernel_path)
-            if self._custom_kernel_path is not None
-            else manager.get("wmm2025")
-        )
+        path = manager.get("wmm2025", destination=self.kernel_path)
         self.kernel_path = path
         epoch, g0, h0, gd, hd = _load_cof(str(path))
         if dates.size == 1 or np.all(years == years[0]):

@@ -37,7 +37,7 @@ def test_sgp4_uses_manual_bstar_and_propagates():
 def test_sgp4_derives_attitude_averaged_bstar_from_drag_geometry():
     sat = make_satellite()
     orbit = SGP4Orbit(make_state(), satellite=sat)
-    expected = 0.5 * 2.461e-5 * (2 * 2.0 * 2.0 / 4) / 4.0
+    expected = 0.5 * 0.15696615 * (2 * 2.0 * 2.0 / 4) / 4.0
     np.testing.assert_allclose(orbit.bstar, expected, rtol=1e-12)
 
 

@@ -205,14 +205,15 @@ def _classical_from_rv(r, v, mu: float) -> Tuple[float, float, float, float, flo
         if nn > tol:
             argp = np.arctan2(np.dot(np.cross(nvec, evec), h) / (nn * e * hn), np.dot(nvec, evec) / (nn * e)) % (2 * np.pi)
         else:
-            argp = np.arctan2(evec[1], evec[0]) % (2 * np.pi)
+            # Equatorial: measured from +x in the orbit's own sense (clockwise when retrograde).
+            argp = np.arctan2(np.sign(h[2]) * evec[1], evec[0]) % (2 * np.pi)
         nu = np.arctan2(np.dot(np.cross(evec, r), h) / (e * rn * hn), np.dot(evec, r) / (e * rn)) % (2 * np.pi)
     else:
         argp = 0.0
         if nn > tol:
             nu = np.arctan2(np.dot(np.cross(nvec, r), h) / (nn * rn * hn), np.dot(nvec, r) / (nn * rn)) % (2 * np.pi)
         else:
-            nu = np.arctan2(r[1], r[0]) % (2 * np.pi)
+            nu = np.arctan2(np.sign(h[2]) * r[1], r[0]) % (2 * np.pi)
     return float(a), e, float(inc), _wrap_angle(raan), _wrap_angle(argp), _wrap_angle(nu)
 
 
