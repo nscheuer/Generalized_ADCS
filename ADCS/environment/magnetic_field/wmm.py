@@ -10,8 +10,9 @@ import numpy as np
 from ADCS.helpers.math.spherical_harmonics import _kernel_varying, _schmidt_table
 
 from ADCS.environment.ephemeris._download import kernel_path as default_kernel_path
+from ADCS.helpers.asset_manager import AssetManager
 
-from ._coefficients import coordinate_dates, ensure_kernel, evaluate_static, shaped_field
+from ._coefficients import coordinate_dates, evaluate_static, shaped_field
 from .magnetic_field import MagneticField
 
 
@@ -93,7 +94,8 @@ class WMM2025(MagneticField):
         :return: None
         :rtype: None
         """
-        self.kernel_path = Path(kernel_path) if kernel_path is not None else default_kernel_path("WMM2025.COF")
+        self._custom_kernel_path = Path(kernel_path).expanduser() if kernel_path is not None else None
+        self.kernel_path = self._custom_kernel_path or default_kernel_path("WMM2025.COF")
 
     def field_gc(self, r, theta, phi, date):
         r"""Evaluate WMM2025 in geocentric spherical coordinates.
@@ -114,7 +116,9 @@ class WMM2025(MagneticField):
         years = _decimal_years(dates)
         if np.any((years < 2025.0) | (years >= 2030.0)):
             raise ValueError("WMM2025 is valid from 2025-01-01 through 2029-12-31")
-        path = ensure_kernel(self.kernel_path, WMM2025_URL)
+        manager = AssetManager()
+        path = manager.get("wmm2025", destination=self.kernel_path)
+        self.kernel_path = path
         epoch, g0, h0, gd, hd = _load_cof(str(path))
         if dates.size == 1 or np.all(years == years[0]):
             delta = float(years[0] - epoch)

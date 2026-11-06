@@ -17,9 +17,6 @@ from .magnetic_field import MagneticField
 
 
 CHAOS8_VERSION = "8.7"
-_URL_ROOT = "https://zenodo.org/records/22959079/files/"
-CHAOS8_CORE_URL = _URL_ROOT + "CHAOS-8.7_core.shc?download=1"
-CHAOS8_STATIC_URL = _URL_ROOT + "CHAOS-8.7_static.shc?download=1"
 
 
 @lru_cache(maxsize=4)
@@ -222,7 +219,7 @@ class CHAOS8(MagneticField):
         """
         shape, r, theta, phi, dates = coordinate_dates(r, theta, phi, date)
         core_path = ensure_kernel(
-            self.core_path, CHAOS8_CORE_URL, "a90a67e45d2a4613629d6c37fc9a0418"
+            self.core_path, "chaos8_core", "a90a67e45d2a4613629d6c37fc9a0418"
         )
         times, g, h = _read_shc(str(core_path), 1, 20)
         years = _chaos_years(dates)
@@ -246,7 +243,7 @@ class CHAOS8(MagneticField):
 
         if self.include_static:
             static_path = ensure_kernel(
-                self.static_path, CHAOS8_STATIC_URL, "5730a1b3a155a698eae5e2f0b60f2433"
+                self.static_path, "chaos8_static", "5730a1b3a155a698eae5e2f0b60f2433"
             )
             _, gs, hs = _read_shc(str(static_path), 21, 185)
             static_field = evaluate_static(r, theta, phi, gs[0], hs[0])

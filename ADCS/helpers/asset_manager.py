@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import os
 import sys
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.request import urlretrieve
+from urllib.request import Request, urlopen
 
 from tqdm.auto import tqdm
 
@@ -29,6 +30,11 @@ ASSETS.update({
     "bsc5": Asset("bsc5", "https://cdsarc.cds.unistra.fr/ftp/cats/V/50/catalog.gz", "bsc5_catalog.gz"),
     "hipparcos": Asset("hipparcos", "https://cdsarc.cds.unistra.fr/ftp/cats/I/239/hip_main.dat", "hip_main.dat"),
     "igrf14": Asset("igrf14", "https://www.ngdc.noaa.gov/IAGA/vmod/coeffs/igrf14coeffs.txt", "IGRF14.shc"),
+    "wmm2025": Asset("wmm2025", "https://www.ngdc.noaa.gov/geomag/calculators/mobileStatic/WMM.COF", "WMM2025.COF"),
+})
+ASSETS.update({
+    "chaos8_core": Asset("CHAOS8 core", "https://zenodo.org/records/22959079/files/CHAOS-8.7_core.shc?download=1", "CHAOS-8.7_core.shc"),
+    "chaos8_static": Asset("CHAOS8 static", "https://zenodo.org/records/22959079/files/CHAOS-8.7_static.shc?download=1", "CHAOS-8.7_static.shc"),
 })
 
 
@@ -41,36 +47,50 @@ class AssetManager:
         base = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
         self.cache_dir = Path(cache_dir) if cache_dir is not None else base / "generalized_adcs"
 
+    @staticmethod
+    def _sha256(path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
     def get(self, name: str, *, destination=None, interactive=True, allow_download=False) -> Path:
         asset = self.registry[name]
         candidates = ([Path(destination)] if destination is not None else
                       [self.cache_dir / asset.filename] + [p / asset.filename for p in self.locations])
         for path in candidates:
             if path.is_file():
+                if asset.sha256 and self._sha256(path) != asset.sha256:
+                    raise ValueError(f"Checksum mismatch for {name}: {path}")
                 return path
         target = candidates[0]
         if not allow_download:
             if not interactive or not sys.stdin.isatty():
-                raise FileNotFoundError(f"Missing {name}: {target}. Download from {asset.url} with allow_download=True")
+                raise FileNotFoundError(
+                    f"Missing {name}: {target}. Run this in a terminal and approve the download, "
+                    "or place the asset at that path."
+                )
             answer = input(f"Download {name} from {asset.url} to {target}? [y/N] ")
             if answer.strip().lower() not in ("y", "yes"):
                 raise FileNotFoundError(f"Download declined for {name}: {target}")
         target.parent.mkdir(parents=True, exist_ok=True)
         partial = target.with_name(target.name + ".part")
         try:
-            downloaded = 0
+            request = Request(
+                asset.url,
+                headers={"User-Agent": "Generalized-ADCS/0.2 (+https://github.com/nscheuer/Generalized_ADCS)"},
+            )
             with tqdm(unit="B", unit_scale=True, unit_divisor=1024, desc=name) as bar:
-                def report(block, size, total):
-                    nonlocal downloaded
-                    if total > 0 and bar.total is None:
-                        bar.total = total
-                    current = block * size
-                    bar.update(max(0, current - downloaded))
-                    downloaded = current
-                urlretrieve(asset.url, partial, reporthook=report)
+                with urlopen(request) as response, partial.open("wb") as output:
+                    length = response.headers.get("Content-Length")
+                    if length is not None:
+                        bar.total = int(length)
+                    while chunk := response.read(1024 * 1024):
+                        output.write(chunk)
+                        bar.update(len(chunk))
             if asset.sha256:
-                import hashlib
-                if hashlib.sha256(partial.read_bytes()).hexdigest() != asset.sha256:
+                if self._sha256(partial) != asset.sha256:
                     raise ValueError(f"Checksum mismatch for {name}")
             partial.replace(target)
         finally:

@@ -6,7 +6,6 @@ from pathlib import Path
 
 import numpy as np
 
-from ADCS.environment.ephemeris._download import download_with_progress, kernel_path
 from ADCS.helpers.asset_manager import AssetManager
 
 from .catalogue import NavigationStar, StarCatalog
@@ -34,7 +33,9 @@ class HipparcosCatalog(StarCatalog):
         :rtype: None
         """
         self.max_vmag = max_vmag
-        self.kernel_dir = Path(kernel_dir) if kernel_dir is not None else AssetManager().get("hipparcos").parent
+        self._custom_kernel_dir = Path(kernel_dir) if kernel_dir is not None else None
+        manager = AssetManager()
+        self.kernel_dir = self._custom_kernel_dir or manager.locations[0]
         self._stars: list[NavigationStar] | None = None
 
     @property
@@ -46,19 +47,13 @@ class HipparcosCatalog(StarCatalog):
         :raises ValueError: If the source file contains no usable stars.
         """
         if self._stars is None:
-            path = self.kernel_dir / self.FILENAME
-            if not path.is_file():
-                self.kernel_dir.mkdir(parents=True, exist_ok=True)
-                partial = path.with_name(path.name + ".part")
-                try:
-                    download_with_progress(self.URL, partial, "Hipparcos catalogue")
-                    stars = self._load_catalog(partial)
-                    partial.replace(path)
-                    self._stars = stars
-                finally:
-                    partial.unlink(missing_ok=True)
-            else:
-                self._stars = self._load_catalog(path)
+            manager = AssetManager()
+            path = manager.get(
+                "hipparcos",
+                destination=self.kernel_dir / self.FILENAME,
+            )
+            self.kernel_dir = path.parent
+            self._stars = self._load_catalog(path)
         return self._stars
 
     def _load_catalog(self, path: Path) -> list[NavigationStar]:

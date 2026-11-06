@@ -20,7 +20,7 @@ from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.state import EstimatorState, State
-from ADCS.environment.ephemeris import DE421 as Ephemeris
+from ADCS.environment.environment import Environment
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.helpers.math_helpers import normalize
@@ -83,23 +83,14 @@ def _freeze_os0(os0: Orbital_State) -> Dict[str, Any]:
     return os0.to_dict()
 
 
-def _thaw_os0(payload: Dict[str, Any], ephem: Ephemeris) -> Orbital_State:
-    return Orbital_State.from_dict(payload, ephem=ephem, fast=True)
+def _thaw_os0(payload: Dict[str, Any], environment_json: str) -> Orbital_State:
+    return Orbital_State.from_dict(payload, environment=_get_environment(environment_json), fast=True)
 
 
 def _freeze_os_hist(hist: Any) -> Any:
     if hist is None:
         return None
     return [os_i.to_dict() if os_i is not None else None for os_i in hist]
-
-
-def _thaw_os_hist(hist: Any, ephem: Ephemeris) -> Any:
-    if hist is None:
-        return None
-    return [
-        Orbital_State.from_dict(d, ephem=ephem, fast=True) if d is not None else None
-        for d in hist
-    ]
 
 
 def _orbit_seq_from_orbit_obj(orb: Orbit, start_J2000: float, dt: float, tf: float) -> List[Dict[str, Any]]:
@@ -332,21 +323,22 @@ def _simulate_with_precomputed_orbit(
     return run_results
 
 
-_EPHEM: Optional[Ephemeris] = None
 _ORBIT_CACHE: Dict[str, List[Orbital_State]] = {}
+_ENVIRONMENT_CACHE: Dict[str, Environment] = {}
 
 
-def _get_ephem() -> Ephemeris:
-    global _EPHEM
-    if _EPHEM is None:
-        _EPHEM = Ephemeris()
-    return _EPHEM
+def _get_environment(environment_json: str) -> Environment:
+    environment = _ENVIRONMENT_CACHE.get(environment_json)
+    if environment is None:
+        environment = Environment.from_json(environment_json)
+        _ENVIRONMENT_CACHE[environment_json] = environment
+    return environment
 
 
 def _cache_key(
-    *, os0_payload: Dict[str, Any], dt: float, tf: float, zonal_J: int, fast: bool, magnetic_model: Optional[str], slot_id: int
+    *, os0_payload: Dict[str, Any], environment_json: str, dt: float, tf: float, zonal_J: int, fast: bool, magnetic_model: Optional[str], slot_id: int
 ) -> str:
-    b = pickle.dumps((slot_id, os0_payload, float(dt), float(tf), int(zonal_J), bool(fast), magnetic_model))
+    b = pickle.dumps((slot_id, os0_payload, environment_json, float(dt), float(tf), int(zonal_J), bool(fast), magnetic_model))
     return hashlib.blake2b(b, digest_size=16).hexdigest()
 
 
@@ -359,8 +351,6 @@ def _simulate_mc_worker(cfg: Dict[str, Any]) -> Dict[str, Any]:
         np.random.seed(seed)
         # Initial progress signal
         update_worker_progress(slot_id, run_id, 0, 1)
-
-        ephem = _get_ephem()
 
         x0 = State.from_dict(cfg["x0"])
         satellite: Satellite = cfg["satellite"]
@@ -378,21 +368,24 @@ def _simulate_mc_worker(cfg: Dict[str, Any]) -> Dict[str, Any]:
         # stores it), so this key is only needed to override that.
         magnetic_model = cfg.get("orbit_magnetic_model")
         fast = bool(cfg.get("orbit_fast", False))
+        environment_json = cfg["environment_json"]
 
         if orbit_mode == "seq":
             os_seq_payload = cfg.get("orbit_os_seq")
             if os_seq_payload is None:
                 raise ValueError("orbit_mode='seq' requires orbit_os_seq")
-            os_seq = _thaw_os_hist(os_seq_payload, ephem=ephem)
+            environment = _get_environment(environment_json)
+            os_seq = [Orbital_State.from_dict(d, environment=environment, fast=True) if d is not None else None
+                      for d in os_seq_payload]
         else:
             os0_payload = cfg["os0_payload"]
             key = _cache_key(
                 os0_payload=os0_payload, dt=dt, tf=tf, zonal_J=zonal_J, fast=fast,
-                magnetic_model=magnetic_model, slot_id=slot_id,
+                magnetic_model=magnetic_model, slot_id=slot_id, environment_json=environment_json,
             )
             os_seq = _ORBIT_CACHE.get(key)
             if os_seq is None:
-                os0 = _thaw_os0(os0_payload, ephem=ephem)
+                os0 = _thaw_os0(os0_payload, environment_json=environment_json)
                 os_seq = _orbit_seq_from_os0(
                     os0=os0, dt=dt, tf=tf, zonal_J=zonal_J, fast=fast, magnetic_model=magnetic_model
                 )
@@ -424,6 +417,7 @@ def _simulate_mc_worker(cfg: Dict[str, Any]) -> Dict[str, Any]:
             "run_id": run_id,
             "seed": int(cfg["seed"]),
             "applied": cfg.get("applied", {}),
+            "environment_json": environment_json,
             "results": sim_results,
         }
 
@@ -600,6 +594,7 @@ def simulate_mc(
 
     x_base = x.copy()
     os0_base_payload = _freeze_os0(os0)
+    os0_environment_json = os0.environment.to_json()
 
     def _build_run_cfg(run_id: int) -> Dict[str, Any]:
         seed = int(base_seed) + int(run_id)
@@ -650,6 +645,7 @@ def simulate_mc(
 
         orbit_mode = "os0"
         os0_payload = os0_base_payload
+        environment_json = os0_environment_json
         orbit_os_seq: Optional[List[Dict[str, Any]]] = None
 
         orbit_override = None
@@ -661,6 +657,7 @@ def simulate_mc(
         if orbit_override is not None:
             ov = _sample(orbit_override, rng)
             if isinstance(ov, Orbit):
+                environment_json = ov.environment.to_json()
                 with suppress_output():
                     orbit_os_seq = _orbit_seq_from_orbit_obj(ov, start_J2000=float(os0_payload["J2000"]), dt=dt_i, tf=tf_i)
                 orbit_mode = "seq"
@@ -670,12 +667,14 @@ def simulate_mc(
                 if isinstance(ov[0], dict):
                     orbit_os_seq = ov
                 elif isinstance(ov[0], Orbital_State):
+                    environment_json = ov[0].environment.to_json()
                     orbit_os_seq = [os_i.to_dict() for os_i in ov]
                 else:
                     raise TypeError("orbit override list must contain dict or Orbital_State")
                 orbit_mode = "seq"
             elif isinstance(ov, Orbital_State):
                 os0_payload = ov.to_dict()
+                environment_json = ov.environment.to_json()
                 orbit_mode = "os0"
             elif isinstance(ov, dict) and "J2000" in ov and "R" in ov and "V" in ov:
                 os0_payload = ov
@@ -693,6 +692,7 @@ def simulate_mc(
             "goal": goal_i,
             "orbit_mode": orbit_mode,
             "os0_payload": os0_payload,
+            "environment_json": environment_json,
             "orbit_zonal_J": 2,
             "orbit_fast": False,
             "satellite": satellite,
@@ -720,11 +720,19 @@ def simulate_mc(
         if r is not None and isinstance(r, dict) and r.get("results") is not None
     ]
 
-    ephem = Ephemeris()
+    environments: Dict[str, Environment] = {}
     for item in cleaned:
         res = item["results"]
-        res.os_hist = _thaw_os_hist(res.os_hist, ephem=ephem)
-        res.est_os_hist = _thaw_os_hist(res.est_os_hist, ephem=ephem)
+        environment_json = item["environment_json"]
+        if environment_json not in environments:
+            environments[environment_json] = Environment.from_json(environment_json)
+        environment = environments[environment_json]
+        if res.os_hist is not None:
+            res.os_hist = [Orbital_State.from_dict(d, environment=environment, fast=True) if d is not None else None
+                           for d in res.os_hist]
+        if res.est_os_hist is not None:
+            res.est_os_hist = [Orbital_State.from_dict(d, environment=environment, fast=True) if d is not None else None
+                               for d in res.est_os_hist]
 
     runs = [entry["results"] for entry in cleaned]
     configs = [entry.get("applied", {}) for entry in cleaned]

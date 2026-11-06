@@ -25,7 +25,7 @@ by Hoffleit and Warren (1991). Its field layout and citation are in the
 Credit: Hoffleit, D. and Warren, W. H. Jr., *The Bright Star Catalogue*,
 fifth revised edition (1991); CDS, Strasbourg.
 
-`HipparcosCatalog()` reads the [CDS Hipparcos main catalogue](https://cdsarc.cds.unistra.fr/viz-bin/ReadMe/I/239?format=html&tex=true). On the first query it uses `hip_main.dat` from `ADCS/environment/kernels/` if present, or downloads it to the user cache with a progress bar. Subsequent instances reuse that file. The file is about 53 MB and is ignored by Git. By default, only stars at visual magnitude 6 or brighter are loaded into memory; use `max_vmag=None` for all entries with usable positions and magnitudes.
+`HipparcosCatalog()` reads the [CDS Hipparcos main catalogue](https://cdsarc.cds.unistra.fr/viz-bin/ReadMe/I/239?format=html&tex=true). On the first query it resolves `hip_main.dat` through `AssetManager`; if missing, the download requires terminal confirmation and is saved in `ADCS/environment/kernels/`. Subsequent instances reuse that file. The file is about 53 MB and is ignored by Git. By default, only stars at visual magnitude 6 or brighter are loaded into memory; use `max_vmag=None` for all entries with usable positions and magnitudes.
 
 ```python
 import numpy as np

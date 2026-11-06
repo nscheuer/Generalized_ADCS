@@ -37,6 +37,8 @@ class SMADAtmosphere(Atmosphere):
                 or np.any(self.altitude_range < 0) or np.any(self.rho_range <= 0)
                 or not np.all(np.isfinite(self.altitude_range)) or not np.all(np.isfinite(self.rho_range))):
             raise ValueError("altitude and density samples must be finite, positive, and strictly ordered")
+        if self.rho_range[-1] >= self.rho_range[-2]:
+            raise ValueError("density must decrease over the last altitude interval to extrapolate above it")
         self._log_rho = np.log(self.rho_range)
 
     def interpolate(self, altitude_km):

@@ -8,7 +8,7 @@ from datetime import timezone
 from typing import Dict, Tuple, Optional
 
 from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, _normalize_magnetic_model, field_gc
-from ADCS.environment.environment import Environment
+from ADCS.environment.environment import Environment, default_environment
 from ADCS.environment.ephemeris.ephemeris import sunlit_from_vectors
 from ADCS.environment.magnetic_field import make_magnetic_field
 from ADCS.environment.ephemeris import DE421 as Ephemeris
@@ -205,14 +205,15 @@ def _classical_from_rv(r, v, mu: float) -> Tuple[float, float, float, float, flo
         if nn > tol:
             argp = np.arctan2(np.dot(np.cross(nvec, evec), h) / (nn * e * hn), np.dot(nvec, evec) / (nn * e)) % (2 * np.pi)
         else:
-            argp = np.arctan2(evec[1], evec[0]) % (2 * np.pi)
+            # Equatorial: measured from +x in the orbit's own sense (clockwise when retrograde).
+            argp = np.arctan2(np.sign(h[2]) * evec[1], evec[0]) % (2 * np.pi)
         nu = np.arctan2(np.dot(np.cross(evec, r), h) / (e * rn * hn), np.dot(evec, r) / (e * rn)) % (2 * np.pi)
     else:
         argp = 0.0
         if nn > tol:
             nu = np.arctan2(np.dot(np.cross(nvec, r), h) / (nn * rn * hn), np.dot(nvec, r) / (nn * rn)) % (2 * np.pi)
         else:
-            nu = np.arctan2(r[1], r[0]) % (2 * np.pi)
+            nu = np.arctan2(np.sign(h[2]) * r[1], r[0]) % (2 * np.pi)
     return float(a), e, float(inc), _wrap_angle(raan), _wrap_angle(argp), _wrap_angle(nu)
 
 
@@ -353,6 +354,7 @@ class Orbital_State:
         fast: bool = False,
         magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
         environment: Environment | None = None,
+        density_model=None,
     ) -> None:
         r"""
         Initialize a fully defined orbital state.
@@ -395,6 +397,10 @@ class Orbital_State:
             derived from this one (copies, propagation, interpolation).
         :type magnetic_model: str
 
+        :param density_model:
+            Deprecated alias for ``environment.atmosphere``.
+        :type density_model: Atmosphere or None
+
         :return:
             ``None``
         :rtype: None
@@ -403,11 +409,24 @@ class Orbital_State:
         _ = fast  # ignored (kept for backward compatibility)
         if J2000 is None or R is None or V is None:
             raise TypeError("J2000, R, and V are required")
-        if environment is None:
-            environment = Environment(
-                magnetic_field=make_magnetic_field(magnetic_model),
-                ephemeris=ephem if ephem is not None else Ephemeris(),
+        if density_model is not None:
+            warnings.warn(
+                "Orbital_State(density_model=...) is deprecated; pass the model as "
+                "Environment(atmosphere=...) instead.",
+                DeprecationWarning,
+                stacklevel=2,
             )
+            if environment is not None:
+                raise ValueError("Pass the atmosphere through environment, or use the legacy density_model argument")
+        if environment is None:
+            if ephem is None and density_model is None and magnetic_model == DEFAULT_MAGNETIC_MODEL:
+                environment = default_environment()
+            else:
+                environment = Environment(
+                    magnetic_field=make_magnetic_field(magnetic_model),
+                    atmosphere=density_model,
+                    ephemeris=ephem if ephem is not None else Ephemeris(),
+                )
         elif ephem is not None or magnetic_model != DEFAULT_MAGNETIC_MODEL:
             raise ValueError("Pass model choices through environment, or use the legacy model arguments")
         self.environment = environment
@@ -1704,6 +1723,7 @@ class Orbital_State:
             rho=d.get("rho"),
             fast=False,
             magnetic_model=magnetic_model if magnetic_model is not None
+            else DEFAULT_MAGNETIC_MODEL if environment is not None
             else d.get("magnetic_model", DEFAULT_MAGNETIC_MODEL),
             environment=environment,
         )

@@ -1,0 +1,192 @@
+"""Locate and fetch the Godot viewer for the current operating system."""
+
+__all__ = ["ViewerNotFoundError", "find_viewer", "install_viewer", "is_wsl", "platform_key", "viewer_manifest"]
+
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import zipfile
+from pathlib import Path
+from typing import Optional
+
+from ADCS.helpers.asset_manager import Asset, AssetManager
+
+_GODOT_VERSION = "4.7.2"
+_BIN_DIR = Path(__file__).with_name("bin")
+# Godot's official release archive suffix and executable path for each build.
+_BUILDS = {
+    "linux-x86_64": ("linux.x86_64", "Godot_v{version}-stable_linux.x86_64"),
+    "linux-arm64": ("linux.arm64", "Godot_v{version}-stable_linux.arm64"),
+    "windows-x86_64": ("win64.exe", "Godot_v{version}-stable_win64.exe"),
+    "macos-universal": ("macos.universal", "Godot.app/Contents/MacOS/Godot"),
+}
+_SHA256 = {
+    "linux-x86_64": "cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4",
+    "linux-arm64": "5dd0d86405cf7e8adf79fb6377b38ba682a2846cb378ffe5364f38c01ad29b9d",
+    "windows-x86_64": "731980f9608d61333e5baf54a2ef17210acc7a538446c0cb9969f002aca1e953",
+    "macos-universal": "c58a24e31d720be9d62f60cb5627c4e695fb72f21b0cfe1bc9ccaa9a3b3ba63e",
+}
+
+
+class ViewerNotFoundError(FileNotFoundError):
+    """No viewer binary could be located or fetched."""
+
+
+def viewer_manifest():
+    """Describe the pinned Godot release and its platform archives."""
+    return {"version": _GODOT_VERSION, "assets": {
+        key: {"url": _asset_url(key), "executable": exe.format(version=_GODOT_VERSION), "sha256": _SHA256[key]}
+        for key, (_, exe) in _BUILDS.items()
+    }}
+
+
+def _asset_url(key: str) -> str:
+    suffix, _ = _BUILDS[key]
+    filename = f"Godot_v{_GODOT_VERSION}-stable_{suffix}.zip"
+    return f"https://github.com/godotengine/godot/releases/download/{_GODOT_VERSION}-stable/{filename}"
+
+
+def is_wsl() -> bool:
+    """True when running inside Windows Subsystem for Linux."""
+    if sys.platform != "linux":
+        return False
+    try:
+        return "microsoft" in Path("/proc/version").read_text().lower()
+    except OSError:
+        return False
+
+
+def _windows_local_appdata() -> Optional[Path]:
+    """Resolve Windows %LOCALAPPDATA% as a WSL path for viewer work files."""
+    try:
+        win = subprocess.run(["cmd.exe", "/c", "echo %LOCALAPPDATA%"], capture_output=True,
+                             text=True, timeout=10, check=False).stdout.strip()
+        if not win or "%" in win:
+            return None
+        return Path(subprocess.run(["wslpath", "-u", win], capture_output=True, text=True,
+                                   timeout=10, check=True).stdout.strip())
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def platform_key() -> str:
+    """Return the release asset key for this machine."""
+    machine = platform.machine().lower()
+    arch = "arm64" if machine in ("arm64", "aarch64") else "x86_64"
+    if sys.platform == "win32" or is_wsl():
+        return f"windows-{arch}"
+    if sys.platform == "darwin":
+        return "macos-universal"
+    return f"linux-{arch}"
+
+
+def _executable(key: str) -> Path:
+    return _BIN_DIR / _BUILDS[key][1].format(version=_GODOT_VERSION)
+
+
+def _mac_bundle_is_complete() -> bool:
+    """The macOS executable is usable only inside its intact signed app bundle."""
+    bundle = _BIN_DIR / "Godot.app"
+    return all((bundle / path).is_file() for path in (
+        "Contents/Info.plist",
+        "Contents/_CodeSignature/CodeResources",
+        "Contents/MacOS/Godot",
+    ))
+
+
+def _download_and_unpack(key: str, *, interactive: bool, allow_download: bool = False) -> Path:
+    archive_name = f"godot-{_GODOT_VERSION}-{key}.zip"
+    asset = Asset(f"Godot {_GODOT_VERSION} ({key})", _asset_url(key), archive_name, _SHA256[key])
+    manager = AssetManager(registry={key: asset}, locations=[], cache_dir=_BIN_DIR)
+    archive = manager.get(key, destination=_BIN_DIR / archive_name, interactive=interactive,
+                          allow_download=allow_download)
+    exe = _executable(key)
+    mac_bundle = key == "macos-universal"
+    needs_extract = not exe.is_file() or (mac_bundle and not _mac_bundle_is_complete())
+    if needs_extract:
+        member = _BUILDS[key][1].format(version=_GODOT_VERSION)
+        try:
+            with zipfile.ZipFile(archive) as zf:
+                if mac_bundle:
+                    # Godot's macOS executable must remain inside its complete
+                    # signed .app bundle. Extract every bundle resource, including
+                    # its signature metadata, rather than just Contents/MacOS/Godot.
+                    bundle = _BIN_DIR / "Godot.app"
+                    if bundle.exists():
+                        shutil.rmtree(bundle)
+                    members = [name for name in zf.namelist() if name.startswith("Godot.app/")]
+                    if member not in members:
+                        raise KeyError(member)
+                    if sys.platform == "darwin":
+                        # Apple's ditto preserves the bundle metadata and file
+                        # modes expected by macOS code-signature validation.
+                        subprocess.run(["/usr/bin/ditto", "-x", "-k", str(archive), str(_BIN_DIR)],
+                                       check=True, capture_output=True, text=True)
+                    else:
+                        # Retain support for explicitly installing the macOS
+                        # bundle on another OS, although only macOS can launch it.
+                        zf.extractall(_BIN_DIR, members=members)
+                else:
+                    # Non-macOS builds are standalone executables.
+                    exe.parent.mkdir(parents=True, exist_ok=True)
+                    with zf.open(member) as source, exe.open("wb") as output:
+                        output.write(source.read())
+        except (KeyError, zipfile.BadZipFile, OSError, subprocess.CalledProcessError) as exc:
+            if mac_bundle:
+                shutil.rmtree(_BIN_DIR / "Godot.app", ignore_errors=True)
+            else:
+                exe.unlink(missing_ok=True)
+            if isinstance(exc, subprocess.CalledProcessError):
+                detail = (exc.stderr or str(exc)).strip()
+                raise ViewerNotFoundError(f"could not extract the Godot macOS app bundle: {detail}") from exc
+            if isinstance(exc, OSError) and not isinstance(exc, zipfile.BadZipFile):
+                raise ViewerNotFoundError(f"could not extract Godot viewer: {exc}") from exc
+            raise ViewerNotFoundError(f"Godot archive does not contain {member}") from exc
+    if mac_bundle and not _mac_bundle_is_complete():
+        raise ViewerNotFoundError("Godot macOS archive did not contain a complete signed Godot.app bundle")
+    if not key.startswith("windows") and not mac_bundle:
+        exe.chmod(exe.stat().st_mode | 0o111)
+    return exe
+
+
+def _wsl_windows_executable(exe: Path) -> Path:
+    """Copy a downloaded Windows build to a Windows-visible path under WSL."""
+    base = _windows_local_appdata()
+    if base is None:
+        raise ViewerNotFoundError("could not resolve Windows %LOCALAPPDATA% from WSL")
+    destination = base / "generalized_adcs" / "viewer" / _GODOT_VERSION / exe.name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not destination.is_file() or destination.stat().st_size != exe.stat().st_size:
+        shutil.copy2(exe, destination)
+    return destination
+
+
+def find_viewer(explicit: Optional[str | Path] = None) -> Path:
+    """Resolve an explicit/environment binary or fetch the platform build on demand."""
+    for candidate in (explicit, os.environ.get("ADCS_VIEWER_BIN")):
+        if candidate:
+            path = Path(candidate).expanduser()
+            if not path.exists():
+                raise ViewerNotFoundError(f"viewer not found at {path}")
+            return path
+    key = platform_key()
+    if key not in _BUILDS:
+        raise ViewerNotFoundError(f"no Godot build is configured for {key}; set ADCS_VIEWER_BIN")
+    exe = _executable(key)
+    if exe.is_file():
+        return _wsl_windows_executable(exe) if is_wsl() and key.startswith("windows") else exe
+    try:
+        exe = _download_and_unpack(key, interactive=True)
+        return _wsl_windows_executable(exe) if is_wsl() and key.startswith("windows") else exe
+    except FileNotFoundError as exc:
+        raise ViewerNotFoundError(str(exc)) from exc
+
+
+def install_viewer(key: Optional[str] = None, manifest=None, *, allow_download: bool = False) -> Path:
+    """Fetch the pinned Godot build for this platform via AssetManager."""
+    key = key or platform_key()
+    if key not in _BUILDS:
+        raise ViewerNotFoundError(f"no viewer release published for {key}")
+    return _download_and_unpack(key, interactive=True, allow_download=allow_download)

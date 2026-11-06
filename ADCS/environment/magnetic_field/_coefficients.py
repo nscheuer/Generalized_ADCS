@@ -4,44 +4,31 @@ from __future__ import annotations
 
 from hashlib import md5
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 import numpy as np
 
-from ADCS.environment.ephemeris._download import download_with_progress
+from ADCS.helpers.asset_manager import AssetManager
 from ADCS.helpers.math.spherical_harmonics import _kernel_static
 
 
-def ensure_kernel(path: Path, url: str, expected_md5: str | None = None) -> Path:
+def ensure_kernel(path: Path, asset_name: str, expected_md5: str | None = None) -> Path:
     r"""Fetch a missing magnetic coefficient file with an atomic rename.
 
     :param path: Destination for the cached coefficient file.
     :type path: pathlib.Path
-    :param url: Source URL for a missing file.
-    :type url: str
+    :param asset_name: Registered AssetManager name.
+    :type asset_name: str
     :param expected_md5: Published checksum, when available.
     :type expected_md5: str or None
     :return: Path to the existing or newly downloaded coefficient file.
     :rtype: pathlib.Path
     :raises ValueError: If a downloaded file fails its checksum.
     """
-    path = Path(path)
-    if path.is_file() and path.stat().st_size:
-        return path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with NamedTemporaryFile(
-        dir=path.parent, prefix=path.name + ".", suffix=".part", delete=False
-    ) as stream:
-        part = Path(stream.name)
-    try:
-        download_with_progress(url, part, path.name)
-        if not part.is_file() or part.stat().st_size == 0:
-            raise OSError(f"Downloaded empty magnetic model kernel: {url}")
-        if expected_md5 is not None and md5(part.read_bytes()).hexdigest() != expected_md5:
-            raise ValueError(f"Downloaded magnetic model kernel failed checksum: {url}")
-        part.replace(path)
-    finally:
-        part.unlink(missing_ok=True)
+    path = AssetManager().get(asset_name, destination=Path(path))
+    if not path.is_file() or path.stat().st_size == 0:
+        raise OSError(f"Empty magnetic model kernel: {path}")
+    if expected_md5 is not None and md5(path.read_bytes()).hexdigest() != expected_md5:
+        raise ValueError(f"Magnetic model kernel failed checksum: {path}")
     return path
 
 

@@ -845,8 +845,10 @@ class EstimatedSatellite(Satellite):
             for ind in range(self.number_RW):
                 j = self.momentum_inds[ind]
                 ddxdot__dxdu[0:7,j,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dudbasestate(u[j],x,orbital_state),(1,0,2)))
-                ddxdot__dxdu[7+ind,j,7+ind] += np.transpose(self.actuators[j].ddstor_torq__dudh(u[j],x,orbital_state),(1,0,2))
-                ddxdot__dudu[j,j,7+ind] = self.actuators[j].ddstor_torq__dudu(u[j],x,orbital_state)
+                # These wheel derivatives have shape (1, 1, 1) and this
+                # location is the scalar wheel-command/wheel-state entry.
+                ddxdot__dxdu[7+ind,j,7+ind] += self.actuators[j].ddstor_torq__dudh(u[j],x,orbital_state)[0,0,0]
+                ddxdot__dudu[j,j,7+ind] = self.actuators[j].ddstor_torq__dudu(u[j],x,orbital_state)[0,0,0]
                 ddxdot__dxdx[0:7,0:7,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedbasestate(u[j],x,orbital_state))
                 ddxdot__dxdx[7+ind,0:7,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dbasestatedh(u[j],x,orbital_state),(1,0,2)))
                 ddxdot__dxdx[0:7,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedh(u[j],x,orbital_state))

@@ -233,6 +233,7 @@ ADCS/environment/kernels/*
 !ADCS/environment/kernels/__init__.py
 !ADCS/environment/kernels/de421.bsp
 !ADCS/environment/kernels/IGRF14.shc
+!ADCS/environment/kernels/WMM2025.COF
 !ADCS/environment/kernels/bsc5_catalog.gz
 # Visualization assets are requested explicitly and remain local.
 /ADCS/helpers/animations/assets/

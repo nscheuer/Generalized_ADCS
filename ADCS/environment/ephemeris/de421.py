@@ -3,12 +3,11 @@ __all__ = ["DE421", "Ephemeris"]
 import os
 import sys
 from pathlib import Path
-from skyfield.api import load, Loader
+from skyfield.api import load
 from typing import Optional
 import numpy as np
 
 from .ephemeris import Ephemeris as EphemerisBase
-from ._download import download_with_progress
 from ADCS.helpers.asset_manager import AssetManager
 
 class DE421(EphemerisBase):
@@ -66,9 +65,8 @@ class DE421(EphemerisBase):
 
     :param filepath:
         Optional path for the JPL DE421 ephemeris file. If it is missing,
-        the kernel is downloaded there. If ``None``, the user cache and
-        ``ADCS/environment/kernels/de421.bsp`` are checked before downloading
-        to the user cache.
+        the kernel is downloaded there after confirmation. If ``None``, the
+        bundled ``ADCS/environment/kernels/de421.bsp`` is used or restored there.
     :type filepath: pathlib.Path | None
 
     :raises RuntimeError:
@@ -87,7 +85,7 @@ class DE421(EphemerisBase):
         Initialize the ephemeris loader and planetary body objects.
 
         This constructor loads the JPL DE421 ephemeris file either from a
-        user-specified path, the user cache, or the package kernel directory. If the
+        user-specified path or the package kernel directory. If the
         file does not exist locally, it is automatically downloaded using
         Skyfield’s loader utilities.
 
@@ -96,8 +94,7 @@ class DE421(EphemerisBase):
 
         :param filepath:
             Optional filesystem path to a DE421 ephemeris file.
-            If ``None``, existing local kernels are checked and the user cache
-            is used for a download when necessary.
+            If ``None``, the package kernel is used or downloaded there when necessary.
         :type filepath: pathlib.Path | None
 
         :return:
@@ -107,13 +104,10 @@ class DE421(EphemerisBase):
         """
         if filepath is not None:
             path = Path(filepath).expanduser()
-            if path.is_file():
-                self.planets = load(str(path))
-            else:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                self.planets = self._download_ephemeris(path)
-        else:
-            self.planets = load(str(AssetManager().get(self.KERNEL_FILENAME.removesuffix(".bsp"))))
+            resolved = AssetManager().get(self.KERNEL_FILENAME.removesuffix(".bsp"), destination=path)
+            self.planets = load(str(resolved))
+        elif (existing := self._find_existing_ephemeris()) is not None:
+            self.planets = load(str(existing))
 
         # Extract common bodies
         self.sun = self.planets['sun']
@@ -270,20 +264,22 @@ class DE421(EphemerisBase):
         :return: An existing ephemeris path, or ``None``.
         :rtype: pathlib.Path | None
         """
-        for candidate in (cls._cache_ephemeris_path(), cls._packaged_ephemeris_path()):
-            if candidate.exists():
-                return candidate
-        return None
+        name = cls.KERNEL_FILENAME.removesuffix(".bsp")
+        override = os.environ.get(cls.ENV_PATH_VARIABLE)
+        if override:
+            return AssetManager().get(name, destination=Path(override).expanduser())
+        return AssetManager().get(name, destination=cls._packaged_ephemeris_path())
 
     def _get_default_ephemeris_path(self) -> Path:
         r"""Where a newly downloaded ephemeris should be written.
 
-        Always the per-user cache, never ``site-packages``.
+        Uses the environment kernel directory unless a path override is set.
 
-        :return: Absolute path to the cache location for ``de421.bsp``.
+        :return: Path to the selected ``de421.bsp`` destination.
         :rtype: pathlib.Path
         """
-        path = self._cache_ephemeris_path()
+        override = os.environ.get(self.ENV_PATH_VARIABLE)
+        path = Path(override).expanduser() if override else self._packaged_ephemeris_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 
@@ -310,14 +306,7 @@ class DE421(EphemerisBase):
 
         """
         try:
-            loader = Loader(str(save_path.parent))
-            url = loader.build_url(self.KERNEL_FILENAME)
-            temporary_path = save_path.with_name(save_path.name + ".part")
-            download_with_progress(url, temporary_path, self.KERNEL_FILENAME)
-            temporary_path.replace(save_path)
-            planets = load(str(save_path))
-            print(f"✅ Ephemeris downloaded to: {save_path}")
-            return planets
+            return load(str(AssetManager().get("de421", destination=save_path)))
         except Exception as e:
             if "temporary_path" in locals():
                 temporary_path.unlink(missing_ok=True)

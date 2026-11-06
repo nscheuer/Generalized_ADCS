@@ -48,6 +48,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
+from ADCS.helpers.asset_manager import AssetManager
 from ADCS.helpers.math.spherical_harmonics import (
     RE, _schmidt_table, _kernel_static, _kernel_varying, _eval_scalar
 )
@@ -59,9 +60,10 @@ NMAX = 13
 
 _SHC_FILE = Path(__file__).resolve().parents[1] / "kernels" / "IGRF14.shc"
 
-#: Cached as a string: ``Path.__str__`` is not free, and the scalar path calls
-#: this often enough for it to show up.
-_SHC_PATH = str(_SHC_FILE)
+@lru_cache(maxsize=1)
+def _resolved_shc_path() -> str:
+    """Resolve the bundled coefficient file through AssetManager on first use."""
+    return str(AssetManager().get("igrf14", destination=_SHC_FILE))
 
 
 # ---------------------------------------------------------------------------
@@ -177,7 +179,7 @@ def coefficients_at(date) -> tuple[np.ndarray, np.ndarray]:
     >>> g.shape
     (14, 14)
     """
-    epochs, g, h, _ = _read_shc(_SHC_PATH)
+    epochs, g, h, _ = _read_shc(_resolved_shc_path())
     k, w = _bracket(_as_posix(date), epochs)
     k0 = int(k[0])
     wt = float(w[0])
@@ -331,7 +333,7 @@ def igrf_gc(r, theta, phi, date, chunk: int = 512):
         np.ndim(r) == 0 and np.ndim(theta) == 0
         and np.ndim(phi) == 0 and isinstance(date, datetime)
     ):
-        epochs, g, h, nmax = _read_shc(_SHC_PATH)
+        epochs, g, h, nmax = _read_shc(_resolved_shc_path())
         k, w = _bracket_scalar(_posix_of(date), epochs)
         return _eval_scalar(float(r), float(theta), float(phi), g, h, k, w, nmax)
 
@@ -346,7 +348,7 @@ def igrf_gc(r, theta, phi, date, chunk: int = 512):
     ph_f = np.ascontiguousarray(ph_a.reshape(-1))
     N = r_f.size
 
-    epochs, g, h, nmax = _read_shc(_SHC_PATH)
+    epochs, g, h, nmax = _read_shc(_resolved_shc_path())
     t = _as_posix(date)
     if t.size not in (1, N):
         raise ValueError(
