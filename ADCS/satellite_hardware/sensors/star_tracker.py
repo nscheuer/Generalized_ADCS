@@ -123,7 +123,9 @@ class StarTracker(Sensor):
         boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
         fov: float = np.deg2rad(4.0),
         sun_exclusion: float = np.deg2rad(25.0),
-        star_catalog: Optional[StarCatalog] = None
+        star_catalog: Optional[StarCatalog] = None,
+        scale_factor: float = 1.0,
+        misalignment: Optional[np.ndarray] = None,
     ) -> None:
         r"""
         Initialize the star tracker sensor.
@@ -168,7 +170,7 @@ class StarTracker(Sensor):
 
         # 3. Initialize Base Sensor
         #    This will execute: self.noise = anisotropic_noise.copy()
-        super().__init__(
+        super().__init__(scale_factor=scale_factor, misalignment=misalignment, 
             sample_time=sample_time,
             output_length=3,
             bias=bias,
@@ -319,7 +321,7 @@ class StarTracker(Sensor):
 
         self.current_star = star
         A = rot_mat(q)
-        return A.T @ star.s_eci
+        return self.as_built(A.T @ star.s_eci)
 
     def reading(self, x: NDArray[np.float64], os: Orbital_State, dmode: Optional[ErrorMode] = None) -> NDArray[np.float64]:
         r"""
@@ -391,7 +393,7 @@ class StarTracker(Sensor):
 
         J = np.zeros((7, self.output_length))
         J[3:7, :] = db_dq
-        return J
+        return self.as_built_jacobian(J)
 
     def bias_jac(self, x: NDArray[np.float64], os: Orbital_State) -> NDArray[np.float64]:
         r"""

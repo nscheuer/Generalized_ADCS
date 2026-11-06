@@ -94,7 +94,7 @@ class MTM(Sensor):
         field = np.asarray(os.B, dtype=float)
         return field / np.linalg.norm(field)
 
-    def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
+    def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False, scale_factor: float = 1.0, misalignment: Optional[np.ndarray] = None):
         r"""
         Initialize the magnetometer sensor model.
 
@@ -114,7 +114,7 @@ class MTM(Sensor):
         """
         self.axis = normalize(axis)
         self.attitude_sensor = False
-        super().__init__(sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
+        super().__init__(scale_factor=scale_factor, misalignment=misalignment, sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
     def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
@@ -153,7 +153,7 @@ class MTM(Sensor):
         :rtype: numpy.ndarray
         """
         vecs = os.get_state_vector(x=x)
-        return np.dot(vecs["b"], self.axis)
+        return self.scale_factor * np.dot(vecs["b"], self.sensing_axis)
     
     def bias_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
@@ -250,6 +250,6 @@ class MTM(Sensor):
         :rtype: numpy.ndarray
         """
         vecs = os.get_state_vector(x=x)
-        return np.vstack([np.zeros((3,1)), vecs['db']@np.expand_dims(self.axis,1)])
+        return self.scale_factor * np.vstack([np.zeros((3,1)), vecs['db']@np.expand_dims(self.sensing_axis,1)])
         
     

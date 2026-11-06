@@ -92,7 +92,7 @@ class Gyro(Sensor):
 
     observation_kind = "angular_rate"
 
-    def __init__(self, axis: np.ndarray, sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
+    def __init__(self, axis: np.ndarray, sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False, scale_factor: float = 1.0, misalignment: Optional[np.ndarray] = None):
         r"""
         Initialize the single–axis gyroscope sensor.
 
@@ -112,7 +112,7 @@ class Gyro(Sensor):
         """
         self.axis = normalize(axis)
         self.attitude_sensor = False
-        super().__init__(sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
+        super().__init__(scale_factor=scale_factor, misalignment=misalignment, sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
     def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
@@ -142,7 +142,7 @@ class Gyro(Sensor):
         :return: Clean single–axis angular rate measurement.
         :rtype: numpy.ndarray
         """
-        return np.dot(x.w, self.axis)
+        return self.scale_factor * np.dot(x.w, self.sensing_axis)
     
     def bias_jac(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
@@ -226,4 +226,4 @@ class Gyro(Sensor):
         :return: Base–state Jacobian matrix of shape ``(7, 1)``.
         :rtype: numpy.ndarray
         """
-        return np.vstack([self.axis.reshape((3, 1)), np.zeros((4,1))])
+        return self.scale_factor * np.vstack([self.sensing_axis.reshape((3, 1)), np.zeros((4,1))])
