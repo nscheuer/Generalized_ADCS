@@ -222,7 +222,7 @@ def _os_from_payload(payload: dict[str, Any] | None) -> Orbital_State | None:
     if payload is None:
         return None
 
-    return Orbital_State.from_dict(payload, ephem=_shared_ephemeris(), density_model=None, fast=True)
+    return Orbital_State.from_dict(payload, ephem=_shared_ephemeris(), fast=True)
 
 
 @lru_cache(maxsize=1)

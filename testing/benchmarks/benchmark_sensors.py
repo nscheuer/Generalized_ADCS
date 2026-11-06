@@ -32,7 +32,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import AnisotropicNoise, Bias, Noise
 from ADCS.satellite_hardware.sensors import EarthHorizonSensor, GPS, Gyro, MTM, StarTracker, StarTrackerQuaternion, SunPair

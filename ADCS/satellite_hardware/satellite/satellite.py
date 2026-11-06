@@ -822,6 +822,50 @@ class Satellite:
 
         return torque_total
     
+    def dist_forces(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
+        r"""
+        Compute the total disturbance force on the spacecraft, in the body frame.
+
+        The total is the sum over all registered disturbances:
+
+        .. math::
+
+            \mathbf{F}_{dist}(\mathbf{x},\mathrm{os})
+            \;=\;\sum_{i=1}^{N_d} \mathbf{F}_{dist,i}(\mathbf{x},\mathrm{os}).
+
+        Disturbances that only produce a torque contribute zero through the
+        base-class :meth:`~ADCS.satellite_hardware.disturbances.disturbance.Disturbance.force`.
+        As with :meth:`dist_torques`, a disturbance may accept a ``sat`` keyword
+        argument, in which case this satellite is passed in.
+
+        The attitude dynamics do not consume this force (it moves the centre of
+        mass, not the attitude); it is provided for orbit propagation and for
+        inspection.  Divide by :attr:`mass` for an acceleration.
+
+        :param x: State vector.
+        :type x: ADCS.state.State
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :param dmode: Optional error/noise mode (unused by the current force models).
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None
+
+        :return: Disturbance force vector in body frame, shape ``(3,)`` (N).
+        :rtype: numpy.ndarray
+        """
+        force_total = np.zeros(3)
+
+        for j in self.disturbances:
+            if 'sat' in j.force.__code__.co_varnames:
+                f = j.force(sat=self, x=x, os=os)
+            else:
+                f = j.force(x=x, os=os)
+
+            force_total += np.asarray(f, dtype=float).reshape(3,)
+
+        return force_total
+
     def act_torque(self, x: State, u: np.ndarray, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute the total actuator torque.

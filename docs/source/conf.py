@@ -18,7 +18,7 @@ extensions = [
     'sphinx_sitemap',
 ]
 
-autodoc_mock_imports = ["saltro_py", "matplotlib", "mpl_toolkits", "pyvista", "vtk", "rich", "trajectory_planner.build", "abc"]
+autodoc_mock_imports = ["saltro_py", "matplotlib", "mpl_toolkits", "pyvista", "vtk", "rich", "trajectory_planner.build"]
 
 autosummary_generate = False
 autosummary_imported_members = False
@@ -82,28 +82,22 @@ latex_elements = {
 suppress_warnings = ['ref.python', 'toc.not_included']
 
 
-def autodoc_skip_reexports_on_package_pages(app, what, name, obj, skip, options):
+def autodoc_skip_reexports(app, what, name, obj, skip, options):
+    """Index imported objects only in the module that defines them."""
+    if what == "class" and isinstance(obj, type):
+        # Environment interfaces expose model classes as convenience class
+        # attributes. Their defining modules have the canonical API entries.
+        return True
+
     if what != "module":
         return skip
 
     cur_module = app.env.temp_data.get("autodoc:module")
-    if not cur_module:
-        return skip
-
-    try:
-        mod = __import__(cur_module, fromlist=["*"])
-    except Exception:
-        return skip
-
-    if not hasattr(mod, "__path__"):
-        return skip
-
     obj_module = getattr(obj, "__module__", None)
-    if obj_module and obj_module != cur_module:
+    if cur_module and obj_module and obj_module != cur_module:
         return True
-
     return skip
 
 
 def setup(app):
-    app.connect("autodoc-skip-member", autodoc_skip_reexports_on_package_pages)
+    app.connect("autodoc-skip-member", autodoc_skip_reexports)

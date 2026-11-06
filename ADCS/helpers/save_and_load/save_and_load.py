@@ -366,7 +366,7 @@ def load_orbital_states(
     run_dir: str | Path,
     label: Optional[str] = None,
     ephem=None,
-    density_model=None,
+    environment=None,
     fast: bool = True,
 ):
     r"""
@@ -383,7 +383,7 @@ def load_orbital_states(
     Reconstruction Logic
     ======================
 
-    If an ephemeris object is provided, each dictionary entry is reconstructed
+    If an ephemeris or environment is provided, each dictionary entry is reconstructed
     using:
 
     .. code-block:: python
@@ -424,10 +424,10 @@ def load_orbital_states(
     :type ephem:
         Any or None
 
-    :param density_model:
-        Optional atmospheric density model passed during reconstruction.
-    :type density_model:
-        Any or None
+    :param environment:
+        Optional environment passed during reconstruction.
+    :type environment:
+        Environment or None
 
     :param fast:
         If True, enable fast reconstruction mode.
@@ -447,14 +447,14 @@ def load_orbital_states(
         d = pickle.load(f)
 
     def reconstruct(lst):
-        if ephem is None:
+        if ephem is None and environment is None:
             return lst
         from ADCS.orbits.orbital_state import Orbital_State
         return [
             Orbital_State.from_dict(
                 x,
-                ephem=ephem,
-                density_model=density_model,
+                ephem=ephem if environment is None else None,
+                environment=environment,
                 fast=fast,
             )
             for x in lst

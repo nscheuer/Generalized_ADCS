@@ -133,6 +133,7 @@ class StarTrackerQuaternion(Sensor):
         self.min_stars = int(min_stars)
 
         self.catalog = star_catalog if star_catalog is not None else StarCatalog()
+        self._catalog_explicit = star_catalog is not None
         self.current_stars: List[NavigationStar] = []
 
         super().__init__(
@@ -183,7 +184,11 @@ class StarTrackerQuaternion(Sensor):
         sun_eci = self._get_sun_eci(os)
         moon_eci = self._get_moon_eci(os)
 
-        visible = self.catalog.get_visible_stars(
+        environment = getattr(os, "environment", None)
+        catalog = self.catalog
+        if not self._catalog_explicit and getattr(environment, "_star_catalogue_explicit", False):
+            catalog = environment.star_catalogue
+        visible = catalog.get_visible_stars(
             boresight_eci=boresight_eci,
             fov_rad=self.fov,
             r_sat_eci=r_sat_eci,

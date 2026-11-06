@@ -14,10 +14,17 @@ cd testing/
 pytest ./test_controllers/test_controller_mtq_w_rw.py
 ```
 
-## Test based on flags
-The following flags are available:
-- `slow`
+## Skip local-only tests
+The Godot viewer test is marked `local` because it requires a local Godot
+binary and viewer source tree. To run the regular Python suite without local-only
+tests:
+
 ```bash
-cd testing/
-pytest -k "not vslow"
+pytest -m "not local" testing/
+```
+
+To run only the local Godot test:
+
+```bash
+pytest -m local testing/test_viz/test_viewer_godot.py
 ```

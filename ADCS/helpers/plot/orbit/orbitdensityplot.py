@@ -143,14 +143,15 @@ class OrbitDensityModelPlot(Subplot):
             return
 
         os0 = sim.os_hist[0]
-        if getattr(os0, "density_model", None) is None:
+        atmosphere = getattr(getattr(os0, "environment", None), "atmosphere", None)
+        if atmosphere is None:
             ax.axis("off")
             ax.set_title(self.title, loc="left", pad=10)
-            ax.text(0.5, 0.5, "No density_model available in os_hist[0]", ha="center", va="center")
+            ax.text(0.5, 0.5, "No atmosphere available in os_hist[0]", ha="center", va="center")
             return
 
         h = np.linspace(0.0, float(self.h_max_km), int(self.n_points))
-        rho = np.array([float(os0.density_model.interpolate(hi)) for hi in h], dtype=float)
+        rho = np.asarray(atmosphere.interpolate(h), dtype=float)
 
         ax.plot(rho, h, label=r"$\rho(h)$")
         ax.set_xlabel(f"$\\rho$ [{self.units}]")
