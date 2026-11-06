@@ -93,9 +93,8 @@ Documentation and examples
 The estimation tutorials and runnable estimator examples are linked directly
 from the release documentation:
 
-* :doc:`Tutorial 3: Simple estimation <../tutorials/03_simple_estimation>`
+* :doc:`Tutorials <../tutorials/index>`
   — `Tutorial 3 augmented source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_3_simple_estimation_augmented.py>`_.
-* :doc:`Tutorial 4: Complex estimation <../tutorials/04_complex_estimation>`
   — `Tutorial 4 augmented source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_4_complex_estimation_augmented.py>`_.
 
 Regular estimator examples:

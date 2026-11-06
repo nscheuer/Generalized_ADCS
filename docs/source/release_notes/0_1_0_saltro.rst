@@ -40,6 +40,5 @@ Quick Tradeoffs
 
 Learn More
 ----------
-- :doc:`Tutorial 06: Trajectory Planner (Plan-and-Track) <../tutorials/06_trajectory_planner>`
-- :doc:`Tutorial 07: SALTRO Planner <../tutorials/07_SALTRO>`
+- :doc:`Tutorials <../tutorials/index>`
 - `SALTRO documentation website <https://nscheuer.github.io/SALTRO>`_

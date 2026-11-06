@@ -69,6 +69,7 @@ dependencies = [
     "tqdm>=4.60",
     "rich>=13.0",
     "DracoPy>=2.2",
+    "DracoPy>=2.2",
 ]
 
 # Optional extras
@@ -82,9 +83,11 @@ ppigrf = [
 nrlmsise = [
     "pymsis>=0.12",
 ]
-# 3-D orbit animation helpers (ADCS/helpers/plotting/animate_orbit_pyvista.py).
+# Visualization helpers: PyVista orbit plots, Godot asset texture processing,
+# and Pillow-based rendering/export utilities.
 viz = [
     "pyvista>=0.44",
+    "Pillow>=10.0",
 ]
 
 # Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
@@ -167,6 +170,7 @@ packages = [
     "ADCS.environment.kernels",
     "ADCS.environment.magnetic_field",
     "ADCS.environment.star_catalogue",
+    "ADCS.examples",
     "ADCS.estimators",
     "ADCS.estimators.attitude_estimators",
     "ADCS.estimators.estimator_helpers",
@@ -175,6 +179,10 @@ packages = [
     "ADCS.flight_software.single_core",
     "ADCS.flight_software.tasks",
     "ADCS.helpers",
+    "ADCS.helpers.animations",
+    "ADCS.helpers.animations.godot",
+    "ADCS.helpers.animations.godot.assets",
+    "ADCS.helpers.animations.godot.mesh_import",
     "ADCS.helpers.animations",
     "ADCS.helpers.animations.godot",
     "ADCS.helpers.animations.godot.assets",
@@ -222,6 +230,7 @@ packages = [
 # signatures are correct -- see the 0.1.9 release note.
 [tool.setuptools.package-data]
 "ADCS" = ["py.typed"]
+"ADCS.examples" = ["README.md"]
 "ADCS.environment.kernels" = ["de421.bsp", "IGRF14.shc", "WMM2025.COF", "bsc5_catalog.gz"]
 "ADCS.helpers.animations.godot" = ["bin/LICENSE-GODOT.txt", "bin/COPYRIGHT-GODOT.txt", "viewer/*.godot", "viewer/*.tscn", "viewer/*.json", "viewer/shaders/*.gdshader", "viewer/shaders/*.gdshaderinc", "viewer/src/*.gd", "viewer/src/*/*.gd", "viewer/src/*/*/*.gd", "viewer/tests/*.gd", "_viewer_manifest.json"]
 "ADCS.helpers.animations.godot.assets" = ["sources.json"]
