@@ -19,7 +19,7 @@ Latest Release Notes
 
    <div class="release-grid">
      <a class="release-card release-card-featured" href="release_notes/0_2_2_visualization_and_environment.html">
-       <img src="_static/release_notes/0_2_2_animation_preview.png" alt="ICESat-2 maneuvering above Earth at sunset">
+       <img src="_static/release_notes/0_2_2_animation.gif" alt="ICESat-2 maneuvering above Earth at sunset">
        <div class="release-card-copy">
          <div class="release-card-kicker">Release 0.2.2</div>
          <h3>Visualization and Environment</h3>
