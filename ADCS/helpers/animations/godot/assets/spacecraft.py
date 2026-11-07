@@ -59,6 +59,20 @@ def ensure_model(name: str, *, root: Path | None = None) -> Path | None:
     return _make_godot_compatible(target, compatible)
 
 
+def ensure_model_sidecar(name: str, *, root: Path | None = None) -> Path | None:
+    """Return a viewer sidecar for a cached NASA model, fetching it if needed."""
+    model = ensure_model(name, root=root)
+    if model is None:
+        return None
+    sidecar = model.with_name(f"{name}.viz.json")
+    sidecar.write_text(json.dumps({
+        "format": "adcs-spacecraft-model", "version": 1,
+        "name": MODELS[name][0], "coords": "BODY", "units": "m",
+        "lods": [{"file": model.name}], "nodes": {},
+    }), encoding="utf-8")
+    return sidecar
+
+
 def _make_godot_compatible(source: Path, destination: Path) -> Path:
     """Expand NASA's Draco-compressed GLB primitives into regular glTF buffers."""
     data = source.read_bytes()

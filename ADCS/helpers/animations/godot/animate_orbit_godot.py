@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Sequence
+from typing import Any, Sequence
 
 import numpy as np
 
@@ -36,14 +36,17 @@ def animate_orbit_godot(
     binary: str | Path | None = None,
     assets: str | Path | None = None,
     launch: bool = True,
+    overlays: Any = "default",
 ) -> int:
     """Write simulation frames and open the Godot viewer.
 
     The first seven positional parameters mirror ``animate_orbit_panda3d``.
     ``results`` preserves all recorded channels and is preferred when available.
-    The generated vizlog is kept when ``output`` is provided. Graphics assets
-    are local only. If Godot is missing, the platform build is offered through
-    AssetManager's terminal download prompt.
+    The generated vizlog is kept when ``output`` is provided. ``model`` can be
+    a sidecar path or a NASA model name such as ``"mirata"``. Set
+    ``overlays=[]`` to hide vectors, axes, tracks, and their labels. Graphics
+    assets are local only. If Godot is missing, the platform build is offered
+    through AssetManager's terminal download prompt.
     """
     if graphics_quality not in {"low", "medium", "high"}:
         raise ValueError("graphics_quality must be low, medium, or high")
@@ -53,6 +56,12 @@ def animate_orbit_godot(
         raise ValueError("texture_path is unsupported; prepare local Godot assets and pass assets=...")
     if results is not None and any(x is not None for x in (time_hist, state_hist, os_hist)):
         raise ValueError("pass results or histories, not both")
+    if isinstance(model, str):
+        from .assets.spacecraft import MODELS, ensure_model_sidecar
+        if model in MODELS:
+            model = ensure_model_sidecar(model)
+            if model is None:
+                raise FileNotFoundError("Spacecraft model is unavailable; open the viewer in a terminal to download it")
     if results is None:
         if any(x is None for x in (time_hist, state_hist, os_hist)):
             raise ValueError("time_hist, state_hist, and os_hist are required")
@@ -75,8 +84,10 @@ def animate_orbit_godot(
 
     extra_args = ("--quality", {"low": "fast", "medium": "balanced", "high": "high"}[graphics_quality])
     if output is not None:
-        log = results_to_vizlog(results, output, ephem=ephemeris, model=model, overwrite=True, torques="none")
+        log = results_to_vizlog(results, output, ephem=ephemeris, model=model, overwrite=True,
+                                torques="none", overlays=overlays)
         return view(log, binary=binary, assets=assets, extra_args=extra_args, launch=launch)
     with TemporaryDirectory(prefix="adcs-godot-") as tmp:
-        log = results_to_vizlog(results, Path(tmp) / "simulation.vizlog", ephem=ephemeris, model=model, torques="none")
+        log = results_to_vizlog(results, Path(tmp) / "simulation.vizlog", ephem=ephemeris,
+                                model=model, torques="none", overlays=overlays)
         return view(log, binary=binary, assets=assets, extra_args=extra_args, launch=launch)

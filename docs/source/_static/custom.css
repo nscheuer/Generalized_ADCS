@@ -352,6 +352,35 @@
     }
 }
 
+.dynamics-visualization-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.dynamics-visualization-grid h3 {
+    margin: 0;
+    padding: 1rem 1.15rem 0;
+}
+
+.dynamics-visualization-grid p {
+    margin: 0;
+    padding: 0.5rem 1.15rem 1rem;
+}
+
+.dynamics-example-media {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+@media (max-width: 700px) {
+    .dynamics-visualization-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 table.sortable-factory th.factory-sortable-header {
     cursor: pointer;
     user-select: none;
