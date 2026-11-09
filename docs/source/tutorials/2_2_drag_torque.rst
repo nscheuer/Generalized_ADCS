@@ -17,6 +17,7 @@ green is the long body axis and yellow is the flight direction.
 This simple model shows the first turn toward the flow, without rotational damping.
 
 .. code-block:: python
+   :caption: drag_torque.py
 
    import matplotlib.pyplot as plt
    import numpy as np
@@ -55,6 +56,22 @@ This simple model shows the first turn toward the flow, without rotational dampi
        x=initial_state, satellite=satellite, os0=orbit,
        environment=environment, dt=5.0, tf=390.0,
    )
+
+.. admonition:: Geometry tip
+   :class: tutorial-tip
+
+   Specify a drag coefficient for each face in the geometry. A commonly used
+   value is :math:`C_D=2.2` [1]_.
+
+   .. code-block:: python
+
+      face = ADCS.disturbances.GeometryFace(
+          area=area, centroid=centroid, normal=normal, CD=2.2,
+      )
+
+.. [1] D. L. Oltrogge and K. Leveque, `An Evaluation of CubeSat Orbital Decay
+   <https://digitalcommons.usu.edu/smallsat/2011/all2011/48/>`_,
+   Small Satellite Conference, SSC11-VII-2 (2011).
 
 Plots
 -----
@@ -124,3 +141,16 @@ Godot animation
        ],
        graphics_quality="high",
    )
+
+.. admonition:: Tips and tricks
+   :class: tutorial-tip
+
+   A run stores its states and orbital states at each saved time. Query the
+   drag model for the torque at one of those steps:
+
+   .. code-block:: python
+
+      run = results.first()
+      state = run.state_hist[0]
+      orbital_state = run.os_hist[0]
+      drag_torque = drag.torque(satellite, state, orbital_state)

@@ -1,5 +1,5 @@
-SRP Disturbance
-===============
+SRP Torque
+==========
 
 .. image:: ../_static/tutorials/torques_on_a_spacecraft/srp_eclipse.gif
    :alt: MiRaTa enters Earth's shadow; the Godot timeline shows the eclipse.
@@ -11,6 +11,7 @@ surfaces. This animation follows a 3U spacecraft at 500 km from sunlight into
 eclipse; the Godot timeline shows its sunlit status.
 
 .. code-block:: python
+   :caption: srp_disturbance_godot.py
 
    import numpy as np
    import ADCS
@@ -54,6 +55,19 @@ eclipse; the Godot timeline shows its sunlit status.
        results=results, model="mirata", overlays=[], graphics_quality="high",
    )
 
+.. admonition:: Geometry tip
+   :class: tutorial-tip
+
+   Specify the specular reflection (:code:`eta_s`), diffuse reflection
+   (:code:`eta_d`), and absorption (:code:`eta_a`) fractions for each face.
+
+   .. code-block:: python
+
+      face = ADCS.disturbances.GeometryFace(
+          area=area, centroid=centroid, normal=normal,
+          eta_s=0.3, eta_d=0.3, eta_a=0.4,
+      )
+
 External torque
 ---------------
 
@@ -87,3 +101,14 @@ The SRP torque falls to zero when the spacecraft enters eclipse.
    :alt: Solar radiation pressure torque drops to zero at eclipse entry.
    :width: 80%
    :align: center
+
+.. admonition:: Tips and tricks
+   :class: tutorial-tip
+
+   Query the sunlit flag and SRP torque for a saved step:
+
+   .. code-block:: python
+
+      run = results.first()
+      sunlit = run.os_hist[0].is_sunlit()
+      srp_torque = srp.torque(satellite, run.state_hist[0], run.os_hist[0])

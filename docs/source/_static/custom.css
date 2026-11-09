@@ -551,3 +551,70 @@ table.sortable-factory th.factory-sort-active.factory-sort-desc::after {
         min-height: 320px;
     }
 }
+
+/* Compact API notes at the end of code-based tutorials. */
+.admonition.tutorial-tip {
+    border: 1px solid #79aee8;
+    border-left: 4px solid #3277c8;
+    background: #edf5ff;
+}
+
+.admonition.tutorial-tip > .admonition-title {
+    color: #174b86;
+    background: #d9eaff;
+}
+
+.admonition.tutorial-tip .highlight {
+    margin-bottom: 0;
+}
+
+.admonition.night-vision-tip .night-vision-icon {
+    float: right;
+    width: 40px;
+    height: 28px;
+    margin: 0 0 0.5rem 1rem;
+}
+
+.admonition.mission-recommendations {
+    margin-top: 2rem;
+    padding: 1.2rem 1.5rem;
+    border: 1px solid #e8a04f;
+    border-left: 5px solid #dc791c;
+    background: #fff3e4;
+}
+
+.admonition.mission-recommendations > .admonition-title {
+    color: #82400e;
+    background: #ffe3bf;
+    font-size: 1.15rem;
+}
+
+.admonition.mission-recommendations li {
+    margin-bottom: 0.8rem;
+}
+
+.admonition.mission-recommendations li:last-child {
+    margin-bottom: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    .admonition.tutorial-tip {
+        border-color: #37679c;
+        background: #142841;
+    }
+
+    .admonition.tutorial-tip > .admonition-title {
+        color: #c6e0ff;
+        background: #1d3b5e;
+    }
+
+    .admonition.mission-recommendations {
+        border-color: #a76525;
+        background: #352313;
+    }
+
+    .admonition.mission-recommendations > .admonition-title {
+        color: #ffd29a;
+        background: #563316;
+    }
+}

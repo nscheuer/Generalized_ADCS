@@ -29,6 +29,7 @@ kg·m². It starts with a five-degree-per-second spin about a largest principal
 axis. Both runnable scripts use this same setup.
 
 .. code-block:: python
+   :caption: euler_equations.py
 
    import numpy as np
    import ADCS
@@ -114,3 +115,12 @@ moment; :math:`z` is the smallest. The quaternion is unchanged in these runs.
      </section>
    </div>
 
+.. admonition:: Tips and tricks
+   :class: tutorial-tip
+
+   The first simulation run gives access to the saved attitude states:
+
+   .. code-block:: python
+
+      run = results.first()
+      attitude = run.state_hist[0].q

@@ -71,6 +71,7 @@ class RenderJob:
     :param motion_blur: Sub-frames per frame, spread over ``shutter`` of the frame interval (1 = none).
     :param overlays: Overlay groups to show, e.g. ``{"vectors": False}``; others keep the log's setting.
     :param ui: Draw the timeline and HUD into the video (needs ``supersample=1`` and at least 960x540).
+    :param night_vision: Keep the spacecraft lit while it passes through eclipse.
     """
 
     duration_s: float = 10.0
@@ -87,6 +88,7 @@ class RenderJob:
     ev: float = 0.0
     overlays: Dict[str, bool] = field(default_factory=dict)
     ui: bool = False
+    night_vision: bool = False
     keys: List[CameraKey] = field(default_factory=lambda: [CameraKey(at=0.0)])
 
     def validate(self) -> None:

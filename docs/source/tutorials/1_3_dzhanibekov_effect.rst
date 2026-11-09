@@ -23,6 +23,7 @@ The initial rate is nearly along that intermediate axis, with a small
 :math:`z` component.
 
 .. code-block:: python
+   :caption: dzhanibekov_effect.py
 
    import numpy as np
    import ADCS
@@ -125,3 +126,13 @@ Plot all three body-frame angular velocity components for each run:
        <img class="dynamics-example-media" src="../_static/tutorials/spacecraft_dynamics/dzhanibekov_effect/diagonal_inertia_rates.png" alt="Body angular velocity components with diagonal inertia remaining nearly constant">
      </section>
    </div>
+
+.. admonition:: Tips and tricks
+   :class: tutorial-tip
+
+   Inspect the angular velocity at any saved step:
+
+   .. code-block:: python
+
+      run = results.first()
+      omega_body = run.state_hist[0].w
