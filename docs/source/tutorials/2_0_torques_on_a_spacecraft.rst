@@ -83,3 +83,4 @@ Magnetorquers use Earth's magnetic field to change spacecraft attitude.
    :maxdepth: 1
 
    2_8_magnetorquer
+

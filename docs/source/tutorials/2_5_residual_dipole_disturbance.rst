@@ -32,3 +32,4 @@ the magnetic field and the colored arrows are body axes.
 
       run = results.first()
       torque_body = dipole.torque(run.state_hist[0], run.os_hist[0])
+

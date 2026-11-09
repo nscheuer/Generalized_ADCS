@@ -112,3 +112,4 @@ The SRP torque falls to zero when the spacecraft enters eclipse.
       run = results.first()
       sunlit = run.os_hist[0].is_sunlit()
       srp_torque = srp.torque(satellite, run.state_hist[0], run.os_hist[0])
+

@@ -153,12 +153,15 @@ class MTQ_w_RW(Controller):
         self.M_mtq_act, self.mtq_indices = self.build_torque_to_u_matrix_pinv(actuators=est_sat.actuators, actuator_type=MTQ)
         self.A_mtq = self.build_u_to_torque_matrix_pinv(actuators=est_sat.actuators, actuator_type=MTQ)
 
-        self.rw_max_h = np.asarray([rw.h_max for rw in est_sat.actuators if isinstance(rw, RW)])
+        wheels = [rw for rw in est_sat.actuators if isinstance(rw, RW)]
+        self.rw_max_h = np.asarray([rw.h_max for rw in wheels])
         self.max_torque = self.find_max_torque(actuators=est_sat.actuators)
 
-        if np.any(self.rw_max_h < h_target):
+        self.h_target = np.asarray(h_target, dtype=float).reshape(3)
+        rw_axes = np.column_stack([rw.axis for rw in wheels])
+        wheel_target = np.linalg.pinv(rw_axes) @ self.h_target
+        if np.any(np.abs(wheel_target) > self.rw_max_h):
             raise ValueError("Target momentum cannot be higher than reaction wheel maximum momentum!")
-        self.h_target = h_target
 
         self.n_actuators = len(est_sat.actuators)
 

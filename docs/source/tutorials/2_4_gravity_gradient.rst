@@ -85,3 +85,4 @@ grows as the spacecraft turns away.
       torque_body = gravity_gradient.torque(
           satellite, run.state_hist[0], run.os_hist[0]
       )
+

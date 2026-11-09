@@ -32,6 +32,9 @@ def animate_orbit_godot(
     model: str | Path | None = None,
     ephemeris=None,
     graphics_quality: str = "low",
+    camera_distance_m: float | None = None,
+    camera_yaw_deg: float | None = None,
+    camera_pitch_deg: float | None = None,
     output: str | Path | None = None,
     binary: str | Path | None = None,
     assets: str | Path | None = None,
@@ -47,6 +50,8 @@ def animate_orbit_godot(
     ``overlays=[]`` to hide vectors, axes, tracks, and their labels. Graphics
     assets are local only. If Godot is missing, the platform build is offered
     through AssetManager's terminal download prompt.
+    ``camera_distance_m``, ``camera_yaw_deg``, and ``camera_pitch_deg`` set the
+    initial spacecraft-orbit view when opening the interactive viewer.
     """
     if graphics_quality not in {"low", "medium", "high"}:
         raise ValueError("graphics_quality must be low, medium, or high")
@@ -82,7 +87,12 @@ def animate_orbit_godot(
     elif isinstance(results, RunResults):
         results = SimulationResults([results])
 
-    extra_args = ("--quality", {"low": "fast", "medium": "balanced", "high": "high"}[graphics_quality])
+    extra_args = ["--quality", {"low": "fast", "medium": "balanced", "high": "high"}[graphics_quality]]
+    for option, value in (("--camera-dist", camera_distance_m),
+                          ("--camera-yaw", camera_yaw_deg),
+                          ("--camera-pitch", camera_pitch_deg)):
+        if value is not None:
+            extra_args.extend((option, str(float(value))))
     if output is not None:
         log = results_to_vizlog(results, output, ephem=ephemeris, model=model, overwrite=True,
                                 torques="none", overlays=overlays)
