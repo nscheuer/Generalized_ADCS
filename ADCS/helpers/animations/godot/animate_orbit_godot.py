@@ -35,6 +35,7 @@ def animate_orbit_godot(
     camera_distance_m: float | None = None,
     camera_yaw_deg: float | None = None,
     camera_pitch_deg: float | None = None,
+    camera_frame: str = "lvlh",
     output: str | Path | None = None,
     binary: str | Path | None = None,
     assets: str | Path | None = None,
@@ -52,9 +53,13 @@ def animate_orbit_godot(
     through AssetManager's terminal download prompt.
     ``camera_distance_m``, ``camera_yaw_deg``, and ``camera_pitch_deg`` set the
     initial spacecraft-orbit view when opening the interactive viewer.
+    ``camera_frame`` selects the frame for those angles (``"lvlh"``,
+    ``"inertial"``, or ``"body"``).
     """
     if graphics_quality not in {"low", "medium", "high"}:
         raise ValueError("graphics_quality must be low, medium, or high")
+    if camera_frame not in {"lvlh", "inertial", "body"}:
+        raise ValueError("camera_frame must be lvlh, inertial, or body")
     if coord_goal is not None:
         raise ValueError("coord_goal is not a recorded history; provide a target history instead")
     if texture_path is not None:
@@ -87,7 +92,8 @@ def animate_orbit_godot(
     elif isinstance(results, RunResults):
         results = SimulationResults([results])
 
-    extra_args = ["--quality", {"low": "fast", "medium": "balanced", "high": "high"}[graphics_quality]]
+    extra_args = ["--quality", {"low": "fast", "medium": "balanced", "high": "high"}[graphics_quality],
+                  "--frame", camera_frame]
     for option, value in (("--camera-dist", camera_distance_m),
                           ("--camera-yaw", camera_yaw_deg),
                           ("--camera-pitch", camera_pitch_deg)):

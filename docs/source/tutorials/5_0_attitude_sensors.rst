@@ -29,11 +29,23 @@ Magnetometer
 See :doc:`Magnetometer <5_4_magnetometer>` to compare the magnetic field
 seen by a stable satellite and a tumbling satellite.
 
-Sun Sensor
-----------
+Coarse Sun Sensor
+-----------------
 
-See :doc:`Sun Sensor <5_5_sun_sensor>` for the sensor field of view, its
+See :doc:`Coarse Sun Sensor <5_5_coarse_sun_sensor>` for the sensor field of view, its
 light-dependent reading, and how eclipse invalidates the measurement.
+
+Star Tracker
+------------
+
+See :doc:`Star Tracker <5_6_star_tracker>` for attitude measurements from
+multiple stars and the viewing conditions that make a solution unavailable.
+
+GPS
+---
+
+See :doc:`GPS <5_7_gps>` for position and velocity measurements and their
+role in orbit and attitude determination.
 
 .. toctree::
    :maxdepth: 1
@@ -43,4 +55,6 @@ light-dependent reading, and how eclipse invalidates the measurement.
    5_2_bias
    5_3_gyroscope
    5_4_magnetometer
-   5_5_sun_sensor
+   5_5_coarse_sun_sensor
+   5_6_star_tracker
+   5_7_gps
