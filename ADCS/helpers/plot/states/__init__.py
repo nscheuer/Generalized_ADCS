@@ -2,6 +2,8 @@ from .angularvelocityplot import AngularVelocityPlot, AngularVelocityPlotSingle,
 
 from .quaternionplot import QuaternionPlot, QuaternionPlotSingle, QuaternionPlotCombined
 from .wheelspeedplot import WheelSpeedPlot
+from .wheelmomentumplot import WheelMomentumPlot
 
 __all__ = ["AngularVelocityPlot", "AngularVelocityPlotSingle", "AngularVelocityPlotCombined",
-           "QuaternionPlot", "QuaternionPlotSingle", "QuaternionPlotCombined", "WheelSpeedPlot"]
+           "QuaternionPlot", "QuaternionPlotSingle", "QuaternionPlotCombined", "WheelSpeedPlot",
+           "WheelMomentumPlot"]

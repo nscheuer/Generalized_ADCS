@@ -1,41 +1,73 @@
 Underactuated Control: 3+1
 ==========================
 
-This **3+1** spacecraft has three orthogonal magnetorquers and one reaction
-wheel along its body X axis. The wheel controls only one axis directly, and
-magnetorquers cannot produce torque along the current magnetic field. Their
-combined torque authority changes over the orbit, so this is an
-underactuated control problem.
-
-:class:`~ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP` requests a pointing torque
-and uses a linear program to find the largest feasible torque **in that
-direction**, subject to the wheel and magnetorquer limits. In this example,
-MiRaTa tracks a fixed ground point at 42° N, 80° W using
-:class:`~ADCS.CONOPS.goals.vector_goals.coordinate_goal.Coordinate_Goal`.
-
-.. image:: ../_static/tutorials/controlling_spacecraft/underactuated_3plus1_angle_error.png
-   :alt: Ground-target pointing error falls below one degree with 3+1 control.
-   :width: 100%
-
 .. image:: ../_static/tutorials/controlling_spacecraft/underactuated_3plus1.gif
-   :alt: MiRaTa turns to track a ground location using one wheel and three magnetorquers.
+   :alt: MiRaTa tracks a daylight ground target in a fixed spacecraft view.
    :width: 100%
 
-Yellow shows MiRaTa's body boresight; green shows the direction to the
-ground target. The GIF uses an inertial camera and compresses the 800-second
-simulation. The boresight starts about 80° from the target and ends within
-1°. The interim rise in error shows the limited instantaneous torque
-authority of this actuator set.
+Three magnetorquers and one reaction wheel track a daylight ground target
+at 16° S, 160° W, offset from nadir. The initial pointing error is about
+30°. Yellow marks the body boresight; green marks the target direction.
+This 3+1 architecture is discussed in [1]_.
+
+Simulation and animation
+------------------------
 
 .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/underactuated_3plus1.py
    :language: python
    :caption: underactuated_3plus1.py
 
-The single wheel stores momentum, and this short example keeps it below its
-limit. A single wheel cannot generally be unloaded without disturbing the
-pointing objective, so this script sets ``c_gain=0``.
+Add plots
+---------
 
-.. [1] P. McKeen, N. Scheuer, and K. Cahoy, “Generalized Attitude Control
-   for Small Spacecraft,” 40th Annual Small Satellite Conference,
-   SSC26-P2-54, 2026. `Paper and DOI
-   <https://digitalcommons.usu.edu/smallsat/2026/all2026/253/>`__.
+.. container:: dynamics-visualization-grid
+
+   .. container:: installation-card
+
+      .. rubric:: Pointing error
+
+      .. image:: ../_static/tutorials/controlling_spacecraft/underactuated_3plus1_angle_error.png
+         :alt: Pointing error falls below 20 degrees early and converges near zero.
+         :width: 100%
+
+      .. code-block:: python
+
+         import matplotlib.pyplot as plt
+
+         ADCS.plot(
+             results,
+             ADCS.plots.TargetPlot(
+                 modes=["real_target"], title="Ground-target pointing error"
+             ),
+             layout=(1, 1), figsize=(8, 4),
+         )
+         plt.show()
+
+   .. container:: installation-card
+
+      .. rubric:: MTQ and reaction-wheel commands
+
+      .. image:: ../_static/tutorials/controlling_spacecraft/underactuated_3plus1_controls.png
+         :alt: Magnetorquer and reaction-wheel control torques during the simulation.
+         :width: 100%
+
+      .. code-block:: python
+
+         import matplotlib.pyplot as plt
+
+         ADCS.plot(
+             results,
+             ADCS.plots.ControlPlotCombined(),
+             ADCS.plots.ControlPlotSingle(
+                 index=0, title="Reaction-wheel control torque"
+             ),
+             layout=(2, 1),
+         )
+         plt.show()
+
+The single wheel cannot unload momentum while preserving pointing, so the
+example sets ``c_gain=0``.
+
+.. [1] N. Scheuer, P. McKeen, and K. Cahoy, “One Wheel Is Enough: Control
+   Strategies for the 3+1 Actuator Architecture Across Small Satellite
+   Mission Profiles”.

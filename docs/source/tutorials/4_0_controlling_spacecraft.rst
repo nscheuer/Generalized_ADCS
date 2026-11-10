@@ -69,3 +69,26 @@ with three magnetorquers and one reaction wheel.
    :maxdepth: 1
 
    4_6_underactuated_3plus1
+
+Wheel Momentum Accumulation
+---------------------------
+
+The :doc:`wheel momentum tutorial <4_7_wheel_momentum_accumulation>` follows
+three reaction wheels during nadir pointing with environmental disturbances.
+
+.. toctree::
+   :maxdepth: 1
+
+   4_7_wheel_momentum_accumulation
+
+Wheel Momentum Dumping
+----------------------
+
+The :doc:`wheel momentum dumping tutorial <4_8_wheel_momentum_dumping>`
+uses magnetorquers and reaction wheels together to point at nadir while
+unloading stored wheel momentum.
+
+.. toctree::
+   :maxdepth: 1
+
+   4_8_wheel_momentum_dumping
