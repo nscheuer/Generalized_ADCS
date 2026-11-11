@@ -13,6 +13,7 @@ Tutorials to help you get started with Generalized ADCS.
    3_0_forces_on_a_spacecraft
    4_0_controlling_spacecraft
    5_0_attitude_sensors
+   6_0_estimators
 
 Future tutorials
 ----------------
