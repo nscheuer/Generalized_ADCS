@@ -9,8 +9,8 @@ def main() -> None:
     orbit = ADCS.Orbital_State(
         ephem=ADCS.Ephemeris(),
         J2000=0.22,
-        R=np.array([7000.0, 0.0, 0.0]),
-        V=np.array([0.0, 7.5, 1.0]),
+        R=np.array([7000.0, 1000.0, 0.0]),
+        V=np.array([0.4, 7.4, 1.5]),
     )
     semi_major_axis, eccentricity, inclination, raan, argp, true_anomaly = orbit.to_keplerian()
 

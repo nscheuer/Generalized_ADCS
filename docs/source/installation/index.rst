@@ -30,7 +30,7 @@ Please ensure Python>=3.10 is installed on your system.
            <ul class="installation-features">
              <li>✅ Full examples, debug scripts, and tutorials</li>
              <li>✅ Offline documentation</li>
-             <li>✅ Optional add-ons installed by default</li>
+             <li>Optional C++ add-ons can be built separately</li>
            </ul>
          </section>
          <section class="installation-card">
@@ -63,7 +63,7 @@ Please ensure Python>=3.10 is installed on your system.
            <ul class="installation-features">
              <li>✅ Full examples, debug scripts, and tutorials</li>
              <li>✅ Offline documentation</li>
-             <li>✅ Optional add-ons installed by default</li>
+             <li>Optional C++ add-ons can be built separately</li>
            </ul>
          </section>
          <section class="installation-card">
@@ -96,7 +96,7 @@ Please ensure Python>=3.10 is installed on your system.
            <ul class="installation-features">
              <li>✅ Full examples, debug scripts, and tutorials</li>
              <li>✅ Offline documentation</li>
-             <li>✅ Optional add-ons installed by default</li>
+             <li>Optional C++ add-ons can be built separately</li>
            </ul>
          </section>
          <section class="installation-card">

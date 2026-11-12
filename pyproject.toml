@@ -10,7 +10,7 @@ name = "Generalized_ADCS"
 # first PyPI upload went out as 0.1.5 -- two behind the documented state, and
 # built before the choldate removal. PyPI versions are immutable, so this moves
 # forward past the documented 0.1.7 rather than trying to reuse a number.
-version = "0.2.1"
+version = "0.2.2.dev0"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
     { name = "Patrick McKeen", email = "pmckeen@mit.edu" },
@@ -68,7 +68,6 @@ dependencies = [
     "skyfield>=1.45",
     "tqdm>=4.60",
     "rich>=13.0",
-    "DracoPy>=2.2",
     "DracoPy>=2.2",
 ]
 
@@ -179,10 +178,6 @@ packages = [
     "ADCS.flight_software.single_core",
     "ADCS.flight_software.tasks",
     "ADCS.helpers",
-    "ADCS.helpers.animations",
-    "ADCS.helpers.animations.godot",
-    "ADCS.helpers.animations.godot.assets",
-    "ADCS.helpers.animations.godot.mesh_import",
     "ADCS.helpers.animations",
     "ADCS.helpers.animations.godot",
     "ADCS.helpers.animations.godot.assets",

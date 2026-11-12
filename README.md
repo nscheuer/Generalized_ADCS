@@ -22,7 +22,7 @@ control and estimation workflows.
 </p>
 
 <p align="center">
-  <img src="docs/source/_static/release_notes/0_2_2_animation.gif"
+  <img src="https://raw.githubusercontent.com/nscheuer/Generalized_ADCS/main/docs/source/_static/release_notes/0_2_2_animation_preview.png"
        alt="ICESat-2 performing attitude maneuvers over Earth at sunset"
        width="75%">
 </p>
@@ -54,7 +54,7 @@ control and estimation workflows.
 
   - Initialize orbits from position vectors, orbital elements, or TLEs.
   - Keplerian, SGP4, and RK4 orbit propagation.
-  - Model atmospheric drag, solar radiation pressure, J2 perturbations, and lunisolar effects.
+  - Model atmospheric drag, solar radiation pressure, and J2 perturbations.
 </details>
 
 <details>
