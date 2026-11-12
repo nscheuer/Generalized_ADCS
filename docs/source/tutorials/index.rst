@@ -15,6 +15,7 @@ Tutorials to help you get started with Generalized ADCS.
    5_0_attitude_sensors
    6_0_estimators
    7_0_monte_carlo
+   8_0_simulating_first_mission
 
 Future tutorials
 ----------------
