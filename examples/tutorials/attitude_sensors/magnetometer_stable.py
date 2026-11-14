@@ -9,7 +9,6 @@ import numpy as np
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 import ADCS
 
-
 environment = ADCS.Environment(magnetic_field=ADCS.IGRF14())
 magnetometers = [ADCS.MTM(axis=axis, sample_time=20.0) for axis in np.eye(3)]
 satellite = ADCS.Satellite(
@@ -43,6 +42,5 @@ axes[1].set_ylabel("Field magnitude [nT]")
 axes[1].set_xlabel("Time [min]")
 axes[1].grid(alpha=0.3)
 fig.tight_layout()
-plot_path = Path(__file__).resolve().parents[3] / "docs/source/_static/tutorials/attitude_sensors/magnetometer_stable.png"
-fig.savefig(plot_path, dpi=160, bbox_inches="tight")
-plt.close(fig)
+
+plt.show()

@@ -10,7 +10,6 @@ from ADCS.helpers.animations import animate_orbit_godot
 from ADCS.helpers.animations.godot.overlays import Arrow
 from ADCS.helpers.math_helpers import rot_mat
 
-
 environment = ADCS.Environment()
 radius = 6878.1363  # 500 km altitude
 orbit = ADCS.Orbital_State(
@@ -62,9 +61,8 @@ for ax in axes:
                     color="lightgray", alpha=0.35)
     ax.grid(alpha=0.3)
 fig.tight_layout()
-plot_path = Path(__file__).resolve().parents[3] / "docs/source/_static/tutorials/attitude_sensors/coarse_sun_sensor.png"
-fig.savefig(plot_path, dpi=160, bbox_inches="tight")
-plt.close(fig)
+
+plt.show()
 
 animate_orbit_godot(
     results=results, model="mirata", graphics_quality="high",

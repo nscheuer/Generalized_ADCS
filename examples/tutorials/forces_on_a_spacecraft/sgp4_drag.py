@@ -7,7 +7,6 @@ import ADCS
 from ADCS.orbits.sgp4_orbit import SGP4Orbit
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
 
-
 size = np.array([0.1, 0.3, 0.1])  # 3U spacecraft, metres
 faces = [
     ADCS.disturbances.GeometryFace(
@@ -44,7 +43,6 @@ print(with_drag.tle[0])  # TLE line 1 contains the B* field
 
 run = ADCS.RunResults(satellite=satellite, os_hist=list(with_drag.states.values()))
 ADCS.plot(run, ADCS.plots.OrbitPlot(), layout=(1, 1), title="SGP4 orbit with drag")
-plt.savefig("sgp4_drag_orbit.png", dpi=160)
 
 days = (with_drag.times - with_drag.times[0]) * TimeConstants.cent2sec / 86400
 a_drag = np.array([state.to_keplerian()[0] for state in with_drag.states.values()])
@@ -56,5 +54,5 @@ plt.ylabel("Semi-major axis difference [km]")
 plt.title("Effect of SGP4 B* relative to B* = 0")
 plt.grid(alpha=0.3)
 plt.tight_layout()
-plt.savefig("sgp4_drag_effect.png", dpi=160)
+
 plt.show()

@@ -7,7 +7,6 @@ import ADCS
 from ADCS.helpers.animations import animate_orbit_godot
 from ADCS.helpers.animations.godot.overlays import Arrow, TargetLine
 
-
 magnetorquers = [ADCS.MTQ(axis=axis, max_torque=0.005)
                 for axis in np.eye(3)]
 magnetometers = [ADCS.MTM(axis=axis) for axis in np.eye(3)]
@@ -34,7 +33,6 @@ results = ADCS.simulate(
 ADCS.plot(results, ADCS.plots.TargetPlot(modes=["real_target"],
                                     title="Boresight error"),
           layout=(1, 1), figsize=(8, 4))
-plt.savefig("magnetorquer_lovera_angle_error.png", dpi=160)
 
 animate_orbit_godot(
     results=results, model="cubesat_1ru", graphics_quality="high",

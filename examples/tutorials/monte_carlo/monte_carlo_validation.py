@@ -5,14 +5,9 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import ADCS
-
-ROOT = Path(__file__).resolve().parents[3]
-IMAGES = ROOT / "docs/source/_static/tutorials/monte_carlo"
 
 wheel = ADCS.RW(axis=np.array([1.0, 0.0, 0.0]), max_torque=0.0023,
                 J=5.7e-6, h=0.0, h_max=0.0036)
@@ -50,9 +45,8 @@ results = ADCS.simulate_mc(
     os0=orbit, dt=2.0, tf=1200.0, mc_config=config,
     num_runs=8, base_seed=42, max_workers=2,
 )
-ADCS.plot(results, ADCS.plots.AnimationPlot(
-    screenshot_path=IMAGES / "monte_carlo_validation.png"), layout=(1, 1))
+ADCS.plot(results, ADCS.plots.AnimationPlot(), layout=(1, 1))
 ADCS.plot(results, ADCS.plots.TargetPlot(modes=["real_target"],
           title="Controlled pointing error"), layout=(1, 1))
-plt.savefig(IMAGES / "monte_carlo_validation_error.png", dpi=160)
-plt.close("all")
+
+plt.show()

@@ -5,13 +5,9 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import ADCS
-
-OUTPUT = Path(__file__).resolve().parents[3] / "docs/source/_static/tutorials/first_mission/detumbling_mc.png"
 
 magnetorquers = [ADCS.MTQ(axis=axis, max_torque=0.2) for axis in np.eye(3)]
 magnetometers = [ADCS.MTM(axis=axis) for axis in np.eye(3)]
@@ -48,5 +44,5 @@ ADCS.plot(
     ),
     layout=(1, 1), figsize=(8, 4.5),
 )
-plt.savefig(OUTPUT, dpi=160)
-plt.close("all")
+
+plt.show()

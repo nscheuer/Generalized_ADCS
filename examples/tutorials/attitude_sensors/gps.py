@@ -7,7 +7,6 @@ import numpy as np
 
 import ADCS
 
-
 np.random.seed(7)
 gps = ADCS.GPS(
     sample_time=20.0,
@@ -28,6 +27,5 @@ results = ADCS.simulate(
 
 ADCS.plot(results, ADCS.plots.OrbitPositionPlot(sources=["real", "estimated"]),
           layout=(1, 1), figsize=(9, 7), title="Orbit position from GPS")
-plot_path = Path(__file__).resolve().parents[3] / "docs/source/_static/tutorials/attitude_sensors/gps.png"
-plt.savefig(plot_path, dpi=160, bbox_inches="tight")
-plt.close()
+
+plt.show()

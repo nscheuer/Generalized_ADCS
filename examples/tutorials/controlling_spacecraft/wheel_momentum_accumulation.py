@@ -8,7 +8,6 @@ from ADCS.helpers.animations import animate_orbit_godot
 from ADCS.helpers.animations.godot.overlays import Arrow, TargetLine
 from ADCS.helpers.math_helpers import rot_mat
 
-
 environment = ADCS.Environment(
     atmosphere=ADCS.SMADAtmosphere(), magnetic_field=ADCS.IGRF14(),
 )
@@ -66,7 +65,6 @@ results = ADCS.simulate(
 )
 ADCS.plot(results, ADCS.plots.WheelMomentumPlot(),
           layout=(1, 1), figsize=(8, 4))
-plt.savefig("wheel_momentum_accumulation.png", dpi=160, bbox_inches="tight")
 
 if __name__ == "__main__":
     animate_orbit_godot(

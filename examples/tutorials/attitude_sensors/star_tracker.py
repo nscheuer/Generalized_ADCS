@@ -9,7 +9,6 @@ import ADCS
 from ADCS.helpers.animations import animate_orbit_godot
 from ADCS.helpers.math_helpers import quaternion_angle
 
-
 np.random.seed(7)
 environment = ADCS.Environment()
 radius = 6878.1363  # 500 km altitude
@@ -50,8 +49,7 @@ ax.set(xlabel="Time [min]", ylabel="Attitude error [arcmin]",
 ax.grid(alpha=0.3)
 ax.legend()
 fig.tight_layout()
-assets = Path(__file__).resolve().parents[3] / "docs/source/_static/tutorials/attitude_sensors"
-fig.savefig(assets / "star_tracker.png", dpi=160, bbox_inches="tight")
-plt.close(fig)
+
+plt.show()
 
 animate_orbit_godot(results=results, model="mirata", graphics_quality="high", overlays=[])

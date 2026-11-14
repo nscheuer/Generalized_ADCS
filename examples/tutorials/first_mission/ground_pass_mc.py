@@ -5,14 +5,10 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import ADCS
 from ADCS.helpers.math_helpers import quat_mult
-
-OUTPUT = Path(__file__).resolve().parents[3] / "docs/source/_static/tutorials/first_mission/ground_pass_mc.png"
 
 wheels = [ADCS.RW(axis=axis, max_torque=1e-3, J=5e-6,
                   h=0.0, h_max=0.02) for axis in np.eye(3)]
@@ -39,7 +35,6 @@ controller = ADCS.controller.MTQ_w_RW(
 )
 goal = ADCS.goals.Coordinate_Goal(lat=0.0, lon=-176.6, alt=0.0)
 
-
 def sampled_pass_orbit(rng):
     """Small injection errors keep each run near the same ground pass."""
     return ADCS.Orbital_State(
@@ -47,7 +42,6 @@ def sampled_pass_orbit(rng):
         R=orbit.R + rng.normal(0.0, 10.0, 3),
         V=orbit.V + rng.normal(0.0, 0.01, 3),
     )
-
 
 config = ADCS.MCConfig(
     orbit=sampled_pass_orbit,
@@ -61,5 +55,5 @@ results = ADCS.simulate_mc(
 )
 ADCS.plot(results, ADCS.plots.TargetPlot(modes=["real_target"],
           title="Ground-pass pointing error"), layout=(1, 1), figsize=(8, 4.5))
-plt.savefig(OUTPUT, dpi=160)
-plt.close("all")
+
+plt.show()

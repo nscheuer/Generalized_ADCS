@@ -22,6 +22,5 @@ for degree in (0, 2, 6):
     run = ADCS.RunResults(satellite=None, os_hist=list(orbit.states.values()))
     ADCS.plot(run, ADCS.plots.OrbitPlot(), layout=(1, 1),
               title=f"Orbit with zonal_J={degree}")
-    plt.savefig(f"j{degree}_orbit.png", dpi=160)
 
 plt.show()

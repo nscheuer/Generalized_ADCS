@@ -7,7 +7,6 @@ import ADCS
 from ADCS.helpers.animations import animate_orbit_godot
 from ADCS.helpers.animations.godot.overlays import Arrow, TargetLine
 
-
 axes = np.array([[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1]], dtype=float)
 axes /= np.linalg.norm(axes, axis=1)[:, None]
 wheels = [ADCS.RW(axis=axis, max_torque=1e-3, J=5e-6,
@@ -38,7 +37,6 @@ results = ADCS.simulate(
 )
 ADCS.plot(results, ADCS.plots.TargetPlot(modes=["real_target"],
                                     title="Attitude error"), layout=(1, 1), figsize=(8, 4))
-plt.savefig("reaction_wheel_pd_angle_error.png", dpi=160)
 
 overlays = [
     Arrow("@boresight:default", label="Body boresight", color="#facc15",

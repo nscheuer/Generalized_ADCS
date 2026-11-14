@@ -8,9 +8,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 import numpy as np
 import ADCS
 
-ROOT = Path(__file__).resolve().parents[3]
-IMAGE = ROOT / "docs/source/_static/tutorials/monte_carlo/setup.png"
-
 satellite = ADCS.Satellite(
     mass=4.0, J_0=np.diag([0.03, 0.04, 0.05]),
     boresight=np.array([0.0, 0.0, 1.0]),
@@ -29,4 +26,4 @@ results = ADCS.simulate_mc(
     dt=2.0, tf=120.0, mc_config=None,
     num_runs=8, base_seed=42, max_workers=2,
 )
-ADCS.plot(results, ADCS.plots.AnimationPlot(screenshot_path=IMAGE), layout=(1, 1))
+ADCS.plot(results, ADCS.plots.AnimationPlot(), layout=(1, 1))

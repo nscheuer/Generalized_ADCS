@@ -8,7 +8,6 @@ from ADCS.helpers.animations import animate_orbit_godot
 from ADCS.helpers.animations.godot.overlays import Arrow, TargetLine
 from ADCS.helpers.math_helpers import rot_mat
 
-
 environment = ADCS.Environment(
     atmosphere=ADCS.SMADAtmosphere(), magnetic_field=ADCS.IGRF14(),
 )
@@ -69,18 +68,18 @@ results = ADCS.simulate(
 )
 ADCS.plot(results, ADCS.plots.WheelMomentumPlot(),
           layout=(1, 1), figsize=(8, 4))
-plt.savefig("wheel_momentum_dumping.png", dpi=160, bbox_inches="tight")
+
 ADCS.plot(results, ADCS.plots.TargetPlot(modes=["real_target"],
                                         title="Nadir pointing error"),
           layout=(1, 1), figsize=(8, 4))
-plt.savefig("wheel_momentum_dumping_pointing.png", dpi=160, bbox_inches="tight")
+
 ADCS.plot(results, *[
     ADCS.plots.ControlPlotSingle(index=i, title=f"MTQ {axis} command",
                                  units="A m²", label=f"MTQ {axis}")
     for i, axis in enumerate("xyz")
 ], layout=(3, 1), figsize=(8, 9))
 plt.tight_layout(pad=2.0)
-plt.savefig("wheel_momentum_dumping_mtq.png", dpi=160, bbox_inches="tight")
+
 ADCS.plot(results, *[
     ADCS.plots.ControlPlotSingle(index=i + 3, title=f"RW {axis} command",
                                  units="N m", label=f"RW {axis}",
@@ -88,7 +87,6 @@ ADCS.plot(results, *[
     for i, axis in enumerate("xyz")
 ], layout=(3, 1), figsize=(8, 9))
 plt.tight_layout(pad=2.0)
-plt.savefig("wheel_momentum_dumping_rw.png", dpi=160, bbox_inches="tight")
 
 if __name__ == "__main__":
     animate_orbit_godot(

@@ -9,7 +9,6 @@ import numpy as np
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 import ADCS
 
-
 np.random.seed(17)
 inertia = np.array([
     [0.0333, 0.0060, 0.0],
@@ -68,6 +67,5 @@ axes[1].set_title("Gyro error: residual bias plus white noise")
 axes[1].legend(ncol=3, fontsize=8)
 axes[1].grid(alpha=0.3)
 fig.tight_layout()
-plot_path = Path(__file__).resolve().parents[3] / "docs/source/_static/tutorials/attitude_sensors/gyroscope_rates.png"
-fig.savefig(plot_path, dpi=160, bbox_inches="tight")
-plt.close(fig)
+
+plt.show()
