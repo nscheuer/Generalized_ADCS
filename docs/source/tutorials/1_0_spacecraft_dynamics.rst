@@ -1,35 +1,16 @@
 Spacecraft Dynamics
 ===================
 
-Spacecraft Coordinate Frames
-----------------------------
+Start with the coordinate frames used to describe motion, then explore free rotation and the intermediate-axis flip.
 
-The :doc:`coordinate frames tutorial <1_1_spacecraft_coordinate_frames>`
-introduces the inertial, body, and orbital frames.
+* :doc:`Spacecraft Coordinate Frames <1_1_spacecraft_coordinate_frames>`
+* :doc:`Euler Equations <1_2_euler_equations>`
+* :doc:`Dzhanibekov Effect <1_3_dzhanibekov_effect>`
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
 
    1_1_spacecraft_coordinate_frames
-
-Euler Equations
----------------
-
-The :doc:`Euler Equations tutorial <1_2_euler_equations>` introduces
-rigid-body rotational dynamics with a simple free-rotation simulation.
-
-.. toctree::
-   :maxdepth: 1
-
    1_2_euler_equations
-
-Dzhanibekov Effect
-------------------
-
-The :doc:`Dzhanibekov Effect tutorial <1_3_dzhanibekov_effect>` shows
-torque-free flips near the intermediate principal axis.
-
-.. toctree::
-   :maxdepth: 1
-
    1_3_dzhanibekov_effect

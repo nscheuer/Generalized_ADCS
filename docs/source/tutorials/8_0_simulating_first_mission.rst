@@ -1,21 +1,11 @@
 Simulating Your First Mission
 =============================
 
-A mission simulation can follow the spacecraft through deployment,
-detumbling, and pointing. The phase examples below are starting points; use
-measured spacecraft mass properties, hardware, and operational rules in your
-own model.
+Follow a mission from deployment through detumbling to ground-target pointing. Use the phase examples as starting points for your own spacecraft model.
 
-Mission phases
---------------
-
-1. :doc:`Launch and Deployment <8_1_launch_deployment>` — apply provider
-   activation and transmission constraints, and review the mission design
-   tips.
-2. :doc:`Detumbling <8_2_detumbling>` — reduce deployment rates with B-dot
-   magnetic control and compare Monte Carlo runs.
-3. :doc:`Pointing <8_3_pointing>` — track a ground target during a
-   communications pass with three reaction wheels.
+* :doc:`Launch and Deployment <8_1_launch_deployment>`
+* :doc:`Detumbling <8_2_detumbling>`
+* :doc:`Pointing <8_3_pointing>`
 
 .. toctree::
    :maxdepth: 1

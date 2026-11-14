@@ -1,10 +1,7 @@
 Monte Carlo
 ===========
 
-Build a Monte Carlo simulation one source of variation at a time. The first
-page repeats an identical uncontrolled spacecraft. The next pages vary its
-orbit, initial attitude and rates, and pointing goal. The final page adds a
-controller to check pointing across the ensemble.
+Repeat a simulation while varying the orbit, initial attitude, or goal. The final example checks controller performance across those runs.
 
 * :doc:`Monte Carlo Setup <7_1_monte_carlo_setup>`
 * :doc:`Randomize Orbits <7_2_randomize_orbits>`
