@@ -80,6 +80,7 @@ class CostConfig:
     # Flags
     ang_cost_func_type: int = 3
     use_cost_hess: int = 1
+    cost_hess_gauss_newton: bool = False
 
     def to_cpp(self):
         """Convert Python costs to SALTRO C++ ``CostConfig``.
@@ -108,6 +109,7 @@ class CostConfig:
         cpp_cost.ang_vel_err_dir_N = self.ang_vel_err_dir_N
         cpp_cost.ang_cost_func_type = self.ang_cost_func_type
         cpp_cost.use_cost_hess = bool(self.use_cost_hess)
+        cpp_cost.cost_hess_gauss_newton = bool(self.cost_hess_gauss_newton)
         return cpp_cost
 
 

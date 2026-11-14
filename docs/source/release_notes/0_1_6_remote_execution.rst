@@ -13,7 +13,7 @@ Remote execution lets the main PC keep the simulation truth model local while se
    :width: 700px
    :align: center
 
-See also :doc:`Tutorial 8: Remote Execution <../tutorials/08_remote_execution>` for the full setup walkthrough and :doc:`API documentation <../ADCS>` for the underlying interfaces.
+See also the :doc:`tutorials landing page <../tutorials/index>` and :doc:`API documentation <../ADCS>` for the underlying interfaces.
 
 An abbreviated example from the tutorial is shown below:
 

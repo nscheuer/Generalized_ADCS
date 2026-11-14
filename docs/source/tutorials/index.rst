@@ -1,23 +1,26 @@
 Tutorials
 =========
 
-Eight tutorials are provided to help you get started with Generalized ADCS. It is recommended to go through them in order, as they build on each other.
+Tutorials to help you get started with Generalized ADCS.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Tutorials
 
-   01_underactuated_control
-   02_noisy_control
-   03_simple_estimation
-   04_complex_estimation
-   05_orbit_estimation
-   06_trajectory_planner
-   07_SALTRO
-   08_remote_execution
-   advanced_features
+   0_0_welcome
+   1_0_spacecraft_dynamics
+   2_0_torques_on_a_spacecraft
+   3_0_forces_on_a_spacecraft
+   4_0_controlling_spacecraft
+   5_0_attitude_sensors
+   6_0_estimators
+   7_0_monte_carlo
+   8_0_simulating_first_mission
+   9_0_advanced_topics
 
-.. image:: ../_static/tutorials/tutorial_05_cygnss.jpeg
-   :alt: Render of the CYGNSS satellite. (Credit University of Michigan)
-   :width: 400px
-   :align: center
+Future tutorials
+----------------
+
+The following tutorials are planned:
+
+* 1_4

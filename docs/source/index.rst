@@ -18,7 +18,16 @@ Latest Release Notes
 .. raw:: html
 
    <div class="release-grid">
-     <a class="release-card release-card-featured" href="release_notes/0_2_1_attitude_determination_and_speed.html">
+     <a class="release-card release-card-featured" href="release_notes/0_2_2_visualization_and_environment.html">
+       <img src="_static/release_notes/0_2_2_animation.gif" alt="ICESat-2 maneuvering above Earth at sunset">
+       <div class="release-card-copy">
+         <div class="release-card-kicker">Release 0.2.2</div>
+         <h3>Visualization and Environment</h3>
+         <p>Godot animations, additional environmental models, and a new disturbance force stack.</p>
+         <span>Explore release note 0.2.2</span>
+       </div>
+     </a>
+     <a class="release-card" href="release_notes/0_2_1_attitude_determination_and_speed.html">
        <img src="_static/release_notes/0_2_1_filter_tradeoff.png" alt="EKF, MEKF, UKF, and SRUKF simulation time per step versus attitude error at 100 seconds">
        <div class="release-card-copy">
          <div class="release-card-kicker">Release 0.2.1</div>
@@ -34,24 +43,6 @@ Latest Release Notes
          <h3>New Estimation Framework</h3>
          <p>Named state and covariance classes, a canonical measurement stack, shared process models and noise, a new attitude-estimator base, and eight new attitude estimators.</p>
          <span>Explore release note 0.2.0</span>
-       </div>
-     </a>
-     <a class="release-card" href="papers/generalized_acs.html">
-       <img src="_static/release_notes/0_1_8_smallsat_logo.png" alt="SmallSat 2026 logo">
-       <div class="release-card-copy">
-         <div class="release-card-kicker">Update 0.1.8</div>
-         <h3>Generalized ACS Pipeline</h3>
-         <p>Use smart actuator selection, torque compensation, control law transformation and goal selection to maximize the performance of your control law.</p>
-         <span>Explore update 0.1.8</span>
-       </div>
-     </a>
-     <a class="release-card" href="release_notes/0_1_7_benchmark.html">
-       <img src="_static/release_notes/0_1_7_benchmark_small.png" alt="Benchmark report preview">
-       <div class="release-card-copy">
-         <div class="release-card-kicker">Update 0.1.7</div>
-         <h3>Benchmark</h3>
-         <p>New performance benchmarks run on every pull request into <code>main</code> and compare results to catch regressions early.</p>
-         <span>Explore release note 0.1.7</span>
        </div>
      </a>
    </div>

@@ -246,7 +246,8 @@ def _simulate_with_precomputed_orbit(
         # Get the boresight vector for the current goal
         boresight_vec = None
         try:
-            boresight_vec = est_satellite.get_boresight(active_goal.boresight_name)
+            boresight_satellite = est_satellite if est_satellite is not None else satellite
+            boresight_vec = boresight_satellite.get_boresight(active_goal.boresight_name)
         except (AttributeError, KeyError, ValueError, TypeError):
             pass
 
