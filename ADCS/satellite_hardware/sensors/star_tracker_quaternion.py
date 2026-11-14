@@ -183,7 +183,8 @@ class StarTrackerQuaternion(Sensor):
         :rtype: list[:class:`~ADCS.environment.NavigationStar`]
         """
         A = rot_mat(q)
-        boresight_eci = A @ self.boresight
+        boresight_body = self.mounting_rotation @ self.boresight
+        boresight_eci = A @ boresight_body
         r_sat_eci = os.R
         sun_eci = self._get_sun_eci(os)
         moon_eci = self._get_moon_eci(os)

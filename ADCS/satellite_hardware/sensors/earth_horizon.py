@@ -143,6 +143,9 @@ class EarthHorizonSensor(Sensor):
         :return: None
         :rtype: None
         """
+        if scale_factor != 1.0:
+            raise ValueError("EarthHorizonSensor: a unit direction has no scale factor")
+
         self.boresight = np.asarray(boresight, dtype=np.float64)
         norm = np.linalg.norm(self.boresight)
         if norm < 1e-6:
@@ -232,7 +235,8 @@ class EarthHorizonSensor(Sensor):
         nadir_body = A.T @ nadir_eci
 
         # FOV visibility check
-        cos_angle = np.dot(self.boresight, nadir_body)
+        mounted_boresight = self.mounting_rotation @ self.boresight
+        cos_angle = np.dot(mounted_boresight, nadir_body)
         angle = np.arccos(np.clip(cos_angle, -1.0, 1.0))
         return nadir_eci, nadir_body, bool(angle <= self.fov)
 

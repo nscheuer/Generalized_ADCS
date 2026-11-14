@@ -59,9 +59,9 @@ def test_single_axis_sensors_read_along_the_axis_as_mounted():
 def test_vector_sensors_report_in_their_frame_as_mounted():
     os = _orbital_state()
     rotation = rot_mat(rot_exp(TILT))
-    horizon = EarthHorizonSensor(boresight=rot_mat(TRUTH.q).T @ (-normalize(os.R)), fov=np.deg2rad(60.0), scale_factor=1.05, misalignment=TILT)
+    horizon = EarthHorizonSensor(boresight=rot_mat(TRUTH.q).T @ (-normalize(os.R)), fov=np.deg2rad(60.0), misalignment=TILT)
     nominal = EarthHorizonSensor(boresight=rot_mat(TRUTH.q).T @ (-normalize(os.R)), fov=np.deg2rad(60.0))
-    np.testing.assert_allclose(horizon.clean_reading(TRUTH, os), 1.05 * rotation.T @ nominal.clean_reading(TRUTH, os))
+    np.testing.assert_allclose(horizon.clean_reading(TRUTH, os), rotation.T @ nominal.clean_reading(TRUTH, os))
 
     star = SimpleNamespace(s_eci=np.array([0.3, -0.4, np.sqrt(0.75)]), vmag=1.0)
     tracker = StarTracker(fov=np.pi, anisotropic_noise=AnisotropicNoise(std_cross=1.0e-3, std_roll=1.0e-3), misalignment=TILT)
@@ -75,12 +75,37 @@ def test_vector_sensors_report_in_their_frame_as_mounted():
     np.testing.assert_allclose(rot_mat(measured), rot_mat(TRUTH.q) @ rotation, atol=1.0e-12)
 
 
+def test_mounted_boresight_controls_earth_and_star_visibility():
+    # The nominal -z boresight points away from nadir here; a +90 degree
+    # y mounting rotation turns it toward the -x nadir direction.
+    tilt = np.array([0.0, np.pi / 2.0, 0.0])
+    state = State(w=np.zeros(3), q=np.array([1.0, 0.0, 0.0, 0.0]))
+    os = Orbital_State(ephem=Ephemeris(), J2000=0.22, R=np.array([7000.0, 0.0, 0.0]), V=np.array([0.0, 7.5, 0.0]))
+    horizon = EarthHorizonSensor(fov=np.deg2rad(5.0), misalignment=tilt)
+    assert np.all(np.isfinite(horizon.clean_reading(state, os)))
+
+    star = SimpleNamespace(s_eci=np.array([1.0, 0.0, 0.0]), vmag=1.0)
+
+    class DirectionCatalog:
+        stars = [star]
+
+        def get_visible_stars(self, *, boresight_eci, fov_rad, **kwargs):
+            angle = np.arccos(np.clip(boresight_eci @ star.s_eci, -1.0, 1.0))
+            return [star] if angle <= fov_rad / 2.0 else []
+
+    catalog = DirectionCatalog()
+    vector_tracker = StarTracker(fov=np.deg2rad(5.0), sun_exclusion=0.0, star_catalog=catalog, misalignment=tilt)
+    quaternion_tracker = StarTrackerQuaternion(fov=np.deg2rad(5.0), min_stars=1, sun_exclusion=0.0, star_catalog=catalog, misalignment=tilt)
+    assert vector_tracker._select_star(state.q, os) is star
+    assert quaternion_tracker._select_stars(state.q, os) == [star]
+
+
 @pytest.mark.parametrize("make", [
     lambda os: Gyro(AXIS, scale_factor=1.02, misalignment=TILT),
     lambda os: MTM(AXIS, scale_factor=0.98, misalignment=TILT),
     lambda os: SunSensor(AXIS, efficiency=0.5, scale_factor=1.1, misalignment=TILT),
     lambda os: SunPair(AXIS, efficiency=(0.9, 0.7), scale_factor=1.1, misalignment=TILT),
-    lambda os: EarthHorizonSensor(boresight=rot_mat(TRUTH.q).T @ (-normalize(os.R)), fov=np.deg2rad(60.0), scale_factor=1.05, misalignment=TILT),
+    lambda os: EarthHorizonSensor(boresight=rot_mat(TRUTH.q).T @ (-normalize(os.R)), fov=np.deg2rad(60.0), misalignment=TILT),
 ], ids=["gyro", "mtm", "sunsensor", "sunpair", "horizon"])
 def test_jacobians_follow_the_device_as_built(make):
     os = _orbital_state()
@@ -124,6 +149,10 @@ def test_mounting_errors_are_validated():
         Gyro(AXIS, misalignment=[1.0e-3, 2.0e-3])
     with pytest.raises(ValueError, match="scale_factor"):
         Gyro(AXIS, scale_factor=0.0)
+    with pytest.raises(ValueError, match="no scale factor"):
+        StarTracker(scale_factor=1.01)
+    with pytest.raises(ValueError, match="no scale factor"):
+        EarthHorizonSensor(scale_factor=1.01)
     with pytest.raises(ValueError, match="no scale factor"):
         StarTrackerQuaternion(scale_factor=1.01)
     with pytest.raises(ValueError, match="GPS"):

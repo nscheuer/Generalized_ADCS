@@ -151,6 +151,9 @@ class StarTracker(Sensor):
         :rtype: None
         """
         
+        if scale_factor != 1.0:
+            raise ValueError("StarTracker: a unit direction has no scale factor")
+
         # 1. Geometry Setup
         self.boresight = np.asarray(boresight, dtype=np.float64)
         norm = np.linalg.norm(self.boresight)
@@ -268,7 +271,8 @@ class StarTracker(Sensor):
         if cached is not None and cached[0] == key:
             return cached[1]
         A = rot_mat(q)
-        boresight_eci = A @ self.boresight
+        boresight_body = self.mounting_rotation @ self.boresight
+        boresight_eci = A @ boresight_body
         r_sat_eci = os.R
         sun_eci = self._get_sun_eci(os)
         moon_eci = self._get_moon_eci(os)
