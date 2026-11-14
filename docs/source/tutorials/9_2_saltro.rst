@@ -8,7 +8,8 @@ SALTRO Trajectory Planning
 
 SALTRO plans a constrained attitude trajectory and tracks it with feedback.
 The BeaverCube 2 dynamics model uses three magnetorquers and one reaction
-wheel. The Godot animation uses the MiRaTa spacecraft model to show its motion.
+wheel. The pre-rendered documentation animation uses the MiRaTa spacecraft
+model. When running the script, choose a model from the Godot viewer toolbar.
 The example uses SALTRO's supported type 0 pointing cost. The original raw
 ``acos`` cost (type 2) was removed from the current SALTRO main branch. Using
 the original maneuver and remaining planner weights, the regenerated run shown
@@ -43,6 +44,6 @@ The example opens the closed-loop response in a second four-panel window.
    :width: 90%
    :align: center
 
-.. literalinclude:: ../../../examples/tutorials/advanced_topics/saltro.py
+.. literalinclude:: ../../../examples/tutorials/advanced_topics/saltro_godot.py
    :language: python
-   :caption: saltro.py
+   :caption: saltro_godot.py

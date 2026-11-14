@@ -44,9 +44,9 @@ The controller commands body torque for 30 seconds, then reverses it. The
 wheel speeds up and slows down while the 3U body rotates in response. No
 disturbance torques are configured.
 
-.. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/reaction_wheel.py
+.. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/reaction_wheel_godot.py
    :language: python
-   :caption: reaction_wheel.py
+   :caption: reaction_wheel_godot.py
 
 .. admonition:: Building a controller
    :class: tutorial-tip

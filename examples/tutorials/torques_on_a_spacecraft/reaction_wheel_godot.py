@@ -33,4 +33,4 @@ results = ADCS.simulate(
 ADCS.plot(results, ADCS.plots.WheelSpeedPlot(),
           ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
           layout=(2, 1), figsize=(8, 6))
-animate_orbit_godot(results=results, model="mirata", overlays=[], graphics_quality="high")
+animate_orbit_godot(results=results, overlays=[], graphics_quality="high")

@@ -60,7 +60,7 @@ results = ADCS.simulate(
     controller=controller, goal=target, dt=1.0, tf=800.0,
 )
 animate_orbit_godot(
-    results=results, model="mirata", graphics_quality="high",
+    results=results, graphics_quality="high",
     overlays=[
         Arrow("@boresight:default", label="Body boresight", color="#facc15",
               scale="fixed_px", px=120, width_px=5),

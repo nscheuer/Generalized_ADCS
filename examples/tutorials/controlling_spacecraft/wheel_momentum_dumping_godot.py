@@ -1,4 +1,4 @@
-"""Track nadir with three wheels while environmental torques build momentum."""
+"""Point at nadir while magnetorquers unload three reaction wheels."""
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,11 +33,13 @@ wheels = [
     ADCS.RW(axis=axis, max_torque=1e-3, J=5e-6, h=0.0, h_max=0.02)
     for axis in np.eye(3)
 ]
+magnetorquers = [ADCS.MTQ(axis=axis, max_torque=0.2) for axis in np.eye(3)]
 magnetometers = [ADCS.MTM(axis=axis) for axis in np.eye(3)]
 satellite = ADCS.Satellite(
     mass=4.0, COM=np.array([0.0, 0.02, 0.0]),
     J_0=np.diag([0.0333, 0.00667, 0.0333]),
-    actuators=wheels, sensors=magnetometers, disturbances=disturbances,
+    actuators=magnetorquers + wheels,
+    sensors=magnetometers, disturbances=disturbances,
 )
 radius = 6878.1363  # 500 km altitude
 orbit = ADCS.Orbital_State(
@@ -52,23 +54,43 @@ q_scalar = np.sqrt((1.0 + nadir_eci[2]) / 2.0)
 q_vector = np.cross([0.0, 0.0, 1.0], nadir_eci) / (2.0 * q_scalar)
 q0 = np.r_[q_scalar, q_vector]
 initial_state = ADCS.State(
-    w=rot_mat(q0).T @ target_rate_eci, q=q0, h=np.zeros(3),
+    w=rot_mat(q0).T @ target_rate_eci, q=q0,
+    h=np.array([0.004, -0.003, 0.002]),
 )
 controller = ADCS.controller.MTQ_w_RW(
     est_sat=satellite, p_gain=5e-5, d_gain=8e-4,
-    c_gain=0.0, h_target=np.zeros(3),
+    c_gain=0.002, h_target=np.zeros(3),
 )
 results = ADCS.simulate(
     x=initial_state, satellite=satellite, os0=orbit,
     environment=environment, controller=controller, goal=goal,
-    dt=5.0, tf=2400.0,
+    dt=5.0, tf=3600.0,
 )
 ADCS.plot(results, ADCS.plots.WheelMomentumPlot(),
           layout=(1, 1), figsize=(8, 4))
 
+ADCS.plot(results, ADCS.plots.TargetPlot(modes=["real_target"],
+                                        title="Nadir pointing error"),
+          layout=(1, 1), figsize=(8, 4))
+
+ADCS.plot(results, *[
+    ADCS.plots.ControlPlotSingle(index=i, title=f"MTQ {axis} command",
+                                 units="A m²", label=f"MTQ {axis}")
+    for i, axis in enumerate("xyz")
+], layout=(3, 1), figsize=(8, 9))
+plt.tight_layout(pad=2.0)
+
+ADCS.plot(results, *[
+    ADCS.plots.ControlPlotSingle(index=i + 3, title=f"RW {axis} command",
+                                 units="N m", label=f"RW {axis}",
+                                 show_limits=False)
+    for i, axis in enumerate("xyz")
+], layout=(3, 1), figsize=(8, 9))
+plt.tight_layout(pad=2.0)
+
 if __name__ == "__main__":
     animate_orbit_godot(
-        results=results, model="mirata", graphics_quality="high",
+        results=results, graphics_quality="high",
         overlays=[
             Arrow("@boresight:default", label="Body boresight", color="#facc15",
                   scale="fixed_px", px=120, width_px=5),

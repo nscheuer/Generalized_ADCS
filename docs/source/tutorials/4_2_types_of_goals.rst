@@ -28,9 +28,9 @@ target direction.
          :alt: MiRaTa rotates its full attitude toward the fixed quaternion target above Earth.
          :width: 100%
 
-      .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/three_axis_goal.py
+      .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/three_axis_goal_godot.py
          :language: python
-         :caption: three_axis_goal.py
+         :caption: three_axis_goal_godot.py
 
    .. container:: installation-card
 
@@ -40,9 +40,9 @@ target direction.
          :alt: MiRaTa aligns its boresight with an inertial direction while rotation about that direction remains free.
          :width: 100%
 
-      .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/vector_goal.py
+      .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/vector_goal_godot.py
          :language: python
-         :caption: vector_goal.py
+         :caption: vector_goal_godot.py
 
 Both runs align the boresight to within about 1° by the end. The three-axis
 run also reaches within about 1° of the complete target attitude; the vector

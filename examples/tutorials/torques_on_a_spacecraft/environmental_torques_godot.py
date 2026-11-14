@@ -95,8 +95,8 @@ plt.legend(loc="upper right")
 plt.show()
 
 animate_orbit_godot(
-    results=results, model="mirata", overlays=[], graphics_quality="high",
+    results=results, overlays=[], graphics_quality="high",
 )
 animate_orbit_godot(
-    results=quiet_results, model="mirata", overlays=[], graphics_quality="high",
+    results=quiet_results, overlays=[], graphics_quality="high",
 )

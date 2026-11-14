@@ -25,9 +25,9 @@ over that orbit. The smaller spacecraft gives different absolute magnitudes
 from the ROMEO comparison. The 500 km animations compare its attitude with
 and without disturbances.
 
-.. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/environmental_torques.py
+.. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/environmental_torques_godot.py
    :language: python
-   :caption: environmental_torques.py
+   :caption: environmental_torques_godot.py
 
 .. image:: ../_static/tutorials/torques_on_a_spacecraft/environmental_torques.png
    :alt: Mean drag, SRP, gravity-gradient, and residual-dipole torque magnitudes versus orbital altitude on log-log axes.

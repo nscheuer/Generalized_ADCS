@@ -35,9 +35,9 @@ The yellow line marks MiRaTa's body boresight; green marks the fixed target
 direction. They start far apart and approach one another as the spacecraft
 turns above Earth.
 
-.. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/reaction_wheel_pd.py
+.. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/reaction_wheel_pd_godot.py
    :language: python
-   :caption: reaction_wheel_pd.py
+   :caption: reaction_wheel_pd_godot.py
 
 Angle error
 -----------

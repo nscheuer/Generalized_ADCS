@@ -65,7 +65,7 @@ fig.tight_layout()
 plt.show()
 
 animate_orbit_godot(
-    results=results, model="mirata", graphics_quality="high",
+    results=results, graphics_quality="high",
     camera_frame="inertial", camera_distance_m=30.0,
     camera_yaw_deg=camera_yaw, camera_pitch_deg=camera_pitch,
     overlays=[Arrow("@sun", label="Sun", color="#ffe066", scale="fixed_px", px=100)],

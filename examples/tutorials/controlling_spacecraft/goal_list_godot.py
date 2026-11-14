@@ -1,4 +1,4 @@
-"""Align MiRaTa's boresight with one inertial direction."""
+"""Switch MiRaTa between scheduled pointing goals."""
 
 import numpy as np
 
@@ -31,13 +31,21 @@ controller = ADCS.controller.MTQ_w_RW(
     est_sat=satellite, p_gain=1e-4, d_gain=5e-3,
     c_gain=0.0, h_target=np.zeros(3),
 )
-goal = ADCS.goals.ECI_Goal(eci_vector=np.array([0.0, 0.0, 1.0]))
+goals = ADCS.GoalList(
+    goal_timeline={
+        0.0: ADCS.goals.Fixed_Attitude_Goal(q_ref=np.array([1.0, 0.0, 0.0, 0.0])),
+        300.0: ADCS.goals.Nadir_Goal(),
+        600.0: ADCS.goals.ECI_Goal(eci_vector=np.array([1.0, 0.0, 0.0])),
+        900.0: ADCS.goals.Fixed_Attitude_Goal(q_ref=np.array([1.0, 0.0, 0.0, 0.0])),
+    },
+    time_units="seconds", start_juliantime=orbit.J2000,
+)
 results = ADCS.simulate(
     x=initial_state, satellite=satellite, os0=orbit,
-    controller=controller, goal=goal, dt=1.0, tf=480.0,
+    controller=controller, goal=goals, dt=1.0, tf=1200.0,
 )
 animate_orbit_godot(
-    results=results, model="mirata", graphics_quality="high",
+    results=results, graphics_quality="high",
     overlays=[
         Arrow("@boresight:default", label="Body boresight", color="#facc15",
               scale="fixed_px", px=120, width_px=5),

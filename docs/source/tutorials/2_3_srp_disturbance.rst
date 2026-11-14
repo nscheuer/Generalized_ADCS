@@ -52,7 +52,7 @@ eclipse; the Godot timeline shows its sunlit status.
    )
 
    animate_orbit_godot(
-       results=results, model="mirata", overlays=[], graphics_quality="high",
+       results=results, overlays=[], graphics_quality="high",
    )
 
 .. admonition:: Geometry tip

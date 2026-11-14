@@ -23,7 +23,6 @@ results = ADCS.simulate(
 
 animate_orbit_godot(
     results=results,
-    model="mirata",
     overlays=[],
     graphics_quality="high",
 )

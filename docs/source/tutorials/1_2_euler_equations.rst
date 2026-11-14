@@ -71,7 +71,6 @@ Choose a visualization:
 
    animate_orbit_godot(
        results=results,
-       model="mirata",
        overlays=[],
        graphics_quality="high",
    )</code></pre>

@@ -28,9 +28,9 @@ available torque direction changes too.
 The plot covers roughly one orbit. The animation shows the first 30 minutes, with
 Earth visible and the spacecraft kept lit by Godot's night vision mode.
 
-.. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/magnetorquer.py
+.. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/magnetorquer_godot.py
    :language: python
-   :caption: magnetorquer.py
+   :caption: magnetorquer_godot.py
 
 .. image:: ../_static/tutorials/torques_on_a_spacecraft/magnetorquer.gif
    :alt: A tumbling MiRaTa spacecraft slows under B-dot magnetorquer control, with Earth visible in night vision mode.

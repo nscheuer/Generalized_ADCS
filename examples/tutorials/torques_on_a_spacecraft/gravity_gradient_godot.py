@@ -37,7 +37,7 @@ for label, angle_deg in (("Long axis near nadir", -80.0),
     )
     runs[label] = results.first()
     animate_orbit_godot(
-        results=results, model="mirata",
+        results=results,
         overlays=[
             Triad(frame="body", px=110),
             Arrow("@nadir", color="#facc15", scale="fixed_px", px=150),

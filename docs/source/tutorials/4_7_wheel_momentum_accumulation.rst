@@ -15,6 +15,6 @@ The wheels accumulate momentum because this controller does not unload it.
 
 The black line is the magnitude of the combined wheel momentum.
 
-.. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/wheel_momentum_accumulation.py
+.. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/wheel_momentum_accumulation_godot.py
    :language: python
-   :caption: wheel_momentum_accumulation.py
+   :caption: wheel_momentum_accumulation_godot.py

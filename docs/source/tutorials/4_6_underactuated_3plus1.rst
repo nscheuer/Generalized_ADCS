@@ -13,9 +13,9 @@ This 3+1 architecture is discussed in [1]_.
 Simulation and animation
 ------------------------
 
-.. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/underactuated_3plus1.py
+.. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/underactuated_3plus1_godot.py
    :language: python
-   :caption: underactuated_3plus1.py
+   :caption: underactuated_3plus1_godot.py
 
 Add plots
 ---------

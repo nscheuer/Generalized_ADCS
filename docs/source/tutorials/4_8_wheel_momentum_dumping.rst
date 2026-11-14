@@ -46,9 +46,9 @@ torque remain active. The wheels start with stored momentum and target zero.
          :alt: Three reaction wheels command torque at the same time as the magnetorquers.
          :width: 100%
 
-.. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/wheel_momentum_dumping.py
+.. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/wheel_momentum_dumping_godot.py
    :language: python
-   :caption: wheel_momentum_dumping.py
+   :caption: wheel_momentum_dumping_godot.py
 
 The control allocation follows Hogan and Schaub [1]_.
 

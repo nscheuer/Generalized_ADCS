@@ -134,7 +134,6 @@ Godot animation
 
    animate_orbit_godot(
        results=results,
-       model="mirata",
        overlays=[
            Triad(frame="body", px=110),
            Arrow("@velocity", color="#facc15", scale="fixed_px", px=150),

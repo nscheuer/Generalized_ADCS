@@ -35,7 +35,7 @@ ADCS.plot(results, ADCS.plots.TargetPlot(modes=["real_target"],
           layout=(1, 1), figsize=(8, 4))
 
 animate_orbit_godot(
-    results=results, model="cubesat_1ru", graphics_quality="high",
+    results=results, graphics_quality="high",
     overlays=[
         Arrow("@boresight:default", label="Body boresight", color="#facc15",
               scale="fixed_px", px=120, width_px=5),

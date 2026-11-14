@@ -24,9 +24,9 @@ boresight; green marks the current target direction.
          :alt: MiRaTa tracks a fixed ground location as it flies over Earth.
          :width: 100%
 
-      .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/coordinate_goal.py
+      .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/coordinate_goal_godot.py
          :language: python
-         :caption: coordinate_goal.py
+         :caption: coordinate_goal_godot.py
 
    .. container:: installation-card
 
@@ -36,9 +36,9 @@ boresight; green marks the current target direction.
          :alt: MiRaTa keeps its boresight aimed toward Earth's center.
          :width: 100%
 
-      .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/nadir_goal.py
+      .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/nadir_goal_godot.py
          :language: python
-         :caption: nadir_goal.py
+         :caption: nadir_goal_godot.py
 
 The coordinate goal takes ``lat``, ``lon``, and ``alt``: geodetic latitude and longitude in
 degrees and altitude in kilometers. Its target rotates with Earth, so the

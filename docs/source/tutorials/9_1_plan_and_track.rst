@@ -38,6 +38,6 @@ closed-loop response. It also opens a Godot animation of the spacecraft.
    :width: 90%
    :align: center
 
-.. literalinclude:: ../../../examples/tutorials/advanced_topics/plan_and_track.py
+.. literalinclude:: ../../../examples/tutorials/advanced_topics/plan_and_track_godot.py
    :language: python
-   :caption: plan_and_track.py
+   :caption: plan_and_track_godot.py

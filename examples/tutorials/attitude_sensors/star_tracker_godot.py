@@ -52,4 +52,4 @@ fig.tight_layout()
 
 plt.show()
 
-animate_orbit_godot(results=results, model="mirata", graphics_quality="high", overlays=[])
+animate_orbit_godot(results=results, graphics_quality="high", overlays=[])

@@ -13,7 +13,7 @@ Start the worker on the remote computer from the repository root:
 
 Set ``ADCS_REMOTE_HOST`` to the worker computer's reachable address and
 ``ADCS_REMOTE_PORT`` to its listening port (5000 by default), then run
-``python examples/tutorials/advanced_topics/remote_execution.py`` on the
+``python examples/tutorials/advanced_topics/remote_execution_godot.py`` on the
 simulation computer. For a same-computer trial, the example defaults to
 ``127.0.0.1:5000``.
 
@@ -31,6 +31,6 @@ angular rates, magnetorquer commands, final error, and target tracking.
    :width: 90%
    :align: center
 
-.. literalinclude:: ../../../examples/tutorials/advanced_topics/remote_execution.py
+.. literalinclude:: ../../../examples/tutorials/advanced_topics/remote_execution_godot.py
    :language: python
-   :caption: remote_execution.py
+   :caption: remote_execution_godot.py

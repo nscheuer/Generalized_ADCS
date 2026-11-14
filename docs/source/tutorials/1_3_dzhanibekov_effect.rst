@@ -68,7 +68,6 @@ Choose a visualization:
 
    animate_orbit_godot(
        results=results,
-       model="mirata",
        overlays=[Triad(frame="body", px=110)],
        graphics_quality="high",
    )</code></pre>

@@ -1,4 +1,4 @@
-"""Track a complete inertial attitude with MiRaTa."""
+"""Keep MiRaTa's boresight pointed toward Earth's center."""
 
 import numpy as np
 
@@ -31,13 +31,13 @@ controller = ADCS.controller.MTQ_w_RW(
     est_sat=satellite, p_gain=1e-4, d_gain=5e-3,
     c_gain=0.0, h_target=np.zeros(3),
 )
-goal = ADCS.goals.Fixed_Attitude_Goal(q_ref=np.array([1.0, 0.0, 0.0, 0.0]))
+goal = ADCS.goals.Nadir_Goal()
 results = ADCS.simulate(
     x=initial_state, satellite=satellite, os0=orbit,
     controller=controller, goal=goal, dt=1.0, tf=480.0,
 )
 animate_orbit_godot(
-    results=results, model="mirata", graphics_quality="high",
+    results=results, graphics_quality="high",
     overlays=[
         Arrow("@boresight:default", label="Body boresight", color="#facc15",
               scale="fixed_px", px=120, width_px=5),

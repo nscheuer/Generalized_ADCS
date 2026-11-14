@@ -22,8 +22,8 @@ rejects views too close to the Sun.
    :alt: Star tracker attitude error and times with no solution.
    :width: 100%
 
-The script simulates the tracker, saves the plot, and opens the Godot animation.
+The script simulates the tracker, opens the plot, and launches the Godot viewer.
 
-.. literalinclude:: ../../../examples/tutorials/attitude_sensors/star_tracker.py
+.. literalinclude:: ../../../examples/tutorials/attitude_sensors/star_tracker_godot.py
    :language: python
-   :caption: star_tracker.py
+   :caption: star_tracker_godot.py

@@ -74,5 +74,5 @@ ADCS.plot(
     title="Closed-Loop Tracked Trajectory",
 )
 
-animate_orbit_godot(results=results, model="mirata", graphics_quality="high")
+animate_orbit_godot(results=results, graphics_quality="high")
 plt.show()

@@ -29,7 +29,7 @@ results = ADCS.simulate(
 )
 
 animate_orbit_godot(
-    results=results, model="mirata",
+    results=results,
     overlays=[
         Triad(frame="body", px=110),
         Arrow("b_field", color="#facc15", scale="fixed_px", px=150),
