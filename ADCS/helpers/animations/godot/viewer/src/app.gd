@@ -5,6 +5,7 @@ extends Node
 ##   <viewer> -- --log RUN.vizlog [--run ID] [--assets DIR]       (read a vizlog from disk)
 ##
 ## Options: --res WxH (fixed render size), --mode orbit|earth, --frame lvlh|inertial|body,
+## --camera-dist M, --camera-yaw DEG, --camera-pitch DEG,
 ## --rate R, --max-face N (downscale textures), --check NAME --config FILE --out DIR,
 ## --render JOB.json --out DIR (offline video frames, see src/render.gd).
 
@@ -92,6 +93,12 @@ func _ready() -> void:
 	_log("spacecraft: %s, %d levels of detail, radius %.3f m" % [world.craft.source, world.craft.lods.size(), world.craft.radius])
 	rig.fit_to_craft(world.craft.radius)
 	rig.frame_kind = String(opts.get("frame", "lvlh"))
+	if opts.has("camera-dist"):
+		rig.dist = maxf(float(opts["camera-dist"]), rig.min_dist)
+	if opts.has("camera-yaw"):
+		rig.yaw = deg_to_rad(float(opts["camera-yaw"]))
+	if opts.has("camera-pitch"):
+		rig.pitch = deg_to_rad(clampf(float(opts["camera-pitch"]), -84.0, 84.0))
 	if String(opts.get("mode", "orbit")) == "earth":
 		rig.mode = CameraRig.Mode.EARTH
 	world.set_exposure(String(opts.get("exposure", "artistic")), float(opts.get("ev", 0.0)))

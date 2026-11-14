@@ -624,29 +624,30 @@ class Satellite:
             -\boldsymbol{\omega}\times(\mathbf{J}\boldsymbol{\omega}) + \boldsymbol{\tau}
             \Big).
 
-        If reaction wheels are present, let :math:`\mathbf{A}\in\mathbb{R}^{n_{RW}\times 3}`
-        stack wheel spin axes as rows, and let :math:`\mathbf{h}\in\mathbb{R}^{n_{RW}}`
-        be wheel momenta. Then the coupled term uses the body-frame stored momentum
-        :math:`\mathbf{H}_{RW} = \mathbf{h}^\top \mathbf{A}` and
+        If reaction wheels are present, let :math:`\mathbf{A}_{RW}\in\mathbb{R}^{3\times n_{RW}}`
+        contain the wheel spin axes as columns, and let :math:`\mathbf{h}\in\mathbb{R}^{n_{RW}}`
+        contain their stored momenta. The wheel momentum in the body frame is
+        :math:`\mathbf{A}_{RW}\mathbf{h}`. With :math:`\boldsymbol{\tau}` including
+        reaction-wheel torque on the body,
 
         .. math::
 
             \dot{\boldsymbol{\omega}}
             \;=\;\mathbf{J}_{noRW}^{-1}\Big(
-            -\boldsymbol{\omega}\times(\mathbf{J}\boldsymbol{\omega} + \mathbf{H}_{RW})
+            -\boldsymbol{\omega}\times(\mathbf{J}\boldsymbol{\omega} + \mathbf{A}_{RW}\mathbf{h})
             + \boldsymbol{\tau}
             \Big).
 
-        Wheel momentum dynamics use the actuator storage torque commands
-        (from each :class:`~ADCS.satellite_hardware.actuators.RW`) and subtract the
-        coupling term from body acceleration:
+        If :math:`\mathbf{u}_{RW}` is the torque commanded on the body by the
+        wheels and :math:`\mathbf{D}_{RW}=\operatorname{diag}(J_{RW,1},\ldots,J_{RW,n})`,
+        wheel momentum dynamics are
 
         .. math::
 
             \dot{\mathbf{h}}
-            \;=\;\mathbf{u}_{RW} \;-\; \mathbf{A}\,\dot{\boldsymbol{\omega}}\,\mathrm{diag}(J_{RW}),
+            \;=\;-\mathbf{u}_{RW} \; -\; \mathbf{D}_{RW}\mathbf{A}_{RW}^{\mathsf T}\dot{\boldsymbol{\omega}},
 
-        matching the implementation structure.
+        because each wheel's storage torque opposes its torque on the body.
 
         :param x: Structured state with angular velocity, quaternion, and wheel
             momentum in ``w``, ``q``, and ``h`` respectively.

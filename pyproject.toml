@@ -10,7 +10,7 @@ name = "Generalized_ADCS"
 # first PyPI upload went out as 0.1.5 -- two behind the documented state, and
 # built before the choldate removal. PyPI versions are immutable, so this moves
 # forward past the documented 0.1.7 rather than trying to reuse a number.
-version = "0.2.1"
+version = "0.2.2.dev0"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
     { name = "Patrick McKeen", email = "pmckeen@mit.edu" },
@@ -82,9 +82,11 @@ ppigrf = [
 nrlmsise = [
     "pymsis>=0.12",
 ]
-# 3-D orbit animation helpers (ADCS/helpers/plotting/animate_orbit_pyvista.py).
+# Visualization helpers: PyVista orbit plots, Godot asset texture processing,
+# and Pillow-based rendering/export utilities.
 viz = [
     "pyvista>=0.44",
+    "Pillow>=10.0",
 ]
 
 # Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
@@ -167,6 +169,7 @@ packages = [
     "ADCS.environment.kernels",
     "ADCS.environment.magnetic_field",
     "ADCS.environment.star_catalogue",
+    "ADCS.examples",
     "ADCS.estimators",
     "ADCS.estimators.attitude_estimators",
     "ADCS.estimators.estimator_helpers",
@@ -222,6 +225,7 @@ packages = [
 # signatures are correct -- see the 0.1.9 release note.
 [tool.setuptools.package-data]
 "ADCS" = ["py.typed"]
+"ADCS.examples" = ["README.md"]
 "ADCS.environment.kernels" = ["de421.bsp", "IGRF14.shc", "WMM2025.COF", "bsc5_catalog.gz"]
 "ADCS.helpers.animations.godot" = ["bin/LICENSE-GODOT.txt", "bin/COPYRIGHT-GODOT.txt", "viewer/*.godot", "viewer/*.tscn", "viewer/*.json", "viewer/shaders/*.gdshader", "viewer/shaders/*.gdshaderinc", "viewer/src/*.gd", "viewer/src/*/*.gd", "viewer/src/*/*/*.gd", "viewer/tests/*.gd", "_viewer_manifest.json"]
 "ADCS.helpers.animations.godot.assets" = ["sources.json"]

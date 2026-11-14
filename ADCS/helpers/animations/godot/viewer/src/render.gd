@@ -29,6 +29,7 @@ func run(job_path: String) -> void:
 	var w: RefCounted = app.world
 	w.set_quality(String(job.get("quality", "high")))
 	w.set_exposure(String(job.get("exposure", "artistic")), float(job.get("ev", 0.0)))
+	w.set_always_day(bool(job.get("night_vision", false)))
 	for g: String in (job.get("overlays", {}) as Dictionary):
 		w.overlays.set_group(g, bool(job["overlays"][g]))
 	var ui := bool(job.get("ui", false))

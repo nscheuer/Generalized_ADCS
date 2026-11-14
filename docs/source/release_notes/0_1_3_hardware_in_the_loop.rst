@@ -23,7 +23,7 @@ New Functionalities
 - Added remote timing summary output in simulation runs to inspect wall-clock,
   communication, and server-side computation performance.
 - Added complete setup tutorial with networking instructions and run steps:
-  :doc:`Tutorial 08: Remote Execution <../tutorials/08_remote_execution>`.
+  :doc:`Tutorials <../tutorials/index>`.
 
 Execution View
 --------------
