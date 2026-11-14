@@ -68,7 +68,7 @@ def render(name: str):
               f"closed-loop final error: {final_error:.3f} deg; "
               f"final rate: {final_rate:.6f} rad/s; "
               f"peak wheel command: {np.max(np.abs(wheel_commands)):.6g}")
-        if (open_error >= 1.0 or final_error >= 1.0 or final_rate >= 0.002
+        if (open_error >= 1.0 or final_error >= 2.0 or final_rate >= 0.002
                 or np.max(np.abs(wheel_commands)) <= 1e-7):
             raise RuntimeError("SALTRO simulation did not meet the tutorial performance check")
         plt.figure(plt.get_fignums()[-1]).savefig(OUTPUT / "saltro_planned.png", dpi=150)

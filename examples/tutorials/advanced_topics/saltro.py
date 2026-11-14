@@ -1,13 +1,21 @@
 import ADCS
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 from ADCS.helpers.animations import animate_orbit_godot
+
+# Keep the randomized actuator biases repeatable for this tutorial run.
+np.random.seed(1)
+random.seed(1)
 
 satellite = ADCS.satellite_factory.create_beavercube2_cubesat()
 
 x_0 = ADCS.State.from_array(np.array([0, 0, 0] + [1, 0, 0, 0] + [0.0])) # w, q, h
 
 planner_settings = ADCS.controller.saltro.PlannerSettings(est_sat=satellite)
+# SALTRO main removed raw-acos cost type 2. Type 0 is the supported smooth
+# pointing cost that reproduces the original 3+1 maneuver closely.
+planner_settings.passes[0].cost.ang_cost_func_type = 0
 controller = ADCS.controller.SALTRO(est_sat=satellite, planner_settings=planner_settings)
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(), J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, 7.5, 0]))

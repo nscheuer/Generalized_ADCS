@@ -78,7 +78,7 @@ class CostConfig:
     ang_vel_err_dir_N: float = 0.0
 
     # Flags
-    ang_cost_func_type: int = 2
+    ang_cost_func_type: int = 3
     use_cost_hess: int = 1
     cost_hess_gauss_newton: bool = False
 
