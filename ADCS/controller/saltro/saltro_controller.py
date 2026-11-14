@@ -339,4 +339,6 @@ class SALTRO(Controller):
                 f"Current: {current_time}, Traj: [{self.active_trajectory.start_time}, {self.active_trajectory.end_time}]"
             )
 
-        return self.active_trajectory.compute_tracking_control(current_time, x_hat)
+        command = self.active_trajectory.compute_tracking_control(current_time, x_hat)
+        limits = np.asarray([act.u_max for act in est_sat.actuators], dtype=float)
+        return np.clip(command, -limits, limits)

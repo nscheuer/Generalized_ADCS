@@ -84,5 +84,5 @@ Two macOS-specific notes:
 ## Debugging tplaunch
 macOS uses LLDB (not GDB):
 ```bash
-lldb -- python examples/tutorials/tutorial_6_trajectory_planner.py
+lldb -- python examples/tutorials/advanced_topics/plan_and_track.py
 ```

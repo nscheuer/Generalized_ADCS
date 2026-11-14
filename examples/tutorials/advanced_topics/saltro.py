@@ -1,9 +1,7 @@
-import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-import ADCS as ADCS
+import ADCS
 import numpy as np
 import matplotlib.pyplot as plt
+from ADCS.helpers.animations import animate_orbit_godot
 
 satellite = ADCS.satellite_factory.create_beavercube2_cubesat()
 
@@ -28,35 +26,13 @@ results = ADCS.simulate(
 
 ADCS.plot(
     results,
-    ADCS.plots.AnimationPlot(),
-    layout=(1,1),
-    title="3+1 SALTRO Reduced",
-)
-
-ADCS.plot(
-    results,
-    ADCS.plots.AttitudePlot(sources=["real", "reference"]),
-    layout=(1,1),
-    title="3+1 SALTRO Mixed",
-)
-
-ADCS.plot(
-    results,
     ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
     ADCS.plots.ControlPlotCombined(title="Magnetorquer Commands", units="Am²"),
     ADCS.plots.TargetHistogram(bin_width=5.0),
     ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
     layout=(2,2),
-    title="3+1 SALTRO Mixed",
+    title="Closed-Loop Tracked Trajectory",
 )
 
-ADCS.plot(
-    results,
-    ADCS.plots.ControlPlotSingle(index=0, title="Magnetorquer 1", units="Am²"),
-    ADCS.plots.ControlPlotSingle(index=1, title="Magnetorquer 2", units="Am²"),
-    ADCS.plots.ControlPlotSingle(index=2, title="Magnetorquer 3", units="Am²"),
-    layout=(3,1),
-    title="3+1 SALTRO Mixed",
-)
-
+animate_orbit_godot(results=results, model="mirata", graphics_quality="high")
 plt.show()

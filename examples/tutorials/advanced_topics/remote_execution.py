@@ -1,12 +1,10 @@
 import os
-import sys
 
 import matplotlib.pyplot as plt
+from ADCS.helpers.animations import animate_orbit_godot
 import numpy as np
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-
-import ADCS as ADCS
+import ADCS
 
 np.random.seed(42)
 
@@ -31,7 +29,7 @@ os0 = ADCS.Orbital_State(
 
 goal = ADCS.goals.ECI_Goal(eci_vector=ADCS.helpers.normalize(np.array([1.0, 1.0, 1.0])))
 
-# Set these from the Raspberry Pi terminal output shown by run_remote_universal.py.
+# Set these to the remote worker address and port.
 remote_host = os.getenv("ADCS_REMOTE_HOST", "127.0.0.1")
 remote_port = int(os.getenv("ADCS_REMOTE_PORT", "5000"))
 
@@ -71,4 +69,5 @@ ADCS.plot(
     title="Tutorial 08: Remote Controller Execution",
 )
 
+animate_orbit_godot(results=results, graphics_quality="high")
 plt.show()
