@@ -1,83 +1,83 @@
 {
   "benchmarks": {
     "coordinate_goal_error": {
-      "loops": 512,
+      "loops": 2048,
       "max_regression": 1.5,
-      "normalized_seconds": 0.009168887505388681,
-      "seconds": 8.18982441406213e-05
+      "normalized_seconds": 0.006715784294334664,
+      "seconds": 2.246674804687321e-05
     },
     "coordinate_goal_to_ref": {
-      "loops": 1024,
+      "loops": 2048,
       "max_regression": 1.5,
-      "normalized_seconds": 0.005259823934694229,
-      "seconds": 4.698174609374384e-05
+      "normalized_seconds": 0.006330511674538517,
+      "seconds": 2.1177870605466886e-05
     },
     "eci_goal_error": {
-      "loops": 1024,
+      "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.004027202599211277,
-      "seconds": 3.597173828123745e-05
+      "normalized_seconds": 0.0005241901283659496,
+      "seconds": 1.7536071777336099e-06
     },
     "eci_goal_to_ref": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.00015616822009634343,
-      "seconds": 1.3949241943408963e-06
+      "normalized_seconds": 0.00014862850238807872,
+      "seconds": 4.972165527344224e-07
     },
     "environment_vector_goal_group": {
-      "loops": 1,
+      "loops": 32,
       "max_regression": 1.5,
-      "normalized_seconds": 3.9025126523069065,
-      "seconds": 0.0348579839999843
+      "normalized_seconds": 0.3767242234198749,
+      "seconds": 0.0012602799375001084
     },
     "fixed_attitude_goal_error": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.000342455501537853,
-      "seconds": 3.0588775634735055e-06
+      "normalized_seconds": 0.0003535043382482902,
+      "seconds": 1.182600952148033e-06
     },
     "fixed_attitude_goal_to_ref": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 3.9457528736767746e-05,
-      "seconds": 3.5244213867496876e-07
+      "normalized_seconds": 4.424546289439191e-05,
+      "seconds": 1.4801721191434747e-07
     },
     "goallist_get_active_goal": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 3.775514053196595e-05,
-      "seconds": 3.372360839887234e-07
+      "normalized_seconds": 3.599065108470292e-05,
+      "seconds": 1.2040185546832727e-07
     },
     "goallist_to_ref": {
-      "loops": 1024,
+      "loops": 2048,
       "max_regression": 1.5,
-      "normalized_seconds": 0.005433522087617424,
-      "seconds": 4.8533250976590114e-05
+      "normalized_seconds": 0.006493606686731323,
+      "seconds": 2.1723482910157577e-05
     },
     "no_goal_error": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 3.75447746140753e-05,
-      "seconds": 3.353570556668961e-07
+      "normalized_seconds": 3.4455360083038746e-05,
+      "seconds": 1.1526574707036719e-07
     },
     "no_goal_to_ref": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.00012964731382027016,
-      "seconds": 1.1580344238260043e-06
+      "normalized_seconds": 0.00012678631960051637,
+      "seconds": 4.2414648437384683e-07
     },
     "orbital_vector_goal_group": {
-      "loops": 128,
+      "loops": 512,
       "max_regression": 1.5,
-      "normalized_seconds": 0.018422825980008703,
-      "seconds": 0.0001645561796874695
+      "normalized_seconds": 0.021032372338844016,
+      "seconds": 7.036095703125134e-05
     }
   },
-  "calibration_loops": 8,
-  "calibration_seconds": 0.00893218987499722,
+  "calibration_loops": 16,
+  "calibration_seconds": 0.003345364750000357,
   "description": "Goals fast benchmark results normalized by calibration_seconds.",
-  "platform": "Linux-6.17.0-1020-azure-x86_64-with-glibc2.39",
+  "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
   "processor": "x86_64",
-  "python": "3.12.13",
+  "python": "3.12.3",
   "schema_version": 1
 }
