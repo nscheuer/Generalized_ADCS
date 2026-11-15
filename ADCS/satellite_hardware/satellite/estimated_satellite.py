@@ -171,7 +171,13 @@ class EstimatedSatellite(Satellite):
             actuators=copy.deepcopy(sat.actuators),
             boresight=sat.boresight.copy(),
         )
-
+        # The estimator models the device as designed, not as built: the
+        # plant's scale factors and misalignments are what the filter does
+        # not know, so the clones get nominal mounting.
+        for sensor in est.sensors:
+            sensor.scale_factor = 1.0
+            sensor.misalignment = None
+            sensor.mounting_rotation = np.eye(3)
         return est
 
 

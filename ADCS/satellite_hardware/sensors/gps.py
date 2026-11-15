@@ -82,7 +82,7 @@ class GPS(Sensor):
     * Velocity is transformed from ECI to ECEF using
       :meth:`~ADCS.orbits.orbital_state.Orbital_State.eci_to_ecef`.
     """
-    def __init__(self, sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
+    def __init__(self, sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False, scale_factor: float = 1.0, misalignment: Optional[np.ndarray] = None):
         r"""
         Initialize the GPS sensor model.
 
@@ -106,7 +106,9 @@ class GPS(Sensor):
             self.noise = noise
         else:
             self.noise = Noise(noise=np.zeros(6), std_noise=np.zeros(6))
-        super().__init__(sample_time=sample_time, output_length=6, bias=bias, noise=noise, estimate_bias=estimate_bias)
+        if scale_factor != 1.0 or misalignment is not None:
+            raise ValueError("GPS: position and velocity readings have no scale factor or misalignment")
+        super().__init__(scale_factor=scale_factor, misalignment=misalignment, sample_time=sample_time, output_length=6, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
     def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
