@@ -1,7 +1,7 @@
 About
 =====
 
-Generalized ADCS was created by **Niclas Scheuer** and **Patrick McKeen**.
+Generalized ADCS was created by **Niclas Scheuer**, **Patrick McKeen**, and **William Goldman**.
 
 The project website is maintained by **Niclas Scheuer**.
 
