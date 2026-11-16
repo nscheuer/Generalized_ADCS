@@ -198,6 +198,43 @@ class Environment:
         environment._star_catalogue_explicit = bool(payload.get("star_catalogue_explicit", False))
         return environment
 
+    #: Models whose sampled values an :class:`Orbital_State` stores (B, rho, S).
+    STATE_MODEL_ROLES = ("magnetic_field", "atmosphere", "ephemeris")
+
+    @classmethod
+    def _same_model(cls, a, b, role: str) -> bool:
+        r"""Whether two models of one role give the same values.
+
+        True for the same object, or for two instances of the same built-in
+        (or ``to_json_config``-capable) class with equal configuration. Models
+        that cannot describe their configuration are only equal to themselves.
+        """
+        if a is b:
+            return True
+        if type(a) is not type(b):
+            return False
+        try:
+            return cls._model_config(a, role) == cls._model_config(b, role)
+        except (TypeError, AttributeError):
+            return False
+
+    def same_models(self, other: "Environment", roles=STATE_MODEL_ROLES) -> bool:
+        r"""Whether ``other`` uses equivalent models for every role in ``roles``.
+
+        :param other: Environment to compare with.
+        :type other: Environment
+        :param roles: Model roles to compare. Defaults to the models whose
+            values an orbital state stores (field, atmosphere, ephemeris).
+        :type roles: tuple[str, ...]
+        :return: True if every compared model is equivalent.
+        :rtype: bool
+        """
+        if other is self:
+            return True
+        if other is None:
+            return False
+        return all(self._same_model(getattr(self, role), getattr(other, role, None), role) for role in roles)
+
     @property
     def magnetic_model(self) -> str:
         r"""Return the selected magnetic model's canonical name.

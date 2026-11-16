@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -93,12 +92,15 @@ class DE441(DE421):
     """DE441 with the same interface and lifecycle as :class:`DE421`.
 
     NAIF publishes DE441 as two BSP partitions. Both files are downloaded to
-    ``ADCS/environment/kernels`` on first use and queried together. Their combined size is
+    ``ADCS/environment/kernels`` on first use and queried together, unless
+    ``ADCS_DE441_EPHEMERIS_PATH`` names the first partition, in which case both
+    are looked for (and downloaded) in that file's directory. Their combined size is
     about 3 GB, so construction downloads a substantial amount of data when
     neither file is already available.
     """
 
     KERNEL_FILENAMES = ("de441_part-1.bsp", "de441_part-2.bsp")
+    ENV_PATH_VARIABLE = "ADCS_DE441_EPHEMERIS_PATH"
     DOWNLOAD_BASE_URL = (
         "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/"
         "spk/planets/"
@@ -119,7 +121,6 @@ class DE441(DE421):
             self.planets = _CombinedKernel(paths)
         else:
             first_path = Path(filepath).expanduser()
-            paths = tuple(first_path.parent / name for name in self.KERNEL_FILENAMES)
             self.planets = _CombinedKernel(self._download_ephemeris(first_path))
 
         self.sun = self.planets["sun"]
@@ -137,28 +138,21 @@ class DE441(DE421):
         kernel_dir = Path(__file__).resolve().parents[1] / "kernels"
         return tuple(kernel_dir / name for name in DE441.KERNEL_FILENAMES)
 
-    @staticmethod
-    def _cache_ephemeris_paths() -> tuple[Path, Path]:
-        r"""Get per-user cache paths for both DE441 partitions.
+    @classmethod
+    def _kernel_paths(cls) -> tuple[Path, Path]:
+        r"""Paths of both DE441 partitions, honouring ``ADCS_DE441_EPHEMERIS_PATH``.
 
-        :return: Paths honoring the environment override or platform cache.
+        When the variable is set it names the first partition, and the second
+        is expected beside it. Otherwise the packaged kernel directory is used.
+
+        :return: Paths for ``de441_part-1.bsp`` and ``de441_part-2.bsp``.
         :rtype: tuple[pathlib.Path, pathlib.Path]
         """
-        override = os.environ.get("ADCS_DE441_EPHEMERIS_PATH")
+        override = os.environ.get(cls.ENV_PATH_VARIABLE)
         if override:
-            first = Path(override).expanduser()
-            return tuple(first.parent / name for name in DE441.KERNEL_FILENAMES)
-        xdg = os.environ.get("XDG_CACHE_HOME")
-        if xdg:
-            base = Path(xdg)
-        elif sys.platform == "darwin":
-            base = Path.home() / "Library" / "Caches"
-        elif sys.platform == "win32":
-            base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-        else:
-            base = Path.home() / ".cache"
-        directory = base / "generalized_adcs"
-        return tuple(directory / name for name in DE441.KERNEL_FILENAMES)
+            directory = Path(override).expanduser().parent
+            return tuple(directory / name for name in cls.KERNEL_FILENAMES)
+        return cls._packaged_ephemeris_paths()
 
     @classmethod
     def _find_existing_ephemeris(cls) -> tuple[Path, Path] | None:
@@ -167,7 +161,7 @@ class DE441(DE421):
         :return: Both paths, or ``None`` if a complete pair is unavailable.
         :rtype: tuple[pathlib.Path, pathlib.Path] or None
         """
-        paths = cls._packaged_ephemeris_paths()
+        paths = cls._kernel_paths()
         manager = AssetManager()
         return tuple(
             manager.get(filename.removesuffix(".bsp"), destination=path)
@@ -177,10 +171,12 @@ class DE441(DE421):
     def _get_default_ephemeris_path(self) -> Path:
         r"""Create the kernel directory and return the first partition path.
 
+        Honours ``ADCS_DE441_EPHEMERIS_PATH`` like :meth:`_find_existing_ephemeris`.
+
         :return: Destination for ``de441_part-1.bsp``.
         :rtype: pathlib.Path
         """
-        paths = self._packaged_ephemeris_paths()
+        paths = self._kernel_paths()
         paths[0].parent.mkdir(parents=True, exist_ok=True)
         return paths[0]
 

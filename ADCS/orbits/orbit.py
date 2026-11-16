@@ -386,12 +386,24 @@ class Orbit:
 
     def _adopt_magnetic_model(self, st: Orbital_State) -> Orbital_State:
         r"""
-        Put a (copied) state on this orbit's field model, recomputing ``B`` only
-        if the state was built with a different one.
+        Put a (copied) state on this orbit's environment.
+
+        A state built with equivalent models (see
+        :meth:`~ADCS.environment.environment.Environment.same_models`) keeps its
+        sampled values and is pointed at this orbit's environment. A state
+        whose magnetic field, atmosphere or ephemeris differs is rebuilt so
+        that ``B``, ``rho`` and ``S`` come from this orbit's models.
         """
         environment = getattr(self, "environment", getattr(st, "environment", None))
-        if environment is not None and getattr(st, "environment", None) is not environment:
-            if getattr(st, "magnetic_model", DEFAULT_MAGNETIC_MODEL) != environment.magnetic_model:
+        st_environment = getattr(st, "environment", None)
+        if environment is not None and st_environment is not environment:
+            if isinstance(st_environment, Environment) and environment.same_models(st_environment):
+                st.environment = environment
+                st.ephem = environment.ephemeris
+                st.ts = st.ephem.ts
+                st.atmosphere = environment.atmosphere
+                st.magnetic_model = environment.magnetic_model
+            else:
                 st = Orbital_State(
                     J2000=st.J2000,
                     R=st.R,

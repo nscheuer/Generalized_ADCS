@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from hashlib import md5
 from pathlib import Path
 
@@ -14,6 +15,11 @@ from ADCS.helpers.math.spherical_harmonics import _kernel_static
 def ensure_kernel(path: Path, asset_name: str, expected_md5: str | None = None) -> Path:
     r"""Fetch a missing magnetic coefficient file with an atomic rename.
 
+    The lookup and checksum run once per process for each
+    ``(path, asset_name, expected_md5)``; later calls return the cached path,
+    so field evaluations do not re-read and re-hash large coefficient files.
+    A failed check is not cached and is retried on the next call.
+
     :param path: Destination for the cached coefficient file.
     :type path: pathlib.Path
     :param asset_name: Registered AssetManager name.
@@ -24,12 +30,18 @@ def ensure_kernel(path: Path, asset_name: str, expected_md5: str | None = None) 
     :rtype: pathlib.Path
     :raises ValueError: If a downloaded file fails its checksum.
     """
+    return Path(_verified_kernel(str(path), asset_name, expected_md5))
+
+
+@lru_cache(maxsize=32)
+def _verified_kernel(path: str, asset_name: str, expected_md5: str | None) -> str:
+    r"""Resolve and check one coefficient file; cached by :func:`ensure_kernel`."""
     path = AssetManager().get(asset_name, destination=Path(path))
     if not path.is_file() or path.stat().st_size == 0:
         raise OSError(f"Empty magnetic model kernel: {path}")
     if expected_md5 is not None and md5(path.read_bytes()).hexdigest() != expected_md5:
         raise ValueError(f"Magnetic model kernel failed checksum: {path}")
-    return path
+    return str(path)
 
 
 def coordinate_dates(r, theta, phi, date):

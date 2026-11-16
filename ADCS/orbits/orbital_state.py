@@ -642,7 +642,7 @@ class Orbital_State:
         from skyfield.api import EarthSatellite
 
         if environment is None:
-            environment = Environment()
+            environment = default_environment()
         if isinstance(tle, str):
             if line2 is None:
                 raise TypeError("line2 is required when tle is supplied as line1 text")

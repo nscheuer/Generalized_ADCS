@@ -109,3 +109,68 @@ def test_user_magnetic_field_without_a_name_drives_states_and_orbits():
     assert sub.environment is environment
     resampled = orbit.new_orbit_from_times([orbit.min_time(), 0.5 * (orbit.min_time() + orbit.max_time())])
     assert resampled.environment is environment
+
+
+def test_orbit_from_states_rebuilds_states_whose_atmosphere_differs():
+    from ADCS.environment.atmosphere import Atmosphere
+    from ADCS.orbits.orbit import Orbit
+
+    class ConstantAtmosphere(Atmosphere):
+        def density(self, position_eci_km, datetime_utc=None, geodetic_lla=None):
+            return 1.0e-9
+
+        def interpolate(self, altitude_km):
+            return 1.0e-9
+
+    R, V = np.array([6878.0, 0.0, 0.0]), np.array([0.0, 7.6, 0.0])
+    smad_states = [Orbital_State(J2000=0.26 + k * 1e-6, R=R, V=V) for k in range(2)]  # default SMAD atmosphere
+    assert smad_states[0].rho != pytest.approx(1.0e-9)  # the two atmospheres really differ here
+    constant = Environment(atmosphere=ConstantAtmosphere(), ephemeris=smad_states[0].environment.ephemeris)
+
+    orbit = Orbit(smad_states, environment=constant)
+
+    for t in orbit.times:
+        state = orbit.states[t]
+        assert state.environment is constant
+        assert state.rho == pytest.approx(1.0e-9)
+
+
+def test_orbit_from_states_with_equivalent_models_adopts_without_rebuilding(monkeypatch):
+    from ADCS.orbits import orbit as orbit_module
+
+    R, V = np.array([6878.0, 0.0, 0.0]), np.array([0.0, 7.6, 0.0])
+    state = Orbital_State(J2000=0.26, R=R, V=V)
+    shared = state.environment
+    equivalent = Environment(magnetic_field=make_magnetic_field(DEFAULT_MAGNETIC_MODEL), ephemeris=shared.ephemeris)
+    assert equivalent is not shared and equivalent.same_models(shared)
+
+    def no_rebuild(*args, **kwargs):
+        raise AssertionError("an equivalent state should not be rebuilt")
+
+    monkeypatch.setattr(orbit_module, "Orbital_State", no_rebuild)
+    adopted = orbit_module.Orbit.__new__(orbit_module.Orbit)
+    adopted.environment = equivalent
+    out = adopted._adopt_magnetic_model(state.copy())
+    assert out.environment is equivalent
+    np.testing.assert_allclose(out.B, state.B)
+
+
+def test_from_tle_without_environment_uses_the_shared_default():
+    from ADCS.environment.environment import default_environment
+
+    line1 = "1 25544U 98067A   24001.50000000  .00016717  00000-0  10270-3 0  9005"
+    line2 = "2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391428221"
+    state = Orbital_State.from_TLE(line1, line2)
+    assert state.environment is default_environment()
+
+
+def test_de441_honours_its_ephemeris_path_env(monkeypatch, tmp_path):
+    from ADCS.environment.ephemeris import DE441
+
+    directory = tmp_path / "de441"
+    directory.mkdir()
+    for name in DE441.KERNEL_FILENAMES:
+        (directory / name).write_bytes(b"stand-in")
+    monkeypatch.setenv("ADCS_DE441_EPHEMERIS_PATH", str(directory / DE441.KERNEL_FILENAMES[0]))
+
+    assert DE441._find_existing_ephemeris() == tuple(directory / name for name in DE441.KERNEL_FILENAMES)
