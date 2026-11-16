@@ -3,69 +3,69 @@
     "bdot_find_u_steady_state": {
       "loops": 1024,
       "max_regression": 1.5,
-      "normalized_seconds": 0.001021583577459787,
-      "seconds": 4.85916796874597e-06
+      "normalized_seconds": 0.0009579605733862354,
+      "seconds": 6.708754881401546e-06
     },
     "mtq_lovera_find_u": {
-      "loops": 512,
+      "loops": 256,
       "max_regression": 1.5,
-      "normalized_seconds": 0.00876929433121454,
-      "seconds": 4.171119726562034e-05
+      "normalized_seconds": 0.012034941001542404,
+      "seconds": 8.42826640621297e-05
     },
     "mtq_w_rw_find_u": {
-      "loops": 512,
+      "loops": 256,
       "max_regression": 1.5,
-      "normalized_seconds": 0.00923274799334421,
-      "seconds": 4.391561718750103e-05
+      "normalized_seconds": 0.01746580889021701,
+      "seconds": 0.00012231592187106344
     },
     "mtq_w_rw_lp_desat_find_u": {
-      "loops": 1024,
+      "loops": 256,
       "max_regression": 1.5,
-      "normalized_seconds": 0.00755216914987459,
-      "seconds": 3.5921934570318226e-05
+      "normalized_seconds": 0.013262347172326204,
+      "seconds": 9.287839061755676e-05
     },
     "mtq_w_rw_lp_pointing_find_u": {
       "loops": 32,
       "max_regression": 1.5,
-      "normalized_seconds": 0.14750953132100633,
-      "seconds": 0.0007016299062501119
+      "normalized_seconds": 0.15175681934663318,
+      "seconds": 0.0010627778750631478
     },
     "mtq_w_rw_qp_find_u": {
-      "loops": 256,
+      "loops": 128,
       "max_regression": 1.5,
-      "normalized_seconds": 0.06141293455993555,
-      "seconds": 0.0002921109648437725
+      "normalized_seconds": 0.09033654672103941,
+      "seconds": 0.0006326416406068347
     },
     "mtq_w_rw_qpc_find_u": {
-      "loops": 32,
+      "loops": 16,
       "max_regression": 1.5,
-      "normalized_seconds": 0.5171382775504224,
-      "seconds": 0.0024597710937501738
+      "normalized_seconds": 0.717199838465365,
+      "seconds": 0.005022668000037811
     },
     "mtq_w_rw_qpg_find_u": {
-      "loops": 64,
+      "loops": 32,
       "max_regression": 1.5,
-      "normalized_seconds": 0.14565965699950112,
-      "seconds": 0.0006928309687499468
+      "normalized_seconds": 0.20637799762413075,
+      "seconds": 0.0014452989375968173
     },
     "mtq_w_rw_qpw_find_u": {
-      "loops": 64,
+      "loops": 32,
       "max_regression": 1.5,
-      "normalized_seconds": 0.16103016159885492,
-      "seconds": 0.0007659408593752026
+      "normalized_seconds": 0.22221868611887532,
+      "seconds": 0.0015562338750214622
     },
     "mtq_wisniewski_find_u": {
-      "loops": 512,
+      "loops": 256,
       "max_regression": 1.5,
-      "normalized_seconds": 0.012773347418297826,
-      "seconds": 6.075649804687666e-05
+      "normalized_seconds": 0.018549827862613315,
+      "seconds": 0.00012990748437857746
     }
   },
-  "calibration_loops": 16,
-  "calibration_seconds": 0.0047565055624998465,
+  "calibration_loops": 8,
+  "calibration_seconds": 0.00700316387519706,
   "description": "Controllers fast benchmark results normalized by calibration_seconds.",
-  "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
   "processor": "x86_64",
-  "python": "3.12.15",
+  "python": "3.12.3",
   "schema_version": 1
 }
