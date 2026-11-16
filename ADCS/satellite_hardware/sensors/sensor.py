@@ -174,7 +174,15 @@ class Sensor:
 
     @property
     def sensing_axis(self) -> np.ndarray:
-        """The sensitive axis of a single-axis sensor as mounted: the nominal ``axis`` rotated by the misalignment."""
+        """The sensitive axis of a single-axis sensor as mounted: the nominal ``axis`` rotated by the misalignment.
+
+        A sensor without a misalignment has the identity mounting rotation, so
+        its nominal ``axis`` is returned directly. This sits on every reading
+        and Jacobian of the single-axis sensors, and skipping the 3x3 product
+        keeps the nominal device as fast as it was before mounting errors existed.
+        """
+        if self.misalignment is None:
+            return self.axis
         return self.mounting_rotation @ self.axis
 
     def as_built(self, vector: np.ndarray) -> np.ndarray:
