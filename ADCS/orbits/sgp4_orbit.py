@@ -189,6 +189,7 @@ class SGP4Orbit(Orbit):
         if not np.isfinite(self.bstar):
             raise ValueError("bstar must be finite")
         self.tle, self.fit_residual_km, self.fit_passes = self._fit_tle(os0, int(fit_iterations), float(fit_tol_km))
+        self._warn_if_fit_failed(os0, float(fit_tol_km))
         self._tle_lines = self.tle
         super().__init__(os0, end_time=end_time, dt=dt, fast=fast, verbose=verbose,
                          zonal_J=zonal_J, magnetic_model=magnetic_model,
@@ -230,16 +231,38 @@ class SGP4Orbit(Orbit):
             mean = mean + delta
         return best
 
+    def _warn_if_fit_failed(self, os0, tol_km):
+        r"""Warn when the fitted TLE does not reproduce the initial position.
+
+        TLE angles are printed to :math:`10^{-4}` degrees, so no fit can do
+        better than about :math:`|\mathbf{r}|\,10^{-4}` degrees of arc (about
+        12 m in LEO, 74 m at GEO). The warning fires only when the residual
+        exceeds both ``fit_tol_km`` and that rounding floor, i.e. when the fit
+        genuinely failed rather than hit the format's precision.
+        """
+        floor_km = float(np.linalg.norm(os0.R)) * np.deg2rad(1.0e-4)
+        limit_km = max(tol_km, floor_km)
+        if self.fit_residual_km > limit_km:
+            warnings.warn(
+                f"SGP4Orbit: the TLE fit reproduces the initial position only to "
+                f"{self.fit_residual_km * 1000.0:.0f} m after {self.fit_passes} passes "
+                f"(limit {limit_km * 1000.0:.0f} m). The SGP4 trajectory starts from the "
+                f"fitted TLE, not from os0; check fit_residual_km or raise fit_iterations.",
+                stacklevel=3,
+            )
+
     def _propagate_trajectory(self, os0, times_arr, mu_e, R_e, J2coeff, Jcoeffs, *, verbose=True):
-        """Propagate one requested epoch at a time with the fitted SGP4 TLE."""
+        """Propagate one requested epoch at a time with the fitted SGP4 TLE.
+
+        Every node, including the first, comes from SGP4, so the trajectory is
+        continuous. The first node differs from ``os0`` by ``fit_residual_km``.
+        """
         self._satellite = EarthSatellite(*self._tle_lines, ts=self.environment.ephemeris.ts)
         N = len(times_arr)
         R_hist = np.empty((N, 3), dtype=float)
         V_hist = np.empty((N, 3), dtype=float)
-        R_hist[0] = os0.R
-        V_hist[0] = os0.V
         ts = self.environment.ephemeris.ts
-        for j in tqdm(range(1, N), desc="Propagating SGP4 Orbit", unit="step", disable=not verbose):
+        for j in tqdm(range(N), desc="Propagating SGP4 Orbit", unit="step", disable=not verbose):
             sf_time = ts.tt_jd(float(times_arr[j]) * 36525.0 + 2451545.0)
             position = self._satellite.at(sf_time)
             R_hist[j] = np.asarray(position.position.km, dtype=float).reshape(3)

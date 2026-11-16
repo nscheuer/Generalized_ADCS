@@ -186,3 +186,20 @@ def test_from_dict_without_the_key_uses_the_default(ephem):
     d = _os0(ephem).to_dict()
     del d["magnetic_model"]
     assert Orbital_State.from_dict(d, ephem).magnetic_model == DEFAULT_MAGNETIC_MODEL
+
+
+@pytest.mark.parametrize("date, expected", [
+    (datetime(2024, 12, 31, 12), 2024.0 + 365.5 / 366.0),   # leap year: must stay in 2024
+    (datetime(2025, 1, 1), 2025.0),
+    (datetime(2025, 7, 2, 12), 2025.5),                      # half of a 365-day year
+    (datetime(2028, 12, 31, 23), 2028.0 + (365.0 + 23.0 / 24.0) / 366.0),
+])
+def test_wmm_decimal_years_use_each_years_actual_length(date, expected):
+    from ADCS.environment.magnetic_field.wmm import _decimal_years
+    assert float(_decimal_years(np.array([date], dtype="datetime64[ns]"))[0]) == pytest.approx(expected, abs=1e-12)
+
+
+def test_wmm_rejects_the_last_day_of_2024():
+    from ADCS.environment.magnetic_field import WMM2025
+    with pytest.raises(ValueError, match="2025"):
+        WMM2025().field_gc(6878.0, 45.0, 10.0, datetime(2024, 12, 31, 12))

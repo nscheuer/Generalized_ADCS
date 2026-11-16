@@ -174,3 +174,50 @@ def test_de441_honours_its_ephemeris_path_env(monkeypatch, tmp_path):
     monkeypatch.setenv("ADCS_DE441_EPHEMERIS_PATH", str(directory / DE441.KERNEL_FILENAMES[0]))
 
     assert DE441._find_existing_ephemeris() == tuple(directory / name for name in DE441.KERNEL_FILENAMES)
+
+
+def test_from_dict_still_accepts_a_density_model_with_a_warning():
+    from ADCS.environment.atmosphere import SMADAtmosphere
+
+    state = Orbital_State(J2000=0.26, R=np.array([6878.0, 0.0, 0.0]), V=np.array([0.0, 7.6, 0.0]))
+    atmosphere = SMADAtmosphere()
+
+    # main's positional order: (d, ephem, density_model, ...)
+    with pytest.warns(DeprecationWarning, match="density_model"):
+        loaded = Orbital_State.from_dict(state.to_dict(), state.environment.ephemeris, atmosphere)
+
+    assert loaded.environment.atmosphere is atmosphere
+    assert loaded.environment.ephemeris is state.environment.ephemeris
+    np.testing.assert_allclose(loaded.R, state.R)
+    with pytest.raises(ValueError, match="environment"), pytest.warns(DeprecationWarning):
+        Orbital_State.from_dict(state.to_dict(), density_model=atmosphere, environment=state.environment)
+
+
+def test_ephemeris_deprecation_points_at_an_instantiable_class():
+    import ADCS.orbits.ephemeris as shim
+    from ADCS.environment import ephemeris as ephemeris_package
+
+    with pytest.warns(DeprecationWarning) as record:
+        importlib.reload(shim)
+    message = str(record[0].message)
+    assert "import DE421 from ADCS.environment.ephemeris" in message
+    # The class the message recommends is the one the shim provides, and it is concrete.
+    assert ephemeris_package.DE421 is shim.Ephemeris
+
+
+def test_igrf_fallback_download_is_the_shc_file_not_the_coefficient_table():
+    asset = asset_manager.ASSETS["igrf14"]
+    assert asset.filename == "IGRF14.shc"
+    assert "igrf14coeffs.txt" not in asset.url
+    assert "IGRF14.shc" in asset.url
+
+
+@pytest.mark.local
+def test_igrf_fallback_download_parses_and_matches_the_bundled_coefficients(tmp_path):
+    """Network: downloads the registered IGRF-14 file and compares it with the bundled one."""
+    from ADCS.environment.magnetic_field.igrf14_numba import _read_shc
+
+    downloaded = asset_manager.AssetManager().get("igrf14", destination=tmp_path / "IGRF14.shc", allow_download=True)
+    bundled = asset_manager.KERNEL_DIR / "IGRF14.shc"
+    for a, b in zip(_read_shc(str(downloaded)), _read_shc(str(bundled))):
+        np.testing.assert_array_equal(a, b)

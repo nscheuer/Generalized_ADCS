@@ -107,3 +107,41 @@ def test_sgp4_derives_bstar_from_sentman_drag():
     np.testing.assert_allclose(cold.bstar, expected, rtol=1e-2)
     # Thermal motion and re-emission add drag over the cold beam.
     assert hot.bstar > cold.bstar
+
+
+def test_sgp4_warns_when_the_tle_fit_fails():
+    import pytest
+    # One pass leaves the naive osculating TLE, kilometres from the initial state.
+    with pytest.warns(UserWarning, match="TLE fit reproduces the initial position only"):
+        orbit = SGP4Orbit(make_state(), bstar=0.0, fit_iterations=1)
+    assert orbit.fit_residual_km > 0.1
+
+
+def test_sgp4_does_not_warn_at_the_tle_precision_floor_in_geo():
+    import warnings
+    geo = Orbital_State.from_keplerian(J2000=0.22, a=42164., e=0.0002, i=0.1, raan=20.,
+                                       arg_periapsis=30., true_anomaly=10.)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        orbit = SGP4Orbit(geo, bstar=0.0)
+    # GEO cannot fit below the 1e-4 degree rounding of TLE angles (~74 m), so this is not a failure.
+    assert orbit.fit_residual_km < 42164. * np.deg2rad(1.0e-4)
+
+
+def test_sgp4_trajectory_is_continuous_from_its_first_node():
+    import warnings
+    initial = make_state()
+    dt = 10.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # a deliberately poor (one-pass) fit makes any jump obvious
+        orbit = SGP4Orbit(initial, end_time=initial.J2000 + 3 * dt * TimeConstants.sec2cent, dt=dt,
+                          bstar=0.0, fit_iterations=1)
+    assert orbit.fit_residual_km > 0.1
+    first = orbit.states[orbit.times[0]]
+    # The first node is SGP4's own state at the epoch, not os0 ...
+    t0 = orbit.environment.ephemeris.ts.tt_jd(orbit.times[0] * 36525.0 + 2451545.0)
+    np.testing.assert_allclose(first.R, orbit._satellite.at(t0).position.km, atol=1e-9)
+    np.testing.assert_allclose(np.linalg.norm(first.R - initial.R), orbit.fit_residual_km, rtol=1e-9)
+    # ... so the first step is as long as the others instead of carrying the fit residual.
+    steps = [np.linalg.norm(orbit.states[b].R - orbit.states[a].R) for a, b in zip(orbit.times[:-1], orbit.times[1:])]
+    assert max(steps) - min(steps) < 0.05 < orbit.fit_residual_km

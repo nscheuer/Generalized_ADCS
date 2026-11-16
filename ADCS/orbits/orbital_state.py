@@ -1675,6 +1675,7 @@ class Orbital_State:
         cls,
         d: dict,
         ephem: Ephemeris | None = None,
+        density_model=None,
         fast: bool = True,
         magnetic_model: str | None = None,
         environment: Environment | None = None,
@@ -1694,6 +1695,11 @@ class Orbital_State:
             Ephemeris object.
         :type ephem: Ephemeris
 
+        :param density_model:
+            Deprecated; pass ``environment=Environment(atmosphere=...)``
+            instead. Still accepted, with a ``DeprecationWarning``.
+        :type density_model: Atmosphere or None
+
         :param fast:
             Backward-compatible parameter (ignored).
         :type fast: bool
@@ -1711,8 +1717,28 @@ class Orbital_State:
             Reconstructed orbital state.
         :rtype: Orbital_State
 
+        :raises ValueError: If both ``density_model`` and ``environment`` are given.
+
         """
         _ = fast  # ignored
+        if density_model is not None:
+            warnings.warn(
+                "Orbital_State.from_dict(density_model=...) is deprecated; pass "
+                "environment=Environment(atmosphere=...) instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if environment is not None:
+                raise ValueError("Pass the atmosphere through environment, or use the legacy density_model argument")
+            environment = Environment(
+                magnetic_field=make_magnetic_field(
+                    magnetic_model if magnetic_model is not None
+                    else d.get("magnetic_model", DEFAULT_MAGNETIC_MODEL)
+                ),
+                atmosphere=density_model,
+                ephemeris=ephem if ephem is not None else Ephemeris(),
+            )
+            magnetic_model = None
         return cls(
             ephem=ephem if environment is None else None,
             J2000=d["J2000"],

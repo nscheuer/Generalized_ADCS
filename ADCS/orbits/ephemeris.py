@@ -3,7 +3,8 @@
 import warnings
 
 warnings.warn(
-    "ADCS.orbits.ephemeris is deprecated; import Ephemeris from ADCS.environment.ephemeris instead.",
+    "ADCS.orbits.ephemeris is deprecated; import DE421 from ADCS.environment.ephemeris instead "
+    "(the Ephemeris name there is the abstract base class).",
     DeprecationWarning,
     stacklevel=2,
 )

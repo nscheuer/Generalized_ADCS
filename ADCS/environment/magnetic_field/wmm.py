@@ -68,12 +68,16 @@ def _decimal_years(dates):
     :return: Decimal calendar years.
     :rtype: numpy.ndarray
     """
+    dates = dates.astype("datetime64[ns]")
     years = dates.astype("datetime64[Y]")
     next_years = years + np.timedelta64(1, "Y")
-    return years.astype(int) + 1970 + (
-        (dates - years).astype("timedelta64[ns]").astype(np.int64)
-        / (next_years - years).astype("timedelta64[ns]").astype(np.int64)
-    )
+    # Convert both year boundaries to instants before subtracting: a
+    # difference of two datetime64[Y] values is a timedelta64[Y], which numpy
+    # converts to a fixed 365.2425 days and so misplaces dates in leap years
+    # (2024-12-31T12 would land in 2025).
+    start = years.astype("datetime64[ns]")
+    length = (next_years.astype("datetime64[ns]") - start).astype(np.int64)
+    return years.astype(int) + 1970 + (dates - start).astype(np.int64) / length
 
 
 class WMM2025(MagneticField):

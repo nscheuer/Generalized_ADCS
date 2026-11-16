@@ -29,7 +29,9 @@ ASSETS = {
 ASSETS.update({
     "bsc5": Asset("bsc5", "https://cdsarc.cds.unistra.fr/ftp/cats/V/50/catalog.gz", "bsc5_catalog.gz"),
     "hipparcos": Asset("hipparcos", "https://cdsarc.cds.unistra.fr/ftp/cats/I/239/hip_main.dat", "hip_main.dat"),
-    "igrf14": Asset("igrf14", "https://www.ngdc.noaa.gov/IAGA/vmod/coeffs/igrf14coeffs.txt", "IGRF14.shc"),
+    # The SHC-format file from the official IGRF-14 release (doi:10.5281/zenodo.14012303).
+    # NOAA's igrf14coeffs.txt is a wide table in a different format that _read_shc cannot parse.
+    "igrf14": Asset("igrf14", "https://zenodo.org/records/14012303/files/IGRF14.shc?download=1", "IGRF14.shc"),
     "wmm2025": Asset("wmm2025", "https://www.ngdc.noaa.gov/geomag/calculators/mobileStatic/WMM.COF", "WMM2025.COF"),
 })
 ASSETS.update({
