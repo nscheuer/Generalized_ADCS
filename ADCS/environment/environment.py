@@ -202,7 +202,10 @@ class Environment:
     def magnetic_model(self) -> str:
         r"""Return the selected magnetic model's canonical name.
 
-        :return: Name used by legacy string model selectors.
+        Built-in models return the name used by legacy string selectors. A
+        user model without a ``name`` returns its class name.
+
+        :return: Model identifier.
         :rtype: str
         """
-        return self.magnetic_field.name
+        return getattr(self.magnetic_field, "name", None) or type(self.magnetic_field).__name__

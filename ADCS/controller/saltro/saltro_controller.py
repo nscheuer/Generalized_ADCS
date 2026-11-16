@@ -294,7 +294,7 @@ class SALTRO(Controller):
         self,
         x_hat: State | EstimatorState,
         sens: np.ndarray,
-        est_sat: Satellite,
+        est_sat: Optional[Satellite],
         os_hat: Orbital_State,
         goal: Optional[Goal] = None,
         **kwargs,
@@ -312,19 +312,21 @@ class SALTRO(Controller):
         :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Sensor vector (accepted for interface compatibility).
         :type sens: numpy.ndarray
-        :param est_sat: Estimated satellite (accepted for interface compatibility).
-        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param est_sat: Estimated satellite whose actuator ``u_max`` limits clip
+            the command. If ``None``, the satellite the trajectory was planned
+            with (``self.est_sat``) is used.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite` or None
         :param os_hat: Orbital state carrying the current J2000 time.
         :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goal: Active goal (accepted for interface compatibility).
         :type goal: typing.Optional[:class:`~ADCS.CONOPS.goals.Goal`]
-        :return: Control vector in Python actuator ordering.
+        :return: Control vector in Python actuator ordering, clipped to
+            :math:`\pm u_\mathrm{max}` per actuator.
         :rtype: numpy.ndarray
         :raises RuntimeError: If no active trajectory is set or time is outside
             trajectory validity interval.
         """
         _ = sens
-        _ = est_sat
         _ = goal
         _ = kwargs
 
@@ -340,5 +342,6 @@ class SALTRO(Controller):
             )
 
         command = self.active_trajectory.compute_tracking_control(current_time, x_hat)
-        limits = np.asarray([act.u_max for act in est_sat.actuators], dtype=float)
+        limit_sat = est_sat if est_sat is not None else self.est_sat
+        limits = np.asarray([act.u_max for act in limit_sat.actuators], dtype=float)
         return np.clip(command, -limits, limits)

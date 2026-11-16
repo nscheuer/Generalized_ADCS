@@ -502,7 +502,7 @@ class Orbit:
             newstates = [self.states[j] for j in self.times if (j <= t_1 and j >= t_0)]
             if len(newstates) == 0:
                 raise ValueError("there are no pre-created states in this time span")
-            return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2), magnetic_model=getattr(self, "_magnetic_model", DEFAULT_MAGNETIC_MODEL))
+            return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2), environment=getattr(self, "environment", None))
         ts = np.concatenate([np.arange(t_0, t_1, float(dt) / TimeConstants.cent2sec), [t_1]])
         return self.new_orbit_from_times(ts.tolist())
 
@@ -525,7 +525,7 @@ class Orbit:
         if not np.all([self.time_in_span(float(j)) for j in time_list]):
             raise ValueError("at least one time is not within this orbit span")
         newstates = [self.get_os(float(j)) for j in time_list]
-        return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2), magnetic_model=getattr(self, "_magnetic_model", DEFAULT_MAGNETIC_MODEL))
+        return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2), environment=getattr(self, "environment", None))
 
     def next_state(self, input: Orbital_State | float) -> Orbital_State:
         r"""

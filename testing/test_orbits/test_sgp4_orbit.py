@@ -85,3 +85,25 @@ def test_sgp4_accepts_states_built_by_orbit():
     mid = base.get_os(initial.J2000 + 60 * TimeConstants.sec2cent)
     orbit = SGP4Orbit(mid, bstar=0.0)
     assert orbit.fit_residual_km < 0.05
+
+
+def _sentman_satellite(**sentman_kwargs):
+    from ADCS.satellite_hardware.disturbances import Sentman_Drag_Disturbance
+    config = GeometryConfig([
+        GeometryFace(area=2.0, centroid=np.zeros(3), normal=np.array([1., 0., 0.]), CD=2.0),
+        GeometryFace(area=2.0, centroid=np.zeros(3), normal=np.array([-1., 0., 0.]), CD=2.0),
+    ])
+    return Satellite(mass=4.0, disturbances=[Sentman_Drag_Disturbance(config, **sentman_kwargs)])
+
+
+def test_sgp4_derives_bstar_from_sentman_drag():
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # no "no drag disturbance" warning
+        cold = SGP4Orbit(make_state(), satellite=_sentman_satellite(T_inf=1.0e-6, T_wall=0.0, alpha=1.0))
+        hot = SGP4Orbit(make_state(), satellite=_sentman_satellite(T_inf=1500.0))
+    # Cold-beam Sentman is the CD=2 flat plate, so B* matches Drag_Disturbance with CD=2.
+    expected = 0.5 * 0.15696615 * (2 * 2.0 * 2.0 / 4) / 4.0
+    np.testing.assert_allclose(cold.bstar, expected, rtol=1e-2)
+    # Thermal motion and re-emission add drag over the cold beam.
+    assert hot.bstar > cold.bstar

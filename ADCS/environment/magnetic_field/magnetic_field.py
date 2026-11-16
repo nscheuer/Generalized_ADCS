@@ -11,7 +11,14 @@ class MagneticField(ABC):
     Implementations evaluate geocentric spherical field components in
     nanotesla. The common :meth:`field` method converts those components to
     Earth fixed Cartesian vectors in tesla.
+
+    Subclasses may set :attr:`name` to a short identifier. Models that leave
+    it unset are identified by their class name.
     """
+
+    #: Short identifier for the model (for example ``"wmm2025"``). ``None``
+    #: means the class name is used instead.
+    name: str | None = None
 
     def field(self, position_ecef_km, date):
         r"""Evaluate an Earth fixed magnetic field vector.

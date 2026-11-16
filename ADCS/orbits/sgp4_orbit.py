@@ -17,9 +17,38 @@ from tqdm import tqdm
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State, _classical_from_rv, _tle_lines
 from ADCS.satellite_hardware.disturbances.drag_disturbance import Drag_Disturbance
+from ADCS.satellite_hardware.disturbances.sentman_drag_disturbance import Sentman_Drag_Disturbance
+
+#: Number of flow directions used to attitude-average Sentman drag coefficients.
+_SENTMAN_AVERAGE_DIRECTIONS = 256
 
 
-def _average_bstar(satellite):
+def _sphere_directions(n):
+    """``n`` near-uniform unit vectors on the sphere (Fibonacci lattice), shape ``(n, 3)``."""
+    k = np.arange(n, dtype=float) + 0.5
+    z = 1.0 - 2.0 * k / n
+    rho = np.sqrt(np.maximum(0.0, 1.0 - z * z))
+    azimuth = np.pi * (3.0 - np.sqrt(5.0)) * k
+    return np.column_stack((rho * np.cos(azimuth), rho * np.sin(azimuth), z))
+
+
+def _average_cd_area(drag, speed_m_s):
+    r"""Isotropic attitude average of :math:`\sum_i C_{D,i} A_i` [m²] for a drag model.
+
+    For :class:`Drag_Disturbance` the per-face coefficient is fixed and the
+    projection factor averages to 1/4. :class:`Sentman_Drag_Disturbance`
+    coefficients already contain the projection and depend on the speed ratio,
+    so they are averaged numerically over flow directions at ``speed_m_s``.
+    """
+    if isinstance(drag, Sentman_Drag_Disturbance):
+        directions = _sphere_directions(_SENTMAN_AVERAGE_DIRECTIONS)
+        totals = [float(np.sum(drag.face_coefficients(speed_m_s * u)[0] * drag.areas)) for u in directions]
+        return float(np.mean(totals))
+    # Isotropic attitude average of projected area: integral(max(0,n·u)) dΩ / 4π = 1/4.
+    return float(np.sum(drag.CDs * drag.areas)) / 4.0
+
+
+def _average_bstar(satellite, speed_m_s=7600.0):
     r"""Estimate B* using an isotropic attitude average of drag face areas.
 
     For a unit direction :math:`\hat{u}` uniformly distributed over a sphere,
@@ -34,25 +63,31 @@ def _average_bstar(satellite):
     :math:`\rho_0=0.15696615\ \mathrm{kg\,m^{-2}\,ER^{-1}}`, the SGP4 reference
     density (2.461e-5 kg/m²/km) expressed per Earth radius as B* requires.
 
-    :param satellite: Satellite with positive mass and a ``Drag_Disturbance``.
-        Without a drag disturbance (or without a satellite) B* is 0 and a
+    A :class:`Sentman_Drag_Disturbance` is also accepted; its speed-ratio
+    dependent coefficients are averaged over attitude at ``speed_m_s``.
+
+    :param satellite: Satellite with positive mass and a ``Drag_Disturbance``
+        or ``Sentman_Drag_Disturbance``. Without a drag disturbance (or without a satellite) B* is 0 and a
         warning is issued, since SGP4 then models no decay.
     :type satellite: ADCS.satellite_hardware.satellite.satellite.Satellite or None
+    :param speed_m_s: Flow speed used for the Sentman speed ratio [m/s].
+    :type speed_m_s: float
     :return: Estimated B* in the standard TLE convention.
     :rtype: float
     :raises ValueError: If the satellite has a drag disturbance but no positive mass.
     """
     if satellite is None:
         return 0.0
-    drag = next((d for d in satellite.disturbances if isinstance(d, Drag_Disturbance)), None)
+    drag = next((d for d in satellite.disturbances
+                 if isinstance(d, (Drag_Disturbance, Sentman_Drag_Disturbance))), None)
     if drag is None:
-        warnings.warn("SGP4Orbit: the satellite has no Drag_Disturbance, so B* is set to 0 (no drag decay). "
+        warnings.warn("SGP4Orbit: the satellite has no Drag_Disturbance or Sentman_Drag_Disturbance, "
+                      "so B* is set to 0 (no drag decay). "
                       "Pass bstar= to set it explicitly.", stacklevel=3)
         return 0.0
     if satellite.mass <= 0:
         raise ValueError("satellite mass must be positive to derive B*")
-    # Isotropic attitude average of projected area: integral(max(0,n·u)) dΩ / 4π = 1/4.
-    average_cd_area = float(np.sum(drag.CDs * drag.areas)) / 4.0
+    average_cd_area = _average_cd_area(drag, float(speed_m_s))
     # SGP4's reference density, 2.461e-5 kg/m²/km, is 0.15696615 kg/m² per Earth radius;
     # TLE B* is in 1/ER, so the per-ER value is required.
     return 0.5 * 0.15696615 * average_cd_area / satellite.mass
@@ -148,7 +183,8 @@ class SGP4Orbit(Orbit):
         if not isinstance(os0, Orbital_State):
             raise TypeError("SGP4Orbit requires one initial Orbital_State")
         if bstar is None:
-            bstar = _average_bstar(satellite)
+            # Orbital_State.V is in km/s; the Sentman speed ratio needs m/s.
+            bstar = _average_bstar(satellite, speed_m_s=1000.0 * float(np.linalg.norm(os0.V)))
         self.bstar = float(bstar)
         if not np.isfinite(self.bstar):
             raise ValueError("bstar must be finite")

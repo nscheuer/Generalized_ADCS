@@ -18,7 +18,7 @@ from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import AnisotropicNoise, Noise
 from ADCS.satellite_hardware.satellite import EstimatedSatellite, Satellite
-from ADCS.satellite_hardware.sensors import GPS, MTM, EarthHorizonSensor, Gyro, StarTracker, StarTrackerQuaternion, SunPair, SunSensor
+from ADCS.satellite_hardware.sensors import GPS, MTM, EarthHorizonSensor, Gyro, StarTracker, StarTrackerQuaternion, SunPair, SunSensor, SunSensorWithEarthshine
 from ADCS.state import State
 
 TRUTH = State(w=np.array([0.02, -0.01, 0.015]), q=normalize(np.array([0.9, 0.2, -0.3, 0.1])))
@@ -36,6 +36,27 @@ def _orbital_state() -> Orbital_State:
 
 def _tilted_axis() -> np.ndarray:
     return rot_mat(rot_exp(TILT)) @ AXIS
+
+
+def _nadir_leaning_axis(os: Orbital_State) -> np.ndarray:
+    """A body axis 60 degrees off nadir, so earthshine reaches it and the Jacobian is nonzero."""
+    nadir = rot_mat(TRUTH.q).T @ (-normalize(os.R))
+    side = normalize(np.cross(nadir, [0.0, 0.0, 1.0]))
+    return normalize(0.5 * nadir + np.sqrt(0.75) * side)
+
+
+def test_earthshine_sensor_reads_both_terms_as_mounted():
+    os = _orbital_state()
+    axis = _nadir_leaning_axis(os)
+    tilted = rot_mat(rot_exp(TILT)) @ axis
+    sensor = SunSensorWithEarthshine(axis, efficiency=0.5, scale_factor=1.1, misalignment=TILT, albedo=0.3)
+    np.testing.assert_allclose(sensor.sensing_axis, tilted)
+    sun_body = rot_mat(TRUTH.q).T @ normalize(os.S - os.R)
+    nadir_body = rot_mat(TRUTH.q).T @ (-normalize(os.R))
+    direct = 0.5 * max(0.0, tilted @ sun_body)
+    earthshine = sensor._earthshine_scale(os) * max(0.0, tilted @ nadir_body)
+    assert earthshine > 0.0
+    np.testing.assert_allclose(sensor.clean_reading(TRUTH, os), 1.1 * (direct + earthshine))
 
 
 def test_single_axis_sensors_read_along_the_axis_as_mounted():
@@ -106,7 +127,8 @@ def test_mounted_boresight_controls_earth_and_star_visibility():
     lambda os: SunSensor(AXIS, efficiency=0.5, scale_factor=1.1, misalignment=TILT),
     lambda os: SunPair(AXIS, efficiency=(0.9, 0.7), scale_factor=1.1, misalignment=TILT),
     lambda os: EarthHorizonSensor(boresight=rot_mat(TRUTH.q).T @ (-normalize(os.R)), fov=np.deg2rad(60.0), misalignment=TILT),
-], ids=["gyro", "mtm", "sunsensor", "sunpair", "horizon"])
+    lambda os: SunSensorWithEarthshine(_nadir_leaning_axis(os), efficiency=0.5, scale_factor=1.1, misalignment=TILT),
+], ids=["gyro", "mtm", "sunsensor", "sunpair", "horizon", "earthshine"])
 def test_jacobians_follow_the_device_as_built(make):
     os = _orbital_state()
     sensor = make(os)

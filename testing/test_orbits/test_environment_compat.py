@@ -84,3 +84,28 @@ def test_from_dict_with_environment_keeps_non_default_magnetic_model():
     assert loaded.environment is environment
     assert loaded.magnetic_model == model
     np.testing.assert_allclose(loaded.B, state.B)
+
+
+def test_user_magnetic_field_without_a_name_drives_states_and_orbits():
+    from ADCS.environment.magnetic_field import MagneticField
+    from ADCS.orbits.orbit import Orbit
+    from ADCS.orbits.universal_constants import TimeConstants
+
+    class UniformRadialField(MagneticField):
+        def field_gc(self, r, theta, phi, date):
+            r = np.asarray(r, dtype=float)
+            return 30000.0 * np.ones_like(r), np.zeros_like(r), np.zeros_like(r)
+
+    environment = Environment(magnetic_field=UniformRadialField())
+    assert environment.magnetic_model == "UniformRadialField"
+    R = np.array([6878.0, 0.0, 0.0])
+    state = Orbital_State(J2000=0.26, R=R, V=np.array([0.0, 7.6, 0.0]), environment=environment)
+    np.testing.assert_allclose(state.B, 30000.0e-9 * R / np.linalg.norm(R), rtol=1e-6, atol=1e-15)
+
+    dt = 60.0
+    orbit = Orbit(state, end_time=state.J2000 + 3 * dt * TimeConstants.sec2cent, dt=dt, environment=environment)
+    # get_range / new_orbit_from_times rebuild an Orbit; they must keep the user's model.
+    sub = orbit.get_range(orbit.min_time(), orbit.max_time())
+    assert sub.environment is environment
+    resampled = orbit.new_orbit_from_times([orbit.min_time(), 0.5 * (orbit.min_time() + orbit.max_time())])
+    assert resampled.environment is environment

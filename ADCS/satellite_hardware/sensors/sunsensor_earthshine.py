@@ -64,8 +64,12 @@ class SunSensorWithEarthshine(SunSensor):
 
     Parameters
     ----------
-    axis, efficiency, sample_time, bias, noise, estimate_bias
+    axis, efficiency, sample_time, bias, noise, estimate_bias, scale_factor, misalignment
         As for :class:`~ADCS.satellite_hardware.sensors.sunsensor.SunSensor`.
+        The scale factor and misalignment describe the device as built, so they
+        apply to the earthshine term as well as the direct-Sun term: earthshine
+        is seen along the misaligned :attr:`sensing_axis` and scaled by
+        :attr:`scale_factor`.
     albedo : float
         Bond albedo :math:`a` of the Earth, dimensionless. 0.3 is the usual
         global mean.
@@ -82,6 +86,8 @@ class SunSensorWithEarthshine(SunSensor):
         bias: Optional[Bias] = None,
         noise: Optional[Noise] = None,
         estimate_bias: bool = False,
+        scale_factor: float = 1.0,
+        misalignment: Optional[np.ndarray] = None,
         *,
         albedo: float = 0.3,
         earth_radius: float = EarthConstants.R_e,
@@ -101,6 +107,8 @@ class SunSensorWithEarthshine(SunSensor):
             bias=bias,
             noise=noise,
             estimate_bias=estimate_bias,
+            scale_factor=scale_factor,
+            misalignment=misalignment,
         )
 
     def _earthshine_scale(self, os: Orbital_State) -> float:
@@ -115,7 +123,7 @@ class SunSensorWithEarthshine(SunSensor):
         r"""The earthshine term :math:`y_\oplus` alone, ignoring eclipse."""
         vecs = os.get_state_vector(x=x)
         nadir = normalize(-vecs["r"])
-        return self._earthshine_scale(os) * np.maximum(np.dot(self.axis, nadir), 0.0)
+        return self.scale_factor * self._earthshine_scale(os) * np.maximum(np.dot(self.sensing_axis, nadir), 0.0)
 
     def clean_reading(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""Base Sun reading plus the earthshine term; ``NaN`` in eclipse as for the base class."""
@@ -132,6 +140,7 @@ class SunSensorWithEarthshine(SunSensor):
         vecs = os.get_state_vector(x=x)
         nadir = normalize(-vecs["r"])
         dnadir__dq = normed_vec_jac(-vecs["r"], -vecs["dr"])
-        facing = np.dot(self.axis, nadir) > 0.0
-        dearth__dq = self._earthshine_scale(os) * facing * (dnadir__dq @ self.axis)
+        axis = self.sensing_axis
+        facing = np.dot(axis, nadir) > 0.0
+        dearth__dq = self.scale_factor * self._earthshine_scale(os) * facing * (dnadir__dq @ axis)
         return jac + np.vstack([np.zeros((3, 1)), np.expand_dims(dearth__dq, 1)])
