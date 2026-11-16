@@ -1,41 +1,41 @@
 {
   "benchmarks": {
     "dynamics_core_mtq": {
-      "loops": 256,
-      "max_regression": 1.5,
-      "normalized_seconds": 0.013547910445917574,
-      "seconds": 0.00012021538671858067
-    },
-    "dynamics_core_plain": {
-      "loops": 4096,
-      "max_regression": 1.5,
-      "normalized_seconds": 0.0008007431539648108,
-      "seconds": 7.105276367186386e-06
-    },
-    "dynamics_core_reaction_wheels": {
       "loops": 512,
       "max_regression": 1.5,
-      "normalized_seconds": 0.005287774428920967,
-      "seconds": 4.692028710928664e-05
+      "normalized_seconds": 0.01252857865951559,
+      "seconds": 5.7743919921887654e-05
+    },
+    "dynamics_core_plain": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.000829917580121954,
+      "seconds": 3.825070312499582e-06
+    },
+    "dynamics_core_reaction_wheels": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.005194328731605804,
+      "seconds": 2.394053710937094e-05
     },
     "dynamics_for_solver_full_stack": {
-      "loops": 64,
+      "loops": 128,
       "max_regression": 1.5,
-      "normalized_seconds": 0.057366815665633925,
-      "seconds": 0.0005090359843746839
+      "normalized_seconds": 0.05330267020532891,
+      "seconds": 0.0002456707343750919
     },
     "noiseless_rk4_full_stack": {
-      "loops": 32,
+      "loops": 64,
       "max_regression": 1.5,
-      "normalized_seconds": 0.17973029810703472,
-      "seconds": 0.0015948103125005275
+      "normalized_seconds": 0.16688360747371056,
+      "seconds": 0.0007691625625001475
     }
   },
-  "calibration_loops": 8,
-  "calibration_seconds": 0.00887335262500244,
+  "calibration_loops": 16,
+  "calibration_seconds": 0.004608976124999664,
   "description": "Dynamics fast benchmark results normalized by calibration_seconds.",
-  "platform": "Linux-6.17.0-1020-azure-x86_64-with-glibc2.39",
+  "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
   "processor": "x86_64",
-  "python": "3.12.13",
+  "python": "3.12.15",
   "schema_version": 1
 }
