@@ -93,9 +93,10 @@ Documentation and examples
 The estimation tutorials and runnable estimator examples are linked directly
 from the release documentation:
 
-* :doc:`Tutorials <../tutorials/index>`
-  — `Tutorial 3 augmented source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_3_simple_estimation_augmented.py>`_.
-  — `Tutorial 4 augmented source script <https://github.com/nscheuer/Generalized_ADCS/blob/main/examples/tutorials/tutorial_4_complex_estimation_augmented.py>`_.
+* :doc:`Estimator tutorials <../tutorials/6_0_estimators>`.
+* :doc:`EKF with bias estimates <../tutorials/6_4_ekf_with_bias_estimates>`.
+* :doc:`EKF with residual dipole estimation <../tutorials/6_5_ekf_with_residual_dipole_estimation>`.
+* :doc:`EKF with disturbance torque estimation <../tutorials/6_6_ekf_with_disturbance_torque_estimation>`.
 
 Regular estimator examples:
 
