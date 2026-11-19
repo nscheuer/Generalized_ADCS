@@ -88,6 +88,22 @@ viz = [
     "pyvista>=0.44",
     "Pillow>=10.0",
 ]
+# Godot viewer add-ons; the viewer's messages and docstrings name these.
+# MP4 export from render_video when no ffmpeg is on PATH (frames via Pillow).
+viz-video = [
+    "imageio-ffmpeg>=0.4",
+    "Pillow>=10.0",
+]
+# Spacecraft model import (glTF/STL) with LOD decimation. trimesh 4.6 is the
+# first with trimesh.load_scene.
+viz-mesh = [
+    "trimesh>=4.6",
+    "fast-simplification>=0.1.7",
+]
+# Rebuilding the viewer's texture assets.
+viz-assets = [
+    "Pillow>=10.0",
+]
 
 # Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
 #
