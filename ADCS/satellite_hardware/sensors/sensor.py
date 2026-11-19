@@ -101,6 +101,14 @@ class Sensor:
     #: Single-axis direction sensors expose ``axis`` (and sun sensors
     #: ``efficiency``); vector sensors return the body-frame direction itself.
     observation_kind: Optional[str] = None
+    # Pre-0.2.2 pickles restore only instance state and skip __init__. These
+    # nominal defaults keep those sensors usable after the mounting-error
+    # fields were added.
+    scale_factor: float = 1.0
+    misalignment: Optional[np.ndarray] = None
+    _identity_mounting_rotation = np.eye(3)
+    _identity_mounting_rotation.setflags(write=False)
+    mounting_rotation: np.ndarray = _identity_mounting_rotation
 
     def reference_direction(self, os: Orbital_State) -> Optional[np.ndarray]:
         r"""
