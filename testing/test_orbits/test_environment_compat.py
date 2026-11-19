@@ -70,6 +70,21 @@ def test_orbital_state_accepts_density_model_keyword():
     assert state.rho == pytest.approx(float(density_model.interpolate(500.0)))
 
 
+def test_orbital_state_keeps_the_0_2_1_positional_order():
+    """0.2.1 took (ephem, J2000, R, V, S, B, rho, density_model, fast, magnetic_model)."""
+    density_model = importlib.import_module("ADCS.orbits.density_model").DensityModel(
+        np.array([0.0, 500.0, 1000.0]), np.array([1.0, 1e-12, 1e-14])
+    )
+    R, V = np.array([6878.0, 0.0, 0.0]), np.array([0.0, 7.6, 0.0])
+
+    with pytest.warns(DeprecationWarning, match="density_model"):
+        state = Orbital_State(DE421(), 0.26, R, V, None, None, None, density_model)
+    assert state.rho == pytest.approx(float(density_model.interpolate(500.0)))
+
+    state = Orbital_State(DE421(), 0.26, R, V, None, None, None, None, False, "igrf_ppigrf")
+    assert state.magnetic_model == "igrf_ppigrf"
+
+
 def test_from_dict_with_environment_keeps_non_default_magnetic_model():
     model = "wmm2025"
     assert model != DEFAULT_MAGNETIC_MODEL

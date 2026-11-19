@@ -351,10 +351,12 @@ class Orbital_State:
         S: Optional[np.ndarray] = None,
         B: Optional[np.ndarray] = None,
         rho: Optional[float] = None,
+        # density_model stays in its 0.2.1 position so old positional calls
+        # still reach it (and its deprecation warning).
+        density_model=None,
         fast: bool = False,
         magnetic_model: str = DEFAULT_MAGNETIC_MODEL,
         environment: Environment | None = None,
-        density_model=None,
     ) -> None:
         r"""
         Initialize a fully defined orbital state.
@@ -387,6 +389,10 @@ class Orbital_State:
             Optional atmospheric density [kg/m^3]. If not provided, it is computed.
         :type rho: float or None
 
+        :param density_model:
+            Deprecated alias for ``environment.atmosphere``.
+        :type density_model: Atmosphere or None
+
         :param fast:
             Backward-compatible parameter (ignored).
         :type fast: bool
@@ -396,10 +402,6 @@ class Orbital_State:
             :data:`ADCS.environment.MAGNETIC_MODELS`. Carried to every state
             derived from this one (copies, propagation, interpolation).
         :type magnetic_model: str
-
-        :param density_model:
-            Deprecated alias for ``environment.atmosphere``.
-        :type density_model: Atmosphere or None
 
         :return:
             ``None``
