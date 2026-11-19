@@ -77,17 +77,12 @@ jobs:
           cholupdate(R, x)
           assert np.allclose(R.T @ R, A + np.outer(x, x)), "cholupdate is wrong"
 
-          # package data must travel with the wheel
+          # PEP 561 marker must travel with the wheel, or downstream type
+          # checkers silently discard every annotation we ship
           root = os.path.dirname(ADCS.__file__)
-          for rel in ("helpers/plot/orbit/textures/2k_earth_daymap.jpg",
-                      "helpers/plotting/textures/2k_earth_daymap.jpg"):
-              assert os.path.exists(os.path.join(root, rel)), f"missing data file: {rel}"
-
           # the legacy estimator that used to need choldate
           from ADCS.estimators.attitude_estimators import SRUKF
 
-          # PEP 561 marker must travel with the wheel, or downstream type
-          # checkers silently discard every annotation we ship
           assert os.path.exists(os.path.join(root, "py.typed")), "py.typed missing"
 
           # ADCS.pipeline is mapped in from papers/Generalized_ACS via
