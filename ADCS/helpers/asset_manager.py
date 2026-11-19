@@ -13,14 +13,22 @@ from tqdm.auto import tqdm
 
 
 def user_cache_dir() -> Path:
-    """Writable per-user cache root on Linux, WSL, macOS, and Windows."""
+    """Writable per-user cache root on Linux, WSL, macOS, and Windows.
+
+    ``XDG_CACHE_HOME`` takes precedence on every platform, as it did in
+    0.2.1, so one variable relocates the cache (and the tests' isolation
+    works) on macOS and Windows too.
+    """
+    xdg = os.environ.get("XDG_CACHE_HOME")
     platform = getattr(sys, "platform", "linux")
-    if platform == "win32":
+    if xdg:
+        base = Path(xdg).expanduser()
+    elif platform == "win32":
         base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
     elif platform == "darwin":
         base = Path.home() / "Library" / "Caches"
     else:
-        base = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache").expanduser()
+        base = Path.home() / ".cache"
     return base / "generalized_adcs"
 
 

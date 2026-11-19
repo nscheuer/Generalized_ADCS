@@ -48,6 +48,14 @@ def test_user_cache_root_by_platform(monkeypatch, tmp_path, platform, expected):
     assert asset_manager.user_cache_dir() == tmp_path / expected
 
 
+@pytest.mark.parametrize("platform", ["linux", "darwin", "win32"])
+def test_xdg_cache_home_wins_on_every_platform(monkeypatch, tmp_path, platform):
+    monkeypatch.setattr(asset_manager, "sys", SimpleNamespace(platform=platform))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
+    assert asset_manager.user_cache_dir() == tmp_path / "xdg" / "generalized_adcs"
+
+
 def test_windows_localappdata_override(monkeypatch, tmp_path):
     monkeypatch.setattr(asset_manager, "sys", SimpleNamespace(platform="win32"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
