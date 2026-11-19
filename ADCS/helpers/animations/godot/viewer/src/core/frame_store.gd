@@ -115,7 +115,9 @@ func value(name: String, ts: float) -> PackedFloat64Array:
 
 
 ## Interpolated state at time `ts` (seconds since epoch): Hermite position,
-## slerped attitude and Earth orientation, linear Sun/Moon. Metres.
+## attitude integrated from the body rates (so spins faster than 180 degrees
+## per sample play forwards), slerped Earth orientation, linear Sun/Moon.
+## Metres.
 func sample(ts: float) -> Dictionary:
 	var ks: Array = locate(ts)
 	var k: int = ks[0]
@@ -129,7 +131,8 @@ func sample(ts: float) -> Dictionary:
 		"k": k,
 		"r_sc": D.scale(r, 1000.0),
 		"v_sc": D.scale(value("v_sc", ts), 1000.0),
-		"q_gcrs_body": D.slerp(get_row("q_gcrs_body", k), get_row("q_gcrs_body", k1), s),
+		"q_gcrs_body": D.rate_interp(get_row("q_gcrs_body", k), get_row("q_gcrs_body", k1),
+			get_row("w_body", k), get_row("w_body", k1), h, s),
 		"w_body": value("w_body", ts),
 		"q_itrs_gcrs": D.slerp(get_row("q_itrs_gcrs", k), get_row("q_itrs_gcrs", k1), s),
 		"r_sun": D.scale(value("r_sun", ts), 1000.0),

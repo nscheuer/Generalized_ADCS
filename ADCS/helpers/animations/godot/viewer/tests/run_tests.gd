@@ -46,7 +46,7 @@ func _init() -> void:
 	for i in argv.size():
 		if argv[i] == "--fixture" and i + 1 < argv.size():
 			args["fixture"] = argv[i + 1]
-	for t: Callable in [test_rot_mat, test_look_rot, test_slerp, test_hermite, test_frame_store, test_clock,
+	for t: Callable in [test_rot_mat, test_look_rot, test_slerp, test_rate_interp, test_hermite, test_frame_store, test_clock,
 			test_origin, test_protocol_frames, test_moon_frame, test_arrow_lengths, test_tracks,
 			test_time_format, test_ticks, test_eclipse_lane, test_pass_lane, test_bookmarks, test_attitude,
 			test_timeline_mapping]:
@@ -105,6 +105,48 @@ func test_slerp() -> void:
 	var h2 := D.slerp(q0, neg, 0.5)
 	near(absf(h2[0]), cos(PI / 8), 1e-12, "slerp takes the short arc with -q")
 
+
+
+## Same rotation, either sign.
+func same_rotation(q: PackedFloat64Array, r: PackedFloat64Array, what: String) -> void:
+	near(absf(q[0] * r[0] + q[1] * r[1] + q[2] * r[2] + q[3] * r[3]), 1.0, 1e-12, what)
+
+
+func unit4(q: PackedFloat64Array) -> PackedFloat64Array:
+	var n := sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3])
+	return PackedFloat64Array([q[0] / n, q[1] / n, q[2] / n, q[3] / n])
+
+
+func z_turn(deg: float) -> PackedFloat64Array:
+	return PackedFloat64Array([cos(deg_to_rad(deg) / 2), 0, 0, sin(deg_to_rad(deg) / 2)])
+
+
+func test_rate_interp() -> void:
+	var q0 := z_turn(0.0)
+	# 30 deg/s for 10 s is 300 deg per sample; the short arc is -60 deg.
+	var w := PackedFloat64Array([0, 0, deg_to_rad(30.0)])
+	var q1 := z_turn(300.0)
+	same_rotation(D.rate_interp(q0, q1, w, w, 10.0, 0.5), z_turn(150.0), "300 deg/sample plays forwards")
+	same_rotation(D.rate_interp(q0, q1, w, w, 10.0, 1.0), q1, "ends on the next sample")
+	same_rotation(D.slerp(q0, q1, 0.5), z_turn(-30.0), "slerp alone plays it backwards")
+	# 90 deg/s for 10 s is two and a half turns per sample.
+	var fast := PackedFloat64Array([0, 0, deg_to_rad(90.0)])
+	same_rotation(D.rate_interp(q0, z_turn(900.0), fast, fast, 10.0, 0.5), z_turn(450.0), "multi-turn sample")
+	same_rotation(D.rate_interp(q0, z_turn(720.0), fast, fast, 8.0, 0.25), z_turn(180.0), "whole turns")
+	# Spinning up from rest at 9 deg/s^2: 450 deg in 10 s, a quarter of it by mid-interval.
+	var spun := PackedFloat64Array([0, 0, deg_to_rad(90.0)])
+	same_rotation(D.rate_interp(q0, z_turn(450.0), PackedFloat64Array([0, 0, 0]), spun, 10.0, 0.5),
+		z_turn(112.5), "rates varying linearly")
+	# Without rates it is slerp.
+	var qa := unit4(PackedFloat64Array([0.9, 0.1, -0.3, 0.2]))
+	var qb := unit4(PackedFloat64Array([0.7, 0.4, -0.1, 0.5]))
+	var still := PackedFloat64Array([0, 0, 0])
+	var r := D.rate_interp(qa, qb, still, still, 10.0, 0.3)
+	var ref := D.slerp(qa, qb, 0.3)
+	for i in 4:
+		near(r[i], ref[i], 1e-12, "zero rates equal slerp [%d]" % i)
+	same_rotation(D.rate_interp(qa, qb, PackedFloat64Array([0.3, -0.2, 0.1]), still, 10.0, 1.0), qb,
+		"inconsistent rates still end on the sample")
 
 func test_hermite() -> void:
 	var a := 7000.0e3
