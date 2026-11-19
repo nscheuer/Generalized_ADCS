@@ -77,3 +77,72 @@ def test_nrlmsise_derives_geodetic_for_timezone_aware_date(monkeypatch):
     assert np.isfinite(captured["lats"][0])
     assert np.isfinite(captured["lons"][0])
     assert np.isfinite(captured["alts"][0])
+
+
+def _fake_record(monkeypatch, end="2026-12-04T21:00"):
+    """A PyMSIS stand-in whose space-weather record ends at ``end``."""
+    import ADCS.environment.atmosphere.nrlmsise as nrlmsise_module
+
+    monkeypatch.setattr(nrlmsise_module, "_record_span", None)
+    stop = np.datetime64(end) + np.timedelta64(3, "h")
+    lookups, captured = [], {}
+
+    def get_f107_ap(dates):
+        dates = np.asarray(dates, dtype="datetime64[us]")
+        lookups.append(dates)
+        if np.any((dates < np.datetime64("1957-10-01")) | (dates >= stop)):
+            raise ValueError(
+                "The geomagnetic data is not available for these dates. "
+                f"Dates should be between 1957-10-01T00:00 and {end}."
+            )
+        n = len(dates)
+        return np.full(n, 70.0), np.full(n, 75.0), np.full((n, 7), 9.0)
+
+    def calculate(dates, lons, lats, alts, **kwargs):
+        captured.update(kwargs)
+        return np.full((len(dates), 11), 1e-12)
+
+    monkeypatch.setitem(sys.modules, "pymsis",
+                        SimpleNamespace(calculate=calculate, utils=SimpleNamespace(get_f107_ap=get_f107_ap)))
+    return lookups, captured
+
+
+def test_nrlmsise_dates_past_the_record_use_fallback_indices(monkeypatch):
+    lookups, captured = _fake_record(monkeypatch)
+    model = NRLMSISE00()
+    dates = [datetime(2026, 6, 1), datetime(2030, 1, 1)]
+    lla = np.array([[0.0, 0.0, 400.0], [0.0, 0.0, 400.0]])
+
+    with pytest.warns(UserWarning, match="Pin f107, f107a and ap"):
+        model.density(np.zeros((2, 3)) + [6800.0, 0.0, 0.0], dates, lla)
+    np.testing.assert_array_equal(captured["f107s"], [70.0, NRLMSISE00.FALLBACK_F107])
+    np.testing.assert_array_equal(captured["f107as"], [75.0, NRLMSISE00.FALLBACK_F107A])
+    np.testing.assert_array_equal(captured["aps"], [[9.0] * 7, [NRLMSISE00.FALLBACK_AP] * 7])
+
+    # Once the span is known, no out-of-range date reaches PyMSIS again (each
+    # such request would make it re-download the record).
+    lookups.clear()
+    with pytest.warns(UserWarning):
+        model.density(np.array([6800.0, 0.0, 0.0]), datetime(2031, 1, 1), np.array([0.0, 0.0, 400.0]))
+    assert lookups == []
+
+
+def test_nrlmsise_pinned_indices_are_kept_past_the_record(monkeypatch):
+    _, captured = _fake_record(monkeypatch)
+    model = NRLMSISE00(f107=200.0, f107a=180.0)  # ap left to the record
+
+    with pytest.warns(UserWarning):
+        model.density(np.array([6800.0, 0.0, 0.0]), datetime(2030, 1, 1), np.array([0.0, 0.0, 400.0]))
+    np.testing.assert_array_equal(captured["f107s"], [200.0])
+    np.testing.assert_array_equal(captured["f107as"], [180.0])
+    np.testing.assert_array_equal(captured["aps"], [[NRLMSISE00.FALLBACK_AP] * 7])
+
+
+def test_nrlmsise_dates_inside_the_record_do_not_warn(monkeypatch):
+    _, captured = _fake_record(monkeypatch)
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        NRLMSISE00().density(np.array([6800.0, 0.0, 0.0]), datetime(2024, 1, 1), np.array([0.0, 0.0, 400.0]))
+    np.testing.assert_array_equal(captured["aps"], [[9.0] * 7])

@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+import re
+import warnings
 from datetime import datetime, timezone
 
 import numpy as np
 
 from .atmosphere import Atmosphere
+
+# PyMSIS reports the span of its space-weather record only in the error it
+# raises for a date outside it ("Dates should be between <start> and <end>.").
+_RECORD_SPAN_RE = re.compile(r"between (\S+) and (\S+?)\.?\s*$")
+# (first date, first date past the end) of that record, once a request has
+# fallen outside it. Later requests then never hand PyMSIS an out-of-range
+# date, which would make it re-download the record each time.
+_record_span: tuple[np.datetime64, np.datetime64] | None = None
 
 
 class NRLMSISE00(Atmosphere):
@@ -16,6 +26,10 @@ class NRLMSISE00(Atmosphere):
     UTC dates and geodetic latitude, longitude, and altitude are normally
     supplied by ``Orbital_State`` and ``Orbit``. If solar indices are omitted,
     PyMSIS retrieves and caches historical F10.7 and Ap data when needed.
+    That record (CelesTrak ``SW-All.csv``) starts in October 1957 and ends
+    with daily predictions a few weeks ahead; dates outside it use
+    :attr:`FALLBACK_F107`, :attr:`FALLBACK_F107A`, and :attr:`FALLBACK_AP`
+    with a warning. Pin ``f107``, ``f107a``, and ``ap`` for future epochs.
 
     ``interpolate`` is provided for altitude-profile plotting and evaluates at
     the configured reference date and location (defaults: J2000-01-01, 0°, 0°).
@@ -23,6 +37,16 @@ class NRLMSISE00(Atmosphere):
     Source: U.S. Naval Research Laboratory NRLMSISE-00 model; Picone et al.
     (2002), doi:10.1029/2002JA009430. See the project citation guide.
     """
+
+    #: F10.7 [sfu] used for dates outside PyMSIS's space-weather record when
+    #: ``f107`` is not pinned. With :attr:`FALLBACK_F107A` and
+    #: :attr:`FALLBACK_AP` this is the NRLMSISE-00 reference test case:
+    #: moderate solar and quiet geomagnetic activity.
+    FALLBACK_F107: float = 150.0
+    #: 81-day mean F10.7 [sfu] used outside the record when ``f107a`` is not pinned.
+    FALLBACK_F107A: float = 150.0
+    #: Daily Ap used outside the record when ``ap`` is not pinned.
+    FALLBACK_AP: float = 4.0
 
     def __init__(
         self,
@@ -147,23 +171,99 @@ class NRLMSISE00(Atmosphere):
         :rtype: numpy.ndarray
         """
         pymsis = self._backend()
-        kwargs = {"version": self.version}
-        if self.f107 is not None:
-            kwargs["f107s"] = np.full(len(dates), self.f107)
-        if self.f107a is not None:
-            kwargs["f107as"] = np.full(len(dates), self.f107a)
-        if self.ap is not None:
-            # PyMSIS takes seven ap values per date (daily Ap, then the 3-hour
-            # history that only geomagnetic_activity=-1 reads).
-            kwargs["aps"] = np.full((len(dates), 7), float(self.ap))
+        f107s, f107as, aps = self._indices(pymsis, dates)
         result = pymsis.calculate(
             dates,
             lla[:, 1],
             lla[:, 0],
             lla[:, 2],
-            **kwargs,
+            f107s=f107s,
+            f107as=f107as,
+            aps=aps,
+            version=self.version,
         )
         return np.asarray(result, dtype=float).reshape(-1, 11)[:, 0]
+
+    def _indices(self, pymsis, dates: np.ndarray):
+        r"""Solar and geomagnetic indices for each date.
+
+        Pinned values are used as given. The rest come from PyMSIS's
+        space-weather record, or from the ``FALLBACK_*`` values (with a
+        warning) for dates the record does not cover.
+
+        :param pymsis: Imported PyMSIS backend.
+        :type pymsis: module
+        :param dates: UTC ``datetime64`` dates.
+        :type dates: numpy.ndarray
+        :return: F10.7 ``(n,)``, 81-day F10.7 ``(n,)``, and ap ``(n, 7)``:
+            daily Ap, then the 3-hour history that only
+            ``geomagnetic_activity=-1`` reads.
+        :rtype: tuple
+        """
+        n = len(dates)
+        f107 = None if self.f107 is None else np.full(n, float(self.f107))
+        f107a = None if self.f107a is None else np.full(n, float(self.f107a))
+        ap = None if self.ap is None else np.full((n, 7), float(self.ap))
+        if f107 is None or f107a is None or ap is None:
+            recorded = self._recorded_indices(pymsis, dates)
+            f107 = recorded[0] if f107 is None else f107
+            f107a = recorded[1] if f107a is None else f107a
+            ap = recorded[2] if ap is None else ap
+        return f107, f107a, ap
+
+    def _recorded_indices(self, pymsis, dates: np.ndarray):
+        r"""Look up indices in PyMSIS's record, falling back outside it.
+
+        :param pymsis: Imported PyMSIS backend.
+        :type pymsis: module
+        :param dates: UTC ``datetime64`` dates.
+        :type dates: numpy.ndarray
+        :return: F10.7 ``(n,)``, 81-day F10.7 ``(n,)``, and ap ``(n, 7)``.
+        :rtype: tuple
+        :raises ValueError: If PyMSIS rejects the dates for a reason other
+            than the record's span.
+        """
+        global _record_span
+        get_f107_ap = pymsis.utils.get_f107_ap
+        if _record_span is None:
+            try:
+                found = get_f107_ap(dates)
+            except ValueError as exc:
+                match = _RECORD_SPAN_RE.search(str(exc))
+                if match is None:
+                    raise
+                # Each record entry covers the three hours from its timestamp.
+                _record_span = (
+                    np.datetime64(match.group(1)),
+                    np.datetime64(match.group(2)) + np.timedelta64(3, "h"),
+                )
+            else:
+                return (
+                    np.asarray(found[0], dtype=float).reshape(-1),
+                    np.asarray(found[1], dtype=float).reshape(-1),
+                    np.asarray(found[2], dtype=float).reshape(-1, 7),
+                )
+
+        start, end = _record_span
+        inside = (dates >= start) & (dates < end)
+        n = len(dates)
+        f107 = np.full(n, float(self.FALLBACK_F107))
+        f107a = np.full(n, float(self.FALLBACK_F107A))
+        ap = np.full((n, 7), float(self.FALLBACK_AP))
+        if np.any(inside):
+            found = get_f107_ap(dates[inside])
+            f107[inside] = np.asarray(found[0], dtype=float).reshape(-1)
+            f107a[inside] = np.asarray(found[1], dtype=float).reshape(-1)
+            ap[inside] = np.asarray(found[2], dtype=float).reshape(-1, 7)
+        if not np.all(inside):
+            warnings.warn(
+                f"NRLMSISE00: PyMSIS's space-weather record covers {start} to {end}; "
+                f"dates outside it use F10.7 = {self.FALLBACK_F107:g}, "
+                f"F10.7a = {self.FALLBACK_F107A:g} sfu and Ap = {self.FALLBACK_AP:g}. "
+                "Pin f107, f107a and ap to choose these values.",
+                stacklevel=2,
+            )
+        return f107, f107a, ap
 
     def density(self, position_eci_km, datetime_utc=None, geodetic_lla=None):
         r"""Evaluate NRLMSISE mass density at one or many ECI positions.
