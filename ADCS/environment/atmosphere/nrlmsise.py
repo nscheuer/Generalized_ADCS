@@ -149,11 +149,11 @@ class NRLMSISE00(Atmosphere):
         pymsis = self._backend()
         kwargs = {"version": self.version}
         if self.f107 is not None:
-            kwargs["f107s"] = self.f107
+            kwargs["f107s"] = np.full(len(dates), self.f107)
         if self.f107a is not None:
-            kwargs["f107as"] = self.f107a
+            kwargs["f107as"] = np.full(len(dates), self.f107a)
         if self.ap is not None:
-            kwargs["aps"] = self.ap
+            kwargs["aps"] = np.full(len(dates), self.ap)
         result = pymsis.calculate(
             dates,
             lla[:, 1],

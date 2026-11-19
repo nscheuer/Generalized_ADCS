@@ -27,7 +27,10 @@ def test_nrlmsise_forwards_aligned_date_and_geodetic_values(monkeypatch):
     np.testing.assert_allclose(captured["lons"], [34.0, 80.0])
     np.testing.assert_allclose(captured["lats"], [12.0, -10.0])
     np.testing.assert_allclose(captured["alts"], [400.0, 450.0])
-    assert captured["kwargs"] == {"version": 0, "f107s": 120, "f107as": 115, "aps": 4}
+    assert captured["kwargs"]["version"] == 0
+    np.testing.assert_array_equal(captured["kwargs"]["f107s"], [120, 120])
+    np.testing.assert_array_equal(captured["kwargs"]["f107as"], [115, 115])
+    np.testing.assert_array_equal(captured["kwargs"]["aps"], [4, 4])
 
 
 def test_nrlmsise_requires_date_for_orbit_density():
