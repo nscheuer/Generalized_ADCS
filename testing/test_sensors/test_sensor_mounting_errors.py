@@ -197,3 +197,17 @@ def test_sensor_from_legacy_pickle_uses_nominal_mounting_defaults():
     assert restored.misalignment is None
     np.testing.assert_array_equal(restored.mounting_rotation, np.eye(3))
     np.testing.assert_allclose(restored.reading(TRUTH, _orbital_state()), restored.clean_reading(TRUTH, _orbital_state()))
+
+
+@pytest.mark.parametrize("tracker_type", [StarTracker, StarTrackerQuaternion])
+def test_star_tracker_from_legacy_pickle_reads(tracker_type):
+    tracker = tracker_type()
+    # 0.2.1 trackers also lack the per-sensor catalogue flag.
+    for name in ("scale_factor", "misalignment", "mounting_rotation", "_catalog_explicit"):
+        tracker.__dict__.pop(name, None)
+    restored = pickle.loads(pickle.dumps(tracker))
+
+    assert restored._catalog_explicit is False
+    os = _orbital_state()
+    assert np.asarray(restored.clean_reading(TRUTH, os)).shape == (tracker_type.output_length,)
+    restored.basestate_jac(TRUTH, os)

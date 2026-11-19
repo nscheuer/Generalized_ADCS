@@ -82,6 +82,11 @@ class StarTrackerQuaternion(Sensor):
 
     observation_kind = "attitude"
 
+    # Unpickling skips __init__, and trackers saved by 0.2.1 predate this
+    # flag. Those had no way to take a catalogue from the environment, so
+    # "not explicit" keeps their own catalogue unless the environment sets one.
+    _catalog_explicit: bool = False
+
     def __init__(
         self,
         sample_time: float = 0.1,

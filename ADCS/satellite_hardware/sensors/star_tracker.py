@@ -105,6 +105,11 @@ class StarTracker(Sensor):
 
     observation_kind = "star"
 
+    # Unpickling skips __init__, and trackers saved by 0.2.1 predate this
+    # flag. Those had no way to take a catalogue from the environment, so
+    # "not explicit" keeps their own catalogue unless the environment sets one.
+    _catalog_explicit: bool = False
+
     def reference_direction(self, os):
         """Inertial direction of the star of the last reading, if this object took it.
 
