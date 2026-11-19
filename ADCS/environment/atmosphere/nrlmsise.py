@@ -153,7 +153,9 @@ class NRLMSISE00(Atmosphere):
         if self.f107a is not None:
             kwargs["f107as"] = np.full(len(dates), self.f107a)
         if self.ap is not None:
-            kwargs["aps"] = np.full(len(dates), self.ap)
+            # PyMSIS takes seven ap values per date (daily Ap, then the 3-hour
+            # history that only geomagnetic_activity=-1 reads).
+            kwargs["aps"] = np.full((len(dates), 7), float(self.ap))
         result = pymsis.calculate(
             dates,
             lla[:, 1],

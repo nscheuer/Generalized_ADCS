@@ -30,7 +30,27 @@ def test_nrlmsise_forwards_aligned_date_and_geodetic_values(monkeypatch):
     assert captured["kwargs"]["version"] == 0
     np.testing.assert_array_equal(captured["kwargs"]["f107s"], [120, 120])
     np.testing.assert_array_equal(captured["kwargs"]["f107as"], [115, 115])
-    np.testing.assert_array_equal(captured["kwargs"]["aps"], [4, 4])
+    np.testing.assert_array_equal(captured["kwargs"]["aps"], np.full((2, 7), 4.0))
+
+
+def test_nrlmsise_pinned_indices_with_real_pymsis():
+    """A batch with pinned indices runs through the real backend.
+
+    The mocked tests above check what is passed; this one checks that PyMSIS
+    accepts it. Pinned indices need no space-weather download.
+    """
+    pymsis = pytest.importorskip("pymsis")
+    model = NRLMSISE00(version=0, f107=150, f107a=150, ap=4)
+    dates = [datetime(2024, 1, 1, h) for h in (0, 1, 2)]
+    lla = np.array([[0.0, 0.0, 400.0], [45.0, 90.0, 450.0], [-60.0, 200.0, 500.0]])
+    density = model.density(np.zeros((3, 3)) + [6800.0, 0.0, 0.0], dates, lla)
+
+    expected = [
+        pymsis.calculate(np.datetime64(d), lon, lat, alt, f107s=[150.0], f107as=[150.0],
+                         aps=[[4.0] * 7], version=0).reshape(-1)[0]
+        for d, (lat, lon, alt) in zip(dates, lla)
+    ]
+    np.testing.assert_allclose(density, expected, rtol=1e-12)
 
 
 def test_nrlmsise_requires_date_for_orbit_density():
