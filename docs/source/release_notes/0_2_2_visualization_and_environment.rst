@@ -50,6 +50,34 @@ The work is tracked in pull requests
 `#248 <https://github.com/nscheuer/Generalized_ADCS/pull/248>`__, and
 `#249 <https://github.com/nscheuer/Generalized_ADCS/pull/249>`__.
 
+.. warning:: Breaking changes and deprecations
+
+   * **Environment configuration moved to ``Environment``.** Pass atmospheric
+     density models as ``Environment(atmosphere=...)`` to ``Orbital_State`` or
+     ``simulate()``. The ``density_model`` constructor argument and
+     ``Orbital_State.density_model`` attribute are deprecated; use
+     ``Orbital_State.atmosphere``. The old ``ADCS.orbits.density_model`` and
+     ``ADCS.orbits.ephemeris`` import paths emit deprecation warnings. Import
+     ``SMADAtmosphere`` from ``ADCS.environment.atmosphere`` and a concrete
+     ephemeris such as ``DE421`` from ``ADCS.environment.ephemeris``. The
+     legacy ``Ephemeris`` name referred to DE421; ``Environment.Ephemeris``
+     now names the abstract model interface, so instantiate a concrete model.
+   * **Custom Monte Carlo environment models need serialization support.**
+     ``simulate_mc()`` now rejects custom environment components unless their
+     importable class implements ``to_json_config()`` and the classmethod
+     ``from_json_config(config)`` and the former returns JSON-serializable
+     data. Built-in models are handled automatically.
+   * **Tabulated atmosphere inputs are validated more strictly.** Custom
+     ``SMADAtmosphere`` altitude and density tables must be finite, have
+     matching one-dimensional shapes with at least two rows, use strictly
+     increasing non-negative altitudes and positive densities, and decrease
+     over the final interval for high-altitude extrapolation. Invalid tables
+     now raise ``ValueError``.
+   * **SALTRO commands are now actuator-limited.** ``SALTRO.find_u()`` clips
+     each command to the selected estimated satellite's ``u_max``. Code that
+     relied on out-of-range commands will receive saturated values.
+
+
 Other features and fixes
 ------------------------
 
