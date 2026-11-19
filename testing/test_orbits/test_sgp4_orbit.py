@@ -34,6 +34,24 @@ def test_sgp4_uses_manual_bstar_and_propagates():
     assert not np.allclose(propagated.R, initial.R)
 
 
+def test_sgp4_get_os_uses_sgp4_between_nodes():
+    initial = make_state()
+    dt = 300.0
+    orbit = SGP4Orbit(
+        initial,
+        end_time=initial.J2000 + dt * TimeConstants.sec2cent,
+        dt=dt,
+        bstar=0.0,
+        verbose=False,
+    )
+    query_time = initial.J2000 + 0.5 * dt * TimeConstants.sec2cent
+    state = orbit.get_os(query_time)
+    sf_time = orbit.environment.ephemeris.ts.tt_jd(query_time * 36525.0 + 2451545.0)
+    expected = orbit._satellite.at(sf_time)
+    np.testing.assert_allclose(state.R, expected.position.km, atol=1e-9)
+    np.testing.assert_allclose(state.V, expected.velocity.km_per_s, atol=1e-12)
+
+
 def test_sgp4_derives_attitude_averaged_bstar_from_drag_geometry():
     sat = make_satellite()
     orbit = SGP4Orbit(make_state(), satellite=sat)

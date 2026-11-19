@@ -268,3 +268,37 @@ class SGP4Orbit(Orbit):
             R_hist[j] = np.asarray(position.position.km, dtype=float).reshape(3)
             V_hist[j] = np.asarray(position.velocity.km_per_s, dtype=float).reshape(3)
         return R_hist, V_hist
+
+    def get_os(self, J2000):
+        """Return the SGP4 state at ``J2000``, including between stored nodes.
+
+        ``Orbit.get_os`` fills gaps by RK4 propagation with its gravity model.
+        That is appropriate for ``Orbit`` but would make this subclass switch
+        dynamics between nodes. Keep the base class's range checks and exact
+        node handling, then evaluate non-node epochs with the fitted TLE.
+        """
+        t = float(J2000)
+        if t > self.max_time():
+            raise ValueError("get_os() called with t > max_time")
+        if t < self.min_time():
+            raise ValueError("get_os() called with t < min_time")
+
+        close = np.isclose(self.times, t, rtol=0.0, atol=1e-2 / 36525.0 / 86400.0)
+        if np.any(close):
+            inds = np.flatnonzero(close)
+            if len(inds) == 1:
+                return self.states[self.times[int(inds[0])]].copy()
+            warnings.warn("get_os() has more than one match!")
+            close_times = self.times[inds]
+            nearest = close_times[int(np.argmin(np.abs(close_times - t)))]
+            return self.states[nearest].copy()
+
+        ts = self.environment.ephemeris.ts
+        sf_time = ts.tt_jd(t * 36525.0 + 2451545.0)
+        position = self._satellite.at(sf_time)
+        return Orbital_State(
+            J2000=t,
+            R=np.asarray(position.position.km, dtype=float).reshape(3),
+            V=np.asarray(position.velocity.km_per_s, dtype=float).reshape(3),
+            environment=self.environment,
+        )
