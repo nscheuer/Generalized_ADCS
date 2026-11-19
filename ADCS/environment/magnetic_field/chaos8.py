@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from functools import lru_cache
 from pathlib import Path
 
@@ -99,6 +100,11 @@ def _segment(times, years):
 def _weights(times, start, year):
     r"""Compute six Lagrange weights inside one CHAOS time segment.
 
+    Before the first or after the last snapshot (the segment ``_segment``
+    picks there is the first or last one), the weights continue the model
+    linearly: the value at that end plus the end slope times the distance.
+    This is ChaosMagPy's default (``extrapolate='linear'``).
+
     :param times: SHC snapshot decimal years.
     :type times: numpy.ndarray
     :param start: First snapshot index of the selected segment.
@@ -109,6 +115,27 @@ def _weights(times, start, year):
     :rtype: numpy.ndarray
     """
     weights = np.empty(6)
+    if year > times[start + 5]:
+        edge = 5
+    elif year < times[start]:
+        edge = 0
+    else:
+        edge = -1
+    if edge >= 0:
+        te = times[start + edge]
+        for j in range(6):
+            # Derivative of the j-th Lagrange basis polynomial at te.
+            slope = 0.0
+            for k in range(6):
+                if k == j:
+                    continue
+                term = 1.0 / (times[start + j] - times[start + k])
+                for m in range(6):
+                    if m != j and m != k:
+                        term *= (te - times[start + m]) / (times[start + j] - times[start + m])
+                slope += term
+            weights[j] = (1.0 if j == edge else 0.0) + (year - te) * slope
+        return weights
     for j in range(6):
         value = 1.0
         for k in range(6):
@@ -176,6 +203,12 @@ class CHAOS8(MagneticField):
     The two official SHC kernels are downloaded on first use. This evaluates
     CHAOS's *internal* field; its external and induced field terms require
     additional activity indices and are outside this model's interface.
+
+    The core coefficients span about 1997.1 to 2027.1. Outside that span the
+    core field continues linearly from the nearest end (ChaosMagPy's
+    default), with a warning; accuracy then degrades with the unmodelled
+    secular acceleration, roughly as for IGRF's predictive secular
+    variation.
     """
 
     name = "chaos8"
@@ -215,7 +248,7 @@ class CHAOS8(MagneticField):
         :type date: datetime.datetime or sequence
         :return: Radial, southward, and eastward components [nT].
         :rtype: tuple
-        :raises ValueError: If dates fall outside the SHC interval.
+        :raises ValueError: If the date count does not match the positions.
         """
         shape, r, theta, phi, dates = coordinate_dates(r, theta, phi, date)
         core_path = ensure_kernel(
@@ -224,8 +257,11 @@ class CHAOS8(MagneticField):
         times, g, h = _read_shc(str(core_path), 1, 20)
         years = _chaos_years(dates)
         if np.any((years < times[0]) | (years > times[-1])):
-            raise ValueError(
-                f"CHAOS-{CHAOS8_VERSION} core coefficients cover {times[0]:.3f} to {times[-1]:.3f}"
+            warnings.warn(
+                f"CHAOS-{CHAOS8_VERSION} core coefficients cover {times[0]:.3f} to {times[-1]:.3f}; "
+                "extrapolating linearly from the nearest end.",
+                RuntimeWarning,
+                stacklevel=2,
             )
         if dates.size == 1 or np.all(years == years[0]):
             start = int(_segment(times, years[:1])[0])
