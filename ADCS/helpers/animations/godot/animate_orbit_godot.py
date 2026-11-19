@@ -37,6 +37,7 @@ def animate_orbit_godot(
     camera_pitch_deg: float | None = None,
     camera_frame: str = "lvlh",
     output: str | Path | None = None,
+    overwrite: bool = False,
     binary: str | Path | None = None,
     assets: str | Path | None = None,
     launch: bool = True,
@@ -55,6 +56,7 @@ def animate_orbit_godot(
     initial spacecraft-orbit view when opening the interactive viewer.
     ``camera_frame`` selects the frame for those angles (``"lvlh"``,
     ``"inertial"``, or ``"body"``).
+    Set ``overwrite=True`` to replace an existing ADCS vizlog at ``output``.
     """
     if graphics_quality not in {"low", "medium", "high"}:
         raise ValueError("graphics_quality must be low, medium, or high")
@@ -100,7 +102,7 @@ def animate_orbit_godot(
         if value is not None:
             extra_args.extend((option, str(float(value))))
     if output is not None:
-        log = results_to_vizlog(results, output, ephem=ephemeris, model=model, overwrite=True,
+        log = results_to_vizlog(results, output, ephem=ephemeris, model=model, overwrite=overwrite,
                                 torques="none", overlays=overlays)
         return view(log, binary=binary, assets=assets, extra_args=extra_args, launch=launch)
     with TemporaryDirectory(prefix="adcs-godot-") as tmp:
