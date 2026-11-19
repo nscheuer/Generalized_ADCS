@@ -19,7 +19,7 @@ def manager(tmp_path):
     )
 
 
-def test_default_lookup_checks_cache_then_packaged_location(manager):
+def test_default_lookup_prefers_bundled_file_then_cache(manager):
     cache = manager.cache_dir / "example.dat"
     packaged = manager.locations[0] / "example.dat"
     packaged.parent.mkdir()
@@ -28,7 +28,30 @@ def test_default_lookup_checks_cache_then_packaged_location(manager):
 
     cache.parent.mkdir()
     cache.write_bytes(b"cached")
+    assert manager.get("example", interactive=False) == packaged
+    packaged.unlink()
     assert manager.get("example", interactive=False) == cache
+
+
+@pytest.mark.parametrize("platform, expected", [
+    ("linux", "xdg/generalized_adcs"),
+    ("darwin", "Library/Caches/generalized_adcs"),
+    ("win32", "AppData/Local/generalized_adcs"),
+])
+def test_user_cache_root_by_platform(monkeypatch, tmp_path, platform, expected):
+    monkeypatch.setattr(asset_manager, "sys", SimpleNamespace(platform=platform))
+    monkeypatch.setattr(asset_manager.Path, "home", classmethod(lambda cls: tmp_path))
+    monkeypatch.delenv("LOCALAPPDATA", raising=False)
+    monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
+    if platform == "linux":
+        monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
+    assert asset_manager.user_cache_dir() == tmp_path / expected
+
+
+def test_windows_localappdata_override(monkeypatch, tmp_path):
+    monkeypatch.setattr(asset_manager, "sys", SimpleNamespace(platform="win32"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    assert asset_manager.user_cache_dir() == tmp_path / "local" / "generalized_adcs"
 
 
 def test_destination_uses_only_the_requested_path(manager, tmp_path):

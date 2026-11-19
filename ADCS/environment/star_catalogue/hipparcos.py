@@ -35,7 +35,7 @@ class HipparcosCatalog(StarCatalog):
         self.max_vmag = max_vmag
         self._custom_kernel_dir = Path(kernel_dir) if kernel_dir is not None else None
         manager = AssetManager()
-        self.kernel_dir = self._custom_kernel_dir or manager.locations[0]
+        self.kernel_dir = self._custom_kernel_dir or manager.cache_dir
         self._stars: list[NavigationStar] | None = None
 
     @property
@@ -48,10 +48,8 @@ class HipparcosCatalog(StarCatalog):
         """
         if self._stars is None:
             manager = AssetManager()
-            path = manager.get(
-                "hipparcos",
-                destination=self.kernel_dir / self.FILENAME,
-            )
+            path = manager.get("hipparcos", destination=(self.kernel_dir / self.FILENAME)
+                               if self._custom_kernel_dir is not None else None)
             self.kernel_dir = path.parent
             self._stars = self._load_catalog(path)
         return self._stars

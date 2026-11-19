@@ -1,14 +1,13 @@
 __all__ = ["DE421", "Ephemeris"]
 
 import os
-import sys
 from pathlib import Path
 from skyfield.api import load
 from typing import Optional
 import numpy as np
 
 from .ephemeris import Ephemeris as EphemerisBase
-from ADCS.helpers.asset_manager import AssetManager
+from ADCS.helpers.asset_manager import AssetManager, user_cache_dir
 
 class DE421(EphemerisBase):
     KERNEL_FILENAME = "de421.bsp"
@@ -65,8 +64,8 @@ class DE421(EphemerisBase):
 
     :param filepath:
         Optional path for the JPL DE421 ephemeris file. If it is missing,
-        the kernel is downloaded there after confirmation. If ``None``, the
-        bundled ``ADCS/environment/kernels/de421.bsp`` is used or restored there.
+        the kernel is downloaded there after confirmation. If ``None``, a
+        bundled kernel is used, or a missing one is cached per user.
     :type filepath: pathlib.Path | None
 
     :raises RuntimeError:
@@ -85,7 +84,7 @@ class DE421(EphemerisBase):
         Initialize the ephemeris loader and planetary body objects.
 
         This constructor loads the JPL DE421 ephemeris file either from a
-        user-specified path or the package kernel directory. If the
+        user-specified path, bundled kernel, or per-user cache. If the
         file does not exist locally, it is automatically downloaded using
         Skyfield’s loader utilities.
 
@@ -94,7 +93,7 @@ class DE421(EphemerisBase):
 
         :param filepath:
             Optional filesystem path to a DE421 ephemeris file.
-            If ``None``, the package kernel is used or downloaded there when necessary.
+            If ``None``, the bundled kernel is used or downloaded to the user cache.
         :type filepath: pathlib.Path | None
 
         :return:
@@ -216,21 +215,20 @@ class DE421(EphemerisBase):
     def _packaged_ephemeris_path() -> Path:
         r"""Location of an ephemeris shipped alongside the package, if any.
 
-        Read only. ``de421.bsp`` is 16 MB and is deliberately not shipped in
-        the wheel, but a source checkout has one here, and so does an
-        installation where a user or sysadmin placed one deliberately.
+        Read only. The wheel bundles ``de421.bsp`` for offline use. A source
+        checkout or an installation may also have one here.
 
         :return: Path to ``ADCS/environment/kernels/de421.bsp``.
         :rtype: pathlib.Path
         """
         return Path(__file__).resolve().parents[1] / "kernels" / DE421.KERNEL_FILENAME
 
-    @staticmethod
-    def _cache_ephemeris_path() -> Path:
+    @classmethod
+    def _cache_ephemeris_path(cls) -> Path:
         r"""Per-user cache location for a downloaded ephemeris.
 
         Honours ``ADCS_EPHEMERIS_PATH`` (a full path to a .bsp file) first,
-        then ``XDG_CACHE_HOME``, then the platform default. Deliberately never
+        then the platform's per-user cache. Deliberately never
         inside ``site-packages``: writing there fails outright on read-only or
         system-managed installs, and any file written survives
         ``pip uninstall`` as an orphan because it is absent from the wheel's
@@ -239,27 +237,17 @@ class DE421(EphemerisBase):
         :return: Path the ephemeris would be cached at.
         :rtype: pathlib.Path
         """
-        override = os.environ.get(DE421.ENV_PATH_VARIABLE)
+        override = os.environ.get(cls.ENV_PATH_VARIABLE)
         if override:
             return Path(override).expanduser()
-
-        xdg = os.environ.get("XDG_CACHE_HOME")
-        if xdg:
-            base = Path(xdg)
-        elif sys.platform == "darwin":
-            base = Path.home() / "Library" / "Caches"
-        elif sys.platform == "win32":
-            base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-        else:
-            base = Path.home() / ".cache"
-        return base / "generalized_adcs" / DE421.KERNEL_FILENAME
+        return user_cache_dir() / cls.KERNEL_FILENAME
 
     @classmethod
     def _find_existing_ephemeris(cls) -> Path | None:
         r"""First existing ephemeris across the search order, else ``None``.
 
-        Order: explicit ``ADCS_EPHEMERIS_PATH`` / user cache, then the copy
-        shipped beside the package.
+        Order: explicit path, bundled kernel, then user cache. A missing kernel
+        is downloaded to the user cache after confirmation.
 
         :return: An existing ephemeris path, or ``None``.
         :rtype: pathlib.Path | None
@@ -268,20 +256,20 @@ class DE421(EphemerisBase):
         override = os.environ.get(cls.ENV_PATH_VARIABLE)
         if override:
             return AssetManager().get(name, destination=Path(override).expanduser())
-        return AssetManager().get(name, destination=cls._packaged_ephemeris_path())
+        packaged = cls._packaged_ephemeris_path()
+        if packaged.is_file():
+            return packaged
+        return AssetManager().get(name, destination=cls._cache_ephemeris_path())
 
     def _get_default_ephemeris_path(self) -> Path:
         r"""Where a newly downloaded ephemeris should be written.
 
-        Uses the environment kernel directory unless a path override is set.
+        Uses the user cache unless a path override is set.
 
         :return: Path to the selected ``de421.bsp`` destination.
         :rtype: pathlib.Path
         """
-        override = os.environ.get(self.ENV_PATH_VARIABLE)
-        path = Path(override).expanduser() if override else self._packaged_ephemeris_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        return path
+        return self._cache_ephemeris_path()
 
     # ----------------------------------------------------------------------
     def _download_ephemeris(self, save_path: Path):

@@ -44,7 +44,7 @@ class BrightStarCatalog(StarCatalog):
         """
         self.max_vmag = max_vmag
         manager = AssetManager()
-        destination = Path(kernel_path).expanduser() if kernel_path is not None else manager.locations[0] / self.FILENAME
+        destination = Path(kernel_path).expanduser() if kernel_path is not None else None
         self.kernel_path = manager.get("bsc5", destination=destination)
         self._stars: list[NavigationStar] | None = None
 

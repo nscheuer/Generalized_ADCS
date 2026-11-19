@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ADCS.helpers.asset_manager import AssetManager
+from ADCS.helpers.asset_manager import ASSETS, AssetManager, KERNEL_DIR
 from ADCS.helpers.math.spherical_harmonics import _kernel_static
 
 
@@ -36,7 +36,10 @@ def ensure_kernel(path: Path, asset_name: str, expected_md5: str | None = None) 
 @lru_cache(maxsize=32)
 def _verified_kernel(path: str, asset_name: str, expected_md5: str | None) -> str:
     r"""Resolve and check one coefficient file; cached by :func:`ensure_kernel`."""
-    path = AssetManager().get(asset_name, destination=Path(path))
+    manager = AssetManager()
+    requested = Path(path)
+    bundled = KERNEL_DIR / ASSETS[asset_name].filename
+    path = manager.get(asset_name, destination=None if requested == bundled else requested)
     if not path.is_file() or path.stat().st_size == 0:
         raise OSError(f"Empty magnetic model kernel: {path}")
     if expected_md5 is not None and md5(path.read_bytes()).hexdigest() != expected_md5:

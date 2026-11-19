@@ -36,15 +36,20 @@ without the Python ephemeris service.
 
 Godot 4.7.2 is fetched from its official release for the detected operating
 system when the viewer is first launched. `AssetManager` asks before
-downloading; the archive and executable are kept in `godot/bin`, which is
-ignored by Git. Pass `binary=` or set `ADCS_VIEWER_BIN` to use another build.
+downloading; the archive and executable are kept in the per-user
+`generalized_adcs/godot` cache. Pass `binary=` or set `ADCS_VIEWER_BIN` to use another build.
+On Linux this cache is under `XDG_CACHE_HOME` or `~/.cache`; on macOS it is
+under `~/Library/Caches`; on Windows it is under `%LOCALAPPDATA%`. Under WSL,
+viewer assets and the copied Godot project use Windows LocalAppData so a Windows
+Godot executable can read them directly.
 On macOS, the full `Godot.app` bundle is extracted so its code signature and
 resources remain intact; an older executable-only cache is replaced on the
 next launch.
 
 Optional textures and atmosphere data are placed under
-`ADCS/helpers/animations/assets`. They are ignored by Git and excluded from
-the wheel. Prepare them explicitly with:
+the per-user `generalized_adcs/viewer_assets` cache. The bundled Godot project
+is copied to the per-user cache on launch so its import files stay writable.
+Prepare optional assets explicitly with:
 
 ```bash
 .venv/bin/python -m ADCS.helpers.animations.godot.assets list
@@ -62,7 +67,7 @@ copied into `assets/models/` and `scene.json` uses paths relative to the
 vizlog, so the log remains usable after moving it to another machine.
 
 Planet maps, including Earth's day, night, cloud, normal, and specular maps, are stored
-in `ADCS/helpers/animations/assets/planet_textures`. Low graphics uses 2K maps;
+in the per-user `generalized_adcs/viewer_assets/planet_textures` cache. Low graphics uses 2K maps;
 high graphics switches to the locally available 8K maps when a body's projected
 radius is at least 128 pixels. Solar System Scope offers Venus at 4K and Uranus
 and Neptune at 2K, so those use the closest available resolution.

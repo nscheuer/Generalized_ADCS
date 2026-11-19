@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+from ADCS.helpers.asset_manager import user_cache_dir
+
 
 _SOURCES = Path(__file__).with_name("sources.json")
 
@@ -21,7 +23,13 @@ def cache_dir() -> Path:
     override = os.environ.get("ADCS_VIZ_CACHE")
     if override:
         return Path(override).expanduser()
-    return Path(__file__).resolve().parents[2] / "assets"
+    from ADCS.helpers.animations.godot.binary_manager import _windows_local_appdata, is_wsl
+
+    if is_wsl():
+        windows_cache = _windows_local_appdata()
+        if windows_cache is not None:
+            return windows_cache / "generalized_adcs" / "viewer_assets"
+    return user_cache_dir() / "viewer_assets"
 
 
 def raw_path(source_id: str, source: Dict[str, Any]) -> Path:

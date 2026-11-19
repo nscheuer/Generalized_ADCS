@@ -48,7 +48,7 @@ def test_de421_requires_download_approval_when_missing_without_a_terminal(no_loc
     with pytest.raises(FileNotFoundError, match="Missing de421") as error:
         DE421()
 
-    assert str(no_local_kernels / "kernels" / "de421.bsp") in str(error.value)
+    assert str(no_local_kernels / "cache" / "generalized_adcs" / "de421.bsp") in str(error.value)
 
 
 @pytest.mark.parametrize("module, name", [

@@ -81,6 +81,8 @@ The work is tracked in pull requests
 Other features and fixes
 ------------------------
 
+* Runtime downloads and Godot viewer work files now use a per-user cache.
+  Bundled kernels remain readable directly from the installed package.
 * `#233 <https://github.com/nscheuer/Generalized_ADCS/pull/233>`__: add
   ``DensityNoise``, which scales noise from a density by the sample time.
 * `#234 <https://github.com/nscheuer/Generalized_ADCS/pull/234>`__: model

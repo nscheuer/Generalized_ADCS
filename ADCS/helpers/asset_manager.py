@@ -12,6 +12,18 @@ from urllib.request import Request, urlopen
 from tqdm.auto import tqdm
 
 
+def user_cache_dir() -> Path:
+    """Writable per-user cache root on Linux, WSL, macOS, and Windows."""
+    platform = getattr(sys, "platform", "linux")
+    if platform == "win32":
+        base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+    elif platform == "darwin":
+        base = Path.home() / "Library" / "Caches"
+    else:
+        base = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache").expanduser()
+    return base / "generalized_adcs"
+
+
 @dataclass(frozen=True)
 class Asset:
     name: str
@@ -46,8 +58,7 @@ class AssetManager:
     def __init__(self, registry=None, locations=None, cache_dir=None):
         self.registry = ASSETS if registry is None else registry
         self.locations = [KERNEL_DIR] if locations is None else [Path(p) for p in locations]
-        base = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-        self.cache_dir = Path(cache_dir) if cache_dir is not None else base / "generalized_adcs"
+        self.cache_dir = Path(cache_dir) if cache_dir is not None else user_cache_dir()
 
     @staticmethod
     def _sha256(path: Path) -> str:
@@ -60,13 +71,13 @@ class AssetManager:
     def get(self, name: str, *, destination=None, interactive=True, allow_download=False) -> Path:
         asset = self.registry[name]
         candidates = ([Path(destination)] if destination is not None else
-                      [self.cache_dir / asset.filename] + [p / asset.filename for p in self.locations])
+                      [p / asset.filename for p in self.locations] + [self.cache_dir / asset.filename])
         for path in candidates:
             if path.is_file():
                 if asset.sha256 and self._sha256(path) != asset.sha256:
                     raise ValueError(f"Checksum mismatch for {name}: {path}")
                 return path
-        target = candidates[0]
+        target = Path(destination) if destination is not None else self.cache_dir / asset.filename
         if not allow_download:
             if not interactive or not sys.stdin.isatty():
                 raise FileNotFoundError(

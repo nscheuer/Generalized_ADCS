@@ -1,6 +1,7 @@
 __all__ = ["viewer_command", "launch_viewer", "view", "viewer_project"]
 
 import contextlib
+import hashlib
 import json
 import os
 import shutil
@@ -8,6 +9,7 @@ import signal
 import subprocess
 import threading
 import time
+import tempfile
 import uuid
 from pathlib import Path
 from typing import List, Optional, Sequence
@@ -17,6 +19,7 @@ from ADCS.helpers.animations.godot.reader import VizLog
 from ADCS.helpers.animations.godot.stream import VizServer
 from ADCS.helpers.animations.godot.assets.fetch import cache_dir as visualization_asset_dir
 from ADCS.helpers.animations.godot.assets.planets import ensure_planet_textures, missing_planet_textures
+from ADCS.helpers.asset_manager import user_cache_dir
 
 _REPO_VIEWER = Path(__file__).with_name("viewer")
 
@@ -38,10 +41,11 @@ def viewer_project(binary: str | Path, project: Optional[str | Path] = None) -> 
     The Godot project to run when the "viewer" is a plain Godot binary
     (development), or ``None`` for an exported viewer.
 
-    Order: ``project``, ``$ADCS_VIEWER_PROJECT``, then the repository's
+    Order: ``project``, ``$ADCS_VIEWER_PROJECT``, then the bundled
     ``viewer/`` directory if the binary looks like a Godot editor build.
-    Inside WSL with a Windows Godot, the project is copied to the Windows side
-    (Godot cannot import a project over a ``\\\\wsl$`` path reliably).
+    The bundled project is copied to the user cache so Godot can create its
+    import files without writing into the installation. Inside WSL with a
+    Windows Godot, the copy lives on the Windows side.
     """
     chosen = project or os.environ.get("ADCS_VIEWER_PROJECT")
     if chosen is None and Path(binary).name.lower().startswith("godot") and (_REPO_VIEWER / "project.godot").exists():
@@ -49,17 +53,37 @@ def viewer_project(binary: str | Path, project: Optional[str | Path] = None) -> 
     if chosen is None:
         return None
     src = Path(chosen).resolve()
-    if is_wsl() and _is_windows_exe(binary) and str(src).startswith("/") and not str(src).startswith("/mnt/"):
-        local = _windows_local_appdata()
-        if local is not None:
-            dest = local / "generalized_adcs" / "viewer_project"
-            if dest.exists():
-                # Keep Godot's import cache; replace everything else.
-                for item in dest.iterdir():
-                    if item.name != ".godot":
-                        shutil.rmtree(item) if item.is_dir() else item.unlink()
-            shutil.copytree(src, dest, dirs_exist_ok=True, ignore=shutil.ignore_patterns(".godot"))
-            return dest
+    windows_wsl = is_wsl() and _is_windows_exe(binary) and str(src).startswith("/") and not str(src).startswith("/mnt/")
+    if windows_wsl or src == _REPO_VIEWER.resolve():
+        if windows_wsl:
+            local = _windows_local_appdata()
+            if local is None:
+                raise RuntimeError("could not resolve Windows LOCALAPPDATA for the viewer project")
+            cache_root = local / "generalized_adcs" / "viewer_project"
+        else:
+            cache_root = user_cache_dir() / "viewer_project"
+        digest = hashlib.sha256()
+        for path in sorted(src.rglob("*")):
+            if not path.is_file() or ".godot" in path.relative_to(src).parts:
+                continue
+            digest.update(str(path.relative_to(src)).encode())
+            digest.update(path.read_bytes())
+        dest = cache_root / digest.hexdigest()[:16]
+        if not (dest / "project.godot").is_file():
+            cache_root.mkdir(parents=True, exist_ok=True)
+            staging = Path(tempfile.mkdtemp(prefix="viewer-", dir=cache_root))
+            try:
+                shutil.copytree(src, staging, dirs_exist_ok=True,
+                                ignore=shutil.ignore_patterns(".godot"))
+                try:
+                    staging.rename(dest)
+                except OSError:
+                    if not (dest / "project.godot").is_file():
+                        raise
+            finally:
+                if staging.exists():
+                    shutil.rmtree(staging)
+        return dest
     return src
 
 

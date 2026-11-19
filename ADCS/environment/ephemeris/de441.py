@@ -10,7 +10,7 @@ from skyfield.api import load
 from skyfield.jpllib import Stack, VectorSum
 
 from .de421 import DE421
-from ADCS.helpers.asset_manager import AssetManager
+from ADCS.helpers.asset_manager import AssetManager, user_cache_dir
 
 
 class _CombinedKernel:
@@ -92,7 +92,7 @@ class DE441(DE421):
     """DE441 with the same interface and lifecycle as :class:`DE421`.
 
     NAIF publishes DE441 as two BSP partitions. Both files are downloaded to
-    ``ADCS/environment/kernels`` on first use and queried together, unless
+    the per-user cache on first use and queried together, unless
     ``ADCS_DE441_EPHEMERIS_PATH`` names the first partition, in which case both
     are looked for (and downloaded) in that file's directory. Their combined size is
     about 3 GB, so construction downloads a substantial amount of data when
@@ -143,7 +143,7 @@ class DE441(DE421):
         r"""Paths of both DE441 partitions, honouring ``ADCS_DE441_EPHEMERIS_PATH``.
 
         When the variable is set it names the first partition, and the second
-        is expected beside it. Otherwise the packaged kernel directory is used.
+        is expected beside it. Otherwise the per-user cache is used.
 
         :return: Paths for ``de441_part-1.bsp`` and ``de441_part-2.bsp``.
         :rtype: tuple[pathlib.Path, pathlib.Path]
@@ -152,7 +152,7 @@ class DE441(DE421):
         if override:
             directory = Path(override).expanduser().parent
             return tuple(directory / name for name in cls.KERNEL_FILENAMES)
-        return cls._packaged_ephemeris_paths()
+        return tuple(user_cache_dir() / name for name in cls.KERNEL_FILENAMES)
 
     @classmethod
     def _find_existing_ephemeris(cls) -> tuple[Path, Path] | None:
@@ -161,6 +161,10 @@ class DE441(DE421):
         :return: Both paths, or ``None`` if a complete pair is unavailable.
         :rtype: tuple[pathlib.Path, pathlib.Path] or None
         """
+        override = os.environ.get(cls.ENV_PATH_VARIABLE)
+        packaged = cls._packaged_ephemeris_paths()
+        if not override and all(path.is_file() for path in packaged):
+            return packaged
         paths = cls._kernel_paths()
         manager = AssetManager()
         return tuple(
@@ -169,16 +173,14 @@ class DE441(DE421):
         )
 
     def _get_default_ephemeris_path(self) -> Path:
-        r"""Create the kernel directory and return the first partition path.
+        r"""Return the first partition's writable cache path.
 
         Honours ``ADCS_DE441_EPHEMERIS_PATH`` like :meth:`_find_existing_ephemeris`.
 
         :return: Destination for ``de441_part-1.bsp``.
         :rtype: pathlib.Path
         """
-        paths = self._kernel_paths()
-        paths[0].parent.mkdir(parents=True, exist_ok=True)
-        return paths[0]
+        return self._kernel_paths()[0]
 
     def _download_ephemeris(self, first_path: Path) -> tuple[Path, Path]:
         r"""Download missing DE441 partitions from the JPL NAIF archive.

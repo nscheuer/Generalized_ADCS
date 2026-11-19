@@ -42,7 +42,7 @@ and are not represented by these internal field SHC files. Set
 
 The files `WMM2025.COF`, `CHAOS-8.7_core.shc`, and
 `CHAOS-8.7_static.shc` are resolved through `AssetManager`. WMM2025 is bundled;
-the optional CHAOS8 files are saved in `ADCS/environment/kernels/` after
+the optional CHAOS8 files are saved in the per-user cache after
 terminal confirmation.
 Custom kernel paths are also resolved through `AssetManager`, so a missing
 file there requires the same confirmation. Sources:
