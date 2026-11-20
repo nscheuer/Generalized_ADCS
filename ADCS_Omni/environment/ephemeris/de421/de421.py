@@ -8,7 +8,7 @@ import numpy as np
 
 from ..ephemeris_model import (
     BODY_EARTH, BODY_MOON, BODY_SUN, EphemerisModel,
-    planetary_position, planetary_velocity,
+    planetary_position, planetary_velocity, planetary_state,
 )
 
 
@@ -145,6 +145,19 @@ class DE421(EphemerisModel):
     def velocity_eci(self, target, epoch_jd_tdb, *, observer="earth"):
         """Return geometric target-minus-observer velocity [km/s] at TDB JD."""
         return self._relative_eci(planetary_velocity, target, epoch_jd_tdb, observer)
+
+    def state_eci(self, target, epoch_jd_tdb, *, observer="earth"):
+        """Return geometric position [km] and velocity [km/s] together."""
+        target_index = self._planet_index(target)
+        observer_index = self._planet_index(observer)
+        epoch = float(epoch_jd_tdb)
+        target_pos, target_vel = planetary_state(
+            target_index, epoch, self._segments, self._times, self._data)
+        if observer_index == 11:
+            return target_pos, target_vel
+        observer_pos, observer_vel = planetary_state(
+            observer_index, epoch, self._segments, self._times, self._data)
+        return target_pos - observer_pos, target_vel - observer_vel
 
     def sun_position_eci(self, epoch_jd_tdb):
         return self.position(BODY_SUN, epoch_jd_tdb)

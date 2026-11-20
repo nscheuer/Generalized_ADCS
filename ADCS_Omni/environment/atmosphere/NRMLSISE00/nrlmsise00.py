@@ -15,6 +15,18 @@ from ADCS_Omni.helpers.math.time import day_of_year, jd_to_utc_calendar_fields, 
 
 
 @njit(cache=True)
+def nrlmsise00_density_geodetic(day_of_year_utc, seconds_utc, altitude_km,
+                                 latitude_deg, longitude_deg, f107=150.0,
+                                 f107a=150.0, ap=4.0, effective_density=True):
+    """Density [kg/m³] when geodetic location and UTC fields are already known."""
+    local_solar_time = (seconds_utc / 3600.0 + longitude_deg / 15.0) % 24.0
+    ap_history = np.full(7, -1.0)
+    return msis_gtd7(day_of_year_utc, seconds_utc, altitude_km, latitude_deg,
+                     longitude_deg, local_solar_time, f107a, f107, ap,
+                     ap_history, effective_density).d[5]
+
+
+@njit(cache=True)
 def nrlmsise00_density(position_inertial_m, epoch_jd, f107=150.0,
                        f107a=150.0, ap=4.0, effective_density=True,
                        ap_array=None):
@@ -48,6 +60,7 @@ class NRLMSISE00(AtmosphericModel):
     """Full NRLMSISE-00 neutral-atmosphere density and co-rotation velocity."""
 
     density = staticmethod(nrlmsise00_density)
+    density_geodetic = staticmethod(nrlmsise00_density_geodetic)
 
 
 NRMLSISE = NRLMSISE00

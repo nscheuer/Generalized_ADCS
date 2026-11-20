@@ -128,6 +128,20 @@ def planetary_velocity(body_index, epoch_jd, segments, times, data):
 
 
 @njit(cache=True)
+def planetary_state(body_index, epoch_jd, segments, times, data):
+    """Earth-centered position and velocity from one SPK traversal [km, km/s]."""
+    if body_index < 0 or body_index >= _TABLE_TARGETS.size:
+        raise ValueError("body_index must be in the DE421 body range 0..11")
+    target = _TABLE_TARGETS[body_index]
+    if target == _EARTH_TARGET:
+        return np.zeros(3), np.zeros(3)
+    et = (epoch_jd - _J2000) * _SECONDS_PER_DAY
+    target_pos, target_vel = _barycentric_state(target, et, segments, times, data)
+    earth_pos, earth_vel = _barycentric_state(_EARTH_TARGET, et, segments, times, data)
+    return target_pos - earth_pos, target_vel - earth_vel
+
+
+@njit(cache=True)
 def ephemeris_position(body_id, epoch_jd, segments, times, data):
     """Earth-centered DE421 position [km]; epoch is TDB Julian date."""
     if body_id == BODY_EARTH:
