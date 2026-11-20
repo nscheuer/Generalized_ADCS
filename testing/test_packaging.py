@@ -29,6 +29,10 @@ def _on_disk():
         str(p.parent.relative_to(REPO)).replace("/", ".")
         for p in (REPO / "ADCS").rglob("__init__.py")
     }
+    found.update(
+        str(p.parent.relative_to(REPO)).replace("/", ".")
+        for p in (REPO / "ADCS_Omni").rglob("__init__.py")
+    )
     # the mapped pipeline tree, named as it is imported rather than as it is stored
     for p in PIPELINE_SRC.rglob("__init__.py"):
         rel = p.parent.relative_to(PIPELINE_SRC)

@@ -153,6 +153,15 @@ package-dir = { "" = ".", "ADCS.pipeline" = "papers/Generalized_ACS/pipeline" }
 # list it here fails CI instead of silently shipping a broken wheel.
 packages = [
     "ADCS",
+    "ADCS_Omni",
+    "ADCS_Omni.bias",
+    "ADCS_Omni.config",
+    "ADCS_Omni.environment",
+    "ADCS_Omni.hardware",
+    "ADCS_Omni.noise",
+    "ADCS_Omni.propagation",
+    "ADCS_Omni.solver",
+    "ADCS_Omni.state",
     "ADCS.CONOPS",
     "ADCS.CONOPS.goallist",
     "ADCS.CONOPS.goals",
