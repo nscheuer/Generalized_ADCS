@@ -39,9 +39,9 @@ Eigen::Vector3d JGravityModel::acceleration(const Eigen::Vector3d& p,double epoc
 const std::vector<int>& JGravityModel::degrees()const noexcept{return degrees_;}
 const Eigen::VectorXd& JGravityModel::zonal_coefficients()const noexcept{return coefficients_;}
 int JGravityModel::degree()const noexcept{return 0;}
-J2::J2():JGravityModel(2){} int J2::degree()const noexcept{return 2;}
-J3::J3():JGravityModel(3){} int J3::degree()const noexcept{return 3;}
-J4::J4():JGravityModel(4){} int J4::degree()const noexcept{return 4;}
-J5::J5():JGravityModel(5){} int J5::degree()const noexcept{return 5;}
-J6::J6():JGravityModel(6){} int J6::degree()const noexcept{return 6;}
+
+
+
+
+
 }

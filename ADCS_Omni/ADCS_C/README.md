@@ -26,9 +26,14 @@ the Python `SatelliteGeometry` and `SatellitePanel` data classes. All six
 extensions are built in place for use from this source checkout. The
 `environment/` package mirrors the Python environment hierarchy. Planetary
 body data, environment composition, atmosphere co-rotation, and J2–J6 gravity
-run in C++; the full NRLMSISE-00, DE421, IGRF-14, and CHAOS-8 coefficient
-engines are exposed through C++ adapters that call their existing Python
-reference implementations and data files.
+run in C++. The NRLMSISE-00, DE421, IGRF-14, and CHAOS-8 numerical engines
+also run in C++ using the bundled model data files. Every non-package Python
+environment module has a matching `.cpp` and `.hpp` path under `environment/`.
+The `dynamics/` package mirrors the Python force and torque model paths.
+Projected-area drag and SRP, gravity-gradient, residual-dipole, and lunisolar
+numerical kernels run in the `_dynamics` C++ extension. Zonal force uses the
+existing native environment gravity kernel. Model classes retain the Python
+`evaluate()` signatures and call native kernels.
 
 ## Build
 

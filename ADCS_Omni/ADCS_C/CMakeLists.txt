@@ -103,13 +103,27 @@ set_target_properties(_satellite_geometry PROPERTIES
 pybind11_add_module(_environment
     environment/bindings.cpp
     environment/native_models.cpp
+    environment/atmosphere/NRMLSISE00/nrlmsise00.cpp
+    environment/atmosphere/NRMLSISE00/_nrlmsise00_core.cpp
+    environment/atmosphere/NRMLSISE00/_nrlmsise00_data.cpp
+    environment/ephemeris/de421/de421.cpp
+    environment/ephemeris/ephemeris_model.cpp
+    environment/magnetic_field_model/magnetic_field_model.cpp
+    environment/magnetic_field_model/_spherical_harmonics.cpp
+    environment/magnetic_field_model/igrf14/igrf14.cpp
+    environment/magnetic_field_model/chaos8/chaos8.cpp
+    environment/magnetic_field_model/wmm/wmm.cpp
     environment/environment.cpp
     environment/planetary_body/planetary_body.cpp
     environment/planetary_body/earth.cpp
     environment/gravity/j_gravity_model.cpp
+    environment/gravity/j2.cpp
+    environment/gravity/j3.cpp
+    environment/gravity/j4.cpp
+    environment/gravity/j5.cpp
+    environment/gravity/j6.cpp
     environment/atmosphere/atmospheric_model.cpp
     environment/atmosphere/NRMLSISE00/nrlmsise00_core.c
-    environment/atmosphere/NRMLSISE00/nrlmsise00_data.c
     helpers/math/frames/frames.cpp
     helpers/math/frames/conversions.cpp
     helpers/math/time/conversions.cpp
@@ -119,3 +133,36 @@ target_link_libraries(_environment PRIVATE Eigen3::Eigen)
 target_include_directories(_environment PRIVATE environment helpers/math helpers/math/frames helpers/math/time environment/atmosphere/NRMLSISE00)
 set_target_properties(_environment PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/environment")
+
+pybind11_add_module(_dynamics
+    dynamics/bindings.cpp
+    dynamics/_geometry.cpp
+    dynamics/drag_model/projected_area.cpp
+    dynamics/srp_model/projected_area.cpp
+    dynamics/gravity_gradient_model/static.cpp
+    dynamics/residual_dipole_model/static.cpp
+    dynamics/third_body_model/lunisolar.cpp
+    dynamics/zonal_model/zonal.cpp
+    environment/gravity/j_gravity_model.cpp
+)
+target_link_libraries(_dynamics PRIVATE Eigen3::Eigen)
+set_target_properties(_dynamics PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dynamics")
+
+pybind11_add_module(_config config/bindings.cpp config/dynamics_config.cpp config/simulation_config.cpp)
+target_link_libraries(_config PRIVATE Eigen3::Eigen)
+set_target_properties(_config PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config")
+
+pybind11_add_module(_coupled
+    propagation/coupled_propagators/bindings.cpp
+    propagation/coupled_propagators/_coupled_dynamics.cpp
+    propagation/coupled_propagators/coupled_rk4_propagator.cpp
+    propagation/coupled_propagators/coupled_dop853_propagator.cpp
+    propagation/coupled_propagators/integrate.cpp)
+target_link_libraries(_coupled PRIVATE Eigen3::Eigen)
+set_target_properties(_coupled PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/propagation/coupled_propagators")
+
+pybind11_add_module(_solver solver/bindings.cpp solver/coupled_solver.cpp solver/solver.cpp)
+set_target_properties(_solver PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/solver")
+
+pybind11_add_module(_simulate simulate_bindings.cpp simulate.cpp)
+set_target_properties(_simulate PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
