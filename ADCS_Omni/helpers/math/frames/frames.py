@@ -1,7 +1,6 @@
-import numpy as np
 from numba import njit
 
-from .rotations.quaternion.conversions import _quaternion_to_dcm
+from ..rotations.quaternion.conversions import _quaternion_to_dcm
 
 
 @njit(cache=True)

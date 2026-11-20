@@ -1,8 +1,8 @@
 import numpy as np
 
 from .kernels import axis_angle_to_dcm, compose_dcm, dcm_orthogonality_error, inverse_dcm, normalize_dcm, relative_dcm, rotate_vector
-from ..rotations.quaternion.conversions import _dcm_to_quaternion, _quaternion_to_dcm
-from ..rotations.quaternion.interpolation import rotation_vector_to_quaternion
+from ..quaternion.conversions import _dcm_to_quaternion, _quaternion_to_dcm
+from ..quaternion.interpolation import rotation_vector_to_quaternion
 
 
 class DCM:
@@ -38,7 +38,7 @@ class DCM:
 
     @classmethod
     def from_quaternion(cls, quaternion):
-        from ..rotations.quaternion.quaternion import Quaternion
+        from ..quaternion.quaternion import Quaternion
 
         if not isinstance(quaternion, Quaternion):
             quaternion = Quaternion(quaternion)
@@ -71,7 +71,7 @@ class DCM:
         return self._matrix.copy()
 
     def to_quaternion(self):
-        from ..rotations.quaternion.quaternion import Quaternion
+        from ..quaternion.quaternion import Quaternion
 
         return Quaternion(_dcm_to_quaternion(self._matrix))
 

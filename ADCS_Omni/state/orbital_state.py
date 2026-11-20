@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ADCS_Omni.environment.ephemeris import EphemerisModel
+from ADCS_Omni.environment.ephemeris import BODY_EARTH, BODY_MOON, BODY_SUN
 
 
 @dataclass(slots=True)
@@ -57,7 +58,9 @@ class OrbitalState:
         if body not in self._body_positions:
             if self.ephemeris is None:
                 raise ValueError("an ephemeris must be configured")
-            self._body_positions[body] = self.ephemeris.position(body, self.julian_date)
+            body_ids = {"sun": BODY_SUN, "earth": BODY_EARTH, "moon": BODY_MOON}
+            body_id = body_ids[body.lower()] if isinstance(body, str) else int(body)
+            self._body_positions[body] = self.ephemeris.position(body_id, self.julian_date)
         return self._body_positions[body]
 
     @property

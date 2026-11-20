@@ -160,6 +160,12 @@ venv/
 venv*/
 env*/
 !ADCS/environment/
+!ADCS_Omni/environment/
+!ADCS_Omni/environment/**
+# Keep generated Python and Numba caches out of the included environment tree.
+ADCS_Omni/environment/**/__pycache__/
+ADCS_Omni/environment/**/*.py[cod]
+ADCS_Omni/environment/**/*.nb[ci]
 ENV/
 env.bak/
 venv.bak/
@@ -243,3 +249,5 @@ ADCS/environment/kernels/*
 /ADCS/helpers/animations/godot/viewer/.godot/
 /ADCS/helpers/plot/orbit/textures/
 /ADCS/helpers/plotting/textures/
+
+diff/
