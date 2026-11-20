@@ -42,9 +42,10 @@ def simulate(
     orbit_estimator: Optional[Orbit_Estimator] = None,
     goal: Optional[Goal | GoalList] = None,
     os0: Optional[Orbital_State] = None,
-    orbit_integrator: Optional[type[Orbit]] = None,
     dt: float = 1.0,
     tf: float = 500.0,
+    # New parameters go after tf so 0.2.1 positional calls keep working.
+    orbit_integrator: Optional[type[Orbit]] = None,
     environment: Optional[Environment] = None,
 ) -> SimulationResults:
     r"""
@@ -120,6 +121,14 @@ def simulate(
         Total simulation duration in seconds.
     :type tf:
         float
+
+    :param orbit_integrator:
+        Orbit class that propagates ``os0``; defaults to
+        :class:`~ADCS.orbits.orbit.Orbit`. An
+        :class:`~ADCS.orbits.sgp4_orbit.SGP4Orbit` subclass also receives
+        ``satellite`` for its drag fit.
+    :type orbit_integrator:
+        type or None
 
     :param environment:
         Models used by the propagated orbit. Defaults to the models on ``os0``.

@@ -15,7 +15,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.satellite import Satellite
-from ADCS.satellite_hardware.sensors import MTM
+from ADCS.satellite_hardware.sensors import MTM, SunSensor
 from ADCS.state import State
 
 
@@ -303,6 +303,32 @@ def test_bdot_reconstructs_body_field_from_mtm_measurements(
     expected_body_field = base_orbital_state.get_state_vector(x=base_state)["b"]
 
     np.testing.assert_allclose(controller.M_read @ sens, expected_body_field)
+
+
+def test_bdot_ignores_nan_sun_sensor_readings_in_eclipse(
+    bdot_satellite: Satellite,
+    base_state: State,
+    base_orbital_state: Orbital_State,
+) -> None:
+    sun_sensor = SunSensor(axis=np.array([1.0, 0.0, 0.0]), efficiency=1.0)
+    bdot_satellite.sensors.append(sun_sensor)
+    bdot_satellite.attitude_sensors.append(sun_sensor)
+    controller = BDot(est_sat=bdot_satellite, gain=100.0)
+
+    os0 = base_orbital_state.copy()
+    os0._sunlit = False
+    os1 = os0.copy()
+    os1.J2000 += TimeConstants.sec2cent
+
+    sens0 = bdot_satellite.sensor_readings(x=base_state, os=os0)
+    sens1 = bdot_satellite.sensor_readings(x=base_state, os=os1)
+    assert np.isnan(sens0[-1])
+    assert np.isnan(sens1[-1])
+
+    controller.find_u(x_hat=base_state, sens=sens0, est_sat=bdot_satellite, os_hat=os0)
+    command = controller.find_u(x_hat=base_state, sens=sens1, est_sat=bdot_satellite, os_hat=os1)
+
+    assert np.all(np.isfinite(command))
 
 
 

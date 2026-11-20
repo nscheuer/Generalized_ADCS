@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from ADCS.helpers.animations.godot.binary_manager import install_viewer, platform_key
+from ADCS.helpers.animations.godot.launcher import viewer_project
 
 
 def _godot_executable() -> Path:
@@ -33,8 +34,8 @@ def _godot_executable() -> Path:
 @pytest.mark.local
 def test_godot_viewer_gdscript_suite():
     """Run the viewer tests when explicitly selected for a local run."""
-    viewer_dir = Path(__file__).resolve().parents[2] / "ADCS/helpers/animations/godot/viewer"
     godot = _godot_executable()
+    viewer_dir = viewer_project(godot)
     result = subprocess.run(
         [str(godot), "--headless", "--path", str(viewer_dir), "--script", "res://tests/run_tests.gd"],
         capture_output=True,

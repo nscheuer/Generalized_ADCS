@@ -136,7 +136,20 @@ class VizLogWriter:
         if self.path.exists():
             if not overwrite:
                 raise FileExistsError(f"{self.path} exists; pass overwrite=True to replace it")
-            if not (self.path / "manifest.json").exists() and any(self.path.iterdir()):
+            if self.path.is_symlink() or not self.path.is_dir():
+                raise FileExistsError(f"{self.path} is not a vizlog directory")
+            manifest_path = self.path / "manifest.json"
+            if manifest_path.exists():
+                try:
+                    with manifest_path.open(encoding="utf-8") as f:
+                        manifest = json.load(f)
+                except (OSError, json.JSONDecodeError) as exc:
+                    raise FileExistsError(f"{self.path} does not contain a valid vizlog manifest") from exc
+                if (not isinstance(manifest, dict)
+                        or manifest.get("format") != FORMAT
+                        or manifest.get("schema_version") != SCHEMA_VERSION):
+                    raise FileExistsError(f"{self.path} is not an ADCS vizlog")
+            elif any(self.path.iterdir()):
                 raise FileExistsError(f"{self.path} is a non-empty directory that is not a vizlog")
             shutil.rmtree(self.path)
         (self.path / "runs").mkdir(parents=True)

@@ -88,8 +88,11 @@ control and estimation workflows.
 pip install generalized-adcs
 ```
 
-Optional extras: `viz` (3-D orbit animation), `dev` (test tooling), `docs`
-(documentation build), `cpp` (toolchain for the optional C++ add-ons).
+Optional extras: `viz` (3-D orbit animation), `viz-video` (MP4 export from
+the Godot viewer), `viz-mesh` (spacecraft model import), `viz-assets`
+(rebuilding viewer textures), `nrlmsise` and `ppigrf` (optional environment
+models), `dev` (test tooling), `docs` (documentation build), `cpp` (toolchain
+for the optional C++ add-ons).
 
 ```bash
 pip install "generalized-adcs[viz]"

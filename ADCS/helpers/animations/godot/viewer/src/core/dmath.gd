@@ -119,6 +119,75 @@ static func slerp(q0: PackedFloat64Array, q1: PackedFloat64Array, a: float) -> P
 	return out
 
 
+
+## Hamilton product of scalar-first quaternions.
+static func qmul(p: PackedFloat64Array, q: PackedFloat64Array) -> PackedFloat64Array:
+	return PackedFloat64Array([
+		p[0] * q[0] - p[1] * q[1] - p[2] * q[2] - p[3] * q[3],
+		p[0] * q[1] + p[1] * q[0] + p[2] * q[3] - p[3] * q[2],
+		p[0] * q[2] - p[1] * q[3] + p[2] * q[0] + p[3] * q[1],
+		p[0] * q[3] + p[1] * q[2] - p[2] * q[1] + p[3] * q[0],
+	])
+
+
+## Attitude a fraction `a` of the way from q0 to q1, samples h seconds apart,
+## following the sampled body rates w0, w1 [rad/s]. Slerp takes the short arc,
+## so a body that turns more than 180 degrees per sample plays back slowly or
+## backwards. This integrates dq/dt = q * (0, w) / 2 (as in ADCS; q is
+## GCRS <- body, scalar first) with w linear in time between the samples, then
+## spreads the remaining mismatch with q1 evenly over the interval, so the
+## result starts on q0 and ends on q1. With zero rates it is slerp; for a
+## constant-axis spin it is exact at any rate.
+static func rate_interp(q0: PackedFloat64Array, q1: PackedFloat64Array, w0: PackedFloat64Array,
+		w1: PackedFloat64Array, h: float, a: float) -> PackedFloat64Array:
+	if h <= 0.0:
+		return slerp(q0, q1, a)
+	# About 10 degrees per substep; constant-axis turns are exact at any size,
+	# so the cap only costs accuracy for very fast tumbles.
+	var turn := norm(scale(add(w0, w1), 0.5 * h))
+	var n := clampi(int(ceil(turn / deg_to_rad(10.0))), 4, 64)
+	var end := _integrate_rates(q0, w0, w1, h, 1.0, n)
+	var residual := rot_vec(qmul(PackedFloat64Array([end[0], -end[1], -end[2], -end[3]]), q1))
+	var out := qmul(_integrate_rates(q0, w0, w1, h, a, n), rot_exp(scale(residual, a)))
+	var m := sqrt(out[0] * out[0] + out[1] * out[1] + out[2] * out[2] + out[3] * out[3])
+	return PackedFloat64Array([out[0] / m, out[1] / m, out[2] / m, out[3] / m])
+
+
+## q0 carried through the fraction `a` of an h-second interval by body rates
+## varying linearly from w0 to w1 (midpoint rate per substep, n substeps for
+## the whole interval).
+static func _integrate_rates(q0: PackedFloat64Array, w0: PackedFloat64Array, w1: PackedFloat64Array,
+		h: float, a: float, n: int) -> PackedFloat64Array:
+	var steps := maxi(1, int(ceil(n * a)))
+	var dt := a * h / steps
+	var q := q0
+	for i in steps:
+		var w := add(w0, scale(sub(w1, w0), (i + 0.5) * dt / h))
+		q = qmul(q, rot_exp(scale(w, dt)))
+	return q
+
+
+## Quaternion of the rotation vector v [rad].
+static func rot_exp(v: PackedFloat64Array) -> PackedFloat64Array:
+	var angle := norm(v)
+	if angle < 1e-15:
+		return PackedFloat64Array([1.0, 0.0, 0.0, 0.0])
+	var s := sin(0.5 * angle) / angle
+	return PackedFloat64Array([cos(0.5 * angle), v[0] * s, v[1] * s, v[2] * s])
+
+
+## Rotation vector [rad] of q, taking the short arc (angle in [0, pi]).
+static func rot_vec(q: PackedFloat64Array) -> PackedFloat64Array:
+	var w := q[0]
+	var v := PackedFloat64Array([q[1], q[2], q[3]])
+	if w < 0.0:
+		w = -w
+		v = scale(v, -1.0)
+	var s := norm(v)
+	if s < 1e-15:
+		return PackedFloat64Array([0.0, 0.0, 0.0])
+	return scale(v, 2.0 * atan2(s, w) / s)
+
 ## Cubic Hermite position between samples (r0, v0) and (r1, v1) h seconds apart, s in [0, 1].
 static func hermite(r0: PackedFloat64Array, v0: PackedFloat64Array, r1: PackedFloat64Array,
 		v1: PackedFloat64Array, h: float, s: float) -> PackedFloat64Array:

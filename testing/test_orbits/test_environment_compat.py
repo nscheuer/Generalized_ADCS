@@ -48,7 +48,7 @@ def test_de421_requires_download_approval_when_missing_without_a_terminal(no_loc
     with pytest.raises(FileNotFoundError, match="Missing de421") as error:
         DE421()
 
-    assert str(no_local_kernels / "kernels" / "de421.bsp") in str(error.value)
+    assert str(no_local_kernels / "cache" / "generalized_adcs" / "de421.bsp") in str(error.value)
 
 
 @pytest.mark.parametrize("module, name", [
@@ -68,6 +68,21 @@ def test_orbital_state_accepts_density_model_keyword():
     )
 
     assert state.rho == pytest.approx(float(density_model.interpolate(500.0)))
+
+
+def test_orbital_state_keeps_the_0_2_1_positional_order():
+    """0.2.1 took (ephem, J2000, R, V, S, B, rho, density_model, fast, magnetic_model)."""
+    density_model = importlib.import_module("ADCS.orbits.density_model").DensityModel(
+        np.array([0.0, 500.0, 1000.0]), np.array([1.0, 1e-12, 1e-14])
+    )
+    R, V = np.array([6878.0, 0.0, 0.0]), np.array([0.0, 7.6, 0.0])
+
+    with pytest.warns(DeprecationWarning, match="density_model"):
+        state = Orbital_State(DE421(), 0.26, R, V, None, None, None, density_model)
+    assert state.rho == pytest.approx(float(density_model.interpolate(500.0)))
+
+    state = Orbital_State(DE421(), 0.26, R, V, None, None, None, None, False, "igrf_ppigrf")
+    assert state.magnetic_model == "igrf_ppigrf"
 
 
 def test_from_dict_with_environment_keeps_non_default_magnetic_model():

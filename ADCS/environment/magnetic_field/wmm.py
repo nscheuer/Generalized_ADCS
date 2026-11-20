@@ -122,7 +122,7 @@ class WMM2025(MagneticField):
             raise ValueError("WMM2025 is valid from 2025-01-01 through 2029-12-31")
         if not getattr(self, "_kernel_resolved", False):
             # Resolve (and download if needed) once per instance, not per evaluation.
-            self.kernel_path = AssetManager().get("wmm2025", destination=self.kernel_path)
+            self.kernel_path = AssetManager().get("wmm2025", destination=self._custom_kernel_path)
             self._kernel_resolved = True
         epoch, g0, h0, gd, hd = _load_cof(str(self.kernel_path))
         if dates.size == 1 or np.all(years == years[0]):

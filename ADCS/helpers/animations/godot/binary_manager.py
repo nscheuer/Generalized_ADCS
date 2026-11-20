@@ -11,10 +11,12 @@ import zipfile
 from pathlib import Path
 from typing import Optional
 
-from ADCS.helpers.asset_manager import Asset, AssetManager
+from ADCS.helpers.asset_manager import Asset, AssetManager, user_cache_dir
 
 _GODOT_VERSION = "4.7.2"
-_BIN_DIR = Path(__file__).with_name("bin")
+
+def _bin_dir() -> Path:
+    return user_cache_dir() / "godot" / _GODOT_VERSION
 # Godot's official release archive suffix and executable path for each build.
 _BUILDS = {
     "linux-x86_64": ("linux.x86_64", "Godot_v{version}-stable_linux.x86_64"),
@@ -83,12 +85,12 @@ def platform_key() -> str:
 
 
 def _executable(key: str) -> Path:
-    return _BIN_DIR / _BUILDS[key][1].format(version=_GODOT_VERSION)
+    return _bin_dir() / _BUILDS[key][1].format(version=_GODOT_VERSION)
 
 
 def _mac_bundle_is_complete() -> bool:
     """The macOS executable is usable only inside its intact signed app bundle."""
-    bundle = _BIN_DIR / "Godot.app"
+    bundle = _bin_dir() / "Godot.app"
     return all((bundle / path).is_file() for path in (
         "Contents/Info.plist",
         "Contents/_CodeSignature/CodeResources",
@@ -99,8 +101,9 @@ def _mac_bundle_is_complete() -> bool:
 def _download_and_unpack(key: str, *, interactive: bool, allow_download: bool = False) -> Path:
     archive_name = f"godot-{_GODOT_VERSION}-{key}.zip"
     asset = Asset(f"Godot {_GODOT_VERSION} ({key})", _asset_url(key), archive_name, _SHA256[key])
-    manager = AssetManager(registry={key: asset}, locations=[], cache_dir=_BIN_DIR)
-    archive = manager.get(key, destination=_BIN_DIR / archive_name, interactive=interactive,
+    bin_dir = _bin_dir()
+    manager = AssetManager(registry={key: asset}, locations=[], cache_dir=bin_dir)
+    archive = manager.get(key, destination=bin_dir / archive_name, interactive=interactive,
                           allow_download=allow_download)
     exe = _executable(key)
     mac_bundle = key == "macos-universal"
@@ -113,7 +116,7 @@ def _download_and_unpack(key: str, *, interactive: bool, allow_download: bool = 
                     # Godot's macOS executable must remain inside its complete
                     # signed .app bundle. Extract every bundle resource, including
                     # its signature metadata, rather than just Contents/MacOS/Godot.
-                    bundle = _BIN_DIR / "Godot.app"
+                    bundle = bin_dir / "Godot.app"
                     if bundle.exists():
                         shutil.rmtree(bundle)
                     members = [name for name in zf.namelist() if name.startswith("Godot.app/")]
@@ -122,12 +125,12 @@ def _download_and_unpack(key: str, *, interactive: bool, allow_download: bool = 
                     if sys.platform == "darwin":
                         # Apple's ditto preserves the bundle metadata and file
                         # modes expected by macOS code-signature validation.
-                        subprocess.run(["/usr/bin/ditto", "-x", "-k", str(archive), str(_BIN_DIR)],
+                        subprocess.run(["/usr/bin/ditto", "-x", "-k", str(archive), str(bin_dir)],
                                        check=True, capture_output=True, text=True)
                     else:
                         # Retain support for explicitly installing the macOS
                         # bundle on another OS, although only macOS can launch it.
-                        zf.extractall(_BIN_DIR, members=members)
+                        zf.extractall(bin_dir, members=members)
                 else:
                     # Non-macOS builds are standalone executables.
                     exe.parent.mkdir(parents=True, exist_ok=True)
@@ -135,7 +138,7 @@ def _download_and_unpack(key: str, *, interactive: bool, allow_download: bool = 
                         output.write(source.read())
         except (KeyError, zipfile.BadZipFile, OSError, subprocess.CalledProcessError) as exc:
             if mac_bundle:
-                shutil.rmtree(_BIN_DIR / "Godot.app", ignore_errors=True)
+                shutil.rmtree(bin_dir / "Godot.app", ignore_errors=True)
             else:
                 exe.unlink(missing_ok=True)
             if isinstance(exc, subprocess.CalledProcessError):

@@ -203,7 +203,7 @@ class BDot(Controller):
 
         """
         y = np.asarray(sens).reshape(-1)
-        B_curr = self.M_read @ y
+        B_curr = self.M_read[:, self.mtm_indices] @ y[self.mtm_indices]
 
         t_curr = os_hat.J2000
 

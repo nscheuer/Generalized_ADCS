@@ -8,6 +8,7 @@ plant: the estimator's clone of a satellite is reset to the nominal device.
 
 from __future__ import annotations
 
+import pickle
 from types import SimpleNamespace
 
 import numpy as np
@@ -182,3 +183,31 @@ def test_mounting_errors_are_validated():
     nominal = MTM(AXIS)
     assert nominal.scale_factor == 1.0 and nominal.misalignment is None
     np.testing.assert_allclose(nominal.sensing_axis, AXIS)
+
+
+def test_sensor_from_legacy_pickle_uses_nominal_mounting_defaults():
+    sensor = MTM(AXIS)
+    # These fields did not exist in older saved satellites. Removing them
+    # before pickling reproduces the instance state those files contain.
+    for name in ("scale_factor", "misalignment", "mounting_rotation"):
+        del sensor.__dict__[name]
+    restored = pickle.loads(pickle.dumps(sensor))
+
+    assert restored.scale_factor == 1.0
+    assert restored.misalignment is None
+    np.testing.assert_array_equal(restored.mounting_rotation, np.eye(3))
+    np.testing.assert_allclose(restored.reading(TRUTH, _orbital_state()), restored.clean_reading(TRUTH, _orbital_state()))
+
+
+@pytest.mark.parametrize("tracker_type", [StarTracker, StarTrackerQuaternion])
+def test_star_tracker_from_legacy_pickle_reads(tracker_type):
+    tracker = tracker_type()
+    # 0.2.1 trackers also lack the per-sensor catalogue flag.
+    for name in ("scale_factor", "misalignment", "mounting_rotation", "_catalog_explicit"):
+        tracker.__dict__.pop(name, None)
+    restored = pickle.loads(pickle.dumps(tracker))
+
+    assert restored._catalog_explicit is False
+    os = _orbital_state()
+    assert np.asarray(restored.clean_reading(TRUTH, os)).shape == (tracker_type.output_length,)
+    restored.basestate_jac(TRUTH, os)

@@ -203,3 +203,47 @@ def test_wmm_rejects_the_last_day_of_2024():
     from ADCS.environment.magnetic_field import WMM2025
     with pytest.raises(ValueError, match="2025"):
         WMM2025().field_gc(6878.0, 45.0, 10.0, datetime(2024, 12, 31, 12))
+
+
+# --------------------------------------------------------------------------
+# CHAOS-8 outside its coefficient span
+# --------------------------------------------------------------------------
+
+
+def test_chaos_weights_continue_linearly_past_either_end():
+    from ADCS.environment.magnetic_field.chaos8 import _weights
+
+    times = np.array([2020.0, 2020.5, 2021.0, 2021.5, 2022.0, 2022.5])
+
+    def f(t):
+        return (t - 2020.0) ** 3 + 2.0 * (t - 2020.0)
+
+    def df(t):
+        return 3.0 * (t - 2020.0) ** 2 + 2.0
+
+    values = f(times)
+    assert _weights(times, 0, 2021.2) @ values == pytest.approx(f(2021.2))
+    assert _weights(times, 0, 2024.0) @ values == pytest.approx(f(2022.5) + 1.5 * df(2022.5))
+    assert _weights(times, 0, 2019.0) @ values == pytest.approx(f(2020.0) - 1.0 * df(2020.0))
+
+
+def test_chaos_extrapolates_with_a_warning_instead_of_raising(monkeypatch):
+    import ADCS.environment.magnetic_field.chaos8 as chaos8
+
+    times = 2020.0 + 0.5 * np.arange(11)  # two degree-5 segments, 2020-2025
+    g = np.zeros((11, 21, 21))
+    h = np.zeros_like(g)
+    g[:, 1, 0] = -30000.0 + 20.0 * (times - 2020.0)  # linear in time: extrapolation is exact
+    g[:, 2, 1] = 3000.0 - 5.0 * (times - 2020.0)
+    monkeypatch.setattr(chaos8, "ensure_kernel", lambda path, *args: path)
+    monkeypatch.setattr(chaos8, "_read_shc", lambda path, lo, hi: (times, g, h))
+    model = chaos8.CHAOS8(core_path="core.shc", include_static=False)
+
+    def at(year):
+        date = datetime(2000, 1, 1) + timedelta(days=(year - 2000.0) * 365.25)
+        return np.array(model.field_gc(7000.0, 60.0, 10.0, date), dtype=float).ravel()
+
+    b_2024, b_2025 = at(2024.0), at(2025.0)
+    with pytest.warns(RuntimeWarning, match="extrapolating linearly"):
+        b_2027 = at(2027.0)
+    np.testing.assert_allclose(b_2027, b_2025 + 2.0 * (b_2025 - b_2024), rtol=1e-9)

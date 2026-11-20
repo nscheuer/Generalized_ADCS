@@ -63,7 +63,7 @@ _SHC_FILE = Path(__file__).resolve().parents[1] / "kernels" / "IGRF14.shc"
 @lru_cache(maxsize=1)
 def _resolved_shc_path() -> str:
     """Resolve the bundled coefficient file through AssetManager on first use."""
-    return str(AssetManager().get("igrf14", destination=_SHC_FILE))
+    return str(AssetManager().get("igrf14"))
 
 
 # ---------------------------------------------------------------------------
