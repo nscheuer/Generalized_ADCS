@@ -3,23 +3,23 @@
 import numpy as np
 from numba import njit
 
-from ADCS_Omni.state import AttitudeState, InternalState, OrbitalState, State
-
 from ._dop853_coefficients import A, B, C, E3, E5
-from .coupled_rk4_propagator import SECONDS_PER_DAY, _derivative, _prepare
+from ._coupled_dynamics import SECONDS_PER_DAY, _derivative, _prepare, _project_wheel_momentum
+from ._state_layout import pack_state, unpack_state
 
 
 @njit(cache=True)
 def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
     """One DOP853 trial, including the embedded 5/3 error estimate."""
-    stages = np.empty((13, 13), dtype=np.float64)
+    components = y.size
+    stages = np.empty((13, components), dtype=np.float64)
     stages[0, :] = f
     for stage in range(1, 12):
         trial = y.copy()
         for previous in range(stage):
             coefficient = h * A[stage, previous]
             if coefficient != 0.0:
-                for component in range(13):
+                for component in range(components):
                     trial[component] += coefficient * stages[previous, component]
         stages[stage, :] = _derivative(trial, epoch_jd + C[stage] * h / SECONDS_PER_DAY, p)
 
@@ -27,14 +27,16 @@ def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
     for stage in range(12):
         coefficient = h * B[stage]
         if coefficient != 0.0:
-            for component in range(13):
+            for component in range(components):
                 candidate[component] += coefficient * stages[stage, component]
     candidate[0:4] /= np.sqrt(np.dot(candidate[0:4], candidate[0:4]))
+    if p.wheel_commands.size:
+        _project_wheel_momentum(candidate, p)
     stages[12, :] = _derivative(candidate, epoch_jd + h / SECONDS_PER_DAY, p)
 
     norm5_squared = 0.0
     norm3_squared = 0.0
-    for component in range(13):
+    for component in range(components):
         scale = atol[component] + rtol * max(abs(y[component]), abs(candidate[component]))
         err5 = 0.0
         err3 = 0.0
@@ -46,7 +48,7 @@ def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
     if norm5_squared == 0.0 and norm3_squared == 0.0:
         error_norm = 0.0
     else:
-        error_norm = abs(h) * norm5_squared / np.sqrt((norm5_squared + 0.01 * norm3_squared) * 13.0)
+        error_norm = abs(h) * norm5_squared / np.sqrt((norm5_squared + 0.01 * norm3_squared) * components)
     return candidate, stages[12, :].copy(), error_norm
 
 
@@ -57,7 +59,7 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
     capacity = min(max_accepted_steps + 1, 1024)
     capacity = max(capacity, 1)
     times = np.empty(capacity, dtype=np.float64)
-    states = np.empty((capacity, 13), dtype=np.float64)
+    states = np.empty((capacity, y.size), dtype=np.float64)
     times[0] = t
     states[0, :] = y
     count = 1
@@ -83,7 +85,7 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
             if count == capacity:
                 new_capacity = capacity * 2
                 new_times = np.empty(new_capacity, dtype=np.float64)
-                new_states = np.empty((new_capacity, 13), dtype=np.float64)
+                new_states = np.empty((new_capacity, y.size), dtype=np.float64)
                 new_times[:count] = times[:count]
                 new_states[:count, :] = states[:count, :]
                 times = new_times
@@ -103,7 +105,7 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
 
 
 class CoupledDOP853Propagator:
-    """Adaptive DOP853 for the same passive coupled dynamics as RK4.
+    """Adaptive DOP853 for the same coupled dynamics as RK4.
 
     ``dt`` is the initial proposed step in seconds. ``max_step`` caps later
     accepted steps. Error is controlled with componentwise absolute tolerance
@@ -116,10 +118,11 @@ class CoupledDOP853Propagator:
         self.max_step = float(max_step)
         self.min_step = float(min_step)
         absolute = np.asarray(atol, dtype=np.float64)
-        if absolute.ndim == 0:
+        self._scalar_atol = absolute.ndim == 0
+        if self._scalar_atol:
             absolute = np.full(13, float(absolute), dtype=np.float64)
-        if absolute.shape != (13,):
-            raise ValueError("atol must be a scalar or 13-element vector")
+        if absolute.ndim != 1 or absolute.size < 13:
+            raise ValueError("atol must be a scalar or vector with at least 13 elements")
         self.atol = np.ascontiguousarray(absolute)
         if not np.isfinite(self.dt) or self.dt <= 0.0:
             raise ValueError("dt must be finite and positive seconds")
@@ -141,14 +144,15 @@ class CoupledDOP853Propagator:
                          or not isinstance(progress_chunk_steps, int)
                          or progress_chunk_steps <= 0):
             raise ValueError("progress_chunk_steps must be a positive integer")
-        if state.internal.wheel_momentum.size:
-            raise NotImplementedError("coupled passive propagation does not support wheel momentum")
-
         p = _prepare(satellite, environment, dynamics)
-        y = np.concatenate((state.attitude.quaternion_array, state.attitude.rates,
-                            state.orbit.position, state.orbit.velocity))
+        y = pack_state(state, p.wheel_commands.size)
+        if p.wheel_commands.size:
+            _project_wheel_momentum(y, p)
+        atol = np.full(y.size, self.atol[0]) if self._scalar_atol else self.atol
+        if atol.shape != (y.size,):
+            raise ValueError(f"atol must contain {y.size} values for this state")
         if tf == 0.0:
-            return np.array([0.0]), y.reshape(1, 13)
+            return np.array([0.0]), y.reshape(1, y.size)
 
         t = 0.0
         h = min(self.dt, self.max_step)
@@ -158,16 +162,16 @@ class CoupledDOP853Propagator:
 
             with tqdm(total=1, desc="Compiling Numba kernels", unit="stage") as bar:
                 _integrate_adaptive_chunk(y, f, t, h, state.orbit.julian_date, tf,
-                                          p, self.rtol, self.atol, self.max_step,
+                                          p, self.rtol, atol, self.max_step,
                                           self.min_step, 0)
                 bar.update(1)
             time_parts = [np.array([0.0])]
-            state_parts = [y.reshape(1, 13)]
+            state_parts = [y.reshape(1, y.size)]
             with tqdm(total=tf, desc="Running coupled DOP853", unit="s") as bar:
                 while t < tf:
                     times, states, y, f, new_t, h = _integrate_adaptive_chunk(
                         y, f, t, h, state.orbit.julian_date, tf, p,
-                        self.rtol, self.atol, self.max_step, self.min_step,
+                        self.rtol, atol, self.max_step, self.min_step,
                         progress_chunk_steps,
                     )
                     time_parts.append(times[1:])
@@ -178,7 +182,7 @@ class CoupledDOP853Propagator:
 
         times, states, _, _, _, _ = _integrate_adaptive_chunk(
             y, f, t, h, state.orbit.julian_date, tf, p,
-            self.rtol, self.atol, self.max_step, self.min_step,
+            self.rtol, atol, self.max_step, self.min_step,
             2_147_483_647,
         )
         return times, states
@@ -187,10 +191,4 @@ class CoupledDOP853Propagator:
         """Advance by dt seconds using as many adaptive substeps as needed."""
         _, vectors = self.integrate(state, satellite, environment, dynamics, self.dt)
         result = vectors[-1]
-        return State(
-            AttitudeState(result[0:4].copy(), result[4:7].copy()),
-            OrbitalState.from_cartesian(result[7:10].copy(), result[10:13].copy(),
-                                        state.orbit.julian_date + self.dt / SECONDS_PER_DAY,
-                                        state.orbit.ephemeris),
-            InternalState(),
-        )
+        return unpack_state(result, state, self.dt)

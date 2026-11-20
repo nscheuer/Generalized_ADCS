@@ -5,7 +5,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from .solver import CoupledSolver, Solver
-from .state import AttitudeState, InternalState, OrbitalState, State
+from .state import State
+from .propagation.coupled_propagators._state_layout import unpack_state
 
 
 @dataclass(slots=True)
@@ -13,7 +14,7 @@ class SimulationResult:
     """Sampled coupled trajectory with elapsed times in seconds.
 
     ``state_vectors`` columns are quaternion (0:4), body rates (4:7),
-    inertial position (7:10), and inertial velocity (10:13).
+    inertial position (7:10), inertial velocity (10:13), then wheel momenta.
     """
 
     times_s: np.ndarray
@@ -41,12 +42,5 @@ def simulate(satellite, environment, dynamics, state, solver, backend="Python"):
         progress=solver.progress,
         progress_chunk_steps=solver.progress_chunk_steps,
     )
-    final = state_vectors[-1]
-    final_state = State(
-        AttitudeState(final[0:4].copy(), final[4:7].copy()),
-        OrbitalState.from_cartesian(final[7:10].copy(), final[10:13].copy(),
-                                    state.orbit.julian_date + solver.tf / 86400.0,
-                                    state.orbit.ephemeris),
-        InternalState(),
-    )
+    final_state = unpack_state(state_vectors[-1], state, solver.tf)
     return SimulationResult(times_s, state_vectors, final_state)

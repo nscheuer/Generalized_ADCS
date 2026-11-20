@@ -6,7 +6,7 @@ from .helpers.math import DCM, Modified_Rodriguez_Parameters, Modified_Rodrigues
 from .noise import FlickerNoise, GaussMarkovNoise, GaussianWhiteNoise, Noise, QuantizationNoise, UniformNoise
 from .propagation import AdaptiveRK45AttitudePropagator, CoupledDOP853Propagator, CoupledRK4Propagator, KeplerianOrbitalPropagator, Propagator, RK4AttitudePropagator, SGP4OrbitalPropagator
 from .solver import AttitudeSolver, CoupledSolver, OrbitalSolver, Solver
-from .state import AttitudeState, InternalState, OrbitalState, State
+from .state import AttitudeState, InternalState, OrbitalState, State, WheelMomentumState
 from .simulate import SimulationResult, simulate
 
 __all__ = [name for name in globals() if not name.startswith("_")]
