@@ -1,0 +1,13 @@
+[package]
+name = "adcs-omni-rust-state"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "_state"
+crate-type = ["cdylib", "rlib"]
+path = "lib.rs"
+
+[dependencies]
+pyo3 = { version = "0.20", features = ["extension-module"] }
+

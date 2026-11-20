@@ -1,0 +1,13 @@
+[package]
+name = "adcs-omni-rust-atmosphere"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "_atmosphere"
+path = "lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.20", features = ["extension-module"] }
+nrlmsise00 = { version = "0.2", default-features = false }

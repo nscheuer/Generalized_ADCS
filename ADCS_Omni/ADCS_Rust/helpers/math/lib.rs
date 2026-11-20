@@ -1,0 +1,109 @@
+use nalgebra::{DMatrix, DVector, Matrix3, SVector};
+use numpy::ToPyArray;
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
+type M = Matrix3<f64>;
+
+include!("common.rs");
+include!("rotations/quaternion/quaternion.rs");
+include!("rotations/dcm/dcm.rs");
+include!("rotations/mrp/modified_rodrigues_parameters.rs");
+include!("rotations/rodrigues/rodrigues_parameters.rs");
+include!("vector.rs");
+include!("rotations/quaternion/algebra.rs");
+include!("rotations/quaternion/conversions.rs");
+include!("rotations/quaternion/interpolation.rs");
+include!("rotations/dcm/kernels.rs");
+include!("rotations/mrp/kernels.rs");
+include!("rotations/rodrigues/kernels.rs");
+include!("derivatives.rs");
+include!("dynamics.rs");
+include!("time/conversions.rs");
+
+#[pymodule]
+fn _helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+    macro_rules! add {($($f:ident),* $(,)?)=>{$(m.add_function(wrap_pyfunction!($f,m)?)?;)*};}
+    add!(
+        cross,
+        norm,
+        normalize,
+        unit,
+        skew,
+        _normalize_quaternion,
+        _quaternion_norm,
+        _jpl_to_hamilton,
+        _hamilton_to_jpl,
+        _conjugate,
+        _inverse,
+        _multiply,
+        _relative_quaternion,
+        _rotate_vector,
+        _quaternion_to_dcm,
+        _dcm_to_quaternion,
+        _axis_angle_to_quaternion,
+        rotation_vector_to_quaternion,
+        quaternion_to_rotation_vector,
+        slerp,
+        axis_angle_to_dcm,
+        rotate_vector,
+        inverse_dcm,
+        compose_dcm,
+        relative_dcm,
+        dcm_orthogonality_error,
+        normalize_dcm,
+        mrp_to_quaternion,
+        quaternion_to_mrp,
+        mrp_shadow_set,
+        rodrigues_to_quaternion,
+        quaternion_to_rodrigues,
+        quaternion_derivative,
+        quaternion_rate_matrix,
+        angular_velocity_from_quaternion_derivative,
+        quaternion_normalization_jacobian,
+        rotated_vector_quaternion_jacobian,
+        quaternion_to_euler321,
+        rigid_body_angular_acceleration,
+        wheel_coupled_angular_acceleration,
+        wheel_momentum_derivative,
+        calendar_to_jd,
+        jd_to_calendar,
+        utc_jd_to_tai_jd,
+        tai_jd_to_utc_jd,
+        tai_jd_to_tt_jd,
+        tt_jd_to_tai_jd,
+        utc_jd_to_tt_jd,
+        tt_jd_to_utc_jd,
+        utc_jd_to_ut1_jd,
+        ut1_jd_to_utc_jd,
+        tt_jd_to_tdb_jd,
+        tdb_jd_to_tt_jd,
+        utc_jd_to_tdb_jd,
+        tdb_jd_to_utc_jd,
+        tai_jd_to_ut1_jd,
+        ut1_jd_to_tai_jd,
+        tt_jd_to_ut1_jd,
+        ut1_jd_to_tt_jd,
+        tai_jd_to_tdb_jd,
+        tdb_jd_to_tai_jd,
+        ut1_jd_to_tdb_jd,
+        tdb_jd_to_ut1_jd,
+        jd_to_utc_calendar_fields,
+        day_of_year
+    );
+    m.add_class::<Quaternion>()?;
+    m.add_class::<DCM>()?;
+    m.add_class::<MRP>()?;
+    m.add_class::<RotationParameter>()?;
+    m.add(
+        "Modified_Rodrigues_Parameters",
+        m.getattr("Modified_Rodriguez_Parameters")?,
+    )?;
+    m.add(
+        "ModifiedRodriguesParameters",
+        m.getattr("Modified_Rodriguez_Parameters")?,
+    )?;
+    m.add_class::<Rodrigues>()?;
+    m.add("Rodrigues_Parameters", m.getattr("Rodriguez_Parameters")?)?;
+    m.add("RodriguesParameters", m.getattr("Rodriguez_Parameters")?)?;
+    Ok(())
+}

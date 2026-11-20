@@ -166,6 +166,8 @@ env*/
 !ADCS_Omni/ADCS_Python/environment/**
 !ADCS_Omni/ADCS_C/environment/
 !ADCS_Omni/ADCS_C/environment/**
+!ADCS_Omni/ADCS_Rust/
+!ADCS_Omni/ADCS_Rust/**
 # Keep generated Python and Numba caches out of the included environment tree.
 ADCS_Omni/environment/**/__pycache__/
 ADCS_Omni/environment/**/*.py[cod]
@@ -178,6 +180,12 @@ ADCS_Omni/ADCS_C/environment/**/__pycache__/
 ADCS_Omni/ADCS_C/environment/**/*.py[cod]
 ADCS_Omni/ADCS_C/environment/**/*.nb[ci]
 ADCS_Omni/ADCS_C/environment/**/*.so
+ADCS_Omni/ADCS_Rust/**/__pycache__/
+ADCS_Omni/ADCS_Rust/**/*.py[cod]
+ADCS_Omni/ADCS_Rust/**/*.nb[ci]
+ADCS_Omni/ADCS_Rust/**/*.so
+ADCS_Omni/ADCS_Rust/**/target/
+ADCS_Omni/ADCS_Rust/**/target/**
 ENV/
 env.bak/
 venv.bak/

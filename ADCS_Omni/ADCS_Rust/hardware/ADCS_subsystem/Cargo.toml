@@ -1,0 +1,12 @@
+[package]
+name = "adcs-omni-rust-adcs-subsystem"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "_subsystem"
+path = "lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.20", features = ["extension-module"] }
