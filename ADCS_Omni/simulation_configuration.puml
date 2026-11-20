@@ -1,0 +1,327 @@
+@startuml
+title ADCS_Omni simulation configuration
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+hide empty methods
+
+package "ADCS_Omni.config" {
+  class SimulationConfig {
+    satellite: Satellite
+    environment: Environment
+    state: State
+    propagator: Propagator
+    solver: Solver
+    backend: Python | C | Rust | JAX
+  }
+
+  class DynamicsConfig {
+    drag_torque: bool
+    srp_torque: bool
+    residual_dipole_torque: bool
+    gravity_gradient_torque: bool
+    drag_force: bool
+    srp_force: bool
+    j2_force: bool
+    j3_force: bool
+    j4_force: bool
+    j5_force: bool
+    j6_force: bool
+    third_body_forces: bool
+  }
+}
+
+package "ADCS_Omni.hardware" {
+  class Satellite {
+    geometry: SatelliteGeometry
+    adcs: ADCSSubsystem
+    state_machine: StateMachine
+  }
+  class StateMachine <<stub>>
+
+  package "satellite_geometry" {
+    class SatelliteGeometry {
+      mass
+      inertia
+      center_of_mass
+      panels: list[SatellitePanel]
+    }
+    class SatellitePanel {
+      position
+      orientation
+      dimensions
+      eta_s
+      eta_d
+      eta_a
+      cd
+    }
+  }
+
+  package "ADCS_subsystem" {
+    class ADCSSubsystem {
+      reaction_wheels: list[ReactionWheel]
+      magnetorquers: list[Magnetorquer]
+    }
+    class ReactionWheel {
+      position
+      orientation
+      misalignment
+      rotational_inertia
+      max_torque
+      max_momentum
+      effects: ordered list[Noise | Bias]
+    }
+    class Magnetorquer {
+      position
+      orientation
+      misalignment
+      max_dipole
+      effects: ordered list[Noise | Bias]
+    }
+  }
+}
+
+package "ADCS_Omni.noise" {
+  abstract class Noise
+  class GaussianWhiteNoise
+  class UniformNoise
+  class GaussMarkovNoise
+  class FlickerNoise
+  class QuantizationNoise
+}
+
+package "ADCS_Omni.bias" {
+  abstract class Bias
+  class FixedBias
+  class RandomWalkBias
+  class LinearDrift
+  class ScaleFactorError
+}
+
+package "ADCS_Omni.environment" {
+  class Environment {
+    planetary_body: PlanetaryBody
+    atmosphere: AtmosphericModel
+    magnetic_field: MagneticFieldModel
+    j_gravity: JGravityModel
+    ephemeris: EphemerisModel
+  }
+
+  package "planetary_body" {
+    abstract class PlanetaryBody
+    class Earth
+  }
+  package "atmosphere" {
+    abstract class AtmosphericModel
+    class NRLMSISE00
+  }
+  package "magnetic_field_model" {
+    abstract class MagneticFieldModel
+    class WMM
+    class IGRF14
+    class CHAOS8
+  }
+  package "gravity" {
+    class JGravityModel {
+      degrees: tuple[2, 3, 4, 5, 6]
+    }
+    class J2
+    class J3
+    class J4
+    class J5
+    class J6
+  }
+  package "ephemeris" {
+    abstract class EphemerisModel
+    class DE421
+  }
+}
+
+package "ADCS_Omni.state" {
+  class State {
+    attitude: AttitudeState
+    orbit: OrbitalState
+    internal: InternalState
+  }
+  class AttitudeState {
+    orientation
+    rates
+  }
+  class OrbitalState {
+    position | keplerian_elements
+    velocity
+    julian_date
+    lazy body positions: Sun, Earth, Moon
+  }
+  class InternalState {
+    wheel_momentum
+    other
+  }
+}
+
+package "ADCS_Omni.helpers.math" {
+  class DCM <<input/output only>> {
+    matrix: 3x3
+    frame: q_B_from_I
+    active rotation
+  }
+  class Quaternion {
+    internal storage: scalar-first Hamilton
+    frame: q_B_from_I
+    convention input/output: Hamilton | JPL
+    active rotation
+  }
+  class Rodriguez_Parameters <<input/output only>> {
+    parameters: 3-vector
+    singular at 180 degrees
+  }
+  class Modified_Rodriguez_Parameters <<input/output only>> {
+    parameters: 3-vector
+    automatic shadow-set switching
+  }
+  class QuaternionAlgebra <<numba.njit kernels>>
+  class Rotations <<numba.njit kernels>>
+  class FrameTransforms <<numba.njit kernels>>
+  class QuaternionDerivatives <<numba.njit kernels>>
+  class RigidBodyDynamics <<numba.njit kernels>>
+  class VectorOperations <<numba.njit kernels>>
+  class QuaternionInterpolation <<numba.njit kernels>>
+}
+
+package "ADCS_Omni.propagation" {
+  class Propagator {
+    attitude | orbital | coupled
+  }
+  abstract class CoupledPropagator <<stub>> {
+    dt
+  }
+  abstract class KeplerianOrbitalPropagator <<stub>> {
+    dt
+  }
+  abstract class SGP4OrbitalPropagator <<stub>> {
+    dt
+    tle
+  }
+  abstract class RK4AttitudePropagator <<stub>> {
+    dt
+  }
+  abstract class AdaptiveRK45AttitudePropagator <<stub>> {
+    dt
+    rtol
+    atol
+  }
+}
+
+package "ADCS_Omni.solver" {
+  class Solver {
+    dynamics: DynamicsConfig
+    orbital: OrbitalSolver | null
+    attitude: AttitudeSolver | null
+    coupled: CoupledSolver | null
+  }
+  class OrbitalSolver {
+    propagator: KeplerianOrbitalPropagator | SGP4OrbitalPropagator
+    dt
+  }
+  class AttitudeSolver {
+    propagator: RK4AttitudePropagator | AdaptiveRK45AttitudePropagator
+    dt
+  }
+  class CoupledSolver {
+    propagator: CoupledPropagator
+    dt
+  }
+}
+
+class "simulate(config, tf)" as simulate <<stub>>
+
+SimulationConfig *-- Satellite
+SimulationConfig *-- Environment
+SimulationConfig *-- State
+SimulationConfig *-- Propagator
+SimulationConfig *-- Solver
+Solver *-- DynamicsConfig
+Solver o-- OrbitalSolver : split mode
+Solver o-- AttitudeSolver : split mode
+Solver o-- CoupledSolver : coupled mode
+Propagator o-- CoupledPropagator : coupled mode
+Propagator o-- KeplerianOrbitalPropagator
+Propagator o-- SGP4OrbitalPropagator
+Propagator o-- RK4AttitudePropagator
+Propagator o-- AdaptiveRK45AttitudePropagator
+OrbitalSolver --> KeplerianOrbitalPropagator
+OrbitalSolver --> SGP4OrbitalPropagator
+AttitudeSolver --> RK4AttitudePropagator
+AttitudeSolver --> AdaptiveRK45AttitudePropagator
+CoupledSolver --> CoupledPropagator
+simulate ..> SimulationConfig
+
+Satellite *-- SatelliteGeometry
+Satellite *-- ADCSSubsystem
+Satellite *-- StateMachine
+SatelliteGeometry *-- "0..*" SatellitePanel
+ADCSSubsystem *-- "0..*" ReactionWheel
+ADCSSubsystem *-- "0..*" Magnetorquer
+ReactionWheel o-- "0..* ordered" Noise : effects
+ReactionWheel o-- "0..* ordered" Bias : effects
+Magnetorquer o-- "0..* ordered" Noise : effects
+Magnetorquer o-- "0..* ordered" Bias : effects
+note right of Noise
+  Actuator effects are stored in one ordered list.
+  Noise and bias operations follow that list order.
+end note
+
+Noise <|-- GaussianWhiteNoise
+Noise <|-- UniformNoise
+Noise <|-- GaussMarkovNoise
+Noise <|-- FlickerNoise
+Noise <|-- QuantizationNoise
+Bias <|-- FixedBias
+Bias <|-- RandomWalkBias
+Bias <|-- LinearDrift
+Bias <|-- ScaleFactorError
+
+Environment *-- PlanetaryBody
+Environment o-- AtmosphericModel
+Environment o-- MagneticFieldModel
+Environment o-- JGravityModel
+Environment o-- EphemerisModel
+PlanetaryBody <|-- Earth
+AtmosphericModel <|-- NRLMSISE00
+MagneticFieldModel <|-- WMM
+MagneticFieldModel <|-- IGRF14
+MagneticFieldModel <|-- CHAOS8
+JGravityModel <|-- J2
+JGravityModel <|-- J3
+JGravityModel <|-- J4
+JGravityModel <|-- J5
+JGravityModel <|-- J6
+EphemerisModel <|-- DE421
+
+State *-- AttitudeState
+State *-- OrbitalState
+State *-- InternalState
+AttitudeState --> Quaternion : orientation
+OrbitalState ..> EphemerisModel : lazy Sun/Earth/Moon positions
+
+Quaternion ..> QuaternionAlgebra
+Quaternion ..> Rotations
+Quaternion ..> FrameTransforms
+QuaternionDerivatives ..> Quaternion
+DCM ..> Quaternion : converts at API boundary
+Rodriguez_Parameters ..> Quaternion : converts at API boundary
+Modified_Rodriguez_Parameters ..> Quaternion : converts at API boundary
+
+DynamicsConfig ..> Environment : selected force models
+DynamicsConfig ..> SatelliteGeometry : panel force/torque models
+
+note bottom of SimulationConfig
+  Configure one propagator path:
+  coupled solver, or separate orbital and attitude solvers.
+  The backend is currently a configuration stub.
+end note
+
+note bottom of simulate
+  Entry point currently raises NotImplementedError.
+  Propagation and model calls are configuration stubs.
+end note
+@enduml

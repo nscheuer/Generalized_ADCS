@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from ADCS_Omni.environment.ephemeris_model import EphemerisModel
+from ADCS_Omni.environment.ephemeris import EphemerisModel
 
 
 @dataclass(slots=True)

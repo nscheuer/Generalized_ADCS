@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from .adcs_subsystem import ADCSSubsystem
+from .ADCS_subsystem import ADCSSubsystem
 from .satellite_geometry import SatelliteGeometry
 from .state_machine import StateMachine
 
