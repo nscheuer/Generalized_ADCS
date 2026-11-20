@@ -42,7 +42,7 @@ class DCM:
 
         if not isinstance(quaternion, Quaternion):
             quaternion = Quaternion(quaternion)
-        return cls(_quaternion_to_dcm(quaternion.components))
+        return cls(_quaternion_to_dcm(quaternion.hamilton_components))
 
     @classmethod
     def from_dcm(cls, matrix):
@@ -51,6 +51,10 @@ class DCM:
     @property
     def components(self):
         return self._matrix.copy()
+
+    @property
+    def hamilton_components(self):
+        return _dcm_to_quaternion(self._matrix)
 
     @property
     def norm(self):

@@ -14,7 +14,7 @@ class Quaternion:
     kernels use normalized scalar-first Hamilton quaternions.
     """
 
-    __slots__ = ("_hamilton",)
+    __slots__ = ("_hamilton", "_convention")
 
     def __init__(self, values=(1.0, 0.0, 0.0, 0.0), convention="Hamilton"):
         raw = np.asarray(values, dtype=np.float64)
@@ -23,8 +23,10 @@ class Quaternion:
         convention_key = str(convention).strip().lower()
         if convention_key in ("hamilton", "h"):
             hamilton = raw.copy()
+            self._convention = "Hamilton"
         elif convention_key in ("jpl", "j"):
             hamilton = _jpl_to_hamilton(raw)
+            self._convention = "JPL"
         else:
             raise ValueError("convention must be 'Hamilton' or 'JPL'")
         self._hamilton = _normalize_quaternion(hamilton)
@@ -58,7 +60,15 @@ class Quaternion:
 
     @property
     def components(self):
+        return self.as_convention(self._convention)
+
+    @property
+    def hamilton_components(self):
         return self._hamilton.copy()
+
+    @property
+    def convention(self):
+        return self._convention
 
     @property
     def norm(self):
@@ -71,6 +81,9 @@ class Quaternion:
         if convention_key in ("jpl", "j"):
             return _hamilton_to_jpl(self._hamilton)
         raise ValueError("convention must be 'Hamilton' or 'JPL'")
+
+    def to_convention(self, convention="Hamilton"):
+        return Quaternion(self.as_convention(convention), convention=convention)
 
     def normalized(self):
         return Quaternion(_normalize_quaternion(self._hamilton))

@@ -17,7 +17,11 @@ class _RotationParameter:
     def from_quaternion(cls, quaternion):
         if not isinstance(quaternion, Quaternion):
             quaternion = Quaternion(quaternion)
-        return cls(cls._from_hamilton(quaternion.components))
+        return cls(cls._from_hamilton(quaternion.hamilton_components))
+
+    @classmethod
+    def from_quaternion_array(cls, quaternion):
+        return cls(cls._from_hamilton(np.asarray(quaternion, dtype=np.float64)))
 
     @classmethod
     def from_axis_angle(cls, axis, angle):
@@ -38,6 +42,10 @@ class _RotationParameter:
     @property
     def components(self):
         return self._parameters.copy()
+
+    @property
+    def hamilton_components(self):
+        return self._to_hamilton(self._parameters)
 
     @property
     def norm(self):

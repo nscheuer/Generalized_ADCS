@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 
+import numpy as np
+
 from ADCS_Omni.environment.ephemeris import EphemerisModel
 
 
@@ -11,6 +13,22 @@ class OrbitalState:
     ephemeris: EphemerisModel | None = None
     _keplerian_elements: tuple | None = None
     _body_positions: dict = field(default_factory=dict, init=False, repr=False)
+
+    def __post_init__(self):
+        self.julian_date = float(self.julian_date)
+        if not np.isfinite(self.julian_date):
+            raise ValueError("julian_date must be finite")
+        if self._position is not None:
+            self._position = self._vector(self._position, "position")
+        if self._velocity is not None:
+            self._velocity = self._vector(self._velocity, "velocity")
+
+    @staticmethod
+    def _vector(value, name):
+        vector = np.asarray(value, dtype=np.float64)
+        if vector.shape != (3,) or not np.all(np.isfinite(vector)):
+            raise ValueError(f"{name} must be a finite 3-vector")
+        return np.ascontiguousarray(vector)
 
     @classmethod
     def from_cartesian(cls, position, velocity, julian_date, ephemeris=None):

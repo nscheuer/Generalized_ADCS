@@ -9,6 +9,8 @@ package "ADCS_Omni.config" {
     satellite: Satellite
     environment: Environment
     state: State
+    state_record: structured NumPy array
+    julian_date: float
     propagator: Propagator
     solver: Solver
     backend: Python | C | Rust | JAX
@@ -137,25 +139,33 @@ package "ADCS_Omni.environment" {
 }
 
 package "ADCS_Omni.state" {
-  class State {
+  class State <<input/output only>> {
     attitude: AttitudeState
     orbit: OrbitalState
     internal: InternalState
+    to_record()
+    from_record()
   }
-  class AttitudeState {
+  class AttitudeState <<input/output only>> {
     orientation
     rates
   }
-  class OrbitalState {
+  class OrbitalState <<input/output only>> {
     position | keplerian_elements
     velocity
     julian_date
-    lazy body positions: Sun, Earth, Moon
   }
-  class InternalState {
+  class InternalState <<input/output only>> {
     wheel_momentum
-    other
   }
+}
+
+class "NumPy state record" as StateRecord <<structured array>> {
+  quaternion: float64[4]
+  rates: float64[3]
+  position: float64[3]
+  velocity: float64[3]
+  momentum: float64[number_of_wheels]
 }
 
 package "ADCS_Omni.helpers.math" {
@@ -237,6 +247,11 @@ class "simulate(config, tf)" as simulate <<stub>>
 SimulationConfig *-- Satellite
 SimulationConfig *-- Environment
 SimulationConfig *-- State
+SimulationConfig *-- StateRecord
+State *-- AttitudeState
+State *-- OrbitalState
+State *-- InternalState
+State ..> StateRecord : converts at boundary
 SimulationConfig *-- Propagator
 SimulationConfig *-- Solver
 Solver *-- DynamicsConfig
@@ -297,11 +312,6 @@ JGravityModel <|-- J5
 JGravityModel <|-- J6
 EphemerisModel <|-- DE421
 
-State *-- AttitudeState
-State *-- OrbitalState
-State *-- InternalState
-AttitudeState --> Quaternion : orientation
-OrbitalState ..> EphemerisModel : lazy Sun/Earth/Moon positions
 
 Quaternion ..> QuaternionAlgebra
 Quaternion ..> Rotations
