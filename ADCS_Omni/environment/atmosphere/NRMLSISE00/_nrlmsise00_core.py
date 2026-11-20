@@ -78,7 +78,7 @@ class _Input:
         self.ap_a = np.asarray(ap_a)
 
 
-@jitclass([("gsurf", float64), ("re", float64), ("dd", float64), ("dm04", float64), ("dm16", float64), ("dm28", float64), ("dm32", float64), ("dm40", float64), ("dm01", float64), ("dm14", float64), ("dfa", float64), ("ctloc", float64), ("stloc", float64), ("c2tloc", float64), ("s2tloc", float64), ("s3tloc", float64), ("c3tloc", float64), ("apdf", float64), ("meso_tn1", float64[:]), ("meso_tn2", float64[:]), ("meso_tn3", float64[:]), ("meso_tgn1", float64[:]), ("meso_tgn2", float64[:]), ("meso_tgn3", float64[:]), ("apt", float64[:]), ("plg", float64[:, :])])
+@jitclass([("gsurf", float64), ("re", float64), ("dd", float64), ("dm04", float64), ("dm16", float64), ("dm28", float64), ("dm32", float64), ("dm40", float64), ("dm01", float64), ("dm14", float64), ("dfa", float64), ("ctloc", float64), ("stloc", float64), ("c2tloc", float64), ("s2tloc", float64), ("s3tloc", float64), ("c3tloc", float64), ("clong", float64), ("slong", float64), ("apdf", float64), ("meso_tn1", float64[:]), ("meso_tn2", float64[:]), ("meso_tn3", float64[:]), ("meso_tgn1", float64[:]), ("meso_tgn2", float64[:]), ("meso_tgn3", float64[:]), ("apt", float64[:]), ("plg", float64[:, :])])
 class _Model:
     """The shared-state block of the reference implementation.
 
@@ -104,6 +104,7 @@ class _Model:
         self.ctloc = self.stloc = 0.0
         self.c2tloc = self.s2tloc = 0.0
         self.s3tloc = self.c3tloc = 0.0
+        self.clong = self.slong = 0.0
         self.apdf = 0.0
         self.apt = np.zeros(4)
 
@@ -315,18 +316,14 @@ class _Model:
 
     # -- G(L) machinery ------------------------------------------------
 
-    def _globe7(self, p, inp: _Input, flags: _Flags) -> float:
-        """Upper-thermosphere G(L); mutates the LPOLY shared state."""
-        t = [0.0] * 15
-        sr = 7.2722e-5
+    def _globe_setup(self, inp: _Input, flags: _Flags) -> None:
+        """Prepare input-only harmonic terms shared by all G(L) evaluations."""
         dgtr = 1.74533e-2
-        dr = 1.72142e-2
         hr = 0.2618
-
-        tloc = inp.lst
-
         c = np.sin(inp.g_lat * dgtr)
         s = np.cos(inp.g_lat * dgtr)
+        self.clong = np.cos(dgtr * inp.g_long)
+        self.slong = np.sin(dgtr * inp.g_long)
         c2 = c * c
         c4 = c2 * c2
         s2 = s * s
@@ -356,6 +353,7 @@ class _Model:
         plg[3][6] = (11.0 * c * plg[3][5] - 8.0 * plg[3][4]) / 3.0
 
         if not ((flags.sw[7] == 0 and flags.sw[8] == 0) and flags.sw[14] == 0):
+            tloc = inp.lst
             self.stloc = np.sin(hr * tloc)
             self.ctloc = np.cos(hr * tloc)
             self.s2tloc = np.sin(2.0 * hr * tloc)
@@ -363,6 +361,17 @@ class _Model:
             self.s3tloc = np.sin(3.0 * hr * tloc)
             self.c3tloc = np.cos(3.0 * hr * tloc)
 
+    def _globe7(self, p, inp: _Input, flags: _Flags) -> float:
+        """Upper-thermosphere G(L); mutates the LPOLY shared state."""
+        t = [0.0] * 15
+        sr = 7.2722e-5
+        dgtr = 1.74533e-2
+        dr = 1.72142e-2
+        hr = 0.2618
+
+        tloc = inp.lst
+
+        plg = self.plg
         cd32 = np.cos(dr * (inp.doy - p[31]))
         cd18 = np.cos(2.0 * dr * (inp.doy - p[17]))
         cd14 = np.cos(dr * (inp.doy - p[13]))
@@ -500,7 +509,7 @@ class _Model:
                         * (p[109] * plg[1][1] + p[110] * plg[1][3] + p[111] * plg[1][5])
                         * cd14
                     )
-                    * np.cos(dgtr * inp.g_long)
+                    * self.clong
                     + (
                         p[90] * plg[1][2]
                         + p[91] * plg[1][4]
@@ -512,7 +521,7 @@ class _Model:
                         * (p[112] * plg[1][1] + p[113] * plg[1][3] + p[114] * plg[1][5])
                         * cd14
                     )
-                    * np.sin(dgtr * inp.g_long)
+                    * self.slong
                 )
 
             # UT and mixed UT, longitude.
@@ -666,7 +675,7 @@ class _Model:
                     + p[75] * plg[1][3]
                     + p[76] * plg[1][5]
                 )
-                * np.cos(dgtr * inp.g_long)
+                * self.clong
                 + (
                     p[90] * plg[1][2]
                     + p[91] * plg[1][4]
@@ -675,7 +684,7 @@ class _Model:
                     + p[78] * plg[1][3]
                     + p[79] * plg[1][5]
                 )
-                * np.sin(dgtr * inp.g_long)
+                * self.slong
             )
         tt = 0.0
         for i in range(14):
@@ -1234,6 +1243,10 @@ class _Model:
         zn2 = [72.5, 55.0, 45.0, 32.5]
         zmix = 62.5
 
+        # Rust SatKit computes these input-only harmonics once before all G(L)
+        # coefficient evaluations. Keep the same shared setup here.
+        self._globe_setup(inp, flags)
+
         # Latitude variation of gravity (none for sw[2]=0).
         xlat = inp.g_lat
         if flags.sw[2] == 0:
@@ -1255,7 +1268,9 @@ class _Model:
         d = [0.0] * 9
         t = [soutput.t[0], soutput.t[1]]
         if inp.alt >= zn2[0]:
-            return NRLMSISEOutput(soutput.d.copy(), np.array(t))
+            # The output is local to this evaluation; no caller can alias it.
+            # Reuse its arrays instead of copying the complete species vector.
+            return soutput
 
         # Lower mesosphere/upper stratosphere (between zn3[0] and zn2[0]).
         self.meso_tgn2[0] = self.meso_tgn1[1]
@@ -1392,20 +1407,19 @@ class _Model:
     def _gtd7d(self, inp: _Input, flags: _Flags) -> NRLMSISEOutput:
         """The full model with anomalous O in the effective density."""
         out = self._gtd7(inp, flags)
-        d = out.d.copy()
-        d[5] = 1.66e-24 * (
-            4.0 * d[0]
-            + 16.0 * d[1]
-            + 28.0 * d[2]
-            + 32.0 * d[3]
-            + 40.0 * d[4]
-            + d[6]
-            + 14.0 * d[7]
-            + 16.0 * d[8]
+        out.d[5] = 1.66e-24 * (
+            4.0 * out.d[0]
+            + 16.0 * out.d[1]
+            + 28.0 * out.d[2]
+            + 32.0 * out.d[3]
+            + 40.0 * out.d[4]
+            + out.d[6]
+            + 14.0 * out.d[7]
+            + 16.0 * out.d[8]
         )
         if flags.sw[0]:
-            d[5] = d[5] / 1000.0
-        return NRLMSISEOutput(d, out.t)
+            out.d[5] = out.d[5] / 1000.0
+        return out
 
 @njit(cache=True)
 def _ccor(alt: float, r: float, h1: float, zh: float) -> float:
