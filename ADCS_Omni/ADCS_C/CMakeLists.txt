@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(ADCS_Omni_C LANGUAGES C CXX)
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -157,8 +160,31 @@ pybind11_add_module(_coupled
     propagation/coupled_propagators/_coupled_dynamics.cpp
     propagation/coupled_propagators/coupled_rk4_propagator.cpp
     propagation/coupled_propagators/coupled_dop853_propagator.cpp
-    propagation/coupled_propagators/integrate.cpp)
+    propagation/coupled_propagators/integrate.cpp
+    dynamics/_geometry.cpp
+    dynamics/drag_model/projected_area.cpp
+    dynamics/srp_model/projected_area.cpp
+    dynamics/gravity_gradient_model/static.cpp
+    dynamics/residual_dipole_model/static.cpp
+    dynamics/third_body_model/lunisolar.cpp
+    environment/native_models.cpp
+    environment/atmosphere/NRMLSISE00/nrlmsise00.cpp
+    environment/atmosphere/NRMLSISE00/_nrlmsise00_core.cpp
+    environment/atmosphere/NRMLSISE00/_nrlmsise00_data.cpp
+    environment/atmosphere/NRMLSISE00/nrlmsise00_core.c
+    environment/ephemeris/de421/de421.cpp
+    environment/ephemeris/ephemeris_model.cpp
+    environment/magnetic_field_model/magnetic_field_model.cpp
+    environment/magnetic_field_model/_spherical_harmonics.cpp
+    environment/magnetic_field_model/igrf14/igrf14.cpp
+    environment/magnetic_field_model/chaos8/chaos8.cpp
+    environment/gravity/j_gravity_model.cpp
+    environment/atmosphere/atmospheric_model.cpp
+    helpers/math/frames/frames.cpp
+    helpers/math/frames/conversions.cpp
+    helpers/math/time/conversions.cpp)
 target_link_libraries(_coupled PRIVATE Eigen3::Eigen)
+target_include_directories(_coupled PRIVATE environment helpers/math helpers/math/frames helpers/math/time environment/atmosphere/NRMLSISE00)
 set_target_properties(_coupled PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/propagation/coupled_propagators")
 
 pybind11_add_module(_solver solver/bindings.cpp solver/coupled_solver.cpp solver/solver.cpp)
@@ -166,3 +192,6 @@ set_target_properties(_solver PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRE
 
 pybind11_add_module(_simulate simulate_bindings.cpp simulate.cpp)
 set_target_properties(_simulate PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+pybind11_add_module(_satellite hardware/satellite_bindings.cpp hardware/satellite.cpp)
+set_target_properties(_satellite PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware")

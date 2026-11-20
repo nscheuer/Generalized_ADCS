@@ -3,8 +3,8 @@
 import numpy as np
 from numba import njit
 
-from ADCS_Omni.ADCS_Python.propagation.coupled_propagators._coupled_dynamics import SECONDS_PER_DAY, _Runtime, _prepare
-from ADCS_Omni.ADCS_Python.propagation.coupled_propagators._state_layout import pack_state, unpack_state
+from ._coupled_dynamics import SECONDS_PER_DAY, _prepare
+from ._state_layout import pack_state, unpack_state
 
 # Keep the _Runtime re-export so existing Numba disk caches can be unpickled.
 
@@ -44,7 +44,7 @@ class CoupledRK4Propagator:
         from ._coupled import integrate_rk4
         runtime = _prepare(satellite, environment, dynamics)
         y = pack_state(state, runtime.wheel_commands.size)
-        return integrate_rk4(y, state.orbit.julian_date, self.dt, float(tf), runtime)
+        return integrate_rk4(y, state.orbit.julian_date, self.dt, float(tf), runtime, progress)
 
     def step(self, state, satellite, environment, dynamics):
         if self._configuration != (id(satellite), id(environment), id(dynamics)):

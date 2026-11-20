@@ -4,8 +4,8 @@ import numpy as np
 from numba import njit
 
 from ._coupled import dop853_attempt as _dop853_attempt, derivative as _derivative, project as _project_wheel_momentum
-from ADCS_Omni.ADCS_Python.propagation.coupled_propagators._coupled_dynamics import SECONDS_PER_DAY, _prepare
-from ADCS_Omni.ADCS_Python.propagation.coupled_propagators._state_layout import pack_state, unpack_state
+from ._coupled_dynamics import SECONDS_PER_DAY, _prepare
+from ._state_layout import pack_state, unpack_state
 
 
 def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
@@ -97,7 +97,7 @@ class CoupledDOP853Propagator:
         y = pack_state(state, runtime.wheel_commands.size)
         atol = np.array([self.atol[0]]) if self._scalar_atol else self.atol
         return integrate_dop853(y, state.orbit.julian_date, self.dt, float(tf),
-                                runtime, self.rtol, atol, self.max_step, self.min_step)
+                                runtime, self.rtol, atol, self.max_step, self.min_step, progress)
 
     def step(self, state, satellite, environment, dynamics):
         """Advance by dt seconds using as many adaptive substeps as needed."""
