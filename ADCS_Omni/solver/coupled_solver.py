@@ -10,3 +10,7 @@ class CoupledSolver:
     @property
     def dt(self):
         return self.propagator.dt
+
+    def step(self, state, satellite, environment, dynamics):
+        """Advance the coupled orbit and attitude by one fixed RK4 step."""
+        return self.propagator.step(state, satellite, environment, dynamics)
