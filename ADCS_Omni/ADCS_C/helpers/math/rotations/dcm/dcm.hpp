@@ -1,0 +1,6 @@
+#ifndef ADCS_OMNI_ROTATIONS_DCM_DCM_HPP_HPP
+#define ADCS_OMNI_ROTATIONS_DCM_DCM_HPP_HPP
+
+#include "../rotation_types.hpp"
+
+#endif  // ADCS_OMNI_ROTATIONS_DCM_DCM_HPP_HPP

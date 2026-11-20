@@ -1,5 +1,6 @@
 #include "state.hpp"
 
+#include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
@@ -24,28 +25,37 @@ py::array as_array(py::handle value, const char* name, int ndim, py::ssize_t siz
     return array;
 }
 
-template <std::size_t N>
-std::array<double, N> fixed(py::handle value, const char* name) {
-    auto array = py::array_t<double, py::array::c_style | py::array::forcecast>(as_array(value, name, 1, N));
-    std::array<double, N> result{};
+template <int Size>
+Eigen::Matrix<double, Size, 1> fixed(py::handle value, const char* name) {
+    auto array = py::array_t<double, py::array::c_style | py::array::forcecast>(
+        as_array(value, name, 1, Size));
     auto data = array.unchecked<1>();
-    for (std::size_t i = 0; i < N; ++i) result[i] = data(i);
+    Eigen::Matrix<double, Size, 1> result;
+    for (int index = 0; index < Size; ++index) {
+        result[index] = data(index);
+    }
     return result;
 }
 
-std::vector<double> variable(py::handle value, const char* name) {
-    auto array = py::array_t<double, py::array::c_style | py::array::forcecast>(as_array(value, name, 1));
+Eigen::VectorXd variable(py::handle value, const char* name) {
+    auto array = py::array_t<double, py::array::c_style | py::array::forcecast>(
+        as_array(value, name, 1));
     auto data = array.unchecked<1>();
-    std::vector<double> result(static_cast<std::size_t>(array.size()));
-    for (py::ssize_t i = 0; i < array.size(); ++i) result[static_cast<std::size_t>(i)] = data(i);
+    Eigen::VectorXd result(array.size());
+    for (py::ssize_t index = 0; index < array.size(); ++index) {
+        result[index] = data(index);
+    }
     return result;
 }
 
-template <typename Container>
-py::array_t<double> to_array(const Container& values) {
-    py::array_t<double> result(values.size());
+template <typename Derived>
+py::array_t<double> to_array(const Eigen::MatrixBase<Derived>& values) {
+    const py::ssize_t count = static_cast<py::ssize_t>(values.size());
+    py::array_t<double> result(count);
     auto data = result.mutable_unchecked<1>();
-    for (std::size_t i = 0; i < values.size(); ++i) data(i) = values[i];
+    for (py::ssize_t index = 0; index < count; ++index) {
+        data(index) = values.derived().coeff(index);
+    }
     return result;
 }
 
@@ -64,7 +74,7 @@ std::optional<Vector3> optional_vector(py::handle value, const char* name) {
 }
 
 OrbitalState orbital(py::object position, py::object velocity, double jd, py::object ephemeris,
-                     std::optional<std::array<double, 6>> elements = std::nullopt) {
+                     std::optional<KeplerianElements> elements = std::nullopt) {
     OrbitalState result(optional_vector(position, "position"), optional_vector(velocity, "velocity"), jd, elements);
     result.ephemeris = ephemeris;
     return result;
@@ -77,7 +87,7 @@ OrbitalState orbital_from_python(py::object state) {
                        state.attr("julian_date").cast<double>(), state.attr("ephemeris"));
     }
     return orbital(py::none(), py::none(), state.attr("julian_date").cast<double>(),
-                   state.attr("ephemeris"), elements.cast<std::array<double, 6>>());
+                   state.attr("ephemeris"), elements.cast<KeplerianElements>());
 }
 
 py::object body_position(OrbitalState& orbit, py::object body) {
@@ -107,7 +117,7 @@ py::object to_python(const InternalState& state) {
 py::object to_python(const OrbitalState& state) {
     if (state.keplerian_elements) {
         py::tuple args(8);
-        for (std::size_t i = 0; i < 6; ++i) args[i] = (*state.keplerian_elements)[i];
+        for (py::ssize_t i = 0; i < 6; ++i) args[i] = (*state.keplerian_elements)[i];
         args[6] = state.julian_date;
         args[7] = state.ephemeris;
         return python_states().attr("OrbitalState").attr("from_keplerian")(*args);
@@ -190,7 +200,9 @@ PYBIND11_MODULE(_state, m) {
         .def(py::init([](py::object p, py::object v, double jd, py::object e) { return orbital(p, v, jd, e); }), py::arg("_position"), py::arg("_velocity"), py::arg("julian_date"), py::arg("ephemeris") = py::none())
         .def_static("from_cartesian", [](py::object p, py::object v, double jd, py::object e) { return orbital(p, v, jd, e); }, py::arg("position"), py::arg("velocity"), py::arg("julian_date"), py::arg("ephemeris") = py::none())
         .def_static("from_keplerian", [](double a, double e, double i, double node, double periapsis, double anomaly, double jd, py::object ephemeris) {
-            return orbital(py::none(), py::none(), jd, ephemeris, std::array<double, 6>{a, e, i, node, periapsis, anomaly});
+            KeplerianElements elements;
+            elements << a, e, i, node, periapsis, anomaly;
+            return orbital(py::none(), py::none(), jd, ephemeris, elements);
         }, py::arg("semi_major_axis"), py::arg("eccentricity"), py::arg("inclination"), py::arg("ascending_node"), py::arg("argument_of_periapsis"), py::arg("true_anomaly"), py::arg("julian_date"), py::arg("ephemeris") = py::none())
         .def_property("_position", [](const OrbitalState& s) -> py::object { return s.position ? py::object(to_array(*s.position)) : py::none(); },
                       [](OrbitalState& s, py::object v) { s.position = optional_vector(v, "position"); })

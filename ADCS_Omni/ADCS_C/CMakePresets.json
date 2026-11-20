@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "ninja",
+      "displayName": "ADCS Omni C++ with Ninja",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/../../build/adcs_omni_ninja"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "ninja",
+      "configurePreset": "ninja"
+    }
+  ]
+}

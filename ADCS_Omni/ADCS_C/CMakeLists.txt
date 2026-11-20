@@ -1,11 +1,101 @@
 cmake_minimum_required(VERSION 3.18)
 project(ADCS_Omni_C LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(PYBIND11_FINDPYTHON ON)
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
+
+if(NOT pybind11_DIR)
+    execute_process(
+        COMMAND "${Python_EXECUTABLE}" -m pybind11 --cmakedir
+        RESULT_VARIABLE PYBIND11_CMAKE_DIR_RESULT
+        OUTPUT_VARIABLE PYBIND11_CMAKE_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(PYBIND11_CMAKE_DIR_RESULT EQUAL 0)
+        set(pybind11_DIR "${PYBIND11_CMAKE_DIR}" CACHE PATH "pybind11 CMake package directory")
+    endif()
+endif()
+
 find_package(pybind11 CONFIG REQUIRED)
 
-pybind11_add_module(_state state/bindings.cpp state/state.cpp)
+find_program(CCACHE_EXECUTABLE NAMES ccache)
+if(CCACHE_EXECUTABLE)
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_EXECUTABLE}" CACHE STRING "Compiler launcher")
+    message(STATUS "Using ccache: ${CCACHE_EXECUTABLE}")
+else()
+    message(STATUS "ccache not found; compiling without a compiler cache")
+endif()
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
+pybind11_add_module(_state
+    state/bindings.cpp
+    state/state.cpp
+    state/attitude_state.cpp
+    state/internal_state.cpp
+    state/orbital_state.cpp
+)
 target_compile_features(_state PRIVATE cxx_std_17)
+target_link_libraries(_state PRIVATE Eigen3::Eigen)
 target_include_directories(_state PRIVATE state)
 set_target_properties(_state PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+pybind11_add_module(_frames
+    helpers/math/frames/bindings.cpp
+    helpers/math/frames/frames.cpp
+    helpers/math/frames/conversions.cpp
+)
+target_compile_features(_frames PRIVATE cxx_std_17)
+target_link_libraries(_frames PRIVATE Eigen3::Eigen)
+target_include_directories(_frames PRIVATE helpers/math/frames)
+set_target_properties(_frames PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math/frames")
+
+pybind11_add_module(_helpers
+    helpers/math/bindings.cpp
+    helpers/math/vector.cpp
+    helpers/math/derivatives.cpp
+    helpers/math/dynamics.cpp
+    helpers/math/rotations/_parameter_base.cpp
+    helpers/math/rotations/quaternion/algebra.cpp
+    helpers/math/rotations/quaternion/conversions.cpp
+    helpers/math/rotations/quaternion/interpolation.cpp
+    helpers/math/rotations/quaternion/quaternion.cpp
+    helpers/math/rotations/dcm/kernels.cpp
+    helpers/math/rotations/dcm/dcm.cpp
+    helpers/math/rotations/mrp/kernels.cpp
+    helpers/math/rotations/mrp/modified_rodrigues_parameters.cpp
+    helpers/math/rotations/rodrigues/kernels.cpp
+    helpers/math/rotations/rodrigues/rodrigues_parameters.cpp
+    helpers/math/time/conversions.cpp
+)
+target_compile_features(_helpers PRIVATE cxx_std_17)
+target_link_libraries(_helpers PRIVATE Eigen3::Eigen)
+target_include_directories(_helpers PRIVATE helpers/math)
+set_target_properties(_helpers PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math")
+
+pybind11_add_module(_adcs_subsystem
+    hardware/ADCS_subsystem/bindings.cpp
+    hardware/ADCS_subsystem/adcs_subsystem.cpp
+    hardware/ADCS_subsystem/effects.cpp
+    hardware/ADCS_subsystem/magnetorquer.cpp
+    hardware/ADCS_subsystem/reaction_wheel.cpp
+)
+target_compile_features(_adcs_subsystem PRIVATE cxx_std_17)
+target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem)
+set_target_properties(_adcs_subsystem PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware/ADCS_subsystem")
+
+pybind11_add_module(_satellite_geometry
+    hardware/satellite_geometry/bindings.cpp
+    hardware/satellite_geometry/satellite_geometry.cpp
+    hardware/satellite_geometry/satellite_panel.cpp
+)
+target_compile_features(_satellite_geometry PRIVATE cxx_std_17)
+target_include_directories(_satellite_geometry PRIVATE hardware/satellite_geometry)
+set_target_properties(_satellite_geometry PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware/satellite_geometry")
