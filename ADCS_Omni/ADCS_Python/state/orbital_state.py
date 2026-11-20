@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from ADCS_Omni.environment.ephemeris import EphemerisModel
-from ADCS_Omni.environment.ephemeris import BODY_EARTH, BODY_MOON, BODY_SUN
+from ADCS_Omni.ADCS_Python.environment.ephemeris import EphemerisModel
+from ADCS_Omni.ADCS_Python.environment.ephemeris import BODY_EARTH, BODY_MOON, BODY_SUN
 
 
 @dataclass(slots=True)

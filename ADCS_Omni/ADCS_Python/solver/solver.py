@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from ADCS_Omni.config.dynamics_config import DynamicsConfig
+from ADCS_Omni.ADCS_Python.config.dynamics_config import DynamicsConfig
 
 from .attitude_solver import AttitudeSolver
 from .coupled_solver import CoupledSolver

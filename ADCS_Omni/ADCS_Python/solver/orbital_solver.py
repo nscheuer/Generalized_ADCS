@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ADCS_Omni.propagation import KeplerianOrbitalPropagator, SGP4OrbitalPropagator
+from ADCS_Omni.ADCS_Python.propagation import KeplerianOrbitalPropagator, SGP4OrbitalPropagator
 
 
 @dataclass(slots=True)

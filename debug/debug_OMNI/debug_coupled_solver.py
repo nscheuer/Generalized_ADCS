@@ -27,7 +27,7 @@ from ADCS_Omni import (  # noqa: E402
     OrbitalState,
     simulate,
 )
-from ADCS_Omni.dynamics import (  # noqa: E402
+from ADCS_Omni.ADCS_Python.dynamics import (  # noqa: E402
     ProjectedAreaDragForceModel,
     ProjectedAreaDragTorqueModel,
     ProjectedAreaSRPForceModel,

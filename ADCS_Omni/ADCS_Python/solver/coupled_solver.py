@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import math
 
-from ADCS_Omni.propagation import CoupledDOP853Propagator, CoupledRK4Propagator
+from ADCS_Omni.ADCS_Python.propagation import CoupledDOP853Propagator, CoupledRK4Propagator
 
 
 @dataclass(slots=True)

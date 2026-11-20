@@ -3,7 +3,7 @@
 import numpy as np
 from numba import njit
 
-from ADCS_Omni.helpers.math.frames.frames import inertial_to_body
+from ADCS_Omni.ADCS_Python.helpers.math.frames.frames import inertial_to_body
 
 
 @njit(cache=True)

@@ -4,7 +4,7 @@ skinparam packageStyle rectangle
 skinparam classAttributeIconSize 0
 hide empty methods
 
-package "ADCS_Omni.config" {
+package "ADCS_Omni.ADCS_Python.config" {
   class SimulationConfig {
     satellite: Satellite
     environment: Environment
@@ -32,7 +32,7 @@ package "ADCS_Omni.config" {
   }
 }
 
-package "ADCS_Omni.hardware" {
+package "ADCS_Omni.ADCS_Python.hardware" {
   class Satellite {
     geometry: SatelliteGeometry
     adcs: ADCSSubsystem
@@ -82,7 +82,7 @@ package "ADCS_Omni.hardware" {
   }
 }
 
-package "ADCS_Omni.noise" {
+package "ADCS_Omni.ADCS_Python.noise" {
   abstract class Noise
   class GaussianWhiteNoise
   class UniformNoise
@@ -91,7 +91,7 @@ package "ADCS_Omni.noise" {
   class QuantizationNoise
 }
 
-package "ADCS_Omni.bias" {
+package "ADCS_Omni.ADCS_Python.bias" {
   abstract class Bias
   class FixedBias
   class RandomWalkBias
@@ -99,7 +99,7 @@ package "ADCS_Omni.bias" {
   class ScaleFactorError
 }
 
-package "ADCS_Omni.environment" {
+package "ADCS_Omni.ADCS_Python.environment" {
   class Environment {
     planetary_body: PlanetaryBody
     atmosphere: AtmosphericModel
@@ -138,7 +138,7 @@ package "ADCS_Omni.environment" {
   }
 }
 
-package "ADCS_Omni.state" {
+package "ADCS_Omni.ADCS_Python.state" {
   class State <<input/output only>> {
     attitude: AttitudeState
     orbit: OrbitalState
@@ -168,7 +168,7 @@ class "NumPy state record" as StateRecord <<structured array>> {
   momentum: float64[number_of_wheels]
 }
 
-package "ADCS_Omni.helpers.math" {
+package "ADCS_Omni.ADCS_Python.helpers.math" {
   class DCM <<input/output only>> {
     matrix: 3x3
     frame: q_B_from_I
@@ -197,7 +197,7 @@ package "ADCS_Omni.helpers.math" {
   class QuaternionInterpolation <<numba.njit kernels>>
 }
 
-package "ADCS_Omni.propagation" {
+package "ADCS_Omni.ADCS_Python.propagation" {
   class Propagator {
     attitude | orbital | coupled
   }
@@ -226,7 +226,7 @@ package "ADCS_Omni.propagation" {
   }
 }
 
-package "ADCS_Omni.solver" {
+package "ADCS_Omni.ADCS_Python.solver" {
   class Solver {
     dynamics: DynamicsConfig
     orbital: OrbitalSolver | null

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ADCS_Omni.propagation import AdaptiveRK45AttitudePropagator, RK4AttitudePropagator
+from ADCS_Omni.ADCS_Python.propagation import AdaptiveRK45AttitudePropagator, RK4AttitudePropagator
 
 
 @dataclass(slots=True)

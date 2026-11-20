@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from ADCS_Omni.environment.atmosphere import NRLMSISE00
-from ADCS_Omni.environment.atmosphere.NRMLSISE00._nrlmsise00_core import msis_gtd7
+from ADCS_Omni.ADCS_Python.environment.atmosphere import NRLMSISE00
+from ADCS_Omni.ADCS_Python.environment.atmosphere.NRMLSISE00._nrlmsise00_core import msis_gtd7
 
 
 def test_reference_c_case_and_effective_oxygen():

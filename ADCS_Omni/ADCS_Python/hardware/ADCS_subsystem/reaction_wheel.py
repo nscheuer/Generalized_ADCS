@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
-from ADCS_Omni.bias import Bias
-from ADCS_Omni.noise import Noise
+from ADCS_Omni.ADCS_Python.bias import Bias
+from ADCS_Omni.ADCS_Python.noise import Noise
 
 from .effects import apply_effects
 

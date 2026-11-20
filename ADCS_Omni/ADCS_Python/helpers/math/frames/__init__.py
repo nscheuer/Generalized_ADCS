@@ -1,4 +1,4 @@
-"""Reference-frame transforms for ADCS_Omni."""
+"""Reference-frame transforms for ADCS_Omni.ADCS_Python."""
 from .conversions import (
     convert_vector,
     ecef_to_gcrf_matrix,

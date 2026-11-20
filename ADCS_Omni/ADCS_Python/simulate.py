@@ -35,7 +35,7 @@ def simulate(satellite, environment, dynamics, state, solver, backend="Python"):
     if not isinstance(solver, CoupledSolver):
         raise TypeError("solver must be a CoupledSolver or a Solver containing one")
     if not isinstance(state, State):
-        raise TypeError("state must be an ADCS_Omni.state.State")
+        raise TypeError("state must be an ADCS_Omni.ADCS_Python.state.State")
 
     times_s, state_vectors = solver.propagator.integrate(
         state, satellite, environment, dynamics, solver.tf,

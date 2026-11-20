@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from ADCS_Omni.state import AttitudeState, OrbitalState, State, WheelMomentumState
+from ADCS_Omni.ADCS_Python.state import AttitudeState, OrbitalState, State, WheelMomentumState
 
 QUATERNION = slice(0, 4)
 RATES = slice(4, 7)

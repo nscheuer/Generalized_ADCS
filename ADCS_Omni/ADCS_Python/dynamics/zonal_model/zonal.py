@@ -3,7 +3,7 @@
 import numpy as np
 from numba import njit
 
-from ADCS_Omni.environment.gravity.j_gravity_model import (
+from ADCS_Omni.ADCS_Python.environment.gravity.j_gravity_model import (
     EARTH_ZONAL_COEFFICIENTS,
     gravity_acceleration_inertial_m_s2,
 )

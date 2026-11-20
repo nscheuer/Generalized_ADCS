@@ -3,9 +3,9 @@
 import numpy as np
 from numba import njit
 
-from ADCS_Omni.environment.ephemeris import BODY_SUN
-from ADCS_Omni.helpers.math.frames.frames import body_to_inertial, inertial_to_body
-from ADCS_Omni.helpers.math.time.conversions import utc_jd_to_tdb_jd
+from ADCS_Omni.ADCS_Python.environment.ephemeris import BODY_SUN
+from ADCS_Omni.ADCS_Python.helpers.math.frames.frames import body_to_inertial, inertial_to_body
+from ADCS_Omni.ADCS_Python.helpers.math.time.conversions import utc_jd_to_tdb_jd
 from .._geometry import prepare_panels
 
 AU_M = 149_597_870_700.0

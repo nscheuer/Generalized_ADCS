@@ -3,8 +3,8 @@
 import numpy as np
 from numba import njit
 
-from ADCS_Omni.environment.ephemeris import BODY_MOON, BODY_SUN, ephemeris_position
-from ADCS_Omni.helpers.math.time.conversions import utc_jd_to_tdb_jd
+from ADCS_Omni.ADCS_Python.environment.ephemeris import BODY_MOON, BODY_SUN, ephemeris_position
+from ADCS_Omni.ADCS_Python.helpers.math.time.conversions import utc_jd_to_tdb_jd
 
 SUN_MU_M3_S2 = 1.32712440018e20
 MOON_MU_M3_S2 = 4.9048695e12

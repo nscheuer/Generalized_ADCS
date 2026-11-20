@@ -2,11 +2,11 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from ADCS_Omni.environment import Environment
-from ADCS_Omni.hardware import Satellite
-from ADCS_Omni.propagation import Propagator
-from ADCS_Omni.solver import Solver
-from ADCS_Omni.state import State
+from ADCS_Omni.ADCS_Python.environment import Environment
+from ADCS_Omni.ADCS_Python.hardware import Satellite
+from ADCS_Omni.ADCS_Python.propagation import Propagator
+from ADCS_Omni.ADCS_Python.solver import Solver
+from ADCS_Omni.ADCS_Python.state import State
 
 
 @dataclass(slots=True)

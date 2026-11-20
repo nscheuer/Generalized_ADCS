@@ -5,24 +5,24 @@ from typing import NamedTuple
 import numpy as np
 from numba import njit
 
-from ADCS_Omni.dynamics.drag_model.projected_area import projected_area_drag_force, projected_area_drag_torque
-from ADCS_Omni.dynamics.gravity_gradient_model.static import static_gravity_gradient_torque
-from ADCS_Omni.dynamics.residual_dipole_model.static import static_residual_dipole_torque
-from ADCS_Omni.dynamics.srp_model.projected_area import (
+from ADCS_Omni.ADCS_Python.dynamics.drag_model.projected_area import projected_area_drag_force, projected_area_drag_torque
+from ADCS_Omni.ADCS_Python.dynamics.gravity_gradient_model.static import static_gravity_gradient_torque
+from ADCS_Omni.ADCS_Python.dynamics.residual_dipole_model.static import static_residual_dipole_torque
+from ADCS_Omni.ADCS_Python.dynamics.srp_model.projected_area import (
     SUN_RADIUS_M, projected_area_srp_force, projected_area_srp_torque,
 )
-from ADCS_Omni.dynamics.third_body_model.lunisolar import (
+from ADCS_Omni.ADCS_Python.dynamics.third_body_model.lunisolar import (
     MOON_MU_M3_S2, SUN_MU_M3_S2, lunisolar_acceleration,
 )
-from ADCS_Omni.environment.atmosphere.NRMLSISE00.nrlmsise00 import NRLMSISE00, nrlmsise00_density
-from ADCS_Omni.environment.atmosphere.atmospheric_model import co_rotating_atmosphere_velocity
-from ADCS_Omni.environment.ephemeris import BODY_MOON, BODY_SUN, ephemeris_position, eclipse_state
-from ADCS_Omni.environment.ephemeris.de421 import DE421
-from ADCS_Omni.environment.gravity.j_gravity_model import gravity_acceleration_inertial_m_s2
-from ADCS_Omni.environment.magnetic_field_model.chaos8.chaos8 import CHAOS8, chaos8_field_inertial_tesla
-from ADCS_Omni.environment.magnetic_field_model.igrf14.igrf14 import IGRF14, igrf14_field_inertial_tesla
-from ADCS_Omni.helpers.math.derivatives import quaternion_derivative
-from ADCS_Omni.helpers.math.time.conversions import utc_jd_to_tdb_jd
+from ADCS_Omni.ADCS_Python.environment.atmosphere.NRMLSISE00.nrlmsise00 import NRLMSISE00, nrlmsise00_density
+from ADCS_Omni.ADCS_Python.environment.atmosphere.atmospheric_model import co_rotating_atmosphere_velocity
+from ADCS_Omni.ADCS_Python.environment.ephemeris import BODY_MOON, BODY_SUN, ephemeris_position, eclipse_state
+from ADCS_Omni.ADCS_Python.environment.ephemeris.de421 import DE421
+from ADCS_Omni.ADCS_Python.environment.gravity.j_gravity_model import gravity_acceleration_inertial_m_s2
+from ADCS_Omni.ADCS_Python.environment.magnetic_field_model.chaos8.chaos8 import CHAOS8, chaos8_field_inertial_tesla
+from ADCS_Omni.ADCS_Python.environment.magnetic_field_model.igrf14.igrf14 import IGRF14, igrf14_field_inertial_tesla
+from ADCS_Omni.ADCS_Python.helpers.math.derivatives import quaternion_derivative
+from ADCS_Omni.ADCS_Python.helpers.math.time.conversions import utc_jd_to_tdb_jd
 
 SECONDS_PER_DAY = 86400.0
 
@@ -192,13 +192,13 @@ def _derivative(y, epoch_jd, p):
 
 
 def _prepare(satellite, environment, dynamics):
-    from ADCS_Omni.dynamics import (
+    from ADCS_Omni.ADCS_Python.dynamics import (
         ProjectedAreaDragForceModel, ProjectedAreaDragTorqueModel,
         ProjectedAreaSRPForceModel, ProjectedAreaSRPTorqueModel,
         StaticGravityGradientModel, StaticResidualDipoleModel, LunisolarForceModel,
         ZonalForceModel,
     )
-    from ADCS_Omni.dynamics._geometry import prepare_panels
+    from ADCS_Omni.ADCS_Python.dynamics._geometry import prepare_panels
 
     force_models = dynamics.forces
     torque_models = dynamics.torques
