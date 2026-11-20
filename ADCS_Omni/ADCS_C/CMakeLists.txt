@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(ADCS_Omni_C LANGUAGES CXX)
+project(ADCS_Omni_C LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -99,3 +99,23 @@ target_compile_features(_satellite_geometry PRIVATE cxx_std_17)
 target_include_directories(_satellite_geometry PRIVATE hardware/satellite_geometry)
 set_target_properties(_satellite_geometry PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware/satellite_geometry")
+
+pybind11_add_module(_environment
+    environment/bindings.cpp
+    environment/native_models.cpp
+    environment/environment.cpp
+    environment/planetary_body/planetary_body.cpp
+    environment/planetary_body/earth.cpp
+    environment/gravity/j_gravity_model.cpp
+    environment/atmosphere/atmospheric_model.cpp
+    environment/atmosphere/NRMLSISE00/nrlmsise00_core.c
+    environment/atmosphere/NRMLSISE00/nrlmsise00_data.c
+    helpers/math/frames/frames.cpp
+    helpers/math/frames/conversions.cpp
+    helpers/math/time/conversions.cpp
+)
+target_compile_features(_environment PRIVATE cxx_std_17)
+target_link_libraries(_environment PRIVATE Eigen3::Eigen)
+target_include_directories(_environment PRIVATE environment helpers/math helpers/math/frames helpers/math/time environment/atmosphere/NRMLSISE00)
+set_target_properties(_environment PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/environment")

@@ -162,10 +162,22 @@ env*/
 !ADCS/environment/
 !ADCS_Omni/environment/
 !ADCS_Omni/environment/**
+!ADCS_Omni/ADCS_Python/environment/
+!ADCS_Omni/ADCS_Python/environment/**
+!ADCS_Omni/ADCS_C/environment/
+!ADCS_Omni/ADCS_C/environment/**
 # Keep generated Python and Numba caches out of the included environment tree.
 ADCS_Omni/environment/**/__pycache__/
 ADCS_Omni/environment/**/*.py[cod]
 ADCS_Omni/environment/**/*.nb[ci]
+ADCS_Omni/ADCS_Python/environment/**/__pycache__/
+ADCS_Omni/ADCS_Python/environment/**/*.py[cod]
+ADCS_Omni/ADCS_Python/environment/**/*.nb[ci]
+ADCS_Omni/ADCS_Python/environment/**/*.so
+ADCS_Omni/ADCS_C/environment/**/__pycache__/
+ADCS_Omni/ADCS_C/environment/**/*.py[cod]
+ADCS_Omni/ADCS_C/environment/**/*.nb[ci]
+ADCS_Omni/ADCS_C/environment/**/*.so
 ENV/
 env.bak/
 venv.bak/

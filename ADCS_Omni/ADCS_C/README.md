@@ -22,8 +22,13 @@ Eigen types and class declarations. The hardware subsystem models live under
 Python `Bias` and `Noise` effect objects and invoke each object's `apply()`
 method through the same effect sequence as the Python implementation. The
 satellite geometry models live under `hardware/satellite_geometry/` and mirror
-the Python `SatelliteGeometry` and `SatellitePanel` data classes. All five
-extensions are built in place for use from this source checkout.
+the Python `SatelliteGeometry` and `SatellitePanel` data classes. All six
+extensions are built in place for use from this source checkout. The
+`environment/` package mirrors the Python environment hierarchy. Planetary
+body data, environment composition, atmosphere co-rotation, and J2–J6 gravity
+run in C++; the full NRLMSISE-00, DE421, IGRF-14, and CHAOS-8 coefficient
+engines are exposed through C++ adapters that call their existing Python
+reference implementations and data files.
 
 ## Build
 
@@ -88,6 +93,7 @@ python debug/debug_OMNI/debug_frames_c_translation.py
 python debug/debug_OMNI/debug_helpers_c_translation.py
 python debug/debug_OMNI/debug_adcs_subsystem_c_translation.py
 python debug/debug_OMNI/debug_satellite_geometry_c_translation.py
+python debug/debug_OMNI/debug_environment_c_translation.py
 ```
 
 The C++ `OrbitalState.from_keplerian()` stores the elements, matching the
