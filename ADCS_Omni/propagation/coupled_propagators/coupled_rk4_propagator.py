@@ -18,7 +18,7 @@ from ADCS_Omni.environment.atmosphere.NRMLSISE00.nrlmsise00 import NRLMSISE00, n
 from ADCS_Omni.environment.atmosphere.atmospheric_model import co_rotating_atmosphere_velocity
 from ADCS_Omni.environment.ephemeris import BODY_MOON, BODY_SUN, ephemeris_position, eclipse_state
 from ADCS_Omni.environment.ephemeris.de421 import DE421
-from ADCS_Omni.environment.gravity.j_gravity_model import EARTH_ZONAL_COEFFICIENTS, gravity_acceleration_inertial_m_s2
+from ADCS_Omni.environment.gravity.j_gravity_model import gravity_acceleration_inertial_m_s2
 from ADCS_Omni.environment.magnetic_field_model.chaos8.chaos8 import CHAOS8, chaos8_field_inertial_tesla
 from ADCS_Omni.environment.magnetic_field_model.igrf14.igrf14 import IGRF14, igrf14_field_inertial_tesla
 from ADCS_Omni.helpers.math.derivatives import quaternion_derivative
@@ -124,13 +124,42 @@ def _rk4_step(y, epoch_jd, dt, p):
     return result
 
 
+@njit(cache=True)
+def _integrate_chunk(y, initial_jd, dt, full_steps, remainder, p, output, start, count):
+    """Advance consecutive RK4 steps without returning to Python between them."""
+    for row in range(start, start + count):
+        elapsed_s = row * dt
+        step_dt = remainder if row == full_steps else dt
+        y = _rk4_step(y, initial_jd + elapsed_s / SECONDS_PER_DAY, step_dt, p)
+        output[row + 1, :] = y
+    return y
+
+
 def _prepare(satellite, environment, dynamics):
     from ADCS_Omni.dynamics import (
         ProjectedAreaDragForceModel, ProjectedAreaDragTorqueModel,
         ProjectedAreaSRPForceModel, ProjectedAreaSRPTorqueModel,
         StaticGravityGradientModel, StaticResidualDipoleModel, LunisolarForceModel,
+        ZonalForceModel,
     )
     from ADCS_Omni.dynamics._geometry import prepare_panels
+
+    force_models = dynamics.forces
+    torque_models = dynamics.torques
+    all_models = force_models + torque_models
+    drag_force_model = next((m for m in force_models if isinstance(m, ProjectedAreaDragForceModel)), None)
+    drag_torque_model = next((m for m in torque_models if isinstance(m, ProjectedAreaDragTorqueModel)), None)
+    srp_force_model = next((m for m in force_models if isinstance(m, ProjectedAreaSRPForceModel)), None)
+    srp_torque_model = next((m for m in torque_models if isinstance(m, ProjectedAreaSRPTorqueModel)), None)
+    gravity_gradient_model = next((m for m in torque_models if isinstance(m, StaticGravityGradientModel)), None)
+    residual_dipole_model = next((m for m in torque_models if isinstance(m, StaticResidualDipoleModel)), None)
+    third_body_model = next((m for m in force_models if isinstance(m, LunisolarForceModel)), None)
+    zonal_model = next((m for m in force_models if isinstance(m, ZonalForceModel)), None)
+    drag_force, drag_torque = drag_force_model is not None, drag_torque_model is not None
+    srp_force, srp_torque = srp_force_model is not None, srp_torque_model is not None
+    gravity_gradient = gravity_gradient_model is not None
+    residual_dipole = residual_dipole_model is not None
+    third_body = third_body_model is not None
 
     geometry = satellite.geometry
     mass = float(geometry.mass)
@@ -146,31 +175,31 @@ def _prepare(satellite, environment, dynamics):
     if not np.isfinite(mu) or not np.isfinite(radius) or mu <= 0 or radius <= 0:
         raise ValueError("planetary body requires positive finite mu and radius")
 
-    effects = (
-        ("drag_force", ProjectedAreaDragForceModel), ("drag_torque", ProjectedAreaDragTorqueModel),
-        ("srp_force", ProjectedAreaSRPForceModel), ("srp_torque", ProjectedAreaSRPTorqueModel),
-        ("gravity_gradient_torque", StaticGravityGradientModel),
-        ("residual_dipole_torque", StaticResidualDipoleModel),
-        ("third_body_forces", LunisolarForceModel),
-    )
-    for flag, model_type in effects:
-        if getattr(dynamics, flag):
-            model_name = "residual_dipole_model" if flag == "residual_dipole_torque" else "gravity_gradient_model" if flag == "gravity_gradient_torque" else "third_body_model" if flag == "third_body_forces" else flag + "_model"
-            if not isinstance(getattr(dynamics, model_name), model_type):
-                raise ValueError(f"{flag} requires {model_name} of type {model_type.__name__}")
-    has_drag = dynamics.drag_force or dynamics.drag_torque
-    has_srp = dynamics.srp_force or dynamics.srp_torque
+    supported = (ProjectedAreaDragForceModel, ProjectedAreaDragTorqueModel,
+                 ProjectedAreaSRPForceModel, ProjectedAreaSRPTorqueModel,
+                 StaticGravityGradientModel, StaticResidualDipoleModel,
+                 LunisolarForceModel, ZonalForceModel)
+    if any(not isinstance(model, supported) for model in all_models):
+        raise TypeError("dynamics lists contain an unsupported force or torque model")
+    if any(isinstance(model, (ProjectedAreaDragForceModel, ProjectedAreaSRPForceModel,
+                              LunisolarForceModel, ZonalForceModel)) for model in torque_models):
+        raise TypeError("force models must be placed in dynamics.forces")
+    if any(isinstance(model, (ProjectedAreaDragTorqueModel, ProjectedAreaSRPTorqueModel,
+                              StaticGravityGradientModel, StaticResidualDipoleModel)) for model in force_models):
+        raise TypeError("torque models must be placed in dynamics.torques")
+    has_drag = drag_force or drag_torque
+    has_srp = srp_force or srp_torque
     if has_drag and not isinstance(environment.atmosphere, NRLMSISE00):
         raise ValueError("compiled drag requires environment.atmosphere=NRLMSISE00()")
-    if (has_srp or dynamics.third_body_forces) and not isinstance(environment.ephemeris, DE421):
+    if (has_srp or third_body) and not isinstance(environment.ephemeris, DE421):
         raise ValueError("compiled SRP and third-body forces require environment.ephemeris=DE421()")
-    if dynamics.residual_dipole_torque and not isinstance(environment.magnetic_field, (IGRF14, CHAOS8)):
+    if residual_dipole and not isinstance(environment.magnetic_field, (IGRF14, CHAOS8)):
         raise ValueError("compiled residual dipole requires IGRF14 or CHAOS8")
 
     normals, arms, areas, coefficients = prepare_panels(geometry)
-    for flag in ("drag_force", "drag_torque", "srp_force", "srp_torque"):
-        if getattr(dynamics, flag):
-            model = getattr(dynamics, flag + "_model")
+    for flag, model in (("drag_force", drag_force_model), ("drag_torque", drag_torque_model),
+                        ("srp_force", srp_force_model), ("srp_torque", srp_torque_model)):
+        if model is not None:
             expected = coefficients[:, 0] if flag.startswith("drag") else coefficients[:, 1:4]
             actual = model.drag_coefficients if flag.startswith("drag") else model.optical_coefficients
             if (not np.array_equal(model.normals_b, normals)
@@ -178,26 +207,23 @@ def _prepare(satellite, environment, dynamics):
                     or not np.array_equal(model.areas, areas)
                     or not np.array_equal(actual, expected)):
                 raise ValueError(f"{flag}_model geometry differs from satellite.geometry")
-    if dynamics.gravity_gradient_torque and not np.array_equal(dynamics.gravity_gradient_model.inertia_b, inertia):
+    if gravity_gradient and not np.array_equal(gravity_gradient_model.inertia_b, inertia):
         raise ValueError("gravity_gradient_model inertia differs from satellite.geometry")
-    if dynamics.third_body_forces:
-        model = dynamics.third_body_model
+    if third_body:
+        model = third_body_model
         if model.mass != mass or model.segments is not environment.ephemeris._segments:
             raise ValueError("third_body_model mass or ephemeris differs from the simulation configuration")
     zonals = np.zeros(5)
-    configured = environment.j_gravity
-    source = configured.zonal_coefficients if configured is not None else EARTH_ZONAL_COEFFICIENTS
-    for degree in range(2, 7):
-        if getattr(dynamics, f"j{degree}_force"):
-            zonals[degree - 2] = source[degree - 2]
+    if zonal_model is not None:
+        zonals[:] = zonal_model.zonal_coefficients
     ephemeris = environment.ephemeris
     magnetic = environment.magnetic_field
     magnetic_kind = 1 if isinstance(magnetic, IGRF14) else 2 if isinstance(magnetic, CHAOS8) else 0
-    dipole = dynamics.residual_dipole_model.dipole_b if dynamics.residual_dipole_torque else np.zeros(3)
+    dipole = residual_dipole_model.dipole_b if residual_dipole else np.zeros(3)
     return _Runtime(
         mu, radius, mass, np.ascontiguousarray(np.linalg.inv(inertia)), inertia, np.ascontiguousarray(zonals),
-        dynamics.drag_force, dynamics.drag_torque, dynamics.srp_force, dynamics.srp_torque,
-        dynamics.gravity_gradient_torque, dynamics.residual_dipole_torque, dynamics.third_body_forces,
+        drag_force, drag_torque, srp_force, srp_torque,
+        gravity_gradient, residual_dipole, third_body,
         normals, arms, areas, np.ascontiguousarray(coefficients[:, 0]), np.ascontiguousarray(coefficients[:, 1:4]),
         np.ascontiguousarray(dipole),
         ephemeris._segments if ephemeris is not None else np.empty((0, 5), dtype=np.int64),
@@ -213,7 +239,7 @@ def _prepare(satellite, environment, dynamics):
     )
 
 
-class CoupledPropagator:
+class CoupledRK4Propagator:
     """Fixed-step RK4 for Cartesian orbit and body-from-inertial quaternion.
 
     The state has quaternion, body rates, inertial position and velocity. All
@@ -231,6 +257,55 @@ class CoupledPropagator:
         """Rebuild numerical parameters on the next step after configuration edits."""
         self._runtime = None
         self._configuration = None
+
+    def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
+                  progress_chunk_steps=500):
+        """Return elapsed seconds and numeric states for the complete interval.
+
+        Numeric state columns are quaternion (0:4), body rates (4:7),
+        inertial position (7:10), and inertial velocity (10:13).
+        """
+        tf = float(tf)
+        if not np.isfinite(tf) or tf < 0.0:
+            raise ValueError("tf must be finite and nonnegative seconds")
+        if progress and (isinstance(progress_chunk_steps, bool)
+                         or not isinstance(progress_chunk_steps, int)
+                         or progress_chunk_steps <= 0):
+            raise ValueError("progress_chunk_steps must be a positive integer")
+        if state.internal.wheel_momentum.size:
+            raise NotImplementedError("coupled passive propagation does not support wheel momentum")
+
+        runtime = _prepare(satellite, environment, dynamics)
+        y = np.concatenate((state.attitude.quaternion_array, state.attitude.rates,
+                            state.orbit.position, state.orbit.velocity))
+        full_steps = int(np.floor(tf / self.dt))
+        remainder = tf - full_steps * self.dt
+        if remainder <= 1e-12 * max(1.0, tf):
+            remainder = 0.0
+        step_count = full_steps + int(remainder > 0.0)
+        elapsed = np.minimum(np.arange(step_count + 1, dtype=np.float64) * self.dt, tf)
+        elapsed[-1] = tf
+        output = np.empty((step_count + 1, 13), dtype=np.float64)
+        output[0, :] = y
+
+        if progress and step_count:
+            from tqdm import tqdm
+
+            with tqdm(total=1, desc="Compiling Numba kernels", unit="stage") as bar:
+                _integrate_chunk(y, state.orbit.julian_date, self.dt, full_steps,
+                                 remainder, runtime, output, 0, 0)
+                bar.update(1)
+            with tqdm(total=step_count, desc="Running coupled RK4", unit="step") as bar:
+                for start in range(0, step_count, progress_chunk_steps):
+                    count = min(progress_chunk_steps, step_count - start)
+                    y = _integrate_chunk(y, state.orbit.julian_date, self.dt,
+                                         full_steps, remainder, runtime, output,
+                                         start, count)
+                    bar.update(count)
+        elif step_count:
+            _integrate_chunk(y, state.orbit.julian_date, self.dt, full_steps,
+                             remainder, runtime, output, 0, step_count)
+        return elapsed, output
 
     def step(self, state, satellite, environment, dynamics):
         from ADCS_Omni.state import State, AttitudeState, OrbitalState, InternalState

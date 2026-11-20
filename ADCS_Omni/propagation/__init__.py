@@ -1,4 +1,4 @@
 from .attitude_propagators import AdaptiveRK45AttitudePropagator, RK4AttitudePropagator
-from .coupled_propagators import CoupledPropagator
+from .coupled_propagators import CoupledDOP853Propagator, CoupledRK4Propagator
 from .orbital_propagators import KeplerianOrbitalPropagator, SGP4OrbitalPropagator
 from .propagator import Propagator

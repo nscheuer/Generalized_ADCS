@@ -4,9 +4,9 @@ from .environment import AtmosphericModel, CHAOS8, DE421, Earth, Environment, Ep
 from .hardware import ADCSSubsystem, Magnetorquer, ReactionWheel, Satellite, SatelliteGeometry, SatellitePanel, StateMachine
 from .helpers.math import DCM, Modified_Rodriguez_Parameters, Modified_Rodrigues_Parameters, Quaternion, Rodriguez_Parameters, Rodrigues_Parameters
 from .noise import FlickerNoise, GaussMarkovNoise, GaussianWhiteNoise, Noise, QuantizationNoise, UniformNoise
-from .propagation import AdaptiveRK45AttitudePropagator, CoupledPropagator, KeplerianOrbitalPropagator, Propagator, RK4AttitudePropagator, SGP4OrbitalPropagator
+from .propagation import AdaptiveRK45AttitudePropagator, CoupledDOP853Propagator, CoupledRK4Propagator, KeplerianOrbitalPropagator, Propagator, RK4AttitudePropagator, SGP4OrbitalPropagator
 from .solver import AttitudeSolver, CoupledSolver, OrbitalSolver, Solver
 from .state import AttitudeState, InternalState, OrbitalState, State
-from .simulate import simulate
+from .simulate import SimulationResult, simulate
 
 __all__ = [name for name in globals() if not name.startswith("_")]

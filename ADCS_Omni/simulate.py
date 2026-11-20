@@ -1,5 +1,52 @@
-from .config.simulation_config import SimulationConfig
+"""Simulation entry point for the coupled Numba backend."""
+
+from dataclasses import dataclass
+
+import numpy as np
+
+from .solver import CoupledSolver, Solver
+from .state import AttitudeState, InternalState, OrbitalState, State
 
 
-def simulate(config: SimulationConfig, tf: float):
-    raise NotImplementedError("Simulation execution is not implemented")
+@dataclass(slots=True)
+class SimulationResult:
+    """Sampled coupled trajectory with elapsed times in seconds.
+
+    ``state_vectors`` columns are quaternion (0:4), body rates (4:7),
+    inertial position (7:10), and inertial velocity (10:13).
+    """
+
+    times_s: np.ndarray
+    state_vectors: np.ndarray
+    final_state: State
+
+
+def simulate(satellite, environment, dynamics, state, solver, backend="Python"):
+    """Integrate the coupled orbit and attitude from the initial state to tf.
+
+    ``solver.tf`` is elapsed simulation time in seconds. The Python backend
+    prepares numeric model data once; the selected integrator runs in Numba.
+    """
+    if backend != "Python":
+        raise NotImplementedError(f"backend {backend!r} is not implemented for ADCS_Omni")
+    if isinstance(solver, Solver):
+        solver = solver.coupled
+    if not isinstance(solver, CoupledSolver):
+        raise TypeError("solver must be a CoupledSolver or a Solver containing one")
+    if not isinstance(state, State):
+        raise TypeError("state must be an ADCS_Omni.state.State")
+
+    times_s, state_vectors = solver.propagator.integrate(
+        state, satellite, environment, dynamics, solver.tf,
+        progress=solver.progress,
+        progress_chunk_steps=solver.progress_chunk_steps,
+    )
+    final = state_vectors[-1]
+    final_state = State(
+        AttitudeState(final[0:4].copy(), final[4:7].copy()),
+        OrbitalState.from_cartesian(final[7:10].copy(), final[10:13].copy(),
+                                    state.orbit.julian_date + solver.tf / 86400.0,
+                                    state.orbit.ephemeris),
+        InternalState(),
+    )
+    return SimulationResult(times_s, state_vectors, final_state)

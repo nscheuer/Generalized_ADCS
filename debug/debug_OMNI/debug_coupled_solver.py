@@ -7,39 +7,70 @@ from pathlib import Path
 import sys
 
 import numpy as np
-from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ADCS_Omni import (  # noqa: E402
     AttitudeState,
-    CoupledPropagator,
+    CoupledRK4Propagator,
+    CoupledDOP853Propagator,
+    CoupledSolver,
     DynamicsConfig,
+    DE421,
     Earth,
     Environment,
+    NRLMSISE00,
     Satellite,
     SatelliteGeometry,
+    SatellitePanel,
     State,
     OrbitalState,
+    simulate,
 )
-from ADCS_Omni.dynamics.gravity_gradient_model import StaticGravityGradientModel  # noqa: E402
+from ADCS_Omni.dynamics import (  # noqa: E402
+    ProjectedAreaDragForceModel,
+    ProjectedAreaDragTorqueModel,
+    ProjectedAreaSRPForceModel,
+    ProjectedAreaSRPTorqueModel,
+    StaticGravityGradientModel,
+    ZonalForceModel,
+)
 
 
 def main():
     dt = 0.25
-    duration = 6000.0
+    duration = 40000.0
     steps = int(duration / dt)
 
     geometry = SatelliteGeometry(
         mass=12.0,
         inertia=np.diag((0.13, 0.10, 0.05)),
+        panels=[
+            SatellitePanel((0.0, 0.0, 0.15), (0.0, 0.0, 0.0), (0.10, 0.20), 0.20, 0.70, 0.10, 2.2),
+            SatellitePanel((0.0, 0.0, -0.15), (np.pi, 0.0, 0.0), (0.10, 0.20), 0.20, 0.70, 0.10, 2.2),
+            SatellitePanel((0.05, 0.0, 0.0), (0.0, np.pi / 2.0, 0.0), (0.20, 0.30), 0.20, 0.70, 0.10, 2.2),
+            SatellitePanel((-0.05, 0.0, 0.0), (0.0, -np.pi / 2.0, 0.0), (0.20, 0.30), 0.20, 0.70, 0.10, 2.2),
+            SatellitePanel((0.0, 0.10, 0.0), (-np.pi / 2.0, 0.0, 0.0), (0.10, 0.30), 0.20, 0.70, 0.10, 2.2),
+            SatellitePanel((0.0, -0.10, 0.0), (np.pi / 2.0, 0.0, 0.0), (0.10, 0.30), 0.20, 0.70, 0.10, 2.2),
+        ],
     )
     satellite = Satellite(geometry=geometry)
-    environment = Environment(planetary_body=Earth())
+    environment = Environment(
+        planetary_body=Earth(),
+        atmosphere=NRLMSISE00(),
+        ephemeris=DE421(),
+    )
     dynamics = DynamicsConfig(
-        gravity_gradient_torque=True,
-        gravity_gradient_model=StaticGravityGradientModel(geometry),
-        j2_force=True,
+        forces=[
+            ZonalForceModel(geometry, environment, degrees=(2,)),
+            ProjectedAreaDragForceModel(geometry),
+            ProjectedAreaSRPForceModel(geometry),
+        ],
+        torques=[
+            StaticGravityGradientModel(geometry),
+            ProjectedAreaDragTorqueModel(geometry),
+            ProjectedAreaSRPTorqueModel(geometry),
+        ],
     )
 
     state = State(
@@ -54,15 +85,9 @@ def main():
         ),
     )
 
-    solver = CoupledPropagator(dt=dt)
-    # Compile the Numba specialization with a disposable step so the run bar
-    # measures the requested simulation only.
-    with tqdm(total=1, desc="Compiling Numba kernels", unit="step") as bar:
-        solver.step(state, satellite, environment, dynamics)
-        bar.update(1)
-
-    for _ in tqdm(range(steps), desc="Running coupled RK4", unit="step"):
-        state = solver.step(state, satellite, environment, dynamics)
+    solver = CoupledSolver(CoupledDOP853Propagator(dt=dt), tf=duration, progress=True)
+    result = simulate(satellite, environment, dynamics, state, solver)
+    state = result.final_state
 
     altitude = np.linalg.norm(state.orbit.position) - environment.planetary_body.reference_radius
     print(f"Elapsed: {duration:.1f} s ({steps} steps)")

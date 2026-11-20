@@ -201,8 +201,13 @@ package "ADCS_Omni.propagation" {
   class Propagator {
     attitude | orbital | coupled
   }
-  abstract class CoupledPropagator <<stub>> {
+  class CoupledRK4Propagator {
     dt
+  }
+  class CoupledDOP853Propagator {
+    dt
+    rtol
+    atol
   }
   abstract class KeplerianOrbitalPropagator <<stub>> {
     dt
@@ -237,12 +242,12 @@ package "ADCS_Omni.solver" {
     dt
   }
   class CoupledSolver {
-    propagator: CoupledPropagator
+    propagator: CoupledRK4Propagator | CoupledDOP853Propagator
     dt
   }
 }
 
-class "simulate(config, tf)" as simulate <<stub>>
+class "simulate(satellite, environment, dynamics, state, solver, backend)" as simulate
 
 SimulationConfig *-- Satellite
 SimulationConfig *-- Environment
@@ -258,7 +263,8 @@ Solver *-- DynamicsConfig
 Solver o-- OrbitalSolver : split mode
 Solver o-- AttitudeSolver : split mode
 Solver o-- CoupledSolver : coupled mode
-Propagator o-- CoupledPropagator : coupled mode
+Propagator o-- CoupledRK4Propagator : coupled mode
+Propagator o-- CoupledDOP853Propagator : coupled mode
 Propagator o-- KeplerianOrbitalPropagator
 Propagator o-- SGP4OrbitalPropagator
 Propagator o-- RK4AttitudePropagator
@@ -267,8 +273,13 @@ OrbitalSolver --> KeplerianOrbitalPropagator
 OrbitalSolver --> SGP4OrbitalPropagator
 AttitudeSolver --> RK4AttitudePropagator
 AttitudeSolver --> AdaptiveRK45AttitudePropagator
-CoupledSolver --> CoupledPropagator
-simulate ..> SimulationConfig
+CoupledSolver --> CoupledRK4Propagator
+CoupledSolver --> CoupledDOP853Propagator
+simulate ..> Satellite
+simulate ..> Environment
+simulate ..> DynamicsConfig
+simulate ..> State
+simulate ..> CoupledSolver
 
 Satellite *-- SatelliteGeometry
 Satellite *-- ADCSSubsystem
