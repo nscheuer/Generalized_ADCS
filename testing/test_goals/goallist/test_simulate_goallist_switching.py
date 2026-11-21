@@ -4,7 +4,7 @@ from ADCS.CONOPS.goallist import GoalList
 from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ

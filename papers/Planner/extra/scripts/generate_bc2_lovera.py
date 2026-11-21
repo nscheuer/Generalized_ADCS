@@ -9,7 +9,7 @@ from typing import Dict, Any, Tuple, Optional
 # --- ADCS Imports ---
 from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.controller import MTQ_Lovera
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants, EarthConstants

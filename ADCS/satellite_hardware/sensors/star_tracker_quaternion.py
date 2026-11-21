@@ -8,7 +8,7 @@ from ADCS.satellite_hardware.sensors.sensor import Sensor
 from ADCS.environment import StarCatalog, NavigationStar
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.errors import ErrorMode
-from ADCS.helpers.math_helpers import rot_mat
+from ADCS.helpers.math_helpers import quat_mult, rot_exp, rot_mat
 
 from ADCS.orbits.orbital_state import Orbital_State
 
@@ -82,6 +82,11 @@ class StarTrackerQuaternion(Sensor):
 
     observation_kind = "attitude"
 
+    # Unpickling skips __init__, and trackers saved by 0.2.1 predate this
+    # flag. Those had no way to take a catalogue from the environment, so
+    # "not explicit" keeps their own catalogue unless the environment sets one.
+    _catalog_explicit: bool = False
+
     def __init__(
         self,
         sample_time: float = 0.1,
@@ -93,6 +98,8 @@ class StarTrackerQuaternion(Sensor):
         sun_exclusion: float = np.deg2rad(25.0),
         min_stars: int = 2,
         star_catalog: Optional[StarCatalog] = None,
+        scale_factor: float = 1.0,
+        misalignment: Optional[np.ndarray] = None,
     ) -> None:
         r"""
         Initialize the quaternion star tracker sensor.
@@ -133,9 +140,12 @@ class StarTrackerQuaternion(Sensor):
         self.min_stars = int(min_stars)
 
         self.catalog = star_catalog if star_catalog is not None else StarCatalog()
+        self._catalog_explicit = star_catalog is not None
         self.current_stars: List[NavigationStar] = []
 
-        super().__init__(
+        if scale_factor != 1.0:
+            raise ValueError("StarTrackerQuaternion: a quaternion has no scale factor")
+        super().__init__(scale_factor=scale_factor, misalignment=misalignment, 
             sample_time=sample_time,
             output_length=4,
             bias=bias,
@@ -178,12 +188,17 @@ class StarTrackerQuaternion(Sensor):
         :rtype: list[:class:`~ADCS.environment.NavigationStar`]
         """
         A = rot_mat(q)
-        boresight_eci = A @ self.boresight
+        boresight_body = self.mounting_rotation @ self.boresight
+        boresight_eci = A @ boresight_body
         r_sat_eci = os.R
         sun_eci = self._get_sun_eci(os)
         moon_eci = self._get_moon_eci(os)
 
-        visible = self.catalog.get_visible_stars(
+        environment = getattr(os, "environment", None)
+        catalog = self.catalog
+        if not self._catalog_explicit and getattr(environment, "_star_catalogue_explicit", False):
+            catalog = environment.star_catalogue
+        visible = catalog.get_visible_stars(
             boresight_eci=boresight_eci,
             fov_rad=self.fov,
             r_sat_eci=r_sat_eci,
@@ -234,6 +249,10 @@ class StarTrackerQuaternion(Sensor):
 
         self.current_stars = stars
 
+        if self.misalignment is not None:
+            # The tracker reports the attitude of its own frame, which is the
+            # body frame rotated by the mounting error.
+            q = quat_mult(q, rot_exp(self.misalignment))
         # Enforce scalar-positive convention
         if q[0] < 0:
             q = -q
@@ -304,7 +323,12 @@ class StarTrackerQuaternion(Sensor):
             return np.zeros((7, self.output_length))
 
         J = np.zeros((7, 4))
-        J[3:7, :] = np.eye(4)
+        if self.misalignment is None:
+            J[3:7, :] = np.eye(4)
+        else:
+            # q_meas = q (x) q_delta is linear in q; column i of that map is e_i (x) q_delta.
+            q_delta = rot_exp(self.misalignment)
+            J[3:7, :] = np.column_stack([quat_mult(np.eye(4)[i], q_delta) for i in range(4)]).T
         return J
 
     def bias_jac(

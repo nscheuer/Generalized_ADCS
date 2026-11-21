@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from ADCS.helpers.save_and_load.save_and_load import load_data, load_orbital_states, save_data
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 
 
@@ -237,3 +237,19 @@ def test_load_orbital_states_raises_for_missing_label(tmp_path):
 
     with pytest.raises(KeyError):
         load_orbital_states(run_dir, label="does_not_exist", ephem=None)
+
+
+def test_load_orbital_states_still_accepts_a_density_model_with_a_warning(tmp_path):
+    from ADCS.environment.atmosphere import SMADAtmosphere
+
+    os_hist = make_orbital_states()
+    run_dir = save_data("legacy_density", os_hist, labels=["os_hist"], out_dir=tmp_path, add_timestamp=False)
+    atmosphere = SMADAtmosphere()
+
+    # main's positional order: (run_dir, label, ephem, density_model, fast)
+    with pytest.warns(DeprecationWarning, match="density_model"):
+        loaded = load_orbital_states(run_dir, "os_hist", Ephemeris(), atmosphere, True)
+
+    assert all(state.environment.atmosphere is atmosphere for state in loaded)
+    assert loaded[0].environment is loaded[-1].environment  # one shared environment, not one per state
+    np.testing.assert_allclose(loaded[0].R, os_hist[0].R)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from ADCS.helpers.math_helpers import normalize
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.disturbances import GeometryConfig, GeometryFace
 from ADCS.satellite_hardware.satellite import Satellite
@@ -102,3 +102,42 @@ def resolve_method(obj, *names: str):
         if hasattr(obj, name):
             return getattr(obj, name)
     raise AttributeError(f"{obj!r} does not define any of {names!r}")
+
+
+def fd_quat_jac_raw(fun, x: State, eps: float = 1.0e-7) -> np.ndarray:
+    """Central-difference quaternion Jacobian without renormalising ``q``.
+
+    The analytic ``*_qjac`` methods differentiate with respect to the four
+    raw quaternion components.  ``fd_quat_jac`` renormalises each perturbed
+    quaternion, which removes the radial component of the derivative, so it
+    only agrees with the analytic result when the output is small enough to
+    hide inside the tolerance.
+    """
+    jac = np.zeros((4, 3))
+    for index in range(4):
+        delta = np.zeros(4)
+        delta[index] = eps
+        x_plus = x.copy()
+        x_minus = x.copy()
+        x_plus.q = x.q + delta
+        x_minus.q = x.q - delta
+        plus = fun(x_plus)
+        minus = fun(x_minus)
+        jac[index, :] = (plus - minus) / (2.0 * eps)
+    return jac
+
+
+def fd_quat_hess_raw(fun, x: State, eps: float = 1.0e-5) -> np.ndarray:
+    """Central-difference quaternion Hessian without renormalising ``q``."""
+    hess = np.zeros((4, 4, 3))
+    for index in range(4):
+        delta = np.zeros(4)
+        delta[index] = eps
+        x_plus = x.copy()
+        x_minus = x.copy()
+        x_plus.q = x.q + delta
+        x_minus.q = x.q - delta
+        plus = fd_quat_jac_raw(fun, x_plus, eps=eps)
+        minus = fd_quat_jac_raw(fun, x_minus, eps=eps)
+        hess[index, :, :] = (plus - minus) / (2.0 * eps)
+    return hess

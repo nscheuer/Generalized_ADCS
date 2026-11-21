@@ -8,7 +8,7 @@ import pytest
 from ADCS.estimators.attitude_determination import attitude_error, quest, triad
 from ADCS.estimators.initialization import angular_rate_from_readings, vector_observations, wheel_momentum_from_readings
 from ADCS.helpers.math_helpers import normalize, rot_mat
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import RW
 from ADCS.satellite_hardware.errors import Noise

@@ -3,6 +3,7 @@ __all__ = ["Sensor"]
 import numpy as np
 
 from ADCS.covariance import Covariance
+from ADCS.helpers.math_helpers import rot_exp, rot_mat
 from ADCS.state import State
 
 from ADCS.orbits.orbital_state import Orbital_State
@@ -100,6 +101,14 @@ class Sensor:
     #: Single-axis direction sensors expose ``axis`` (and sun sensors
     #: ``efficiency``); vector sensors return the body-frame direction itself.
     observation_kind: Optional[str] = None
+    # Pre-0.2.2 pickles restore only instance state and skip __init__. These
+    # nominal defaults keep those sensors usable after the mounting-error
+    # fields were added.
+    scale_factor: float = 1.0
+    misalignment: Optional[np.ndarray] = None
+    _identity_mounting_rotation = np.eye(3)
+    _identity_mounting_rotation.setflags(write=False)
+    mounting_rotation: np.ndarray = _identity_mounting_rotation
 
     def reference_direction(self, os: Orbital_State) -> Optional[np.ndarray]:
         r"""
@@ -116,7 +125,7 @@ class Sensor:
         """
         return None
 
-    def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
+    def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False, scale_factor: float = 1.0, misalignment: Optional[np.ndarray] = None):
         r"""
         Initialize a generic sensor model.
 
@@ -130,6 +139,15 @@ class Sensor:
         :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
         :param estimate_bias: Indicates whether the sensor bias is included in the estimator state.
         :type estimate_bias: bool
+        :param scale_factor: Gain error of the device as built: the reading is this
+            factor times what a perfect device would read. ``1.0`` is a perfect gain.
+        :type scale_factor: float
+        :param misalignment: Mounting error of the device as built, a rotation vector
+            in radians (axis times angle) from the nominal sensor frame to the actual
+            one. A single-axis sensor's sensitive axis and a vector sensor's output
+            frame are rotated by it; see :attr:`sensing_axis` and :meth:`as_built`.
+            ``None`` means mounted exactly as designed.
+        :type misalignment: numpy.ndarray | None
         :return: None
         :rtype: None
         """
@@ -150,6 +168,38 @@ class Sensor:
         self.noise = self.noise.broadcast_to(output_length, owner=type(self).__name__)
         self.bias = self.bias.broadcast_to(output_length, owner=type(self).__name__)
         self.estimate_bias = estimate_bias
+        self.scale_factor = float(scale_factor)
+        if not np.isfinite(self.scale_factor) or self.scale_factor <= 0.0:
+            raise ValueError(f"{type(self).__name__}: scale_factor must be positive and finite")
+        if misalignment is None:
+            self.misalignment = None
+            self.mounting_rotation = np.eye(3)
+        else:
+            self.misalignment = np.asarray(misalignment, dtype=float).reshape(-1)
+            if self.misalignment.shape != (3,) or not np.all(np.isfinite(self.misalignment)):
+                raise ValueError(f"{type(self).__name__}: misalignment must be a finite rotation vector of 3 elements")
+            self.mounting_rotation = rot_mat(rot_exp(self.misalignment))
+
+    @property
+    def sensing_axis(self) -> np.ndarray:
+        """The sensitive axis of a single-axis sensor as mounted: the nominal ``axis`` rotated by the misalignment.
+
+        A sensor without a misalignment has the identity mounting rotation, so
+        its nominal ``axis`` is returned directly. This sits on every reading
+        and Jacobian of the single-axis sensors, and skipping the 3x3 product
+        keeps the nominal device as fast as it was before mounting errors existed.
+        """
+        if self.misalignment is None:
+            return self.axis
+        return self.mounting_rotation @ self.axis
+
+    def as_built(self, vector: np.ndarray) -> np.ndarray:
+        """A body-frame vector as this sensor reports it: in its actual (misaligned) frame, times the scale factor."""
+        return self.scale_factor * (self.mounting_rotation.T @ vector)
+
+    def as_built_jacobian(self, jacobian: np.ndarray) -> np.ndarray:
+        """Apply :meth:`as_built` to a Jacobian whose rows are the derivatives of a body-frame vector."""
+        return self.scale_factor * (jacobian @ self.mounting_rotation)
 
     def measurement_covariance(self, *, form: str = "full") -> Covariance:
         """Return measurement-noise covariance owned by this sensor."""
