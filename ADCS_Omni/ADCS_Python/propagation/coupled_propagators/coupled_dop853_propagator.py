@@ -167,9 +167,10 @@ class CoupledDOP853Propagator:
                 bar.update(1)
             time_parts = [np.array([0.0])]
             state_parts = [y.reshape(1, y.size)]
-            with tqdm(desc="Running coupled DOP853", unit="step", unit_scale=True,
-                      unit_divisor=1000, dynamic_ncols=True, mininterval=0.1,
-                      miniters=1, smoothing=0.1) as bar:
+            main_step_count = int(np.ceil(tf / self.dt))
+            completed_main_steps = 0
+            with tqdm(total=main_step_count, desc="Running coupled DOP853", unit="step",
+                      dynamic_ncols=True, mininterval=0.1, miniters=1) as bar:
                 while t < tf:
                     times, states, y, f, new_t, h = _integrate_adaptive_chunk(
                         y, f, t, h, state.orbit.julian_date, tf, p,
@@ -178,8 +179,12 @@ class CoupledDOP853Propagator:
                     )
                     time_parts.append(times[1:])
                     state_parts.append(states[1:, :])
-                    bar.update(len(times) - 1)
                     t = new_t
+                    current_main_steps = min(main_step_count, int(np.floor(t / self.dt + 1e-12)))
+                    if t >= tf:
+                        current_main_steps = main_step_count
+                    bar.update(current_main_steps - completed_main_steps)
+                    completed_main_steps = current_main_steps
             return np.concatenate(time_parts), np.concatenate(state_parts)
 
         times, states, _, _, _, _ = _integrate_adaptive_chunk(

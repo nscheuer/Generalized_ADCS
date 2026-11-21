@@ -9,6 +9,7 @@ struct NativeProgress {
     total: Option<usize>,
     simulation_total: Option<f64>,
     simulation_elapsed: f64,
+    main_dt: f64,
     steps: usize,
     chunk: usize,
     pending: usize,
@@ -22,6 +23,7 @@ impl NativeProgress {
         label: &'static str,
         total: Option<usize>,
         simulation_total: Option<f64>,
+        main_dt: f64,
         chunk: usize,
     ) -> Self {
         let now = std::time::Instant::now();
@@ -30,6 +32,7 @@ impl NativeProgress {
             total,
             simulation_total,
             simulation_elapsed: 0.,
+            main_dt,
             steps: 0,
             chunk: chunk.max(1),
             pending: 0,
@@ -42,8 +45,8 @@ impl NativeProgress {
         bar
     }
     fn advance(&mut self, simulated_seconds: f64) {
-        self.steps += 1;
         self.simulation_elapsed += simulated_seconds;
+        self.steps = ((self.simulation_elapsed / self.main_dt) + 1e-12).floor() as usize;
         self.pending += 1;
         if self.pending >= self.chunk || self.last_draw.elapsed().as_millis() >= 100 {
             self.pending = 0;
@@ -139,6 +142,7 @@ pub fn integrate_rk4_native(
             "Running coupled RK4",
             Some(full + usize::from(remainder > 0.)),
             None,
+            dt,
             progress_chunk_steps,
         ))
     } else {
@@ -209,8 +213,9 @@ pub fn integrate_dop853_native(
     let mut bar = if progress {
         Some(NativeProgress::new(
             "Running coupled DOP853",
+            Some((tf / dt).ceil() as usize),
             None,
-            Some(tf),
+            dt,
             progress_chunk_steps,
         ))
     } else {
