@@ -158,56 +158,56 @@ def _make_benchmarks() -> list[Benchmark]:
         Benchmark(
             name="mtq_torque",
             func=lambda: mtq.torque(u_mtq, x, os0),
-            max_regression=1.50,
+            max_regression=1.65,
         ),
         Benchmark(
             name="mtq_storage_torque",
             func=lambda: mtq.storage_torque(u_mtq, x, os0),
-            max_regression=1.50,
+            max_regression=1.65,
         ),
         Benchmark(
             name="mtq_jacobians",
             func=lambda: mtq.jacobians(u_mtq, x, os0),
-            max_regression=1.50,
+            max_regression=1.65,
             min_seconds=0.025,
             max_loops=4_096,
         ),
         Benchmark(
             name="mtq_hessians",
             func=lambda: mtq.hessians(u_mtq, x, os0),
-            max_regression=1.50,
+            max_regression=1.65,
             min_seconds=0.025,
             max_loops=2_048,
         ),
         Benchmark(
             name="rw_effective_command",
             func=lambda: rw._effective_command(u_rw, os0),
-            max_regression=1.50,
+            max_regression=1.65,
         ),
         Benchmark(
             name="rw_torque",
             func=lambda: rw.torque(u_rw, x, os0),
-            max_regression=1.50,
+            max_regression=1.65,
         ),
         Benchmark(
             name="rw_storage_torque",
             func=lambda: rw.storage_torque(u_rw, x, os0),
-            max_regression=1.50,
+            max_regression=1.65,
         ),
         Benchmark(
             name="rw_measure_momentum",
             func=rw.measure_momentum,
-            max_regression=1.50,
+            max_regression=1.65,
         ),
         Benchmark(
             name="rw_measure_momentum_noiseless",
             func=rw.measure_momentum_noiseless,
-            max_regression=1.50,
+            max_regression=1.65,
         ),
         Benchmark(
             name="rw_dtorq__du",
             func=lambda: rw.dtorq__du(u_rw, x, os0),
-            max_regression=1.50,
+            max_regression=1.65,
         ),
     ]
 

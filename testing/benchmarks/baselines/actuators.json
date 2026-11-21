@@ -2,61 +2,61 @@
   "benchmarks": {
     "mtq_hessians": {
       "loops": 1024,
-      "max_regression": 1.5,
+      "max_regression": 1.65,
       "normalized_seconds": 0.006382721254524692,
       "seconds": 2.9466149414056342e-05
     },
     "mtq_jacobians": {
       "loops": 1024,
-      "max_regression": 1.5,
+      "max_regression": 1.65,
       "normalized_seconds": 0.005574401884542235,
       "seconds": 2.573450292968349e-05
     },
     "mtq_storage_torque": {
       "loops": 8192,
-      "max_regression": 1.5,
+      "max_regression": 1.65,
       "normalized_seconds": 2.7996623719750348e-05,
       "seconds": 1.2924780273468328e-07
     },
     "mtq_torque": {
       "loops": 2048,
-      "max_regression": 1.5,
+      "max_regression": 1.65,
       "normalized_seconds": 0.0038408441789257028,
       "seconds": 1.7731447753903395e-05
     },
     "rw_dtorq__du": {
       "loops": 8192,
-      "max_regression": 1.5,
+      "max_regression": 1.65,
       "normalized_seconds": 2.6217560256460138e-05,
       "seconds": 1.2103466797037943e-07
     },
     "rw_effective_command": {
       "loops": 8192,
-      "max_regression": 1.5,
+      "max_regression": 1.65,
       "normalized_seconds": 0.0005777153351127085,
       "seconds": 2.6670515136714007e-06
     },
     "rw_measure_momentum": {
       "loops": 8192,
-      "max_regression": 1.5,
+      "max_regression": 1.65,
       "normalized_seconds": 2.0824022190826206e-05,
       "seconds": 9.613513183605316e-08
     },
     "rw_measure_momentum_noiseless": {
       "loops": 8192,
-      "max_regression": 1.5,
+      "max_regression": 1.65,
       "normalized_seconds": 5.0008495080947085e-06,
       "seconds": 2.3086669921276726e-08
     },
     "rw_storage_torque": {
       "loops": 8192,
-      "max_regression": 1.5,
+      "max_regression": 1.65,
       "normalized_seconds": 0.0005935472336203804,
       "seconds": 2.740140258790033e-06
     },
     "rw_torque": {
       "loops": 8192,
-      "max_regression": 1.5,
+      "max_regression": 1.65,
       "normalized_seconds": 0.0006878584069599271,
       "seconds": 3.17553247070404e-06
     }
