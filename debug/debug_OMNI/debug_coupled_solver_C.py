@@ -31,7 +31,7 @@ from ADCS_Omni.ADCS_C.dynamics import (  # noqa: E402
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Run the C++ coupled solver")
-    parser.add_argument("--duration", type=float, default=40000.0)
+    parser.add_argument("--duration", type=float, default=400000.0)
     parser.add_argument("--dt", type=float, default=0.25)
     args = parser.parse_args()
     dt = args.dt

@@ -42,7 +42,7 @@ from ADCS_Omni.ADCS_Python.dynamics import (  # noqa: E402
 
 def main():
     dt = 0.25
-    duration = 2000.0
+    duration = 400000.0
     steps = int(duration / dt)
 
     geometry = SatelliteGeometry(

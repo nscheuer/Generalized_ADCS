@@ -8,7 +8,11 @@ name = "_magnetic_field_model"
 path = "lib.rs"
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = []
+python-extension = ["pyo3/extension-module"]
+
 [dependencies]
-pyo3 = { version = "0.20", features = ["extension-module"] }
+pyo3 = { version = "0.20" }
 numpy = { version = "0.20", features = ["nalgebra"] }
 

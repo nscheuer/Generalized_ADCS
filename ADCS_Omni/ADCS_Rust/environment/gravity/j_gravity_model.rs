@@ -54,6 +54,10 @@ fn acceleration(position: [f64; 3], mu: f64, reference_radius: f64, coefficients
     ])
 }
 
+pub fn native_acceleration(position: [f64; 3], mu: f64, radius: f64, coefficients: &[f64]) -> PyResult<[f64; 3]> {
+    acceleration(position, mu, radius, coefficients)
+}
+
 fn vector3(py: Python<'_>, value: &PyAny, name: &str) -> PyResult<[f64; 3]> {
     let values: Vec<f64> = py.import("numpy")?.call_method1("asarray", (value,))?
         .call_method1("astype", ("float64",))?.call_method0("tolist")?.extract()?;

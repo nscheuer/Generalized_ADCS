@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 include!("NRMLSISE00/_nrlmsise00_core.rs");
 include!("NRMLSISE00/nrlmsise00.rs");
 include!("atmospheric_model.rs");
+include!("native.rs");
 
 #[pymodule]
 fn _atmosphere(_py: Python<'_>, m: &PyModule) -> PyResult<()> {

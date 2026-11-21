@@ -8,6 +8,11 @@ name = "_atmosphere"
 path = "lib.rs"
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = []
+python-extension = ["pyo3/extension-module"]
+
 [dependencies]
-pyo3 = { version = "0.20", features = ["extension-module"] }
+pyo3 = { version = "0.20" }
 nrlmsise00 = { version = "0.2", default-features = false }
+magnetic_native = { package = "adcs-omni-rust-magnetic-field", path = "../magnetic_field_model", default-features = false }

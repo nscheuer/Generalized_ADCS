@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 
 include!("ephemeris_model.rs");
 include!("de421/de421.rs");
+include!("native.rs");
 
 #[pymodule]
 fn _ephemeris(_py: Python<'_>, m: &PyModule) -> PyResult<()> {

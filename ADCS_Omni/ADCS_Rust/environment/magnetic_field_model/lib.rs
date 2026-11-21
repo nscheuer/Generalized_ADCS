@@ -6,6 +6,7 @@ include!("_spherical_harmonics.rs");
 include!("magnetic_field_model.rs");
 include!("igrf14/igrf14.rs");
 include!("chaos8/chaos8.rs");
+include!("native.rs");
 
 #[pymodule]
 fn _magnetic_field_model(py: Python<'_>, m: &PyModule) -> PyResult<()> {
