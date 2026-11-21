@@ -1,0 +1,12 @@
+[package]
+name = "adcs-omni-rust-planetary-body"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "_planetary_body"
+path = "lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.20", features = ["extension-module"] }
