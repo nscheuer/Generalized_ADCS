@@ -2,9 +2,9 @@
 
 import numpy as np
 
-from ADCS_Omni.ADCS_C.helpers.math import frames as c_frames
-from ADCS_Omni.ADCS_Python.helpers.math.frames import conversions as py_conversions
-from ADCS_Omni.ADCS_Python.helpers.math.frames import frames as py_frames
+from GenADCS.backends.cpp.helpers.math import frames as c_frames
+from GenADCS.backends.python.helpers.math.frames import conversions as py_conversions
+from GenADCS.backends.python.helpers.math.frames import frames as py_frames
 
 
 def main():

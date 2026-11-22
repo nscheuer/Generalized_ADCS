@@ -10,7 +10,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ADCS_Omni import (  # noqa: E402
+from GenADCS import (  # noqa: E402
     AttitudeState,
     CoupledRK4Propagator,
     CoupledDOP853Propagator,
@@ -27,7 +27,7 @@ from ADCS_Omni import (  # noqa: E402
     OrbitalState,
     simulate,
 )
-from ADCS_Omni.ADCS_Python.dynamics import (  # noqa: E402
+from GenADCS.backends.python.dynamics import (  # noqa: E402
     ProjectedAreaDragForceModel,
     ProjectedAreaDragTorqueModel,
     ProjectedAreaSRPForceModel,

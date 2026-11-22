@@ -1,7 +1,7 @@
 """End-to-end exercise of the Rust coupled solver through Python bindings.
 
 From the repository root, build the extensions with
-``bash ADCS_Omni/ADCS_Rust/build_extensions.sh release`` and run with
+``bash GenADCS/backends/rust/build_extensions.sh release`` and run with
 ``venv/bin/python debug/debug_OMNI/debug_coupled_solver_Rust.py``.
 """
 
@@ -12,14 +12,14 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ADCS_Omni.ADCS_Rust.state import AttitudeState, State, OrbitalState
-from ADCS_Omni.ADCS_Rust.hardware import Satellite, SatelliteGeometry, SatellitePanel
-from ADCS_Omni.ADCS_Rust.environment import Environment, Earth, DE421, NRLMSISE00
-from ADCS_Omni.ADCS_Rust.config import DynamicsConfig
-from ADCS_Omni.ADCS_Rust.propagation import CoupledRK4Propagator, CoupledDOP853Propagator
-from ADCS_Omni.ADCS_Rust.solver import CoupledSolver
-from ADCS_Omni.ADCS_Rust.simulate import simulate
-from ADCS_Omni.ADCS_Rust.dynamics import (  # noqa: E402
+from GenADCS.backends.rust.state import AttitudeState, State, OrbitalState
+from GenADCS.backends.rust.hardware import Satellite, SatelliteGeometry, SatellitePanel
+from GenADCS.backends.rust.environment import Environment, Earth, DE421, NRLMSISE00
+from GenADCS.backends.rust.config import DynamicsConfig
+from GenADCS.backends.rust.propagation import CoupledRK4Propagator, CoupledDOP853Propagator
+from GenADCS.backends.rust.solver import CoupledSolver
+from GenADCS.backends.rust.simulate import simulate
+from GenADCS.backends.rust.dynamics import (  # noqa: E402
     ProjectedAreaDragForceModel,
     ProjectedAreaDragTorqueModel,
     ProjectedAreaSRPForceModel,

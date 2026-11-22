@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "ninja",
+      "displayName": "GenADCS C++ with Ninja",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/../../../build/genadcs_cpp_ninja"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "ninja",
+      "configurePreset": "ninja"
+    }
+  ]
+}

@@ -5,14 +5,14 @@ Run from the repository root after building ADCS_C (see its README).
 
 import numpy as np
 
-from ADCS_Omni.ADCS_C.state import (
+from GenADCS.backends.cpp.state import (
     AttitudeState as CAttitudeState,
     InternalState as CInternalState,
     OrbitalState as COrbitalState,
     State as CState,
     WheelMomentumState as CWheelMomentumState,
 )
-from ADCS_Omni.ADCS_Python.state import (
+from GenADCS.backends.python.state import (
     AttitudeState as PythonAttitudeState,
     OrbitalState as PythonOrbitalState,
     State as PythonState,

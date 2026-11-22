@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from ADCS_Omni.ADCS_C.helpers import math as cpp
-from ADCS_Omni.ADCS_Python.helpers import math as py
-from ADCS_Omni.ADCS_Python.helpers.math import time as py_time
+from GenADCS.backends.cpp.helpers import math as cpp
+from GenADCS.backends.python.helpers import math as py
+from GenADCS.backends.python.helpers.math import time as py_time
 
 
 def close(actual, expected, label: str, atol: float = 1e-12) -> None:

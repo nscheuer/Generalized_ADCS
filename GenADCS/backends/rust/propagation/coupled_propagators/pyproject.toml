@@ -1,0 +1,12 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+[project]
+name = "adcs-omni-rust-coupled-propagators"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26"]
+[tool.maturin]
+manifest-path = "Cargo.toml"
+python-source = "../../../../../"
+module-name = "GenADCS.backends.rust.propagation.coupled_propagators._coupled"

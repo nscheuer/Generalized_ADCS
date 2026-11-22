@@ -3,15 +3,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from ADCS_Omni.ADCS_C.environment import (
+from GenADCS.backends.cpp.environment import (
     BODY_EARTH, DE421 as CDE421, Earth as CEarth, Environment as CEnvironment,
     IGRF14 as CIGRF14, J2 as CJ2, JGravityModel as CJGravityModel,
     NRLMSISE00 as CNRLMSISE00, co_rotating_atmosphere_velocity as c_velocity,
 )
-from ADCS_Omni.ADCS_Python.environment import (
+from GenADCS.backends.python.environment import (
     DE421, Earth, Environment, IGRF14, J2, JGravityModel, NRLMSISE00,
 )
-from ADCS_Omni.ADCS_Python.environment.atmosphere import co_rotating_atmosphere_velocity
+from GenADCS.backends.python.environment.atmosphere import co_rotating_atmosphere_velocity
 
 
 def close(actual, expected, label: str) -> None:

@@ -1,14 +1,14 @@
 """Parity checks for the C++ ADCS subsystem translation."""
 from __future__ import annotations
 
-from ADCS_Omni.ADCS_C.hardware.ADCS_subsystem import ADCSSubsystem as CSubsystem
-from ADCS_Omni.ADCS_C.hardware.ADCS_subsystem import Magnetorquer as CMagnetorquer
-from ADCS_Omni.ADCS_C.hardware.ADCS_subsystem import ReactionWheel as CReactionWheel
-from ADCS_Omni.ADCS_C.hardware.ADCS_subsystem.effects import apply_effects as c_apply_effects
-from ADCS_Omni.ADCS_Python.hardware.ADCS_subsystem import ADCSSubsystem, Magnetorquer, ReactionWheel
-from ADCS_Omni.ADCS_Python.hardware.ADCS_subsystem.effects import apply_effects
-from ADCS_Omni.ADCS_Python.bias import FixedBias
-from ADCS_Omni.ADCS_Python.noise import GaussianWhiteNoise
+from GenADCS.backends.cpp.hardware.ADCS_subsystem import ADCSSubsystem as CSubsystem
+from GenADCS.backends.cpp.hardware.ADCS_subsystem import Magnetorquer as CMagnetorquer
+from GenADCS.backends.cpp.hardware.ADCS_subsystem import ReactionWheel as CReactionWheel
+from GenADCS.backends.cpp.hardware.ADCS_subsystem.effects import apply_effects as c_apply_effects
+from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem, Magnetorquer, ReactionWheel
+from GenADCS.backends.python.hardware.ADCS_subsystem.effects import apply_effects
+from GenADCS.backends.python.bias import FixedBias
+from GenADCS.backends.python.noise import GaussianWhiteNoise
 
 
 class AddEffect:

@@ -10,14 +10,14 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ADCS_Omni.ADCS_C.state import AttitudeState, State, OrbitalState
-from ADCS_Omni.ADCS_C.hardware import Satellite, SatelliteGeometry, SatellitePanel
-from ADCS_Omni.ADCS_C.environment import Environment, Earth, DE421, NRLMSISE00
-from ADCS_Omni.ADCS_C.config import DynamicsConfig
-from ADCS_Omni.ADCS_C.propagation import CoupledRK4Propagator, CoupledDOP853Propagator
-from ADCS_Omni.ADCS_C.solver import CoupledSolver
-from ADCS_Omni.ADCS_C.simulate import simulate
-from ADCS_Omni.ADCS_C.dynamics import (  # noqa: E402
+from GenADCS.backends.cpp.state import AttitudeState, State, OrbitalState
+from GenADCS.backends.cpp.hardware import Satellite, SatelliteGeometry, SatellitePanel
+from GenADCS.backends.cpp.environment import Environment, Earth, DE421, NRLMSISE00
+from GenADCS.backends.cpp.config import DynamicsConfig
+from GenADCS.backends.cpp.propagation import CoupledRK4Propagator, CoupledDOP853Propagator
+from GenADCS.backends.cpp.solver import CoupledSolver
+from GenADCS.backends.cpp.simulate import simulate
+from GenADCS.backends.cpp.dynamics import (  # noqa: E402
     ProjectedAreaDragForceModel,
     ProjectedAreaDragTorqueModel,
     ProjectedAreaSRPForceModel,

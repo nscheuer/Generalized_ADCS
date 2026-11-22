@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from ADCS_Omni.ADCS_C.hardware.satellite_geometry import SatelliteGeometry as CGeometry
-from ADCS_Omni.ADCS_C.hardware.satellite_geometry import SatellitePanel as CPanel
-from ADCS_Omni.ADCS_Python.hardware.satellite_geometry import SatelliteGeometry, SatellitePanel
+from GenADCS.backends.cpp.hardware.satellite_geometry import SatelliteGeometry as CGeometry
+from GenADCS.backends.cpp.hardware.satellite_geometry import SatellitePanel as CPanel
+from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry, SatellitePanel
 
 
 def main() -> None:

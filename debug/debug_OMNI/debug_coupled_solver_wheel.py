@@ -10,7 +10,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ADCS_Omni import (  # noqa: E402
+from GenADCS import (  # noqa: E402
     ADCSSubsystem,
     AttitudeState,
     CoupledRK4Propagator,
@@ -30,7 +30,7 @@ from ADCS_Omni import (  # noqa: E402
     simulate,
 )
 from ADCS.satellite_hardware.actuators.reaction_wheel import RW  # noqa: E402
-from ADCS_Omni.ADCS_Python.dynamics import (  # noqa: E402
+from GenADCS.backends.python.dynamics import (  # noqa: E402
     ProjectedAreaDragForceModel,
     ProjectedAreaDragTorqueModel,
     ProjectedAreaSRPForceModel,

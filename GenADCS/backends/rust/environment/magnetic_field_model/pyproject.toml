@@ -1,0 +1,19 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "adcs-omni-rust-magnetic-field"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26"]
+
+[tool.maturin]
+manifest-path = "Cargo.toml"
+python-source = "../../../../../"
+module-name = "GenADCS.backends.rust.environment.magnetic_field_model._magnetic_field_model"
+include = [
+  { path = "igrf14/kernels/IGRF14.shc", format = ["sdist", "wheel"] },
+  { path = "chaos8/kernels/CHAOS-8.7_core.shc", format = ["sdist", "wheel"] },
+  { path = "chaos8/kernels/CHAOS-8.7_static.shc", format = ["sdist", "wheel"] },
+]
