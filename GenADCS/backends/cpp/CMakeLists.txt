@@ -23,7 +23,7 @@ if(NOT pybind11_DIR)
     endif()
 endif()
 
-find_package(pybind11 CONFIG REQUIRED)
+find_package(pybind11 2.12 CONFIG REQUIRED)
 
 find_program(CCACHE_EXECUTABLE NAMES ccache)
 if(CCACHE_EXECUTABLE)
@@ -135,6 +135,9 @@ target_compile_features(_environment PRIVATE cxx_std_17)
 target_link_libraries(_environment PRIVATE Eigen3::Eigen)
 target_include_directories(_environment PRIVATE environment helpers/math helpers/math/frames helpers/math/time environment/atmosphere/NRMLSISE00)
 set_target_properties(_environment PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/environment")
 
 pybind11_add_module(_dynamics
@@ -185,7 +188,11 @@ pybind11_add_module(_coupled
     helpers/math/time/conversions.cpp)
 target_link_libraries(_coupled PRIVATE Eigen3::Eigen)
 target_include_directories(_coupled PRIVATE environment helpers/math helpers/math/frames helpers/math/time environment/atmosphere/NRMLSISE00)
-set_target_properties(_coupled PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/propagation/coupled_propagators")
+set_target_properties(_coupled PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/propagation/coupled_propagators")
 
 pybind11_add_module(_solver solver/bindings.cpp solver/coupled_solver.cpp solver/solver.cpp)
 set_target_properties(_solver PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/solver")

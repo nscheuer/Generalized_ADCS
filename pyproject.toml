@@ -153,7 +153,6 @@ package-dir = { "" = ".", "ADCS.pipeline" = "papers/Generalized_ACS/pipeline" }
 # list it here fails CI instead of silently shipping a broken wheel.
 packages = [
     "ADCS",
-    "ADCS_Omni",
     "GenADCS",
     "GenADCS.backends.python",
     "GenADCS.backends.cpp",
