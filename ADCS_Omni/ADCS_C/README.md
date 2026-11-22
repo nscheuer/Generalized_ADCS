@@ -22,8 +22,10 @@ Eigen types and class declarations. The hardware subsystem models live under
 Python `Bias` and `Noise` effect objects and invoke each object's `apply()`
 method through the same effect sequence as the Python implementation. The
 satellite geometry models live under `hardware/satellite_geometry/` and mirror
-the Python `SatelliteGeometry` and `SatellitePanel` data classes. All six
-extensions are built in place for use from this source checkout. The
+the Python `SatelliteGeometry` and `SatellitePanel` data classes. The
+extensions are built in place for use from this source checkout. They cover
+state, math helpers and frames, hardware, environment, dynamics, configuration,
+propagation, solver, simulation, and satellite modules. The
 `environment/` package mirrors the Python environment hierarchy. Planetary
 body data, environment composition, atmosphere co-rotation, and J2–J6 gravity
 run in C++. The NRLMSISE-00, DE421, IGRF-14, and CHAOS-8 numerical engines
@@ -37,7 +39,7 @@ existing native environment gravity kernel. Model classes retain the Python
 
 ## Build
 
-Use Python 3.10 or newer, a C++17 compiler, CMake 3.20 or newer, Ninja,
+Use Python 3.10 or newer, a C++17 compiler, CMake 3.18 or newer, Ninja,
 Eigen 3.3 or newer, and pybind11. CMake uses ccache automatically when it is
 installed. Install Eigen through your system package manager (for example,
 `libeigen3-dev` on Debian or Ubuntu), then install Ninja, ccache, and pybind11

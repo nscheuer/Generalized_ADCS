@@ -1,3 +1,4 @@
+#![allow(non_local_definitions)]
 mod attitude_state;
 mod bindings;
 mod internal_state;

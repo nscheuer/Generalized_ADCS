@@ -1,5 +1,6 @@
 #include "algebra.hpp"
 #include "../../vector.hpp"
+#include <Eigen/Geometry>
 #include <stdexcept>
 #include <string>
 

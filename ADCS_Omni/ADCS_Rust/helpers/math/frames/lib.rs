@@ -1,3 +1,4 @@
+#![allow(non_local_definitions)]
 use nalgebra::{Matrix3, SVector};
 use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;

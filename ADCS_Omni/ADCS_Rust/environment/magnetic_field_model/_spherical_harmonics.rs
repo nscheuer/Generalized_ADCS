@@ -19,7 +19,7 @@ fn _schmidt_table(py: Python<'_>, nmax: usize) -> PyResult<PyObject> {
 }
 
 #[derive(Clone)]
-struct Coefficients { epochs: Vec<f64>, nmax: usize, g: Vec<f64>, h: Vec<f64> }
+pub struct Coefficients { epochs: Vec<f64>, nmax: usize, g: Vec<f64>, h: Vec<f64> }
 
 impl Coefficients {
     fn idx(&self, epoch: usize, n: usize, m: usize) -> usize {

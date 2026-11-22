@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <Eigen/Geometry>
 #include <stdexcept>
 
 namespace omni::math {

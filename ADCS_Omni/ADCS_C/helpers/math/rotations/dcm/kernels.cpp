@@ -1,6 +1,7 @@
 #include "kernels.hpp"
 #include "../quaternion/algebra.hpp"
 #include "../quaternion/conversions.hpp"
+#include <Eigen/Geometry>
 #include <stdexcept>
 
 namespace omni::rotations {

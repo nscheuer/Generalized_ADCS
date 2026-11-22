@@ -1,3 +1,4 @@
+#![allow(non_local_definitions)]
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 include!("solver.rs");

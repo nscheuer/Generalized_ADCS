@@ -1,5 +1,6 @@
 #include "dynamics.hpp"
 
+#include <Eigen/Geometry>
 #include <Eigen/LU>
 
 #include <stdexcept>

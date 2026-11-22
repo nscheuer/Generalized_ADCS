@@ -1,3 +1,4 @@
+#![allow(non_local_definitions)]
 use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
