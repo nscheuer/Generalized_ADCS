@@ -560,6 +560,8 @@ def plot(sim, *subplots: Subplot, mode="single", layout=None, title=None,
         raise ValueError("layout is too small for the panels")
     fig, axes = plt.subplots(rows, columns, sharex=sharex,
                              **(figure_kwargs or {}), **(subplot_kwargs or {}))
+    from .close_all import ensure_close_all_button
+    ensure_close_all_button()
     flat = np.atleast_1d(axes).ravel()
     for ax, panel in zip(flat, subplots):
         panel.draw(ax, runs, mode)

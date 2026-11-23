@@ -40,7 +40,7 @@ from GenADCS.backends.shared.plotting import (
 
 
 def main():
-    dt, steps = 0.25, 4_000_000
+    dt, steps = 0.25, 40_000
     panels = [
         SatellitePanel((0.5, 0.0, 0.0), (0.0, np.pi / 2, 0.0), (0.3, 0.4)),
         SatellitePanel((-0.5, 0.0, 0.0), (0.0, -np.pi / 2, 0.0), (0.3, 0.4)),
@@ -83,7 +83,7 @@ def main():
         J2_force=True, J3_force=True, J4_force=True, J5_force=True, J6_force=True,
         lunisolar_force=True, gravity_gradient_torque=True,
         aerodynamic_torque=True, solar_radiation_torque=True, magnetic_torque=True,
-        total_force=True, total_torque=True, N=1000,
+        total_force=True, total_torque=True, N=50,
     )
     started = perf_counter()
     result = simulate(satellite, environment, dynamics, state, solver,
