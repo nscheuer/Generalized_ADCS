@@ -13,7 +13,7 @@ manifest-path = "Cargo.toml"
 python-source = "../../../../../"
 module-name = "GenADCS.backends.rust.environment.magnetic_field_model._magnetic_field_model"
 include = [
-  { path = "igrf14/kernels/IGRF14.shc", format = ["sdist", "wheel"] },
-  { path = "chaos8/kernels/CHAOS-8.7_core.shc", format = ["sdist", "wheel"] },
-  { path = "chaos8/kernels/CHAOS-8.7_static.shc", format = ["sdist", "wheel"] },
+  { path = "../../../../kernels/environment/magnetic_field_model/igrf14/IGRF14.shc", format = ["sdist", "wheel"] },
+  { path = "../../../../kernels/environment/magnetic_field_model/chaos8/CHAOS-8.7_core.shc", format = ["sdist", "wheel"] },
+  { path = "../../../../kernels/environment/magnetic_field_model/chaos8/CHAOS-8.7_static.shc", format = ["sdist", "wheel"] },
 ]

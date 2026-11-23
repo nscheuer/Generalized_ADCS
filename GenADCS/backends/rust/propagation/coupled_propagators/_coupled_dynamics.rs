@@ -158,11 +158,15 @@ impl Runtime {
         let ephemeris = if srp_force || srp_torque || third_body {
             let path: String = match p.getattr("ephemeris_path") {
                 Ok(value) => value.extract()?,
-                Err(_) => concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/../../environment/ephemeris/de421/de421.bsp"
-                )
-                .to_owned(),
+                Err(_) => {
+                    let package_file: String = py.import("GenADCS")?.getattr("__file__")?.extract()?;
+                    std::path::Path::new(&package_file)
+                        .parent()
+                        .ok_or_else(|| PyValueError::new_err("cannot locate GenADCS package directory"))?
+                        .join("kernels/environment/ephemeris/de421/de421.bsp")
+                        .to_string_lossy()
+                        .into_owned()
+                },
             };
             Some(ephemeris_native::NativeEphemeris::from_path(
                 std::path::Path::new(&path),

@@ -5,7 +5,7 @@ struct IGRF14 { coefficients: Coefficients, epochs_jd: Vec<f64> }
 impl IGRF14 {
     #[new]
     fn new() -> PyResult<(Self, MagneticFieldModel)> {
-        let coefficients=parse_shc(include_str!("kernels/IGRF14.shc"),1,13)?;
+        let coefficients=parse_shc(include_str!("../../../../../kernels/environment/magnetic_field_model/igrf14/IGRF14.shc"),1,13)?;
         let epochs_jd=coefficients.epochs.iter().map(|year|calendar_jd(*year as i32,1,1)).collect();
         Ok((Self{coefficients,epochs_jd},MagneticFieldModel))
     }

@@ -9,7 +9,6 @@ from GenADCS.backends.rust.dynamics import (
     LunisolarForceModel, ZonalForceModel,
 )
 from GenADCS.backends.rust.dynamics._geometry import prepare_panels
-from GenADCS.backends.rust.environment.ephemeris.de421 import de421 as de421_module
 SECONDS_PER_DAY=86400.0
 
 
@@ -63,6 +62,6 @@ def _prepare(satellite, environment, dynamics):
         residual_dipole=bool(rd),third_body=bool(pick(forces,LunisolarForceModel)),
         magnetic_kind=1 if type(magnetic).__name__=="IGRF14" else 2 if type(magnetic).__name__=="CHAOS8" else 0,
         magnetic_include_static=bool(getattr(magnetic,"include_static",True)),
-        ephemeris_path=str(Path(de421_module.__file__).with_name("de421.bsp")),
+        ephemeris_path=str(Path(__file__).resolve().parents[4] / "kernels/environment/ephemeris/de421/de421.bsp"),
         wheel_commands=np.empty(0),wheel_max_momentum=np.empty(0),
     )

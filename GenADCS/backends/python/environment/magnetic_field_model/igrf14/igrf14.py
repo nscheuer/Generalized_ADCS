@@ -9,7 +9,7 @@ from ..magnetic_field_model import (
     MagneticFieldModel, magnetic_field_inertial_tesla, read_shc,
 )
 
-_KERNEL_DIR = Path(__file__).resolve().parent / "kernels"
+_KERNEL_DIR = Path(__file__).resolve().parents[5] / "kernels/environment/magnetic_field_model/igrf14"
 
 
 @njit(cache=True, nogil=True)

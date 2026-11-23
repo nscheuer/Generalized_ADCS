@@ -1,0 +1,1 @@
+"""Shared GenADCS model data."""

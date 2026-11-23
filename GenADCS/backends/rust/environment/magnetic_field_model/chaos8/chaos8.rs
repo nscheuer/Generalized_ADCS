@@ -6,8 +6,8 @@ impl CHAOS8 {
     #[new]
     #[pyo3(signature=(include_static=true))]
     fn new(include_static:bool)->PyResult<(Self,MagneticFieldModel)> {
-        let core=parse_shc(include_str!("kernels/CHAOS-8.7_core.shc"),1,20)?;
-        let static_field=parse_shc(include_str!("kernels/CHAOS-8.7_static.shc"),21,185)?;
+        let core=parse_shc(include_str!("../../../../../kernels/environment/magnetic_field_model/chaos8/CHAOS-8.7_core.shc"),1,20)?;
+        let static_field=parse_shc(include_str!("../../../../../kernels/environment/magnetic_field_model/chaos8/CHAOS-8.7_static.shc"),21,185)?;
         Ok((Self{core,static_field,include_static},MagneticFieldModel))
     }
     #[getter] fn include_static(&self)->bool{self.include_static}

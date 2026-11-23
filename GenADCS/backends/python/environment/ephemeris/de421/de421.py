@@ -101,7 +101,7 @@ class DE421(EphemerisModel):
 
     @staticmethod
     def _packaged_ephemeris_path():
-        return Path(__file__).resolve().parent / DE421.DATA_FILENAME
+        return Path(__file__).resolve().parents[5] / "kernels/environment/ephemeris/de421" / DE421.DATA_FILENAME
 
     @property
     def available_bodies(self):

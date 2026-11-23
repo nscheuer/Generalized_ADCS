@@ -84,7 +84,7 @@ HarmonicData read_shc(const std::filesystem::path& path, int nmin, int nmax) {
     return result;
 }
 std::filesystem::path environment_data_path(const std::filesystem::path& relative) {
-    const std::filesystem::path root=std::filesystem::path(__FILE__).parent_path();
+    const std::filesystem::path root=std::filesystem::path(__FILE__).parent_path().parent_path().parent_path().parent_path() / "kernels/environment";
     return root/relative;
 }
 Eigen::MatrixXd schmidt_table(int maximum_degree) {

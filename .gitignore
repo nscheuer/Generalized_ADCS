@@ -271,3 +271,14 @@ ADCS/environment/kernels/*
 /ADCS/helpers/plotting/textures/
 
 diff/
+
+# Backend environment model tests are source, despite the broad env*/ rule above.
+!GenADCS/tests/backends/python/environment/
+!GenADCS/tests/backends/python/environment/**
+!GenADCS/tests/backends/cpp/environment/
+!GenADCS/tests/backends/cpp/environment/**
+GenADCS/tests/backends/python/environment/**/__pycache__/
+GenADCS/tests/backends/cpp/environment/**/__pycache__/
+!GenADCS/kernels/
+!GenADCS/kernels/environment/
+!GenADCS/kernels/environment/**

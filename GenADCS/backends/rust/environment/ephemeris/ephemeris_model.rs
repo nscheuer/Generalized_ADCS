@@ -14,15 +14,11 @@ const BODY_NAMES: [&str; 12] = [
 ];
 
 fn default_kernel_path(py: Python<'_>) -> PyResult<PathBuf> {
-    let file = py
-        .import("GenADCS.backends.rust.environment.ephemeris.de421.de421")?
-        .getattr("__file__")?;
-    let path = py
-        .import("pathlib")?
-        .getattr("Path")?
-        .call1((file,))?
-        .call_method1("with_name", ("de421.bsp",))?;
-    Ok(PathBuf::from(path.str()?.to_str()?))
+    let package_file: String = py.import("GenADCS")?.getattr("__file__")?.extract()?;
+    let package_dir = Path::new(&package_file).parent().ok_or_else(|| {
+        PyIOError::new_err("cannot locate GenADCS package directory")
+    })?;
+    Ok(package_dir.join("kernels/environment/ephemeris/de421/de421.bsp"))
 }
 
 static DEFAULT_KERNEL: OnceCell<Arc<Kernel>> = OnceCell::new();

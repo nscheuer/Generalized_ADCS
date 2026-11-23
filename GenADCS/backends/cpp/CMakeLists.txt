@@ -37,6 +37,72 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 include(CTest)
 if(BUILD_TESTING)
     find_package(Python COMPONENTS Interpreter Development.Embed REQUIRED)
+    find_program(CARGO_EXECUTABLE cargo REQUIRED)
+    add_library(environment_native_test_core STATIC
+        environment/native_models.cpp
+        environment/atmosphere/atmospheric_model.cpp
+        environment/atmosphere/NRMLSISE00/nrlmsise00.cpp
+        environment/atmosphere/NRMLSISE00/_nrlmsise00_core.cpp
+        environment/atmosphere/NRMLSISE00/_nrlmsise00_data.cpp
+        environment/atmosphere/NRMLSISE00/nrlmsise00_core.c
+        environment/ephemeris/de421/de421.cpp
+        environment/ephemeris/ephemeris_model.cpp
+        environment/magnetic_field_model/magnetic_field_model.cpp
+        environment/magnetic_field_model/_spherical_harmonics.cpp
+        environment/magnetic_field_model/igrf14/igrf14.cpp
+        environment/magnetic_field_model/chaos8/chaos8.cpp
+        environment/magnetic_field_model/wmm/wmm.cpp
+        environment/gravity/j_gravity_model.cpp
+        environment/gravity/j2.cpp
+        environment/gravity/j3.cpp
+        environment/gravity/j4.cpp
+        environment/gravity/j5.cpp
+        environment/gravity/j6.cpp
+        helpers/math/frames/frames.cpp
+        helpers/math/frames/conversions.cpp
+        helpers/math/time/conversions.cpp
+    )
+    target_compile_features(environment_native_test_core PUBLIC cxx_std_17)
+    target_include_directories(environment_native_test_core PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        environment helpers/math helpers/math/frames helpers/math/time
+        environment/atmosphere/NRMLSISE00
+    )
+    target_link_libraries(environment_native_test_core PUBLIC Eigen3::Eigen)
+    set(environment_test_cases
+        atmosphere
+        de421
+        j2 j3 j4 j5 j6 gravity_invalid_inputs
+        igrf14 chaos8 wmm shc
+    )
+    foreach(component IN LISTS environment_test_cases)
+        if(component STREQUAL "atmosphere")
+            set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/environment/atmosphere/test_atmosphere.cpp")
+        elseif(component STREQUAL "de421")
+            set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/environment/ephemeris/test_de421.cpp")
+        elseif(component MATCHES "^j[2-6]$")
+            set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/environment/gravity/test_${component}.cpp")
+        elseif(component STREQUAL "gravity_invalid_inputs")
+            set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/environment/gravity/test_invalid_inputs.cpp")
+        elseif(component STREQUAL "shc")
+            set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/environment/magnetic_field_model/test_shc.cpp")
+        else()
+            set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/environment/magnetic_field_model/test_${component}.cpp")
+        endif()
+        add_executable(cpp_test_environment_${component} "${test_source}")
+        target_include_directories(cpp_test_environment_${component} PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/environment"
+        )
+        target_link_libraries(cpp_test_environment_${component} PRIVATE environment_native_test_core)
+        add_test(NAME cpp_environment_${component} COMMAND cpp_test_environment_${component})
+    endforeach()
+    add_test(NAME rust_config
+        COMMAND "${CARGO_EXECUTABLE}" test --manifest-path
+            "${CMAKE_CURRENT_SOURCE_DIR}/../rust/config/Cargo.toml"
+    )
+    set_tests_properties(rust_config PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../rust/config"
+    )
     execute_process(
         COMMAND "${Python_EXECUTABLE}" -c "import site; print(site.getsitepackages()[0])"
         OUTPUT_VARIABLE GENADCS_PYTHON_SITE_PACKAGES

@@ -23,7 +23,7 @@ pub fn native_tdb_jd(utc_jd: f64) -> PyResult<f64> {
 }
 impl NativeMagneticField {
     pub fn igrf14() -> PyResult<Self> {
-        let coefficients = parse_shc(include_str!("igrf14/kernels/IGRF14.shc"), 1, 13)?;
+        let coefficients = parse_shc(include_str!("../../../../kernels/environment/magnetic_field_model/igrf14/IGRF14.shc"), 1, 13)?;
         let epochs_jd = coefficients
             .epochs
             .iter()
@@ -35,10 +35,10 @@ impl NativeMagneticField {
         })
     }
     pub fn chaos8(include_static: bool) -> PyResult<Self> {
-        let core = parse_shc(include_str!("chaos8/kernels/CHAOS-8.7_core.shc"), 1, 20)?;
+        let core = parse_shc(include_str!("../../../../kernels/environment/magnetic_field_model/chaos8/CHAOS-8.7_core.shc"), 1, 20)?;
         let static_field = if include_static {
             Some(parse_shc(
-                include_str!("chaos8/kernels/CHAOS-8.7_static.shc"),
+                include_str!("../../../../kernels/environment/magnetic_field_model/chaos8/CHAOS-8.7_static.shc"),
                 21,
                 185,
             )?)

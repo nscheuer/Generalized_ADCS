@@ -30,7 +30,7 @@ fn constructor_and_property_setters_preserve_elements_and_allow_mutation() {
         assert!(torques.as_ref(py).downcast::<PyList>().unwrap().get_item(0).unwrap().is(torque));
 
         force.append("changed").unwrap();
-        assert_eq!(force.len().unwrap(), 2);
+        assert_eq!(force.len(), 2);
 
         let replacement = PyList::new(py, ["replacement"]);
         let mut config = config;
@@ -51,5 +51,46 @@ fn getters_return_new_lists_while_retaining_the_same_python_items() {
         assert!(first.as_ref(py).downcast::<PyList>().unwrap().get_item(0).unwrap().is(item));
         first.as_ref(py).downcast::<PyList>().unwrap().append("external").unwrap();
         assert_eq!(config.forces(py).as_ref(py).downcast::<PyList>().unwrap().len(), 1);
+    });
+}
+
+#[test]
+fn missing_collections_default_independently_and_supplied_collections_are_copied() {
+    Python::with_gil(|py| {
+        let mut first = DynamicsConfig::new(None, None);
+        let second = DynamicsConfig::new(None, None);
+        first.forces.push("drag".into_py(py));
+        first.torques.push("magnetic".into_py(py));
+        assert!(second.forces.is_empty());
+        assert!(second.torques.is_empty());
+
+        let source = PyList::new(py, ["gravity", "srp"]);
+        let config = DynamicsConfig::new(
+            Some(source.iter().map(|item| item.into_py(py)).collect()),
+            None,
+        );
+        source.append("later").unwrap();
+        let exposed = config.forces(py);
+        let exposed = exposed.as_ref(py).downcast::<PyList>().unwrap();
+        assert_eq!(exposed.len(), 2);
+        assert_eq!(exposed.get_item(0).unwrap().extract::<String>().unwrap(), "gravity");
+    });
+}
+
+#[test]
+fn setters_replace_collections_without_changing_the_other_collection() {
+    Python::with_gil(|py| {
+        let mut config = DynamicsConfig::new(
+            Some(vec!["initial-force".into_py(py)]),
+            Some(vec!["initial-torque".into_py(py)]),
+        );
+        config.set_forces(vec!["replacement-force".into_py(py)]);
+        let forces = config.forces(py);
+        let torques = config.torques(py);
+        assert_eq!(forces.as_ref(py).downcast::<PyList>().unwrap().get_item(0).unwrap().extract::<String>().unwrap(), "replacement-force");
+        assert_eq!(torques.as_ref(py).downcast::<PyList>().unwrap().get_item(0).unwrap().extract::<String>().unwrap(), "initial-torque");
+
+        config.set_torques(Vec::new());
+        assert!(config.torques(py).as_ref(py).downcast::<PyList>().unwrap().is_empty());
     });
 }
