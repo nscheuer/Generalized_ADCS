@@ -624,29 +624,30 @@ class Satellite:
             -\boldsymbol{\omega}\times(\mathbf{J}\boldsymbol{\omega}) + \boldsymbol{\tau}
             \Big).
 
-        If reaction wheels are present, let :math:`\mathbf{A}\in\mathbb{R}^{n_{RW}\times 3}`
-        stack wheel spin axes as rows, and let :math:`\mathbf{h}\in\mathbb{R}^{n_{RW}}`
-        be wheel momenta. Then the coupled term uses the body-frame stored momentum
-        :math:`\mathbf{H}_{RW} = \mathbf{h}^\top \mathbf{A}` and
+        If reaction wheels are present, let :math:`\mathbf{A}_{RW}\in\mathbb{R}^{3\times n_{RW}}`
+        contain the wheel spin axes as columns, and let :math:`\mathbf{h}\in\mathbb{R}^{n_{RW}}`
+        contain their stored momenta. The wheel momentum in the body frame is
+        :math:`\mathbf{A}_{RW}\mathbf{h}`. With :math:`\boldsymbol{\tau}` including
+        reaction-wheel torque on the body,
 
         .. math::
 
             \dot{\boldsymbol{\omega}}
             \;=\;\mathbf{J}_{noRW}^{-1}\Big(
-            -\boldsymbol{\omega}\times(\mathbf{J}\boldsymbol{\omega} + \mathbf{H}_{RW})
+            -\boldsymbol{\omega}\times(\mathbf{J}\boldsymbol{\omega} + \mathbf{A}_{RW}\mathbf{h})
             + \boldsymbol{\tau}
             \Big).
 
-        Wheel momentum dynamics use the actuator storage torque commands
-        (from each :class:`~ADCS.satellite_hardware.actuators.RW`) and subtract the
-        coupling term from body acceleration:
+        If :math:`\mathbf{u}_{RW}` is the torque commanded on the body by the
+        wheels and :math:`\mathbf{D}_{RW}=\operatorname{diag}(J_{RW,1},\ldots,J_{RW,n})`,
+        wheel momentum dynamics are
 
         .. math::
 
             \dot{\mathbf{h}}
-            \;=\;\mathbf{u}_{RW} \;-\; \mathbf{A}\,\dot{\boldsymbol{\omega}}\,\mathrm{diag}(J_{RW}),
+            \;=\;-\mathbf{u}_{RW} \; -\; \mathbf{D}_{RW}\mathbf{A}_{RW}^{\mathsf T}\dot{\boldsymbol{\omega}},
 
-        matching the implementation structure.
+        because each wheel's storage torque opposes its torque on the body.
 
         :param x: Structured state with angular velocity, quaternion, and wheel
             momentum in ``w``, ``q``, and ``h`` respectively.
@@ -822,6 +823,50 @@ class Satellite:
 
         return torque_total
     
+    def dist_forces(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
+        r"""
+        Compute the total disturbance force on the spacecraft, in the body frame.
+
+        The total is the sum over all registered disturbances:
+
+        .. math::
+
+            \mathbf{F}_{dist}(\mathbf{x},\mathrm{os})
+            \;=\;\sum_{i=1}^{N_d} \mathbf{F}_{dist,i}(\mathbf{x},\mathrm{os}).
+
+        Disturbances that only produce a torque contribute zero through the
+        base-class :meth:`~ADCS.satellite_hardware.disturbances.disturbance.Disturbance.force`.
+        As with :meth:`dist_torques`, a disturbance may accept a ``sat`` keyword
+        argument, in which case this satellite is passed in.
+
+        The attitude dynamics do not consume this force (it moves the centre of
+        mass, not the attitude); it is provided for orbit propagation and for
+        inspection.  Divide by :attr:`mass` for an acceleration.
+
+        :param x: State vector.
+        :type x: ADCS.state.State
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :param dmode: Optional error/noise mode (unused by the current force models).
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None
+
+        :return: Disturbance force vector in body frame, shape ``(3,)`` (N).
+        :rtype: numpy.ndarray
+        """
+        force_total = np.zeros(3)
+
+        for j in self.disturbances:
+            if 'sat' in j.force.__code__.co_varnames:
+                f = j.force(sat=self, x=x, os=os)
+            else:
+                f = j.force(x=x, os=os)
+
+            force_total += np.asarray(f, dtype=float).reshape(3,)
+
+        return force_total
+
     def act_torque(self, x: State, u: np.ndarray, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute the total actuator torque.

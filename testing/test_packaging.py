@@ -81,3 +81,28 @@ def test_source_checkout_resolves_pipeline_via_path_extension():
         pytest.skip("running against an installed layout, not a checkout")
     assert PIPELINE_SRC in resolved.parents or resolved.parent == PIPELINE_SRC, (
         f"ADCS.pipeline resolved to {resolved}, expected it under {PIPELINE_SRC}")
+
+
+def test_every_viewer_runtime_file_is_package_data():
+    """The viewer reads these at runtime; a pip install without them falls back silently."""
+    with open(REPO / "pyproject.toml", "rb") as fh:
+        patterns = tomllib.load(fh)["tool"]["setuptools"]["package-data"]["ADCS.helpers.animations.godot"]
+    package = REPO / "ADCS" / "helpers" / "animations" / "godot"
+    shipped = {p for pattern in patterns for p in package.glob(pattern)}
+    viewer = package / "viewer"
+    needed = {p for p in viewer.rglob("*")
+              if p.is_file() and p.suffix not in {".uid", ".import"} and p.name != ".gitignore"
+              and ".godot" not in p.relative_to(viewer).parts}
+    missing = sorted(str(p.relative_to(package)) for p in needed - shipped)
+    assert not missing, f"viewer files not covered by package-data, so pip installs lack them: {missing}"
+
+
+def test_wheel_is_not_forced_platform_specific():
+    """No Godot binary ships in the wheel (it is downloaded at runtime), so the
+    wheel must stay pure Python. A setup.py that sets root_is_pure = False tags
+    it with the build machine's platform, which PyPI rejects for bare linux_*."""
+    setup_py = REPO / "setup.py"
+    assert not setup_py.exists() or "root_is_pure = False" not in setup_py.read_text()
+    package_data = tomllib.loads((REPO / "pyproject.toml").read_text())["tool"]["setuptools"]["package-data"]
+    viewer_files = package_data.get("ADCS.helpers.animations.godot", [])
+    assert not any(f.startswith("bin/") and not f.endswith(".txt") for f in viewer_files)

@@ -312,6 +312,205 @@ class SRP_Disturbance(Disturbance):
             EarthConstants.solar_constant, EarthConstants.c,
         )
 
+    def force(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
+        r"""Compute the solar radiation pressure force in the body frame.
+
+        The orbital-state interface supplies the body-frame spacecraft and Sun
+        position vectors through ``os.get_state_vector(x=x)``:
+
+        - ``"s"``: Earth-to-Sun position expressed in body coordinates
+        - ``"r"``: Earth-to-spacecraft position expressed in body coordinates
+
+        The body-frame Sun-look direction and clipped face incidence are
+
+        .. math::
+
+            \mathbf{s}_b = \frac{\mathbf{S}_B-\mathbf{R}_B}
+            {\|\mathbf{S}_B-\mathbf{R}_B\|},
+            \qquad c_i = \max(0,\mathbf{n}_i^\top\mathbf{s}_b).
+
+        For each face, the specular/diffuse/absorptive model uses
+
+        .. math::
+
+            m_{s,i}=A_i(\eta_{a,i}+\eta_{d,i})c_i,
+            \qquad
+            m_{n,i}=A_i c_i(2\eta_{s,i}c_i+\tfrac{2}{3}\eta_{d,i}),
+
+        giving total force
+
+        .. math::
+
+            \mathbf{F}_{SRP}=-\frac{S_0}{c}
+            \sum_i(m_{s,i}\mathbf{s}_b+m_{n,i}\mathbf{n}_i).
+
+        Force is zero in eclipse, as determined by ``os.is_sunlit()``. The
+        output is in N; divide by spacecraft mass when acceleration is needed.
+
+        :param sat: Satellite instance (accepted for consistency with the torque API).
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Spacecraft state containing the attitude quaternion used to
+            express the Sun and spacecraft vectors in body coordinates.
+        :type x: :class:`~ADCS.state.State`
+        :param os: Orbital state supplying ``"s"``, ``"r"``, and illumination status.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Total SRP force in body coordinates, shape ``(3,)`` [N].
+        :rtype: :class:`numpy.ndarray`
+        """
+        if not os.is_sunlit():
+            return np.zeros(3)
+
+        vecs = os.get_state_vector(x=x)
+        s_body = normalize(vecs["s"] - vecs["r"])
+        cos_gamma = np.maximum(0.0, self.normals @ s_body)
+        m_s = self.areas * (self.eta_a + self.eta_d) * cos_gamma
+        m_n = self.areas * cos_gamma * (2.0 * self.eta_s * cos_gamma + (2.0 / 3.0) * self.eta_d)
+        optical_force = np.sum(m_s) * s_body + m_n @ self.normals
+        return -(EarthConstants.solar_constant / EarthConstants.c) * optical_force
+
+    def force_qjac(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
+        r"""Compute the Jacobian of SRP force with respect to attitude quaternion.
+
+        The orbital state supplies body-frame Sun and spacecraft positions
+        ``"s"`` and ``"r"``, and their quaternion derivatives ``"ds"`` and
+        ``"dr"``, through
+        :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`. The
+        derivative of the normalized Sun-look direction is evaluated with
+        :func:`~ADCS.helpers.math_helpers.normed_vec_jac`.
+
+        Each face uses clipped incidence
+
+        .. math::
+
+            c_i=\max(0,\mathbf{n}_i^\top\mathbf{s}_b),
+
+        with its derivative gated to zero on the wake side. The per-face
+        multipliers :math:`m_{s,i}` and :math:`m_{n,i}` follow the optical model
+        documented in :meth:`force`. The Jacobian differentiates both these
+        multipliers and the Sun-look direction. Piecewise derivatives are used
+        at the incidence boundary, with no distributional term.
+
+        If the spacecraft is in eclipse, the Jacobian is zero. Otherwise, the
+        returned layout is quaternion component first and force component last,
+        shape ``(4, 3)`` [N per quaternion component].
+
+        :param sat: Satellite instance (accepted for consistency with the torque API).
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Spacecraft state containing the attitude quaternion.
+        :type x: :class:`~ADCS.state.State`
+        :param os: Orbital state supplying ``"s"``, ``"r"``, ``"ds"``, ``"dr"``, and illumination status.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Quaternion Jacobian :math:`\partial\mathbf{F}_{SRP}/\partial\mathbf{q}`, shape ``(4, 3)``.
+        :rtype: :class:`numpy.ndarray`
+        """
+        if not os.is_sunlit():
+            return np.zeros((4, 3))
+
+        vecs = os.get_state_vector(x=x)
+        sun_look = vecs["s"] - vecs["r"]
+        s_body = normalize(sun_look)
+        ds_body__dq = normed_vec_jac(sun_look, vecs["ds"] - vecs["dr"])
+
+        incidence = self.normals @ s_body
+        face_lit = incidence > 0.0
+        cos_gamma = np.maximum(0.0, incidence)
+        dcos_gamma__dq = (ds_body__dq @ self.normals.T) * face_lit[np.newaxis, :]
+
+        m_s = self.areas * (self.eta_a + self.eta_d) * cos_gamma
+        dm_s__dq = self.areas * (self.eta_a + self.eta_d) * dcos_gamma__dq
+        dm_n__dq = self.areas * (
+            4.0 * self.eta_s * cos_gamma + (2.0 / 3.0) * self.eta_d
+        ) * dcos_gamma__dq
+
+        dsum_m_s__dq = np.sum(dm_s__dq, axis=1)
+        dsum_m_n__dq = dm_n__dq @ self.normals
+        dforce = (
+            dsum_m_s__dq[:, np.newaxis] * s_body[np.newaxis, :]
+            + np.sum(m_s) * ds_body__dq
+            + dsum_m_n__dq
+        )
+        return -(EarthConstants.solar_constant / EarthConstants.c) * dforce
+
+    def force_qqhess(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
+        r"""Compute the Hessian of SRP force with respect to attitude quaternion.
+
+        The orbital state supplies body-frame Sun and spacecraft positions
+        ``"s"`` and ``"r"``, their first quaternion derivatives ``"ds"`` and
+        ``"dr"``, and their second derivatives ``"dds"`` and ``"ddr"``. The
+        normalized Sun-look direction and its derivatives are evaluated with
+        :func:`~ADCS.helpers.math_helpers.normed_vec_jac` and
+        :func:`~ADCS.helpers.math_helpers.normed_vec_hess`.
+
+        The force depends on this direction both directly and through each
+        face's clipped incidence and optical multipliers. Its Hessian therefore
+        includes the second derivatives of those multipliers, the two mixed
+        first-derivative terms, and the second derivative of the Sun-look
+        direction. Incidence derivatives are piecewise gated: exposed faces are
+        differentiated and wake-side faces contribute zero; distributional
+        terms at grazing incidence are omitted.
+
+        If the spacecraft is in eclipse, the Hessian is zero. Otherwise, the
+        returned tensor is ordered ``(q_i, q_j, force_component)``, shape
+        ``(4, 4, 3)`` [N per pair of quaternion components].
+
+        :param sat: Satellite instance (accepted for consistency with the torque API).
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Spacecraft state containing the attitude quaternion.
+        :type x: :class:`~ADCS.state.State`
+        :param os: Orbital state supplying position vectors and their first and second quaternion derivatives.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Quaternion Hessian :math:`\partial^2\mathbf{F}_{SRP}/\partial\mathbf{q}^2`, shape ``(4, 4, 3)``.
+        :rtype: :class:`numpy.ndarray`
+        """
+        if not os.is_sunlit():
+            return np.zeros((4, 4, 3))
+
+        vecs = os.get_state_vector(x=x)
+        sun_look = vecs["s"] - vecs["r"]
+        dsun_look__dq = vecs["ds"] - vecs["dr"]
+        ddsun_look__dqdq = vecs["dds"] - vecs["ddr"]
+        s_body = normalize(sun_look)
+        ds_body__dq = normed_vec_jac(sun_look, dsun_look__dq)
+        dds_body__dqdq = normed_vec_hess(sun_look, dsun_look__dq, ddsun_look__dqdq)
+
+        incidence = self.normals @ s_body
+        face_lit = incidence > 0.0
+        cos_gamma = np.maximum(0.0, incidence)
+        dcos_gamma__dq = (ds_body__dq @ self.normals.T) * face_lit[np.newaxis, :]
+        ddcos_gamma__dqdq = np.einsum(
+            "ija,na->ijn", dds_body__dqdq, self.normals
+        ) * face_lit[np.newaxis, np.newaxis, :]
+
+        a_s = self.areas * (self.eta_a + self.eta_d)
+        a_d = (2.0 / 3.0) * self.areas * self.eta_d
+        a_spec = 2.0 * self.areas * self.eta_s
+        m_s = a_s * cos_gamma
+        dm_s__dq = a_s * dcos_gamma__dq
+        ddm_s__dqdq = a_s * ddcos_gamma__dqdq
+
+        dm_n__dq = (a_d + 2.0 * a_spec * cos_gamma) * dcos_gamma__dq
+        ddm_n__dqdq = (
+            (a_d + 2.0 * a_spec * cos_gamma)[np.newaxis, np.newaxis, :]
+            * ddcos_gamma__dqdq
+            + 2.0 * a_spec[np.newaxis, np.newaxis, :]
+            * dcos_gamma__dq[:, np.newaxis, :]
+            * dcos_gamma__dq[np.newaxis, :, :]
+        )
+
+        dsum_m_s__dq = np.sum(dm_s__dq, axis=1)
+        dd_sum_m_s__dqdq = np.sum(ddm_s__dqdq, axis=2)
+        dsum_m_n__dq = dm_n__dq @ self.normals
+        dd_sum_m_n__dqdq = np.einsum("ijn,nk->ijk", ddm_n__dqdq, self.normals)
+
+        hess_force = (
+            dd_sum_m_s__dqdq[:, :, np.newaxis] * s_body[np.newaxis, np.newaxis, :]
+            + dsum_m_s__dq[:, np.newaxis, np.newaxis] * ds_body__dq[np.newaxis, :, :]
+            + dsum_m_s__dq[np.newaxis, :, np.newaxis] * ds_body__dq[:, np.newaxis, :]
+            + np.sum(m_s) * dds_body__dqdq
+            + dd_sum_m_n__dqdq
+        )
+        return -(EarthConstants.solar_constant / EarthConstants.c) * hess_force
+
     def torque_qjav(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Jacobian of SRP torque** with respect to the attitude quaternion.

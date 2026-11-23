@@ -3,7 +3,7 @@ from functools import lru_cache
 import numpy as np
 
 from ADCS.helpers.math_helpers import normalize, random_n_unit_vec
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants

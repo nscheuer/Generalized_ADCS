@@ -16,17 +16,22 @@ To run the full test suite (as executed by GitHub Actions):
 
 Note that running all tests may take several minutes.
 
-Recommended Local Testing
--------------------------
+Local-only Tests
+----------------
 
-When developing locally, it is recommended to skip very slow tests:
+The Godot viewer test is marked ``local`` because it requires a local Godot
+binary and viewer source tree. To run the regular Python suite without
+local-only tests:
 
 .. code-block:: bash
 
-   cd testing/
-   pytest -k "not vslow"
+   pytest -m "not local" testing/
 
-This significantly reduces runtime while still covering most functionality.
+To run only the Godot test:
+
+.. code-block:: bash
+
+   pytest -m local testing/test_viz/test_viewer_godot.py
 
 Testing Individual Files
 ------------------------

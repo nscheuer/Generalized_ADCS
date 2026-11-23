@@ -118,6 +118,8 @@ class EarthHorizonSensor(Sensor):
         estimate_bias: bool = False,
         boresight: np.ndarray = np.array([0.0, 0.0, -1.0]),
         fov: float = np.deg2rad(90.0),
+        scale_factor: float = 1.0,
+        misalignment: Optional[np.ndarray] = None,
     ) -> None:
         r"""
         Initialize the Earth horizon sensor.
@@ -141,6 +143,9 @@ class EarthHorizonSensor(Sensor):
         :return: None
         :rtype: None
         """
+        if scale_factor != 1.0:
+            raise ValueError("EarthHorizonSensor: a unit direction has no scale factor")
+
         self.boresight = np.asarray(boresight, dtype=np.float64)
         norm = np.linalg.norm(self.boresight)
         if norm < 1e-6:
@@ -153,7 +158,7 @@ class EarthHorizonSensor(Sensor):
         # Cache for Jacobian computation
         self._nadir_eci: Optional[NDArray[np.float64]] = None
 
-        super().__init__(
+        super().__init__(scale_factor=scale_factor, misalignment=misalignment, 
             sample_time=sample_time,
             output_length=3,
             bias=bias,
@@ -203,7 +208,7 @@ class EarthHorizonSensor(Sensor):
         self._nadir_eci = nadir_eci if visible else None
         if not visible:
             return np.full(3, np.nan)
-        return nadir_body
+        return self.as_built(nadir_body)
 
     def _nadir_geometry(self, x: NDArray[np.float64], os: Orbital_State):
         r"""
@@ -230,7 +235,8 @@ class EarthHorizonSensor(Sensor):
         nadir_body = A.T @ nadir_eci
 
         # FOV visibility check
-        cos_angle = np.dot(self.boresight, nadir_body)
+        mounted_boresight = self.mounting_rotation @ self.boresight
+        cos_angle = np.dot(mounted_boresight, nadir_body)
         angle = np.arccos(np.clip(cos_angle, -1.0, 1.0))
         return nadir_eci, nadir_body, bool(angle <= self.fov)
 
@@ -305,7 +311,7 @@ class EarthHorizonSensor(Sensor):
 
         J = np.zeros((7, self.output_length))
         J[3:7, :] = db_dq
-        return J
+        return self.as_built_jacobian(J)
 
     def bias_jac(
         self, x: NDArray[np.float64], os: Orbital_State

@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 
 import ADCS
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.errors import Noise

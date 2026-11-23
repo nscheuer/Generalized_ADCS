@@ -1,130 +1,90 @@
-"""Ephemeris file resolution: never write into site-packages.
+"""Bundled ephemerides are read only; missing kernels use the user cache."""
 
-de421.bsp is 16 MB and is deliberately not shipped in the wheel, so a
-pip-installed user downloads it on first use. It previously landed *inside*
-site-packages, which:
-
-* hard-failed with a misleading "Failed to download" RuntimeError on read-only
-  or system-managed installs, when the real cause was a PermissionError; and
-* survived ``pip uninstall`` as a 16 MB orphan, being absent from RECORD.
-
-These tests pin the search order and the write location. They never download
-anything.
-"""
-
-import os
-import sys
-from pathlib import Path
+import io
+from types import SimpleNamespace
 
 import pytest
 
-from ADCS.orbits.ephemeris import Ephemeris
+import ADCS.helpers.asset_manager as asset_manager
+from ADCS.environment.ephemeris import DE421, DE442, DE442s, DE441
 
 
 @pytest.fixture(autouse=True)
-def _clear_env(monkeypatch):
-    monkeypatch.delenv("ADCS_EPHEMERIS_PATH", raising=False)
-    monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
+def _clear_overrides(monkeypatch):
+    for name in ("ADCS_EPHEMERIS_PATH", "ADCS_DE442_EPHEMERIS_PATH",
+                 "ADCS_DE442S_EPHEMERIS_PATH", "ADCS_DE441_EPHEMERIS_PATH"):
+        monkeypatch.delenv(name, raising=False)
 
 
-def test_download_target_is_not_inside_site_packages():
-    """The regression that motivated all of this."""
-    target = Ephemeris._cache_ephemeris_path()
-    parts = [p.lower() for p in target.parts]
-    assert "site-packages" not in parts, f"would write into site-packages: {target}"
-    assert "dist-packages" not in parts, f"would write into dist-packages: {target}"
+@pytest.mark.parametrize("model", [DE421, DE442, DE442s])
+def test_bundled_kernel_is_used_without_download(monkeypatch, tmp_path, model):
+    packaged = tmp_path / "package" / model.KERNEL_FILENAME
+    packaged.parent.mkdir()
+    packaged.write_bytes(b"bundled")
+    monkeypatch.setattr(model, "_packaged_ephemeris_path", classmethod(lambda cls: packaged))
+    monkeypatch.setattr(asset_manager.AssetManager, "get", lambda *a, **k: pytest.fail("download attempted"))
+    assert model._find_existing_ephemeris() == packaged
 
 
-def test_cache_path_is_absolute_and_named():
-    target = Ephemeris._cache_ephemeris_path()
-    assert target.is_absolute()
-    assert target.name == "de421.bsp"
-    assert "generalized_adcs" in target.parts
+@pytest.mark.parametrize("model", [DE421, DE442, DE442s])
+def test_missing_kernel_download_target_is_user_cache(monkeypatch, tmp_path, model):
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    monkeypatch.setattr(model, "_packaged_ephemeris_path",
+                        classmethod(lambda cls: tmp_path / "read_only_package" / cls.KERNEL_FILENAME))
+    requested = []
+
+    def fake_get(self, name, **kwargs):
+        requested.append((name, kwargs["destination"]))
+        return kwargs["destination"]
+
+    monkeypatch.setattr(asset_manager.AssetManager, "get", fake_get)
+    expected = tmp_path / "cache" / "generalized_adcs" / model.KERNEL_FILENAME
+    assert model._find_existing_ephemeris() == expected
+    assert requested == [(model.KERNEL_FILENAME.removesuffix(".bsp"), expected)]
+    assert not (tmp_path / "read_only_package").exists()
 
 
-def test_env_override_wins(monkeypatch, tmp_path):
-    custom = tmp_path / "somewhere" / "my_de421.bsp"
+def test_explicit_kernel_path_is_respected(monkeypatch, tmp_path):
+    custom = tmp_path / "custom" / "de421.bsp"
+    custom.parent.mkdir()
+    custom.write_bytes(b"custom")
     monkeypatch.setenv("ADCS_EPHEMERIS_PATH", str(custom))
-    assert Ephemeris._cache_ephemeris_path() == custom
+    assert DE421._find_existing_ephemeris() == custom
 
 
-def test_env_override_expands_user(monkeypatch):
-    monkeypatch.setenv("ADCS_EPHEMERIS_PATH", "~/eph/de421.bsp")
-    resolved = Ephemeris._cache_ephemeris_path()
-    assert "~" not in str(resolved)
-    assert resolved.is_absolute()
+def test_missing_kernel_does_not_create_package_directory(monkeypatch, tmp_path):
+    packaged = tmp_path / "package" / "de421.bsp"
+    monkeypatch.setattr(DE421, "_packaged_ephemeris_path", staticmethod(lambda: packaged))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    monkeypatch.setattr(asset_manager, "sys", SimpleNamespace(platform="linux", stdin=io.StringIO()))
+    with pytest.raises(FileNotFoundError, match="Missing de421") as error:
+        DE421._find_existing_ephemeris()
+    assert str(tmp_path / "cache") in str(error.value)
+    assert not packaged.parent.exists()
 
 
-def test_xdg_cache_home_is_honoured(monkeypatch, tmp_path):
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
-    target = Ephemeris._cache_ephemeris_path()
-    assert target == tmp_path / "generalized_adcs" / "de421.bsp"
+def test_de441_uses_complete_bundled_pair(monkeypatch, tmp_path):
+    packaged = tuple(tmp_path / "package" / name for name in DE441.KERNEL_FILENAMES)
+    packaged[0].parent.mkdir()
+    for path in packaged:
+        path.write_bytes(b"bundled")
+    monkeypatch.setattr(DE441, "_packaged_ephemeris_paths", classmethod(lambda cls: packaged))
+    monkeypatch.setattr(asset_manager.AssetManager, "get", lambda *a, **k: pytest.fail("download attempted"))
+    assert DE441._find_existing_ephemeris() == packaged
 
 
-def test_platform_default_without_xdg(monkeypatch):
-    target = Ephemeris._cache_ephemeris_path()
-    home = Path.home()
-    if sys.platform == "darwin":
-        assert target.is_relative_to(home / "Library" / "Caches")
-    elif sys.platform == "win32":
-        assert target.is_absolute()
-    else:
-        assert target.is_relative_to(home / ".cache")
+def test_de441_missing_pair_uses_user_cache(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    monkeypatch.setattr(DE441, "_packaged_ephemeris_paths",
+                        classmethod(lambda cls: tuple(tmp_path / "package" / name for name in cls.KERNEL_FILENAMES)))
+    destinations = []
 
+    def fake_get(self, name, **kwargs):
+        destinations.append(kwargs["destination"])
+        return kwargs["destination"]
 
-def test_packaged_path_points_at_the_package(monkeypatch):
-    packaged = Ephemeris._packaged_ephemeris_path()
-    assert packaged.name == "de421.bsp"
-    assert packaged.parent.name == "environment"
-    # must sit under the ADCS package, not the repo root
-    assert packaged.parent.parent.name == "ADCS"
-
-
-def test_search_order_prefers_the_cache_over_the_packaged_copy(monkeypatch, tmp_path):
-    cache = tmp_path / "cache" / "de421.bsp"
-    cache.parent.mkdir(parents=True)
-    cache.write_bytes(b"not a real ephemeris")
-    packaged = tmp_path / "pkg" / "de421.bsp"
-    packaged.parent.mkdir(parents=True)
-    packaged.write_bytes(b"also not real")
-
-    monkeypatch.setattr(Ephemeris, "_cache_ephemeris_path", staticmethod(lambda: cache))
-    monkeypatch.setattr(Ephemeris, "_packaged_ephemeris_path", staticmethod(lambda: packaged))
-    assert Ephemeris._find_existing_ephemeris() == cache
-
-
-def test_falls_back_to_the_packaged_copy(monkeypatch, tmp_path):
-    missing = tmp_path / "cache" / "de421.bsp"
-    packaged = tmp_path / "pkg" / "de421.bsp"
-    packaged.parent.mkdir(parents=True)
-    packaged.write_bytes(b"stand-in")
-
-    monkeypatch.setattr(Ephemeris, "_cache_ephemeris_path", staticmethod(lambda: missing))
-    monkeypatch.setattr(Ephemeris, "_packaged_ephemeris_path", staticmethod(lambda: packaged))
-    assert Ephemeris._find_existing_ephemeris() == packaged
-
-
-def test_returns_none_when_nothing_exists(monkeypatch, tmp_path):
-    monkeypatch.setattr(Ephemeris, "_cache_ephemeris_path",
-                        staticmethod(lambda: tmp_path / "a" / "de421.bsp"))
-    monkeypatch.setattr(Ephemeris, "_packaged_ephemeris_path",
-                        staticmethod(lambda: tmp_path / "b" / "de421.bsp"))
-    assert Ephemeris._find_existing_ephemeris() is None
-
-
-def test_default_download_path_creates_only_its_own_parent(monkeypatch, tmp_path):
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
-    target = Ephemeris()._get_default_ephemeris_path.__func__(Ephemeris)
-    assert target.parent.is_dir(), "the cache directory should be created"
-    assert target.parent == tmp_path / "generalized_adcs"
-
-
-def test_resolution_does_not_touch_the_package_directory(monkeypatch, tmp_path):
-    """Resolving a path must not mkdir inside the installed package."""
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
-    pkg_env_dir = Ephemeris._packaged_ephemeris_path().parent
-    existed_before = pkg_env_dir.exists()
-    Ephemeris._cache_ephemeris_path()
-    Ephemeris._find_existing_ephemeris()
-    assert pkg_env_dir.exists() == existed_before, (
-        "path resolution must not create directories inside the package")
+    monkeypatch.setattr(asset_manager.AssetManager, "get", fake_get)
+    expected = tuple(tmp_path / "cache" / "generalized_adcs" / name for name in DE441.KERNEL_FILENAMES)
+    assert DE441._find_existing_ephemeris() == expected
+    assert destinations == list(expected)
+    assert not (tmp_path / "package").exists()

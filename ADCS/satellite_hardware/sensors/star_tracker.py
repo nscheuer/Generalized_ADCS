@@ -105,6 +105,11 @@ class StarTracker(Sensor):
 
     observation_kind = "star"
 
+    # Unpickling skips __init__, and trackers saved by 0.2.1 predate this
+    # flag. Those had no way to take a catalogue from the environment, so
+    # "not explicit" keeps their own catalogue unless the environment sets one.
+    _catalog_explicit: bool = False
+
     def reference_direction(self, os):
         """Inertial direction of the star of the last reading, if this object took it.
 
@@ -123,7 +128,9 @@ class StarTracker(Sensor):
         boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
         fov: float = np.deg2rad(4.0),
         sun_exclusion: float = np.deg2rad(25.0),
-        star_catalog: Optional[StarCatalog] = None
+        star_catalog: Optional[StarCatalog] = None,
+        scale_factor: float = 1.0,
+        misalignment: Optional[np.ndarray] = None,
     ) -> None:
         r"""
         Initialize the star tracker sensor.
@@ -149,6 +156,9 @@ class StarTracker(Sensor):
         :rtype: None
         """
         
+        if scale_factor != 1.0:
+            raise ValueError("StarTracker: a unit direction has no scale factor")
+
         # 1. Geometry Setup
         self.boresight = np.asarray(boresight, dtype=np.float64)
         norm = np.linalg.norm(self.boresight)
@@ -160,6 +170,7 @@ class StarTracker(Sensor):
         self.sun_exclusion = float(sun_exclusion)
         
         self.catalog = star_catalog if star_catalog is not None else StarCatalog()
+        self._catalog_explicit = star_catalog is not None
         self.current_star: Optional[NavigationStar] = None
 
         # 2. Calculate Rotation (Aligned -> Body)
@@ -167,7 +178,7 @@ class StarTracker(Sensor):
 
         # 3. Initialize Base Sensor
         #    This will execute: self.noise = anisotropic_noise.copy()
-        super().__init__(
+        super().__init__(scale_factor=scale_factor, misalignment=misalignment, 
             sample_time=sample_time,
             output_length=3,
             bias=bias,
@@ -251,21 +262,27 @@ class StarTracker(Sensor):
         # Memoize on the exact (attitude, orbital state) so clean_reading and
         # basestate_jac evaluated at the same state share one catalog query,
         # while a different state always re-selects.
+        environment = getattr(os, "environment", None)
+        catalog = self.catalog
+        if not self._catalog_explicit and getattr(environment, "_star_catalogue_explicit", False):
+            catalog = environment.star_catalogue
         key = (
             np.asarray(q, dtype=float).tobytes(),
             float(os.J2000),
             np.asarray(os.R, dtype=float).tobytes(),
+            id(catalog),
         )
         cached = getattr(self, "_star_selection", None)
         if cached is not None and cached[0] == key:
             return cached[1]
         A = rot_mat(q)
-        boresight_eci = A @ self.boresight
+        boresight_body = self.mounting_rotation @ self.boresight
+        boresight_eci = A @ boresight_body
         r_sat_eci = os.R
         sun_eci = self._get_sun_eci(os)
         moon_eci = self._get_moon_eci(os)
 
-        visible = self.catalog.get_visible_stars(
+        visible = catalog.get_visible_stars(
             boresight_eci=boresight_eci,
             fov_rad=self.fov,
             r_sat_eci=r_sat_eci,
@@ -313,7 +330,7 @@ class StarTracker(Sensor):
 
         self.current_star = star
         A = rot_mat(q)
-        return A.T @ star.s_eci
+        return self.as_built(A.T @ star.s_eci)
 
     def reading(self, x: NDArray[np.float64], os: Orbital_State, dmode: Optional[ErrorMode] = None) -> NDArray[np.float64]:
         r"""
@@ -385,7 +402,7 @@ class StarTracker(Sensor):
 
         J = np.zeros((7, self.output_length))
         J[3:7, :] = db_dq
-        return J
+        return self.as_built_jacobian(J)
 
     def bias_jac(self, x: NDArray[np.float64], os: Orbital_State) -> NDArray[np.float64]:
         r"""

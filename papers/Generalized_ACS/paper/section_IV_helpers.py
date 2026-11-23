@@ -20,7 +20,7 @@ from scipy.integrate import solve_ivp
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 from ADCS.CONOPS.goals import ECI_Goal, Fixed_Attitude_Goal
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants

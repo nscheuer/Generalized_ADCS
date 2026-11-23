@@ -14,7 +14,7 @@ import numpy as np
 import ADCS
 from ADCS.helpers.math_helpers import normalize, quat_mult
 from ADCS.mc.simulate_mc import simulate_mc
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.satellite import EstimatedSatellite, Satellite
 from ADCS.satellite_hardware.sensors import MTM
@@ -89,3 +89,16 @@ def test_estimate_time_and_orbital_state_share_the_step():
         assert seconds == k * DT
         assert os.J2000 == stamping.seen[k].J2000
         np.testing.assert_allclose(state.q, _truth_at(seconds), atol=1.0e-8)
+
+
+def test_simulate_keeps_the_0_2_1_positional_order():
+    """0.2.1 took (x, satellite, est_satellite, controller, estimator,
+    orbit_estimator, goal, os0, dt, tf); new parameters come after tf."""
+    import ADCS
+
+    sat = ADCS.Satellite(mass=4.0, J_0=np.diag([0.003, 0.004, 0.002]))
+    x0 = ADCS.State(w=np.array([0.01, 0.0, 0.0]), q=np.array([1.0, 0.0, 0.0, 0.0]))
+    os0 = ADCS.Orbital_State(J2000=0.22, R=np.array([7000.0, 0.0, 0.0]), V=np.array([0.0, 7.5, 0.0]))
+
+    results = ADCS.simulate(x0, sat, None, None, None, None, None, os0, 1.0, 3.0)
+    assert len(results.runs[0].state_hist) == 3  # tf / dt

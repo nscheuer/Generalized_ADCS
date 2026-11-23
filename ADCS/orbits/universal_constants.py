@@ -55,6 +55,7 @@ class _EarthConstants:
     m_earth: float = 5.9736e24        # kg
     solar_constant: float = 1361.0    # W/m^2
     c: float = 299792458.0            # m/s
+    G: float = 6.67430e-11            # m^3/kg/s^2
 
     @property
     def Jcoeffs(self) -> np.ndarray:

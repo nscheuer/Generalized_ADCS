@@ -190,6 +190,11 @@ class ControlPlotSingle(Subplot):
     :type log_y:
         bool
 
+    :param show_limits:
+        If True, show the actuator's positive and negative command limits.
+    :type show_limits:
+        bool
+
     """
     def __init__(
         self,
@@ -201,6 +206,7 @@ class ControlPlotSingle(Subplot):
         label: str | None = None,
         color: str | None = None,
         log_y: bool = False,
+        show_limits: bool = True,
     ):
         self.index = index
         self.time = time
@@ -209,6 +215,7 @@ class ControlPlotSingle(Subplot):
         self.label = label
         self.color = color
         self.log_y = log_y
+        self.show_limits = show_limits
 
     def plot(self, ax, sim) -> None:
         run = sim.runs[0] if hasattr(sim, "runs") else sim
@@ -238,7 +245,7 @@ class ControlPlotSingle(Subplot):
         (ln,) = ax.plot(t, y, color=c, label=lbl)
         color = ln.get_color()
 
-        if umax is not None and np.isfinite(umax):
+        if self.show_limits and umax is not None and np.isfinite(umax):
             ax.axhline(umax, linestyle="--", linewidth=1.2, color=color)
             ax.axhline(-umax, linestyle="--", linewidth=1.2, color=color)
 

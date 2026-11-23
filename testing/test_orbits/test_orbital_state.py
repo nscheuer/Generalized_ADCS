@@ -172,7 +172,7 @@ def test_average_interpolates_core_fields_linearly():
 def test_to_dict_and_from_dict_roundtrip_core_state():
     state = make_reference_orbital_state()
 
-    restored = state.from_dict(state.to_dict(), ephem=state.ephem, density_model=state.density_model, fast=True)
+    restored = state.from_dict(state.to_dict(), environment=state.environment, fast=True)
 
     assert np.isclose(restored.J2000, state.J2000)
     assert np.allclose(restored.R, state.R)

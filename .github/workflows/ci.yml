@@ -41,7 +41,7 @@ jobs:
           mkdir -p testing/artifacts
           pytest \
             testing/ \
-            -m "not vslow" \
+            -m "not local" \
             --durations=0 \
             --durations-min=0.0 \
             --junitxml=testing/artifacts/pytest.xml

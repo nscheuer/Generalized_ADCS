@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.environment.ephemeris import DE421 as Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance

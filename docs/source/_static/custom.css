@@ -213,6 +213,174 @@
     object-fit: contain;
 }
 
+/* Installation platform selector and side-by-side setup paths. */
+.installation-picker {
+    margin: 1.5rem 0;
+}
+
+.installation-picker > input[type="radio"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.installation-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.3rem;
+    padding: 0.3rem;
+    border: 1px solid var(--color-background-border);
+    border-radius: 0.75rem;
+    background: var(--color-background-secondary);
+}
+
+.installation-tabs label {
+    padding: 0.65rem 0.8rem;
+    border-radius: 0.5rem;
+    color: var(--color-foreground-secondary);
+    cursor: pointer;
+    font-weight: 600;
+    text-align: center;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.installation-tabs label:hover {
+    color: var(--color-brand-primary);
+}
+
+#installation-linux:checked ~ .installation-tabs label[for="installation-linux"],
+#installation-windows:checked ~ .installation-tabs label[for="installation-windows"],
+#installation-macos:checked ~ .installation-tabs label[for="installation-macos"] {
+    background: var(--color-background-primary);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.12);
+    color: var(--color-brand-primary);
+}
+
+#installation-linux:focus-visible ~ .installation-tabs label[for="installation-linux"],
+#installation-windows:focus-visible ~ .installation-tabs label[for="installation-windows"],
+#installation-macos:focus-visible ~ .installation-tabs label[for="installation-macos"] {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 2px;
+}
+
+.installation-grid {
+    display: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+#installation-linux:checked ~ .installation-panels .installation-linux,
+#installation-windows:checked ~ .installation-panels .installation-windows,
+#installation-macos:checked ~ .installation-panels .installation-macos {
+    display: grid;
+}
+
+.installation-card {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--color-background-border);
+    border-radius: 0.75rem;
+    background: var(--color-background-primary);
+}
+
+.installation-card h2 {
+    margin: 0;
+    padding: 1.1rem 1.15rem 0.9rem;
+    font-size: 1.3rem;
+}
+
+.installation-code-box {
+    position: relative;
+}
+
+.installation-copy {
+    position: absolute;
+    z-index: 1;
+    top: 0.55rem;
+    right: 0.65rem;
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--color-background-border);
+    border-radius: 0.4rem;
+    background: var(--color-background-primary);
+    color: var(--color-foreground-primary);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+}
+
+.installation-copy:hover {
+    border-color: var(--color-brand-primary);
+    color: var(--color-brand-primary);
+}
+
+.installation-features {
+    margin: 0;
+    padding: 0.9rem 1.15rem 1rem;
+    list-style: none;
+    font-size: 0.88rem;
+    line-height: 1.65;
+}
+
+.installation-features li + li {
+    margin-top: 0.2rem;
+}
+
+.installation-card pre {
+    flex: 1;
+    margin: 0;
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    border-top: 1px solid var(--color-background-border);
+    border-radius: 0;
+    background: var(--color-background-secondary);
+    color: var(--color-foreground-primary);
+    font-size: 0.78rem;
+    line-height: 1.7;
+}
+
+.installation-card code {
+    font-family: var(--font-stack--monospace);
+}
+
+@media (max-width: 700px) {
+    .installation-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dynamics-visualization-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.dynamics-visualization-grid h3 {
+    margin: 0;
+    padding: 1rem 1.15rem 0;
+}
+
+.dynamics-visualization-grid p {
+    margin: 0;
+    padding: 0.5rem 1.15rem 1rem;
+}
+
+.dynamics-example-media {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+@media (max-width: 700px) {
+    .dynamics-visualization-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 table.sortable-factory th.factory-sortable-header {
     cursor: pointer;
     user-select: none;
@@ -381,5 +549,72 @@ table.sortable-factory th.factory-sort-active.factory-sort-desc::after {
     .paper-pdf-preview object {
         height: 56vh;
         min-height: 320px;
+    }
+}
+
+/* Compact API notes at the end of code-based tutorials. */
+.admonition.tutorial-tip {
+    border: 1px solid #79aee8;
+    border-left: 4px solid #3277c8;
+    background: #edf5ff;
+}
+
+.admonition.tutorial-tip > .admonition-title {
+    color: #174b86;
+    background: #d9eaff;
+}
+
+.admonition.tutorial-tip .highlight {
+    margin-bottom: 0;
+}
+
+.admonition.night-vision-tip .night-vision-icon {
+    float: right;
+    width: 40px;
+    height: 28px;
+    margin: 0 0 0.5rem 1rem;
+}
+
+.admonition.mission-recommendations {
+    margin-top: 2rem;
+    padding: 1.2rem 1.5rem;
+    border: 1px solid #e8a04f;
+    border-left: 5px solid #dc791c;
+    background: #fff3e4;
+}
+
+.admonition.mission-recommendations > .admonition-title {
+    color: #82400e;
+    background: #ffe3bf;
+    font-size: 1.15rem;
+}
+
+.admonition.mission-recommendations li {
+    margin-bottom: 0.8rem;
+}
+
+.admonition.mission-recommendations li:last-child {
+    margin-bottom: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    .admonition.tutorial-tip {
+        border-color: #37679c;
+        background: #142841;
+    }
+
+    .admonition.tutorial-tip > .admonition-title {
+        color: #c6e0ff;
+        background: #1d3b5e;
+    }
+
+    .admonition.mission-recommendations {
+        border-color: #a76525;
+        background: #352313;
+    }
+
+    .admonition.mission-recommendations > .admonition-title {
+        color: #ffd29a;
+        background: #563316;
     }
 }

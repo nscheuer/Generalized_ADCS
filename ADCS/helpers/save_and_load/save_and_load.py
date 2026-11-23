@@ -368,6 +368,7 @@ def load_orbital_states(
     ephem=None,
     density_model=None,
     fast: bool = True,
+    environment=None,
 ):
     r"""
     Load and optionally reconstruct orbital state histories.
@@ -383,7 +384,7 @@ def load_orbital_states(
     Reconstruction Logic
     ======================
 
-    If an ephemeris object is provided, each dictionary entry is reconstructed
+    If an ephemeris or environment is provided, each dictionary entry is reconstructed
     using:
 
     .. code-block:: python
@@ -425,9 +426,15 @@ def load_orbital_states(
         Any or None
 
     :param density_model:
-        Optional atmospheric density model passed during reconstruction.
+        Deprecated; pass ``environment=Environment(atmosphere=...)`` instead.
+        Still accepted with ``ephem``, with a ``DeprecationWarning``.
     :type density_model:
-        Any or None
+        Atmosphere or None
+
+    :param environment:
+        Optional environment passed during reconstruction.
+    :type environment:
+        Environment or None
 
     :param fast:
         If True, enable fast reconstruction mode.
@@ -446,15 +453,40 @@ def load_orbital_states(
     with open(run_dir / "orbital_states.pkl", "rb") as f:
         d = pickle.load(f)
 
+    legacy_environments = {}
+    if density_model is not None:
+        import warnings
+        warnings.warn(
+            "load_orbital_states(density_model=...) is deprecated; pass "
+            "environment=Environment(atmosphere=...) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if environment is not None:
+            raise ValueError("Pass the atmosphere through environment, or use the legacy density_model argument")
+
+    def legacy_environment(entry):
+        # One Environment per recorded field model, shared by every state that uses it.
+        from ADCS.environment.environment import Environment
+        from ADCS.environment.magnetic_field import DEFAULT_MAGNETIC_MODEL, make_magnetic_field
+        model = entry.get("magnetic_model", DEFAULT_MAGNETIC_MODEL)
+        if model not in legacy_environments:
+            legacy_environments[model] = Environment(
+                magnetic_field=make_magnetic_field(model), atmosphere=density_model, ephemeris=ephem,
+            )
+        return legacy_environments[model]
+
     def reconstruct(lst):
-        if ephem is None:
+        if ephem is None and environment is None:
             return lst
         from ADCS.orbits.orbital_state import Orbital_State
+        if density_model is not None:
+            return [Orbital_State.from_dict(x, environment=legacy_environment(x), fast=fast) for x in lst]
         return [
             Orbital_State.from_dict(
                 x,
-                ephem=ephem,
-                density_model=density_model,
+                ephem=ephem if environment is None else None,
+                environment=environment,
                 fast=fast,
             )
             for x in lst

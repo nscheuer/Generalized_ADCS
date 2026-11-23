@@ -135,6 +135,41 @@ class Disturbance:
                     self.last_update_time = j2000
         self.update()
 
+    def force(self, *args, **kwargs) -> np.ndarray:
+        r"""Net force this disturbance applies to the spacecraft, in the body frame.
+
+        Every disturbance applies a torque, and some of them (aerodynamic
+        drag, solar radiation pressure, thrust) also push the centre of mass.
+        Subclasses that model a force override this method; the base class
+        returns zero so a torque-only disturbance needs no change.
+
+        The call signature mirrors :meth:`torque`: ``force(sat, x, os)`` for
+        disturbances that need the satellite, ``force(x, os)`` otherwise.
+        :meth:`~ADCS.satellite_hardware.satellite.satellite.Satellite.dist_forces`
+        sums these over every disturbance.
+
+        :return: Force in body coordinates, shape ``(3,)`` [N].
+        :rtype: numpy.ndarray
+        """
+        return np.zeros(3)
+
+    def force_qjac(self, *args, **kwargs) -> np.ndarray:
+        r"""Jacobian of :meth:`force` with respect to the attitude quaternion.
+
+        Layout matches :meth:`torque_qjac`: row ``i`` is the derivative with
+        respect to quaternion component ``i``, shape ``(4, 3)``. Zero in the
+        base class.
+        """
+        return np.zeros((4, 3))
+
+    def force_qqhess(self, *args, **kwargs) -> np.ndarray:
+        r"""Hessian of :meth:`force` with respect to the attitude quaternion.
+
+        Layout matches :meth:`torque_qqhess`: ``(q_i, q_j, force component)``,
+        shape ``(4, 4, 3)``. Zero in the base class.
+        """
+        return np.zeros((4, 4, 3))
+
     def parameter_process_psd(self, *, form: str = "full") -> Covariance:
         r"""Return the continuous PSD of estimated disturbance parameters.
 

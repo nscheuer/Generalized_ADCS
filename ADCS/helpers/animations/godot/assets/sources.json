@@ -1,0 +1,85 @@
+{
+  "_comment": "Raw inputs of the visualization asset pipeline. sha256 pins the exact bytes; `python -m ADCS.viz.assets fetch` refuses anything else. URLs and sizes verified 2026-10-22.",
+  "sources": {
+    "bmng_topo_bathy_200407": {
+      "url": "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73751/world.topo.bathy.200407.3x21600x10800.jpg",
+      "bytes": 27201049,
+      "sha256": "d225f1f35a6448a4d1d8f6de6e48f3433e470085b70a35800e64f384f269a7b0",
+      "description": "Blue Marble Next Generation, July 2004, with topography and bathymetry shading; 21600x10800 equirectangular RGB, 500 m",
+      "license": "NASA Earth Observatory imagery: free to use, including commercially; credit required",
+      "attribution": "NASA Earth Observatory, Blue Marble Next Generation (R. Stockli et al.)",
+      "redistributable": true,
+      "requires_acceptance": false
+    },
+    "black_marble_2016_3km_gray": {
+      "url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144897/BlackMarble_2016_3km_gray.jpg",
+      "bytes": 3064569,
+      "sha256": "3fbc8aae3529dc1ebfcf3aa9361bd3dfc11d19950a6af6d8ed2df61bd8b0134d",
+      "description": "Black Marble 2016 night lights (VIIRS DNB, Suomi NPP), grayscale; 13500x6750 equirectangular, 3 km",
+      "license": "NASA Earth Observatory imagery: free to use, including commercially; credit required",
+      "attribution": "NASA Earth Observatory, Black Marble 2016 (NASA/NOAA Suomi NPP VIIRS)",
+      "redistributable": true,
+      "requires_acceptance": false
+    },
+    "clouds_bm2002_8192": {
+      "url": "https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57747/cloud_combined_8192.tif",
+      "bytes": 35870468,
+      "sha256": "d137775d8966ab8d443fd5126dc6e7ad72072bc1ed50555c5818d221735daf0f",
+      "description": "Blue Marble 2002 global cloud composite (MODIS), cloud-only; 8192x4096 equirectangular",
+      "license": "NASA Earth Observatory imagery: free to use, including commercially; credit required",
+      "attribution": "NASA Earth Observatory, Blue Marble 2002 clouds (R. Stockli, R. Simmon; MODIS)",
+      "redistributable": true,
+      "requires_acceptance": false
+    },
+    "gebco08_elev_21600": {
+      "url": "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73934/gebco_08_rev_elev_21600x10800.png",
+      "bytes": 18414843,
+      "sha256": "4a70590d40dd7b9c69b9ab359d1dc4475ce97c1d2d13625223b248364112c699",
+      "description": "Land elevation for Blue Marble, from GEBCO_08; 21600x10800 8-bit, ~25 m per step (0-6400 m, saturating), ocean and sea-level land = 0",
+      "license": "NASA Earth Observatory imagery derived from GEBCO (public domain); credit required",
+      "attribution": "NASA Earth Observatory, derived from the GEBCO_08 grid (GEBCO)",
+      "redistributable": true,
+      "requires_acceptance": false
+    },
+    "gebco08_bath_21600": {
+      "url": "https://eoimages.gsfc.nasa.gov/images/imagerecords/73000/73963/gebco_08_rev_bath_21600x10800.png",
+      "bytes": 35097740,
+      "sha256": "b3a67076fccfbee73ebe437fd66a8ed4969fbc5ce949033b50675d43f379e403",
+      "description": "Ocean depth for Blue Marble, from GEBCO_08; 21600x10800 paletted, land = 255, ocean = 0-254 (inland lakes are land)",
+      "license": "NASA Earth Observatory imagery derived from GEBCO (public domain); credit required",
+      "attribution": "NASA Earth Observatory, derived from the GEBCO_08 grid (GEBCO)",
+      "redistributable": true,
+      "requires_acceptance": false
+    },
+    "bsc5_cds": {
+      "url": "https://cdsarc.cds.unistra.fr/ftp/V/50/catalog.gz",
+      "bytes": 573921,
+      "sha256": "3dc44b1e90be8fbe5bcc7656032560f51275f985c7e3f783c9028e1838ec7bed",
+      "description": "Yale Bright Star Catalogue, 5th revised edition (9110 entries, V <= 6.5), J2000 positions, Vmag, B-V, proper motion",
+      "license": "No explicit license; factual catalog treated as public domain; credit the authors and CDS",
+      "attribution": "Hoffleit & Warren (1991), The Bright Star Catalogue, 5th Revised Ed. (Yale University Observatory); CDS VizieR catalogue V/50",
+      "redistributable": true,
+      "requires_acceptance": false
+    },
+    "svs_moon_color_4k": {
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_4k.tif",
+      "bytes": 13095388,
+      "sha256": "918649a7f8ed2f1329b2cd95bb0d25483befdcb60ae1a66db681a637cc21344f",
+      "description": "CGI Moon Kit colour map (LROC WAC, LOLA-filled poles); 4096x2048 equirectangular, longitude 0 at the centre",
+      "license": "NASA SVS: free to use; credit required",
+      "attribution": "NASA's Scientific Visualization Studio, CGI Moon Kit (LRO LROC WAC / LOLA)",
+      "redistributable": true,
+      "requires_acceptance": false
+    },
+    "svs_moon_ldem_4": {
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_4.tif",
+      "bytes": 4153352,
+      "sha256": "330afa2556a86fd05ac6ba2f912f246600fdade35de2a0d90593d50d07b01b65",
+      "description": "CGI Moon Kit displacement (LOLA), 4 px/deg, float km relative to 1737.4 km; 1440x720 equirectangular",
+      "license": "NASA SVS: free to use; credit required",
+      "attribution": "NASA's Scientific Visualization Studio, CGI Moon Kit (LRO LOLA)",
+      "redistributable": true,
+      "requires_acceptance": false
+    }
+  }
+}

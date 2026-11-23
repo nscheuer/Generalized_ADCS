@@ -1,83 +1,83 @@
 {
   "benchmarks": {
     "dipole_torque": {
-      "loops": 1024,
+      "loops": 2048,
       "max_regression": 1.5,
-      "normalized_seconds": 0.002551139665611023,
-      "seconds": 2.3363250000019153e-05
+      "normalized_seconds": 0.0027587543863007106,
+      "seconds": 1.2743221191408027e-05
     },
     "dipole_torque_qjac": {
-      "loops": 1024,
+      "loops": 2048,
       "max_regression": 1.5,
-      "normalized_seconds": 0.002422194120018357,
-      "seconds": 2.2182371093748543e-05
+      "normalized_seconds": 0.002605214822321309,
+      "seconds": 1.2033992187500397e-05
     },
     "dipole_torque_valjac": {
-      "loops": 1024,
+      "loops": 2048,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0026237577763080183,
-      "seconds": 2.4028284179689052e-05
+      "normalized_seconds": 0.002783998281674071,
+      "seconds": 1.2859827636720056e-05
     },
     "dipole_update": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0001633629340768002,
-      "seconds": 1.0617482910091347e-06
+      "normalized_seconds": 0.00017935491154609748,
+      "seconds": 8.284750976552541e-07
     },
     "drag_torque": {
-      "loops": 4096,
+      "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0005578574086275422,
-      "seconds": 5.108839111325758e-06
+      "normalized_seconds": 0.0005772078092921807,
+      "seconds": 2.6662347412092363e-06
     },
     "drag_torque_qjac": {
-      "loops": 512,
+      "loops": 1024,
       "max_regression": 1.5,
-      "normalized_seconds": 0.006467297205276036,
-      "seconds": 5.922728710938685e-05
+      "normalized_seconds": 0.00696607940791551,
+      "seconds": 3.217767089842838e-05
     },
     "gg_torque": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0004309724837041986,
-      "seconds": 3.9468312988261145e-06
+      "normalized_seconds": 0.00043700395328031226,
+      "seconds": 2.018605957030545e-06
     },
     "gg_torque_qjac": {
-      "loops": 256,
+      "loops": 512,
       "max_regression": 1.5,
-      "normalized_seconds": 0.008758330537851388,
-      "seconds": 8.020849218759452e-05
+      "normalized_seconds": 0.00946533963630309,
+      "seconds": 4.3722238281224124e-05
     },
     "prop_torque": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 1.2962774496455492e-05,
-      "seconds": 1.1871264648383173e-07
+      "normalized_seconds": 1.1593735424815071e-05,
+      "seconds": 5.3553710938070154e-08
     },
     "prop_update": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0001638608263149954,
-      "seconds": 1.0649842529242282e-06
+      "normalized_seconds": 0.00018226888433558664,
+      "seconds": 8.419353027342563e-07
     },
     "srp_torque": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0005295288329985486,
-      "seconds": 4.849406982428139e-06
+      "normalized_seconds": 0.0005395505526257326,
+      "seconds": 2.4922885742198475e-06
     },
     "srp_torque_qjac": {
       "loops": 512,
       "max_regression": 1.5,
-      "normalized_seconds": 0.010557961504954732,
-      "seconds": 9.66894511719163e-05
+      "normalized_seconds": 0.011002698255612307,
+      "seconds": 5.082359570313111e-05
     }
   },
-  "calibration_loops": 8,
-  "calibration_seconds": 0.009157965874997842,
+  "calibration_loops": 16,
+  "calibration_seconds": 0.0046191938125002,
   "description": "Disturbances fast benchmark results normalized by calibration_seconds.",
-  "platform": "Linux-6.17.0-1020-azure-x86_64-with-glibc2.39",
+  "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
   "processor": "x86_64",
-  "python": "3.12.13",
+  "python": "3.12.15",
   "schema_version": 1
 }

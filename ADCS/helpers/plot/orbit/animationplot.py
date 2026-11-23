@@ -226,6 +226,12 @@ class AnimationPlot(Subplot):
     :type goal:
         object or None
 
+    :param screenshot_path:
+        If provided, render one frame off-screen and save it to this path instead
+        of opening the interactive animation window.
+    :type screenshot_path:
+        str or pathlib.Path or None
+
     :param window_size:
         Size of the PyVista render window in pixels as (width, height).
     :type window_size:
@@ -272,6 +278,7 @@ class AnimationPlot(Subplot):
         show_body_axes: bool = True,
         show_env_vectors: bool = True,
         goal=None,
+        screenshot_path: Optional[str | Path] = None,
         window_size=(1200, 900),
         axis_scale_body: float = 0.3,
         axis_scale_sun: float = 0.8,
@@ -292,6 +299,7 @@ class AnimationPlot(Subplot):
         self.show_env_vectors = bool(show_env_vectors)
 
         self.goal = goal
+        self.screenshot_path = Path(screenshot_path).expanduser() if screenshot_path is not None else None
         self.window_size = tuple(window_size)
 
         self.axis_scale_body = float(axis_scale_body)
@@ -303,10 +311,15 @@ class AnimationPlot(Subplot):
     def plot(self, ax, sim) -> None:
         ax.axis("off")
         ax.set_title(self.title, loc="left", pad=10)
+        message = (
+            "Saving PyVista screenshot…"
+            if self.screenshot_path is not None
+            else "Launching PyVista animation window…\n(close it to continue)"
+        )
         ax.text(
             0.5,
             0.5,
-            "Launching PyVista animation window…\n(close it to continue)",
+            message,
             ha="center",
             va="center",
             transform=ax.transAxes,
@@ -497,7 +510,11 @@ class AnimationPlot(Subplot):
         earth_rot_smooth = earth_slerp(t_new)
 
         pv.global_theme.multi_samples = 0
-        pl = pv.Plotter(window_size=list(self.window_size), lighting="three lights")
+        pl = pv.Plotter(
+            window_size=list(self.window_size),
+            lighting="three lights",
+            off_screen=self.screenshot_path is not None,
+        )
         pl.set_background("black")
 
         earth_mesh = pv.Sphere(radius=R_e, theta_resolution=120, phi_resolution=120)
@@ -517,7 +534,8 @@ class AnimationPlot(Subplot):
             else:
                 raise FileNotFoundError(texture_path)
         except Exception:
-            tex = examples.planets.download_earth_2k()
+            globe_texture = examples.load_globe_texture()
+            tex = pv.numpy_to_texture(np.flipud(globe_texture.to_array()))
 
         earth_mesh.texture_map_to_sphere(inplace=True, prevent_seam=False)
         earth_mesh.rotate_z(self.texture_alignment_angle_deg, inplace=True)
@@ -572,16 +590,17 @@ class AnimationPlot(Subplot):
                 "body_z": create_arrow_actor("blue", opacity=op),
                 "sun": create_arrow_actor("yellow", opacity=op),
                 "mag": create_arrow_actor("magenta", opacity=op),
-                "goal": create_arrow_actor("cyan", opacity=op),
-                "goal_x": create_arrow_actor("cyan", opacity=op * 0.6),
-                "goal_y": create_arrow_actor("cyan", opacity=op * 0.6),
-                "goal_z": create_arrow_actor("cyan", opacity=op * 0.6),
+                "goal": create_arrow_actor("deepskyblue", opacity=op),
+                "goal_x": create_arrow_actor("deepskyblue", opacity=op * 0.6),
+                "goal_y": create_arrow_actor("deepskyblue", opacity=op * 0.6),
+                "goal_z": create_arrow_actor("deepskyblue", opacity=op * 0.6),
             }
 
         run_actors = [make_run_actors(i) for i in range(n_runs)]
 
         pl.camera_position = "iso"
-        pl.show(interactive_update=True)
+        if self.screenshot_path is None:
+            pl.show(interactive_update=True)
 
         scale_base = R_e * self.axis_scale_base_mult
 
@@ -682,6 +701,11 @@ class AnimationPlot(Subplot):
                             update_arrow(A["goal_y"], pos, goal_ax[:, 1], self.axis_scale_goal)
                             update_arrow(A["goal_z"], pos, goal_ax[:, 2], self.axis_scale_goal)
 
+            if self.screenshot_path is not None:
+                self.screenshot_path.parent.mkdir(parents=True, exist_ok=True)
+                pl.render()
+                pl.screenshot(str(self.screenshot_path))
+                break
             pl.update()
             idx = (idx + 1) % target_N
 
