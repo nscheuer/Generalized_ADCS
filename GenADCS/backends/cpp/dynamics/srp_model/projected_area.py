@@ -4,7 +4,7 @@ from GenADCS.backends.cpp.dynamics._dynamics import projected_area_srp_force, pr
 import numpy as np
 from numba import njit
 
-from GenADCS.backends.cpp.environment.ephemeris import BODY_SUN
+from GenADCS.backends.cpp.environment.ephemeris import BODY_SUN, eclipse_state
 from GenADCS.backends.cpp.helpers.math.frames.frames import body_to_inertial, inertial_to_body
 from GenADCS.backends.cpp.helpers.math.time.conversions import utc_jd_to_tdb_jd
 from .._geometry import prepare_panels
@@ -31,7 +31,7 @@ class _ProjectedAreaSRPBase:
         sun_position_i = 1000.0 * environment.ephemeris.position(
             BODY_SUN, utc_jd_to_tdb_jd(epoch_jd),
         )
-        illumination, _, _ = environment.ephemeris.eclipse_state(
+        illumination, _, _ = eclipse_state(
             position_i, sun_position_i,
             environment.planetary_body.reference_radius, SUN_RADIUS_M,
         )

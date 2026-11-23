@@ -20,7 +20,8 @@ def record_samples(times, vectors, format, satellite, environment, dynamics, epo
     diagnostics = requested - slices.keys()
     if diagnostics:
         from GenADCS.backends.python.helpers.math.time.conversions import utc_jd_to_tdb_jd
-        from GenADCS.backends.python.environment.ephemeris import BODY_SUN
+        from GenADCS.backends.python.environment.ephemeris import BODY_SUN, eclipse_state
+        from GenADCS.backends.python.environment.atmosphere.atmospheric_model import co_rotating_atmosphere_velocity
         from GenADCS.backends.python.dynamics.srp_model.projected_area import SUN_RADIUS_M
         from GenADCS.backends.python.environment.gravity.j_gravity_model import gravity_acceleration_inertial_m_s2
         model_by_name = {type(model).__name__: model for model in dynamics.forces + dynamics.torques}
@@ -55,12 +56,12 @@ def record_samples(times, vectors, format, satellite, environment, dynamics, epo
                 sun = 1000.0 * np.asarray(environment.ephemeris.position(BODY_SUN, utc_jd_to_tdb_jd(jd)))
                 values["relative_sun_vector"] = sun - pos
                 if "eclipse_state" in diagnostics:
-                    values["eclipse_state"] = [environment.ephemeris.eclipse_state(pos, sun, radius, SUN_RADIUS_M)[0]]
+                    values["eclipse_state"] = [eclipse_state(pos, sun, radius, SUN_RADIUS_M)[0]]
             if diagnostics & atmosphere_fields:
                 if environment.atmosphere is None:
                     raise ValueError("atmospheric diagnostics require an atmosphere")
                 values["atmospheric_density"] = [environment.atmosphere.density(pos, jd)]
-                values["relative_atmospheric_velocity"] = vel - environment.atmosphere.velocity(pos, jd)
+                values["relative_atmospheric_velocity"] = vel - co_rotating_atmosphere_velocity(pos, jd)
             if "magnetic_field" in diagnostics:
                 if environment.magnetic_field is None:
                     raise ValueError("magnetic_field requires an environment magnetic model")

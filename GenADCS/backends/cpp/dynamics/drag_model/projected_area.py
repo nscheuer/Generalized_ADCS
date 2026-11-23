@@ -5,6 +5,7 @@ import numpy as np
 from numba import njit
 
 from GenADCS.backends.cpp.helpers.math.frames.frames import body_to_inertial, inertial_to_body
+from GenADCS.backends.cpp.environment import co_rotating_atmosphere_velocity
 from .._geometry import prepare_panels
 
 
@@ -21,7 +22,7 @@ class _ProjectedAreaDragBase:
             raise ValueError("drag requires environment.atmosphere")
         position_i = np.asarray(position_i, dtype=np.float64)
         density = environment.atmosphere.density(position_i, epoch_jd)
-        atmosphere_velocity = environment.atmosphere.velocity(position_i, epoch_jd)
+        atmosphere_velocity = co_rotating_atmosphere_velocity(position_i, epoch_jd)
         return np.asarray(velocity_i, dtype=np.float64) - atmosphere_velocity, density
 
 
