@@ -9,6 +9,10 @@ include!("j4.rs");
 include!("j5.rs");
 include!("j6.rs");
 
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/environment/gravity/test_gravity.rs"]
+mod tests;
+
 #[pymodule]
 fn _gravity(py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add(

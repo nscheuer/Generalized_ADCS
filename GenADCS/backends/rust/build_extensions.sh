@@ -13,7 +13,6 @@ packages=(
     "state:_state"
     "helpers/math:_helpers"
     "helpers/math/frames:_frames"
-    "helpers/math/frames:_frames"
     "hardware/satellite_geometry:_geometry"
     "hardware/ADCS_subsystem:_subsystem"
     "hardware/satellite:_satellite"
@@ -43,6 +42,6 @@ for entry in "${packages[@]}"; do
         options+=(--release)
     fi
     cargo "${options[@]}"
-    cp "$package_dir/target/$profile/lib${module}.so" "$package_dir/${module}.so"
+    cp "$rust_root/target/$profile/lib${module}.so" "$package_dir/${module}.so"
     echo "Built $directory/$module"
 done

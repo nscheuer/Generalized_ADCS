@@ -8,9 +8,9 @@ use std::sync::Arc;
 const J2000: f64 = 2_451_545.0;
 const SECONDS_PER_DAY: f64 = 86_400.0;
 const TABLE_TARGETS: [i32; 12] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 301, 10, 399];
-const BODY_NAMES: [&str; 12] = [
+const BODY_NAMES: [&str; 13] = [
     "earth-moon barycenter", "emb", "jupiter", "mars", "mercury", "moon", "neptune", "pluto",
-    "saturn", "sun", "uranus", "venus",
+    "saturn", "sun", "uranus", "venus", "earth",
 ];
 
 fn default_kernel_path(py: Python<'_>) -> PyResult<PathBuf> {

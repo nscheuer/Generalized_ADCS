@@ -32,18 +32,6 @@ py::object numpy_array(py::object value, py::object dtype) {
     return numpy.attr("asarray")(value, py::arg("dtype") = dtype).attr("copy")();
 }
 
-rotations::Vector3 vector3_from_array(py::object value) {
-    return value.cast<rotations::Vector3>();
-}
-
-rotations::QuaternionVector quaternion_from_array(py::object value) {
-    return value.cast<rotations::QuaternionVector>();
-}
-
-rotations::Matrix3 matrix3_from_array(py::object value) {
-    return value.cast<rotations::Matrix3>();
-}
-
 rotations::ModifiedRodriguesParameters mrp_from_quaternion_product(
         const rotations::ModifiedRodriguesParameters& self,
         const rotations::RotationParameter& other) {

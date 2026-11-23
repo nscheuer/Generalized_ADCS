@@ -34,17 +34,17 @@ inline void install_effect_type_stubs() {
     const char* parents[] = {"GenADCS", "GenADCS.backends", "GenADCS.backends.python"};
     for (const char* name : parents) {
         if (!modules.contains(name)) {
-            py::module_ package(name);
+            py::module_ package = py::module_::import("types").attr("ModuleType")(name);
             package.attr("__path__") = py::list();
             modules[name] = package;
         }
     }
-    py::module_ noise("GenADCS.backends.python.noise");
+    py::module_ noise = py::module_::import("types").attr("ModuleType")("GenADCS.backends.python.noise");
     py::dict noise_scope = noise.attr("__dict__");
     py::exec("class Noise: pass", noise_scope);
     modules["GenADCS.backends.python.noise"] = noise;
 
-    py::module_ bias("GenADCS.backends.python.bias");
+    py::module_ bias = py::module_::import("types").attr("ModuleType")("GenADCS.backends.python.bias");
     py::dict bias_scope = bias.attr("__dict__");
     py::exec("class Bias: pass", bias_scope);
     modules["GenADCS.backends.python.bias"] = bias;

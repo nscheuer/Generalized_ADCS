@@ -9,6 +9,10 @@ include!("igrf14/igrf14.rs");
 include!("chaos8/chaos8.rs");
 include!("native.rs");
 
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/environment/magnetic_field_model/test_magnetic_field.rs"]
+mod tests;
+
 #[pymodule]
 fn _magnetic_field_model(py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(magnetic_field_inertial_tesla, m)?)?;

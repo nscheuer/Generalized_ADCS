@@ -924,6 +924,8 @@ void gtd7(struct nrlmsise_input *input, struct nrlmsise_flags *flags, struct nrl
 	double zmix=62.5;
 	double tmp;
 	double dm28m;
+	/* Used by densm() as an input when altitude is above the lower-atmosphere
+	 * boundary, where densm() returns the supplied temperature unchanged. */
 	double tz;
 	double dmc;
 	double dmr;
@@ -958,6 +960,7 @@ void gtd7(struct nrlmsise_input *input, struct nrlmsise_flags *flags, struct nrl
 		dm28m=dm28;
 	output->t[0]=soutput.t[0];
 	output->t[1]=soutput.t[1];
+	tz=soutput.t[1];
 	if (input->alt>=zn2[0]) {
 		for (i=0;i<9;i++)
 			output->d[i]=soutput.d[i];

@@ -8,3 +8,20 @@ path="lib.rs"
 crate-type=["cdylib","rlib"]
 [dependencies]
 pyo3={version="0.20",features=["extension-module"]}
+
+[workspace]
+resolver = "2"
+members = [
+    "bias", "config", "dynamics", "environment/atmosphere",
+    "environment/ephemeris", "environment/gravity",
+    "environment/magnetic_field_model", "environment/planetary_body",
+    "hardware/ADCS_subsystem", "hardware/satellite",
+    "hardware/satellite_geometry", "helpers/math", "helpers/math/frames",
+    "propagation/coupled_propagators", "solver", "state",
+]
+default-members = [
+    "config", "dynamics", "hardware/ADCS_subsystem",
+    "hardware/satellite_geometry", "helpers/math", "helpers/math/frames", "state",
+    "environment/atmosphere", "environment/ephemeris", "environment/gravity",
+    "environment/magnetic_field_model",
+]

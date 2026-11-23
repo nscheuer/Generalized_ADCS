@@ -32,7 +32,9 @@ std::array<double,7> history_from_python(const py::object& value) {
 std::string body_name(const py::object& body) {
     if (py::isinstance<py::str>(body)) return py::cast<std::string>(body);
     const int id=py::cast<int>(body);
-    if(id==0)return "sun"; if(id==1)return "earth"; if(id==2)return "moon";
+    if (id == 0) return "sun";
+    if (id == 1) return "earth";
+    if (id == 2) return "moon";
     switch(id) { case 199:return "mercury";case 299:return "venus";case 3:return "earth-moon barycenter";case 499:return "mars";case 599:return "jupiter";case 699:return "saturn";case 799:return "uranus";case 899:return "neptune";case 999:return "pluto";case 301:return "moon";case 10:return "sun";case 399:return "earth";default:throw py::value_error("unsupported DE421 body identifier"); }
 }
 template<class Function> py::object vectorized_epoch(const py::object& epoch, Function function) {
@@ -46,7 +48,7 @@ template<class Function> py::object vectorized_epoch(const py::object& epoch, Fu
     auto* result=static_cast<double*>(output.request().ptr);
     const std::size_t count=static_cast<std::size_t>(info.size);
     for(std::size_t i=0;i<count;++i) { const Eigen::Vector3d value=function(input[i]); for(int axis=0;axis<3;++axis) result[3U*i+static_cast<std::size_t>(axis)]=value[axis]; }
-    return std::move(output);
+    return output;
 }
 }
 

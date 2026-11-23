@@ -164,6 +164,8 @@ env*/
 !GenADCS/environment/**
 !GenADCS/backends/python/environment/
 !GenADCS/backends/python/environment/**
+!GenADCS/tests/backends/rust/environment/
+!GenADCS/tests/backends/rust/environment/**
 !GenADCS/backends/cpp/environment/
 !GenADCS/backends/cpp/environment/**
 !GenADCS/backends/rust/

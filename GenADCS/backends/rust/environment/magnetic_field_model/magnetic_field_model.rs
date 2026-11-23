@@ -30,6 +30,6 @@ struct WMM;
 #[pymethods]
 impl WMM {
     #[new] fn new() -> (Self, MagneticFieldModel) { (Self,MagneticFieldModel) }
-    fn field_inertial_tesla(&self,_position:&PyAny,_epoch_jd:f64)->PyResult<()> { Err(pyo3::exceptions::PyNotImplementedError::new_err("WMM coefficients are not implemented")) }
-    fn field(&self,_position:&PyAny,_epoch_jd:f64)->PyResult<()> { Err(pyo3::exceptions::PyNotImplementedError::new_err("WMM coefficients are not implemented")) }
+    fn field_inertial_tesla(&self,_position:&PyAny,_epoch_jd:f64)->PyResult<()> { Err(pyo3::exceptions::PyNotImplementedError::new_err("Choose a magnetic field model")) }
+    fn field(&self,_position:&PyAny,_epoch_jd:f64)->PyResult<()> { Err(pyo3::exceptions::PyNotImplementedError::new_err("Choose a magnetic field model")) }
 }

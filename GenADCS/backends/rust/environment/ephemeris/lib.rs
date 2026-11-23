@@ -6,6 +6,10 @@ include!("ephemeris_model.rs");
 include!("de421/de421.rs");
 include!("native.rs");
 
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/environment/ephemeris/test_de421.rs"]
+mod tests;
+
 #[pymodule]
 fn _ephemeris(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add("BODY_SUN", 0)?;

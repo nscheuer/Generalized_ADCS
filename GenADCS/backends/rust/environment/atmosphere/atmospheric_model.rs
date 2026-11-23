@@ -1,6 +1,9 @@
 #[pyfunction]
 fn atmospheric_density(py: Python<'_>, position_inertial_m: &PyAny, epoch_jd: f64) -> PyResult<f64> {
-    nrlmsise00_density(py, position_inertial_m, epoch_jd, 150.0, 150.0, 4.0, true, None)
+    let _ = (py, position_inertial_m, epoch_jd);
+    Err(pyo3::exceptions::PyNotImplementedError::new_err(
+        "Choose an atmospheric density model",
+    ))
 }
 
 #[pyfunction]

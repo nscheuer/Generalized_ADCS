@@ -6,9 +6,6 @@
 
 namespace omni::rotations {
 namespace {
-void require_finite(const QuaternionVector& value, const char* description) {
-    if (!value.allFinite()) throw std::invalid_argument(std::string(description) + " must be finite");
-}
 void require_finite(const Vector3& value, const char* description) {
     if (!value.allFinite()) throw std::invalid_argument(std::string(description) + " must be finite");
 }

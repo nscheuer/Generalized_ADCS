@@ -6,6 +6,10 @@ include!("NRMLSISE00/nrlmsise00.rs");
 include!("atmospheric_model.rs");
 include!("native.rs");
 
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/environment/atmosphere/test_atmosphere.rs"]
+mod tests;
+
 #[pymodule]
 fn _atmosphere(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(nrlmsise00_density_geodetic, m)?)?;

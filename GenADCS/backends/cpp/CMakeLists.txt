@@ -7,6 +7,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(GENADCS_STRICT_WARNINGS "Treat compiler warnings as errors" ON)
+if(GENADCS_STRICT_WARNINGS)
+    if(MSVC)
+        add_compile_options(/W4 /WX)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+        add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+    endif()
+endif()
+
 set(PYBIND11_FINDPYTHON ON)
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
@@ -172,11 +181,17 @@ if(BUILD_TESTING)
     target_compile_features(state_native_core PUBLIC cxx_std_17)
     target_include_directories(state_native_core PUBLIC state)
     target_link_libraries(state_native_core PUBLIC Eigen3::Eigen pybind11::embed Python::Python)
+    set_target_properties(state_native_core PROPERTIES
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON)
     foreach(component attitude_state internal_state orbital_state state)
         add_executable(cpp_test_${component}
             ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/state/test_${component}.cpp
         )
         target_link_libraries(cpp_test_${component} PRIVATE state_native_core)
+        set_target_properties(cpp_test_${component} PROPERTIES
+            CXX_VISIBILITY_PRESET hidden
+            VISIBILITY_INLINES_HIDDEN ON)
         add_test(NAME cpp_${component} COMMAND cpp_test_${component})
     endforeach()
     add_library(rotations_native_core STATIC
@@ -240,7 +255,10 @@ pybind11_add_module(_state
 target_compile_features(_state PRIVATE cxx_std_17)
 target_link_libraries(_state PRIVATE Eigen3::Eigen)
 target_include_directories(_state PRIVATE state)
-set_target_properties(_state PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+set_target_properties(_state PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 pybind11_add_module(_frames
     helpers/math/frames/bindings.cpp
@@ -376,6 +394,9 @@ if(BUILD_TESTING)
         target_compile_definitions(cpp_test_${component} PRIVATE
             GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
         )
+        set_target_properties(cpp_test_${component} PROPERTIES
+            CXX_VISIBILITY_PRESET hidden
+            VISIBILITY_INLINES_HIDDEN ON)
         add_dependencies(cpp_test_${component} _config)
         add_test(NAME cpp_${component}
             COMMAND cpp_test_${component} "$<TARGET_FILE:_config>"
