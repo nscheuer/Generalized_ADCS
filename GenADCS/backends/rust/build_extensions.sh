@@ -34,7 +34,7 @@ for entry in "${packages[@]}"; do
     package_dir="$rust_root/$directory"
     options=(build --manifest-path "$package_dir/Cargo.toml" --quiet)
     case "$directory" in
-        environment/atmosphere|environment/ephemeris|environment/gravity|environment/magnetic_field_model|propagation/coupled_propagators)
+        state|environment/atmosphere|environment/ephemeris|environment/gravity|environment/magnetic_field_model|propagation/coupled_propagators)
             options+=(--features python-extension)
             ;;
     esac

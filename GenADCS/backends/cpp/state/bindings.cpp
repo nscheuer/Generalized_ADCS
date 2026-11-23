@@ -91,7 +91,7 @@ OrbitalState orbital_from_python(py::object state) {
 }
 
 py::object body_position(OrbitalState& orbit, py::object body) {
-    const std::string key = py::str(py::type::of(body)) .cast<std::string>() + ":" + py::str(body).cast<std::string>();
+    const std::string key = py::str(body.get_type()).cast<std::string>() + ":" + py::str(body).cast<std::string>();
     auto found = orbit.body_positions.find(key);
     if (found != orbit.body_positions.end()) return found->second;
     if (orbit.ephemeris.is_none()) throw py::value_error("an ephemeris must be configured");

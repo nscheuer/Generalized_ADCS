@@ -134,7 +134,7 @@ impl OrbitalState {
             .map_or_else(|| py.None(), |values| values.into_py(py))
     }
     fn body_position(&mut self, py: Python<'_>, body: &PyAny) -> PyResult<PyObject> {
-        let key = body.str()?.to_str()?.to_string();
+        let key = format!("{}:{}", body.get_type().str()?.to_str()?, body.str()?.to_str()?);
         if let Some(value) = self.body_positions.get(&key) {
             return Ok(value.clone_ref(py).into_py(py));
         }
@@ -257,3 +257,7 @@ fn option_vec3(py: Python<'_>, value: Option<Vector3>) -> PyResult<PyObject> {
         None => Ok(py.None()),
     }
 }
+
+#[cfg(test)]
+#[path = "../../../tests/backends/rust/state/test_orbital_state.rs"]
+mod tests;

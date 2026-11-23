@@ -12,4 +12,5 @@ dependencies = ["numpy>=1.26"]
 manifest-path = "Cargo.toml"
 python-source = "../../../../"
 module-name = "GenADCS.backends.rust.state._state"
+features = ["python-extension"]
 

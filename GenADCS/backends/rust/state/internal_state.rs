@@ -98,3 +98,7 @@ impl WheelMomentumState {
         Ok(cls.call((), Some(kwargs))?.into())
     }
 }
+
+#[cfg(test)]
+#[path = "../../../tests/backends/rust/state/test_internal_state.rs"]
+mod tests;

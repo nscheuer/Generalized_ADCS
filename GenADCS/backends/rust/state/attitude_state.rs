@@ -120,3 +120,7 @@ pub(crate) fn array<T: IntoIterator<Item = f64>>(py: Python<'_>, values: T) -> P
         .call_method1("array", (values.into_iter().collect::<Vec<_>>(),))?
         .into())
 }
+
+#[cfg(test)]
+#[path = "../../../tests/backends/rust/state/test_attitude_state.rs"]
+mod tests;

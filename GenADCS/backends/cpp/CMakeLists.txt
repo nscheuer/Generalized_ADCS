@@ -34,6 +34,27 @@ else()
 endif()
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
+include(CTest)
+if(BUILD_TESTING)
+    find_package(Python COMPONENTS Interpreter Development.Embed REQUIRED)
+    add_library(state_native_core STATIC
+        state/attitude_state.cpp
+        state/internal_state.cpp
+        state/orbital_state.cpp
+        state/state.cpp
+    )
+    target_compile_features(state_native_core PUBLIC cxx_std_17)
+    target_include_directories(state_native_core PUBLIC state)
+    target_link_libraries(state_native_core PUBLIC Eigen3::Eigen pybind11::embed Python::Python)
+    foreach(component attitude_state internal_state orbital_state state)
+        add_executable(cpp_test_${component}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/state/test_${component}.cpp
+        )
+        target_link_libraries(cpp_test_${component} PRIVATE state_native_core)
+        add_test(NAME cpp_${component} COMMAND cpp_test_${component})
+    endforeach()
+endif()
+
 pybind11_add_module(_bias
     bias/bindings.cpp
     bias/bias.cpp

@@ -194,3 +194,7 @@ impl State {
             .into())
     }
 }
+
+#[cfg(test)]
+#[path = "../../../tests/backends/rust/state/test_state.rs"]
+mod tests;
