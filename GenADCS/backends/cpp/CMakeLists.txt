@@ -37,6 +37,29 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 include(CTest)
 if(BUILD_TESTING)
     find_package(Python COMPONENTS Interpreter Development.Embed REQUIRED)
+    execute_process(
+        COMMAND "${Python_EXECUTABLE}" -c "import site; print(site.getsitepackages()[0])"
+        OUTPUT_VARIABLE GENADCS_PYTHON_SITE_PACKAGES
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    foreach(component satellite_geometry satellite_panel)
+        add_executable(cpp_test_${component}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/satellite_geometry/test_${component}.cpp
+        )
+        target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
+        target_compile_definitions(cpp_test_${component} PRIVATE
+            GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
+        )
+    endforeach()
+    foreach(component adcs_subsystem effects magnetorquer reaction_wheel)
+        add_executable(cpp_test_${component}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/test_${component}.cpp
+        )
+        target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
+        target_compile_definitions(cpp_test_${component} PRIVATE
+            GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
+        )
+    endforeach()
     foreach(component derivatives dynamics vector)
         add_executable(cpp_test_math_${component}
             ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/helpers/math/test_${component}.cpp
@@ -189,6 +212,20 @@ target_compile_features(_satellite_geometry PRIVATE cxx_std_17)
 target_include_directories(_satellite_geometry PRIVATE hardware/satellite_geometry)
 set_target_properties(_satellite_geometry PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware/satellite_geometry")
+if(BUILD_TESTING)
+    foreach(component satellite_geometry satellite_panel)
+        add_dependencies(cpp_test_${component} _satellite_geometry)
+        add_test(NAME cpp_${component}
+            COMMAND cpp_test_${component} "$<TARGET_FILE:_satellite_geometry>"
+        )
+    endforeach()
+    foreach(component adcs_subsystem effects magnetorquer reaction_wheel)
+        add_dependencies(cpp_test_${component} _adcs_subsystem)
+        add_test(NAME cpp_${component}
+            COMMAND cpp_test_${component} "$<TARGET_FILE:_adcs_subsystem>"
+        )
+    endforeach()
+endif()
 
 pybind11_add_module(_environment
     environment/bindings.cpp
@@ -244,6 +281,21 @@ set_target_properties(_dynamics PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CUR
 pybind11_add_module(_config config/bindings.cpp config/dynamics_config.cpp config/simulation_config.cpp)
 target_link_libraries(_config PRIVATE Eigen3::Eigen)
 set_target_properties(_config PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config")
+if(BUILD_TESTING)
+    foreach(component dynamics_config simulation_config)
+        add_executable(cpp_test_${component}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/config/test_${component}.cpp
+        )
+        target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
+        target_compile_definitions(cpp_test_${component} PRIVATE
+            GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
+        )
+        add_dependencies(cpp_test_${component} _config)
+        add_test(NAME cpp_${component}
+            COMMAND cpp_test_${component} "$<TARGET_FILE:_config>"
+        )
+    endforeach()
+endif()
 
 pybind11_add_module(_coupled
     propagation/coupled_propagators/bindings.cpp

@@ -11,3 +11,4 @@ requires-python = ">=3.10"
 manifest-path = "Cargo.toml"
 python-source = "../../../../"
 module-name = "GenADCS.backends.rust.config._config"
+features = ["python-extension"]
