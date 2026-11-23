@@ -10,7 +10,8 @@ impl LinearDrift {
     #[pyo3(signature = (rate, initial_value=0.0))]
     fn new(rate: f64, initial_value: f64) -> Self { Self { rate, initial_value } }
     #[pyo3(signature = (value, dt, rng=None))]
-    fn apply(&self, _value: &PyAny, _dt: f64, _rng: Option<&PyAny>) -> PyResult<()> {
+    fn apply(&self, value: &PyAny, dt: f64, rng: Option<&PyAny>) -> PyResult<()> {
+        let _ = (value, dt, rng);
         Err(PyNotImplementedError::new_err(""))
     }
 }

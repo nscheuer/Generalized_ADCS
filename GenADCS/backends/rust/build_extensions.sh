@@ -9,6 +9,7 @@ if [[ "$profile" != debug && "$profile" != release ]]; then
 fi
 
 packages=(
+    "bias:_bias"
     "state:_state"
     "helpers/math:_helpers"
     "helpers/math/frames:_frames"

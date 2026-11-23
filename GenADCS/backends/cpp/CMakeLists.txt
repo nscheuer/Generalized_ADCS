@@ -34,6 +34,13 @@ else()
 endif()
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
+pybind11_add_module(_bias
+    bias/bindings.cpp
+    bias/bias.cpp
+)
+target_compile_features(_bias PRIVATE cxx_std_17)
+set_target_properties(_bias PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bias")
+
 pybind11_add_module(_state
     state/bindings.cpp
     state/state.cpp

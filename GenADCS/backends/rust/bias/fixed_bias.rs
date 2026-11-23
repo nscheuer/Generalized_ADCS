@@ -9,7 +9,8 @@ impl FixedBias {
     #[new]
     fn new(value: f64) -> Self { Self { value } }
     #[pyo3(signature = (value, dt, rng=None))]
-    fn apply(&self, _value: &PyAny, _dt: f64, _rng: Option<&PyAny>) -> PyResult<()> {
+    fn apply(&self, value: &PyAny, dt: f64, rng: Option<&PyAny>) -> PyResult<()> {
+        let _ = (value, dt, rng);
         Err(PyNotImplementedError::new_err(""))
     }
 }
