@@ -4,10 +4,30 @@ from .plot import (plot, Subplot, AttitudePlot, RatePlot, PositionPlot,
                    VelocityPlot, WheelMomentumPlot, WheelSpeedPlot,
                    SatelliteAttitudeQuaternionPlot, SatelliteAttitudeQXPlot,
                    SatelliteAttitudeQYPlot, SatelliteAttitudeQZPlot,
-                   SatelliteAttitudeQWPlot)
+                   SatelliteAttitudeQWPlot, EulerAnglePlot, MRPPlot,
+                   RodriguezPlot, BodyAngularRatePlot,
+                   InertialAngularRatePlot, AngularMagnitudePlot,
+                   AltitudePlot, LatLonPlot, SunVectorPlot, EclipseStatePlot,
+                   EarthVectorPlot)
 
 __all__ = ["plot", "Subplot", "AttitudePlot", "RatePlot", "PositionPlot",
            "VelocityPlot", "WheelMomentumPlot", "WheelSpeedPlot",
            "SatelliteAttitudeQuaternionPlot", "SatelliteAttitudeQXPlot",
            "SatelliteAttitudeQYPlot", "SatelliteAttitudeQZPlot",
            "SatelliteAttitudeQWPlot"]
+__all__ += ["EulerAnglePlot", "MRPPlot", "RodriguezPlot"]
+__all__ += ["BodyAngularRatePlot", "InertialAngularRatePlot", "AngularMagnitudePlot"]
+__all__ += ["AltitudePlot", "LatLonPlot"]
+__all__ += ["SunVectorPlot", "EclipseStatePlot", "EarthVectorPlot"]
+from .plot import (AtmosphericDensityPlot, RelativeAtmosphericVelocityPlot,
+                   MagneticFieldPlot, MagneticFieldMagnitudePlot)
+__all__ += ["AtmosphericDensityPlot", "RelativeAtmosphericVelocityPlot",
+            "MagneticFieldPlot", "MagneticFieldMagnitudePlot"]
+from .plot import (AerodynamicForcePlot, AerodynamicTorquePlot, SRPForcePlot,
+                   SRPTorquePlot, LunisolarForcePlot, GravityGradientTorquePlot,
+                   JForcePlot, MagneticTorquePlot, ForcePlot, TorquePlot)
+__all__ += ["AerodynamicForcePlot", "AerodynamicTorquePlot", "SRPForcePlot",
+            "SRPTorquePlot", "LunisolarForcePlot"]
+__all__ += ["GravityGradientTorquePlot", "JForcePlot"]
+__all__ += ["MagneticTorquePlot"]
+__all__ += ["ForcePlot", "TorquePlot"]

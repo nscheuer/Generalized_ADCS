@@ -47,7 +47,7 @@ def main():
     result = simulate(satellite, environment, dynamics, state, solver, backend="Rust")
     elapsed = perf_counter() - start
     print(f"Backend: rust; integrator: RK4; elapsed: {elapsed:.2f} s")
-    print(f"Recorded samples: {len(result.times_s):,}; final time: {steps * dt:,.0f} s")
+    print(f"Recorded samples: {len(result.satellites["sat_000"].times_s):,}; final time: {steps * dt:,.0f} s")
     return result
 
 
