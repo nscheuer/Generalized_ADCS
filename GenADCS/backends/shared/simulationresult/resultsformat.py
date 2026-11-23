@@ -1,0 +1,41 @@
+"""Select recorded fields and full-dt sampling interval for a simulation."""
+
+from dataclasses import dataclass, fields
+
+
+@dataclass(frozen=True, slots=True)
+class ResultsFormat:
+    satellite_attitude: bool = True
+    satellite_rate: bool = True
+    satellite_wheel_momenta: bool = True
+    satellite_position: bool = False
+    satellite_velocity: bool = False
+    relative_sun_vector: bool = False
+    relative_earth_vector: bool = False
+    atmospheric_density: bool = False
+    relative_atmospheric_velocity: bool = False
+    magnetic_field: bool = False
+    eclipse_state: bool = False
+    gravity_force: bool = False
+    aerodynamic_force: bool = False
+    solar_radiation_force: bool = False
+    J2_force: bool = False
+    J3_force: bool = False
+    J4_force: bool = False
+    J5_force: bool = False
+    J6_force: bool = False
+    lunisolar_force: bool = False
+    gravity_gradient_torque: bool = False
+    aerodynamic_torque: bool = False
+    solar_radiation_torque: bool = False
+    magnetic_torque: bool = False
+    total_force: bool = False
+    total_torque: bool = False
+    N: int = 1
+
+    def __post_init__(self) -> None:
+        if isinstance(self.N, bool) or not isinstance(self.N, int) or self.N < 1:
+            raise ValueError("N must be a positive integer")
+        for name in (field.name for field in fields(self) if field.name != "N"):
+            if not isinstance(getattr(self, name), bool):
+                raise TypeError(f"{name} must be a bool")

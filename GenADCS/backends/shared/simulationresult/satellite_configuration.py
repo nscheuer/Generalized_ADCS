@@ -35,9 +35,11 @@ def from_satellite(satellite):
             ],
         },
         "reaction_wheels": [
-            {**{name: _values(getattr(wheel, name)) for name in ("position", "orientation", "misalignment")},
-             **{name: float(getattr(wheel, name)) for name in ("rotational_inertia", "max_torque", "max_momentum")},
-             "effects": _packed(wheel.effects)}
+            ({"legacy_rw": _packed(wheel), "rotational_inertia": float(wheel.J)}
+             if hasattr(wheel, "J") else
+             {**{name: _values(getattr(wheel, name)) for name in ("position", "orientation", "misalignment")},
+              **{name: float(getattr(wheel, name)) for name in ("rotational_inertia", "max_torque", "max_momentum")},
+              "effects": _packed(wheel.effects)})
             for wheel in adcs.reaction_wheels
         ],
         "magnetorquers": [
@@ -58,10 +60,11 @@ def to_satellite(config, backend):
     geometry = hardware.SatelliteGeometry(
         geometry_data["mass"], np.asarray(geometry_data["inertia"], dtype=float),
         panels, geometry_data["center_of_mass"])
-    wheels = [hardware.ReactionWheel(
-        wheel["position"], wheel["orientation"], wheel["rotational_inertia"],
-        wheel["max_torque"], wheel["max_momentum"], wheel["misalignment"],
-        _unpacked(wheel["effects"])) for wheel in config["reaction_wheels"]]
+    wheels = [(_unpacked(wheel["legacy_rw"]) if "legacy_rw" in wheel else
+              hardware.ReactionWheel(
+                  wheel["position"], wheel["orientation"], wheel["rotational_inertia"],
+                  wheel["max_torque"], wheel["max_momentum"], wheel["misalignment"],
+                  _unpacked(wheel["effects"]))) for wheel in config["reaction_wheels"]]
     magnetorquers = [hardware.Magnetorquer(
         device["position"], device["orientation"], device["max_dipole"],
         device["misalignment"], _unpacked(device["effects"]))

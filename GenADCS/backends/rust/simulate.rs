@@ -42,18 +42,21 @@ fn simulate(
     let solver_ref = solver.as_ref(py);
     let tf: f64 = solver_ref.getattr("tf")?.extract()?;
     let format = match resultsformat {
-        Some(value) => value.as_ref(py).extract::<PyRef<ResultsFormat>>()?.clone(),
-        None => ResultsFormat::new(true, true, true, 1)?,
+        Some(value) => value,
+        None => py.import("GenADCS.backends.shared.simulationresult.resultsformat")?
+            .getattr("ResultsFormat")?.call0()?.into_py(py),
     };
+    let n: usize = format.as_ref(py).getattr("N")?.extract()?;
     let kwargs = PyDict::new(py);
     kwargs.set_item("progress", solver_ref.getattr("progress")?)?;
     kwargs.set_item(
         "progress_chunk_steps",
         solver_ref.getattr("progress_chunk_steps")?,
     )?;
-    kwargs.set_item("record_every", format.N)?;
-    let satellite_config = py.import("GenADCS.backends.shared.simulationresult.satellite_configuration")?
-        .getattr("from_satellite")?.call1((satellite.clone_ref(py),))?.into_py(py);
+    kwargs.set_item("record_every", n)?;
+    let environment_for_record = environment.clone_ref(py);
+    let dynamics_for_record = dynamics.clone_ref(py);
+    let satellite_for_record = satellite.clone_ref(py);
     let result = solver_ref.getattr("propagator")?.call_method(
         "integrate",
         (state.clone_ref(py), satellite, environment, dynamics, tf),
@@ -80,31 +83,15 @@ fn simulate(
     }
     let initial_orbit = state.as_ref(py).getattr("orbit")?;
     let epoch_jd: f64 = initial_orbit.getattr("julian_date")?.extract()?;
-    let interval: f64 = solver_ref.getattr("propagator")?.getattr("dt")?.extract::<f64>()? * format.N as f64;
+    let interval: f64 = solver_ref.getattr("propagator")?.getattr("dt")?.extract::<f64>()? * n as f64;
     let last_time: f64 = times.as_ref(py).get_item(-1)?.extract()?;
     let on_grid = (last_time / interval - (last_time / interval).round()).abs() < 1e-9;
     let end = if on_grid { shape[0] } else { shape[0] - 1 };
     let rows = PySlice::new(py, 0, end as isize, 1);
     let sampled_times = times.as_ref(py).get_item(rows)?;
-    let field = |enabled: bool, start: isize, stop: isize| -> PyResult<PyObject> {
-        if !enabled { return Ok(py.None()); }
-        Ok(vectors.get_item((rows, PySlice::new(py, start, stop, 1)))?.into_py(py))
-    };
-    let result_module = py.import("GenADCS.backends.shared.simulationresult")?;
-    let satellite_result = result_module.getattr("SatelliteResult")?.call1((
-        sampled_times,
-        field(format.attitude_quaternion, 0, 4)?,
-        field(format.satellite_rate, 4, 7)?,
-        field(format.wheel_momenta, 13, shape[1] as isize)?,
-        satellite_config,
-    ))?;
-    let satellites = PyDict::new(py);
-    satellites.set_item("sat_000", satellite_result)?;
-    let result = result_module.getattr("SimulationResult")?.call1((
-        epoch_jd,
-        format.N,
-        backend,
-        satellites,
-    ))?;
+    let sampled_vectors = vectors.get_item((rows, PySlice::new(py, 0, shape[1] as isize, 1)))?;
+    let result = py.import("GenADCS.backends.shared.simulationresult.record")?
+        .getattr("record_samples")?.call1((sampled_times, sampled_vectors, format,
+            satellite_for_record, environment_for_record, dynamics_for_record, epoch_jd, backend))?;
     Ok(result.into_py(py))
 }

@@ -1,8 +1,8 @@
 """Simulation entry point for the coupled Numba backend."""
 
 from .helpers.input_output.resultsformat import ResultsFormat
-from GenADCS.backends.shared.simulationresult import SatelliteResult, SimulationResult
-from GenADCS.backends.shared.simulationresult.satellite_configuration import from_satellite
+from GenADCS.backends.shared.simulationresult import SimulationResult
+from GenADCS.backends.shared.simulationresult.record import record_samples
 from .solver import CoupledSolver, Solver
 from .state import State
 
@@ -37,12 +37,5 @@ def simulate(satellite, environment, dynamics, state, solver, backend="Python", 
     on_grid = len(times_s) == 1 or abs(times_s[-1] / (solver.propagator.dt * resultsformat.N) - round(times_s[-1] / (solver.propagator.dt * resultsformat.N))) < 1e-9
     samples = slice(None) if on_grid else slice(None, -1)
     vectors = state_vectors[samples]
-    satellite_result = SatelliteResult(
-        times_s[samples],
-        vectors[:, 0:4] if resultsformat.attitude_quaternion else None,
-        vectors[:, 4:7] if resultsformat.satellite_rate else None,
-        vectors[:, 13:] if resultsformat.wheel_momenta else None,
-        from_satellite(satellite),
-    )
-    return SimulationResult(state.orbit.julian_date, resultsformat.N, backend,
-                            {"sat_000": satellite_result})
+    return record_samples(times_s[samples], vectors, resultsformat, satellite,
+                          environment, dynamics, state.orbit.julian_date, backend)

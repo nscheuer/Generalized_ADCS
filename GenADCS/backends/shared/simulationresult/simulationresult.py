@@ -11,15 +11,24 @@ import numpy as np
 
 from .satellite_configuration import to_satellite as rebuild_satellite
 
+RESULT_FIELDS = (
+    "satellite_attitude", "satellite_rate", "satellite_wheel_momenta",
+    "satellite_position", "satellite_velocity", "relative_sun_vector",
+    "relative_earth_vector", "atmospheric_density", "relative_atmospheric_velocity",
+    "magnetic_field", "eclipse_state", "gravity_force", "aerodynamic_force",
+    "solar_radiation_force", "J2_force", "J3_force", "J4_force",
+    "J5_force", "J6_force", "lunisolar_force",
+    "gravity_gradient_torque", "aerodynamic_torque", "solar_radiation_torque",
+    "magnetic_torque", "total_force", "total_torque",
+)
+
 
 @dataclass(slots=True)
 class SatelliteResult:
     """Samples for one satellite at elapsed times in seconds."""
 
     times_s: np.ndarray
-    attitude_quaternion: np.ndarray | None
-    satellite_rate: np.ndarray | None
-    wheel_momenta: np.ndarray | None
+    fields: dict[str, np.ndarray]
     satellite_config: dict
     _backend: str = field(default="", init=False, repr=False)
 
@@ -27,20 +36,25 @@ class SatelliteResult:
         """Reconstruct the satellite hardware from its saved configuration."""
         return rebuild_satellite(self.satellite_config, self._backend)
 
+    def __getattr__(self, name):
+        if name in RESULT_FIELDS:
+            return self.fields.get(name)
+        raise AttributeError(name)
+
     def __post_init__(self) -> None:
         self.times_s = np.asarray(self.times_s, dtype=np.float64)
         if self.times_s.ndim != 1 or not len(self.times_s) or not np.all(np.isfinite(self.times_s)):
             raise ValueError("times_s must be a nonempty, finite 1D array")
         if np.any(np.diff(self.times_s) < 0):
             raise ValueError("times_s must be ordered")
-        for name, width in (("attitude_quaternion", 4), ("satellite_rate", 3), ("wheel_momenta", None)):
-            value = getattr(self, name)
-            if value is None:
-                continue
+        for name, value in self.fields.items():
+            if name not in RESULT_FIELDS:
+                raise ValueError(f"unknown result field: {name}")
+            width = 1 if name in ("atmospheric_density", "eclipse_state") else None if name == "satellite_wheel_momenta" else 4 if name == "satellite_attitude" else 3
             array = np.asarray(value, dtype=np.float64)
             if array.ndim != 2 or array.shape[0] != len(self.times_s) or (width is not None and array.shape[1] != width):
                 raise ValueError(f"{name} must have one row per sample and {width or 'a fixed number of'} columns")
-            setattr(self, name, array)
+            self.fields[name] = array
 
 
 @dataclass(slots=True)
@@ -78,7 +92,7 @@ class SimulationResult:
 
         path = Path(path)
         with h5py.File(path, "w") as file:
-            file.attrs["schema_version"] = 4
+            file.attrs["schema_version"] = 5
             file.attrs["backend"] = self.backend
             file.attrs["N"] = self.N
             file.attrs["epoch_jd"] = self.epoch_jd
@@ -87,10 +101,8 @@ class SimulationResult:
                 group = file.create_group(key)
                 group.attrs["satellite_config"] = json.dumps(satellite.satellite_config)
                 group.create_dataset("times_s", data=satellite.times_s)
-                for name in ("attitude_quaternion", "satellite_rate", "wheel_momenta"):
-                    value = getattr(satellite, name)
-                    if value is not None:
-                        group.create_dataset(name, data=value)
+                for name, value in satellite.fields.items():
+                    group.create_dataset(name, data=value)
         return path
 
     @classmethod
@@ -99,13 +111,12 @@ class SimulationResult:
         import h5py
 
         with h5py.File(path, "r") as file:
-            if file.attrs.get("schema_version") != 4:
+            if file.attrs.get("schema_version") != 5:
                 raise ValueError("Unsupported SimulationResult HDF5 schema version")
             satellites = {}
             for key, group in file.items():
-                fields = {name: group[name][...] if name in group else None for name in
-                          ("attitude_quaternion", "satellite_rate", "wheel_momenta")}
-                satellites[key] = SatelliteResult(group["times_s"][...], **fields,
-                                                  satellite_config=json.loads(group.attrs["satellite_config"]))
+                fields = {name: group[name][...] for name in group if name != "times_s"}
+                satellites[key] = SatelliteResult(group["times_s"][...], fields,
+                                                  json.loads(group.attrs["satellite_config"]))
             return cls(epoch_jd=float(file.attrs["epoch_jd"]), N=int(file.attrs["N"]),
                        backend=str(file.attrs["backend"]), satellites=satellites)

@@ -1,6 +1,6 @@
 #pragma once
 #include <pybind11/pybind11.h>
-#include "helpers/input_output/resultsformat.hpp"
+#include <string>
 namespace omni::simulation {
 namespace py = pybind11;
 py::object simulate(py::object satellite, py::object environment,

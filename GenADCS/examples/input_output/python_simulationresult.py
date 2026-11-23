@@ -42,7 +42,7 @@ def main():
     )
     solver = CoupledSolver(CoupledDOP853Propagator(dt=dt), tf=steps * dt, progress=True)
     resultsformat = ResultsFormat(
-        attitude_quaternion=True, satellite_rate=False, wheel_momenta=False, N=4
+        satellite_attitude=True, satellite_rate=False, satellite_wheel_momenta=False, N=4
     )
     result = simulate(
         satellite, environment, dynamics, state, solver,
