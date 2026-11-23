@@ -110,14 +110,27 @@ fn _helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 }
 
 #[cfg(test)]
-#[path = "../../../../tests/backends/rust/helpers/math/rotations/quaternion/test_quaternion.rs"]
-mod test_rotation_quaternion;
-#[cfg(test)]
 #[path = "../../../../tests/backends/rust/helpers/math/rotations/dcm/test_dcm.rs"]
 mod test_rotation_dcm;
 #[cfg(test)]
 #[path = "../../../../tests/backends/rust/helpers/math/rotations/mrp/test_mrp.rs"]
 mod test_rotation_mrp;
 #[cfg(test)]
+#[path = "../../../../tests/backends/rust/helpers/math/rotations/quaternion/test_quaternion.rs"]
+mod test_rotation_quaternion;
+#[cfg(test)]
 #[path = "../../../../tests/backends/rust/helpers/math/rotations/rodrigues/test_rodrigues.rs"]
 mod test_rotation_rodrigues;
+
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/helpers/math/test_derivatives.rs"]
+mod test_derivatives;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/helpers/math/test_dynamics.rs"]
+mod test_dynamics;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/helpers/math/time/test_conversions.rs"]
+mod test_time_conversions;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/helpers/math/test_vector.rs"]
+mod test_vector;

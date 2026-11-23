@@ -37,6 +37,23 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 include(CTest)
 if(BUILD_TESTING)
     find_package(Python COMPONENTS Interpreter Development.Embed REQUIRED)
+    foreach(component derivatives dynamics vector)
+        add_executable(cpp_test_math_${component}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/helpers/math/test_${component}.cpp
+            helpers/math/${component}.cpp
+        )
+        if(component STREQUAL "derivatives")
+            target_sources(cpp_test_math_${component} PRIVATE
+                helpers/math/vector.cpp
+                helpers/math/rotations/quaternion/algebra.cpp
+                helpers/math/rotations/quaternion/conversions.cpp
+            )
+            target_include_directories(cpp_test_math_${component} PRIVATE helpers/math/rotations)
+        endif()
+        target_link_libraries(cpp_test_math_${component} PRIVATE Eigen3::Eigen)
+        target_include_directories(cpp_test_math_${component} PRIVATE helpers/math helpers/math/rotations)
+        add_test(NAME cpp_math_${component} COMMAND cpp_test_math_${component})
+    endforeach()
     add_library(state_native_core STATIC
         state/attitude_state.cpp
         state/internal_state.cpp
@@ -75,6 +92,12 @@ if(BUILD_TESTING)
         target_link_libraries(cpp_test_rotations_${component} PRIVATE rotations_native_core)
         add_test(NAME cpp_rotations_${component} COMMAND cpp_test_rotations_${component})
     endforeach()
+    add_executable(cpp_test_time_conversions
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/helpers/math/time/test_conversions.cpp
+        helpers/math/time/conversions.cpp
+    )
+    target_include_directories(cpp_test_time_conversions PRIVATE helpers/math/time)
+    add_test(NAME cpp_time_conversions COMMAND cpp_test_time_conversions)
     add_library(frames_native_core STATIC
         helpers/math/frames/frames.cpp
         helpers/math/frames/conversions.cpp
