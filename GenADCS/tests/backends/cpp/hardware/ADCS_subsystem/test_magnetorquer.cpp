@@ -29,11 +29,11 @@ int main(int argc, char** argv) {
     mtq.attr("effects") = effects;
     CHECK(field(mtq, "effects").is(effects));
     CHECK(py::len(field(mtq, "noises")) == 2);
-    CHECK(field(mtq, "noises")[0].is(noise_a));
-    CHECK(field(mtq, "noises")[1].is(noise_b));
+    CHECK(item(field(mtq, "noises"), 0).is(noise_a));
+    CHECK(item(field(mtq, "noises"), 1).is(noise_b));
     CHECK(py::len(field(mtq, "biases")) == 2);
-    CHECK(field(mtq, "biases")[0].is(bias_a));
-    CHECK(field(mtq, "biases")[1].is(bias_b));
+    CHECK(item(field(mtq, "biases"), 0).is(bias_a));
+    CHECK(item(field(mtq, "biases"), 1).is(bias_b));
 
     py::dict scope;
     py::exec(R"PY(
@@ -51,8 +51,8 @@ calls = []
     apply_effects.append(scope["Add"](-0.5, calls));
     mtq.attr("effects") = apply_effects;
     CHECK(mtq.attr("apply_errors")(1.0, 0.125, rng).cast<double>() == 2.5);
-    CHECK(calls[0][1].cast<double>() == 0.125 && calls[0][2].is(rng));
-    CHECK(calls[1][0].cast<double>() == 3.0 && calls[1][2].is(rng));
+    CHECK(item(item(calls, 0), 1).cast<double>() == 0.125 && item(item(calls, 0), 2).is(rng));
+    CHECK(item(item(calls, 1), 0).cast<double>() == 3.0 && item(item(calls, 1), 2).is(rng));
 
     mtq.attr("position") = py::make_tuple(4, 5, 6);
     mtq.attr("max_dipole") = 0.5;

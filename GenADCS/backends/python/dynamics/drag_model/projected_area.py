@@ -10,6 +10,8 @@ from .._geometry import prepare_panels
 @njit(cache=True)
 def projected_area_drag_force(velocity_relative_i, q_b_from_i, density, normals_b, areas, drag_coefficients):
     """Return aerodynamic drag force in inertial coordinates [N]."""
+    if len(normals_b) != len(areas) or len(drag_coefficients) != len(areas):
+        raise ValueError("panel arrays must have matching row counts")
     velocity_b = inertial_to_body(velocity_relative_i, q_b_from_i)
     speed = np.sqrt(np.dot(velocity_b, velocity_b))
     force_b = np.zeros(3)
@@ -24,6 +26,8 @@ def projected_area_drag_force(velocity_relative_i, q_b_from_i, density, normals_
 @njit(cache=True)
 def projected_area_drag_torque(velocity_relative_i, q_b_from_i, density, normals_b, arms_b, areas, drag_coefficients):
     """Return aerodynamic drag torque about the center of mass in body coordinates [N m]."""
+    if len(normals_b) != len(areas) or len(arms_b) != len(areas) or len(drag_coefficients) != len(areas):
+        raise ValueError("panel arrays must have matching row counts")
     velocity_b = inertial_to_body(velocity_relative_i, q_b_from_i)
     speed = np.sqrt(np.dot(velocity_b, velocity_b))
     torque_b = np.zeros(3)

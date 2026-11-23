@@ -31,7 +31,7 @@ calls = []
     effects.append(effect_type("square", py::cpp_function([](double x) { return x * x; }), calls));
     CHECK(apply(4.0, effects, 0.25, rng).cast<double>() == 121.0);
     CHECK(py::len(calls) == 3);
-    CHECK(calls[0][0].cast<std::string>() == "double");
+    CHECK(item(item(calls, 0), 0).cast<std::string>() == "double");
     CHECK(item(item(calls, 0), 1).cast<double>() == 4.0);
     CHECK(item(item(calls, 1), 1).cast<double>() == 8.0);
     CHECK(item(item(calls, 2), 1).cast<double>() == 11.0);

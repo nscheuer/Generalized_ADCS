@@ -25,9 +25,9 @@ int main(int argc, char** argv) {
     py::list typed_effects; typed_effects.append(noise); typed_effects.append(bias);
     wheel.attr("effects") = typed_effects;
     CHECK(py::len(field(wheel, "noises")) == 1);
-    CHECK(field(wheel, "noises")[0].is(noise));
+    CHECK(item(field(wheel, "noises"), 0).is(noise));
     CHECK(py::len(field(wheel, "biases")) == 1);
-    CHECK(field(wheel, "biases")[0].is(bias));
+    CHECK(item(field(wheel, "biases"), 0).is(bias));
 
     py::dict scope;
     py::exec(R"PY(
@@ -45,8 +45,8 @@ calls = []
     effects.append(scope["Add"](0.25, calls));
     wheel.attr("effects") = effects;
     CHECK(wheel.attr("apply_errors")(2.0, 0.5, rng).cast<double>() == 1.25);
-    CHECK(calls[0][1].cast<double>() == 0.5 && calls[0][2].is(rng));
-    CHECK(calls[1][0].cast<double>() == 1.0 && calls[1][2].is(rng));
+    CHECK(item(item(calls, 0), 1).cast<double>() == 0.5 && item(item(calls, 0), 2).is(rng));
+    CHECK(item(item(calls, 1), 0).cast<double>() == 1.0 && item(item(calls, 1), 2).is(rng));
 
     wheel.attr("position") = py::make_tuple(4, 5, 6);
     wheel.attr("rotational_inertia") = 0.05;

@@ -37,6 +37,26 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 include(CTest)
 if(BUILD_TESTING)
     find_package(Python COMPONENTS Interpreter Development.Embed REQUIRED)
+    add_library(dynamics_native_test_core STATIC
+        dynamics/drag_model/projected_area.cpp
+        dynamics/gravity_gradient_model/static.cpp
+        dynamics/residual_dipole_model/static.cpp
+        dynamics/srp_model/projected_area.cpp
+        dynamics/third_body_model/lunisolar.cpp
+        dynamics/zonal_model/zonal.cpp
+        dynamics/_geometry.cpp
+        environment/gravity/j_gravity_model.cpp
+    )
+    target_compile_features(dynamics_native_test_core PUBLIC cxx_std_17)
+    target_include_directories(dynamics_native_test_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(dynamics_native_test_core PUBLIC Eigen3::Eigen)
+    foreach(component drag_model gravity_gradient_model residual_dipole_model srp_model third_body_model zonal_model)
+        add_executable(cpp_test_dynamics_${component}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/dynamics/${component}/test_$<IF:$<STREQUAL:${component},gravity_gradient_model>,static,$<IF:$<STREQUAL:${component},residual_dipole_model>,static,$<IF:$<STREQUAL:${component},third_body_model>,lunisolar,$<IF:$<STREQUAL:${component},zonal_model>,zonal,projected_area>>>>.cpp")
+        target_include_directories(cpp_test_dynamics_${component} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/dynamics")
+        target_link_libraries(cpp_test_dynamics_${component} PRIVATE dynamics_native_test_core)
+        add_test(NAME cpp_dynamics_${component} COMMAND cpp_test_dynamics_${component})
+    endforeach()
     find_program(CARGO_EXECUTABLE cargo REQUIRED)
     add_library(environment_native_test_core STATIC
         environment/native_models.cpp
