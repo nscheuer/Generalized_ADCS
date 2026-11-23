@@ -53,6 +53,20 @@ if(BUILD_TESTING)
         target_link_libraries(cpp_test_${component} PRIVATE state_native_core)
         add_test(NAME cpp_${component} COMMAND cpp_test_${component})
     endforeach()
+    add_library(frames_native_core STATIC
+        helpers/math/frames/frames.cpp
+        helpers/math/frames/conversions.cpp
+    )
+    target_compile_features(frames_native_core PUBLIC cxx_std_17)
+    target_include_directories(frames_native_core PUBLIC helpers/math/frames)
+    target_link_libraries(frames_native_core PUBLIC Eigen3::Eigen)
+    foreach(component frames conversions)
+        add_executable(cpp_test_frames_${component}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/helpers/math/frames/test_${component}.cpp
+        )
+        target_link_libraries(cpp_test_frames_${component} PRIVATE frames_native_core)
+        add_test(NAME cpp_frames_${component} COMMAND cpp_test_frames_${component})
+    endforeach()
 endif()
 
 pybind11_add_module(_bias

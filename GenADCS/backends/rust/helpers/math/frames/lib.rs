@@ -11,6 +11,14 @@ include!("common.rs");
 include!("frames.rs");
 include!("conversions.rs");
 
+#[cfg(test)]
+#[path = "../../../../../tests/backends/rust/helpers/math/frames/test_frames.rs"]
+mod frame_tests;
+
+#[cfg(test)]
+#[path = "../../../../../tests/backends/rust/helpers/math/frames/test_conversions.rs"]
+mod conversion_tests;
+
 #[pymodule]
 fn _frames(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     macro_rules! add{($($f:ident),*)=>{$(m.add_function(wrap_pyfunction!($f,m)?)?;)*}}

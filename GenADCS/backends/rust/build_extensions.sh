@@ -13,6 +13,7 @@ packages=(
     "state:_state"
     "helpers/math:_helpers"
     "helpers/math/frames:_frames"
+    "helpers/math/frames:_frames"
     "hardware/satellite_geometry:_geometry"
     "hardware/ADCS_subsystem:_subsystem"
     "hardware/satellite:_satellite"
@@ -34,7 +35,7 @@ for entry in "${packages[@]}"; do
     package_dir="$rust_root/$directory"
     options=(build --manifest-path "$package_dir/Cargo.toml" --quiet)
     case "$directory" in
-        state|environment/atmosphere|environment/ephemeris|environment/gravity|environment/magnetic_field_model|propagation/coupled_propagators)
+        state|helpers/math/frames|environment/atmosphere|environment/ephemeris|environment/gravity|environment/magnetic_field_model|propagation/coupled_propagators)
             options+=(--features python-extension)
             ;;
     esac
