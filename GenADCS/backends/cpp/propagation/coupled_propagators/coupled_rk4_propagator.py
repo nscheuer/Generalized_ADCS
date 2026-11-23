@@ -40,11 +40,11 @@ class CoupledRK4Propagator:
         self._configuration = None
 
     def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
-                  progress_chunk_steps=500):
+                  progress_chunk_steps=500, record_every=1):
         from ._coupled import integrate_rk4
         runtime = _prepare(satellite, environment, dynamics)
         y = pack_state(state, runtime.wheel_commands.size)
-        return integrate_rk4(y, state.orbit.julian_date, self.dt, float(tf), runtime, progress)
+        return integrate_rk4(y, state.orbit.julian_date, self.dt, float(tf), runtime, progress, record_every)
 
     def step(self, state, satellite, environment, dynamics):
         if self._configuration != (id(satellite), id(environment), id(dynamics)):

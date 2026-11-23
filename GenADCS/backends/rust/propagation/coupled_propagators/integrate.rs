@@ -4,6 +4,10 @@ fn output(py: Python<'_>, times: Vec<f64>, states: Vec<Vec<f64>>) -> PyResult<Py
     Ok((times.to_pyarray(py), ys).into_py(py))
 }
 
+fn check_interrupt(py: Python<'_>) -> PyResult<()> {
+    py.check_signals()
+}
+
 struct NativeProgress {
     label: &'static str,
     total: Option<usize>,
@@ -113,6 +117,7 @@ pub fn integrate_rk4_native(
     runtime: &Runtime,
     progress: bool,
     progress_chunk_steps: usize,
+    record_every: usize,
 ) -> PyResult<(Vec<f64>, Vec<Vec<f64>>)> {
     if !tf.is_finite() || tf < 0. {
         return Err(PyValueError::new_err(
@@ -149,11 +154,16 @@ pub fn integrate_rk4_native(
         None
     };
     for i in 0..(full + usize::from(remainder > 0.)) {
+        if i % progress_chunk_steps.max(1) == 0 {
+            Python::with_gil(check_interrupt)?;
+        }
         let elapsed = i as f64 * dt;
         let h = if i == full { remainder } else { dt };
         y = rk4_vec(&y, jd + elapsed / 86400., h, runtime)?;
-        times.push(((i + 1) as f64 * dt).min(tf));
-        states.push(y.clone());
+        if (i + 1) % record_every == 0 || i + 1 == full + usize::from(remainder > 0.) {
+            times.push(((i + 1) as f64 * dt).min(tf));
+            states.push(y.clone());
+        }
         if let Some(bar) = bar.as_mut() {
             bar.advance(h);
         }
@@ -178,6 +188,7 @@ pub fn integrate_dop853_native(
     min_step: f64,
     progress: bool,
     progress_chunk_steps: usize,
+    record_every: usize,
 ) -> PyResult<(Vec<f64>, Vec<Vec<f64>>)> {
     if !tf.is_finite() || tf < 0. {
         return Err(PyValueError::new_err(
@@ -207,6 +218,8 @@ pub fn integrate_dop853_native(
         return Ok((times, states));
     }
     let mut t = 0.;
+    let sample_interval = if record_every == 0 { 0. } else { dt * record_every as f64 };
+    let mut next_sample = sample_interval;
     let mut h = dt.min(max_step);
     let mut f = derivative_vec(&y, jd, runtime)?;
     let mut trials = 0usize;
@@ -222,18 +235,25 @@ pub fn integrate_dop853_native(
         None
     };
     while t < tf {
+        if trials % progress_chunk_steps.max(1) == 0 {
+            Python::with_gil(check_interrupt)?;
+        }
         trials += 1;
         if trials > 10_000_000 {
             return Err(PyValueError::new_err("DOP853 exceeded maximum trials"));
         }
         let remaining = tf - t;
-        let step = h.min(max_step).min(remaining);
+        let mut step = h.min(max_step).min(remaining);
+        if sample_interval > 0. && next_sample < tf {
+            step = step.min(next_sample - t);
+        }
         if step <= 0. || t + step == t {
             return Err(PyValueError::new_err(
                 "DOP853 step is too small to advance simulation time",
             ));
         }
-        if step < min_step && remaining > min_step {
+        let boundary_limited = sample_interval > 0. && next_sample < tf && next_sample - t <= min_step;
+        if step < min_step && remaining > min_step && !boundary_limited {
             return Err(PyValueError::new_err(
                 "DOP853 reached min_step before satisfying tolerances",
             ));
@@ -249,8 +269,11 @@ pub fn integrate_dop853_native(
             t += step;
             y = candidate;
             f = next_f;
-            times.push(t);
-            states.push(y.clone());
+            if sample_interval == 0. || (t - next_sample).abs() <= 1e-10 * next_sample.max(1.) {
+                times.push(t);
+                states.push(y.clone());
+                next_sample += sample_interval;
+            }
             if let Some(bar) = bar.as_mut() {
                 bar.advance(step);
             }
@@ -262,7 +285,7 @@ pub fn integrate_dop853_native(
             h = max_step.min(step * factor);
         } else {
             h = step * (0.9 * error.powf(-0.125)).max(0.2);
-            if h < min_step {
+            if h < min_step && !boundary_limited {
                 return Err(PyValueError::new_err(
                     "DOP853 reached min_step before satisfying tolerances",
                 ));
@@ -272,10 +295,14 @@ pub fn integrate_dop853_native(
     if let Some(bar) = bar.as_mut() {
         bar.finish();
     }
+    if sample_interval > 0. && (times.last().unwrap() - tf).abs() > 1e-10 * tf.max(1.) {
+        times.push(tf);
+        states.push(y);
+    }
     Ok((times, states))
 }
 #[pyfunction]
-#[pyo3(signature=(y,jd,dt,tf,runtime,progress=false,progress_chunk_steps=500))]
+#[pyo3(signature=(y,jd,dt,tf,runtime,progress=false,progress_chunk_steps=500,record_every=1))]
 fn integrate_rk4(
     py: Python<'_>,
     y: &PyAny,
@@ -285,7 +312,9 @@ fn integrate_rk4(
     runtime: &PyAny,
     progress: bool,
     progress_chunk_steps: usize,
+    record_every: usize,
 ) -> PyResult<PyObject> {
+    if record_every == 0 { return Err(PyValueError::new_err("record_every must be positive")); }
     if !tf.is_finite() || tf < 0. {
         return Err(PyValueError::new_err(
             "tf must be finite and nonnegative seconds",
@@ -299,12 +328,12 @@ fn integrate_rk4(
     let y = numbers(py, y)?;
     let runtime = Runtime::from_py(py, runtime)?;
     let (times, states) = py.allow_threads(move || {
-        integrate_rk4_native(y, jd, dt, tf, &runtime, progress, progress_chunk_steps)
+        integrate_rk4_native(y, jd, dt, tf, &runtime, progress, progress_chunk_steps, record_every)
     })?;
     output(py, times, states)
 }
 #[pyfunction]
-#[pyo3(signature=(y,jd,dt,tf,runtime,rtol,atol,max_step,min_step,progress=false,progress_chunk_steps=500))]
+#[pyo3(signature=(y,jd,dt,tf,runtime,rtol,atol,max_step,min_step,progress=false,progress_chunk_steps=500,record_every=0))]
 fn integrate_dop853(
     py: Python<'_>,
     y: &PyAny,
@@ -318,6 +347,7 @@ fn integrate_dop853(
     min_step: f64,
     progress: bool,
     progress_chunk_steps: usize,
+    record_every: usize,
 ) -> PyResult<PyObject> {
     if !tf.is_finite() || tf < 0. {
         return Err(PyValueError::new_err(
@@ -345,6 +375,7 @@ fn integrate_dop853(
             min_step,
             progress,
             progress_chunk_steps,
+            record_every,
         )
     })?;
     output(py, times, states)

@@ -13,6 +13,7 @@
 # ADCS/helpers/cholesky_update.py.
 
 # --- direct runtime dependencies ---
+h5py==3.16.0
 matplotlib==3.10.7
 numba==0.65.0
 numpy==2.2.6

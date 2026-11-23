@@ -1,28 +1,13 @@
 """Simulation entry point for the coupled Numba backend."""
 
-from dataclasses import dataclass
-
-import numpy as np
-
+from .helpers.input_output.resultsformat import ResultsFormat
+from GenADCS.backends.shared.simulationresult import SatelliteResult, SimulationResult
+from GenADCS.backends.shared.simulationresult.satellite_configuration import from_satellite
 from .solver import CoupledSolver, Solver
 from .state import State
-from .propagation.coupled_propagators._state_layout import unpack_state
 
 
-@dataclass(slots=True)
-class SimulationResult:
-    """Sampled coupled trajectory with elapsed times in seconds.
-
-    ``state_vectors`` columns are quaternion (0:4), body rates (4:7),
-    inertial position (7:10), inertial velocity (10:13), then wheel momenta.
-    """
-
-    times_s: np.ndarray
-    state_vectors: np.ndarray
-    final_state: State
-
-
-def simulate(satellite, environment, dynamics, state, solver, backend="Python"):
+def simulate(satellite, environment, dynamics, state, solver, backend="Python", resultsformat=None):
     """Integrate the coupled orbit and attitude from the initial state to tf.
 
     ``solver.tf`` is elapsed simulation time in seconds. The Python backend
@@ -37,10 +22,27 @@ def simulate(satellite, environment, dynamics, state, solver, backend="Python"):
     if not isinstance(state, State):
         raise TypeError("state must be an GenADCS.backends.python.state.State")
 
+    if resultsformat is None:
+        resultsformat = ResultsFormat()
+    if not isinstance(resultsformat, ResultsFormat):
+        raise TypeError("resultsformat must be a Python ResultsFormat")
     times_s, state_vectors = solver.propagator.integrate(
         state, satellite, environment, dynamics, solver.tf,
         progress=solver.progress,
         progress_chunk_steps=solver.progress_chunk_steps,
+        record_every=resultsformat.N,
     )
-    final_state = unpack_state(state_vectors[-1], state, solver.tf)
-    return SimulationResult(times_s, state_vectors, final_state)
+    # The integrator includes a terminal row even when its time is not on the
+    # requested recording grid; keep only requested samples in the result.
+    on_grid = len(times_s) == 1 or abs(times_s[-1] / (solver.propagator.dt * resultsformat.N) - round(times_s[-1] / (solver.propagator.dt * resultsformat.N))) < 1e-9
+    samples = slice(None) if on_grid else slice(None, -1)
+    vectors = state_vectors[samples]
+    satellite_result = SatelliteResult(
+        times_s[samples],
+        vectors[:, 0:4] if resultsformat.attitude_quaternion else None,
+        vectors[:, 4:7] if resultsformat.satellite_rate else None,
+        vectors[:, 13:] if resultsformat.wheel_momenta else None,
+        from_satellite(satellite),
+    )
+    return SimulationResult(state.orbit.julian_date, resultsformat.N, backend,
+                            {"sat_000": satellite_result})

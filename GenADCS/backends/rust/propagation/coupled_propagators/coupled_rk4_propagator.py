@@ -17,10 +17,10 @@ class CoupledRK4Propagator:
         self._runtime=None
         self._configuration=None
 
-    def integrate(self,state,satellite,environment,dynamics,tf,progress=False,progress_chunk_steps=500):
+    def integrate(self,state,satellite,environment,dynamics,tf,progress=False,progress_chunk_steps=500,record_every=1):
         runtime=_prepare(satellite,environment,dynamics)
         y=pack_state(state,runtime.wheel_commands.size)
-        return integrate_rk4(y,state.orbit.julian_date,self.dt,float(tf),runtime,progress,progress_chunk_steps)
+        return integrate_rk4(y,state.orbit.julian_date,self.dt,float(tf),runtime,progress,progress_chunk_steps,record_every)
 
     def step(self,state,satellite,environment,dynamics):
         config=(id(satellite),id(environment),id(dynamics))

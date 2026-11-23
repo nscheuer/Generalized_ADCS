@@ -19,11 +19,11 @@ class CoupledDOP853Propagator:
         if self.max_step<=0 or np.isnan(self.max_step):raise ValueError("max_step must be positive")
         if not np.isfinite(self.min_step) or self.min_step<=0 or self.min_step>self.max_step:raise ValueError("min_step must be finite, positive, and no greater than max_step")
 
-    def integrate(self,state,satellite,environment,dynamics,tf,progress=False,progress_chunk_steps=500):
+    def integrate(self,state,satellite,environment,dynamics,tf,progress=False,progress_chunk_steps=500,record_every=0):
         runtime=_prepare(satellite,environment,dynamics)
         y=pack_state(state,runtime.wheel_commands.size)
         atol=np.array([self.atol[0]]) if self._scalar_atol else self.atol
-        return integrate_dop853(y,state.orbit.julian_date,self.dt,float(tf),runtime,self.rtol,atol,self.max_step,self.min_step,progress,progress_chunk_steps)
+        return integrate_dop853(y,state.orbit.julian_date,self.dt,float(tf),runtime,self.rtol,atol,self.max_step,self.min_step,progress,progress_chunk_steps,record_every)
 
     def step(self,state,satellite,environment,dynamics):
         _,vectors=self.integrate(state,satellite,environment,dynamics,self.dt)

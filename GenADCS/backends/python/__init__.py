@@ -8,5 +8,6 @@ from .propagation import AdaptiveRK45AttitudePropagator, CoupledDOP853Propagator
 from .solver import AttitudeSolver, CoupledSolver, OrbitalSolver, Solver
 from .state import AttitudeState, InternalState, OrbitalState, State, WheelMomentumState
 from .simulate import SimulationResult, simulate
+from .helpers.input_output import ResultsFormat
 
 __all__ = [name for name in globals() if not name.startswith("_")]

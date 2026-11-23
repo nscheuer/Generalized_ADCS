@@ -1,6 +1,6 @@
 """Rust-backed ADCS Omni components."""
 
-__all__ = ["SimulationResult", "simulate"]
+__all__ = ["ResultsFormat", "SimulationResult", "simulate"]
 
 
 def __getattr__(name):

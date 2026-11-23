@@ -19,6 +19,7 @@ Cython==3.3.0
 DracoPy==2.2.0
 dill==0.4.1
 fonttools==4.68.0
+h5py==3.16.0
 furo==2025.12.19
 importlib_resources==7.1.0
 iniconfig==2.3.1

@@ -54,7 +54,7 @@ def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
 
 @njit(cache=True)
 def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
-                              max_step, min_step, max_accepted_steps):
+                              max_step, min_step, max_accepted_steps, sample_interval=0.0):
     """Store accepted states while all adaptive trial steps stay inside Numba."""
     capacity = min(max_accepted_steps + 1, 1024)
     capacity = max(capacity, 1)
@@ -64,13 +64,17 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
     states[0, :] = y
     count = 1
     accepted = 0
+    next_sample = (np.floor(t / sample_interval + 1e-10) + 1.0) * sample_interval if sample_interval > 0.0 else 0.0
 
     while t < tf and accepted < max_accepted_steps:
         remaining = tf - t
         step = min(h, max_step, remaining)
+        if sample_interval > 0.0 and next_sample < tf:
+            step = min(step, next_sample - t)
         if step <= 0.0 or t + step == t:
             raise ValueError("DOP853 step is too small to advance simulation time")
-        if step < min_step and remaining > min_step:
+        boundary_limited = sample_interval > 0.0 and next_sample < tf and next_sample - t <= min_step
+        if step < min_step and remaining > min_step and not boundary_limited:
             raise ValueError("DOP853 reached min_step before satisfying tolerances")
 
         candidate, next_f, error = _dop853_attempt(
@@ -82,7 +86,8 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
             t += step
             y = candidate
             f = next_f
-            if count == capacity:
+            save = sample_interval == 0.0 or abs(t - next_sample) <= 1e-10 * max(1.0, next_sample)
+            if save and count == capacity:
                 new_capacity = capacity * 2
                 new_times = np.empty(new_capacity, dtype=np.float64)
                 new_states = np.empty((new_capacity, y.size), dtype=np.float64)
@@ -91,15 +96,18 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
                 times = new_times
                 states = new_states
                 capacity = new_capacity
-            times[count] = t
-            states[count, :] = y
-            count += 1
+            if save:
+                times[count] = t
+                states[count, :] = y
+                count += 1
+                if sample_interval > 0.0:
+                    next_sample += sample_interval
             accepted += 1
             factor = 10.0 if error == 0.0 else min(10.0, max(0.2, 0.9 * error ** (-0.125)))
             h = min(max_step, step * factor)
         else:
             h = step * max(0.2, 0.9 * error ** (-0.125))
-            if h < min_step:
+            if h < min_step and not boundary_limited:
                 raise ValueError("DOP853 reached min_step before satisfying tolerances")
     return times[:count], states[:count, :], y, f, t, h
 
@@ -136,7 +144,7 @@ class CoupledDOP853Propagator:
             raise ValueError("min_step must be finite, positive, and no greater than max_step")
 
     def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
-                  progress_chunk_steps=500):
+                  progress_chunk_steps=500, record_every=None):
         tf = float(tf)
         if not np.isfinite(tf) or tf < 0.0:
             raise ValueError("tf must be finite and nonnegative seconds")
@@ -154,6 +162,10 @@ class CoupledDOP853Propagator:
         if tf == 0.0:
             return np.array([0.0]), y.reshape(1, y.size)
 
+        if record_every is not None and (isinstance(record_every, bool) or not isinstance(record_every, int) or record_every < 1):
+            raise ValueError("record_every must be a positive integer")
+        sample_interval = 0.0 if record_every is None else record_every * self.dt
+
         t = 0.0
         h = min(self.dt, self.max_step)
         f = _derivative(y, state.orbit.julian_date, p)
@@ -163,7 +175,7 @@ class CoupledDOP853Propagator:
             with tqdm(total=1, desc="Compiling Numba kernels", unit="stage") as bar:
                 _integrate_adaptive_chunk(y, f, t, h, state.orbit.julian_date, tf,
                                           p, self.rtol, atol, self.max_step,
-                                          self.min_step, 0)
+                                          self.min_step, 0, sample_interval)
                 bar.update(1)
             time_parts = [np.array([0.0])]
             state_parts = [y.reshape(1, y.size)]
@@ -176,6 +188,7 @@ class CoupledDOP853Propagator:
                         y, f, t, h, state.orbit.julian_date, tf, p,
                         self.rtol, atol, self.max_step, self.min_step,
                         progress_chunk_steps,
+                        sample_interval,
                     )
                     time_parts.append(times[1:])
                     state_parts.append(states[1:, :])
@@ -185,13 +198,22 @@ class CoupledDOP853Propagator:
                         current_main_steps = main_step_count
                     bar.update(current_main_steps - completed_main_steps)
                     completed_main_steps = current_main_steps
-            return np.concatenate(time_parts), np.concatenate(state_parts)
+            times = np.concatenate(time_parts)
+            states = np.concatenate(state_parts)
+            if sample_interval and abs(times[-1] - tf) > 1e-10 * max(1.0, tf):
+                times = np.append(times, tf)
+                states = np.vstack((states, y))
+            return times, states
 
-        times, states, _, _, _, _ = _integrate_adaptive_chunk(
+        times, states, y, _, _, _ = _integrate_adaptive_chunk(
             y, f, t, h, state.orbit.julian_date, tf, p,
             self.rtol, atol, self.max_step, self.min_step,
             2_147_483_647,
+            sample_interval,
         )
+        if sample_interval and abs(times[-1] - tf) > 1e-10 * max(1.0, tf):
+            times = np.append(times, tf)
+            states = np.vstack((states, y))
         return times, states
 
     def step(self, state, satellite, environment, dynamics):

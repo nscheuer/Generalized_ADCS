@@ -26,13 +26,17 @@ def _rk4_step(y, epoch_jd, dt, p):
 
 
 @njit(cache=True)
-def _integrate_chunk(y, initial_jd, dt, full_steps, remainder, p, output, start, count):
+def _integrate_chunk(y, initial_jd, dt, full_steps, remainder, p, output, start, count, record_every):
     """Advance consecutive RK4 steps without returning to Python between them."""
     for row in range(start, start + count):
         elapsed_s = row * dt
         step_dt = remainder if row == full_steps else dt
         y = _rk4_step(y, initial_jd + elapsed_s / SECONDS_PER_DAY, step_dt, p)
-        output[row + 1, :] = y
+        completed = row + 1
+        if completed % record_every == 0:
+            output[completed // record_every, :] = y
+        elif completed == full_steps + int(remainder > 0.0):
+            output[-1, :] = y
     return y
 
 class CoupledRK4Propagator:
@@ -55,7 +59,7 @@ class CoupledRK4Propagator:
         self._configuration = None
 
     def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
-                  progress_chunk_steps=500):
+                  progress_chunk_steps=500, record_every=1):
         """Return elapsed seconds and numeric states for the complete interval.
 
         Numeric state columns are quaternion (0:4), body rates (4:7),
@@ -78,9 +82,16 @@ class CoupledRK4Propagator:
         if remainder <= 1e-12 * max(1.0, tf):
             remainder = 0.0
         step_count = full_steps + int(remainder > 0.0)
-        elapsed = np.minimum(np.arange(step_count + 1, dtype=np.float64) * self.dt, tf)
-        elapsed[-1] = tf
-        output = np.empty((step_count + 1, y.size), dtype=np.float64)
+        if isinstance(record_every, bool) or not isinstance(record_every, int) or record_every < 1:
+            raise ValueError("record_every must be a positive integer")
+        sampled_steps = np.arange(0, step_count + 1, record_every, dtype=np.int64)
+        terminal_extra = sampled_steps[-1] != step_count
+        elapsed = np.minimum(sampled_steps.astype(np.float64) * self.dt, tf)
+        if terminal_extra:
+            elapsed = np.append(elapsed, tf)
+        else:
+            elapsed[-1] = tf
+        output = np.empty((len(elapsed), y.size), dtype=np.float64)
         output[0, :] = y
 
         if progress and step_count:
@@ -88,18 +99,18 @@ class CoupledRK4Propagator:
 
             with tqdm(total=1, desc="Compiling Numba kernels", unit="stage") as bar:
                 _integrate_chunk(y, state.orbit.julian_date, self.dt, full_steps,
-                                 remainder, runtime, output, 0, 0)
+                                 remainder, runtime, output, 0, 0, record_every)
                 bar.update(1)
             with tqdm(total=step_count, desc="Running coupled RK4", unit="step") as bar:
                 for start in range(0, step_count, progress_chunk_steps):
                     count = min(progress_chunk_steps, step_count - start)
                     y = _integrate_chunk(y, state.orbit.julian_date, self.dt,
                                          full_steps, remainder, runtime, output,
-                                         start, count)
+                                         start, count, record_every)
                     bar.update(count)
         elif step_count:
             _integrate_chunk(y, state.orbit.julian_date, self.dt, full_steps,
-                             remainder, runtime, output, 0, step_count)
+                             remainder, runtime, output, 0, step_count, record_every)
         return elapsed, output
 
     def step(self, state, satellite, environment, dynamics):

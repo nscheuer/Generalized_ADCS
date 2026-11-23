@@ -69,6 +69,7 @@ dependencies = [
     "tqdm>=4.60",
     "rich>=13.0",
     "DracoPy>=2.2",
+    "h5py>=3.8",
 ]
 
 # Optional extras

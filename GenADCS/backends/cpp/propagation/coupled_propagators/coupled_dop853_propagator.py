@@ -91,13 +91,13 @@ class CoupledDOP853Propagator:
             raise ValueError("min_step must be finite, positive, and no greater than max_step")
 
     def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
-                  progress_chunk_steps=500):
+                  progress_chunk_steps=500, record_every=0):
         from ._coupled import integrate_dop853
         runtime = _prepare(satellite, environment, dynamics)
         y = pack_state(state, runtime.wheel_commands.size)
         atol = np.array([self.atol[0]]) if self._scalar_atol else self.atol
         return integrate_dop853(y, state.orbit.julian_date, self.dt, float(tf),
-                                runtime, self.rtol, atol, self.max_step, self.min_step, progress)
+                                runtime, self.rtol, atol, self.max_step, self.min_step, progress, record_every)
 
     def step(self, state, satellite, environment, dynamics):
         """Advance by dt seconds using as many adaptive substeps as needed."""
