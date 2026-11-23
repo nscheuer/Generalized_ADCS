@@ -53,6 +53,28 @@ if(BUILD_TESTING)
         target_link_libraries(cpp_test_${component} PRIVATE state_native_core)
         add_test(NAME cpp_${component} COMMAND cpp_test_${component})
     endforeach()
+    add_library(rotations_native_core STATIC
+        helpers/math/rotations/_parameter_base.cpp
+        helpers/math/rotations/quaternion/algebra.cpp
+        helpers/math/rotations/quaternion/conversions.cpp
+        helpers/math/rotations/quaternion/interpolation.cpp
+        helpers/math/rotations/quaternion/quaternion.cpp
+        helpers/math/rotations/dcm/kernels.cpp
+        helpers/math/rotations/dcm/dcm.cpp
+        helpers/math/rotations/mrp/kernels.cpp
+        helpers/math/rotations/mrp/modified_rodrigues_parameters.cpp
+        helpers/math/rotations/rodrigues/kernels.cpp
+        helpers/math/rotations/rodrigues/rodrigues_parameters.cpp
+    )
+    target_include_directories(rotations_native_core PUBLIC helpers/math/rotations)
+    target_link_libraries(rotations_native_core PUBLIC Eigen3::Eigen)
+    foreach(component dcm quaternion mrp rodrigues)
+        add_executable(cpp_test_rotations_${component}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/helpers/math/rotations/${component}/test_${component}.cpp
+        )
+        target_link_libraries(cpp_test_rotations_${component} PRIVATE rotations_native_core)
+        add_test(NAME cpp_rotations_${component} COMMAND cpp_test_rotations_${component})
+    endforeach()
     add_library(frames_native_core STATIC
         helpers/math/frames/frames.cpp
         helpers/math/frames/conversions.cpp

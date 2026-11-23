@@ -108,3 +108,16 @@ fn _helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add("RodriguesParameters", m.getattr("Rodriguez_Parameters")?)?;
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/helpers/math/rotations/quaternion/test_quaternion.rs"]
+mod test_rotation_quaternion;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/helpers/math/rotations/dcm/test_dcm.rs"]
+mod test_rotation_dcm;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/helpers/math/rotations/mrp/test_mrp.rs"]
+mod test_rotation_mrp;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/helpers/math/rotations/rodrigues/test_rodrigues.rs"]
+mod test_rotation_rodrigues;
