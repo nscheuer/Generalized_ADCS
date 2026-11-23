@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.animate\_orbit\_godot module
+==========================================================
+
+.. automodule:: ADCS.helpers.animations.godot.animate_orbit_godot
+   :members:
+   :show-inheritance:
+   :undoc-members:

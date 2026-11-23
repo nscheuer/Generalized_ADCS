@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.disturbances.sentman\_drag\_disturbance module
+=======================================================================
+
+.. automodule:: ADCS.satellite_hardware.disturbances.sentman_drag_disturbance
+   :members:
+   :show-inheritance:
+   :undoc-members:

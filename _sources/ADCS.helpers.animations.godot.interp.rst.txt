@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.interp module
+===========================================
+
+.. automodule:: ADCS.helpers.animations.godot.interp
+   :members:
+   :show-inheritance:
+   :undoc-members:

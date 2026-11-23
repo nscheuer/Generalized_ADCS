@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.protocol module
+=============================================
+
+.. automodule:: ADCS.helpers.animations.godot.protocol
+   :members:
+   :show-inheritance:
+   :undoc-members:

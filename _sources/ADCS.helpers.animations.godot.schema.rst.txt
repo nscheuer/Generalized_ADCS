@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.schema module
+===========================================
+
+.. automodule:: ADCS.helpers.animations.godot.schema
+   :members:
+   :show-inheritance:
+   :undoc-members:

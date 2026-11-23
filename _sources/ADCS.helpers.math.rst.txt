@@ -1,0 +1,18 @@
+ADCS.helpers.math package
+=========================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.helpers.math.spherical_harmonics
+
+Module contents
+---------------
+
+.. automodule:: ADCS.helpers.math
+   :members:
+   :show-inheritance:
+   :undoc-members:

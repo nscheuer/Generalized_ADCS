@@ -1,0 +1,20 @@
+ADCS.environment.atmosphere package
+===================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.environment.atmosphere.atmosphere
+   ADCS.environment.atmosphere.nrlmsise
+   ADCS.environment.atmosphere.smad
+
+Module contents
+---------------
+
+.. automodule:: ADCS.environment.atmosphere
+   :members:
+   :show-inheritance:
+   :undoc-members:

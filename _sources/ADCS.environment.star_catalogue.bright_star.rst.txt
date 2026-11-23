@@ -1,0 +1,7 @@
+ADCS.environment.star\_catalogue.bright\_star module
+====================================================
+
+.. automodule:: ADCS.environment.star_catalogue.bright_star
+   :members:
+   :show-inheritance:
+   :undoc-members:

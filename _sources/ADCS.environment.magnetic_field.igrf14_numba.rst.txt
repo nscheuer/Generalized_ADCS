@@ -1,0 +1,7 @@
+ADCS.environment.magnetic\_field.igrf14\_numba module
+=====================================================
+
+.. automodule:: ADCS.environment.magnetic_field.igrf14_numba
+   :members:
+   :show-inheritance:
+   :undoc-members:

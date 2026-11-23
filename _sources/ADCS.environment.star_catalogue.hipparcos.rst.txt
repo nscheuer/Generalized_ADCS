@@ -1,0 +1,7 @@
+ADCS.environment.star\_catalogue.hipparcos module
+=================================================
+
+.. automodule:: ADCS.environment.star_catalogue.hipparcos
+   :members:
+   :show-inheritance:
+   :undoc-members:

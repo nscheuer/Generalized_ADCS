@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.reader module
+===========================================
+
+.. automodule:: ADCS.helpers.animations.godot.reader
+   :members:
+   :show-inheritance:
+   :undoc-members:

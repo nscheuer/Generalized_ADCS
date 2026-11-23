@@ -1,14 +1,26 @@
 ADCS.environment package
 ========================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.environment.atmosphere
+   ADCS.environment.ephemeris
+   ADCS.environment.kernels
+   ADCS.environment.magnetic_field
+   ADCS.environment.star_catalogue
+
 Submodules
 ----------
 
 .. toctree::
    :maxdepth: 1
 
+   ADCS.environment.environment
    ADCS.environment.igrf
-   ADCS.environment.magnetic_field
    ADCS.environment.star_catalog
 
 Module contents

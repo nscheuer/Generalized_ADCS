@@ -17,6 +17,8 @@ Submodules
 
    ADCS.satellite_hardware.errors.anisotropicnoise
    ADCS.satellite_hardware.errors.bias
+   ADCS.satellite_hardware.errors.bias_with_instability
+   ADCS.satellite_hardware.errors.density_noise
    ADCS.satellite_hardware.errors.noise
 
 Module contents

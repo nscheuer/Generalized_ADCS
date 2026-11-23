@@ -1,0 +1,7 @@
+ADCS.environment.atmosphere.smad module
+=======================================
+
+.. automodule:: ADCS.environment.atmosphere.smad
+   :members:
+   :show-inheritance:
+   :undoc-members:

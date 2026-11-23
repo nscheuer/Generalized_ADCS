@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.assets.stars module
+=================================================
+
+.. automodule:: ADCS.helpers.animations.godot.assets.stars
+   :members:
+   :show-inheritance:
+   :undoc-members:

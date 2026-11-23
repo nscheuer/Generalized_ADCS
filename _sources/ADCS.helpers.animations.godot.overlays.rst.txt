@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.overlays module
+=============================================
+
+.. automodule:: ADCS.helpers.animations.godot.overlays
+   :members:
+   :show-inheritance:
+   :undoc-members:

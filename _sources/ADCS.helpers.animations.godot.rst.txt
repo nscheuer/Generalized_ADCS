@@ -1,0 +1,46 @@
+ADCS.helpers.animations.godot package
+=====================================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.helpers.animations.godot.assets
+   ADCS.helpers.animations.godot.mesh_import
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.helpers.animations.godot.animate_orbit_godot
+   ADCS.helpers.animations.godot.binary_manager
+   ADCS.helpers.animations.godot.client
+   ADCS.helpers.animations.godot.derive
+   ADCS.helpers.animations.godot.fov
+   ADCS.helpers.animations.godot.from_results
+   ADCS.helpers.animations.godot.interp
+   ADCS.helpers.animations.godot.launcher
+   ADCS.helpers.animations.godot.live
+   ADCS.helpers.animations.godot.overlays
+   ADCS.helpers.animations.godot.planetary
+   ADCS.helpers.animations.godot.protocol
+   ADCS.helpers.animations.godot.reader
+   ADCS.helpers.animations.godot.render
+   ADCS.helpers.animations.godot.scene
+   ADCS.helpers.animations.godot.schema
+   ADCS.helpers.animations.godot.shadow
+   ADCS.helpers.animations.godot.stream
+   ADCS.helpers.animations.godot.timeline
+   ADCS.helpers.animations.godot.writer
+
+Module contents
+---------------
+
+.. automodule:: ADCS.helpers.animations.godot
+   :members:
+   :show-inheritance:
+   :undoc-members:

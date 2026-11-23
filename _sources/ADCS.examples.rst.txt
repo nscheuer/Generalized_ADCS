@@ -1,0 +1,20 @@
+ADCS.examples package
+=====================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.examples.basic_simulation
+   ADCS.examples.environment_field
+   ADCS.examples.orbit_elements
+
+Module contents
+---------------
+
+.. automodule:: ADCS.examples
+   :members:
+   :show-inheritance:
+   :undoc-members:

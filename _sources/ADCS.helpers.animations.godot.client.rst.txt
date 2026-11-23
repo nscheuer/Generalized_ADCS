@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.client module
+===========================================
+
+.. automodule:: ADCS.helpers.animations.godot.client
+   :members:
+   :show-inheritance:
+   :undoc-members:

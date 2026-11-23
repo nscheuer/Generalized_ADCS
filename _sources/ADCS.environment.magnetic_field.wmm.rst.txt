@@ -1,0 +1,7 @@
+ADCS.environment.magnetic\_field.wmm module
+===========================================
+
+.. automodule:: ADCS.environment.magnetic_field.wmm
+   :members:
+   :show-inheritance:
+   :undoc-members:

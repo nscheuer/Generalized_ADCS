@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.planetary module
+==============================================
+
+.. automodule:: ADCS.helpers.animations.godot.planetary
+   :members:
+   :show-inheritance:
+   :undoc-members:

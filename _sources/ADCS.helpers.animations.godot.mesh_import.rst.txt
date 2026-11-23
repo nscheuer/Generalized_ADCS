@@ -1,0 +1,18 @@
+ADCS.helpers.animations.godot.mesh\_import package
+==================================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.helpers.animations.godot.mesh_import.importer
+
+Module contents
+---------------
+
+.. automodule:: ADCS.helpers.animations.godot.mesh_import
+   :members:
+   :show-inheritance:
+   :undoc-members:

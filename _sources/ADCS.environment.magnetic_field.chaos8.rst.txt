@@ -1,0 +1,7 @@
+ADCS.environment.magnetic\_field.chaos8 module
+==============================================
+
+.. automodule:: ADCS.environment.magnetic_field.chaos8
+   :members:
+   :show-inheritance:
+   :undoc-members:

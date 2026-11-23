@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.assets.planets module
+===================================================
+
+.. automodule:: ADCS.helpers.animations.godot.assets.planets
+   :members:
+   :show-inheritance:
+   :undoc-members:

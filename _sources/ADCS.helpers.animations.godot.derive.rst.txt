@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.derive module
+===========================================
+
+.. automodule:: ADCS.helpers.animations.godot.derive
+   :members:
+   :show-inheritance:
+   :undoc-members:

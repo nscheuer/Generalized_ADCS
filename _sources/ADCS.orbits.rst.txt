@@ -17,8 +17,10 @@ Submodules
 
    ADCS.orbits.density_model
    ADCS.orbits.ephemeris
+   ADCS.orbits.keplerian_orbit
    ADCS.orbits.orbit
    ADCS.orbits.orbital_state
+   ADCS.orbits.sgp4_orbit
    ADCS.orbits.universal_constants
 
 Module contents

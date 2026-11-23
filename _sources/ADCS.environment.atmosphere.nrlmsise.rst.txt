@@ -1,0 +1,7 @@
+ADCS.environment.atmosphere.nrlmsise module
+===========================================
+
+.. automodule:: ADCS.environment.atmosphere.nrlmsise
+   :members:
+   :show-inheritance:
+   :undoc-members:

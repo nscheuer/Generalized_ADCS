@@ -1,0 +1,7 @@
+ADCS.helpers.plot.states.wheelspeedplot module
+==============================================
+
+.. automodule:: ADCS.helpers.plot.states.wheelspeedplot
+   :members:
+   :show-inheritance:
+   :undoc-members:

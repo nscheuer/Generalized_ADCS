@@ -16,6 +16,7 @@ Submodules
    ADCS.satellite_hardware.sensors.star_tracker_quaternion
    ADCS.satellite_hardware.sensors.sunpair
    ADCS.satellite_hardware.sensors.sunsensor
+   ADCS.satellite_hardware.sensors.sunsensor_earthshine
 
 Module contents
 ---------------

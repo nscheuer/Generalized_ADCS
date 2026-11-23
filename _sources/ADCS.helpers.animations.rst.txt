@@ -1,0 +1,18 @@
+ADCS.helpers.animations package
+===============================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.helpers.animations.godot
+
+Module contents
+---------------
+
+.. automodule:: ADCS.helpers.animations
+   :members:
+   :show-inheritance:
+   :undoc-members:

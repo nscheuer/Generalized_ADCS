@@ -1,0 +1,7 @@
+ADCS.helpers.plot.states.wheelmomentumplot module
+=================================================
+
+.. automodule:: ADCS.helpers.plot.states.wheelmomentumplot
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+ADCS.orbits.sgp4\_orbit module
+==============================
+
+.. automodule:: ADCS.orbits.sgp4_orbit
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -9,6 +9,8 @@ Submodules
 
    ADCS.helpers.plot.states.angularvelocityplot
    ADCS.helpers.plot.states.quaternionplot
+   ADCS.helpers.plot.states.wheelmomentumplot
+   ADCS.helpers.plot.states.wheelspeedplot
 
 Module contents
 ---------------

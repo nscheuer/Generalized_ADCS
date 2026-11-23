@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.launcher module
+=============================================
+
+.. automodule:: ADCS.helpers.animations.godot.launcher
+   :members:
+   :show-inheritance:
+   :undoc-members:

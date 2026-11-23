@@ -1,0 +1,7 @@
+ADCS.environment.ephemeris.de442 module
+=======================================
+
+.. automodule:: ADCS.environment.ephemeris.de442
+   :members:
+   :show-inheritance:
+   :undoc-members:

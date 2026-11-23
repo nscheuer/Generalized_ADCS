@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.stream module
+===========================================
+
+.. automodule:: ADCS.helpers.animations.godot.stream
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+ADCS.environment.atmosphere.atmosphere module
+=============================================
+
+.. automodule:: ADCS.environment.atmosphere.atmosphere
+   :members:
+   :show-inheritance:
+   :undoc-members:

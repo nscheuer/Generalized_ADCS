@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.disturbances.thrust\_disturbance module
+================================================================
+
+.. automodule:: ADCS.satellite_hardware.disturbances.thrust_disturbance
+   :members:
+   :show-inheritance:
+   :undoc-members:

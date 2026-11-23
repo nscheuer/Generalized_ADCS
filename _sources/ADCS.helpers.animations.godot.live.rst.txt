@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.live module
+=========================================
+
+.. automodule:: ADCS.helpers.animations.godot.live
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -11,6 +11,7 @@ Subpackages
    ADCS.controller
    ADCS.environment
    ADCS.estimators
+   ADCS.examples
    ADCS.flight_software
    ADCS.helpers
    ADCS.mc

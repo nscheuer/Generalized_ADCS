@@ -1,0 +1,7 @@
+ADCS.environment.magnetic\_field.igrf14 module
+==============================================
+
+.. automodule:: ADCS.environment.magnetic_field.igrf14
+   :members:
+   :show-inheritance:
+   :undoc-members:

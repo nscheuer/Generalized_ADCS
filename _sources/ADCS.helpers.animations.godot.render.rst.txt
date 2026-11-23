@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.render module
+===========================================
+
+.. automodule:: ADCS.helpers.animations.godot.render
+   :members:
+   :show-inheritance:
+   :undoc-members:

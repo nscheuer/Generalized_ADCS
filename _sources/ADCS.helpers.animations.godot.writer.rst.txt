@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.writer module
+===========================================
+
+.. automodule:: ADCS.helpers.animations.godot.writer
+   :members:
+   :show-inheritance:
+   :undoc-members:

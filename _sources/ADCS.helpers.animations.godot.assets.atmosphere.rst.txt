@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.assets.atmosphere module
+======================================================
+
+.. automodule:: ADCS.helpers.animations.godot.assets.atmosphere
+   :members:
+   :show-inheritance:
+   :undoc-members:

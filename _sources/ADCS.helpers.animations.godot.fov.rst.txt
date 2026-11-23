@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.fov module
+========================================
+
+.. automodule:: ADCS.helpers.animations.godot.fov
+   :members:
+   :show-inheritance:
+   :undoc-members:

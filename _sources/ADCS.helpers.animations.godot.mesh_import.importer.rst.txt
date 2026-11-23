@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.mesh\_import.importer module
+==========================================================
+
+.. automodule:: ADCS.helpers.animations.godot.mesh_import.importer
+   :members:
+   :show-inheritance:
+   :undoc-members:

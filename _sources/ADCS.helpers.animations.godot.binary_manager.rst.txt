@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.binary\_manager module
+====================================================
+
+.. automodule:: ADCS.helpers.animations.godot.binary_manager
+   :members:
+   :show-inheritance:
+   :undoc-members:

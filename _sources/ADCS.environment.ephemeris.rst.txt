@@ -1,0 +1,22 @@
+ADCS.environment.ephemeris package
+==================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.environment.ephemeris.de421
+   ADCS.environment.ephemeris.de441
+   ADCS.environment.ephemeris.de442
+   ADCS.environment.ephemeris.de442s
+   ADCS.environment.ephemeris.ephemeris
+
+Module contents
+---------------
+
+.. automodule:: ADCS.environment.ephemeris
+   :members:
+   :show-inheritance:
+   :undoc-members:

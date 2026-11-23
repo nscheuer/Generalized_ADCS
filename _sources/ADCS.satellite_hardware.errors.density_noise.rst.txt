@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.errors.density\_noise module
+=====================================================
+
+.. automodule:: ADCS.satellite_hardware.errors.density_noise
+   :members:
+   :show-inheritance:
+   :undoc-members:

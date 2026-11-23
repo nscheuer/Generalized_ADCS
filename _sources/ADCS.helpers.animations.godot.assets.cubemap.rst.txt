@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.assets.cubemap module
+===================================================
+
+.. automodule:: ADCS.helpers.animations.godot.assets.cubemap
+   :members:
+   :show-inheritance:
+   :undoc-members:

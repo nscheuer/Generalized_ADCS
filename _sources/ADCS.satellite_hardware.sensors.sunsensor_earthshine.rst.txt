@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.sensors.sunsensor\_earthshine module
+=============================================================
+
+.. automodule:: ADCS.satellite_hardware.sensors.sunsensor_earthshine
+   :members:
+   :show-inheritance:
+   :undoc-members:

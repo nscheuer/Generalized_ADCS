@@ -1,0 +1,7 @@
+ADCS.environment.ephemeris.ephemeris module
+===========================================
+
+.. automodule:: ADCS.environment.ephemeris.ephemeris
+   :members:
+   :show-inheritance:
+   :undoc-members:

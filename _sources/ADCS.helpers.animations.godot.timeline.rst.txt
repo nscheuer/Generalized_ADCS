@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.timeline module
+=============================================
+
+.. automodule:: ADCS.helpers.animations.godot.timeline
+   :members:
+   :show-inheritance:
+   :undoc-members:

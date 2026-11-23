@@ -1,0 +1,10 @@
+ADCS.environment.kernels package
+================================
+
+Module contents
+---------------
+
+.. automodule:: ADCS.environment.kernels
+   :members:
+   :show-inheritance:
+   :undoc-members:

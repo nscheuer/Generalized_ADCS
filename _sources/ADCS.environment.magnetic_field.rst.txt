@@ -1,5 +1,21 @@
-ADCS.environment.magnetic\_field module
-=======================================
+ADCS.environment.magnetic\_field package
+========================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.environment.magnetic_field.chaos8
+   ADCS.environment.magnetic_field.igrf14
+   ADCS.environment.magnetic_field.igrf14_numba
+   ADCS.environment.magnetic_field.igrf_ppigrf
+   ADCS.environment.magnetic_field.magnetic_field
+   ADCS.environment.magnetic_field.wmm
+
+Module contents
+---------------
 
 .. automodule:: ADCS.environment.magnetic_field
    :members:

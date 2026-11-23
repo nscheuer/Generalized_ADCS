@@ -1,0 +1,7 @@
+ADCS.helpers.math.spherical\_harmonics module
+=============================================
+
+.. automodule:: ADCS.helpers.math.spherical_harmonics
+   :members:
+   :show-inheritance:
+   :undoc-members:

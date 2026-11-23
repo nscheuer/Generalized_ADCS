@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.errors.bias\_with\_instability module
+==============================================================
+
+.. automodule:: ADCS.satellite_hardware.errors.bias_with_instability
+   :members:
+   :show-inheritance:
+   :undoc-members:

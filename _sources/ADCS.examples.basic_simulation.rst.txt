@@ -1,0 +1,7 @@
+ADCS.examples.basic\_simulation module
+======================================
+
+.. automodule:: ADCS.examples.basic_simulation
+   :members:
+   :show-inheritance:
+   :undoc-members:

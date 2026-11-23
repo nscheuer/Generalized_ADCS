@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.shadow module
+===========================================
+
+.. automodule:: ADCS.helpers.animations.godot.shadow
+   :members:
+   :show-inheritance:
+   :undoc-members:

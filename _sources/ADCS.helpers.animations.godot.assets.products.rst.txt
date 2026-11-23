@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.assets.products module
+====================================================
+
+.. automodule:: ADCS.helpers.animations.godot.assets.products
+   :members:
+   :show-inheritance:
+   :undoc-members:

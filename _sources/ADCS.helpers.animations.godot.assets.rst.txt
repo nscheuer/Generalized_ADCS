@@ -1,0 +1,24 @@
+ADCS.helpers.animations.godot.assets package
+============================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.helpers.animations.godot.assets.atmosphere
+   ADCS.helpers.animations.godot.assets.cubemap
+   ADCS.helpers.animations.godot.assets.fetch
+   ADCS.helpers.animations.godot.assets.planets
+   ADCS.helpers.animations.godot.assets.products
+   ADCS.helpers.animations.godot.assets.spacecraft
+   ADCS.helpers.animations.godot.assets.stars
+
+Module contents
+---------------
+
+.. automodule:: ADCS.helpers.animations.godot.assets
+   :members:
+   :show-inheritance:
+   :undoc-members:

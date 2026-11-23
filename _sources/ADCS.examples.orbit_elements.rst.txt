@@ -1,0 +1,7 @@
+ADCS.examples.orbit\_elements module
+====================================
+
+.. automodule:: ADCS.examples.orbit_elements
+   :members:
+   :show-inheritance:
+   :undoc-members:

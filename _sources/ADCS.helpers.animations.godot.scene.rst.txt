@@ -1,0 +1,7 @@
+ADCS.helpers.animations.godot.scene module
+==========================================
+
+.. automodule:: ADCS.helpers.animations.godot.scene
+   :members:
+   :show-inheritance:
+   :undoc-members:
