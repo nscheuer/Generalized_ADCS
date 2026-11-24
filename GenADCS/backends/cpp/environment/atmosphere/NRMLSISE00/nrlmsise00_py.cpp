@@ -19,8 +19,14 @@ namespace env = omni::environment;
 
 namespace
 {
-struct NativeNrlmsise
+struct NativeNrlmsise : env::AtmosphericModel
 {
+    double density(const Eigen::Vector3d &p, double jd) const override
+    {
+        std::array<double, 7> history{};
+        history.fill(-1.0);
+        return env::nrlmsise_density(p, jd, 150.0, 150.0, 4.0, true, history);
+    }
 };
 std::array<double, 7> history_from_python(const py::object &value)
 {
@@ -56,7 +62,7 @@ void bind_atmosphere_NRMLSISE00_nrlmsise00(py::module_ &module)
     module.def("nrlmsise00_density", density_inertial, py::arg("position_inertial_m"), py::arg("epoch_jd"),
                py::arg("f107") = 150.0, py::arg("f107a") = 150.0, py::arg("ap") = 4.0,
                py::arg("effective_density") = true, py::arg("ap_array") = py::none());
-    py::class_<NativeNrlmsise>(module, "NRLMSISE00")
+    py::class_<NativeNrlmsise, env::AtmosphericModel, std::shared_ptr<NativeNrlmsise>>(module, "NRLMSISE00")
         .def(py::init<>())
         .def_static("density", density_inertial, py::arg("position_inertial_m"), py::arg("epoch_jd"),
                     py::arg("f107") = 150.0, py::arg("f107a") = 150.0, py::arg("ap") = 4.0,

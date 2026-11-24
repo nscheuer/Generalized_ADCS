@@ -5,6 +5,8 @@ namespace omni::environment
 {
 struct AtmosphericModel
 {
+    virtual ~AtmosphericModel() = default;
+    virtual double density(const Eigen::Vector3d &position, double epoch_jd) const;
 };
 Eigen::Vector3d co_rotating_atmosphere_velocity(
     const Eigen::Vector3d &position, double epoch_jd,

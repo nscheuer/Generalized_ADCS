@@ -1,7 +1,7 @@
 """Plot attitude and rate knowledge error in individual and magnitude modes."""
 
 # Select the backend for this example: "rust", "cpp", or "python".
-backed = "python"
+backed = "cpp"
 
 if backed not in ("rust", "cpp", "python"):
     raise ValueError("backed must be rust, cpp, or python")
