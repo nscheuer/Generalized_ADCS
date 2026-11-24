@@ -319,14 +319,17 @@ if(BUILD_TESTING)
 endif()
 
 pybind11_add_module(_bias
-    bias/bindings.cpp
+    bias/bias_py.cpp
     bias/bias.cpp
 )
 target_compile_features(_bias PRIVATE cxx_std_17)
 set_target_properties(_bias PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bias")
 
+file(GLOB_RECURSE STATE_PYBIND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/state/*_py.cpp")
+
 pybind11_add_module(_state
-    state/bindings.cpp
+    ${STATE_PYBIND_SOURCES}
     state/state.cpp
     state/attitude_state.cpp
     state/internal_state.cpp
@@ -527,8 +530,11 @@ if(BUILD_TESTING)
     endforeach()
 endif()
 
+file(GLOB_RECURSE COUPLED_PYBIND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/propagation/coupled_propagators/*_py.cpp")
+
 pybind11_add_module(_coupled
-    propagation/coupled_propagators/bindings.cpp
+    ${COUPLED_PYBIND_SOURCES}
     propagation/coupled_propagators/_coupled_dynamics.cpp
     propagation/coupled_propagators/coupled_rk4_propagator.cpp
     propagation/coupled_propagators/coupled_dop853_propagator.cpp
@@ -563,10 +569,13 @@ set_target_properties(_coupled PROPERTIES
     VISIBILITY_INLINES_HIDDEN ON
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/propagation/coupled_propagators")
 
-pybind11_add_module(_solver solver/bindings.cpp solver/coupled_solver.cpp solver/solver.cpp)
+file(GLOB_RECURSE SOLVER_PYBIND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/solver/*_py.cpp")
+
+pybind11_add_module(_solver ${SOLVER_PYBIND_SOURCES} solver/coupled_solver.cpp solver/solver.cpp)
 set_target_properties(_solver PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/solver")
 
-pybind11_add_module(_simulate simulate_bindings.cpp simulate.cpp)
+pybind11_add_module(_simulate simulate_py.cpp simulate.cpp)
 set_target_properties(_simulate PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 pybind11_add_module(_satellite hardware/satellite_py.cpp hardware/satellite.cpp)
