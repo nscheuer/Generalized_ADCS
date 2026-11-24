@@ -2,6 +2,7 @@
 
 import numpy as np
 from numba import njit
+from GenADCS.backends.python.helpers.random.philox import standard_normals
 
 from .kernels import (
     rate_measurement, vector_measurement, scalar_sun_measurement,
@@ -80,7 +81,7 @@ def prepare_sensors(sensors, environment):
 
 
 @njit(cache=True)
-def sample_sensors(y, jd, p, config, clean, reading):
+def sample_sensors(y, jd, p, config, clean, reading, seed=np.uint64(0), tick=0):
     """Write every sensor's clean and noisy values into preallocated rows."""
     code, orientation, misalignment, bias, chol, normal, fov, scalars, enabled, offsets, counts, starts = config
     q, w, pos, vel = y[:4], y[4:7], y[7:10], y[10:13]
@@ -112,12 +113,13 @@ def sample_sensors(y, jd, p, config, clean, reading):
         b = bias[i]
         c = chol[i]
         s = scalars[i]
+        draw = standard_normals(seed, tick, i, 3 if kind == 2 else (1 if kind == 3 else (2 if kind == 4 or kind == 5 else WIDTHS[kind])))
         if kind == 0:
             a = rate_measurement(w, ori, mis, b[:3], c[:3, :3], s[0], False, False)
-            v = rate_measurement(w, ori, mis, b[:3], c[:3, :3], s[0], True, True)
+            v = rate_measurement(w, ori, mis, b[:3], c[:3, :3], s[0], True, True, draw)
         elif kind == 1:
             a = vector_measurement(field, q, ori, mis, b[:3], c[:3, :3], s[0], False, False)
-            v = vector_measurement(field, q, ori, mis, b[:3], c[:3, :3], s[0], True, True)
+            v = vector_measurement(field, q, ori, mis, b[:3], c[:3, :3], s[0], True, True, draw)
         elif kind == 2:
             a = star_tracker_measurement(q, ori, mis, c[:3, :3], False)
             earth = -pos
@@ -127,25 +129,25 @@ def sample_sensors(y, jd, p, config, clean, reading):
             sun_occulted = np.dot(sun_sensor, sun_sensor) > 0.0 and sun_sensor[2] > 0.0 and np.arctan2(np.sqrt(sun_sensor[0]**2 + sun_sensor[1]**2), sun_sensor[2]) < fov[i, 0]
             if earth_occulted or sun_occulted:
                 continue
-            v = star_tracker_measurement(q, ori, mis, c[:3, :3], True)
+            v = star_tracker_measurement(q, ori, mis, c[:3, :3], True, draw)
         elif kind == 3:
             if illumination <= 0.0:
                 clean[offset] = np.nan
                 reading[offset] = np.nan
                 continue
             a = np.array([scalar_sun_measurement(sun, q, ori, mis, normal[i], s[1], b[0], s[2], s[0], False, False)])
-            v = np.array([scalar_sun_measurement(sun, q, ori, mis, normal[i], s[1], b[0], s[2], s[0], True, True)])
+            v = np.array([scalar_sun_measurement(sun, q, ori, mis, normal[i], s[1], b[0], s[2], s[0], True, True, draw)])
         elif kind == 4 or kind == 5:
             direction = sun if kind == 4 else -pos
             if not fine_direction_available(direction, q, ori, mis, fov[i], True, illumination > 0 if kind == 4 else True):
                 continue
             a = fine_direction_measurement(direction, q, ori, mis, b[:2], c[:2, :2], False, False)
-            v = fine_direction_measurement(direction, q, ori, mis, b[:2], c[:2, :2], True, True)
+            v = fine_direction_measurement(direction, q, ori, mis, b[:2], c[:2, :2], True, True, draw)
         elif kind == 6:
             a = gnss_measurement(pos, vel, b, c, False, False)
-            v = gnss_measurement(pos, vel, b, c, True, True)
+            v = gnss_measurement(pos, vel, b, c, True, True, draw)
         else:
             a = vector_measurement(specific, q, ori, mis, b[:3], c[:3, :3], s[0], False, False)
-            v = vector_measurement(specific, q, ori, mis, b[:3], c[:3, :3], s[0], True, True)
+            v = vector_measurement(specific, q, ori, mis, b[:3], c[:3, :3], s[0], True, True, draw)
         clean[offset:offset + a.size] = a
         reading[offset:offset + v.size] = v

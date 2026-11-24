@@ -2,17 +2,18 @@
 
 import numpy as np
 from numba import njit
+from GenADCS.backends.python.helpers.random.philox import next_draw, standard_normals
 
 
 @njit(cache=True)
-def gaussian_sample(cholesky_factor):
+def gaussian_sample(cholesky_factor, seed=np.uint64(0), tick=0):
     """Draw correlated zero-mean Gaussian noise using a prepared Cholesky factor."""
-    return cholesky_factor @ np.random.standard_normal(cholesky_factor.shape[0])
+    return cholesky_factor @ standard_normals(seed, tick, 0, cholesky_factor.shape[0])
 
 
 @njit(cache=True)
-def add_gaussian_noise(value, cholesky_factor):
-    return value + gaussian_sample(cholesky_factor)
+def add_gaussian_noise(value, cholesky_factor, seed=np.uint64(0), tick=0):
+    return value + gaussian_sample(cholesky_factor, seed, tick)
 
 
 class Noise:
@@ -38,4 +39,4 @@ class Noise:
             raise ValueError("value length must match noise covariance")
         if rng is not None:
             return value + factor @ rng.standard_normal(value.size)
-        return add_gaussian_noise(value, factor)
+        return value + factor @ next_draw(self, value.size)

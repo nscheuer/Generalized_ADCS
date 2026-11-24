@@ -1,6 +1,7 @@
 """Compiled three-axis magnetometer measurements and attitude information."""
 
 import numpy as np
+from GenADCS.backends.python.helpers.random.philox import next_draw
 from numba import njit
 
 from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import _multiply
@@ -44,11 +45,11 @@ class Magnetometer:
 
     def noisy_biasfree_measurement(self, field_inertial, attitude):
         return vector_measurement(field_inertial, attitude, self.orientation, self.misalignment,
-                                  self.bias, self.noise_cholesky, self.saturation_value, False, True)
+                                  self.bias, self.noise_cholesky, self.saturation_value, False, True, next_draw(self, 3))
 
     def noisy_biased_measurement(self, field_inertial, attitude):
         return vector_measurement(field_inertial, attitude, self.orientation, self.misalignment,
-                                  self.bias, self.noise_cholesky, self.saturation_value, True, True)
+                                  self.bias, self.noise_cholesky, self.saturation_value, True, True, next_draw(self, 3))
 
     def jacobian_bias(self):
         return np.eye(3)

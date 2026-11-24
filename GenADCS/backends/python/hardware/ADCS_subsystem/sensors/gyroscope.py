@@ -1,6 +1,7 @@
 """Compiled three-axis gyroscope measurement model."""
 
 import numpy as np
+from GenADCS.backends.python.helpers.random.philox import next_draw
 from .sensor import Sensor
 from .magnetometer import _saturate
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import rotate_body_to_sensor
@@ -31,11 +32,11 @@ class Gyroscope:
 
     def noisy_biasfree_measurement(self, angular_velocity_body):
         return rate_measurement(angular_velocity_body, self.orientation, self.misalignment,
-                                self.bias, self.noise_cholesky, self.saturation_value, False, True)
+                                self.bias, self.noise_cholesky, self.saturation_value, False, True, next_draw(self, 3))
 
     def noisy_biased_measurement(self, angular_velocity_body):
         return rate_measurement(angular_velocity_body, self.orientation, self.misalignment,
-                                self.bias, self.noise_cholesky, self.saturation_value, True, True)
+                                self.bias, self.noise_cholesky, self.saturation_value, True, True, next_draw(self, 3))
 
     def jacobian_angular_velocity(self):
         return np.eye(3)

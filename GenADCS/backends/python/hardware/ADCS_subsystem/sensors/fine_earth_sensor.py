@@ -1,6 +1,7 @@
 """Numba-compatible fine Earth sensor returning two boresight angles."""
 
 import numpy as np
+from GenADCS.backends.python.helpers.random.philox import next_draw
 
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
     fine_sun_angles, fine_sun_attitude_jacobian,
@@ -36,11 +37,11 @@ class FineEarthSensor:
 
     def noisy_biasfree_measurement(self, earth_inertial, attitude):
         return fine_direction_measurement(earth_inertial, attitude, self.orientation,
-                                          self.misalignment, self.bias, self.noise_cholesky, False, True)
+                                          self.misalignment, self.bias, self.noise_cholesky, False, True, next_draw(self, 2))
 
     def noisy_biased_measurement(self, earth_inertial, attitude):
         return fine_direction_measurement(earth_inertial, attitude, self.orientation,
-                                          self.misalignment, self.bias, self.noise_cholesky, True, True)
+                                          self.misalignment, self.bias, self.noise_cholesky, True, True, next_draw(self, 2))
 
     def jacobian_bias(self):
         return np.eye(2)

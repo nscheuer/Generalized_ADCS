@@ -1,6 +1,7 @@
 """Numba-compatible three-axis specific-force accelerometer."""
 
 import numpy as np
+from GenADCS.backends.python.helpers.random.philox import next_draw
 
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
     rotate_inertial_to_sensor,
@@ -44,12 +45,12 @@ class Accelerometer:
     def noisy_biasfree_measurement(self, acceleration_inertial, gravity_inertial, attitude):
         return vector_measurement(acceleration_inertial - gravity_inertial, attitude,
                                   self.orientation, self.misalignment, self.bias,
-                                  self.noise_cholesky, self.saturation_value, False, True)
+                                  self.noise_cholesky, self.saturation_value, False, True, next_draw(self, 3))
 
     def noisy_biased_measurement(self, acceleration_inertial, gravity_inertial, attitude):
         return vector_measurement(acceleration_inertial - gravity_inertial, attitude,
                                   self.orientation, self.misalignment, self.bias,
-                                  self.noise_cholesky, self.saturation_value, True, True)
+                                  self.noise_cholesky, self.saturation_value, True, True, next_draw(self, 3))
 
     def jacobian_relative_quaternion(self, acceleration_inertial, gravity_inertial, attitude, delta_quaternion):
         force = rotate_inertial_to_sensor(acceleration_inertial - gravity_inertial, attitude,

@@ -56,7 +56,7 @@ def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
 @njit(cache=True)
 def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
                               max_step, min_step, max_accepted_steps, sample_interval=0.0,
-                              sensor_interval=0.0, sensor_config=None, clean=None, reading=None):
+                              sensor_interval=0.0, sensor_config=None, clean=None, reading=None, seed=np.uint64(0)):
     """Store accepted states while all adaptive trial steps stay inside Numba."""
     capacity = min(max_accepted_steps + 1, 1024)
     capacity = max(capacity, 1)
@@ -103,7 +103,7 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
                     sensor_index = int(np.round(t / sensor_interval))
                     if sensor_index < clean.shape[0] and abs(t - sensor_index * sensor_interval) < 1e-9 * max(1.0, t):
                         sample_sensors(y, initial_jd + t / SECONDS_PER_DAY, p,
-                                       sensor_config, clean[sensor_index], reading[sensor_index])
+                                       sensor_config, clean[sensor_index], reading[sensor_index], seed, sensor_index)
                 times[count] = t
                 states[count, :] = y
                 count += 1
@@ -151,7 +151,7 @@ class CoupledDOP853Propagator:
             raise ValueError("min_step must be finite, positive, and no greater than max_step")
 
     def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
-                  progress_chunk_steps=500, record_every=None, sensor_every=0):
+                  progress_chunk_steps=500, record_every=None, sensor_every=0, seed=0):
         tf = float(tf)
         if not np.isfinite(tf) or tf < 0.0:
             raise ValueError("tf must be finite and nonnegative seconds")
@@ -172,7 +172,7 @@ class CoupledDOP853Propagator:
         clean = np.full((sensor_rows, width), np.nan)
         reading = np.full_like(clean, np.nan)
         if sensor_every:
-            sample_sensors(y, state.orbit.julian_date, p, sensor_config, clean[0], reading[0])
+            sample_sensors(y, state.orbit.julian_date, p, sensor_config, clean[0], reading[0], seed, 0)
         if tf == 0.0:
             result = (np.array([0.0]), y.reshape(1, y.size))
             return (*result, clean, reading) if sensor_every else result
@@ -191,7 +191,7 @@ class CoupledDOP853Propagator:
                 _integrate_adaptive_chunk(y, f, t, h, state.orbit.julian_date, tf,
                                           p, self.rtol, atol, self.max_step,
                                           self.min_step, 0, sample_interval,
-                                          self.dt * sensor_every, sensor_config, clean, reading)
+                                          self.dt * sensor_every, sensor_config, clean, reading, seed)
                 bar.update(1)
             time_parts = [np.array([0.0])]
             state_parts = [y.reshape(1, y.size)]
@@ -204,7 +204,7 @@ class CoupledDOP853Propagator:
                         y, f, t, h, state.orbit.julian_date, tf, p,
                         self.rtol, atol, self.max_step, self.min_step,
                         progress_chunk_steps,
-                        sample_interval, self.dt * sensor_every, sensor_config, clean, reading,
+                        sample_interval, self.dt * sensor_every, sensor_config, clean, reading, seed,
                     )
                     time_parts.append(times[1:])
                     state_parts.append(states[1:, :])
@@ -225,7 +225,7 @@ class CoupledDOP853Propagator:
             y, f, t, h, state.orbit.julian_date, tf, p,
             self.rtol, atol, self.max_step, self.min_step,
             2_147_483_647,
-            sample_interval, self.dt * sensor_every, sensor_config, clean, reading,
+            sample_interval, self.dt * sensor_every, sensor_config, clean, reading, seed,
         )
         if sample_interval and abs(times[-1] - tf) > 1e-10 * max(1.0, tf):
             times = np.append(times, tf)

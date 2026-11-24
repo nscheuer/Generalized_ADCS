@@ -5,6 +5,7 @@ from numba import njit
 
 from ADCS.covariance import Covariance
 from ADCS.orbits.universal_constants import TimeConstants
+from GenADCS.backends.python.helpers.random.philox import standard_normals, validate_seed
 
 
 @njit(cache=True)
@@ -14,11 +15,11 @@ def add_bias(value, bias):
 
 
 @njit(cache=True)
-def advance_random_walk_bias(current, standard_deviation, lower, upper, dt_seconds):
+def advance_random_walk_bias(current, standard_deviation, lower, upper, dt_seconds, seed=np.uint64(0), tick=0, stream=0x80000000):
     """Advance a bounded vector random walk by elapsed seconds."""
     if dt_seconds < 0.0:
         raise ValueError("dt_seconds must be nonnegative")
-    candidate = current + standard_deviation * np.sqrt(dt_seconds) * np.random.standard_normal(current.size)
+    candidate = current + standard_deviation * np.sqrt(dt_seconds) * standard_normals(seed, tick, stream, current.size)
     return np.minimum(np.maximum(candidate, lower), upper)
 
 
@@ -40,6 +41,7 @@ class Bias:
         self.std_bias = std_bias.copy()
         self.last_bias_time = float("nan")
         self.bounds = (lo.copy(), hi.copy())
+        self._random_tick = 0
 
     def __bool__(self):
         return not (np.all(self.bias == 0.0) and np.all(self.std_bias == 0.0))
@@ -57,6 +59,7 @@ class Bias:
     def copy(self):
         result = Bias(self.bias, self.std_bias, self.bounds)
         result.estimated_std_bias = self.estimated_std_bias.copy()
+        result._random_tick = self._random_tick
         return result
 
     def process_covariance(self, dt: float = 1.0, *, form: str = "full") -> Covariance:
@@ -68,7 +71,7 @@ class Bias:
     def process_psd(self, *, form: str = "full") -> Covariance:
         return Covariance(np.diagflat(self.std_bias * self.std_bias), form=form, coordinates="bias_rate")
 
-    def _update_bias(self, j2000: float, rng=None) -> None:
+    def _update_bias(self, j2000: float, rng=None, seed=0, stream=0x80000000) -> None:
         j2000 = float(j2000)
         if not np.isfinite(self.last_bias_time):
             self.last_bias_time = j2000
@@ -77,8 +80,12 @@ class Bias:
         if dt_centuries <= 0.0:
             return
         dt_sec = dt_centuries * TimeConstants.cent2sec
-        generator = np.random if rng is None else rng
-        self.bias = generator.normal(loc=self.bias, scale=self.std_bias * np.sqrt(dt_sec))
+        if rng is None:
+            draw = standard_normals(validate_seed(seed), self._random_tick, stream, self.bias.size).reshape(self.bias.shape)
+            self.bias = self.bias + self.std_bias * np.sqrt(dt_sec) * draw
+            self._random_tick += 1
+        else:
+            self.bias = rng.normal(loc=self.bias, scale=self.std_bias * np.sqrt(dt_sec))
         self.bias = np.clip(self.bias, self.bounds[0], self.bounds[1])
         self.last_bias_time = j2000
 

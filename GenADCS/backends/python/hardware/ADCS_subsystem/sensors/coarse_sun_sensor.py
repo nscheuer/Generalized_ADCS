@@ -1,6 +1,7 @@
 """Numba-compatible photodiode coarse Sun sensor."""
 
 import numpy as np
+from GenADCS.backends.python.helpers.random.philox import next_draw
 
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
     sun_in_body, coarse_sun_measurement, coarse_sun_attitude_jacobian,
@@ -54,12 +55,12 @@ class CoarseSunSensor:
     def noisy_biasfree_measurement(self, sun_inertial, attitude):
         return scalar_sun_measurement(sun_inertial, attitude, self.orientation, self.misalignment,
                                       self.normal, self.sensitivity, self.bias, self.noise_std,
-                                      self.saturation_value, False, True)
+                                      self.saturation_value, False, True, next_draw(self, 1))
 
     def noisy_biased_measurement(self, sun_inertial, attitude):
         return scalar_sun_measurement(sun_inertial, attitude, self.orientation, self.misalignment,
                                       self.normal, self.sensitivity, self.bias, self.noise_std,
-                                      self.saturation_value, True, True)
+                                      self.saturation_value, True, True, next_draw(self, 1))
 
     def jacobian_bias(self):
         return 1.0

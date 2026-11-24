@@ -1,6 +1,7 @@
 """Numba-compatible inertial position and velocity GNSS measurement model."""
 
 import numpy as np
+from GenADCS.backends.python.helpers.random.philox import next_draw
 from .kernels import gnss_measurement
 
 
@@ -29,11 +30,11 @@ class GNSS:
 
     def noisy_biasfree_measurement(self, position_inertial, velocity_inertial):
         return gnss_measurement(position_inertial, velocity_inertial, self.bias,
-                                self.noise_cholesky, False, True)
+                                self.noise_cholesky, False, True, next_draw(self, 6))
 
     def noisy_biased_measurement(self, position_inertial, velocity_inertial):
         return gnss_measurement(position_inertial, velocity_inertial, self.bias,
-                                self.noise_cholesky, True, True)
+                                self.noise_cholesky, True, True, next_draw(self, 6))
 
     def jacobian_relative_quaternion(self):
         return np.zeros((6, 3))

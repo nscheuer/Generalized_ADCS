@@ -1,6 +1,7 @@
 """Numba-compatible autonomous star-tracker measurement model."""
 
 import numpy as np
+from GenADCS.backends.python.helpers.random.philox import next_draw
 
 from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import (
     _conjugate, _multiply, _normalize_quaternion,
@@ -45,7 +46,7 @@ class AutonomousStarTracker:
 
     def noisy_biasfree_measurement(self, attitude):
         return star_tracker_measurement(attitude, self.orientation, self.misalignment,
-                                        self.noise_cholesky, True)
+                                        self.noise_cholesky, True, next_draw(self, 3))
 
     def noisy_biased_measurement(self, attitude):
         return self.noisy_biasfree_measurement(attitude)

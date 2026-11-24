@@ -5,6 +5,7 @@ from numba import njit
 
 from GenADCS.backends.python.bias.bias import add_bias
 from GenADCS.backends.python.noise.noise import add_gaussian_noise
+from GenADCS.backends.python.helpers.random.philox import standard_normals
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
     coarse_sun_measurement, fine_sun_angles, mounting_dcm,
     rotate_body_to_sensor, rotate_inertial_to_sensor, sun_in_body,
@@ -19,74 +20,74 @@ from GenADCS.backends.python.helpers.math.vector import skew
 
 @njit(cache=True)
 def vector_measurement(vector, attitude, orientation, misalignment, bias,
-                       noise_cholesky, saturation, with_bias, with_noise):
+                       noise_cholesky, saturation, with_bias, with_noise, noise_draw=None):
     """Magnetometer or accelerometer measurement in sensor coordinates."""
     result = rotate_inertial_to_sensor(vector, attitude, orientation, misalignment)
     if with_bias:
         result = add_bias(result, bias)
     if with_noise:
-        result = add_gaussian_noise(result, noise_cholesky)
+        result = add_gaussian_noise(result, noise_cholesky) if noise_draw is None else result + noise_cholesky @ noise_draw
     return saturate_vector(result, saturation)
 
 
 @njit(cache=True)
 def rate_measurement(angular_velocity_body, orientation, misalignment, bias,
-                     noise_cholesky, saturation, with_bias, with_noise):
+                     noise_cholesky, saturation, with_bias, with_noise, noise_draw=None):
     result = rotate_body_to_sensor(angular_velocity_body, orientation, misalignment)
     if with_bias:
         result = add_bias(result, bias)
     if with_noise:
-        result = add_gaussian_noise(result, noise_cholesky)
+        result = add_gaussian_noise(result, noise_cholesky) if noise_draw is None else result + noise_cholesky @ noise_draw
     return saturate_vector(result, saturation)
 
 
 @njit(cache=True)
 def scalar_sun_measurement(sun_inertial, attitude, orientation, misalignment, normal,
-                           sensitivity, bias, noise_std, saturation, with_bias, with_noise):
+                           sensitivity, bias, noise_std, saturation, with_bias, with_noise, noise_draw=None):
     result = coarse_sun_measurement(sun_inertial, attitude, orientation, misalignment,
                                     normal, sensitivity)
     if with_bias:
         result += bias
     if with_noise:
-        result += noise_std * np.random.standard_normal()
+        result += noise_std * (standard_normals(np.uint64(0), 0, 0, 1)[0] if noise_draw is None else noise_draw[0])
     return min(max(result, 0.0), saturation)
 
 
 @njit(cache=True)
 def fine_direction_measurement(direction_inertial, attitude, orientation, misalignment,
-                               bias, noise_cholesky, with_bias, with_noise):
+                               bias, noise_cholesky, with_bias, with_noise, noise_draw=None):
     result = fine_sun_angles(direction_inertial, attitude, orientation, misalignment)
     if with_bias:
         result = add_bias(result, bias)
     if with_noise:
-        result = add_gaussian_noise(result, noise_cholesky)
+        result = add_gaussian_noise(result, noise_cholesky) if noise_draw is None else result + noise_cholesky @ noise_draw
     return result
 
 
 @njit(cache=True)
 def gnss_measurement(position_inertial, velocity_inertial, bias, noise_cholesky,
-                     with_bias, with_noise):
+                     with_bias, with_noise, noise_draw=None):
     result = np.concatenate((position_inertial, velocity_inertial))
     if with_bias:
         result = add_bias(result, bias)
     if with_noise:
-        result = add_gaussian_noise(result, noise_cholesky)
+        result = add_gaussian_noise(result, noise_cholesky) if noise_draw is None else result + noise_cholesky @ noise_draw
     return result
 
 
 @njit(cache=True)
 def star_tracker_measurement(attitude, orientation, misalignment, noise_cholesky,
-                             with_noise):
+                             with_noise, noise_draw=None):
     result = _normalize_quaternion(_multiply(misalignment, _multiply(orientation, attitude)))
     if with_noise:
-        noise_quaternion = small_rotation_noise_quaternion_from_cholesky(noise_cholesky)
+        noise_quaternion = small_rotation_noise_quaternion_from_cholesky(noise_cholesky, noise_draw)
         result = _normalize_quaternion(_multiply(noise_quaternion, result))
     return result
 
 
 @njit(cache=True)
-def small_rotation_noise_quaternion_from_cholesky(noise_cholesky):
-    eta = noise_cholesky @ np.random.standard_normal(3)
+def small_rotation_noise_quaternion_from_cholesky(noise_cholesky, noise_draw=None):
+    eta = noise_cholesky @ (standard_normals(np.uint64(0), 0, 0, 3) if noise_draw is None else noise_draw)
     q = np.empty(4)
     q[0] = 1.0
     q[1:4] = 0.5 * eta

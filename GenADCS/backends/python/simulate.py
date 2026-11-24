@@ -10,10 +10,16 @@ from .solver import CoupledSolver, Solver
 from .state import State
 from .hardware.ADCS_subsystem.sensors.sensor_sampling import SENSOR_NAMES, prepare_sensors
 from .propagation.coupled_propagators.coupled_rk4_propagator import CoupledRK4Propagator
+from .helpers.random.philox import validate_seed
 
 
-def simulate(satellite, environment, dynamics, state, solver, backend="Python", resultsformat=None):
-    """Integrate the coupled orbit and attitude, sampling sensors in Numba."""
+def simulate(satellite, environment, dynamics, state, solver, backend="Python", resultsformat=None, seed=0):
+    """Integrate the coupled orbit and attitude, sampling sensors in Numba.
+
+    ``seed`` is a 64-bit Philox key.  A sensor's draw is identified by its
+    subsystem tick and position in ``satellite.adcs.sensors``; adaptive solver
+    substeps and result recording frequency do not advance its random stream.
+    """
     if backend != "Python":
         raise NotImplementedError(f"backend {backend!r} is not implemented for GenADCS")
     if isinstance(solver, Solver):
@@ -28,6 +34,7 @@ def simulate(satellite, environment, dynamics, state, solver, backend="Python", 
         raise TypeError("resultsformat must be a Python ResultsFormat")
     if isinstance(satellite.adcs.N, bool) or not isinstance(satellite.adcs.N, int) or satellite.adcs.N < 1:
         raise ValueError("ADCSSubsystem.N must be a positive integer")
+    seed = validate_seed(seed)
 
     sensor_every = satellite.adcs.N if satellite.adcs.sensors else 0
     # RK4 samples sensors directly at completed steps, without storing those
@@ -39,6 +46,7 @@ def simulate(satellite, environment, dynamics, state, solver, backend="Python", 
         state, satellite, environment, dynamics, solver.tf,
         progress=solver.progress, progress_chunk_steps=solver.progress_chunk_steps,
         record_every=record_every, sensor_every=sensor_every,
+        seed=seed,
     )
     times_s, state_vectors = integration[:2]
     interval = solver.propagator.dt * resultsformat.N

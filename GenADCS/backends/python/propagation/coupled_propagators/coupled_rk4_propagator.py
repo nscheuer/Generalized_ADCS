@@ -28,7 +28,7 @@ def _rk4_step(y, epoch_jd, dt, p):
 
 @njit(cache=True)
 def _integrate_chunk(y, initial_jd, dt, full_steps, remainder, p, output, start, count, record_every,
-                     sensor_every, sensor_config, clean, reading):
+                     sensor_every, sensor_config, clean, reading, seed):
     """Advance consecutive RK4 steps without returning to Python between them."""
     for row in range(start, start + count):
         elapsed_s = row * dt
@@ -38,7 +38,7 @@ def _integrate_chunk(y, initial_jd, dt, full_steps, remainder, p, output, start,
         if sensor_every > 0 and completed <= full_steps and completed % sensor_every == 0:
             index = completed // sensor_every
             sample_sensors(y, initial_jd + completed * dt / SECONDS_PER_DAY, p,
-                           sensor_config, clean[index], reading[index])
+                           sensor_config, clean[index], reading[index], seed, index)
         if completed % record_every == 0:
             output[completed // record_every, :] = y
         elif completed == full_steps + int(remainder > 0.0):
@@ -65,7 +65,7 @@ class CoupledRK4Propagator:
         self._configuration = None
 
     def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
-                  progress_chunk_steps=500, record_every=1, sensor_every=0):
+                  progress_chunk_steps=500, record_every=1, sensor_every=0, seed=0):
         """Return elapsed seconds and numeric states for the complete interval.
 
         Numeric state columns are quaternion (0:4), body rates (4:7),
@@ -105,7 +105,7 @@ class CoupledRK4Propagator:
         clean = np.full((sensor_rows, width), np.nan)
         reading = np.full_like(clean, np.nan)
         if sensor_every:
-            sample_sensors(y, state.orbit.julian_date, runtime, sensor_config, clean[0], reading[0])
+            sample_sensors(y, state.orbit.julian_date, runtime, sensor_config, clean[0], reading[0], seed, 0)
 
         if progress and step_count:
             from tqdm import tqdm
@@ -113,7 +113,7 @@ class CoupledRK4Propagator:
             with tqdm(total=1, desc="Compiling Numba kernels", unit="stage") as bar:
                 _integrate_chunk(y, state.orbit.julian_date, self.dt, full_steps,
                                  remainder, runtime, output, 0, 0, record_every,
-                                 sensor_every, sensor_config, clean, reading)
+                                 sensor_every, sensor_config, clean, reading, seed)
                 bar.update(1)
             with tqdm(total=step_count, desc="Running coupled RK4", unit="step") as bar:
                 for start in range(0, step_count, progress_chunk_steps):
@@ -121,12 +121,12 @@ class CoupledRK4Propagator:
                     y = _integrate_chunk(y, state.orbit.julian_date, self.dt,
                                          full_steps, remainder, runtime, output,
                                          start, count, record_every, sensor_every,
-                                         sensor_config, clean, reading)
+                                         sensor_config, clean, reading, seed)
                     bar.update(count)
         elif step_count:
             _integrate_chunk(y, state.orbit.julian_date, self.dt, full_steps,
                              remainder, runtime, output, 0, step_count, record_every,
-                             sensor_every, sensor_config, clean, reading)
+                             sensor_every, sensor_config, clean, reading, seed)
         return (elapsed, output, clean, reading) if sensor_every else (elapsed, output)
 
     def step(self, state, satellite, environment, dynamics):
