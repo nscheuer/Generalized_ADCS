@@ -1,11 +1,9 @@
+#include "runtime_python.hpp"
 #include "coupled_rk4_propagator.hpp"
 #include "coupled_dop853_propagator.hpp"
-#include <pybind11/eigen.h>
-#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 namespace py=pybind11;
-namespace omni::propagation {py::tuple integrate_rk4(Vector,double,double,double,const py::object&,bool,std::size_t);py::tuple integrate_dop853(Vector,double,double,double,const py::object&,double,Vector,double,double,bool,std::size_t);}
-
+using namespace omni::propagation;
 void bind_coupled_dop853_propagator(py::module_& m) {
-m.def("dop853_attempt",&omni::propagation::dop853_attempt);
-
+ m.def("dop853_attempt", [](Vector y,Vector f,double jd,double h,py::object p,double rtol,Vector atol) { auto r=runtime_from_python(p); return dop853_attempt(y,f,jd,h,r,rtol,atol); });
 }

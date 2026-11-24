@@ -7,29 +7,19 @@
 #include "../../environment/gravity/j_gravity_model.hpp"
 #include "../../environment/atmosphere/atmospheric_model.hpp"
 #include "../../helpers/math/time/conversions.hpp"
-#include <pybind11/eigen.h>
+#include <stdexcept>
 #include <array>
 #include <algorithm>
 #include <cmath>
-namespace py=pybind11;
 namespace omni::propagation {
 using V=Eigen::Vector3d;using Q=Eigen::Vector4d;using M=Eigen::Matrix3d;
-static thread_local Runtime* active_runtime=nullptr;
-Runtime::Runtime(const py::object& p):
- mu(p.attr("mu").cast<double>()),radius(p.attr("radius").cast<double>()),mass(p.attr("mass").cast<double>()),
- inertia(p.attr("inertia").cast<M>()),inverse_inertia(p.attr("inverse_inertia").cast<M>()),inverse_bus_inertia(p.attr("inverse_bus_inertia").cast<M>()),
- zonals(p.attr("zonals").cast<Vector>()),areas(p.attr("areas").cast<Vector>()),drag_coefficients(p.attr("drag_coefficients").cast<Vector>()),
- wheel_inertias(p.attr("wheel_inertias").cast<Vector>()),wheel_commands(p.attr("wheel_commands").cast<Vector>()),wheel_max_momentum(p.attr("wheel_max_momentum").cast<Vector>()),
- normals(p.attr("normals").cast<Eigen::MatrixXd>()),arms(p.attr("arms").cast<Eigen::MatrixXd>()),optical_coefficients(p.attr("optical_coefficients").cast<Eigen::MatrixXd>()),wheel_axes(p.attr("wheel_axes").cast<Eigen::MatrixXd>()),dipole(p.attr("dipole").cast<V>()),
- drag_force(p.attr("drag_force").cast<bool>()),drag_torque(p.attr("drag_torque").cast<bool>()),srp_force(p.attr("srp_force").cast<bool>()),srp_torque(p.attr("srp_torque").cast<bool>()),gravity_gradient(p.attr("gravity_gradient").cast<bool>()),residual_dipole(p.attr("residual_dipole").cast<bool>()),third_body(p.attr("third_body").cast<bool>()),magnetic_include_static(p.attr("magnetic_include_static").cast<bool>()),magnetic_kind(p.attr("magnetic_kind").cast<int>()) {
+void Runtime::initialize_models() {
  if(srp_force||srp_torque||third_body)ephemeris=std::make_unique<omni::environment::DE421>();
- if(residual_dipole){if(magnetic_kind==1)igrf=std::make_unique<omni::environment::IGRF14>();else if(magnetic_kind==2)chaos=std::make_unique<omni::environment::CHAOS8>(magnetic_include_static);else throw py::value_error("unsupported magnetic model");}
+ if(residual_dipole){if(magnetic_kind==1)igrf=std::make_unique<omni::environment::IGRF14>();else if(magnetic_kind==2)chaos=std::make_unique<omni::environment::CHAOS8>(magnetic_include_static);else throw std::invalid_argument("unsupported magnetic model");}
 }
-RuntimeScope::RuntimeScope(const py::object& p):runtime(p),previous(active_runtime){active_runtime=&runtime;}
-RuntimeScope::~RuntimeScope(){active_runtime=previous;}
-void project(Vector& y,const py::object& p){std::unique_ptr<Runtime> fallback;if(!active_runtime)fallback=std::make_unique<Runtime>(p);const Runtime& r=active_runtime?*active_runtime:*fallback;for(Eigen::Index i=0;i<r.wheel_max_momentum.size();++i)y[13+i]=std::clamp(y[13+i],-r.wheel_max_momentum[i],r.wheel_max_momentum[i]);}
-Vector derivative(const Vector& y,double jd,const py::object& p){
- std::unique_ptr<Runtime> fallback;if(!active_runtime)fallback=std::make_unique<Runtime>(p);const Runtime& r=active_runtime?*active_runtime:*fallback;
+void project(Vector& y,const Runtime& r){for(Eigen::Index i=0;i<r.wheel_max_momentum.size();++i)y[13+i]=std::clamp(y[13+i],-r.wheel_max_momentum[i],r.wheel_max_momentum[i]);}
+Vector derivative(const Vector& y,double jd,const Runtime& r){
+
  Q q=y.segment<4>(0);q.normalize();const V omega=y.segment<3>(4),pos=y.segment<3>(7),vel=y.segment<3>(10);
  double density=0,illumination=0;V relative=vel,sun=V::Zero(),moon=V::Zero(),field=V::Zero();
  if(r.drag_force||r.drag_torque){std::array<double,7> history;history.fill(-1.);density=omni::environment::nrlmsise_density(pos,jd,150.,150.,4.,true,history);relative-=omni::environment::co_rotating_atmosphere_velocity(pos,jd);}

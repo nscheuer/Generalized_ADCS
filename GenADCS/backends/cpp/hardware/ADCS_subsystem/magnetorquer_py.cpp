@@ -1,5 +1,5 @@
 #include "adcs_subsystem.hpp"
-#include "effects.hpp"
+#include "effects_python.hpp"
 #include "magnetorquer.hpp"
 #include "reaction_wheel.hpp"
 #include "sensors/gyroscope.hpp"
