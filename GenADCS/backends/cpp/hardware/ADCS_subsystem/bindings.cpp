@@ -35,7 +35,8 @@ py::array_t<double> vector_array(const Values& values) {
         out(i) = values[static_cast<std::size_t>(i)];
     return result;
 }
-py::array_t<double> matrix_array(const native_sensors::Matrix3& values) {
+template <typename Matrix>
+py::array_t<double> matrix_array(const Matrix& values) {
     py::array_t<double> result({3, 3});
     auto out = result.mutable_unchecked<2>();
     for (py::ssize_t i = 0; i < 3; ++i)
@@ -43,6 +44,29 @@ py::array_t<double> matrix_array(const native_sensors::Matrix3& values) {
             out(i, j) = values[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)];
     return result;
 }
+template <typename Matrix>
+py::array_t<double> matrix_array_2x2(const Matrix& values) {
+    py::array_t<double> result({2, 2}); auto out = result.mutable_unchecked<2>();
+    for (py::ssize_t i=0;i<2;++i) for (py::ssize_t j=0;j<2;++j) out(i,j)=values[i][j];
+    return result;
+}
+template <typename Matrix>
+py::array_t<double> matrix_array_2x3(const Matrix& values) {
+    py::array_t<double> result({2, 3}); auto out = result.mutable_unchecked<2>();
+    for (py::ssize_t i=0;i<2;++i) for (py::ssize_t j=0;j<3;++j) out(i,j)=values[i][j];
+    return result;
+}
+template <std::size_t N>
+std::array<double,N> read_fixed(py::handle value, const char* name) {
+    auto array=py::array_t<double,py::array::c_style|py::array::forcecast>::ensure(value);
+    if(!array||array.ndim()!=1||array.shape(0)!=static_cast<py::ssize_t>(N))
+        throw py::value_error(std::string(name)+" has an invalid shape");
+    std::array<double,N> result{}; auto input=array.unchecked<1>();
+    for(std::size_t i=0;i<N;++i) result[i]=input(static_cast<py::ssize_t>(i));
+    return result;
+}
+template <typename Values>
+py::array_t<double> vector_array_2(const Values& values) { return vector_array(values); }
 }
 
 PYBIND11_MODULE(_adcs_subsystem, module) {
@@ -126,8 +150,13 @@ PYBIND11_MODULE(_adcs_subsystem, module) {
         .def(py::init([](py::object position, py::object orientation,
                          py::object misalignment, double saturation_value,
                          py::object noise, py::object bias) {
-            return native_sensors::Gyroscope(position, orientation, misalignment,
-                                               saturation_value, noise, bias);
+            return native_sensors::Gyroscope(
+                native_sensors::kernels::read_vector3(position, "position"),
+                native_sensors::kernels::read_quaternion(orientation, "orientation"),
+                native_sensors::kernels::read_quaternion(misalignment, "misalignment"),
+                saturation_value,
+                native_sensors::kernels::read_matrix(noise, "noise"),
+                native_sensors::kernels::read_vector3(bias, "bias"));
         }),
              py::arg("position"), py::arg("orientation"), py::arg("misalignment"),
              py::arg("saturation_value"), py::arg("noise"), py::arg("bias"))
@@ -140,20 +169,31 @@ PYBIND11_MODULE(_adcs_subsystem, module) {
         .def_property_readonly("bias", [](const native_sensors::Gyroscope& s) { return vector_array(s.bias); })
         .def_readwrite("enabled", &native_sensors::Gyroscope::enabled)
         .def_readwrite("seed", &native_sensors::Gyroscope::seed)
-        .def("noiseless_biasfree_measurement", &native_sensors::Gyroscope::noiseless_biasfree_measurement)
-        .def("noiseless_biased_measurement", &native_sensors::Gyroscope::noiseless_biased_measurement)
-        .def("noisy_biasfree_measurement", &native_sensors::Gyroscope::noisy_biasfree_measurement)
-        .def("noisy_biased_measurement", &native_sensors::Gyroscope::noisy_biased_measurement)
-        .def("jacobian_angular_velocity", &native_sensors::Gyroscope::jacobian_angular_velocity)
-        .def("jacobian_bias", &native_sensors::Gyroscope::jacobian_bias)
+        .def("noiseless_biasfree_measurement", [](const native_sensors::Gyroscope& s, py::object rate) {
+            return native_sensors::kernels::array_vector(s.noiseless_biasfree_measurement(native_sensors::kernels::read_vector3(rate, "angular_velocity_body")));
+        })
+        .def("noiseless_biased_measurement", [](const native_sensors::Gyroscope& s, py::object rate) {
+            return native_sensors::kernels::array_vector(s.noiseless_biased_measurement(native_sensors::kernels::read_vector3(rate, "angular_velocity_body")));
+        })
+        .def("noisy_biasfree_measurement", [](native_sensors::Gyroscope& s, py::object rate) {
+            return native_sensors::kernels::array_vector(s.noisy_biasfree_measurement(native_sensors::kernels::read_vector3(rate, "angular_velocity_body")));
+        })
+        .def("noisy_biased_measurement", [](native_sensors::Gyroscope& s, py::object rate) {
+            return native_sensors::kernels::array_vector(s.noisy_biased_measurement(native_sensors::kernels::read_vector3(rate, "angular_velocity_body")));
+        })
+        .def("jacobian_angular_velocity", [](const native_sensors::Gyroscope& s) { return matrix_array(s.jacobian_angular_velocity()); })
+        .def("jacobian_bias", [](const native_sensors::Gyroscope& s) { return matrix_array(s.jacobian_bias()); })
         .def("availability", &native_sensors::Gyroscope::availability);
 
     py::class_<native_sensors::Magnetometer>(module, "Magnetometer")
         .def(py::init([](py::object position, py::object orientation,
                          py::object misalignment, double saturation_value,
                          py::object noise, py::object bias) {
-            return native_sensors::Magnetometer(position, orientation, misalignment,
-                                                  saturation_value, noise, bias);
+            return native_sensors::Magnetometer(native_sensors::kernels::read_vector3(position, "position"),
+                native_sensors::kernels::read_quaternion(orientation, "orientation"),
+                native_sensors::kernels::read_quaternion(misalignment, "misalignment"), saturation_value,
+                native_sensors::kernels::read_matrix(noise, "noise"),
+                native_sensors::kernels::read_vector3(bias, "bias"));
         }), py::arg("position"), py::arg("orientation"), py::arg("misalignment"),
              py::arg("saturation_value"), py::arg("noise"), py::arg("bias"))
         .def_property_readonly("position", [](const native_sensors::Magnetometer& s) { return vector_array(s.position); })
@@ -165,21 +205,26 @@ PYBIND11_MODULE(_adcs_subsystem, module) {
         .def_property_readonly("bias", [](const native_sensors::Magnetometer& s) { return vector_array(s.bias); })
         .def_readwrite("enabled", &native_sensors::Magnetometer::enabled)
         .def_readwrite("seed", &native_sensors::Magnetometer::seed)
-        .def("noiseless_biasfree_measurement", &native_sensors::Magnetometer::noiseless_biasfree_measurement)
-        .def("noiseless_biased_measurement", &native_sensors::Magnetometer::noiseless_biased_measurement)
-        .def("noisy_biasfree_measurement", &native_sensors::Magnetometer::noisy_biasfree_measurement)
-        .def("noisy_biased_measurement", &native_sensors::Magnetometer::noisy_biased_measurement)
-        .def("jacobian_bias", &native_sensors::Magnetometer::jacobian_bias)
-        .def("jacobian_relative_quaternion", &native_sensors::Magnetometer::jacobian_relative_quaternion)
-        .def("jacobian_relative_mrp", &native_sensors::Magnetometer::jacobian_relative_mrp)
-        .def("jacobian_relative_angle_vector", &native_sensors::Magnetometer::jacobian_relative_angle_vector)
+        .def("noiseless_biasfree_measurement", [](const native_sensors::Magnetometer& s, py::handle f, py::handle q) { return vector_array(s.noiseless_biasfree_measurement(native_sensors::kernels::read_vector3(f, "field_inertial"), native_sensors::kernels::read_quaternion(q, "attitude"))); })
+        .def("noiseless_biased_measurement", [](const native_sensors::Magnetometer& s, py::handle f, py::handle q) { return vector_array(s.noiseless_biased_measurement(native_sensors::kernels::read_vector3(f, "field_inertial"), native_sensors::kernels::read_quaternion(q, "attitude"))); })
+        .def("noisy_biasfree_measurement", [](native_sensors::Magnetometer& s, py::handle f, py::handle q) { return vector_array(s.noisy_biasfree_measurement(native_sensors::kernels::read_vector3(f, "field_inertial"), native_sensors::kernels::read_quaternion(q, "attitude"))); })
+        .def("noisy_biased_measurement", [](native_sensors::Magnetometer& s, py::handle f, py::handle q) { return vector_array(s.noisy_biased_measurement(native_sensors::kernels::read_vector3(f, "field_inertial"), native_sensors::kernels::read_quaternion(q, "attitude"))); })
+        .def("jacobian_bias", [](const native_sensors::Magnetometer& s) { return matrix_array(s.jacobian_bias()); })
+        .def("jacobian_relative_quaternion", [](const native_sensors::Magnetometer& s, py::handle f, py::handle q, py::handle d) { return matrix_array(s.jacobian_relative_quaternion(native_sensors::kernels::read_vector3(f, "field_inertial"), native_sensors::kernels::read_quaternion(q, "attitude"), native_sensors::kernels::read_quaternion(d, "delta_quaternion"))); })
+        .def("jacobian_relative_mrp", [](const native_sensors::Magnetometer& s, py::handle f, py::handle q, py::handle d) { return matrix_array(s.jacobian_relative_mrp(native_sensors::kernels::read_vector3(f, "field_inertial"), native_sensors::kernels::read_quaternion(q, "attitude"), native_sensors::kernels::read_vector3(d, "delta_mrp"))); })
+        .def("jacobian_relative_angle_vector", [](const native_sensors::Magnetometer& s, py::handle f, py::handle q, py::handle d) { return matrix_array(s.jacobian_relative_angle_vector(native_sensors::kernels::read_vector3(f, "field_inertial"), native_sensors::kernels::read_quaternion(q, "attitude"), native_sensors::kernels::read_vector3(d, "delta_angle"))); })
         .def("availability", &native_sensors::Magnetometer::availability)
-        .def("fisher_information_matrix", &native_sensors::Magnetometer::fisher_information_matrix);
+        .def("fisher_information_matrix", [](const native_sensors::Magnetometer& s, py::handle f, py::handle q, py::handle c) { return matrix_array(s.fisher_information_matrix(native_sensors::kernels::read_vector3(f, "field_inertial"), native_sensors::kernels::read_quaternion(q, "attitude"), native_sensors::kernels::read_matrix(c, "field_covariance"))); });
 
     py::class_<native_sensors::Accelerometer>(module, "Accelerometer")
         .def(py::init([](py::object position,py::object orientation,py::object misalignment,
                          double saturation,py::object noise,py::object bias) {
-            return native_sensors::Accelerometer(position,orientation,misalignment,saturation,noise,bias);
+            return native_sensors::Accelerometer(
+                native_sensors::kernels::read_vector3(position, "position"),
+                native_sensors::kernels::read_quaternion(orientation, "orientation"),
+                native_sensors::kernels::read_quaternion(misalignment, "misalignment"),
+                saturation, native_sensors::kernels::read_matrix(noise, "noise"),
+                native_sensors::kernels::read_vector3(bias, "bias"));
         }),py::arg("position"),py::arg("orientation"),py::arg("misalignment"),
              py::arg("saturation_value"),py::arg("noise"),py::arg("bias"))
         .def_property_readonly("position",[](const native_sensors::Accelerometer& s){return vector_array(s.position);})
@@ -191,14 +236,28 @@ PYBIND11_MODULE(_adcs_subsystem, module) {
         .def_property_readonly("bias",[](const native_sensors::Accelerometer& s){return vector_array(s.bias);})
         .def_readwrite("enabled",&native_sensors::Accelerometer::enabled)
         .def_readwrite("seed",&native_sensors::Accelerometer::seed)
-        .def("noiseless_biasfree_measurement",&native_sensors::Accelerometer::noiseless_biasfree_measurement)
-        .def("noiseless_biased_measurement",&native_sensors::Accelerometer::noiseless_biased_measurement)
-        .def("noisy_biasfree_measurement",&native_sensors::Accelerometer::noisy_biasfree_measurement)
-        .def("noisy_biased_measurement",&native_sensors::Accelerometer::noisy_biased_measurement)
-        .def("jacobian_relative_quaternion",&native_sensors::Accelerometer::jacobian_relative_quaternion)
-        .def("jacobian_relative_mrp",&native_sensors::Accelerometer::jacobian_relative_mrp)
-        .def("jacobian_relative_angle_vector",&native_sensors::Accelerometer::jacobian_relative_angle_vector)
-        .def("jacobian_bias",&native_sensors::Accelerometer::jacobian_bias)
+        .def("noiseless_biasfree_measurement",[](const native_sensors::Accelerometer& s, py::object a, py::object g, py::object q) {
+            return vector_array(s.noiseless_biasfree_measurement(native_sensors::kernels::read_vector3(a,"acceleration_inertial"), native_sensors::kernels::read_vector3(g,"gravity_inertial"), native_sensors::kernels::read_quaternion(q,"attitude")));
+        })
+        .def("noiseless_biased_measurement",[](const native_sensors::Accelerometer& s, py::object a, py::object g, py::object q) {
+            return vector_array(s.noiseless_biased_measurement(native_sensors::kernels::read_vector3(a,"acceleration_inertial"), native_sensors::kernels::read_vector3(g,"gravity_inertial"), native_sensors::kernels::read_quaternion(q,"attitude")));
+        })
+        .def("noisy_biasfree_measurement",[](native_sensors::Accelerometer& s, py::object a, py::object g, py::object q) {
+            return vector_array(s.noisy_biasfree_measurement(native_sensors::kernels::read_vector3(a,"acceleration_inertial"), native_sensors::kernels::read_vector3(g,"gravity_inertial"), native_sensors::kernels::read_quaternion(q,"attitude")));
+        })
+        .def("noisy_biased_measurement",[](native_sensors::Accelerometer& s, py::object a, py::object g, py::object q) {
+            return vector_array(s.noisy_biased_measurement(native_sensors::kernels::read_vector3(a,"acceleration_inertial"), native_sensors::kernels::read_vector3(g,"gravity_inertial"), native_sensors::kernels::read_quaternion(q,"attitude")));
+        })
+        .def("jacobian_relative_quaternion",[](const native_sensors::Accelerometer& s, py::object a, py::object g, py::object q, py::object d) {
+            return matrix_array(s.jacobian_relative_quaternion(native_sensors::kernels::read_vector3(a,"acceleration_inertial"), native_sensors::kernels::read_vector3(g,"gravity_inertial"), native_sensors::kernels::read_quaternion(q,"attitude"), native_sensors::kernels::read_quaternion(d,"delta_quaternion")));
+        })
+        .def("jacobian_relative_mrp",[](const native_sensors::Accelerometer& s, py::object a, py::object g, py::object q, py::object d) {
+            return matrix_array(s.jacobian_relative_mrp(native_sensors::kernels::read_vector3(a,"acceleration_inertial"), native_sensors::kernels::read_vector3(g,"gravity_inertial"), native_sensors::kernels::read_quaternion(q,"attitude"), native_sensors::kernels::read_vector3(d,"delta_mrp")));
+        })
+        .def("jacobian_relative_angle_vector",[](const native_sensors::Accelerometer& s, py::object a, py::object g, py::object q, py::object d) {
+            return matrix_array(s.jacobian_relative_angle_vector(native_sensors::kernels::read_vector3(a,"acceleration_inertial"), native_sensors::kernels::read_vector3(g,"gravity_inertial"), native_sensors::kernels::read_quaternion(q,"attitude"), native_sensors::kernels::read_vector3(d,"delta_angle")));
+        })
+        .def("jacobian_bias",[](const native_sensors::Accelerometer& s) { return matrix_array(s.jacobian_bias()); })
         .def("availability",&native_sensors::Accelerometer::availability);
 
     py::class_<native_sensors::CoarseSunSensor>(module,"CoarseSunSensor")
@@ -235,24 +294,48 @@ PYBIND11_MODULE(_adcs_subsystem, module) {
         .def("fisher_information_matrix",[](const native_sensors::CoarseSunSensor& s,py::handle sun,py::handle q,bool visible){return matrix_array(s.fisher_information_matrix(native_sensors::kernels::read_vector3(sun,"sun_inertial"),native_sensors::kernels::read_quaternion(q,"attitude"),visible));},py::arg("sun_inertial"),py::arg("attitude"),py::arg("sun_visible")=true);
 
     py::class_<native_sensors::FineSunSensor>(module,"FineSunSensor")
-        .def(py::init([](py::object p,py::object q,py::object m,py::object n,py::object b,py::object f){return native_sensors::FineSunSensor(p,q,m,n,b,f);}),py::arg("position"),py::arg("orientation"),py::arg("misalignment"),py::arg("noise"),py::arg("bias"),py::arg("fov_half_angles"))
+        .def(py::init([](py::handle p,py::handle q,py::handle m,py::handle n,py::handle b,py::handle f){
+            native_sensors::FineSunSensor::M2 covariance{};
+            auto a=py::array_t<double,py::array::c_style|py::array::forcecast>::ensure(n);
+            if(!a||a.ndim()!=2||a.shape(0)!=2||a.shape(1)!=2)throw py::value_error("noise must be 2x2");
+            auto values=a.unchecked<2>(); for(int i=0;i<2;++i)for(int j=0;j<2;++j)covariance[i][j]=values(i,j);
+            const auto bias=read_fixed<2>(b,"bias");
+            const auto fov=read_fixed<2>(f,"fov_half_angles");
+            return native_sensors::FineSunSensor(native_sensors::kernels::read_vector3(p,"position"),
+                native_sensors::kernels::normalize(native_sensors::kernels::read_quaternion(q,"orientation")),
+                native_sensors::kernels::normalize(native_sensors::kernels::read_quaternion(m,"misalignment")),
+                covariance,bias,fov);
+        }),py::arg("position"),py::arg("orientation"),py::arg("misalignment"),py::arg("noise"),py::arg("bias"),py::arg("fov_half_angles"))
         .def_property_readonly("position",[](const native_sensors::FineSunSensor&s){return vector_array(s.position);})
         .def_property_readonly("orientation",[](const native_sensors::FineSunSensor&s){return vector_array(s.orientation);})
         .def_property_readonly("misalignment",[](const native_sensors::FineSunSensor&s){return vector_array(s.misalignment);})
         .def_readwrite("enabled",&native_sensors::FineSunSensor::enabled).def_readwrite("seed",&native_sensors::FineSunSensor::seed)
-        .def("noiseless_biasfree_measurement",&native_sensors::FineSunSensor::noiseless_biasfree_measurement).def("noiseless_biased_measurement",&native_sensors::FineSunSensor::noiseless_biased_measurement)
-        .def("noisy_biasfree_measurement",&native_sensors::FineSunSensor::noisy_biasfree_measurement).def("noisy_biased_measurement",&native_sensors::FineSunSensor::noisy_biased_measurement)
-        .def("jacobian_bias",&native_sensors::FineSunSensor::jacobian_bias).def("jacobian_relative_quaternion",&native_sensors::FineSunSensor::jacobian_relative_quaternion)
-        .def("jacobian_relative_mrp",&native_sensors::FineSunSensor::jacobian_relative_mrp).def("jacobian_relative_angle_vector",&native_sensors::FineSunSensor::jacobian_relative_angle_vector)
-        .def("availability",&native_sensors::FineSunSensor::availability,py::arg("sun_inertial"),py::arg("attitude"),py::arg("sun_visible")=true)
-        .def("fisher_information_matrix",&native_sensors::FineSunSensor::fisher_information_matrix,py::arg("sun_inertial"),py::arg("attitude"),py::arg("sun_visible")=true);
+        .def_readonly("noise",&native_sensors::FineSunSensor::noise).def_readonly("bias",&native_sensors::FineSunSensor::bias)
+        .def_readonly("fov_half_angles",&native_sensors::FineSunSensor::fov_half_angles)
+        .def("noiseless_biasfree_measurement",[](const native_sensors::FineSunSensor&s,py::handle sun,py::handle q){return vector_array_2(s.noiseless_biasfree_measurement(native_sensors::kernels::read_vector3(sun,"sun_inertial"),native_sensors::kernels::read_quaternion(q,"attitude")));})
+        .def("noiseless_biased_measurement",[](const native_sensors::FineSunSensor&s,py::handle sun,py::handle q){return vector_array_2(s.noiseless_biased_measurement(native_sensors::kernels::read_vector3(sun,"sun_inertial"),native_sensors::kernels::read_quaternion(q,"attitude")));})
+        .def("noisy_biasfree_measurement",[](native_sensors::FineSunSensor&s,py::handle sun,py::handle q){return vector_array_2(s.noisy_biasfree_measurement(native_sensors::kernels::read_vector3(sun,"sun_inertial"),native_sensors::kernels::read_quaternion(q,"attitude")));})
+        .def("noisy_biased_measurement",[](native_sensors::FineSunSensor&s,py::handle sun,py::handle q){return vector_array_2(s.noisy_biased_measurement(native_sensors::kernels::read_vector3(sun,"sun_inertial"),native_sensors::kernels::read_quaternion(q,"attitude")));})
+        .def("jacobian_bias",[](const native_sensors::FineSunSensor&s){return matrix_array_2x2(s.jacobian_bias());})
+        .def("jacobian_relative_quaternion",[](const native_sensors::FineSunSensor&s,py::handle sun,py::handle q,py::handle d){return matrix_array_2x3(s.jacobian_relative_quaternion(native_sensors::kernels::read_vector3(sun,"sun_inertial"),native_sensors::kernels::read_quaternion(q,"attitude"),native_sensors::kernels::read_quaternion(d,"delta_quaternion")));})
+        .def("jacobian_relative_mrp",[](const native_sensors::FineSunSensor&s,py::handle sun,py::handle q,py::handle d){return matrix_array_2x3(s.jacobian_relative_mrp(native_sensors::kernels::read_vector3(sun,"sun_inertial"),native_sensors::kernels::read_quaternion(q,"attitude"),native_sensors::kernels::read_vector3(d,"delta_mrp")));})
+        .def("jacobian_relative_angle_vector",[](const native_sensors::FineSunSensor&s,py::handle sun,py::handle q,py::handle d){return matrix_array_2x3(s.jacobian_relative_angle_vector(native_sensors::kernels::read_vector3(sun,"sun_inertial"),native_sensors::kernels::read_quaternion(q,"attitude"),native_sensors::kernels::read_vector3(d,"delta_angle")));})
+        .def("availability",[](const native_sensors::FineSunSensor&s,py::handle sun,py::handle q,bool visible){return s.availability(native_sensors::kernels::read_vector3(sun,"sun_inertial"),native_sensors::kernels::read_quaternion(q,"attitude"),visible);},py::arg("sun_inertial"),py::arg("attitude"),py::arg("sun_visible")=true)
+        .def("fisher_information_matrix",[](const native_sensors::FineSunSensor&s,py::handle sun,py::handle q,bool visible){return matrix_array(s.fisher_information_matrix(native_sensors::kernels::read_vector3(sun,"sun_inertial"),native_sensors::kernels::read_quaternion(q,"attitude"),visible));},py::arg("sun_inertial"),py::arg("attitude"),py::arg("sun_visible")=true);
 
     py::class_<native_sensors::FineEarthSensor,native_sensors::FineSunSensor>(module,"FineEarthSensor")
         .def(py::init([](py::object p,py::object q,py::object m,py::object n,py::object b,py::object f){
-            return native_sensors::FineEarthSensor(p,q,m,n,b,f);
+            native_sensors::FineSunSensor::M2 covariance{};
+            auto a=py::array_t<double,py::array::c_style|py::array::forcecast>::ensure(n);
+            if(!a||a.ndim()!=2||a.shape(0)!=2||a.shape(1)!=2)throw py::value_error("noise must be 2x2");
+            auto values=a.unchecked<2>(); for(int i=0;i<2;++i)for(int j=0;j<2;++j)covariance[i][j]=values(i,j);
+            return native_sensors::FineEarthSensor(native_sensors::kernels::read_vector3(p,"position"),
+                native_sensors::kernels::normalize(native_sensors::kernels::read_quaternion(q,"orientation")),
+                native_sensors::kernels::normalize(native_sensors::kernels::read_quaternion(m,"misalignment")),
+                covariance,read_fixed<2>(b,"bias"),read_fixed<2>(f,"fov_half_angles"));
         }),py::arg("position"),py::arg("orientation"),py::arg("misalignment"),py::arg("noise"),py::arg("bias"),py::arg("fov_half_angles"))
-        .def("availability",[](const native_sensors::FineEarthSensor& s,py::handle earth,py::handle attitude,bool visible){return s.availability(earth,attitude,visible);},
+        .def("availability",[](const native_sensors::FineEarthSensor& s,py::handle earth,py::handle attitude,bool visible){return s.availability(native_sensors::kernels::read_vector3(earth,"earth_inertial"),native_sensors::kernels::read_quaternion(attitude,"attitude"),visible);},
              py::arg("earth_inertial"),py::arg("attitude"),py::arg("earth_visible")=true)
-        .def("fisher_information_matrix",[](const native_sensors::FineEarthSensor& s,py::handle earth,py::handle attitude,bool visible){return s.fisher_information_matrix(earth,attitude,visible);},
+        .def("fisher_information_matrix",[](const native_sensors::FineEarthSensor& s,py::handle earth,py::handle attitude,bool visible){return matrix_array(s.fisher_information_matrix(native_sensors::kernels::read_vector3(earth,"earth_inertial"),native_sensors::kernels::read_quaternion(attitude,"attitude"),visible));},
              py::arg("earth_inertial"),py::arg("attitude"),py::arg("earth_visible")=true);
 }

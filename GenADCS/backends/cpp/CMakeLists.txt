@@ -155,14 +155,10 @@ if(BUILD_TESTING)
         add_executable(cpp_test_${component}
             "${test_source}"
         )
-        if(component STREQUAL "fine_sun_sensor")
-            target_link_libraries(cpp_test_${component} PRIVATE pybind11::headers Python::Module)
-            target_compile_options(cpp_test_${component} PRIVATE -ffunction-sections -fdata-sections)
-            target_link_options(cpp_test_${component} PRIVATE -Wl,--gc-sections)
-        elseif(NOT component STREQUAL "coarse_sun_sensor")
+        if(NOT component STREQUAL "coarse_sun_sensor" AND NOT component STREQUAL "fine_sun_sensor" AND NOT component STREQUAL "magnetometer" AND NOT component STREQUAL "accelerometer" AND NOT component STREQUAL "gyroscope")
             target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
         endif()
-        if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor")
+        if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor" OR component STREQUAL "gyroscope")
             target_sources(cpp_test_${component} PRIVATE
                 hardware/ADCS_subsystem/sensors/kernels.cpp
                 helpers/math/rotations/sensor_kernels.cpp
@@ -172,7 +168,10 @@ if(BUILD_TESTING)
             )
             target_link_libraries(cpp_test_${component} PRIVATE Eigen3::Eigen)
             if(component STREQUAL "fine_sun_sensor")
-                target_sources(cpp_test_${component} PRIVATE helpers/random/philox.cpp)
+                target_sources(cpp_test_${component} PRIVATE
+                    hardware/ADCS_subsystem/sensors/fine_sun_sensor.cpp
+                    helpers/random/philox.cpp
+                )
                 target_include_directories(cpp_test_${component} PRIVATE helpers/random)
             endif()
             if(component STREQUAL "coarse_sun_sensor")
@@ -182,12 +181,36 @@ if(BUILD_TESTING)
                 )
                 target_include_directories(cpp_test_${component} PRIVATE helpers/random)
             endif()
+            if(component STREQUAL "magnetometer")
+                target_sources(cpp_test_${component} PRIVATE
+                    hardware/ADCS_subsystem/sensors/magnetometer.cpp
+                    helpers/random/philox.cpp
+                )
+                target_include_directories(cpp_test_${component} PRIVATE helpers/random)
+            endif()
+            if(component STREQUAL "gyroscope")
+                target_sources(cpp_test_${component} PRIVATE
+                    hardware/ADCS_subsystem/sensors/gyroscope.cpp
+                    helpers/random/philox.cpp
+                )
+                target_include_directories(cpp_test_${component} PRIVATE helpers/random)
+            endif()
+            if(component STREQUAL "accelerometer")
+                target_sources(cpp_test_${component} PRIVATE
+                    hardware/ADCS_subsystem/sensors/accelerometer.cpp
+                    helpers/random/philox.cpp
+                )
+                target_include_directories(cpp_test_${component} PRIVATE helpers/random)
+            endif()
             if(component STREQUAL "fine_earth_sensor")
-                target_sources(cpp_test_${component} PRIVATE helpers/random/philox.cpp)
+                target_sources(cpp_test_${component} PRIVATE
+                    hardware/ADCS_subsystem/sensors/fine_sun_sensor.cpp
+                    helpers/random/philox.cpp
+                )
                 target_include_directories(cpp_test_${component} PRIVATE helpers/random)
             endif()
         endif()
-        if(NOT component STREQUAL "coarse_sun_sensor")
+        if(NOT component STREQUAL "coarse_sun_sensor" AND NOT component STREQUAL "fine_sun_sensor" AND NOT component STREQUAL "magnetometer" AND NOT component STREQUAL "accelerometer" AND NOT component STREQUAL "gyroscope")
             target_compile_definitions(cpp_test_${component} PRIVATE
                 GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
                 GENADCS_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../.."
@@ -379,9 +402,9 @@ if(BUILD_TESTING)
         )
     endforeach()
     foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor fine_sun_sensor fine_earth_sensor)
-        if(component STREQUAL "coarse_sun_sensor")
+        if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "gyroscope")
             add_test(NAME cpp_${component} COMMAND cpp_test_${component})
-        elseif(NOT component STREQUAL "fine_sun_sensor")
+        elseif(NOT component STREQUAL "fine_sun_sensor" AND NOT component STREQUAL "accelerometer")
             add_dependencies(cpp_test_${component} _adcs_subsystem)
             add_test(NAME cpp_${component}
                 COMMAND cpp_test_${component} "$<TARGET_FILE:_adcs_subsystem>"
