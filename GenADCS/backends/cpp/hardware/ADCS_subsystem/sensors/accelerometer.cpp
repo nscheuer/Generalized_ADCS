@@ -1,5 +1,6 @@
 #include "accelerometer.hpp"
 #include "kernels.hpp"
+#include "sensor_kernels_pybind.hpp"
 #include "philox.hpp"
 #include <cmath>
 #include <string>

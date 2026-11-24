@@ -1,6 +1,7 @@
 #include "gyroscope.hpp"
 #include "philox.hpp"
 #include "kernels.hpp"
+#include "sensor_kernels_pybind.hpp"
 
 #include <algorithm>
 #include <cmath>

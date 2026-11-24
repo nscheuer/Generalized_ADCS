@@ -155,8 +155,14 @@ if(BUILD_TESTING)
         add_executable(cpp_test_${component}
             "${test_source}"
         )
-        target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
-        if(component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor")
+        if(component STREQUAL "fine_sun_sensor")
+            target_link_libraries(cpp_test_${component} PRIVATE pybind11::headers Python::Module)
+            target_compile_options(cpp_test_${component} PRIVATE -ffunction-sections -fdata-sections)
+            target_link_options(cpp_test_${component} PRIVATE -Wl,--gc-sections)
+        elseif(NOT component STREQUAL "coarse_sun_sensor")
+            target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
+        endif()
+        if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor")
             target_sources(cpp_test_${component} PRIVATE
                 hardware/ADCS_subsystem/sensors/kernels.cpp
                 helpers/math/rotations/sensor_kernels.cpp
@@ -165,15 +171,28 @@ if(BUILD_TESTING)
                 hardware/ADCS_subsystem/sensors helpers/math/rotations
             )
             target_link_libraries(cpp_test_${component} PRIVATE Eigen3::Eigen)
+            if(component STREQUAL "fine_sun_sensor")
+                target_sources(cpp_test_${component} PRIVATE helpers/random/philox.cpp)
+                target_include_directories(cpp_test_${component} PRIVATE helpers/random)
+            endif()
+            if(component STREQUAL "coarse_sun_sensor")
+                target_sources(cpp_test_${component} PRIVATE
+                    hardware/ADCS_subsystem/sensors/coarse_sun_sensor.cpp
+                    helpers/random/philox.cpp
+                )
+                target_include_directories(cpp_test_${component} PRIVATE helpers/random)
+            endif()
             if(component STREQUAL "fine_earth_sensor")
                 target_sources(cpp_test_${component} PRIVATE helpers/random/philox.cpp)
                 target_include_directories(cpp_test_${component} PRIVATE helpers/random)
             endif()
         endif()
-        target_compile_definitions(cpp_test_${component} PRIVATE
-            GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
-            GENADCS_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../.."
-        )
+        if(NOT component STREQUAL "coarse_sun_sensor")
+            target_compile_definitions(cpp_test_${component} PRIVATE
+                GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
+                GENADCS_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../.."
+            )
+        endif()
     endforeach()
     foreach(component derivatives dynamics vector)
         add_executable(cpp_test_math_${component}
@@ -334,6 +353,7 @@ pybind11_add_module(_adcs_subsystem
     hardware/ADCS_subsystem/sensors/coarse_sun_sensor.cpp
     hardware/ADCS_subsystem/sensors/fine_sun_sensor.cpp
     helpers/math/rotations/sensor_kernels.cpp
+    helpers/math/rotations/sensor_kernels_pybind.cpp
     helpers/random/philox.cpp
 )
 target_compile_features(_adcs_subsystem PRIVATE cxx_std_17)
@@ -359,10 +379,16 @@ if(BUILD_TESTING)
         )
     endforeach()
     foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor fine_sun_sensor fine_earth_sensor)
-        add_dependencies(cpp_test_${component} _adcs_subsystem)
-        add_test(NAME cpp_${component}
-            COMMAND cpp_test_${component} "$<TARGET_FILE:_adcs_subsystem>"
-        )
+        if(component STREQUAL "coarse_sun_sensor")
+            add_test(NAME cpp_${component} COMMAND cpp_test_${component})
+        elseif(NOT component STREQUAL "fine_sun_sensor")
+            add_dependencies(cpp_test_${component} _adcs_subsystem)
+            add_test(NAME cpp_${component}
+                COMMAND cpp_test_${component} "$<TARGET_FILE:_adcs_subsystem>"
+            )
+        else()
+            add_test(NAME cpp_${component} COMMAND cpp_test_${component})
+        endif()
     endforeach()
 endif()
 
@@ -425,17 +451,22 @@ if(BUILD_TESTING)
         add_executable(cpp_test_${component}
             ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/config/test_${component}.cpp
         )
-        target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
-        target_compile_definitions(cpp_test_${component} PRIVATE
-            GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
-        )
-        set_target_properties(cpp_test_${component} PROPERTIES
-            CXX_VISIBILITY_PRESET hidden
-            VISIBILITY_INLINES_HIDDEN ON)
-        add_dependencies(cpp_test_${component} _config)
-        add_test(NAME cpp_${component}
-            COMMAND cpp_test_${component} "$<TARGET_FILE:_config>"
-        )
+        if(component STREQUAL "dynamics_config")
+            target_include_directories(cpp_test_${component} PRIVATE config)
+            add_test(NAME cpp_${component} COMMAND cpp_test_${component})
+        else()
+            target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
+            target_compile_definitions(cpp_test_${component} PRIVATE
+                GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
+            )
+            set_target_properties(cpp_test_${component} PROPERTIES
+                CXX_VISIBILITY_PRESET hidden
+                VISIBILITY_INLINES_HIDDEN ON)
+            add_dependencies(cpp_test_${component} _config)
+            add_test(NAME cpp_${component}
+                COMMAND cpp_test_${component} "$<TARGET_FILE:_config>"
+            )
+        endif()
     endforeach()
 endif()
 
