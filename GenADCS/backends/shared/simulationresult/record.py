@@ -3,14 +3,21 @@
 import numpy as np
 
 from .satellite_configuration import from_satellite
-from .simulationresult import SatelliteResult, SimulationResult, RESULT_FIELDS
+from .simulationresult import SatelliteResult, SimulationResult, RESULT_FIELDS, SENSOR_FIELDS
 
 
-def record_samples(times, vectors, format, satellite, environment, dynamics, epoch_jd, backend):
+def record_samples(times, vectors, format, satellite, environment, dynamics, epoch_jd, backend, sensor_samples=None):
     times = np.asarray(times, dtype=np.float64)
     vectors = np.asarray(vectors, dtype=np.float64)
     requested = {name for name in RESULT_FIELDS if getattr(format, name, False)}
     fields = {}
+    sensor_requested = requested & SENSOR_FIELDS
+    requested -= SENSOR_FIELDS
+    if sensor_requested:
+        if sensor_samples is None:
+            raise ValueError("sensor samples are required for requested sensor fields")
+        for name in sensor_requested:
+            fields[name] = np.asarray(sensor_samples[name], dtype=np.float64)
     slices = {"satellite_attitude": (0, 4), "satellite_rate": (4, 7),
               "satellite_position": (7, 10), "satellite_velocity": (10, 13),
               "satellite_wheel_momenta": (13, vectors.shape[1])}

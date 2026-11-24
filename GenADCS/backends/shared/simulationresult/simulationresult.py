@@ -20,7 +20,15 @@ RESULT_FIELDS = (
     "J5_force", "J6_force", "lunisolar_force",
     "gravity_gradient_torque", "aerodynamic_torque", "solar_radiation_torque",
     "magnetic_torque", "total_force", "total_torque",
+    "gyroscope_clean", "gyroscope_reading", "magnetometer_clean", "magnetometer_reading",
+    "autonomous_star_tracker_clean", "autonomous_star_tracker_reading",
+    "coarse_sun_sensor_clean", "coarse_sun_sensor_reading",
+    "fine_sun_sensor_clean", "fine_sun_sensor_reading",
+    "fine_earth_sensor_clean", "fine_earth_sensor_reading",
+    "gnss_clean", "gnss_reading", "accelerometer_clean", "accelerometer_reading",
 )
+
+SENSOR_FIELDS = frozenset(name for name in RESULT_FIELDS if name.endswith(("_clean", "_reading")))
 
 
 @dataclass(slots=True)
@@ -50,7 +58,7 @@ class SatelliteResult:
         for name, value in self.fields.items():
             if name not in RESULT_FIELDS:
                 raise ValueError(f"unknown result field: {name}")
-            width = 1 if name in ("atmospheric_density", "eclipse_state") else None if name == "satellite_wheel_momenta" else 4 if name == "satellite_attitude" else 3
+            width = None if name in SENSOR_FIELDS else 1 if name in ("atmospheric_density", "eclipse_state") else None if name == "satellite_wheel_momenta" else 4 if name == "satellite_attitude" else 3
             array = np.asarray(value, dtype=np.float64)
             if array.ndim != 2 or array.shape[0] != len(self.times_s) or (width is not None and array.shape[1] != width):
                 raise ValueError(f"{name} must have one row per sample and {width or 'a fixed number of'} columns")

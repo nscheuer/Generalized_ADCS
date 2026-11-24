@@ -16,6 +16,14 @@ def make_tracker(noise=None, orientation=None, misalignment=None):
     )
 
 
+def test_fov_limits_tracker_availability():
+    tracker = make_tracker()
+    tracker.fov_half_angle = 0.2
+    attitude = np.array([1., 0., 0., 0.])
+    assert tracker.availability(attitude, earth_inertial=np.array([1., 0., 0.]))
+    assert not tracker.availability(attitude, earth_inertial=np.array([0., 0., 1.]))
+
+
 def test_noiseless_quaternion_measurement_applies_mounting_in_declared_order():
     q_mount = _axis_angle_to_quaternion(np.array([0., 0., 1.]), .3)
     q_misalign = _axis_angle_to_quaternion(np.array([1., 0., 0.]), -.2)

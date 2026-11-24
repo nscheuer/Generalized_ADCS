@@ -9,6 +9,10 @@ from .plot import (plot, Subplot, AttitudePlot, RatePlot, PositionPlot,
                    InertialAngularRatePlot, AngularMagnitudePlot,
                    AltitudePlot, LatLonPlot, SunVectorPlot, EclipseStatePlot,
                    EarthVectorPlot)
+from .plot import (GyroscopePlot, MagnetometerPlot, StarTrackerPlot,
+                   CoarseSunSensorPlot, FineSunSensorPlot, FineEarthSensorPlot,
+                   GNSSPositionPlot, GNSSVelocityPlot)
+from .plot import AccelerometerPlot
 
 __all__ = ["plot", "Subplot", "AttitudePlot", "RatePlot", "PositionPlot",
            "VelocityPlot", "WheelMomentumPlot", "WheelSpeedPlot",
@@ -30,4 +34,8 @@ __all__ += ["AerodynamicForcePlot", "AerodynamicTorquePlot", "SRPForcePlot",
             "SRPTorquePlot", "LunisolarForcePlot"]
 __all__ += ["GravityGradientTorquePlot", "JForcePlot"]
 __all__ += ["MagneticTorquePlot"]
+__all__ += ["GyroscopePlot", "MagnetometerPlot", "StarTrackerPlot",
+            "CoarseSunSensorPlot", "FineSunSensorPlot", "FineEarthSensorPlot",
+            "GNSSPositionPlot", "GNSSVelocityPlot"]
+__all__ += ["AccelerometerPlot"]
 __all__ += ["ForcePlot", "TorquePlot"]

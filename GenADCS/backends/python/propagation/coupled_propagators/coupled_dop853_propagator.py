@@ -2,6 +2,7 @@
 
 import numpy as np
 from numba import njit
+from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import sample_sensors, prepare_sensors
 
 from ._dop853_coefficients import A, B, C, E3, E5
 from ._coupled_dynamics import SECONDS_PER_DAY, _derivative, _prepare, _project_wheel_momentum
@@ -54,7 +55,8 @@ def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
 
 @njit(cache=True)
 def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
-                              max_step, min_step, max_accepted_steps, sample_interval=0.0):
+                              max_step, min_step, max_accepted_steps, sample_interval=0.0,
+                              sensor_interval=0.0, sensor_config=None, clean=None, reading=None):
     """Store accepted states while all adaptive trial steps stay inside Numba."""
     capacity = min(max_accepted_steps + 1, 1024)
     capacity = max(capacity, 1)
@@ -97,6 +99,11 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
                 states = new_states
                 capacity = new_capacity
             if save:
+                if sensor_interval > 0.0:
+                    sensor_index = int(np.round(t / sensor_interval))
+                    if sensor_index < clean.shape[0] and abs(t - sensor_index * sensor_interval) < 1e-9 * max(1.0, t):
+                        sample_sensors(y, initial_jd + t / SECONDS_PER_DAY, p,
+                                       sensor_config, clean[sensor_index], reading[sensor_index])
                 times[count] = t
                 states[count, :] = y
                 count += 1
@@ -144,7 +151,7 @@ class CoupledDOP853Propagator:
             raise ValueError("min_step must be finite, positive, and no greater than max_step")
 
     def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
-                  progress_chunk_steps=500, record_every=None):
+                  progress_chunk_steps=500, record_every=None, sensor_every=0):
         tf = float(tf)
         if not np.isfinite(tf) or tf < 0.0:
             raise ValueError("tf must be finite and nonnegative seconds")
@@ -159,8 +166,16 @@ class CoupledDOP853Propagator:
         atol = np.full(y.size, self.atol[0]) if self._scalar_atol else self.atol
         if atol.shape != (y.size,):
             raise ValueError(f"atol must contain {y.size} values for this state")
+        sensor_config = prepare_sensors(satellite.adcs.sensors if sensor_every else [], environment)
+        width = max(1, int(np.sum(sensor_config[-2])))
+        sensor_rows = int(np.floor(tf / (self.dt * sensor_every) + 1e-10)) + 1 if sensor_every else 1
+        clean = np.full((sensor_rows, width), np.nan)
+        reading = np.full_like(clean, np.nan)
+        if sensor_every:
+            sample_sensors(y, state.orbit.julian_date, p, sensor_config, clean[0], reading[0])
         if tf == 0.0:
-            return np.array([0.0]), y.reshape(1, y.size)
+            result = (np.array([0.0]), y.reshape(1, y.size))
+            return (*result, clean, reading) if sensor_every else result
 
         if record_every is not None and (isinstance(record_every, bool) or not isinstance(record_every, int) or record_every < 1):
             raise ValueError("record_every must be a positive integer")
@@ -175,7 +190,8 @@ class CoupledDOP853Propagator:
             with tqdm(total=1, desc="Compiling Numba kernels", unit="stage") as bar:
                 _integrate_adaptive_chunk(y, f, t, h, state.orbit.julian_date, tf,
                                           p, self.rtol, atol, self.max_step,
-                                          self.min_step, 0, sample_interval)
+                                          self.min_step, 0, sample_interval,
+                                          self.dt * sensor_every, sensor_config, clean, reading)
                 bar.update(1)
             time_parts = [np.array([0.0])]
             state_parts = [y.reshape(1, y.size)]
@@ -188,7 +204,7 @@ class CoupledDOP853Propagator:
                         y, f, t, h, state.orbit.julian_date, tf, p,
                         self.rtol, atol, self.max_step, self.min_step,
                         progress_chunk_steps,
-                        sample_interval,
+                        sample_interval, self.dt * sensor_every, sensor_config, clean, reading,
                     )
                     time_parts.append(times[1:])
                     state_parts.append(states[1:, :])
@@ -203,18 +219,18 @@ class CoupledDOP853Propagator:
             if sample_interval and abs(times[-1] - tf) > 1e-10 * max(1.0, tf):
                 times = np.append(times, tf)
                 states = np.vstack((states, y))
-            return times, states
+            return (times, states, clean, reading) if sensor_every else (times, states)
 
         times, states, y, _, _, _ = _integrate_adaptive_chunk(
             y, f, t, h, state.orbit.julian_date, tf, p,
             self.rtol, atol, self.max_step, self.min_step,
             2_147_483_647,
-            sample_interval,
+            sample_interval, self.dt * sensor_every, sensor_config, clean, reading,
         )
         if sample_interval and abs(times[-1] - tf) > 1e-10 * max(1.0, tf):
             times = np.append(times, tf)
             states = np.vstack((states, y))
-        return times, states
+        return (times, states, clean, reading) if sensor_every else (times, states)
 
     def step(self, state, satellite, environment, dynamics):
         """Advance by dt seconds using as many adaptive substeps as needed."""

@@ -5,6 +5,7 @@ from numba import njit
 
 from ._coupled_dynamics import SECONDS_PER_DAY, _Runtime, _derivative, _prepare, _project_wheel_momentum
 from ._state_layout import pack_state, unpack_state
+from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import sample_sensors, prepare_sensors
 
 # Keep the _Runtime re-export so existing Numba disk caches can be unpickled.
 
@@ -26,13 +27,18 @@ def _rk4_step(y, epoch_jd, dt, p):
 
 
 @njit(cache=True)
-def _integrate_chunk(y, initial_jd, dt, full_steps, remainder, p, output, start, count, record_every):
+def _integrate_chunk(y, initial_jd, dt, full_steps, remainder, p, output, start, count, record_every,
+                     sensor_every, sensor_config, clean, reading):
     """Advance consecutive RK4 steps without returning to Python between them."""
     for row in range(start, start + count):
         elapsed_s = row * dt
         step_dt = remainder if row == full_steps else dt
         y = _rk4_step(y, initial_jd + elapsed_s / SECONDS_PER_DAY, step_dt, p)
         completed = row + 1
+        if sensor_every > 0 and completed <= full_steps and completed % sensor_every == 0:
+            index = completed // sensor_every
+            sample_sensors(y, initial_jd + completed * dt / SECONDS_PER_DAY, p,
+                           sensor_config, clean[index], reading[index])
         if completed % record_every == 0:
             output[completed // record_every, :] = y
         elif completed == full_steps + int(remainder > 0.0):
@@ -59,7 +65,7 @@ class CoupledRK4Propagator:
         self._configuration = None
 
     def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
-                  progress_chunk_steps=500, record_every=1):
+                  progress_chunk_steps=500, record_every=1, sensor_every=0):
         """Return elapsed seconds and numeric states for the complete interval.
 
         Numeric state columns are quaternion (0:4), body rates (4:7),
@@ -93,25 +99,35 @@ class CoupledRK4Propagator:
             elapsed[-1] = tf
         output = np.empty((len(elapsed), y.size), dtype=np.float64)
         output[0, :] = y
+        sensor_config = prepare_sensors(satellite.adcs.sensors if sensor_every else [], environment)
+        width = max(1, int(np.sum(sensor_config[-2])))
+        sensor_rows = full_steps // sensor_every + 1 if sensor_every else 1
+        clean = np.full((sensor_rows, width), np.nan)
+        reading = np.full_like(clean, np.nan)
+        if sensor_every:
+            sample_sensors(y, state.orbit.julian_date, runtime, sensor_config, clean[0], reading[0])
 
         if progress and step_count:
             from tqdm import tqdm
 
             with tqdm(total=1, desc="Compiling Numba kernels", unit="stage") as bar:
                 _integrate_chunk(y, state.orbit.julian_date, self.dt, full_steps,
-                                 remainder, runtime, output, 0, 0, record_every)
+                                 remainder, runtime, output, 0, 0, record_every,
+                                 sensor_every, sensor_config, clean, reading)
                 bar.update(1)
             with tqdm(total=step_count, desc="Running coupled RK4", unit="step") as bar:
                 for start in range(0, step_count, progress_chunk_steps):
                     count = min(progress_chunk_steps, step_count - start)
                     y = _integrate_chunk(y, state.orbit.julian_date, self.dt,
                                          full_steps, remainder, runtime, output,
-                                         start, count, record_every)
+                                         start, count, record_every, sensor_every,
+                                         sensor_config, clean, reading)
                     bar.update(count)
         elif step_count:
             _integrate_chunk(y, state.orbit.julian_date, self.dt, full_steps,
-                             remainder, runtime, output, 0, step_count, record_every)
-        return elapsed, output
+                             remainder, runtime, output, 0, step_count, record_every,
+                             sensor_every, sensor_config, clean, reading)
+        return (elapsed, output, clean, reading) if sensor_every else (elapsed, output)
 
     def step(self, state, satellite, environment, dynamics):
         if self._configuration != (id(satellite), id(environment), id(dynamics)):

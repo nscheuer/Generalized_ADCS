@@ -47,6 +47,8 @@ def from_satellite(satellite):
              "max_dipole": float(device.max_dipole), "effects": _packed(device.effects)}
             for device in adcs.magnetorquers
         ],
+        "adcs_N": int(getattr(adcs, "N", 1)),
+        "sensors": _packed(adcs.sensors) if getattr(adcs, "sensors", None) else None,
         "state_machine": _packed(satellite.state_machine) if satellite.state_machine is not None else None,
     }
 
@@ -70,6 +72,9 @@ def to_satellite(config, backend):
         device["misalignment"], _unpacked(device["effects"]))
         for device in config["magnetorquers"]]
     adcs = hardware.ADCSSubsystem(wheels, magnetorquers)
+    if backend == "Python":
+        adcs.N = config.get("adcs_N", 1)
+        adcs.sensors = _unpacked(config["sensors"]) if config.get("sensors") else []
     state_machine = (_unpacked(config["state_machine"])
                      if config["state_machine"] is not None else None)
     return hardware.Satellite(geometry, adcs, state_machine)

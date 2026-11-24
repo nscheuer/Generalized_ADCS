@@ -281,6 +281,257 @@ class RatePlot(Subplot):
         super().__init__("satellite_rate", **kwargs)
 
 
+class GyroscopePlot(Subplot):
+    """Plot recorded clean and noisy, biased gyroscope components when present."""
+
+    def __init__(self, *, satellite="sat_000", title="Gyroscope Measurement",
+                 ylabel="Angular rate [rad/s]", clean=True, reading=True,
+                 plot_kwargs=None, **line_kwargs):
+        self.fields = tuple(name for name, enabled in
+                            (("gyroscope_clean", clean), ("gyroscope_reading", reading))
+                            if enabled)
+        if not self.fields:
+            raise ValueError("enable clean and/or reading gyroscope data")
+        self.satellite = satellite
+        self.title = title
+        self.ylabel = ylabel
+        self.plot_kwargs = {**(plot_kwargs or {}), **line_kwargs}
+
+    def draw(self, ax, runs, mode):
+        styles = (("gyroscope_clean", "clean", "C0", "-"),
+                  ("gyroscope_reading", "noisy + bias", "C1", "--"))
+        any_component = False
+        for run_index, run in enumerate(runs[:1] if mode == "single" else runs):
+            satellite = run.satellites[self.satellite]
+            for field_name, label, color, linestyle in styles:
+                if field_name not in self.fields:
+                    continue
+                values = getattr(satellite, field_name)
+                if values is None or values.shape[1] == 0:
+                    continue
+                any_component = True
+                for axis, component in enumerate(("x", "y", "z")):
+                    style = {**self.plot_kwargs, "color": color, "linestyle": linestyle}
+                    ax.plot(satellite.times_s, values[:, axis],
+                            label=f"{label} {component}" if run_index == 0 else None, **style)
+        if not any_component:
+            raise ValueError("no gyroscope measurements were recorded")
+        ax.set(title=self.title, xlabel="Time [s]", ylabel=self.ylabel)
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+
+
+class MagnetometerPlot(GyroscopePlot):
+    """Plot recorded clean and noisy, biased magnetometer components."""
+
+    def __init__(self, *, satellite="sat_000", title="Magnetometer Measurement",
+                 ylabel="Magnetic field [T]", clean=True, reading=True,
+                 plot_kwargs=None, **line_kwargs):
+        self.fields = tuple(name for name, enabled in
+                            (("magnetometer_clean", clean), ("magnetometer_reading", reading))
+                            if enabled)
+        if not self.fields:
+            raise ValueError("enable clean and/or reading magnetometer data")
+        self.satellite = satellite
+        self.title = title
+        self.ylabel = ylabel
+        self.plot_kwargs = {**(plot_kwargs or {}), **line_kwargs}
+
+    def draw(self, ax, runs, mode):
+        styles = (("magnetometer_clean", "clean", "C0", "-"),
+                  ("magnetometer_reading", "noisy + bias", "C1", "--"))
+        any_component = False
+        for run_index, run in enumerate(runs[:1] if mode == "single" else runs):
+            satellite = run.satellites[self.satellite]
+            for field_name, label, color, linestyle in styles:
+                if field_name not in self.fields:
+                    continue
+                values = getattr(satellite, field_name)
+                if values is None or values.shape[1] == 0:
+                    continue
+                any_component = True
+                for axis, component in enumerate(("x", "y", "z")):
+                    ax.plot(satellite.times_s, values[:, axis],
+                            label=f"{label} {component}" if run_index == 0 else None,
+                            **{**self.plot_kwargs, "color": color, "linestyle": linestyle})
+        if not any_component:
+            raise ValueError("no magnetometer measurements were recorded")
+        ax.set(title=self.title, xlabel="Time [s]", ylabel=self.ylabel)
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+
+
+class StarTrackerPlot(Subplot):
+    """Plot clean and measured star tracker attitude quaternions."""
+
+    def __init__(self, *, satellite="sat_000", title="Star Tracker Quaternion",
+                 clean=True, reading=True, **kwargs):
+        self.fields = tuple(name for name, enabled in
+                            (("autonomous_star_tracker_clean", clean),
+                             ("autonomous_star_tracker_reading", reading)) if enabled)
+        if not self.fields:
+            raise ValueError("enable clean and/or reading star tracker data")
+        self.satellite, self.title = satellite, title
+
+    def draw(self, ax, runs, mode):
+        styles = (("autonomous_star_tracker_clean", "clean", "-"),
+                  ("autonomous_star_tracker_reading", "noisy + bias", "--"))
+        drawn = False
+        for ri, run in enumerate(runs[:1] if mode == "single" else runs):
+            sat = run.satellites[self.satellite]
+            for name, label, ls in styles:
+                values = getattr(sat, name)
+                if name not in self.fields or values is None or values.shape[1] == 0:
+                    continue
+                drawn = True
+                for i, component in enumerate(("q0", "q1", "q2", "q3")):
+                    ax.plot(sat.times_s, values[:, i], color=f"C{i}", linestyle=ls,
+                            label=f"{label} {component}" if ri == 0 else None)
+        if not drawn:
+            raise ValueError("no star tracker measurements were recorded")
+        ax.set(title=self.title, xlabel="Time [s]", ylabel="Quaternion")
+        ax.set_xlim(left=0.0, right=max(run.satellites[self.satellite].times_s[-1] for run in runs))
+        ax.grid(True, alpha=.3)
+        ax.legend()
+
+
+class CoarseSunSensorPlot(Subplot):
+    """Plot clean and measured coarse Sun sensor intensity."""
+
+    def __init__(self, *, satellite="sat_000", title="Coarse Sun Sensor", clean=True, reading=True):
+        self.satellite, self.title = satellite, title
+        self.fields = tuple(n for n, use in (("coarse_sun_sensor_clean", clean),
+                                             ("coarse_sun_sensor_reading", reading)) if use)
+        if not self.fields:
+            raise ValueError("enable clean and/or reading data")
+
+    def draw(self, ax, runs, mode):
+        drawn = False
+        for ri, run in enumerate(runs[:1] if mode == "single" else runs):
+            sat = run.satellites[self.satellite]
+            for name, label, ls in (("coarse_sun_sensor_clean", "clean", "-"),
+                                    ("coarse_sun_sensor_reading", "noisy + bias", "--")):
+                values = getattr(sat, name)
+                if name not in self.fields or values is None or values.shape[1] == 0:
+                    continue
+                ax.plot(sat.times_s, values[:, 0], linestyle=ls, color="C0" if name.endswith("clean") else "C1",
+                        label=label if ri == 0 else None)
+                drawn = True
+        if not drawn:
+            raise ValueError("no coarse Sun sensor measurements were recorded")
+        ax.set(title=self.title, xlabel="Time [s]", ylabel="Sensor reading")
+        ax.set_xlim(0.0, max(run.satellites[self.satellite].times_s[-1] for run in runs))
+        ax.grid(True, alpha=.3)
+        ax.legend()
+
+
+class FineSunSensorPlot(Subplot):
+    """Plot clean and measured fine Sun sensor alpha and beta angles."""
+
+    def __init__(self, *, satellite="sat_000", clean=True, reading=True,
+                 title="Fine Sun Sensor Angles", sensor="fine_sun_sensor"):
+        self.satellite, self.title = satellite, title
+        self.fields = tuple(n for n, use in ((sensor + "_clean", clean),
+                                             (sensor + "_reading", reading)) if use)
+        if not self.fields:
+            raise ValueError("enable clean and/or reading fine Sun sensor data")
+
+    def draw(self, ax, runs, mode):
+        styles = ((self.fields[0].rsplit("_", 1)[0] + "_clean", "clean", "-"),
+                  (self.fields[0].rsplit("_", 1)[0] + "_reading", "noisy + bias", "--"))
+        drawn = False
+        selected = runs[:1] if mode == "single" else runs
+        for run_index, run in enumerate(selected):
+            sat = run.satellites[self.satellite]
+            for name, label, linestyle in styles:
+                values = getattr(sat, name)
+                if name not in self.fields or values is None or values.shape[1] == 0:
+                    continue
+                drawn = True
+                for component, angle_name in enumerate(("alpha", "beta")):
+                    ax.plot(sat.times_s, np.rad2deg(values[:, component]),
+                            linestyle=linestyle, color=f"C{component}",
+                            label=f"{label} {angle_name}" if run_index == 0 else None)
+        if not drawn:
+            raise ValueError("no fine direction sensor measurements were recorded")
+        ax.set(title=self.title, xlabel="Time [s]", ylabel="Angle [deg]")
+        ax.set_xlim(0., max(run.satellites[self.satellite].times_s[-1] for run in runs))
+        ax.grid(True, alpha=.3)
+        ax.legend()
+
+
+class FineEarthSensorPlot(FineSunSensorPlot):
+    """Plot clean and measured fine Earth sensor alpha and beta angles."""
+
+    def __init__(self, *, satellite="sat_000", clean=True, reading=True,
+                 title="Fine Earth Sensor Angles"):
+        self.satellite, self.title = satellite, title
+        super().__init__(satellite=satellite, clean=clean, reading=reading,
+                         title=title, sensor="fine_earth_sensor")
+
+
+class GNSSPositionPlot(Subplot):
+    """Plot clean and measured GNSS inertial position components."""
+
+    def __init__(self, *, satellite="sat_000", title="GNSS Position", clean=True, reading=True):
+        self.satellite, self.title = satellite, title
+        self.fields = tuple(n for n, use in (("gnss_clean", clean), ("gnss_reading", reading)) if use)
+        if not self.fields:
+            raise ValueError("enable clean and/or reading GNSS data")
+
+    def draw(self, ax, runs, mode):
+        drawn = False
+        selected = runs[:1] if mode == "single" else runs
+        for ri, run in enumerate(selected):
+            sat = run.satellites[self.satellite]
+            for name, label, linestyle in (("gnss_clean", "clean", "-"),
+                                           ("gnss_reading", "noisy + bias", "--")):
+                values = getattr(sat, name)
+                if name not in self.fields or values is None or values.shape[1] == 0:
+                    continue
+                drawn = True
+                for i, axis_name in enumerate(("x", "y", "z")):
+                    ax.plot(sat.times_s, values[:, i] / 1000., linestyle=linestyle,
+                            color=f"C{i}", label=f"{label} {axis_name}" if ri == 0 else None)
+        if not drawn:
+            raise ValueError("no GNSS position data were recorded")
+        ax.set(title=self.title, xlabel="Time [s]", ylabel="Position [km]")
+        ax.grid(True, alpha=.3)
+        ax.legend()
+
+
+class GNSSVelocityPlot(GNSSPositionPlot):
+    """Plot clean and measured GNSS inertial velocity components."""
+
+    def __init__(self, *, satellite="sat_000", title="GNSS Velocity", clean=True, reading=True):
+        self.satellite, self.title = satellite, title
+        self.fields = tuple(n for n, use in (("gnss_clean", clean), ("gnss_reading", reading)) if use)
+        if not self.fields:
+            raise ValueError("enable clean and/or reading GNSS data")
+
+    def draw(self, ax, runs, mode):
+        drawn = False
+        selected = runs[:1] if mode == "single" else runs
+        for ri, run in enumerate(selected):
+            sat = run.satellites[self.satellite]
+            for name, label, linestyle in (("gnss_clean", "clean", "-"),
+                                           ("gnss_reading", "noisy + bias", "--")):
+                values = getattr(sat, name)
+                if name not in self.fields or values is None or values.shape[1] ==  0:
+                    continue
+                drawn = True
+                for i, axis_name in enumerate(("x", "y", "z")):
+                    ax.plot(sat.times_s, values[:, i + 3] / 1000., linestyle=linestyle,
+                            color=f"C{i}", label=f"{label} {axis_name}" if ri == 0 else None)
+        if not drawn:
+            raise ValueError("no GNSS velocity data were recorded")
+        ax.set(title=self.title, xlabel="Time [s]", ylabel="Velocity [km/s]")
+        ax.grid(True, alpha=.3)
+        ax.legend()
+        if not self.fields:
+            raise ValueError("enable clean and/or reading fine Earth sensor data")
+
+
 class PositionPlot(Subplot):
     def __init__(self, *, satellite="sat_000", **kwargs):
         kwargs.setdefault("ylabel", "Position [m]")
@@ -297,6 +548,40 @@ class VelocityPlot(Subplot):
         style = {**kwargs.pop("plot_kwargs", {}), **{name: kwargs.pop(name) for name in tuple(kwargs)
                  if name in {"linewidth", "linestyle", "marker", "alpha", "drawstyle"}}}
         super().__init__("satellite_velocity", satellite=satellite, plot_kwargs=style, **kwargs)
+
+
+class AccelerometerPlot(GyroscopePlot):
+    """Plot clean and measured accelerometer specific-force components."""
+
+    def __init__(self, *, satellite="sat_000", title="Accelerometer Measurement",
+                 ylabel="Specific force [m/s²]", clean=True, reading=True,
+                 plot_kwargs=None, **line_kwargs):
+        self.fields = tuple(n for n, use in (("accelerometer_clean", clean),
+                                             ("accelerometer_reading", reading)) if use)
+        if not self.fields:
+            raise ValueError("enable clean and/or reading accelerometer data")
+        self.satellite, self.title, self.ylabel = satellite, title, ylabel
+        self.plot_kwargs = {**(plot_kwargs or {}), **line_kwargs}
+
+    def draw(self, ax, runs, mode):
+        drawn = False
+        for ri, run in enumerate(runs[:1] if mode == "single" else runs):
+            sat = run.satellites[self.satellite]
+            for name, label, linestyle in (("accelerometer_clean", "clean", "-"),
+                                           ("accelerometer_reading", "noisy + bias", "--")):
+                values = getattr(sat, name)
+                if name not in self.fields or values is None or values.shape[1] == 0:
+                    continue
+                drawn = True
+                for i, axis in enumerate(("x", "y", "z")):
+                    ax.plot(sat.times_s, values[:, i], color=f"C{i}", linestyle=linestyle,
+                            label=f"{label} {axis}" if ri == 0 else None, **self.plot_kwargs)
+        if not drawn:
+            raise ValueError("no accelerometer measurements were recorded")
+        ax.set(title=self.title, xlabel="Time [s]", ylabel=self.ylabel)
+        ax.set_xlim(0., max(run.satellites[self.satellite].times_s[-1] for run in runs))
+        ax.grid(True, alpha=.3)
+        ax.legend()
 
 
 class AltitudePlot(Subplot):

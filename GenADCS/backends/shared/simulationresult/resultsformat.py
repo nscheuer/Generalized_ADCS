@@ -31,6 +31,22 @@ class ResultsFormat:
     magnetic_torque: bool = False
     total_force: bool = False
     total_torque: bool = False
+    gyroscope_clean: bool = False
+    gyroscope_reading: bool = False
+    magnetometer_clean: bool = False
+    magnetometer_reading: bool = False
+    autonomous_star_tracker_clean: bool = False
+    autonomous_star_tracker_reading: bool = False
+    coarse_sun_sensor_clean: bool = False
+    coarse_sun_sensor_reading: bool = False
+    fine_sun_sensor_clean: bool = False
+    fine_sun_sensor_reading: bool = False
+    fine_earth_sensor_clean: bool = False
+    fine_earth_sensor_reading: bool = False
+    gnss_clean: bool = False
+    gnss_reading: bool = False
+    accelerometer_clean: bool = False
+    accelerometer_reading: bool = False
     N: int = 1
 
     def __post_init__(self) -> None:
