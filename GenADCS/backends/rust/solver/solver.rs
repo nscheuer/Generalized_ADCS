@@ -1,48 +1,26 @@
-#[pyclass]
-struct Solver {
-    #[pyo3(get, set)]
-    dynamics: PyObject,
-    #[pyo3(get, set)]
-    orbital: PyObject,
-    #[pyo3(get, set)]
-    attitude: PyObject,
-    #[pyo3(get, set)]
-    coupled: PyObject,
+/// Solver composition selected by the caller.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SolverMode {
+    Split,
+    Coupled,
 }
-#[pymethods]
-impl Solver {
-    #[new]
-    #[pyo3(signature=(dynamics=None,orbital=None,attitude=None,coupled=None))]
-    fn new(
-        py: Python<'_>,
-        dynamics: Option<PyObject>,
-        orbital: Option<PyObject>,
-        attitude: Option<PyObject>,
-        coupled: Option<PyObject>,
-    ) -> PyResult<Self> {
-        let orbital = orbital.unwrap_or_else(|| py.None());
-        let attitude = attitude.unwrap_or_else(|| py.None());
-        let coupled = coupled.unwrap_or_else(|| py.None());
-        if (coupled.is_none(py) && (orbital.is_none(py) || attitude.is_none(py)))
-            || (!coupled.is_none(py) && (!orbital.is_none(py) || !attitude.is_none(py)))
-        {
-            return Err(PyValueError::new_err(
-                "provide a coupled solver or both orbital and attitude solvers",
-            ));
+
+/// Rust-native validation and description of a solver composition.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SolverConfig {
+    pub mode: SolverMode,
+}
+
+impl SolverConfig {
+    pub fn new(has_coupled: bool, has_orbital: bool, has_attitude: bool) -> Result<Self, String> {
+        match (has_coupled, has_orbital, has_attitude) {
+            (true, false, false) => Ok(Self {
+                mode: SolverMode::Coupled,
+            }),
+            (false, true, true) => Ok(Self {
+                mode: SolverMode::Split,
+            }),
+            _ => Err("provide a coupled solver or both orbital and attitude solvers".to_owned()),
         }
-        let dynamics = match dynamics {
-            Some(value) => value,
-            None => py
-                .import("GenADCS.backends.rust.config")?
-                .getattr("DynamicsConfig")?
-                .call0()?
-                .into_py(py),
-        };
-        Ok(Self {
-            dynamics,
-            orbital,
-            attitude,
-            coupled,
-        })
     }
 }

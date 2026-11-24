@@ -1,27 +1,43 @@
-use pyo3::exceptions::PyNotImplementedError;
-use pyo3::prelude::*;
-
-#[pyclass]
+/// Additive random-walk bias parameters.
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RandomWalkBias {
-    #[pyo3(get, set)]
     pub standard_deviation: f64,
-    #[pyo3(get, set)]
     pub initial_value: f64,
 }
 
-#[pymethods]
 impl RandomWalkBias {
-    #[new]
-    #[pyo3(signature = (standard_deviation, initial_value=0.0))]
-    fn new(standard_deviation: f64, initial_value: f64) -> Self {
-        Self {
+    pub fn new(standard_deviation: f64, initial_value: f64) -> Result<Self, &'static str> {
+        if !standard_deviation.is_finite() || standard_deviation < 0.0 || !initial_value.is_finite()
+        {
+            return Err(
+                "random-walk bias values must be finite and standard deviation non-negative",
+            );
+        }
+        Ok(Self {
             standard_deviation,
             initial_value,
-        }
+        })
     }
-    #[pyo3(signature = (value, dt, rng=None))]
-    fn apply(&self, value: &PyAny, dt: f64, rng: Option<&PyAny>) -> PyResult<()> {
-        let _ = (value, dt, rng);
-        Err(PyNotImplementedError::new_err(""))
+
+    pub fn apply(
+        &self,
+        values: &[f64],
+        elapsed_seconds: f64,
+        standard_normals: &[f64],
+    ) -> Result<Vec<f64>, &'static str> {
+        if !elapsed_seconds.is_finite() || elapsed_seconds < 0.0 {
+            return Err("elapsed time must be finite and non-negative");
+        }
+        if values.len() != standard_normals.len()
+            || standard_normals.iter().any(|value| !value.is_finite())
+        {
+            return Err("one finite standard-normal value is required per measurement");
+        }
+        let scale = self.standard_deviation * elapsed_seconds.sqrt();
+        Ok(values
+            .iter()
+            .zip(standard_normals)
+            .map(|(value, normal)| value + self.initial_value + scale * normal)
+            .collect())
     }
 }

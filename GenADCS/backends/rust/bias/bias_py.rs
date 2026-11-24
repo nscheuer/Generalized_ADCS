@@ -6,14 +6,14 @@ use pyo3::types::{PyDict, PyTuple};
 
 use crate::bias::Bias as CoreBias;
 
-fn numpy_array(py: Python<'_>, values: &[f64], shape: &[usize]) -> PyResult<PyObject> {
+pub(super) fn numpy_array(py: Python<'_>, values: &[f64], shape: &[usize]) -> PyResult<PyObject> {
     let numpy = py.import("numpy")?;
     let array = numpy.call_method1("asarray", (values.to_vec(),))?;
     let shape = PyTuple::new(py, shape);
     Ok(array.call_method1("reshape", (shape,))?.into())
 }
 
-fn array_values(py: Python<'_>, value: &PyAny) -> PyResult<(Vec<f64>, Vec<usize>)> {
+pub(super) fn array_values(py: Python<'_>, value: &PyAny) -> PyResult<(Vec<f64>, Vec<usize>)> {
     let numpy = py.import("numpy")?;
     let array = numpy.call_method1("atleast_1d", (value,))?;
     let array = numpy.call_method1("asarray", (array, "float64"))?;

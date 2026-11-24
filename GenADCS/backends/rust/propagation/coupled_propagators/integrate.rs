@@ -1,13 +1,3 @@
-fn output(py: Python<'_>, times: Vec<f64>, states: Vec<Vec<f64>>) -> PyResult<PyObject> {
-    let np = py.import("numpy")?;
-    let ys = np.call_method1("asarray", (states,))?;
-    Ok((times.to_pyarray(py), ys).into_py(py))
-}
-
-fn check_interrupt(py: Python<'_>) -> PyResult<()> {
-    py.check_signals()
-}
-
 struct NativeProgress {
     label: &'static str,
     total: Option<usize>,
@@ -21,6 +11,19 @@ struct NativeProgress {
     last_draw: std::time::Instant,
     width: usize,
     finished: bool,
+}
+
+/// Error reported by native integration, preserving errors from host-side polling hooks.
+#[derive(Debug)]
+pub enum IntegrationError<E> {
+    Native(String),
+    Callback(E),
+}
+
+impl<E> From<String> for IntegrationError<E> {
+    fn from(error: String) -> Self {
+        Self::Native(error)
+    }
 }
 impl NativeProgress {
     fn new(
@@ -109,7 +112,7 @@ impl NativeProgress {
     }
 }
 /// Integrate an already constructed Rust runtime without entering Python.
-pub fn integrate_rk4_native(
+pub fn integrate_rk4_native<E, F>(
     mut y: Vec<f64>,
     jd: f64,
     dt: f64,
@@ -118,20 +121,30 @@ pub fn integrate_rk4_native(
     progress: bool,
     progress_chunk_steps: usize,
     record_every: usize,
-) -> PyResult<(Vec<f64>, Vec<Vec<f64>>)> {
+    mut poll: F,
+) -> Result<(Vec<f64>, Vec<Vec<f64>>), IntegrationError<E>>
+where
+    F: FnMut() -> Result<(), E>,
+{
+    runtime.validate()?;
+    if record_every == 0 {
+        return Err(IntegrationError::Native(
+            "record_every must be positive".to_owned(),
+        ));
+    }
     if !tf.is_finite() || tf < 0. {
-        return Err(PyValueError::new_err(
-            "tf must be finite and nonnegative seconds",
+        return Err(IntegrationError::Native(
+            "tf must be finite and nonnegative seconds".to_owned(),
         ));
     }
     if !dt.is_finite() || dt <= 0. {
-        return Err(PyValueError::new_err(
-            "dt must be finite and positive seconds",
+        return Err(IntegrationError::Native(
+            "dt must be finite and positive seconds".to_owned(),
         ));
     }
     if y.len() != 13 {
-        return Err(PyValueError::new_err(
-            "coupled state must contain 13 values",
+        return Err(IntegrationError::Native(
+            "coupled state must contain 13 values".to_owned(),
         ));
     }
     normalize_q(&mut y)?;
@@ -155,7 +168,7 @@ pub fn integrate_rk4_native(
     };
     for i in 0..(full + usize::from(remainder > 0.)) {
         if i % progress_chunk_steps.max(1) == 0 {
-            Python::with_gil(check_interrupt)?;
+            poll().map_err(IntegrationError::Callback)?;
         }
         let elapsed = i as f64 * dt;
         let h = if i == full { remainder } else { dt };
@@ -176,7 +189,7 @@ pub fn integrate_rk4_native(
 }
 
 /// Adaptive DOP853 propagation using only Rust model and solver code.
-pub fn integrate_dop853_native(
+pub fn integrate_dop853_native<E, F>(
     mut y: Vec<f64>,
     jd: f64,
     dt: f64,
@@ -189,28 +202,50 @@ pub fn integrate_dop853_native(
     progress: bool,
     progress_chunk_steps: usize,
     record_every: usize,
-) -> PyResult<(Vec<f64>, Vec<Vec<f64>>)> {
+    mut poll: F,
+) -> Result<(Vec<f64>, Vec<Vec<f64>>), IntegrationError<E>>
+where
+    F: FnMut() -> Result<(), E>,
+{
+    runtime.validate()?;
     if !tf.is_finite() || tf < 0. {
-        return Err(PyValueError::new_err(
-            "tf must be finite and nonnegative seconds",
+        return Err(IntegrationError::Native(
+            "tf must be finite and nonnegative seconds".to_owned(),
         ));
     }
     if !dt.is_finite() || dt <= 0. {
-        return Err(PyValueError::new_err(
-            "dt must be finite and positive seconds",
+        return Err(IntegrationError::Native(
+            "dt must be finite and positive seconds".to_owned(),
+        ));
+    }
+    if !rtol.is_finite() || rtol <= 0.0 {
+        return Err(IntegrationError::Native(
+            "rtol must be finite and positive".to_owned(),
+        ));
+    }
+    if !max_step.is_finite()
+        || max_step <= 0.0
+        || !min_step.is_finite()
+        || min_step <= 0.0
+        || min_step > max_step
+    {
+        return Err(IntegrationError::Native(
+            "step limits must be finite, positive, and ordered".to_owned(),
         ));
     }
     if y.len() != 13 {
-        return Err(PyValueError::new_err(
-            "coupled state must contain 13 values",
+        return Err(IntegrationError::Native(
+            "coupled state must contain 13 values".to_owned(),
         ));
     }
     normalize_q(&mut y)?;
     if atol.len() == 1 {
         atol = vec![atol[0]; y.len()];
     }
-    if atol.len() != y.len() {
-        return Err(PyValueError::new_err("atol length differs from state size"));
+    if atol.len() != y.len() || atol.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+        return Err(IntegrationError::Native(
+            "atol length differs from state size".to_owned(),
+        ));
     }
     let mut times = vec![0.];
     let mut states = vec![y.clone()];
@@ -218,7 +253,11 @@ pub fn integrate_dop853_native(
         return Ok((times, states));
     }
     let mut t = 0.;
-    let sample_interval = if record_every == 0 { 0. } else { dt * record_every as f64 };
+    let sample_interval = if record_every == 0 {
+        0.
+    } else {
+        dt * record_every as f64
+    };
     let mut next_sample = sample_interval;
     let mut h = dt.min(max_step);
     let mut f = derivative_vec(&y, jd, runtime)?;
@@ -236,11 +275,13 @@ pub fn integrate_dop853_native(
     };
     while t < tf {
         if trials % progress_chunk_steps.max(1) == 0 {
-            Python::with_gil(check_interrupt)?;
+            poll().map_err(IntegrationError::Callback)?;
         }
         trials += 1;
         if trials > 10_000_000 {
-            return Err(PyValueError::new_err("DOP853 exceeded maximum trials"));
+            return Err(IntegrationError::Native(
+                "DOP853 exceeded maximum trials".to_owned(),
+            ));
         }
         let remaining = tf - t;
         let mut step = h.min(max_step).min(remaining);
@@ -248,21 +289,22 @@ pub fn integrate_dop853_native(
             step = step.min(next_sample - t);
         }
         if step <= 0. || t + step == t {
-            return Err(PyValueError::new_err(
-                "DOP853 step is too small to advance simulation time",
+            return Err(IntegrationError::Native(
+                "DOP853 step is too small to advance simulation time".to_owned(),
             ));
         }
-        let boundary_limited = sample_interval > 0. && next_sample < tf && next_sample - t <= min_step;
+        let boundary_limited =
+            sample_interval > 0. && next_sample < tf && next_sample - t <= min_step;
         if step < min_step && remaining > min_step && !boundary_limited {
-            return Err(PyValueError::new_err(
-                "DOP853 reached min_step before satisfying tolerances",
+            return Err(IntegrationError::Native(
+                "DOP853 reached min_step before satisfying tolerances".to_owned(),
             ));
         }
         let (candidate, next_f, error) =
             dop853_vec(&y, &f, jd + t / 86400., step, runtime, rtol, &atol)?;
         if !error.is_finite() {
-            return Err(PyValueError::new_err(
-                "DOP853 produced a nonfinite error estimate",
+            return Err(IntegrationError::Native(
+                "DOP853 produced a nonfinite error estimate".to_owned(),
             ));
         }
         if error <= 1. {
@@ -286,8 +328,8 @@ pub fn integrate_dop853_native(
         } else {
             h = step * (0.9 * error.powf(-0.125)).max(0.2);
             if h < min_step && !boundary_limited {
-                return Err(PyValueError::new_err(
-                    "DOP853 reached min_step before satisfying tolerances",
+                return Err(IntegrationError::Native(
+                    "DOP853 reached min_step before satisfying tolerances".to_owned(),
                 ));
             }
         }
@@ -300,83 +342,4 @@ pub fn integrate_dop853_native(
         states.push(y);
     }
     Ok((times, states))
-}
-#[pyfunction]
-#[pyo3(signature=(y,jd,dt,tf,runtime,progress=false,progress_chunk_steps=500,record_every=1))]
-fn integrate_rk4(
-    py: Python<'_>,
-    y: &PyAny,
-    jd: f64,
-    dt: f64,
-    tf: f64,
-    runtime: &PyAny,
-    progress: bool,
-    progress_chunk_steps: usize,
-    record_every: usize,
-) -> PyResult<PyObject> {
-    if record_every == 0 { return Err(PyValueError::new_err("record_every must be positive")); }
-    if !tf.is_finite() || tf < 0. {
-        return Err(PyValueError::new_err(
-            "tf must be finite and nonnegative seconds",
-        ));
-    }
-    if !dt.is_finite() || dt <= 0. {
-        return Err(PyValueError::new_err(
-            "dt must be finite and positive seconds",
-        ));
-    }
-    let y = numbers(py, y)?;
-    let runtime = Runtime::from_py(py, runtime)?;
-    let (times, states) = py.allow_threads(move || {
-        integrate_rk4_native(y, jd, dt, tf, &runtime, progress, progress_chunk_steps, record_every)
-    })?;
-    output(py, times, states)
-}
-#[pyfunction]
-#[pyo3(signature=(y,jd,dt,tf,runtime,rtol,atol,max_step,min_step,progress=false,progress_chunk_steps=500,record_every=0))]
-fn integrate_dop853(
-    py: Python<'_>,
-    y: &PyAny,
-    jd: f64,
-    dt: f64,
-    tf: f64,
-    runtime: &PyAny,
-    rtol: f64,
-    atol: &PyAny,
-    max_step: f64,
-    min_step: f64,
-    progress: bool,
-    progress_chunk_steps: usize,
-    record_every: usize,
-) -> PyResult<PyObject> {
-    if !tf.is_finite() || tf < 0. {
-        return Err(PyValueError::new_err(
-            "tf must be finite and nonnegative seconds",
-        ));
-    }
-    if !dt.is_finite() || dt <= 0. {
-        return Err(PyValueError::new_err(
-            "dt must be finite and positive seconds",
-        ));
-    }
-    let y = numbers(py, y)?;
-    let atol = numbers(py, atol)?;
-    let runtime = Runtime::from_py(py, runtime)?;
-    let (times, states) = py.allow_threads(move || {
-        integrate_dop853_native(
-            y,
-            jd,
-            dt,
-            tf,
-            &runtime,
-            rtol,
-            atol,
-            max_step,
-            min_step,
-            progress,
-            progress_chunk_steps,
-            record_every,
-        )
-    })?;
-    output(py, times, states)
 }

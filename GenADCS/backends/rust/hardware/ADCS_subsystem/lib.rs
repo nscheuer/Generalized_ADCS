@@ -2,12 +2,19 @@
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-include!("effects.rs");
+mod effects;
+mod effects_py;
+pub use effects::{apply_sequence, Effect};
+use effects_py::apply_effects;
+mod adcs_subsystem;
+mod adcs_subsystem_py;
+pub use adcs_subsystem::ADCSSubsystem as NativeADCSSubsystem;
+use adcs_subsystem_py::ADCSSubsystem;
+
 include!("magnetorquer.rs");
 include!("magnetorquer_py.rs");
 include!("reaction_wheel.rs");
 include!("reaction_wheel_py.rs");
-include!("adcs_subsystem.rs");
 
 #[cfg(test)]
 #[path = "../../../../tests/backends/rust/hardware/ADCS_subsystem/test_adcs_subsystem.rs"]

@@ -1,21 +1,21 @@
-use pyo3::exceptions::PyNotImplementedError;
-use pyo3::prelude::*;
-
-#[pyclass]
+/// Multiplicative scale-factor error.
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ScaleFactorError {
-    #[pyo3(get, set)]
     pub fraction: f64,
 }
 
-#[pymethods]
 impl ScaleFactorError {
-    #[new]
-    fn new(fraction: f64) -> Self {
-        Self { fraction }
+    pub fn new(fraction: f64) -> Result<Self, &'static str> {
+        if !fraction.is_finite() {
+            return Err("scale-factor fraction must be finite");
+        }
+        Ok(Self { fraction })
     }
-    #[pyo3(signature = (value, dt, rng=None))]
-    fn apply(&self, value: &PyAny, dt: f64, rng: Option<&PyAny>) -> PyResult<()> {
-        let _ = (value, dt, rng);
-        Err(PyNotImplementedError::new_err(""))
+
+    pub fn apply(&self, values: &[f64]) -> Vec<f64> {
+        values
+            .iter()
+            .map(|value| value * (1.0 + self.fraction))
+            .collect()
     }
 }

@@ -1,0 +1,14 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+default: all
+
+# Build all Python-importable Rust extensions and all workspace crates.
+build:
+    PYO3_PYTHON="$(python -c 'import sys; print(sys.executable)')" PYTHONPATH="$(python -c 'import site; print(site.getsitepackages()[0])'):$PWD" bash GenADCS/backends/rust/build_extensions.sh
+    cargo build --manifest-path GenADCS/backends/rust/Cargo.toml --workspace
+
+# PyO3 unit tests need the active virtualenv's interpreter and site-packages on the embedded Python path.
+test:
+    PYO3_PYTHON="$(python -c 'import sys; print(sys.executable)')" PYTHONPATH="$(python -c 'import site; print(site.getsitepackages()[0])'):$PWD" cargo test --manifest-path GenADCS/backends/rust/Cargo.toml --workspace -- --test-threads=1
+
+all: build test

@@ -9,7 +9,7 @@ mod orbital_state_py;
 mod state;
 mod state_py;
 mod state_types;
-mod state_validation;
+pub mod state_validation;
 
 pub use attitude_state_py::AttitudeState;
 pub use internal_state_py::{InternalState, WheelMomentumState};

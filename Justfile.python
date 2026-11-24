@@ -1,0 +1,13 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+default: all
+
+# Install the project and test dependencies into the active Python environment.
+build:
+    python -m pip install -r requirements.txt
+
+# Run the Python backend suite; native binding suites are run after building their backend.
+test:
+    python -m pytest GenADCS/tests/backends/python
+
+all: build test

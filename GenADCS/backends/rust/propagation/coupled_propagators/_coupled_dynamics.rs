@@ -1,40 +1,3 @@
-fn numbers(py: Python<'_>, x: &PyAny) -> PyResult<Vec<f64>> {
-    py.import("numpy")?
-        .call_method1("asarray", (x,))?
-        .call_method1("astype", ("float64",))?
-        .call_method0("tolist")?
-        .extract()
-}
-fn matrix3(py: Python<'_>, x: &PyAny) -> PyResult<[[f64; 3]; 3]> {
-    let a: Vec<Vec<f64>> = py
-        .import("numpy")?
-        .call_method1("asarray", (x,))?
-        .call_method1("astype", ("float64",))?
-        .call_method0("tolist")?
-        .extract()?;
-    if a.len() != 3 || a.iter().any(|r| r.len() != 3) {
-        return Err(PyValueError::new_err("matrix must be 3x3"));
-    }
-    Ok([
-        a[0].clone().try_into().unwrap(),
-        a[1].clone().try_into().unwrap(),
-        a[2].clone().try_into().unwrap(),
-    ])
-}
-fn rows3(py: Python<'_>, x: &PyAny) -> PyResult<Vec<[f64; 3]>> {
-    let a: Vec<Vec<f64>> = py
-        .import("numpy")?
-        .call_method1("asarray", (x,))?
-        .call_method1("astype", ("float64",))?
-        .call_method0("tolist")?
-        .extract()?;
-    a.into_iter()
-        .map(|r| {
-            r.try_into()
-                .map_err(|_| PyValueError::new_err("panel arrays must have three columns"))
-        })
-        .collect()
-}
 fn vec3(a: &[f64]) -> [f64; 3] {
     [a[0], a[1], a[2]]
 }
@@ -90,25 +53,19 @@ fn rotation(q: &[f64]) -> [[f64; 3]; 3] {
         ],
     ]
 }
-fn normalize_q(y: &mut [f64]) -> PyResult<()> {
+pub fn normalize_q(y: &mut [f64]) -> Result<(), String> {
     if y.len() < 4 {
-        return Err(PyValueError::new_err("state must contain a quaternion"));
+        return Err("state must contain a quaternion".to_owned());
     }
     let n = y[..4].iter().map(|x| x * x).sum::<f64>().sqrt();
     if n == 0. || !n.is_finite() {
-        return Err(PyValueError::new_err(
-            "quaternion must be finite and nonzero",
-        ));
+        return Err("quaternion must be finite and nonzero".to_owned());
     }
     for v in &mut y[..4] {
         *v /= n;
     }
     Ok(())
 }
-fn py_array(py: Python<'_>, v: &[f64]) -> PyObject {
-    v.to_pyarray(py).into_py(py)
-}
-
 pub struct Runtime {
     pub mu: f64,
     pub radius: f64,
@@ -131,93 +88,55 @@ pub struct Runtime {
     pub ephemeris: Option<ephemeris_native::NativeEphemeris>,
     pub magnetic: Option<magnetic_native::NativeMagneticField>,
 }
+
 impl Runtime {
-    fn from_py(py: Python<'_>, p: &PyAny) -> PyResult<Self> {
-        let normals = rows3(py, p.getattr("normals")?)?;
-        let arms = rows3(py, p.getattr("arms")?)?;
-        let areas = numbers(py, p.getattr("areas")?)?;
-        let drag_coefficients = numbers(py, p.getattr("drag_coefficients")?)?;
-        let optical_coefficients = rows3(py, p.getattr("optical_coefficients")?)?;
-        let dipole = numbers(py, p.getattr("dipole")?)?;
-        if dipole.len() != 3
-            || [
-                normals.len(),
-                arms.len(),
-                drag_coefficients.len(),
-                optical_coefficients.len(),
-            ]
-            .iter()
-            .any(|n| *n != areas.len())
+    pub fn validate(&self) -> Result<(), String> {
+        if !self.mu.is_finite() || self.mu <= 0.0 || !self.radius.is_finite() || self.radius <= 0.0
         {
-            return Err(PyValueError::new_err("invalid panel or dipole dimensions"));
+            return Err("mu and radius must be finite and positive".to_owned());
         }
-        let srp_force = p.getattr("srp_force")?.extract()?;
-        let srp_torque = p.getattr("srp_torque")?.extract()?;
-        let third_body = p.getattr("third_body")?.extract()?;
-        let residual_dipole: bool = p.getattr("residual_dipole")?.extract()?;
-        let ephemeris = if srp_force || srp_torque || third_body {
-            let path: String = match p.getattr("ephemeris_path") {
-                Ok(value) => value.extract()?,
-                Err(_) => {
-                    let package_file: String = py.import("GenADCS")?.getattr("__file__")?.extract()?;
-                    std::path::Path::new(&package_file)
-                        .parent()
-                        .ok_or_else(|| PyValueError::new_err("cannot locate GenADCS package directory"))?
-                        .join("kernels/environment/ephemeris/de421/de421.bsp")
-                        .to_string_lossy()
-                        .into_owned()
-                },
-            };
-            Some(ephemeris_native::NativeEphemeris::from_path(
-                std::path::Path::new(&path),
-            )
-            .map_err(PyValueError::new_err)?)
-        } else {
-            None
-        };
-        let magnetic = if residual_dipole {
-            let kind: i32 = p.getattr("magnetic_kind")?.extract()?;
-            Some(match kind {
-                1 => magnetic_native::NativeMagneticField::igrf14()
-                    .map_err(PyValueError::new_err)?,
-                2 => magnetic_native::NativeMagneticField::chaos8(
-                    p.getattr("magnetic_include_static")?.extract()?,
-                )
-                .map_err(PyValueError::new_err)?,
-                _ => return Err(PyValueError::new_err("unsupported magnetic model")),
-            })
-        } else {
-            None
-        };
-        Ok(Self {
-            mu: p.getattr("mu")?.extract()?,
-            radius: p.getattr("radius")?.extract()?,
-            mass: p.getattr("mass")?.extract()?,
-            inertia: matrix3(py, p.getattr("inertia")?)?,
-            inverse_inertia: matrix3(py, p.getattr("inverse_inertia")?)?,
-            zonals: numbers(py, p.getattr("zonals")?)?,
-            normals,
-            arms,
-            areas,
-            drag_coefficients,
-            optical_coefficients,
-            dipole: vec3(&dipole),
-            drag_force: p.getattr("drag_force")?.extract()?,
-            drag_torque: p.getattr("drag_torque")?.extract()?,
-            srp_force,
-            srp_torque,
-            gravity_gradient: p.getattr("gravity_gradient")?.extract()?,
-            third_body,
-            ephemeris,
-            magnetic,
-        })
+        if !self.mass.is_finite() || self.mass <= 0.0 {
+            return Err("mass must be finite and positive".to_owned());
+        }
+        if self.normals.len() != self.areas.len()
+            || self.arms.len() != self.areas.len()
+            || self.drag_coefficients.len() != self.areas.len()
+            || self.optical_coefficients.len() != self.areas.len()
+        {
+            return Err("panel arrays must have matching lengths".to_owned());
+        }
+        if self.areas.iter().any(|v| !v.is_finite() || *v < 0.0)
+            || self.drag_coefficients.iter().any(|v| !v.is_finite())
+            || self.zonals.iter().any(|v| !v.is_finite())
+            || self.normals.iter().flatten().any(|v| !v.is_finite())
+            || self.arms.iter().flatten().any(|v| !v.is_finite())
+            || self
+                .optical_coefficients
+                .iter()
+                .flatten()
+                .any(|v| !v.is_finite())
+            || self.dipole.iter().any(|v| !v.is_finite())
+            || self.inertia.iter().flatten().any(|v| !v.is_finite())
+            || self
+                .inverse_inertia
+                .iter()
+                .flatten()
+                .any(|v| !v.is_finite())
+        {
+            return Err(
+                "runtime arrays must contain finite values and nonnegative areas".to_owned(),
+            );
+        }
+        if (self.srp_force || self.srp_torque || self.third_body) && self.ephemeris.is_none() {
+            return Err("ephemeris is required for SRP and third-body models".to_owned());
+        }
+        Ok(())
     }
 }
-pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
-    if y.len() != 13 {
-        return Err(PyValueError::new_err(
-            "coupled state must contain 13 values",
-        ));
+
+pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> Result<Vec<f64>, String> {
+    if y.len() != 13 || y.iter().any(|value| !value.is_finite()) {
+        return Err("coupled state must contain 13 values".to_owned());
     }
     let mut q = y[..4].to_vec();
     normalize_q(&mut q)?;
@@ -229,10 +148,10 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
     let mut force = [0.; 3];
     let mut torque = [0.; 3];
     let mut accel = gravity_native::native_acceleration(pos, p.mu, p.radius, &p.zonals)
-        .map_err(|error| PyValueError::new_err(error.to_string()))?;
+        .map_err(|error| error.to_string())?;
     if p.drag_force || p.drag_torque {
-        let density = atmosphere_native::native_density(pos, jd)
-            .map_err(PyValueError::new_err)?;
+        let density =
+            atmosphere_native::native_density(pos, jd).map_err(|error| error.to_string())?;
         let relative = sub3(vel, atmosphere_native::native_corotation(pos));
         let v = mv3(rot, relative);
         let speed = norm3(v);
@@ -255,15 +174,15 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
         }
     }
     if p.srp_force || p.srp_torque || p.third_body {
-        let tdb = magnetic_native::native_tdb_jd(jd).map_err(PyValueError::new_err)?;
+        let tdb = magnetic_native::native_tdb_jd(jd).map_err(|error| error.to_string())?;
         let eph = p.ephemeris.as_ref().unwrap();
         let sun = scale3(
-            eph.position_km(0, tdb).map_err(PyValueError::new_err)?,
+            eph.position_km(0, tdb).map_err(|error| error.to_string())?,
             1000.,
         );
         if p.third_body {
             let moon = scale3(
-                eph.position_km(2, tdb).map_err(PyValueError::new_err)?,
+                eph.position_km(2, tdb).map_err(|error| error.to_string())?,
                 1000.,
             );
             for (body, mu) in [(sun, 1.32712440018e20), (moon, 4.9048695e12)] {
@@ -271,7 +190,7 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
                 let d = norm3(body);
                 let r = norm3(rel);
                 if d == 0. || r == 0. {
-                    return Err(PyValueError::new_err("third-body distance must be nonzero"));
+                    return Err("third-body distance must be nonzero".to_owned());
                 }
                 accel = add3(
                     accel,
@@ -283,9 +202,7 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
             let delta = sub3(sun, pos);
             let distance = norm3(delta);
             if distance == 0. {
-                return Err(PyValueError::new_err(
-                    "spacecraft and Sun positions coincide",
-                ));
+                return Err("spacecraft and Sun positions coincide".to_owned());
             }
             let direction = mv3(rot, scale3(delta, 1. / distance));
             let illumination = ephemeris_native::native_eclipse(pos, sun, p.radius, 696340000.).0;
@@ -326,7 +243,7 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
     if let Some(magnetic) = &p.magnetic {
         let field = magnetic
             .field_inertial_tesla(pos, jd)
-            .map_err(PyValueError::new_err)?;
+            .map_err(|error| error.to_string())?;
         torque = add3(torque, cross3(p.dipole, mv3(rot, field)));
     }
     let iw = mv3(p.inertia, omega);
@@ -341,20 +258,4 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
     dy[7..10].copy_from_slice(&vel);
     dy[10..13].copy_from_slice(&accel);
     Ok(dy)
-}
-#[pyfunction]
-fn derivative(py: Python<'_>, y: &PyAny, jd: f64, runtime: &PyAny) -> PyResult<PyObject> {
-    let y = numbers(py, y)?;
-    let r = Runtime::from_py(py, runtime)?;
-    Ok(py_array(py, &derivative_vec(&y, jd, &r)?))
-}
-#[pyfunction]
-fn project(py: Python<'_>, y: &PyAny, _runtime: &PyAny) -> PyResult<PyObject> {
-    let y = numbers(py, y)?;
-    if y.len() != 13 {
-        return Err(PyValueError::new_err(
-            "coupled state must contain 13 values",
-        ));
-    }
-    Ok(py_array(py, &y))
 }

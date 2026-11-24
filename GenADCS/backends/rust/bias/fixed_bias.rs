@@ -1,21 +1,18 @@
-use pyo3::exceptions::PyNotImplementedError;
-use pyo3::prelude::*;
-
-#[pyclass]
+/// Constant additive bias applied to a measurement.
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FixedBias {
-    #[pyo3(get, set)]
     pub value: f64,
 }
 
-#[pymethods]
 impl FixedBias {
-    #[new]
-    fn new(value: f64) -> Self {
-        Self { value }
+    pub fn new(value: f64) -> Result<Self, &'static str> {
+        if !value.is_finite() {
+            return Err("fixed bias must be finite");
+        }
+        Ok(Self { value })
     }
-    #[pyo3(signature = (value, dt, rng=None))]
-    fn apply(&self, value: &PyAny, dt: f64, rng: Option<&PyAny>) -> PyResult<()> {
-        let _ = (value, dt, rng);
-        Err(PyNotImplementedError::new_err(""))
+
+    pub fn apply(&self, values: &[f64]) -> Vec<f64> {
+        values.iter().map(|value| value + self.value).collect()
     }
 }

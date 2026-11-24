@@ -4,14 +4,16 @@ use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::f64::consts::PI;
-type V = [f64; 3];
-type M = Matrix3<f64>;
+pub type V = [f64; 3];
+pub type M = Matrix3<f64>;
 
 include!("common.rs");
 include!("common_py.rs");
 include!("frames.rs");
 include!("frames_py.rs");
-include!("conversions.rs");
+pub mod conversions;
+mod conversions_py;
+use conversions_py::*;
 
 #[cfg(test)]
 #[path = "../../../../../tests/backends/rust/helpers/math/frames/test_frames.rs"]

@@ -1,168 +1,126 @@
-fn parse(name: &str) -> PyResult<u8> {
-    match name.to_uppercase().as_str() {
-        "GCRF" => Ok(0),
-        "ECEF" => Ok(1),
-        "BODY" => Ok(2),
-        "LVLH" => Ok(3),
-        "TEME" => Ok(4),
-        _ => Err(PyValueError::new_err(format!(
-            "unsupported frame {name}; expected GCRF, ECEF, BODY, LVLH, or TEME"
-        ))),
+//! Rust-native coordinate-frame selection and conversion operations.
+
+use super::{ecef_geo, gcrf_teme, lvlh, mm, qmat, teme_ecef, tr, M, V};
+
+/// Supported coordinate frames for native vector conversion.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Frame {
+    Gcrf,
+    Ecef,
+    Body,
+    Lvlh,
+    Teme,
+}
+
+impl Frame {
+    /// Parse a frame name, case-insensitively.
+    pub fn parse(name: &str) -> Result<Self, String> {
+        match name.to_ascii_uppercase().as_str() {
+            "GCRF" => Ok(Self::Gcrf),
+            "ECEF" => Ok(Self::Ecef),
+            "BODY" => Ok(Self::Body),
+            "LVLH" => Ok(Self::Lvlh),
+            "TEME" => Ok(Self::Teme),
+            _ => Err(format!(
+                "unsupported frame {name}; expected GCRF, ECEF, BODY, LVLH, or TEME"
+            )),
+        }
     }
 }
+
 fn from_gcrf(
-    kind: u8,
+    frame: Frame,
     jd_ut1: Option<f64>,
     jd_tt: Option<f64>,
     xp: f64,
     yp: f64,
-    p: Option<V>,
-    v: Option<V>,
-    q: Option<[f64; 4]>,
-) -> PyResult<M> {
-    match kind {
-        0 => Ok(M::identity()),
-        1 => {
-            let u = jd_ut1.ok_or_else(|| {
-                PyValueError::new_err("jd_ut1 is required for ECEF or TEME conversions")
-            })?;
-            let t = jd_tt.ok_or_else(|| {
-                PyValueError::new_err("jd_tt is required for ECEF or TEME conversions")
-            })?;
-            Ok(mm(teme_ecef(u, xp, yp), gcrf_teme(t)))
+    position_gcrf: Option<V>,
+    velocity_gcrf: Option<V>,
+    q_body_from_gcrf: Option<[f64; 4]>,
+) -> Result<M, String> {
+    match frame {
+        Frame::Gcrf => Ok(M::identity()),
+        Frame::Ecef => {
+            let ut1 = jd_ut1.ok_or("jd_ut1 is required for ECEF or TEME conversions")?;
+            let tt = jd_tt.ok_or("jd_tt is required for ECEF or TEME conversions")?;
+            Ok(mm(teme_ecef(ut1, xp, yp), gcrf_teme(tt)))
         }
-        4 => {
-            let _u = jd_ut1.ok_or_else(|| {
-                PyValueError::new_err("jd_ut1 is required for ECEF or TEME conversions")
-            })?;
-            let t = jd_tt.ok_or_else(|| {
-                PyValueError::new_err("jd_tt is required for ECEF or TEME conversions")
-            })?;
-            Ok(gcrf_teme(t))
+        Frame::Teme => {
+            let _ut1 = jd_ut1.ok_or("jd_ut1 is required for ECEF or TEME conversions")?;
+            let tt = jd_tt.ok_or("jd_tt is required for ECEF or TEME conversions")?;
+            Ok(gcrf_teme(tt))
         }
-        3 => lvlh(
-            p.ok_or_else(|| {
-                PyValueError::new_err(
-                    "position_gcrf and velocity_gcrf are required for LVLH conversions",
-                )
-            })?,
-            v.ok_or_else(|| {
-                PyValueError::new_err(
-                    "position_gcrf and velocity_gcrf are required for LVLH conversions",
-                )
-            })?,
-        ).map_err(PyValueError::new_err),
-        _ => Ok(qmat(q.ok_or_else(|| {
-            PyValueError::new_err("q_body_from_gcrf is required for body-frame conversions")
-        })?)),
+        Frame::Lvlh => {
+            let position = position_gcrf
+                .ok_or("position_gcrf and velocity_gcrf are required for LVLH conversions")?;
+            let velocity = velocity_gcrf
+                .ok_or("position_gcrf and velocity_gcrf are required for LVLH conversions")?;
+            lvlh(position, velocity).map_err(str::to_owned)
+        }
+        Frame::Body => Ok(qmat(
+            q_body_from_gcrf.ok_or("q_body_from_gcrf is required for body-frame conversions")?,
+        )),
     }
 }
-fn context_rotation(
-    source: &str,
-    target: &str,
-    jdu: Option<f64>,
-    jdt: Option<f64>,
+
+/// Return the rotation matrix that maps vectors from `source` into `target`.
+pub fn context_rotation(
+    source: Frame,
+    target: Frame,
+    jd_ut1: Option<f64>,
+    jd_tt: Option<f64>,
     xp: f64,
     yp: f64,
-    p: Option<V>,
-    v: Option<V>,
-    q: Option<[f64; 4]>,
-) -> PyResult<M> {
-    let s = parse(source)?;
-    let t = parse(target)?;
-    if s == t {
+    position_gcrf: Option<V>,
+    velocity_gcrf: Option<V>,
+    q_body_from_gcrf: Option<[f64; 4]>,
+) -> Result<M, String> {
+    if source == target {
         return Ok(M::identity());
     }
-    let a = from_gcrf(t, jdu, jdt, xp, yp, p, v, q)?;
-    let b = from_gcrf(s, jdu, jdt, xp, yp, p, v, q)?;
-    Ok(mm(a, tr(b)))
+    let target_from_gcrf = from_gcrf(
+        target,
+        jd_ut1,
+        jd_tt,
+        xp,
+        yp,
+        position_gcrf,
+        velocity_gcrf,
+        q_body_from_gcrf,
+    )?;
+    let source_from_gcrf = from_gcrf(
+        source,
+        jd_ut1,
+        jd_tt,
+        xp,
+        yp,
+        position_gcrf,
+        velocity_gcrf,
+        q_body_from_gcrf,
+    )?;
+    Ok(mm(target_from_gcrf, tr(source_from_gcrf)))
 }
-fn optional_fixed3(py: Python<'_>, x: Option<&PyAny>, name: &str) -> PyResult<Option<V>> {
-    x.map(|a| vec3(py, a, name)).transpose()
+
+/// Convert an ECEF Cartesian position in metres to geodetic degrees and km.
+pub fn ecef_to_geodetic(position_ecef_m: V) -> Result<V, String> {
+    if position_ecef_m.iter().any(|value| !value.is_finite()) {
+        return Err("position_ecef_m must contain only finite values".to_owned());
+    }
+    Ok(ecef_geo(position_ecef_m))
 }
-fn optional_q(py: Python<'_>, x: Option<&PyAny>) -> PyResult<Option<[f64; 4]>> {
-    x.map(|a| {
-        let r: Vec<f64> = py
-            .import("numpy")?
-            .call_method1("asarray", (a,))?
-            .call_method1("astype", ("float64",))?
-            .call_method0("tolist")?
-            .extract()?;
-        let r: [f64; 4] = r
-            .try_into()
-            .map_err(|_| PyValueError::new_err("q_body_from_gcrf has an invalid shape"))?;
-        if r.iter().any(|v| !v.is_finite()) {
-            return Err(PyValueError::new_err(
-                "q_body_from_gcrf must contain only finite values",
-            ));
-        }
-        Ok(r)
-    })
-    .transpose()
-}
-#[pyfunction]
-#[pyo3(signature=(source,target,*,jd_ut1=None,jd_tt=None,xp=0.0,yp=0.0,position_gcrf=None,velocity_gcrf=None,q_body_from_gcrf=None))]
-fn frame_rotation(
-    py: Python<'_>,
-    source: &str,
-    target: &str,
-    jd_ut1: Option<f64>,
-    jd_tt: Option<f64>,
-    xp: f64,
-    yp: f64,
-    position_gcrf: Option<&PyAny>,
-    velocity_gcrf: Option<&PyAny>,
-    q_body_from_gcrf: Option<&PyAny>,
-) -> PyResult<PyObject> {
-    let p = optional_fixed3(py, position_gcrf, "position_gcrf")?;
-    let v = optional_fixed3(py, velocity_gcrf, "velocity_gcrf")?;
-    let q = optional_q(py, q_body_from_gcrf)?;
-    Ok(pymat(
-        py,
-        &context_rotation(source, target, jd_ut1, jd_tt, xp, yp, p, v, q)?,
-    ))
-}
-#[pyfunction]
-#[pyo3(signature=(vector,source,target,*,jd_ut1=None,jd_tt=None,xp=0.0,yp=0.0,position_gcrf=None,velocity_gcrf=None,q_body_from_gcrf=None))]
-fn convert_vector(
-    py: Python<'_>,
-    vector: &PyAny,
-    source: &str,
-    target: &str,
-    jd_ut1: Option<f64>,
-    jd_tt: Option<f64>,
-    xp: f64,
-    yp: f64,
-    position_gcrf: Option<&PyAny>,
-    velocity_gcrf: Option<&PyAny>,
-    q_body_from_gcrf: Option<&PyAny>,
-) -> PyResult<PyObject> {
-    let p = optional_fixed3(py, position_gcrf, "position_gcrf")?;
-    let v = optional_fixed3(py, velocity_gcrf, "velocity_gcrf")?;
-    let q = optional_q(py, q_body_from_gcrf)?;
-    pyarr(
-        py,
-        mv(
-            context_rotation(source, target, jd_ut1, jd_tt, xp, yp, p, v, q)?,
-            vec3(py, vector, "vector")?,
-        ),
-    )
-}
-#[pyfunction]
-fn ecef_to_geodetic(py: Python<'_>, position_ecef_m: &PyAny) -> PyResult<PyObject> {
-    pyarr(py, ecef_geo(vec3(py, position_ecef_m, "position_ecef_m")?))
-}
-#[pyfunction]
-#[pyo3(signature=(position_gcrf_m,jd_ut1,jd_tt,xp=0.0,yp=0.0))]
-fn gcrf_position_to_geodetic(
-    py: Python<'_>,
-    position_gcrf_m: &PyAny,
+
+/// Convert a GCRF Cartesian position in metres to geodetic degrees and km.
+pub fn gcrf_position_to_geodetic(
+    position_gcrf_m: V,
     jd_ut1: f64,
     jd_tt: f64,
     xp: f64,
     yp: f64,
-) -> PyResult<PyObject> {
-    let p = vec3(py, position_gcrf_m, "position_gcrf_m")?;
-    let ecef = mv(mm(teme_ecef(jd_ut1, xp, yp), gcrf_teme(jd_tt)), p);
-    pyarr(py, ecef_geo(ecef))
+) -> Result<V, String> {
+    if position_gcrf_m.iter().any(|value| !value.is_finite()) {
+        return Err("position_gcrf_m must contain only finite values".to_owned());
+    }
+    let ecef = mm(teme_ecef(jd_ut1, xp, yp), gcrf_teme(jd_tt))
+        * nalgebra::Vector3::from_row_slice(&position_gcrf_m);
+    ecef_to_geodetic([ecef[0], ecef[1], ecef[2]])
 }

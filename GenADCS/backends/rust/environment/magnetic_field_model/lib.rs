@@ -1,9 +1,13 @@
 #![allow(non_local_definitions)]
-use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-include!("_spherical_harmonics.rs");
+pub mod _spherical_harmonics;
+mod _spherical_harmonics_py;
+use _spherical_harmonics::{
+    calendar_jd, evaluate, gcrf_ecef, padded, parse_shc, tt_jd, Coefficients,
+};
+use _spherical_harmonics_py::{_schmidt_table, py_vec3, read_shc, vec3_from_py};
 pub mod magnetic_field_model;
 mod magnetic_field_model_py;
 use magnetic_field_model_py::{magnetic_field_inertial_tesla, MagneticFieldModel, WMM};

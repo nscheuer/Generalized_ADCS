@@ -1,57 +1,27 @@
-#[pyclass]
-struct CoupledSolver {
-    #[pyo3(get, set)]
-    propagator: PyObject,
-    #[pyo3(get, set)]
-    tf: f64,
-    #[pyo3(get, set)]
-    progress: bool,
-    #[pyo3(get, set)]
-    progress_chunk_steps: i32,
+/// Rust-native configuration for coupled propagation.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CoupledSolverConfig {
+    pub final_time: f64,
+    pub progress: bool,
+    pub progress_chunk_steps: usize,
 }
-#[pymethods]
-impl CoupledSolver {
-    #[new]
-    #[pyo3(signature=(propagator,tf,progress=false,progress_chunk_steps=500))]
-    fn new(
-        propagator: PyObject,
-        tf: f64,
+
+impl CoupledSolverConfig {
+    pub fn new(
+        final_time: f64,
         progress: bool,
-        progress_chunk_steps: i32,
-    ) -> PyResult<Self> {
-        if !tf.is_finite() || tf < 0. {
-            return Err(PyValueError::new_err(
-                "tf must be finite and nonnegative seconds",
-            ));
+        progress_chunk_steps: usize,
+    ) -> Result<Self, String> {
+        if !final_time.is_finite() || final_time < 0.0 {
+            return Err("tf must be finite and nonnegative seconds".to_owned());
         }
-        if progress_chunk_steps <= 0 {
-            return Err(PyValueError::new_err(
-                "progress_chunk_steps must be a positive integer",
-            ));
+        if progress_chunk_steps == 0 {
+            return Err("progress_chunk_steps must be a positive integer".to_owned());
         }
         Ok(Self {
-            propagator,
-            tf,
+            final_time,
             progress,
             progress_chunk_steps,
         })
-    }
-    #[getter]
-    fn dt(&self, py: Python<'_>) -> PyResult<f64> {
-        self.propagator.as_ref(py).getattr("dt")?.extract()
-    }
-    fn step(
-        &self,
-        py: Python<'_>,
-        state: PyObject,
-        satellite: PyObject,
-        environment: PyObject,
-        dynamics: PyObject,
-    ) -> PyResult<PyObject> {
-        Ok(self
-            .propagator
-            .as_ref(py)
-            .call_method1("step", (state, satellite, environment, dynamics))?
-            .into_py(py))
     }
 }

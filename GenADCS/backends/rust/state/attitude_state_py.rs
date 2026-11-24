@@ -94,7 +94,7 @@ pub(crate) fn values(
         )));
     }
     let result: Vec<f64> = array.call_method0("tolist")?.extract()?;
-    finite(&result, name, size)?;
+    finite(&result, name, size).map_err(PyValueError::new_err)?;
     Ok(result)
 }
 

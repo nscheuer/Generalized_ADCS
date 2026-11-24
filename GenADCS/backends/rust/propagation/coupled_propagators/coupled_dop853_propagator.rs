@@ -6,7 +6,7 @@ pub fn dop853_vec(
     p: &Runtime,
     rtol: f64,
     atol: &[f64],
-) -> PyResult<(Vec<f64>, Vec<f64>, f64)> {
+) -> Result<(Vec<f64>, Vec<f64>, f64), String> {
     let mut k = vec![vec![0.; y.len()]; 13];
     k[0] = f.to_vec();
     for stage in 1..12 {
@@ -47,25 +47,4 @@ pub fn dop853_vec(
         h.abs() * n5 / ((n5 + 0.01 * n3) * y.len() as f64).sqrt()
     };
     Ok((next, k[12].clone(), error))
-}
-#[pyfunction]
-fn dop853_attempt(
-    py: Python<'_>,
-    y: &PyAny,
-    f: &PyAny,
-    jd: f64,
-    h: f64,
-    runtime: &PyAny,
-    rtol: f64,
-    atol: &PyAny,
-) -> PyResult<(PyObject, PyObject, f64)> {
-    let y = numbers(py, y)?;
-    let f = numbers(py, f)?;
-    let atol = numbers(py, atol)?;
-    if f.len() != y.len() || atol.len() != y.len() {
-        return Err(PyValueError::new_err("DOP853 vector lengths differ"));
-    }
-    let runtime = Runtime::from_py(py, runtime)?;
-    let (next, nf, error) = dop853_vec(&y, &f, jd, h, &runtime, rtol, &atol)?;
-    Ok((py_array(py, &next), py_array(py, &nf), error))
 }

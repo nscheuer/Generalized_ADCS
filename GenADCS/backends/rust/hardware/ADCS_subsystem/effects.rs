@@ -1,18 +1,17 @@
-#[pyfunction]
-#[pyo3(signature = (value, effects, dt, rng=None))]
-fn apply_effects(
-    py: Python<'_>,
-    mut value: PyObject,
-    effects: Vec<PyObject>,
-    dt: f64,
-    rng: Option<PyObject>,
-) -> PyResult<PyObject> {
-    let rng = rng.unwrap_or_else(|| py.None());
+/// Native interface for an effect that transforms a value over a time step.
+pub trait Effect<T> {
+    type Error;
+
+    fn apply(&self, value: T, dt: f64) -> Result<T, Self::Error>;
+}
+
+/// Apply native effects in order, stopping at the first error.
+pub fn apply_sequence<T, E>(mut value: T, effects: &[E], dt: f64) -> Result<T, E::Error>
+where
+    E: Effect<T>,
+{
     for effect in effects {
-        value = effect
-            .as_ref(py)
-            .call_method1("apply", (value, dt, rng.clone_ref(py)))?
-            .into_py(py);
+        value = effect.apply(value, dt)?;
     }
     Ok(value)
 }
