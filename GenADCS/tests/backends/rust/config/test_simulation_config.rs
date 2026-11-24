@@ -1,14 +1,18 @@
 use super::*;
 use pyo3::types::{PyList, PyModule, PyTuple};
 
-fn dependencies(py: Python<'_>, wheel_count: usize, date: f64) -> (PyObject, PyObject, PyObject, PyObject, PyObject, PyObject) {
+fn dependencies(
+    py: Python<'_>,
+    wheel_count: usize,
+    date: f64,
+) -> (PyObject, PyObject, PyObject, PyObject, PyObject, PyObject) {
     let types = PyModule::import(py, "types").unwrap();
     let namespace = types.getattr("SimpleNamespace").unwrap();
     let wheels = PyList::empty(py);
     for _ in 0..wheel_count {
         wheels.append(py.None()).unwrap();
     }
-    let adcs = namespace.call1((),).unwrap();
+    let adcs = namespace.call1(()).unwrap();
     adcs.setattr("reaction_wheels", wheels).unwrap();
     let satellite = namespace.call0().unwrap();
     satellite.setattr("adcs", adcs).unwrap();
@@ -42,7 +46,11 @@ fn dependencies(py: Python<'_>, wheel_count: usize, date: f64) -> (PyObject, PyO
     )
 }
 
-fn construct(py: Python<'_>, values: &(PyObject, PyObject, PyObject, PyObject, PyObject, PyObject), backend: &str) -> PyResult<SimulationConfig> {
+fn construct(
+    py: Python<'_>,
+    values: &(PyObject, PyObject, PyObject, PyObject, PyObject, PyObject),
+    backend: &str,
+) -> PyResult<SimulationConfig> {
     SimulationConfig::new(
         py,
         values.0.clone_ref(py),
@@ -67,7 +75,16 @@ fn defaults_preserve_dependencies_and_build_record_with_wheel_count() {
         assert!(config.solver(py).as_ref(py).is(values.4.as_ref(py)));
         assert!(config.state_record(py).as_ref(py).is(values.5.as_ref(py)));
         assert_eq!(config.julian_date(), 2460000.25);
-        assert_eq!(values.2.as_ref(py).getattr("wheel_count").unwrap().extract::<usize>().unwrap(), 2);
+        assert_eq!(
+            values
+                .2
+                .as_ref(py)
+                .getattr("wheel_count")
+                .unwrap()
+                .extract::<usize>()
+                .unwrap(),
+            2
+        );
     });
 }
 
@@ -85,7 +102,12 @@ fn all_supported_backends_are_accepted_and_invalid_backend_rejected_before_state
                 Err(error) => error,
             };
             assert!(error.is_instance_of::<PyValueError>(py));
-            assert!(values.2.as_ref(py).getattr("wheel_count").unwrap().is_none());
+            assert!(values
+                .2
+                .as_ref(py)
+                .getattr("wheel_count")
+                .unwrap()
+                .is_none());
         }
     });
 }
@@ -95,13 +117,31 @@ fn derived_snapshots_are_getter_only_and_julian_date_is_copied() {
     Python::with_gil(|py| {
         let values = dependencies(py, 0, 2451545.0);
         let config = construct(py, &values, "Rust").unwrap();
-        assert_eq!(config.state_record(py).as_ref(py).downcast::<PyList>().unwrap().len(), 1);
-        values.2.as_ref(py).setattr("orbit", PyTuple::new(py, [2460000.0])).unwrap();
+        assert_eq!(
+            config
+                .state_record(py)
+                .as_ref(py)
+                .downcast::<PyList>()
+                .unwrap()
+                .len(),
+            1
+        );
+        values
+            .2
+            .as_ref(py)
+            .setattr("orbit", PyTuple::new(py, [2460000.0]))
+            .unwrap();
         assert_eq!(config.julian_date(), 2451545.0);
 
         let py_config = Py::new(py, config).unwrap();
-        assert!(py_config.as_ref(py).setattr("state_record", PyList::empty(py)).is_err());
-        assert!(py_config.as_ref(py).setattr("julian_date", 2452000.0).is_err());
+        assert!(py_config
+            .as_ref(py)
+            .setattr("state_record", PyList::empty(py))
+            .is_err());
+        assert!(py_config
+            .as_ref(py)
+            .setattr("julian_date", 2452000.0)
+            .is_err());
     });
 }
 
@@ -112,7 +152,13 @@ fn zero_and_many_wheels_are_passed_as_exact_counts() {
             let values = dependencies(py, count, 2451545.0);
             construct(py, &values, "Python").unwrap();
             assert_eq!(
-                values.2.as_ref(py).getattr("wheel_count").unwrap().extract::<usize>().unwrap(),
+                values
+                    .2
+                    .as_ref(py)
+                    .getattr("wheel_count")
+                    .unwrap()
+                    .extract::<usize>()
+                    .unwrap(),
                 count
             );
         }
@@ -144,12 +190,35 @@ fn dependency_properties_are_mutable_and_snapshot_fields_remain_fixed() {
         config.set_state("new-state".into_py(py));
         config.set_propagator("new-propagator".into_py(py));
         config.set_solver("new-solver".into_py(py));
-        config.set_backend("C".to_owned());
-        assert_eq!(config.satellite(py).as_ref(py).extract::<String>().unwrap(), "new-satellite");
-        assert_eq!(config.environment(py).as_ref(py).extract::<String>().unwrap(), "new-environment");
-        assert_eq!(config.state(py).as_ref(py).extract::<String>().unwrap(), "new-state");
-        assert_eq!(config.propagator(py).as_ref(py).extract::<String>().unwrap(), "new-propagator");
-        assert_eq!(config.solver(py).as_ref(py).extract::<String>().unwrap(), "new-solver");
+        config.set_backend("C").unwrap();
+        assert_eq!(
+            config.satellite(py).as_ref(py).extract::<String>().unwrap(),
+            "new-satellite"
+        );
+        assert_eq!(
+            config
+                .environment(py)
+                .as_ref(py)
+                .extract::<String>()
+                .unwrap(),
+            "new-environment"
+        );
+        assert_eq!(
+            config.state(py).as_ref(py).extract::<String>().unwrap(),
+            "new-state"
+        );
+        assert_eq!(
+            config
+                .propagator(py)
+                .as_ref(py)
+                .extract::<String>()
+                .unwrap(),
+            "new-propagator"
+        );
+        assert_eq!(
+            config.solver(py).as_ref(py).extract::<String>().unwrap(),
+            "new-solver"
+        );
         assert_eq!(config.backend(), "C");
         assert!(config.state_record(py).as_ref(py).is(values.5.as_ref(py)));
         assert_eq!(config.julian_date(), 2451545.0);

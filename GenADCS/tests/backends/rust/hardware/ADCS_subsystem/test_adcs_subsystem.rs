@@ -7,10 +7,28 @@ fn independent_defaults_and_replaced_collections() {
         let mut first = ADCSSubsystem::new(None, None);
         let second = ADCSSubsystem::new(None, None);
         first.set_reaction_wheels(vec!["wheel".into_py(py)]);
-        assert!(second.reaction_wheels(py).as_ref(py).downcast::<PyList>().unwrap().is_empty());
-        assert!(first.magnetorquers(py).as_ref(py).downcast::<PyList>().unwrap().is_empty());
+        assert!(second
+            .reaction_wheels(py)
+            .as_ref(py)
+            .downcast::<PyList>()
+            .unwrap()
+            .is_empty());
+        assert!(first
+            .magnetorquers(py)
+            .as_ref(py)
+            .downcast::<PyList>()
+            .unwrap()
+            .is_empty());
         first.set_magnetorquers(vec!["torquer".into_py(py)]);
-        assert_eq!(first.magnetorquers(py).as_ref(py).downcast::<PyList>().unwrap().len(), 1);
+        assert_eq!(
+            first
+                .magnetorquers(py)
+                .as_ref(py)
+                .downcast::<PyList>()
+                .unwrap()
+                .len(),
+            1
+        );
     });
 }
 
@@ -25,6 +43,14 @@ fn getters_copy_lists_but_keep_item_identity() {
         let list = a.as_ref(py).downcast::<PyList>().unwrap();
         assert!(list.get_item(0).unwrap().is(wheel));
         list.append("local change").unwrap();
-        assert_eq!(system.reaction_wheels(py).as_ref(py).downcast::<PyList>().unwrap().len(), 1);
+        assert_eq!(
+            system
+                .reaction_wheels(py)
+                .as_ref(py)
+                .downcast::<PyList>()
+                .unwrap()
+                .len(),
+            1
+        );
     });
 }

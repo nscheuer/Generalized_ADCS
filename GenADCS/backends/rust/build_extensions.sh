@@ -39,7 +39,7 @@ for entry in "${packages[@]}"; do
         options+=(--package adcs-omni-rust-simulate)
     fi
     case "$directory" in
-        state|helpers/math/frames|helpers/random|environment/atmosphere|environment/ephemeris|environment/gravity|environment/magnetic_field_model|propagation/coupled_propagators)
+        bias|state|helpers/math|helpers/math/frames|helpers/random|hardware/satellite_geometry|hardware/ADCS_subsystem|hardware/satellite|environment/atmosphere|environment/ephemeris|environment/gravity|environment/magnetic_field_model|environment/planetary_body|dynamics|config|solver|propagation/coupled_propagators|.)
             options+=(--features python-extension)
             ;;
     esac

@@ -7,7 +7,7 @@ name="_simulate"
 path="lib.rs"
 crate-type=["cdylib","rlib"]
 [dependencies]
-pyo3={version="0.20",features=["extension-module"]}
+pyo3={version="0.20",features=["auto-initialize"]}
 
 [workspace]
 resolver = "2"
@@ -25,3 +25,6 @@ default-members = [
     "environment/atmosphere", "environment/ephemeris", "environment/gravity",
     "environment/magnetic_field_model",
 ]
+
+[features]
+python-extension = ["pyo3/extension-module"]

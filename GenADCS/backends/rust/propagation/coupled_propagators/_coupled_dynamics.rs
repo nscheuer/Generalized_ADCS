@@ -170,17 +170,20 @@ impl Runtime {
             };
             Some(ephemeris_native::NativeEphemeris::from_path(
                 std::path::Path::new(&path),
-            )?)
+            )
+            .map_err(PyValueError::new_err)?)
         } else {
             None
         };
         let magnetic = if residual_dipole {
             let kind: i32 = p.getattr("magnetic_kind")?.extract()?;
             Some(match kind {
-                1 => magnetic_native::NativeMagneticField::igrf14()?,
+                1 => magnetic_native::NativeMagneticField::igrf14()
+                    .map_err(PyValueError::new_err)?,
                 2 => magnetic_native::NativeMagneticField::chaos8(
                     p.getattr("magnetic_include_static")?.extract()?,
-                )?,
+                )
+                .map_err(PyValueError::new_err)?,
                 _ => return Err(PyValueError::new_err("unsupported magnetic model")),
             })
         } else {
@@ -225,7 +228,8 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
     let rot_t = transpose3(rot);
     let mut force = [0.; 3];
     let mut torque = [0.; 3];
-    let mut accel = gravity_native::native_acceleration(pos, p.mu, p.radius, &p.zonals)?;
+    let mut accel = gravity_native::native_acceleration(pos, p.mu, p.radius, &p.zonals)
+        .map_err(|error| PyValueError::new_err(error.to_string()))?;
     if p.drag_force || p.drag_torque {
         let density = atmosphere_native::native_density(pos, jd)
             .map_err(PyValueError::new_err)?;
@@ -251,11 +255,17 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
         }
     }
     if p.srp_force || p.srp_torque || p.third_body {
-        let tdb = magnetic_native::native_tdb_jd(jd)?;
+        let tdb = magnetic_native::native_tdb_jd(jd).map_err(PyValueError::new_err)?;
         let eph = p.ephemeris.as_ref().unwrap();
-        let sun = scale3(eph.position_km(0, tdb)?, 1000.);
+        let sun = scale3(
+            eph.position_km(0, tdb).map_err(PyValueError::new_err)?,
+            1000.,
+        );
         if p.third_body {
-            let moon = scale3(eph.position_km(2, tdb)?, 1000.);
+            let moon = scale3(
+                eph.position_km(2, tdb).map_err(PyValueError::new_err)?,
+                1000.,
+            );
             for (body, mu) in [(sun, 1.32712440018e20), (moon, 4.9048695e12)] {
                 let rel = sub3(body, pos);
                 let d = norm3(body);
@@ -314,7 +324,9 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
         );
     }
     if let Some(magnetic) = &p.magnetic {
-        let field = magnetic.field_inertial_tesla(pos, jd)?;
+        let field = magnetic
+            .field_inertial_tesla(pos, jd)
+            .map_err(PyValueError::new_err)?;
         torque = add3(torque, cross3(p.dipole, mv3(rot, field)));
     }
     let iw = mv3(p.inertia, omega);

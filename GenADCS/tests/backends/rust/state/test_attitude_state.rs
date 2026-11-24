@@ -8,7 +8,14 @@ fn quaternion_normalization_and_owned_values() {
         let state = AttitudeState::new(py, q.as_ref(py), rates.as_ref(py)).unwrap();
         assert_eq!(state.orientation, [2.0, 0.0, 0.0, 0.0]);
         assert_eq!(state.rates, [1.0, 2.0, 3.0]);
-        let normalized: Vec<f64> = state.quaternion_array(py).unwrap().as_ref(py).call_method0("tolist").unwrap().extract().unwrap();
+        let normalized: Vec<f64> = state
+            .quaternion_array(py)
+            .unwrap()
+            .as_ref(py)
+            .call_method0("tolist")
+            .unwrap()
+            .extract()
+            .unwrap();
         assert_eq!(normalized, vec![1.0, 0.0, 0.0, 0.0]);
     });
 }
@@ -17,9 +24,16 @@ fn quaternion_normalization_and_owned_values() {
 fn rejects_bad_quaternion_and_rates() {
     Python::with_gil(|py| {
         let good_q = vec![1.0, 0.0, 0.0, 0.0].into_py(py);
-        for q in [vec![0.0; 4], vec![f64::NAN, 0.0, 0.0, 0.0], vec![1.0, 0.0, 0.0]] {
+        for q in [
+            vec![0.0; 4],
+            vec![f64::NAN, 0.0, 0.0, 0.0],
+            vec![1.0, 0.0, 0.0],
+        ] {
             let bad_q = q.into_py(py);
-            assert!(AttitudeState::new(py, bad_q.as_ref(py), vec![0.0; 3].into_py(py).as_ref(py)).is_err());
+            assert!(
+                AttitudeState::new(py, bad_q.as_ref(py), vec![0.0; 3].into_py(py).as_ref(py))
+                    .is_err()
+            );
         }
         for rates in [vec![1.0, 2.0], vec![0.0, f64::INFINITY, 0.0]] {
             let rates = rates.into_py(py);

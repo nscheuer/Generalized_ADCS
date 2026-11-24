@@ -1,23 +1,33 @@
-#[pyfunction]
-fn lunisolar_acceleration(
-    py: Python<'_>,
-    position_i: &PyAny,
-    sun_position_i: &PyAny,
-    moon_position_i: &PyAny,
+/// Compute the combined solar and lunar third-body acceleration in the
+/// central body's inertial frame.
+pub fn lunisolar_acceleration_native(
+    position_i: [f64; 3],
+    sun_position_i: [f64; 3],
+    moon_position_i: [f64; 3],
     sun_mu: f64,
     moon_mu: f64,
-) -> PyResult<PyObject> {
-    let p = vec3(py, position_i, "position_i")?;
+) -> Result<[f64; 3], &'static str> {
+    if position_i
+        .iter()
+        .chain(sun_position_i.iter())
+        .chain(moon_position_i.iter())
+        .chain([sun_mu, moon_mu].iter())
+        .any(|value| !value.is_finite())
+    {
+        return Err("third-body inputs must be finite");
+    }
+
     let mut result = [0.; 3];
-    for (body, mu) in [
-        (vec3(py, sun_position_i, "sun_position_i")?, sun_mu),
-        (vec3(py, moon_position_i, "moon_position_i")?, moon_mu),
-    ] {
-        let rel = [body[0] - p[0], body[1] - p[1], body[2] - p[2]];
+    for (body, mu) in [(sun_position_i, sun_mu), (moon_position_i, moon_mu)] {
+        let rel = [
+            body[0] - position_i[0],
+            body[1] - position_i[1],
+            body[2] - position_i[2],
+        ];
         let d = norm(body);
         let r = norm(rel);
         if d == 0. || r == 0. {
-            return Err(PyValueError::new_err("third-body distance must be nonzero"));
+            return Err("third-body distance must be nonzero");
         }
         result = add(
             result,
@@ -31,5 +41,8 @@ fn lunisolar_acceleration(
             ),
         );
     }
-    Ok(out(py, result))
+    if result.iter().any(|value| !value.is_finite()) {
+        return Err("third-body acceleration must be finite");
+    }
+    Ok(result)
 }

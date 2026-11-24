@@ -7,4 +7,7 @@ name="_satellite"
 path="lib.rs"
 crate-type=["cdylib","rlib"]
 [dependencies]
-pyo3={version="0.20",features=["extension-module"]}
+pyo3={version="0.20",features=["auto-initialize"]}
+
+[features]
+python-extension = ["pyo3/extension-module"]

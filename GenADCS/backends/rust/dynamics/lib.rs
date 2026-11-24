@@ -4,12 +4,30 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 include!("_geometry.rs");
-include!("drag_model/projected_area.rs");
-include!("srp_model/projected_area.rs");
-include!("gravity_gradient_model/static.rs");
-include!("residual_dipole_model/static.rs");
+include!("_geometry_py.rs");
+pub mod srp_model {
+    #[path = "projected_area.rs"]
+    mod projected_area;
+    pub use projected_area::{
+        projected_area_srp_force, projected_area_srp_torque, Quaternion, Vector3,
+    };
+}
+include!("srp_model/projected_area_py.rs");
+pub mod residual_dipole_model {
+    #[path = "static.rs"]
+    mod static_model;
+    pub use static_model::static_residual_dipole_torque;
+}
+include!("residual_dipole_model/static_py.rs");
 include!("third_body_model/lunisolar.rs");
 include!("zonal_model/zonal.rs");
+
+pub mod drag_model;
+pub mod gravity_gradient_model;
+pub use drag_model::{projected_area_drag_force, projected_area_drag_torque};
+pub use gravity_gradient_model::static_gravity_gradient_torque;
+include!("third_body_model/lunisolar_py.rs");
+include!("zonal_model/zonal_py.rs");
 
 #[cfg(test)]
 #[path = "../../../tests/backends/rust/dynamics/drag_model/test_projected_area.rs"]
@@ -32,12 +50,15 @@ mod test_zonal_model;
 
 #[pymodule]
 fn _dynamics(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(projected_area_drag_force, m)?)?;
-    m.add_function(wrap_pyfunction!(projected_area_drag_torque, m)?)?;
+    m.add_function(wrap_pyfunction!(drag_model::projected_area_drag_force, m)?)?;
+    m.add_function(wrap_pyfunction!(drag_model::projected_area_drag_torque, m)?)?;
     m.add_function(wrap_pyfunction!(projected_area_srp_force, m)?)?;
     m.add_function(wrap_pyfunction!(projected_area_srp_torque, m)?)?;
     m.add_function(wrap_pyfunction!(static_residual_dipole_torque, m)?)?;
-    m.add_function(wrap_pyfunction!(static_gravity_gradient_torque, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        gravity_gradient_model::static_gravity_gradient_torque,
+        m
+    )?)?;
     m.add_function(wrap_pyfunction!(lunisolar_acceleration, m)?)?;
     m.add_function(wrap_pyfunction!(zonal_gravity_force, m)?)?;
     Ok(())

@@ -1,9 +1,12 @@
 #![allow(non_local_definitions)]
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 include!("effects.rs");
 include!("magnetorquer.rs");
+include!("magnetorquer_py.rs");
 include!("reaction_wheel.rs");
+include!("reaction_wheel_py.rs");
 include!("adcs_subsystem.rs");
 
 #[cfg(test)]
