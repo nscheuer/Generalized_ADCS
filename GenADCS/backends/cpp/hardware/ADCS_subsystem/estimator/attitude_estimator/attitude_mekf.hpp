@@ -1,6 +1,8 @@
 #pragma once
 #include "base.hpp"
 #include <vector>
+#include <map>
+#include <string>
 
 namespace omni::hardware::estimator {
 struct Sensor {
@@ -22,6 +24,11 @@ struct Correction {
 class AttitudeMEKF : public AttitudeEstimator {
 public:
     using AttitudeEstimator::AttitudeEstimator;
+    static std::map<std::string, Eigen::MatrixXd> sample(
+        const AttitudeMEKF& estimator, const Eigen::VectorXd& times,
+        const Eigen::MatrixXd& truth, const Eigen::MatrixXd& readings,
+        const std::vector<Sensor>& sensors, double interval,
+        const std::set<std::string>& fields);
     static State predict(const State& state, const Eigen::Matrix3d& acceleration_psd, double dt);
     static Correction correct(const State& state, const Eigen::Vector3d& residual,
                               const Eigen::Matrix<double, 3, 6>& h, const Eigen::Matrix3d& covariance);

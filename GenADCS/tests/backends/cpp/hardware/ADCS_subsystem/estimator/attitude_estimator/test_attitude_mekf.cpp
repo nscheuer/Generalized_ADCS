@@ -29,4 +29,25 @@ int main() {
     try { (void)AttitudeMEKF::predict(state,Eigen::Matrix3d::Zero(),-1); }
     catch (const std::invalid_argument&) { rejected=true; }
     CHECK(rejected);
+    AttitudeMEKF estimator(state.quaternion,state.rate,state.covariance,Eigen::Matrix3d::Zero());
+    Eigen::VectorXd times(3); times << 0, 0.5, 1;
+    Eigen::MatrixXd truth=Eigen::MatrixXd::Zero(3,7); truth.col(0).setOnes();
+    Eigen::MatrixXd samples=Eigen::MatrixXd::Zero(3,3); samples(0,0)=1;
+    samples.row(2).setConstant(std::numeric_limits<double>::quiet_NaN());
+    auto result=AttitudeMEKF::sample(estimator,times,truth,samples,{sensor},1,
+        {"estimated_rate","measurement_innovation_covariance","normalized_innovation_squared",
+         "measurement_residual","kalman_gain","normalized_estimation_error_squared"});
+    CHECK(std::abs(result.at("estimated_rate")(0,0)-0.5)<1e-12);
+    CHECK(std::abs(result.at("measurement_innovation_covariance")(0,0)-2)<1e-12);
+    CHECK(std::abs(result.at("normalized_innovation_squared")(0,0)-0.5)<1e-12);
+    CHECK(std::abs(result.at("normalized_estimation_error_squared")(0,0)-0.5)<1e-12);
+    CHECK(std::abs(result.at("measurement_residual")(0,0)-0.5)<1e-12);
+    CHECK(std::abs(result.at("kalman_gain")(0,9)-0.5)<1e-12);
+    CHECK(std::isnan(result.at("estimated_rate")(1,0)));
+    CHECK(std::isnan(result.at("measurement_residual")(2,0)));
+    CHECK(std::abs(result.at("estimated_rate")(2,0)-0.5)<1e-12);
+    rejected=false;
+    try { (void)AttitudeMEKF::sample(estimator,times,truth,samples,{sensor},0,{}); }
+    catch(const std::invalid_argument&) { rejected=true; }
+    CHECK(rejected);
 }

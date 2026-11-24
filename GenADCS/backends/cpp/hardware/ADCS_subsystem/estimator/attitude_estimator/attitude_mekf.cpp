@@ -2,6 +2,7 @@
 #include <Eigen/Geometry>
 #include <cmath>
 #include <stdexcept>
+#include <limits>
 
 namespace omni::hardware::estimator {
 namespace {
@@ -95,5 +96,85 @@ State AttitudeMEKF::step(const State& state, const Eigen::Matrix3d& a, double dt
             current = correct_star_tracker(current, value.head<4>(), vec(mount), noise).state;
     }
     return current;
+}
+}
+
+namespace omni::hardware::estimator {
+std::map<std::string, Eigen::MatrixXd> AttitudeMEKF::sample(
+    const AttitudeMEKF& estimator, const Eigen::VectorXd& times,
+    const Eigen::MatrixXd& truth, const Eigen::MatrixXd& readings,
+    const std::vector<Sensor>& sensors, double interval,
+    const std::set<std::string>& fields) {
+    if (!std::isfinite(interval) || interval <= 0 || truth.rows() != times.size() ||
+        truth.cols() < 7 || readings.rows() != times.size())
+        throw std::invalid_argument("invalid estimator sample trajectory or interval");
+    const std::map<std::string, int> widths{
+        {"estimated_attitude",4},{"estimated_rate",3},{"estimated_covariance",36},
+        {"estimated_attitude_covariance",9},{"estimated_rate_covariance",9},
+        {"measurement_innovation",3},{"measurement_innovation_covariance",9},
+        {"normalized_innovation_squared",1},{"normalized_estimation_error_squared",1},
+        {"measurement_residual",3},{"kalman_gain",18}};
+    std::map<std::string, Eigen::MatrixXd> output;
+    for (const auto& name : fields) {
+        if (!widths.count(name)) throw std::invalid_argument("unknown estimator diagnostic field: " + name);
+        output[name] = Eigen::MatrixXd::Constant(times.size(), widths.at(name),
+                                                std::numeric_limits<double>::quiet_NaN());
+    }
+    State current = estimator.prepare();
+    double previous = 0;
+    for (Eigen::Index row=0; row<times.size(); ++row) {
+        const double time = times[row];
+        if (!std::isfinite(time) || time < 0 || (row && time < times[row-1]))
+            throw std::invalid_argument("estimator times must be finite, nonnegative and ordered");
+        if (std::abs(time/interval - std::round(time/interval)) > 1e-9) continue;
+        current = predict(current, estimator.acceleration_psd, time-previous);
+        previous = time;
+        auto store = [&](const std::string& name, const auto& value) {
+            auto found = output.find(name);
+            if (found == output.end()) return;
+            Eigen::Index index=0;
+            for (Eigen::Index i=0;i<value.rows();++i)
+                for (Eigen::Index j=0;j<value.cols();++j) found->second(row,index++)=value(i,j);
+        };
+        auto scalar = [&](const std::string& name, double value) {
+            auto found=output.find(name); if(found!=output.end()) found->second(row,0)=value;
+        };
+        for (const auto& sensor : sensors) {
+            if (!sensor.enabled || (sensor.code!=0 && sensor.code!=2)) continue;
+            const int width=sensor.code==0 ? 3 : 4;
+            if(sensor.offset<0 || sensor.offset+width>readings.cols())
+                throw std::invalid_argument("sensor reading offset is out of range");
+            const Eigen::VectorXd value=readings.row(row).segment(sensor.offset,width).transpose();
+            if(!value.allFinite()) continue;
+            const Q mount=(quat(sensor.misalignment)*quat(sensor.orientation)).normalized();
+            const Eigen::Matrix3d noise=sensor.noise_cholesky*sensor.noise_cholesky.transpose();
+            const Correction correction = sensor.code==0
+                ? correct_gyro(current,value.head<3>()-sensor.bias,mount.toRotationMatrix(),noise)
+                : correct_star_tracker(current,value.head<4>(),vec(mount),noise);
+            store("measurement_innovation",correction.innovation);
+            store("measurement_innovation_covariance",correction.innovation_covariance);
+            store("measurement_residual",correction.residual);
+            store("kalman_gain",correction.gain);
+            if(fields.count("normalized_innovation_squared"))
+                scalar("normalized_innovation_squared",correction.innovation.dot(
+                    correction.innovation_covariance.ldlt().solve(correction.innovation)));
+            current=correction.state;
+        }
+        store("estimated_attitude",current.quaternion);
+        store("estimated_rate",current.rate);
+        store("estimated_covariance",current.covariance);
+        store("estimated_attitude_covariance",current.covariance.topLeftCorner<3,3>());
+        store("estimated_rate_covariance",current.covariance.bottomRightCorner<3,3>());
+        if(fields.count("normalized_estimation_error_squared")) {
+            Vector6 error;
+            error.head<3>()=logmap(quat(truth.row(row).head<4>().transpose())*quat(current.quaternion).conjugate());
+            error.tail<3>()=truth.row(row).segment<3>(4).transpose()-current.rate;
+            const auto solver=current.covariance.ldlt();
+            if(solver.info()!=Eigen::Success || (solver.vectorD().array()==0).any())
+                throw std::invalid_argument("estimator covariance is singular");
+            scalar("normalized_estimation_error_squared",error.dot(solver.solve(error)));
+        }
+    }
+    return output;
 }
 }

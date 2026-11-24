@@ -5,6 +5,7 @@
 namespace py = pybind11;
 using namespace omni::hardware::estimator;
 void bind_estimator_mekf(py::module_& m) {
+    m.def("sample", &AttitudeMEKF::sample, py::call_guard<py::gil_scoped_release>());
     py::class_<Sensor>(m, "Sensor")
         .def(py::init<>())
         .def_readwrite("code", &Sensor::code)

@@ -2,6 +2,7 @@
 
 import numpy as np
 import math
+from dataclasses import replace
 
 from GenADCS.backends.shared.simulationresult import SimulationResult, SatelliteResult
 from GenADCS.backends.shared.simulationresult.record import record_samples
@@ -31,6 +32,9 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
     if isinstance(resultsformat.N, bool) or not isinstance(resultsformat.N, int) or resultsformat.N < 1:
         raise ValueError("ResultsFormat.N must be a positive integer")
 
+    estimator = satellite.adcs.estimator
+    if estimator is not None and estimator.record:
+        resultsformat = replace(resultsformat, **{name: True for name in estimator.record})
     sensors = satellite.adcs.sensors
     sensor_every = satellite.adcs.N
     if sensor_every < 1:
@@ -44,7 +48,7 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
         state, satellite, environment, dynamics, solver.tf,
         progress=solver.progress,
         progress_chunk_steps=solver.progress_chunk_steps,
-        record_every=math.gcd(resultsformat.N, sensor_every) if sensors else resultsformat.N,
+        record_every=math.gcd(resultsformat.N, sensor_every) if sensors or estimator is not None else resultsformat.N,
     )
     times = np.asarray(times, dtype=float)
     vectors = np.asarray(vectors, dtype=float)
@@ -59,6 +63,12 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
         from .propagation.coupled_propagators._coupled_dynamics import _prepare
         sensor_rows = sample_sensors(times, vectors, state.orbit.julian_date,
             propagator.dt * sensor_every, _prepare(satellite, environment, dynamics), satellite.adcs, seed)
+    if estimator is not None:
+        from .hardware.ADCS_subsystem.estimator.runtime import sample_estimator
+        if sensor_rows is None:
+            sensor_rows = {}
+        sample_estimator(times, vectors, sensor_rows, satellite.adcs,
+                         propagator.dt * sensor_every, resultsformat)
     interval = propagator.dt * resultsformat.N
     on_grid = np.abs(times / interval - np.round(times / interval)) < 1e-9
     if sensor_rows is not None:
