@@ -1,47 +1,52 @@
-#[pyfunction]
-fn rotation_vector_to_quaternion(py: Python<'_>, r: &PyAny) -> PyResult<PyObject> {
-    let v = fixed::<3>(py, r, "rotation_vector")?;
-    let a = dot(&v, &v).sqrt();
-    if a < 1e-12 {
-        let q = [1.0 - a * a / 8.0, v[0] * 0.5, v[1] * 0.5, v[2] * 0.5];
-        pyvec(py, qnormalize(q)?)
+pub fn rotation_vector_to_quaternion_native(v: [f64; 3]) -> Result<[f64; 4], &'static str> {
+    let angle = dot(&v, &v).sqrt();
+    if angle < 1e-12 {
+        qnormalize_native([
+            1.0 - angle * angle / 8.0,
+            v[0] * 0.5,
+            v[1] * 0.5,
+            v[2] * 0.5,
+        ])
     } else {
-        let s = (a / 2.0).sin() / a;
-        pyvec(py, [(a / 2.0).cos(), v[0] * s, v[1] * s, v[2] * s])
+        let scale = (angle / 2.0).sin() / angle;
+        Ok([
+            (angle / 2.0).cos(),
+            v[0] * scale,
+            v[1] * scale,
+            v[2] * scale,
+        ])
     }
 }
-#[pyfunction]
-fn quaternion_to_rotation_vector(py: Python<'_>, q: &PyAny) -> PyResult<PyObject> {
-    let mut q = qnormalize(fixed::<4>(py, q, "quaternion")?)?;
+
+pub fn quaternion_to_rotation_vector_native(q: [f64; 4]) -> Result<[f64; 3], &'static str> {
+    let mut q = qnormalize_native(q)?;
     if q[0] < 0.0 {
-        q = q.map(|v| -v)
+        q = q.map(|value| -value);
     }
-    let s = (q[1] * q[1] + q[2] * q[2] + q[3] * q[3]).sqrt();
-    let v = if s < 1e-12 {
-        [2.0 * q[1], 2.0 * q[2], 2.0 * q[3]]
+    let vector_norm = (q[1] * q[1] + q[2] * q[2] + q[3] * q[3]).sqrt();
+    if vector_norm < 1e-12 {
+        Ok([2.0 * q[1], 2.0 * q[2], 2.0 * q[3]])
     } else {
-        let a = 2.0 * s.atan2(q[0]) / s;
-        [q[1] * a, q[2] * a, q[3] * a]
-    };
-    pyvec(py, v)
+        let scale = 2.0 * vector_norm.atan2(q[0]) / vector_norm;
+        Ok([q[1] * scale, q[2] * scale, q[3] * scale])
+    }
 }
-#[pyfunction]
-fn slerp(py: Python<'_>, a: &PyAny, b: &PyAny, t: f64) -> PyResult<PyObject> {
-    let a = qnormalize(fixed::<4>(py, a, "q0")?)?;
-    let mut b = qnormalize(fixed::<4>(py, b, "q1")?)?;
-    let mut d = dot(&a, &b);
-    if d < 0.0 {
-        b = b.map(|v| -v);
-        d = -d
+
+pub fn slerp_native(a: [f64; 4], mut b: [f64; 4], t: f64) -> Result<[f64; 4], &'static str> {
+    let a = qnormalize_native(a)?;
+    b = qnormalize_native(b)?;
+    let mut dot_ab = dot(&a, &b);
+    if dot_ab < 0.0 {
+        b = b.map(|value| -value);
+        dot_ab = -dot_ab;
     }
-    let q = if d > 0.9995 {
-        qnormalize(std::array::from_fn(|i| a[i] + t * (b[i] - a[i])))?
+    if dot_ab > 0.9995 {
+        qnormalize_native(std::array::from_fn(|i| a[i] + t * (b[i] - a[i])))
     } else {
-        let th = d.clamp(-1.0, 1.0).acos();
-        let den = th.sin();
-        let x = ((1.0 - t) * th).sin() / den;
-        let y = (t * th).sin() / den;
-        std::array::from_fn(|i| x * a[i] + y * b[i])
-    };
-    pyvec(py, q)
+        let angle = dot_ab.clamp(-1.0, 1.0).acos();
+        let denominator = angle.sin();
+        let weight_a = ((1.0 - t) * angle).sin() / denominator;
+        let weight_b = (t * angle).sin() / denominator;
+        Ok(std::array::from_fn(|i| weight_a * a[i] + weight_b * b[i]))
+    }
 }

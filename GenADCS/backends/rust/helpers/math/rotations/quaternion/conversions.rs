@@ -1,19 +1,21 @@
-#[pyfunction]
-fn _axis_angle_to_quaternion(py: Python<'_>, axis: &PyAny, angle: f64) -> PyResult<PyObject> {
-    let a = fixed::<3>(py, axis, "axis")?;
-    let n = dot(&a, &a).sqrt();
-    if n == 0.0 {
-        return Err(PyValueError::new_err("axis must be nonzero"));
+pub fn axis_angle_to_quaternion_native(axis: [f64; 3], angle: f64) -> Result<[f64; 4], &'static str> {
+    let norm = dot(&axis, &axis).sqrt();
+    if norm == 0.0 {
+        return Err("axis must be nonzero");
     }
-    let s = (angle / 2.0).sin() / n;
-    pyvec(py, [(angle / 2.0).cos(), a[0] * s, a[1] * s, a[2] * s])
+    let scale = (angle / 2.0).sin() / norm;
+    Ok([
+        (angle / 2.0).cos(),
+        axis[0] * scale,
+        axis[1] * scale,
+        axis[2] * scale,
+    ])
 }
-#[pyfunction]
-fn _dcm_to_quaternion(py: Python<'_>, x: &PyAny) -> PyResult<PyObject> {
-    let m = mat3(py, x, "matrix")?;
-    let tr = m.trace();
-    let q = if tr > 0.0 {
-        let s = 2.0 * (tr + 1.0).sqrt();
+
+pub fn dcm_to_quaternion_native(m: M) -> Result<[f64; 4], &'static str> {
+    let trace = m.trace();
+    let q = if trace > 0.0 {
+        let s = 2.0 * (trace + 1.0).sqrt();
         [
             0.25 * s,
             (m[(2, 1)] - m[(1, 2)]) / s,
@@ -45,6 +47,6 @@ fn _dcm_to_quaternion(py: Python<'_>, x: &PyAny) -> PyResult<PyObject> {
             0.25 * s,
         ]
     };
-    let q = qnormalize(q)?;
-    pyvec(py, if q[0] < 0.0 { q.map(|v| -v) } else { q })
+    let q = qnormalize_native(q)?;
+    Ok(if q[0] < 0.0 { q.map(|v| -v) } else { q })
 }

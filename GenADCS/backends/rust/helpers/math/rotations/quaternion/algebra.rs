@@ -1,55 +1,40 @@
-#[pyfunction]
-fn _normalize_quaternion(py: Python<'_>, q: &PyAny) -> PyResult<PyObject> {
-    pyvec(py, qnormalize(fixed(py, q, "quaternion")?)?)
+pub fn normalize_quaternion_native(q: [f64; 4]) -> Result<[f64; 4], &'static str> {
+    qnormalize_native(q)
 }
-#[pyfunction]
-fn _quaternion_norm(py: Python<'_>, q: &PyAny) -> PyResult<f64> {
-    Ok(qnorm(fixed(py, q, "quaternion")?))
+
+pub fn quaternion_norm_native(q: [f64; 4]) -> f64 {
+    qnorm(q)
 }
-#[pyfunction]
-fn _jpl_to_hamilton(py: Python<'_>, q: &PyAny) -> PyResult<PyObject> {
-    let [x, y, z, w] = fixed::<4>(py, q, "quaternion")?;
-    pyvec(py, [w, -x, -y, -z])
+
+pub fn jpl_to_hamilton_native([x, y, z, w]: [f64; 4]) -> [f64; 4] {
+    [w, -x, -y, -z]
 }
-#[pyfunction]
-fn _hamilton_to_jpl(py: Python<'_>, q: &PyAny) -> PyResult<PyObject> {
-    let [w, x, y, z] = fixed::<4>(py, q, "quaternion")?;
-    pyvec(py, [-x, -y, -z, w])
+
+pub fn hamilton_to_jpl_native([w, x, y, z]: [f64; 4]) -> [f64; 4] {
+    [-x, -y, -z, w]
 }
-#[pyfunction]
-fn _conjugate(py: Python<'_>, q: &PyAny) -> PyResult<PyObject> {
-    pyvec(py, qconj(fixed(py, q, "quaternion")?))
+
+pub fn conjugate_native(q: [f64; 4]) -> [f64; 4] {
+    qconj(q)
 }
-#[pyfunction]
-fn _inverse(py: Python<'_>, q: &PyAny) -> PyResult<PyObject> {
-    pyvec(py, qinv(fixed(py, q, "quaternion")?)?)
+
+pub fn inverse_native(q: [f64; 4]) -> Result<[f64; 4], &'static str> {
+    qinv_native(q)
 }
-#[pyfunction]
-fn _multiply(py: Python<'_>, a: &PyAny, b: &PyAny) -> PyResult<PyObject> {
-    pyvec(
-        py,
-        qmul(
-            fixed(py, a, "left quaternion")?,
-            fixed(py, b, "right quaternion")?,
-        ),
-    )
+
+pub fn multiply_native(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
+    qmul(a, b)
 }
-#[pyfunction]
-fn _relative_quaternion(py: Python<'_>, r: &PyAny, t: &PyAny) -> PyResult<PyObject> {
-    let q = qnormalize(qmul(
-        fixed(py, t, "target")?,
-        qinv(fixed(py, r, "reference")?)?,
-    ))?;
-    pyvec(py, if q[0] < 0.0 { q.map(|v| -v) } else { q })
+
+pub fn relative_quaternion_native(r: [f64; 4], t: [f64; 4]) -> Result<[f64; 4], &'static str> {
+    let q = qnormalize_native(qmul(t, qinv_native(r)?))?;
+    Ok(if q[0] < 0.0 { q.map(|value| -value) } else { q })
 }
-#[pyfunction]
-fn _rotate_vector(py: Python<'_>, q: &PyAny, v: &PyAny) -> PyResult<PyObject> {
-    pyvec(
-        py,
-        qrotate(fixed(py, q, "quaternion")?, fixed(py, v, "vector")?),
-    )
+
+pub fn rotate_vector_native(q: [f64; 4], v: [f64; 3]) -> [f64; 3] {
+    qrotate(q, v)
 }
-#[pyfunction]
-fn _quaternion_to_dcm(py: Python<'_>, q: &PyAny) -> PyResult<PyObject> {
-    Ok(pymat(py, &qdcm(fixed(py, q, "quaternion")?)))
+
+pub fn quaternion_to_dcm_native(q: [f64; 4]) -> M {
+    qdcm(q)
 }

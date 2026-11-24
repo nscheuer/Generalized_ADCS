@@ -22,6 +22,7 @@ dependencies = [
 name = "adcs-omni-rust-bias"
 version = "0.1.0"
 dependencies = [
+ "adcs-omni-rust-random",
  "pyo3",
 ]
 
@@ -97,6 +98,13 @@ dependencies = [
 
 [[package]]
 name = "adcs-omni-rust-planetary-body"
+version = "0.1.0"
+dependencies = [
+ "pyo3",
+]
+
+[[package]]
+name = "adcs-omni-rust-random"
 version = "0.1.0"
 dependencies = [
  "pyo3",

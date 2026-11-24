@@ -1,0 +1,16 @@
+[package]
+name = "adcs-omni-rust-random"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "_random"
+path = "lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python-extension = ["dep:pyo3", "pyo3/extension-module"]
+
+[dependencies]
+pyo3 = { version = "0.20", optional = true }

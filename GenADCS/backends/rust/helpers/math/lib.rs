@@ -1,25 +1,40 @@
 #![allow(non_local_definitions)]
-use nalgebra::{DMatrix, DVector, Matrix3, SVector};
+use nalgebra::{Matrix3, SVector};
 use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-type M = Matrix3<f64>;
+pub type M = Matrix3<f64>;
 
 include!("common.rs");
+include!("common_py.rs");
 include!("rotations/quaternion/quaternion.rs");
-include!("rotations/dcm/dcm.rs");
-include!("rotations/mrp/modified_rodrigues_parameters.rs");
-include!("rotations/rodrigues/rodrigues_parameters.rs");
-include!("vector.rs");
+include!("rotations/quaternion/quaternion_py.rs");
 include!("rotations/quaternion/algebra.rs");
+include!("rotations/quaternion/algebra_py.rs");
 include!("rotations/quaternion/conversions.rs");
+include!("rotations/quaternion/conversions_py.rs");
 include!("rotations/quaternion/interpolation.rs");
+include!("rotations/quaternion/interpolation_py.rs");
+include!("rotations/dcm/dcm.rs");
+include!("rotations/dcm/dcm_py.rs");
+include!("rotations/mrp/modified_rodrigues_parameters.rs");
+include!("rotations/mrp/modified_rodrigues_parameters_py.rs");
+include!("rotations/rodrigues/rodrigues_parameters.rs");
+include!("rotations/rodrigues/rodrigues_parameters_py.rs");
+include!("vector.rs");
+include!("vector_py.rs");
 include!("rotations/dcm/kernels.rs");
+include!("rotations/dcm/kernels_py.rs");
 include!("rotations/mrp/kernels.rs");
+include!("rotations/mrp/kernels_py.rs");
 include!("rotations/rodrigues/kernels.rs");
+include!("rotations/rodrigues/kernels_py.rs");
 include!("derivatives.rs");
+include!("derivatives_py.rs");
 include!("dynamics.rs");
+include!("dynamics_py.rs");
 include!("time/conversions.rs");
+include!("time/conversions_py.rs");
 
 #[pymodule]
 fn _helpers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {

@@ -1,53 +1,43 @@
-#[pyfunction]
-fn axis_angle_to_dcm(py: Python<'_>, axis: &PyAny, angle: f64) -> PyResult<PyObject> {
-    let q = _axis_angle_to_quaternion(py, axis, angle)?;
-    _quaternion_to_dcm(py, q.as_ref(py))
+pub fn axis_angle_to_dcm_native(axis: [f64; 3], angle: f64) -> Result<M, &'static str> {
+    let quaternion = axis_angle_to_quaternion_native(axis, angle)?;
+    Ok(quaternion_to_dcm_native(quaternion))
 }
-#[pyfunction]
-fn rotate_vector(py: Python<'_>, m: &PyAny, v: &PyAny) -> PyResult<PyObject> {
-    let m = mat3(py, m, "dcm")?;
-    let v = fixed::<3>(py, v, "vector")?;
-    pyvec(py, mv(m, v))
+
+pub fn rotate_vector_dcm_native(matrix: M, vector: [f64; 3]) -> [f64; 3] {
+    mv(matrix, vector)
 }
-#[pyfunction]
-fn inverse_dcm(py: Python<'_>, x: &PyAny) -> PyResult<PyObject> {
-    let m = mat3(py, x, "dcm")?;
-    Ok(pymat(py, &tr(m)))
+
+pub fn inverse_dcm_native(matrix: M) -> M {
+    tr(matrix)
 }
-#[pyfunction]
-fn compose_dcm(py: Python<'_>, a: &PyAny, b: &PyAny) -> PyResult<PyObject> {
-    Ok(pymat(py, &mm(mat3(py, a, "left")?, mat3(py, b, "right")?)))
+
+pub fn compose_dcm_native(left: M, right: M) -> M {
+    mm(left, right)
 }
-#[pyfunction]
-fn relative_dcm(py: Python<'_>, a: &PyAny, b: &PyAny) -> PyResult<PyObject> {
-    let a = mat3(py, a, "target")?;
-    let b = mat3(py, b, "reference")?;
-    Ok(pymat(py, &mm(a, tr(b))))
+
+pub fn relative_dcm_native(target: M, reference: M) -> M {
+    mm(target, tr(reference))
 }
-#[pyfunction]
-fn dcm_orthogonality_error(py: Python<'_>, x: &PyAny) -> PyResult<f64> {
-    let m = mat3(py, x, "matrix")?;
-    Ok((m.transpose() * m - M::identity()).norm())
+
+pub fn dcm_kernel_orthogonality_error_native(matrix: M) -> f64 {
+    (matrix.transpose() * matrix - M::identity()).norm()
 }
-#[pyfunction]
-fn normalize_dcm(py: Python<'_>, x: &PyAny) -> PyResult<PyObject> {
-    let m = mat3(py, x, "matrix")?;
-    let mut a = m.column(0).into_owned();
-    let n = a.norm();
-    if n == 0.0 {
-        return Err(PyValueError::new_err("DCM has a degenerate first column"));
+
+pub fn normalize_dcm_native(matrix: M) -> Result<M, &'static str> {
+    let mut first = matrix.column(0).into_owned();
+    let norm_first = first.norm();
+    if norm_first == 0.0 {
+        return Err("DCM has a degenerate first column");
     }
-    a /= n;
-    let b0 = m.column(1).into_owned();
-    let mut b = b0 - a.dot(&b0) * a;
-    let n = b.norm();
-    if n == 0.0 {
-        return Err(PyValueError::new_err(
-            "DCM has degenerate first and second columns",
-        ));
+    first /= norm_first;
+
+    let second_original = matrix.column(1).into_owned();
+    let mut second = second_original - first.dot(&second_original) * first;
+    let norm_second = second.norm();
+    if norm_second == 0.0 {
+        return Err("DCM has degenerate first and second columns");
     }
-    b /= n;
-    let c = a.cross(&b);
-    let out = M::from_columns(&[a, b, c]);
-    Ok(pymat(py, &out))
+    second /= norm_second;
+    let third = first.cross(&second);
+    Ok(M::from_columns(&[first, second, third]))
 }

@@ -8,7 +8,9 @@ type V = [f64; 3];
 type M = Matrix3<f64>;
 
 include!("common.rs");
+include!("common_py.rs");
 include!("frames.rs");
+include!("frames_py.rs");
 include!("conversions.rs");
 
 #[cfg(test)]

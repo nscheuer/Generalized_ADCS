@@ -16,7 +16,7 @@ members = [
     "environment/ephemeris", "environment/gravity",
     "environment/magnetic_field_model", "environment/planetary_body",
     "hardware/ADCS_subsystem", "hardware/satellite",
-    "hardware/satellite_geometry", "helpers/math", "helpers/math/frames",
+    "hardware/satellite_geometry", "helpers/math", "helpers/math/frames", "helpers/random",
     "propagation/coupled_propagators", "solver", "state",
 ]
 default-members = [

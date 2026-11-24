@@ -1,42 +1,25 @@
-#[pyclass(name = "_RotationParameter")]
-struct RotationParameter;
+pub fn vector_norm(values: &[f64]) -> f64 {
+    values.iter().map(|value| value * value).sum::<f64>().sqrt()
+}
 
-#[pyfunction]
-fn cross(py: Python<'_>, a: &PyAny, b: &PyAny) -> PyResult<PyObject> {
-    pyvec(py, cross3(fixed(py, a, "a")?, fixed(py, b, "b")?))
-}
-#[pyfunction]
-fn norm(py: Python<'_>, v: &PyAny) -> PyResult<f64> {
-    Ok(vals(py, v, "vector")?
-        .iter()
-        .map(|x| x * x)
-        .sum::<f64>()
-        .sqrt())
-}
-#[pyfunction]
-fn normalize(py: Python<'_>, v: &PyAny) -> PyResult<PyObject> {
-    let x = vals(py, v, "vector")?;
-    let n = x.iter().map(|a| a * a).sum::<f64>().sqrt();
-    pyvec(
-        py,
-        if n == 0.0 {
-            x.iter().map(|_| 0.0).collect::<Vec<_>>()
-        } else {
-            x.iter().map(|a| a / n).collect()
-        },
-    )
-}
-#[pyfunction]
-fn unit(py: Python<'_>, v: &PyAny) -> PyResult<PyObject> {
-    let x = vals(py, v, "vector")?;
-    let n = x.iter().map(|a| a * a).sum::<f64>().sqrt();
-    if n == 0.0 {
-        return Err(PyValueError::new_err("cannot normalize a zero vector"));
+pub fn vector_normalize(values: &[f64]) -> Vec<f64> {
+    let norm = vector_norm(values);
+    if norm == 0.0 {
+        vec![0.0; values.len()]
+    } else {
+        values.iter().map(|value| value / norm).collect()
     }
-    pyvec(py, x.iter().map(|a| a / n).collect::<Vec<_>>())
 }
-#[pyfunction]
-fn skew(py: Python<'_>, v: &PyAny) -> PyResult<PyObject> {
-    let [x, y, z] = fixed::<3>(py, v, "vector")?;
-    pyvec(py, vec![vec![0., -z, y], vec![z, 0., -x], vec![-y, x, 0.]])
+
+pub fn vector_unit(values: &[f64]) -> Result<Vec<f64>, &'static str> {
+    let norm = vector_norm(values);
+    if norm == 0.0 {
+        Err("cannot normalize a zero vector")
+    } else {
+        Ok(values.iter().map(|value| value / norm).collect())
+    }
+}
+
+pub fn vector_skew([x, y, z]: [f64; 3]) -> [[f64; 3]; 3] {
+    [[0.0, -z, y], [z, 0.0, -x], [-y, x, 0.0]]
 }

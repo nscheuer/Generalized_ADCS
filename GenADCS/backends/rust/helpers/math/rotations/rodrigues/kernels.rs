@@ -1,19 +1,22 @@
-#[pyfunction]
-fn rodrigues_to_quaternion(py: Python<'_>, x: &PyAny) -> PyResult<PyObject> {
-    let p = fixed::<3>(py, x, "parameters")?;
-    let n = (1.0 + dot(&p, &p)).sqrt();
-    pyvec(py, [1.0 / n, p[0] / n, p[1] / n, p[2] / n])
+pub fn rodrigues_to_quaternion_native(parameters: [f64; 3]) -> [f64; 4] {
+    let denominator = (1.0 + dot(&parameters, &parameters)).sqrt();
+    [
+        1.0 / denominator,
+        parameters[0] / denominator,
+        parameters[1] / denominator,
+        parameters[2] / denominator,
+    ]
 }
-#[pyfunction]
-fn quaternion_to_rodrigues(py: Python<'_>, x: &PyAny) -> PyResult<PyObject> {
-    let mut q = qnormalize(fixed::<4>(py, x, "quaternion")?)?;
+
+pub fn quaternion_to_rodrigues_native(
+    quaternion: [f64; 4],
+) -> Result<[f64; 3], &'static str> {
+    let mut q = qnormalize_native(quaternion)?;
     if q[0] < 0.0 {
-        q = q.map(|v| -v)
+        q = q.map(|value| -value);
     }
     if q[0].abs() <= 1e-12 {
-        return Err(PyValueError::new_err(
-            "Rodrigues parameters are singular at a 180-degree rotation",
-        ));
+        return Err("Rodrigues parameters are singular at a 180-degree rotation");
     }
-    pyvec(py, [q[1] / q[0], q[2] / q[0], q[3] / q[0]])
+    Ok([q[1] / q[0], q[2] / q[0], q[3] / q[0]])
 }

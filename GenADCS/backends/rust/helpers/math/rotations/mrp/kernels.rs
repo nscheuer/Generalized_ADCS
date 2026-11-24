@@ -1,43 +1,35 @@
-#[pyfunction]
-fn mrp_to_quaternion(py: Python<'_>, x: &PyAny) -> PyResult<PyObject> {
-    let p = fixed::<3>(py, x, "parameters")?;
-    let s = dot(&p, &p);
-    let d = 1.0 + s;
-    pyvec(
-        py,
-        [
-            (1.0 - s) / d,
-            2.0 * p[0] / d,
-            2.0 * p[1] / d,
-            2.0 * p[2] / d,
-        ],
-    )
+pub fn mrp_to_quaternion_native(parameters: [f64; 3]) -> [f64; 4] {
+    let norm_squared = dot(&parameters, &parameters);
+    let denominator = 1.0 + norm_squared;
+    [
+        (1.0 - norm_squared) / denominator,
+        2.0 * parameters[0] / denominator,
+        2.0 * parameters[1] / denominator,
+        2.0 * parameters[2] / denominator,
+    ]
 }
-#[pyfunction]
-fn quaternion_to_mrp(py: Python<'_>, x: &PyAny) -> PyResult<PyObject> {
-    let mut q = qnormalize(fixed::<4>(py, x, "quaternion")?)?;
+
+pub fn quaternion_to_mrp_native(quaternion: [f64; 4]) -> Result<[f64; 3], &'static str> {
+    let mut q = qnormalize_native(quaternion)?;
     if q[0] < 0.0 {
-        q = q.map(|v| -v)
+        q = q.map(|value| -value);
     }
-    let mut p = [
+    let mut parameters = [
         q[1] / (1.0 + q[0]),
         q[2] / (1.0 + q[0]),
         q[3] / (1.0 + q[0]),
     ];
-    let s = dot(&p, &p);
-    if s > 1.0 {
-        p = p.map(|v| -v / s)
+    let norm_squared = dot(&parameters, &parameters);
+    if norm_squared > 1.0 {
+        parameters = parameters.map(|value| -value / norm_squared);
     }
-    pyvec(py, p)
+    Ok(parameters)
 }
-#[pyfunction]
-fn mrp_shadow_set(py: Python<'_>, x: &PyAny) -> PyResult<PyObject> {
-    let p = fixed::<3>(py, x, "parameters")?;
-    let n = dot(&p, &p);
-    if n == 0.0 {
-        return Err(PyValueError::new_err(
-            "the identity MRP has no finite shadow set",
-        ));
+
+pub fn mrp_shadow_set_native(parameters: [f64; 3]) -> Result<[f64; 3], &'static str> {
+    let norm_squared = dot(&parameters, &parameters);
+    if norm_squared == 0.0 {
+        return Err("the identity MRP has no finite shadow set");
     }
-    pyvec(py, p.map(|v| -v / n))
+    Ok(parameters.map(|value| -value / norm_squared))
 }

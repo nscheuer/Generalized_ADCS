@@ -1,18 +1,46 @@
-fn tai_offset(jd: f64) -> PyResult<f64> {
+const SECS: f64 = 86400.0;
+const LEAPS: [(f64, f64); 28] = [
+    (2441317.5, 10.),
+    (2441499.5, 11.),
+    (2441683.5, 12.),
+    (2442048.5, 13.),
+    (2442413.5, 14.),
+    (2442778.5, 15.),
+    (2443144.5, 16.),
+    (2443509.5, 17.),
+    (2443874.5, 18.),
+    (2444239.5, 19.),
+    (2444786.5, 20.),
+    (2445151.5, 21.),
+    (2445516.5, 22.),
+    (2446247.5, 23.),
+    (2447161.5, 24.),
+    (2447892.5, 25.),
+    (2448257.5, 26.),
+    (2448804.5, 27.),
+    (2449169.5, 28.),
+    (2449534.5, 29.),
+    (2450083.5, 30.),
+    (2450630.5, 31.),
+    (2451179.5, 32.),
+    (2453736.5, 33.),
+    (2454832.5, 34.),
+    (2456109.5, 35.),
+    (2457204.5, 36.),
+    (2457754.5, 37.),
+];
+
+pub fn tai_offset_native(jd: f64) -> Result<f64, &'static str> {
     if jd < LEAPS[0].0 {
-        return Err(PyValueError::new_err(
-            "UTC/TAI conversion is supported from 1972-01-01",
-        ));
+        return Err("UTC/TAI conversion is supported from 1972-01-01");
     }
     Ok(LEAPS.iter().filter(|(e, _)| jd >= *e).last().unwrap().1)
 }
-fn tdb_tt(t: f64) -> f64 {
+pub fn tdb_tt_native(t: f64) -> f64 {
     let g = (357.53 + 0.9856003 * (t - 2451545.0)).to_radians();
     0.001657 * g.sin() + 0.000022 * (2. * g).sin()
 }
-#[pyfunction]
-#[pyo3(signature=(year,month,day,hour=0,minute=0,second=0.0))]
-fn calendar_to_jd(year: i32, month: i32, day: i32, hour: i32, minute: i32, second: f64) -> f64 {
+pub fn calendar_to_jd_native(year: i32, month: i32, day: i32, hour: i32, minute: i32, second: f64) -> f64 {
     let (mut y, mut m) = (year, month);
     if m <= 2 {
         y -= 1;
@@ -27,8 +55,7 @@ fn calendar_to_jd(year: i32, month: i32, day: i32, hour: i32, minute: i32, secon
         - 1524.5)
         + (hour as f64 * 3600. + minute as f64 * 60. + second) / SECS
 }
-#[pyfunction]
-fn jd_to_calendar(jd: f64) -> (i32, i32, i32, i32, i32, f64) {
+pub fn jd_to_calendar_native(jd: f64) -> (i32, i32, i32, i32, i32, f64) {
     let zf = (jd + 0.5).floor();
     let f = jd + 0.5 - zf;
     let z = zf as i32;
@@ -49,101 +76,79 @@ fn jd_to_calendar(jd: f64) -> (i32, i32, i32, i32, i32, f64) {
     s -= m as f64 * 60.;
     (year, month, day, h, m, s)
 }
-#[pyfunction]
-fn utc_jd_to_tai_jd(jd: f64) -> PyResult<f64> {
-    Ok(jd + tai_offset(jd)? / SECS)
+pub fn utc_jd_to_tai_jd_native(jd: f64) -> Result<f64, &'static str> {
+    Ok(jd + tai_offset_native(jd)? / SECS)
 }
-#[pyfunction]
-fn tai_jd_to_utc_jd(jd: f64) -> PyResult<f64> {
+pub fn tai_jd_to_utc_jd_native(jd: f64) -> Result<f64, &'static str> {
     let mut u = jd - 10. / SECS;
     for _ in 0..3 {
-        u = jd - tai_offset(u)? / SECS
+        u = jd - tai_offset_native(u)? / SECS
     }
     Ok(u)
 }
-#[pyfunction]
-fn tai_jd_to_tt_jd(jd: f64) -> f64 {
+pub fn tai_jd_to_tt_jd_native(jd: f64) -> f64 {
     jd + 32.184 / SECS
 }
-#[pyfunction]
-fn tt_jd_to_tai_jd(jd: f64) -> f64 {
+pub fn tt_jd_to_tai_jd_native(jd: f64) -> f64 {
     jd - 32.184 / SECS
 }
-#[pyfunction]
-fn utc_jd_to_tt_jd(jd: f64) -> PyResult<f64> {
-    Ok(tai_jd_to_tt_jd(utc_jd_to_tai_jd(jd)?))
+pub fn utc_jd_to_tt_jd_native(jd: f64) -> Result<f64, &'static str> {
+    Ok(tai_jd_to_tt_jd_native(utc_jd_to_tai_jd_native(jd)?))
 }
-#[pyfunction]
-fn tt_jd_to_utc_jd(jd: f64) -> PyResult<f64> {
-    tai_jd_to_utc_jd(tt_jd_to_tai_jd(jd))
+pub fn tt_jd_to_utc_jd_native(jd: f64) -> Result<f64, &'static str> {
+    tai_jd_to_utc_jd_native(tt_jd_to_tai_jd_native(jd))
 }
-#[pyfunction]
-fn utc_jd_to_ut1_jd(jd: f64, dut1_seconds: f64) -> f64 {
+pub fn utc_jd_to_ut1_jd_native(jd: f64, dut1_seconds: f64) -> f64 {
     jd + dut1_seconds / SECS
 }
-#[pyfunction]
-fn ut1_jd_to_utc_jd(jd: f64, dut1_seconds: f64) -> f64 {
+pub fn ut1_jd_to_utc_jd_native(jd: f64, dut1_seconds: f64) -> f64 {
     jd - dut1_seconds / SECS
 }
-#[pyfunction]
-fn tt_jd_to_tdb_jd(jd: f64) -> f64 {
-    jd + tdb_tt(jd) / SECS
+pub fn tt_jd_to_tdb_jd_native(jd: f64) -> f64 {
+    jd + tdb_tt_native(jd) / SECS
 }
-#[pyfunction]
-fn tdb_jd_to_tt_jd(jd: f64) -> f64 {
+pub fn tdb_jd_to_tt_jd_native(jd: f64) -> f64 {
     let mut t = jd;
     for _ in 0..3 {
-        t = jd - tdb_tt(t) / SECS
+        t = jd - tdb_tt_native(t) / SECS
     }
     t
 }
-#[pyfunction]
-fn utc_jd_to_tdb_jd(jd: f64) -> PyResult<f64> {
-    Ok(tt_jd_to_tdb_jd(utc_jd_to_tt_jd(jd)?))
+pub fn utc_jd_to_tdb_jd_native(jd: f64) -> Result<f64, &'static str> {
+    Ok(tt_jd_to_tdb_jd_native(utc_jd_to_tt_jd_native(jd)?))
 }
-#[pyfunction]
-fn tdb_jd_to_utc_jd(jd: f64) -> PyResult<f64> {
-    tt_jd_to_utc_jd(tdb_jd_to_tt_jd(jd))
+pub fn tdb_jd_to_utc_jd_native(jd: f64) -> Result<f64, &'static str> {
+    tt_jd_to_utc_jd_native(tdb_jd_to_tt_jd_native(jd))
 }
-#[pyfunction]
-fn tai_jd_to_ut1_jd(jd: f64, d: f64) -> PyResult<f64> {
-    Ok(utc_jd_to_ut1_jd(tai_jd_to_utc_jd(jd)?, d))
+pub fn tai_jd_to_ut1_jd_native(jd: f64, d: f64) -> Result<f64, &'static str> {
+    Ok(utc_jd_to_ut1_jd_native(tai_jd_to_utc_jd_native(jd)?, d))
 }
-#[pyfunction]
-fn ut1_jd_to_tai_jd(jd: f64, d: f64) -> PyResult<f64> {
-    utc_jd_to_tai_jd(ut1_jd_to_utc_jd(jd, d))
+pub fn ut1_jd_to_tai_jd_native(jd: f64, d: f64) -> Result<f64, &'static str> {
+    utc_jd_to_tai_jd_native(ut1_jd_to_utc_jd_native(jd, d))
 }
-#[pyfunction]
-fn tt_jd_to_ut1_jd(jd: f64, d: f64) -> PyResult<f64> {
-    Ok(utc_jd_to_ut1_jd(tt_jd_to_utc_jd(jd)?, d))
+pub fn tt_jd_to_ut1_jd_native(jd: f64, d: f64) -> Result<f64, &'static str> {
+    Ok(utc_jd_to_ut1_jd_native(tt_jd_to_utc_jd_native(jd)?, d))
 }
-#[pyfunction]
-fn ut1_jd_to_tt_jd(jd: f64, d: f64) -> PyResult<f64> {
-    utc_jd_to_tt_jd(ut1_jd_to_utc_jd(jd, d))
+pub fn ut1_jd_to_tt_jd_native(jd: f64, d: f64) -> Result<f64, &'static str> {
+    utc_jd_to_tt_jd_native(ut1_jd_to_utc_jd_native(jd, d))
 }
-#[pyfunction]
-fn tai_jd_to_tdb_jd(jd: f64) -> PyResult<f64> {
-    Ok(tt_jd_to_tdb_jd(tai_jd_to_tt_jd(jd)))
+pub fn tai_jd_to_tdb_jd_native(jd: f64) -> Result<f64, &'static str> {
+    Ok(tt_jd_to_tdb_jd_native(tai_jd_to_tt_jd_native(jd)))
 }
-#[pyfunction]
-fn tdb_jd_to_tai_jd(jd: f64) -> f64 {
-    tt_jd_to_tai_jd(tdb_jd_to_tt_jd(jd))
+pub fn tdb_jd_to_tai_jd_native(jd: f64) -> f64 {
+    tt_jd_to_tai_jd_native(tdb_jd_to_tt_jd_native(jd))
 }
-#[pyfunction]
-fn ut1_jd_to_tdb_jd(jd: f64, d: f64) -> PyResult<f64> {
-    utc_jd_to_tdb_jd(ut1_jd_to_utc_jd(jd, d))
+pub fn ut1_jd_to_tdb_jd_native(jd: f64, d: f64) -> Result<f64, &'static str> {
+    utc_jd_to_tdb_jd_native(ut1_jd_to_utc_jd_native(jd, d))
 }
-#[pyfunction]
-fn tdb_jd_to_ut1_jd(jd: f64, d: f64) -> PyResult<f64> {
-    Ok(utc_jd_to_ut1_jd(tdb_jd_to_utc_jd(jd)?, d))
+pub fn tdb_jd_to_ut1_jd_native(jd: f64, d: f64) -> Result<f64, &'static str> {
+    Ok(utc_jd_to_ut1_jd_native(tdb_jd_to_utc_jd_native(jd)?, d))
 }
-#[pyfunction]
-fn jd_to_utc_calendar_fields(jd: f64) -> (i32, i32, i32, f64) {
-    let (y, m, d, h, mi, s) = jd_to_calendar(jd);
+pub fn jd_to_utc_calendar_fields_native(jd: f64) -> (i32, i32, i32, f64) {
+    let (y, m, d, h, mi, s) = jd_to_calendar_native(jd);
     (y, m, d, h as f64 * 3600. + mi as f64 * 60. + s)
 }
-#[pyfunction]
-fn day_of_year(year: i32, month: i32, day: i32) -> i32 {
+pub fn day_of_year_native(year: i32, month: i32, day: i32) -> i32 {
     let lengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     let mut n = day;
     for i in 0..(month - 1).max(0) as usize {

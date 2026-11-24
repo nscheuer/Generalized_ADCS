@@ -51,7 +51,7 @@ fn from_gcrf(
                     "position_gcrf and velocity_gcrf are required for LVLH conversions",
                 )
             })?,
-        ),
+        ).map_err(PyValueError::new_err),
         _ => Ok(qmat(q.ok_or_else(|| {
             PyValueError::new_err("q_body_from_gcrf is required for body-frame conversions")
         })?)),
