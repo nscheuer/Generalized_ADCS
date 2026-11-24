@@ -18,6 +18,28 @@ def _unpacked(value):
     return pickle.loads(base64.b64decode(value))
 
 
+_CPP_SENSOR_ARGS = {
+    "Gyroscope": ("position", "orientation", "misalignment", "saturation_value", "noise", "bias"),
+    "Magnetometer": ("position", "orientation", "misalignment", "saturation_value", "noise", "bias"),
+    "Accelerometer": ("position", "orientation", "misalignment", "saturation_value", "noise", "bias"),
+    "CoarseSunSensor": ("position", "orientation", "misalignment", "normal", "sensitivity",
+                        "saturation_value", "noise_variance", "bias", "fov_half_angle"),
+    "FineSunSensor": ("position", "orientation", "misalignment", "noise", "bias", "fov_half_angles"),
+    "FineEarthSensor": ("position", "orientation", "misalignment", "noise", "bias", "fov_half_angles"),
+    "GNSS": ("noise", "bias"),
+    "AutonomousStarTracker": ("position", "orientation", "misalignment", "saturation_value", "noise", "bias", "fov_half_angle"),
+}
+
+
+def _cpp_sensor_config(sensor):
+    kind = type(sensor).__name__
+    if kind not in _CPP_SENSOR_ARGS:
+        raise TypeError(f"unsupported C++ sensor: {kind}")
+    return {"type": kind,
+            "args": [_values(getattr(sensor, name)) for name in _CPP_SENSOR_ARGS[kind]],
+            "enabled": bool(sensor.enabled), "seed": int(sensor.seed)}
+
+
 def from_satellite(satellite):
     """Capture hardware data once, independently of sampled state vectors."""
     geometry = satellite.geometry
@@ -48,7 +70,9 @@ def from_satellite(satellite):
             for device in adcs.magnetorquers
         ],
         "adcs_N": int(getattr(adcs, "N", 1)),
-        "sensors": _packed(adcs.sensors) if getattr(adcs, "sensors", None) else None,
+        "sensors": ([_cpp_sensor_config(sensor) for sensor in adcs.sensors]
+                    if type(satellite).__module__.startswith("GenADCS.backends.cpp")
+                    else _packed(adcs.sensors) if getattr(adcs, "sensors", None) else None),
         "estimator": _packed(adcs.estimator) if getattr(adcs, "estimator", None) is not None else None,
         "state_machine": _packed(satellite.state_machine) if satellite.state_machine is not None else None,
     }
@@ -73,6 +97,15 @@ def to_satellite(config, backend):
         device["misalignment"], _unpacked(device["effects"]))
         for device in config["magnetorquers"]]
     adcs = hardware.ADCSSubsystem(wheels, magnetorquers)
+    if backend == "C":
+        adcs.N = config.get("adcs_N", 1)
+        sensors = []
+        for entry in config.get("sensors") or []:
+            sensor = getattr(hardware, entry["type"])(*entry["args"])
+            sensor.enabled = entry["enabled"]
+            sensor.seed = entry["seed"]
+            sensors.append(sensor)
+        adcs.sensors = sensors
     if backend == "Python":
         adcs.N = config.get("adcs_N", 1)
         adcs.sensors = _unpacked(config["sensors"]) if config.get("sensors") else []

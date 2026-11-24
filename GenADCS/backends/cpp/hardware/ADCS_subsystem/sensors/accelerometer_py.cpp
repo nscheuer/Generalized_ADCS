@@ -11,6 +11,7 @@
 #include "magnetometer.hpp"
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 namespace py = pybind11;
 namespace hardware = omni::hardware;
@@ -118,5 +119,20 @@ void bind_sensors_accelerometer(py::module_ &module)
                                                       native_sensors::kernels::read_vector3(d, "delta_angle")));
              })
         .def("jacobian_bias", [](const native_sensors::Accelerometer &s) { return matrix_array(s.jacobian_bias()); })
-        .def("availability", &native_sensors::Accelerometer::availability);
+        .def("availability", &native_sensors::Accelerometer::availability)
+        .def(py::pickle(
+            [](const native_sensors::Accelerometer &s) {
+                return py::make_tuple(s.position, s.orientation, s.misalignment,
+                    s.saturation_value, s.noise, s.bias, s.enabled, s.seed);
+            },
+            [](py::tuple state) {
+                if (state.size() != 8) throw py::value_error("invalid accelerometer state");
+                native_sensors::Accelerometer sensor(state[0].cast<native_sensors::Accelerometer::V>(),
+                    state[1].cast<native_sensors::Accelerometer::Q>(),
+                    state[2].cast<native_sensors::Accelerometer::Q>(), state[3].cast<double>(),
+                    state[4].cast<native_sensors::Accelerometer::M>(),
+                    state[5].cast<native_sensors::Accelerometer::V>());
+                sensor.enabled = state[6].cast<bool>(); sensor.seed = state[7].cast<std::uint64_t>();
+                return sensor;
+            }));
 }

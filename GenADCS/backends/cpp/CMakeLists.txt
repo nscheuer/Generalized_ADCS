@@ -578,6 +578,17 @@ file(GLOB_RECURSE COUPLED_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/propagation/coupled_propagators/*_py.cpp")
 
 pybind11_add_module(_coupled
+    propagation/coupled_propagators/sensor_sampling.cpp
+    hardware/ADCS_subsystem/sensors/gyroscope.cpp
+    hardware/ADCS_subsystem/sensors/magnetometer.cpp
+    hardware/ADCS_subsystem/sensors/accelerometer.cpp
+    hardware/ADCS_subsystem/sensors/coarse_sun_sensor.cpp
+    hardware/ADCS_subsystem/sensors/fine_sun_sensor.cpp
+    hardware/ADCS_subsystem/sensors/autonomous_star_tracker.cpp
+    hardware/ADCS_subsystem/sensors/gnss.cpp
+    hardware/ADCS_subsystem/sensors/kernels.cpp
+    helpers/math/rotations/sensor_kernels.cpp
+    helpers/random/philox.cpp
     ${COUPLED_PYBIND_SOURCES}
     propagation/coupled_propagators/_coupled_dynamics.cpp
     propagation/coupled_propagators/coupled_rk4_propagator.cpp
@@ -606,7 +617,7 @@ pybind11_add_module(_coupled
     helpers/math/frames/conversions.cpp
     helpers/math/time/conversions.cpp)
 target_link_libraries(_coupled PRIVATE Eigen3::Eigen)
-target_include_directories(_coupled PRIVATE environment helpers/math helpers/math/frames helpers/math/time environment/atmosphere/NRMLSISE00)
+target_include_directories(_coupled PRIVATE helpers/random helpers/math/rotations environment helpers/math helpers/math/frames helpers/math/time environment/atmosphere/NRMLSISE00)
 set_target_properties(_coupled PROPERTIES
     C_VISIBILITY_PRESET hidden
     CXX_VISIBILITY_PRESET hidden

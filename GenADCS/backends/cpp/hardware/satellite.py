@@ -12,8 +12,13 @@ class Satellite(_Satellite):
         if state_machine is None:
             state_machine = StateMachine()
         super().__init__(geometry, state_machine.mode)
+        self._geometry = geometry
         self.adcs = adcs
         self.state_machine = state_machine
+
+    @property
+    def geometry(self):
+        return self._geometry
 
 
 __all__ = ["Satellite"]

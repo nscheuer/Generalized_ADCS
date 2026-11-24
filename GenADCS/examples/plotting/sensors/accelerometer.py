@@ -1,7 +1,7 @@
 """Plot accelerometer specific force while the spacecraft rotates in orbit."""
 
 # Select the backend for this example: "rust", "cpp", or "python".
-backed = "cpp"
+backed = "python"
 
 if backed not in ("rust", "cpp", "python"):
     raise ValueError("backed must be rust, cpp, or python")

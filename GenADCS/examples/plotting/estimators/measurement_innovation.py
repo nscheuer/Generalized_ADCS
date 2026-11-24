@@ -9,7 +9,11 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 from GenADCS.examples.plotting.estimators._setup import run_example
-from GenADCS.backends.shared.plotting import MeasurementInnovationPlot, plot
+from GenADCS.backends.shared.plotting import (
+    MeasurementInnovationCovariancePlot,
+    MeasurementInnovationPlot,
+    plot,
+)
 
 
 def main():
@@ -17,7 +21,7 @@ def main():
     plot(result,
          MeasurementInnovationPlot(option="individual"),
          MeasurementInnovationPlot(option="trace"),
-         MeasurementInnovationPlot(option="eigenvalues"),
+         MeasurementInnovationCovariancePlot(option="eigenvalues"),
          layout=(1, 3), title="Measurement Innovation", show=True)
     import matplotlib.pyplot as plt
     plt.show()

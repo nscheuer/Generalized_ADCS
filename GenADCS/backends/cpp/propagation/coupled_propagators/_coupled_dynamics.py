@@ -64,7 +64,7 @@ def _prepare(satellite, environment, dynamics):
         drag_coefficients=np.ascontiguousarray(coefficients[:, 0]),
         optical_coefficients=np.ascontiguousarray(coefficients[:, 1:4]),
         dipole=np.ascontiguousarray(rd.dipole_b if rd else np.zeros(3)),
-        magnetic_kind=1 if environment.magnetic_field is not None else 0,
+        magnetic_kind=(2 if type(environment.magnetic_field).__name__ == "CHAOS8" else 1) if environment.magnetic_field is not None else 0,
         magnetic_include_static=bool(getattr(environment.magnetic_field, "include_static", True)),
         wheel_axes=np.empty((0, 3)), wheel_inertias=np.empty(0),
         wheel_commands=np.empty(0), wheel_max_momentum=np.empty(0),

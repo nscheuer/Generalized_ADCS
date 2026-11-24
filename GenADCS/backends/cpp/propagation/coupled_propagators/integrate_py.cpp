@@ -1,6 +1,8 @@
 #include "integrate.hpp"
 #include "runtime_python.hpp"
 #include <cmath>
+#include "sensor_sampling.hpp"
+#include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 namespace py = pybind11;
 using namespace omni::propagation;
@@ -54,6 +56,29 @@ struct ProgressBar
 } // namespace
 void bind_integrate(py::module_ &m)
 {
+    m.def("sample_sensors", [](py::array_t<double, py::array::c_style | py::array::forcecast> times, const Eigen::MatrixXd &states,
+        double jd, double interval, py::object runtime, py::object adcs,
+        std::uint64_t seed) {
+        auto r = runtime_from_python(runtime);
+        auto input = times.unchecked<1>();
+        Eigen::VectorXd native_times(input.shape(0));
+        for (py::ssize_t i = 0; i < input.shape(0); ++i) native_times[i] = input(i);
+        std::vector<omni::hardware::Sensor> sensors;
+        for (py::handle item : adcs.attr("sensors")) {
+            namespace hw = omni::hardware;
+            namespace sen = omni::hardware::sensors;
+            if (py::isinstance<sen::Gyroscope>(item)) sensors.emplace_back(item.cast<sen::Gyroscope>());
+            else if (py::isinstance<sen::Magnetometer>(item)) sensors.emplace_back(item.cast<sen::Magnetometer>());
+            else if (py::isinstance<sen::Accelerometer>(item)) sensors.emplace_back(item.cast<sen::Accelerometer>());
+            else if (py::isinstance<sen::CoarseSunSensor>(item)) sensors.emplace_back(item.cast<sen::CoarseSunSensor>());
+            else if (py::isinstance<sen::FineEarthSensor>(item)) sensors.emplace_back(item.cast<sen::FineEarthSensor>());
+            else if (py::isinstance<sen::FineSunSensor>(item)) sensors.emplace_back(item.cast<sen::FineSunSensor>());
+            else if (py::isinstance<sen::GNSS>(item)) sensors.emplace_back(item.cast<sen::GNSS>());
+            else if (py::isinstance<sen::AutonomousStarTracker>(item)) sensors.emplace_back(item.cast<sen::AutonomousStarTracker>());
+            else throw py::type_error("unsupported C++ sensor");
+        }
+        return sample_sensors(native_times, states, jd, interval, r, std::move(sensors), seed);
+    });
     m.def(
         "integrate_rk4",
         [](Vector y, double jd, double dt, double tf, py::object p, bool progress, std::size_t every) {
