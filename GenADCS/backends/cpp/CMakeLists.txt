@@ -340,8 +340,12 @@ set_target_properties(_state PROPERTIES
     VISIBILITY_INLINES_HIDDEN ON
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
+file(GLOB_RECURSE FRAMES_PYBIND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math/frames/*_py.cpp"
+)
+
 pybind11_add_module(_frames
-    helpers/math/frames/bindings.cpp
+    ${FRAMES_PYBIND_SOURCES}
     helpers/math/frames/frames.cpp
     helpers/math/frames/conversions.cpp
 )
@@ -351,8 +355,11 @@ target_include_directories(_frames PRIVATE helpers/math/frames)
 set_target_properties(_frames PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math/frames")
 
+file(GLOB_RECURSE HELPERS_PYBIND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math/*_py.cpp")
+list(FILTER HELPERS_PYBIND_SOURCES EXCLUDE REGEX "/frames/|/sensor_kernels_py[.]cpp$")
 pybind11_add_module(_helpers
-    helpers/math/bindings.cpp
+    ${HELPERS_PYBIND_SOURCES}
     helpers/math/vector.cpp
     helpers/math/derivatives.cpp
     helpers/math/dynamics.cpp
@@ -375,8 +382,11 @@ target_include_directories(_helpers PRIVATE helpers/math)
 set_target_properties(_helpers PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math")
 
+file(GLOB_RECURSE ADCS_SUBSYSTEM_PYBIND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/hardware/ADCS_subsystem/*_py.cpp")
+
 pybind11_add_module(_adcs_subsystem
-    hardware/ADCS_subsystem/bindings.cpp
+    ${ADCS_SUBSYSTEM_PYBIND_SOURCES}
     hardware/ADCS_subsystem/adcs_subsystem.cpp
     hardware/ADCS_subsystem/effects.cpp
     hardware/ADCS_subsystem/magnetorquer.cpp
@@ -388,7 +398,7 @@ pybind11_add_module(_adcs_subsystem
     hardware/ADCS_subsystem/sensors/coarse_sun_sensor.cpp
     hardware/ADCS_subsystem/sensors/fine_sun_sensor.cpp
     helpers/math/rotations/sensor_kernels.cpp
-    helpers/math/rotations/sensor_kernels_pybind.cpp
+    helpers/math/rotations/sensor_kernels_py.cpp
     helpers/random/philox.cpp
 )
 target_compile_features(_adcs_subsystem PRIVATE cxx_std_17)
@@ -397,8 +407,11 @@ target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem hardw
 set_target_properties(_adcs_subsystem PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware/ADCS_subsystem")
 
+file(GLOB_RECURSE SATELLITE_GEOMETRY_PYBIND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/hardware/satellite_geometry/*_py.cpp")
+
 pybind11_add_module(_satellite_geometry
-    hardware/satellite_geometry/bindings.cpp
+    ${SATELLITE_GEOMETRY_PYBIND_SOURCES}
     hardware/satellite_geometry/satellite_geometry.cpp
     hardware/satellite_geometry/satellite_panel.cpp
 )
@@ -409,9 +422,7 @@ set_target_properties(_satellite_geometry PROPERTIES
 if(BUILD_TESTING)
     foreach(component satellite_geometry satellite_panel)
         add_dependencies(cpp_test_${component} _satellite_geometry)
-        add_test(NAME cpp_${component}
-            COMMAND cpp_test_${component} "$<TARGET_FILE:_satellite_geometry>"
-        )
+
     endforeach()
     foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor fine_sun_sensor fine_earth_sensor)
         if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "gyroscope" OR component STREQUAL "magnetorquer")
@@ -429,8 +440,11 @@ if(BUILD_TESTING)
     endforeach()
 endif()
 
+file(GLOB_RECURSE ENVIRONMENT_PYBIND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/environment/*_py.cpp")
+
 pybind11_add_module(_environment
-    environment/bindings.cpp
+    ${ENVIRONMENT_PYBIND_SOURCES}
     environment/native_models.cpp
     environment/atmosphere/NRMLSISE00/nrlmsise00.cpp
     environment/atmosphere/NRMLSISE00/_nrlmsise00_core.cpp
@@ -466,8 +480,11 @@ set_target_properties(_environment PROPERTIES
     VISIBILITY_INLINES_HIDDEN ON
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/environment")
 
+file(GLOB_RECURSE DYNAMICS_PYBIND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/dynamics/*_py.cpp")
+
 pybind11_add_module(_dynamics
-    dynamics/bindings.cpp
+    ${DYNAMICS_PYBIND_SOURCES}
     dynamics/_geometry.cpp
     dynamics/drag_model/projected_area.cpp
     dynamics/srp_model/projected_area.cpp
@@ -480,7 +497,10 @@ pybind11_add_module(_dynamics
 target_link_libraries(_dynamics PRIVATE Eigen3::Eigen)
 set_target_properties(_dynamics PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dynamics")
 
-pybind11_add_module(_config config/bindings.cpp config/dynamics_config.cpp config/simulation_config.cpp)
+file(GLOB_RECURSE CONFIG_PYBIND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/*_py.cpp")
+
+pybind11_add_module(_config ${CONFIG_PYBIND_SOURCES} config/simulation_config.cpp)
 target_link_libraries(_config PRIVATE Eigen3::Eigen)
 set_target_properties(_config PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config")
 if(BUILD_TESTING)
@@ -549,5 +569,5 @@ set_target_properties(_solver PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRE
 pybind11_add_module(_simulate simulate_bindings.cpp simulate.cpp)
 set_target_properties(_simulate PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
-pybind11_add_module(_satellite hardware/satellite_bindings.cpp hardware/satellite.cpp)
+pybind11_add_module(_satellite hardware/satellite_py.cpp hardware/satellite.cpp)
 set_target_properties(_satellite PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware")

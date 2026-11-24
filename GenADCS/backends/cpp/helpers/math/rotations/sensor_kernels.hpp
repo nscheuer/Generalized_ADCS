@@ -25,5 +25,6 @@ M attitude_vector_jacobian_quaternion(const V& vector, const Q& delta);
 M attitude_vector_jacobian_mrp(const V& vector, const V& delta);
 M attitude_vector_jacobian_angle(const V& vector, const V& delta);
 
+
 }
 #endif

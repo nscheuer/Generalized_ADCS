@@ -1,4 +1,4 @@
-#include "sensor_kernels_pybind.hpp"
+#include "sensor_kernels_py.hpp"
 
 #include <stdexcept>
 #include <string>
