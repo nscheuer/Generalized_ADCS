@@ -18,6 +18,16 @@ def record_samples(times, vectors, format, satellite, environment, dynamics, epo
             raise ValueError("sensor samples are required for requested sensor fields")
         for name in sensor_requested:
             fields[name] = np.asarray(sensor_samples[name], dtype=np.float64)
+    estimate_fields = {"estimated_attitude", "estimated_rate", "estimated_covariance",
+                       "estimated_attitude_covariance", "estimated_rate_covariance",
+                       "measurement_innovation", "measurement_innovation_covariance",
+                       "normalized_innovation_squared", "normalized_estimation_error_squared",
+                       "measurement_residual", "kalman_gain"}
+    for name in requested & estimate_fields:
+        if sensor_samples is None or name not in sensor_samples:
+            raise ValueError(f"{name} requires an estimator")
+        fields[name] = np.asarray(sensor_samples[name], dtype=np.float64)
+    requested -= estimate_fields
     slices = {"satellite_attitude": (0, 4), "satellite_rate": (4, 7),
               "satellite_position": (7, 10), "satellite_velocity": (10, 13),
               "satellite_wheel_momenta": (13, vectors.shape[1])}

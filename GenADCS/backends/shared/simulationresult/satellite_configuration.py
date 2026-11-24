@@ -49,6 +49,7 @@ def from_satellite(satellite):
         ],
         "adcs_N": int(getattr(adcs, "N", 1)),
         "sensors": _packed(adcs.sensors) if getattr(adcs, "sensors", None) else None,
+        "estimator": _packed(adcs.estimator) if getattr(adcs, "estimator", None) is not None else None,
         "state_machine": _packed(satellite.state_machine) if satellite.state_machine is not None else None,
     }
 
@@ -75,6 +76,7 @@ def to_satellite(config, backend):
     if backend == "Python":
         adcs.N = config.get("adcs_N", 1)
         adcs.sensors = _unpacked(config["sensors"]) if config.get("sensors") else []
+        adcs.estimator = _unpacked(config["estimator"]) if config.get("estimator") else None
     state_machine = (_unpacked(config["state_machine"])
                      if config["state_machine"] is not None else None)
     return hardware.Satellite(geometry, adcs, state_machine)

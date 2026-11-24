@@ -48,6 +48,17 @@ class ResultsFormat:
     accelerometer_clean: bool = False
     accelerometer_reading: bool = False
     N: int = 1
+    estimated_attitude: bool = False
+    estimated_rate: bool = False
+    estimated_covariance: bool = False
+    estimated_attitude_covariance: bool = False
+    estimated_rate_covariance: bool = False
+    measurement_innovation: bool = False
+    measurement_innovation_covariance: bool = False
+    normalized_innovation_squared: bool = False
+    normalized_estimation_error_squared: bool = False
+    measurement_residual: bool = False
+    kalman_gain: bool = False
 
     def __post_init__(self) -> None:
         if isinstance(self.N, bool) or not isinstance(self.N, int) or self.N < 1:

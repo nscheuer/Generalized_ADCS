@@ -281,6 +281,104 @@ class RatePlot(Subplot):
         super().__init__("satellite_rate", **kwargs)
 
 
+class EstimatedAttitudePlot(Subplot):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("title", "Estimated Attitude Quaternion")
+        kwargs.setdefault("ylabel", "Quaternion")
+        kwargs.setdefault("labels", ("qW", "qX", "qY", "qZ"))
+        super().__init__("estimated_attitude", **kwargs)
+
+
+class EstimatedRatePlot(Subplot):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("title", "Estimated Body Angular Rate")
+        kwargs.setdefault("ylabel", "Rate [rad/s]")
+        kwargs.setdefault("labels", ("x", "y", "z"))
+        super().__init__("estimated_rate", **kwargs)
+
+
+class _EstimatedCovariancePlot(Subplot):
+    def _series(self, run):
+        times, values = super()._series(run)
+        diagonal = np.diagonal(values.reshape((-1, 3, 3)), axis1=1, axis2=2)
+        return times, np.sqrt(np.maximum(diagonal, 0.0))
+
+
+class EstimatedAttitudeCovariancePlot(_EstimatedCovariancePlot):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("title", "Estimated Attitude Standard Deviation")
+        kwargs.setdefault("ylabel", "Standard deviation [rad]")
+        kwargs.setdefault("labels", ("x", "y", "z"))
+        super().__init__("estimated_attitude_covariance", **kwargs)
+
+
+class EstimatedRateCovariancePlot(_EstimatedCovariancePlot):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("title", "Estimated Rate Standard Deviation")
+        kwargs.setdefault("ylabel", "Standard deviation [rad/s]")
+        kwargs.setdefault("labels", ("x", "y", "z"))
+        super().__init__("estimated_rate_covariance", **kwargs)
+
+
+class AbsoluteKnowledgeErrorQuaternionPlot(Subplot):
+    """Attitude estimation error as a rotation vector or its magnitude."""
+
+    def __init__(self, option="individual", **kwargs):
+        if option not in ("individual", "magnitude"):
+            raise ValueError("option must be 'individual' or 'magnitude'")
+        self.option = option
+        kwargs.setdefault("title", "Absolute Attitude Knowledge Error")
+        kwargs.setdefault("ylabel", "Error [rad]" if option == "individual" else "Magnitude [rad]")
+        kwargs.setdefault("labels", ("x", "y", "z") if option == "individual" else ("magnitude",))
+        super().__init__("estimated_attitude", **kwargs)
+
+    def _series(self, run):
+        satellite = run.satellites[self.satellite]
+        estimated = satellite.estimated_attitude
+        truth = satellite.satellite_attitude
+        if estimated is None or truth is None:
+            raise ValueError("satellite_attitude and estimated_attitude must be recorded")
+        times = satellite.times_s
+        estimated = estimated / np.linalg.norm(estimated, axis=1, keepdims=True)
+        truth = truth / np.linalg.norm(truth, axis=1, keepdims=True)
+        relative = np.empty_like(estimated)
+        relative[:, 0] = truth[:, 0] * estimated[:, 0] + np.sum(truth[:, 1:] * estimated[:, 1:], axis=1)
+        relative[:, 1:] = (truth[:, 0, None] * estimated[:, 1:] - estimated[:, 0, None] * truth[:, 1:]
+                           - np.cross(truth[:, 1:], estimated[:, 1:]))
+        relative = np.where(relative[:, :1] < 0., -relative, relative)
+        vector_norm = np.linalg.norm(relative[:, 1:], axis=1, keepdims=True)
+        angle = 2. * np.arctan2(vector_norm, np.clip(relative[:, :1], 0., None))
+        rotation = np.divide(relative[:, 1:] * angle, vector_norm,
+                             out=np.zeros_like(relative[:, 1:]), where=vector_norm > 1e-15)
+        if self.option == "magnitude":
+            rotation = np.linalg.norm(rotation, axis=1, keepdims=True)
+        return times, rotation
+
+
+class AbsoluteKnowledgeErrorRatePlot(Subplot):
+    """Rate estimation error as components or its magnitude."""
+
+    def __init__(self, option="individual", **kwargs):
+        if option not in ("individual", "magnitude"):
+            raise ValueError("option must be 'individual' or 'magnitude'")
+        self.option = option
+        kwargs.setdefault("title", "Absolute Rate Knowledge Error")
+        kwargs.setdefault("ylabel", "Error [rad/s]" if option == "individual" else "Magnitude [rad/s]")
+        kwargs.setdefault("labels", ("x", "y", "z") if option == "individual" else ("magnitude",))
+        super().__init__("estimated_rate", **kwargs)
+
+    def _series(self, run):
+        satellite = run.satellites[self.satellite]
+        estimated = satellite.estimated_rate
+        truth = satellite.satellite_rate
+        if estimated is None or truth is None:
+            raise ValueError("satellite_rate and estimated_rate must be recorded")
+        error = truth - estimated
+        if self.option == "magnitude":
+            error = np.linalg.norm(error, axis=1, keepdims=True)
+        return satellite.times_s, error
+
+
 class GyroscopePlot(Subplot):
     """Plot recorded clean and noisy, biased gyroscope components when present."""
 

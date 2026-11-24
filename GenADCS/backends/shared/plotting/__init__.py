@@ -13,6 +13,9 @@ from .plot import (GyroscopePlot, MagnetometerPlot, StarTrackerPlot,
                    CoarseSunSensorPlot, FineSunSensorPlot, FineEarthSensorPlot,
                    GNSSPositionPlot, GNSSVelocityPlot)
 from .plot import AccelerometerPlot
+from .plot import (EstimatedAttitudePlot, EstimatedRatePlot,
+                   EstimatedAttitudeCovariancePlot, EstimatedRateCovariancePlot)
+from .plot import AbsoluteKnowledgeErrorQuaternionPlot, AbsoluteKnowledgeErrorRatePlot
 
 __all__ = ["plot", "Subplot", "AttitudePlot", "RatePlot", "PositionPlot",
            "VelocityPlot", "WheelMomentumPlot", "WheelSpeedPlot",
@@ -39,3 +42,6 @@ __all__ += ["GyroscopePlot", "MagnetometerPlot", "StarTrackerPlot",
             "GNSSPositionPlot", "GNSSVelocityPlot"]
 __all__ += ["AccelerometerPlot"]
 __all__ += ["ForcePlot", "TorquePlot"]
+__all__ += ["EstimatedAttitudePlot", "EstimatedRatePlot",
+            "EstimatedAttitudeCovariancePlot", "EstimatedRateCovariancePlot"]
+__all__ += ["AbsoluteKnowledgeErrorQuaternionPlot", "AbsoluteKnowledgeErrorRatePlot"]

@@ -6,6 +6,7 @@ from numba import njit
 from ._coupled_dynamics import SECONDS_PER_DAY, _Runtime, _derivative, _prepare, _project_wheel_momentum
 from ._state_layout import pack_state, unpack_state
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import sample_sensors, prepare_sensors
+from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import prepare_estimator, update_estimator
 
 # Keep the _Runtime re-export so existing Numba disk caches can be unpickled.
 
@@ -28,7 +29,8 @@ def _rk4_step(y, epoch_jd, dt, p):
 
 @njit(cache=True)
 def _integrate_chunk(y, initial_jd, dt, full_steps, remainder, p, output, start, count, record_every,
-                     sensor_every, sensor_config, clean, reading, seed):
+                     sensor_every, sensor_config, clean, reading, seed,
+                     estimator_kind, estimate_q, estimate_w, estimate_p, acceleration_psd, estimates, estimator_flags):
     """Advance consecutive RK4 steps without returning to Python between them."""
     for row in range(start, start + count):
         elapsed_s = row * dt
@@ -39,6 +41,16 @@ def _integrate_chunk(y, initial_jd, dt, full_steps, remainder, p, output, start,
             index = completed // sensor_every
             sample_sensors(y, initial_jd + completed * dt / SECONDS_PER_DAY, p,
                            sensor_config, clean[index], reading[index], seed, index)
+            if estimator_kind:
+                update_estimator(estimator_kind, estimate_q, estimate_w, estimate_p,
+                                 acceleration_psd, dt * sensor_every, reading[index], sensor_config,
+                                 estimator_flags, y[:4], y[4:7], estimates[index, 43:])
+                if estimator_flags & 1:
+                    estimates[index, :4] = estimate_q
+                if estimator_flags & 2:
+                    estimates[index, 4:7] = estimate_w
+                if estimator_flags & 1024:
+                    estimates[index, 7:43] = estimate_p.ravel()
         if completed % record_every == 0:
             output[completed // record_every, :] = y
         elif completed == full_steps + int(remainder > 0.0):
@@ -65,7 +77,7 @@ class CoupledRK4Propagator:
         self._configuration = None
 
     def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
-                  progress_chunk_steps=500, record_every=1, sensor_every=0, seed=0):
+                  progress_chunk_steps=500, record_every=1, sensor_every=0, seed=0, estimator_flags=0):
         """Return elapsed seconds and numeric states for the complete interval.
 
         Numeric state columns are quaternion (0:4), body rates (4:7),
@@ -104,8 +116,20 @@ class CoupledRK4Propagator:
         sensor_rows = full_steps // sensor_every + 1 if sensor_every else 1
         clean = np.full((sensor_rows, width), np.nan)
         reading = np.full_like(clean, np.nan)
+        estimator_kind, estimate_q, estimate_w, estimate_p, acceleration_psd = prepare_estimator(satellite.adcs.estimator)
+        estimates = np.full((sensor_rows, 96), np.nan)
         if sensor_every:
             sample_sensors(y, state.orbit.julian_date, runtime, sensor_config, clean[0], reading[0], seed, 0)
+            if estimator_kind:
+                update_estimator(estimator_kind, estimate_q, estimate_w, estimate_p,
+                                 acceleration_psd, 0.0, reading[0], sensor_config,
+                                 estimator_flags, y[:4], y[4:7], estimates[0, 43:])
+                if estimator_flags & 1:
+                    estimates[0, :4] = estimate_q
+                if estimator_flags & 2:
+                    estimates[0, 4:7] = estimate_w
+                if estimator_flags & 1024:
+                    estimates[0, 7:43] = estimate_p.ravel()
 
         if progress and step_count:
             from tqdm import tqdm
@@ -113,7 +137,8 @@ class CoupledRK4Propagator:
             with tqdm(total=1, desc="Compiling Numba kernels", unit="stage") as bar:
                 _integrate_chunk(y, state.orbit.julian_date, self.dt, full_steps,
                                  remainder, runtime, output, 0, 0, record_every,
-                                 sensor_every, sensor_config, clean, reading, seed)
+                                 sensor_every, sensor_config, clean, reading, seed,
+                                 estimator_kind, estimate_q, estimate_w, estimate_p, acceleration_psd, estimates, estimator_flags)
                 bar.update(1)
             with tqdm(total=step_count, desc="Running coupled RK4", unit="step") as bar:
                 for start in range(0, step_count, progress_chunk_steps):
@@ -121,13 +146,16 @@ class CoupledRK4Propagator:
                     y = _integrate_chunk(y, state.orbit.julian_date, self.dt,
                                          full_steps, remainder, runtime, output,
                                          start, count, record_every, sensor_every,
-                                         sensor_config, clean, reading, seed)
+                                         sensor_config, clean, reading, seed,
+                                         estimator_kind, estimate_q, estimate_w, estimate_p, acceleration_psd, estimates, estimator_flags)
                     bar.update(count)
         elif step_count:
             _integrate_chunk(y, state.orbit.julian_date, self.dt, full_steps,
                              remainder, runtime, output, 0, step_count, record_every,
-                             sensor_every, sensor_config, clean, reading, seed)
-        return (elapsed, output, clean, reading) if sensor_every else (elapsed, output)
+                             sensor_every, sensor_config, clean, reading, seed,
+                             estimator_kind, estimate_q, estimate_w, estimate_p, acceleration_psd, estimates, estimator_flags)
+        return ((elapsed, output, clean, reading, estimates) if estimator_kind else
+                (elapsed, output, clean, reading) if sensor_every else (elapsed, output))
 
     def step(self, state, satellite, environment, dynamics):
         if self._configuration != (id(satellite), id(environment), id(dynamics)):

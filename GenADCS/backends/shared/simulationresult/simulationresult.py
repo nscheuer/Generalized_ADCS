@@ -13,6 +13,11 @@ from .satellite_configuration import to_satellite as rebuild_satellite
 
 RESULT_FIELDS = (
     "satellite_attitude", "satellite_rate", "satellite_wheel_momenta",
+    "estimated_attitude", "estimated_rate", "estimated_covariance",
+    "estimated_attitude_covariance", "estimated_rate_covariance",
+    "measurement_innovation", "measurement_innovation_covariance",
+    "normalized_innovation_squared", "normalized_estimation_error_squared",
+    "measurement_residual", "kalman_gain",
     "satellite_position", "satellite_velocity", "relative_sun_vector",
     "relative_earth_vector", "atmospheric_density", "relative_atmospheric_velocity",
     "magnetic_field", "eclipse_state", "gravity_force", "aerodynamic_force",
@@ -58,7 +63,10 @@ class SatelliteResult:
         for name, value in self.fields.items():
             if name not in RESULT_FIELDS:
                 raise ValueError(f"unknown result field: {name}")
-            width = None if name in SENSOR_FIELDS else 1 if name in ("atmospheric_density", "eclipse_state") else None if name == "satellite_wheel_momenta" else 4 if name == "satellite_attitude" else 3
+            width = (None if name in SENSOR_FIELDS else 1 if name in ("atmospheric_density", "eclipse_state", "normalized_innovation_squared", "normalized_estimation_error_squared")
+                     else None if name == "satellite_wheel_momenta" else 4 if name in ("satellite_attitude", "estimated_attitude")
+                     else 36 if name == "estimated_covariance" else 18 if name == "kalman_gain"
+                     else 9 if name in ("estimated_attitude_covariance", "estimated_rate_covariance", "measurement_innovation_covariance") else 3)
             array = np.asarray(value, dtype=np.float64)
             if array.ndim != 2 or array.shape[0] != len(self.times_s) or (width is not None and array.shape[1] != width):
                 raise ValueError(f"{name} must have one row per sample and {width or 'a fixed number of'} columns")

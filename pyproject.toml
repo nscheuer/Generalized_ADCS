@@ -195,6 +195,8 @@ packages = [
     "GenADCS.backends.python.helpers.math.rotations.rodrigues",
     "GenADCS.backends.python.hardware",
     "GenADCS.backends.python.hardware.ADCS_subsystem",
+    "GenADCS.backends.python.hardware.ADCS_subsystem.estimator",
+    "GenADCS.backends.python.hardware.ADCS_subsystem.estimator.attitude_estimator",
     "GenADCS.backends.python.hardware.satellite_geometry",
     "GenADCS.backends.python.hardware.state_machine",
     "GenADCS.backends.python.noise",
