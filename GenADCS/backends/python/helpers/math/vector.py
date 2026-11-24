@@ -9,7 +9,12 @@ def cross(a, b):
 
 @njit(cache=True)
 def norm(vector):
-    return np.sqrt(np.dot(vector, vector))
+    # A scalar loop handles strided views without Numba's np.dot contiguity
+    # performance warning or an implicit copy.
+    squared = 0.0
+    for index in range(vector.size):
+        squared += vector[index] * vector[index]
+    return np.sqrt(squared)
 
 
 @njit(cache=True)
@@ -31,3 +36,9 @@ def unit(vector):
 @njit(cache=True)
 def skew(vector):
     return np.array(((0.0, -vector[2], vector[1]), (vector[2], 0.0, -vector[0]), (-vector[1], vector[0], 0.0)))
+
+
+@njit(cache=True)
+def saturate_vector(vector, limit):
+    """Clamp each component of a vector to symmetric limits."""
+    return np.minimum(np.maximum(vector, -limit), limit)

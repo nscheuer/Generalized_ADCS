@@ -1,9 +1,25 @@
 """Bounded random-walk bias model."""
 
 import numpy as np
+from numba import njit
 
 from ADCS.covariance import Covariance
 from ADCS.orbits.universal_constants import TimeConstants
+
+
+@njit(cache=True)
+def add_bias(value, bias):
+    """Add a prepared bias vector within a compiled measurement kernel."""
+    return value + bias
+
+
+@njit(cache=True)
+def advance_random_walk_bias(current, standard_deviation, lower, upper, dt_seconds):
+    """Advance a bounded vector random walk by elapsed seconds."""
+    if dt_seconds < 0.0:
+        raise ValueError("dt_seconds must be nonnegative")
+    candidate = current + standard_deviation * np.sqrt(dt_seconds) * np.random.standard_normal(current.size)
+    return np.minimum(np.maximum(candidate, lower), upper)
 
 
 class Bias:
@@ -70,7 +86,10 @@ class Bias:
         return self.bias.item() if self.bias.size == 1 else self.bias
 
     def apply(self, value, dt, rng=None):
-        raise NotImplementedError
+        value = np.asarray(value, dtype=np.float64)
+        if value.shape != self.bias.shape:
+            raise ValueError("value and bias must have matching shapes")
+        return add_bias(value, self.bias)
 
 
 __all__ = ["Bias"]
