@@ -5,6 +5,14 @@ Run from the repository root with:
 Figures are grouped by spacecraft state, attitude sensors, optical sensors,
 and navigation sensors. They are displayed and not saved.
 """
+
+# Select the backend for this example: "rust", "cpp", or "python".
+backed = "python"
+
+if backed not in ("rust", "cpp", "python"):
+    raise ValueError("backed must be rust, cpp, or python")
+
+from importlib import import_module
 from pathlib import Path
 import sys
 from time import perf_counter
@@ -12,23 +20,49 @@ import numpy as np
 import matplotlib.pyplot as plt
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
-from GenADCS.backends.python.config import DynamicsConfig
-from GenADCS.backends.python.dynamics import (
-    ZonalForceModel, ProjectedAreaDragForceModel, ProjectedAreaDragTorqueModel,
-    ProjectedAreaSRPForceModel, ProjectedAreaSRPTorqueModel,
-    LunisolarForceModel, StaticGravityGradientModel, StaticResidualDipoleModel,
-)
-from GenADCS.backends.python.environment import DE421, Earth, Environment, IGRF14, NRLMSISE00
-from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry, SatellitePanel
-from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem
-from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import (
-    Gyroscope, Magnetometer, AutonomousStarTracker, CoarseSunSensor,
-    FineSunSensor, FineEarthSensor, GNSS, Accelerometer,
-)
-from GenADCS.backends.python.propagation import CoupledDOP853Propagator
-from GenADCS.backends.python.simulate import ResultsFormat, simulate
-from GenADCS.backends.python.solver import CoupledSolver
-from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
+_config = import_module(f"GenADCS.backends.{backed}.config")
+DynamicsConfig = _config.DynamicsConfig
+_dynamics = import_module(f"GenADCS.backends.{backed}.dynamics")
+ZonalForceModel = _dynamics.ZonalForceModel
+ProjectedAreaDragForceModel = _dynamics.ProjectedAreaDragForceModel
+ProjectedAreaDragTorqueModel = _dynamics.ProjectedAreaDragTorqueModel
+ProjectedAreaSRPForceModel = _dynamics.ProjectedAreaSRPForceModel
+ProjectedAreaSRPTorqueModel = _dynamics.ProjectedAreaSRPTorqueModel
+LunisolarForceModel = _dynamics.LunisolarForceModel
+StaticGravityGradientModel = _dynamics.StaticGravityGradientModel
+StaticResidualDipoleModel = _dynamics.StaticResidualDipoleModel
+_environment = import_module(f"GenADCS.backends.{backed}.environment")
+DE421 = _environment.DE421
+Earth = _environment.Earth
+Environment = _environment.Environment
+IGRF14 = import_module(f"GenADCS.backends.{backed}.environment.magnetic_field_model").IGRF14
+NRLMSISE00 = _environment.NRLMSISE00
+_hardware = import_module(f"GenADCS.backends.{backed}.hardware")
+Satellite = _hardware.Satellite
+SatelliteGeometry = _hardware.SatelliteGeometry
+SatellitePanel = _hardware.SatellitePanel
+_hardware_ADCS_subsystem = import_module(f"GenADCS.backends.{backed}.hardware.ADCS_subsystem")
+ADCSSubsystem = _hardware_ADCS_subsystem.ADCSSubsystem
+_hardware_ADCS_subsystem_sensors = import_module(f"GenADCS.backends.{backed}.hardware.ADCS_subsystem.sensors")
+Gyroscope = _hardware_ADCS_subsystem_sensors.Gyroscope
+Magnetometer = _hardware_ADCS_subsystem_sensors.Magnetometer
+AutonomousStarTracker = _hardware_ADCS_subsystem_sensors.AutonomousStarTracker
+CoarseSunSensor = _hardware_ADCS_subsystem_sensors.CoarseSunSensor
+FineSunSensor = _hardware_ADCS_subsystem_sensors.FineSunSensor
+FineEarthSensor = _hardware_ADCS_subsystem_sensors.FineEarthSensor
+GNSS = _hardware_ADCS_subsystem_sensors.GNSS
+Accelerometer = _hardware_ADCS_subsystem_sensors.Accelerometer
+_propagation = import_module(f"GenADCS.backends.{backed}.propagation")
+CoupledDOP853Propagator = _propagation.CoupledDOP853Propagator
+_simulate = import_module(f"GenADCS.backends.{backed}.simulate")
+ResultsFormat = _simulate.ResultsFormat
+simulate = _simulate.simulate
+_solver = import_module(f"GenADCS.backends.{backed}.solver")
+CoupledSolver = _solver.CoupledSolver
+_state = import_module(f"GenADCS.backends.{backed}.state")
+AttitudeState = _state.AttitudeState
+OrbitalState = _state.OrbitalState
+State = _state.State
 from GenADCS.backends.shared.plotting import (
     plot, SatelliteAttitudeQuaternionPlot, BodyAngularRatePlot,
     GyroscopePlot, MagnetometerPlot, StarTrackerPlot, CoarseSunSensorPlot,
@@ -134,7 +168,7 @@ def main():
                            tf=duration_s, progress=True, progress_chunk_steps=2000)
     started = perf_counter()
     result = simulate(satellite, environment, dynamics, state, solver,
-                      backend="Python", resultsformat=ResultsFormat(**formats))
+                      backend={"python": "Python", "cpp": "C", "rust": "Rust"}[backed], resultsformat=ResultsFormat(**formats))
     sample = result.satellites["sat_000"]
     print(f"Python DOP853: {duration_s:g} s, {len(sample.times_s):,} recorded samples, "
           f"{len(sensors)} sensor units, {perf_counter()-started:.1f} s")

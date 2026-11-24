@@ -7,6 +7,14 @@ Diagnostics are recorded every 1,000 intervals to keep result processing small.
 Plots are displayed and are not saved.
 """
 
+# Select the backend for this example: "rust", "cpp", or "python".
+backed = "rust"
+
+if backed not in ("rust", "cpp", "python"):
+    raise ValueError("backed must be rust, cpp, or python")
+
+from importlib import import_module
+
 from pathlib import Path
 import sys
 from time import perf_counter
@@ -16,19 +24,39 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from GenADCS.backends.rust.config import DynamicsConfig
-from GenADCS.backends.rust.dynamics import (
-    ZonalForceModel, ProjectedAreaDragForceModel, ProjectedAreaDragTorqueModel,
-    ProjectedAreaSRPForceModel, ProjectedAreaSRPTorqueModel,
-    LunisolarForceModel, StaticGravityGradientModel, StaticResidualDipoleModel,
-)
-from GenADCS.backends.rust.environment import DE421, Earth, Environment, NRLMSISE00
-from GenADCS.backends.rust.environment.magnetic_field_model import IGRF14
-from GenADCS.backends.rust.hardware import Satellite, SatelliteGeometry, SatellitePanel
-from GenADCS.backends.rust.propagation import CoupledDOP853Propagator
-from GenADCS.backends.rust.simulate import ResultsFormat, simulate
-from GenADCS.backends.rust.solver import CoupledSolver
-from GenADCS.backends.rust.state import AttitudeState, OrbitalState, State
+_config = import_module(f"GenADCS.backends.{backed}.config")
+DynamicsConfig = _config.DynamicsConfig
+_dynamics = import_module(f"GenADCS.backends.{backed}.dynamics")
+ZonalForceModel = _dynamics.ZonalForceModel
+ProjectedAreaDragForceModel = _dynamics.ProjectedAreaDragForceModel
+ProjectedAreaDragTorqueModel = _dynamics.ProjectedAreaDragTorqueModel
+ProjectedAreaSRPForceModel = _dynamics.ProjectedAreaSRPForceModel
+ProjectedAreaSRPTorqueModel = _dynamics.ProjectedAreaSRPTorqueModel
+LunisolarForceModel = _dynamics.LunisolarForceModel
+StaticGravityGradientModel = _dynamics.StaticGravityGradientModel
+StaticResidualDipoleModel = _dynamics.StaticResidualDipoleModel
+_environment = import_module(f"GenADCS.backends.{backed}.environment")
+DE421 = _environment.DE421
+Earth = _environment.Earth
+Environment = _environment.Environment
+NRLMSISE00 = _environment.NRLMSISE00
+_environment_magnetic_field_model = import_module(f"GenADCS.backends.{backed}.environment.magnetic_field_model")
+IGRF14 = _environment_magnetic_field_model.IGRF14
+_hardware = import_module(f"GenADCS.backends.{backed}.hardware")
+Satellite = _hardware.Satellite
+SatelliteGeometry = _hardware.SatelliteGeometry
+SatellitePanel = _hardware.SatellitePanel
+_propagation = import_module(f"GenADCS.backends.{backed}.propagation")
+CoupledDOP853Propagator = _propagation.CoupledDOP853Propagator
+_simulate = import_module(f"GenADCS.backends.{backed}.simulate")
+ResultsFormat = _simulate.ResultsFormat
+simulate = _simulate.simulate
+_solver = import_module(f"GenADCS.backends.{backed}.solver")
+CoupledSolver = _solver.CoupledSolver
+_state = import_module(f"GenADCS.backends.{backed}.state")
+AttitudeState = _state.AttitudeState
+OrbitalState = _state.OrbitalState
+State = _state.State
 from GenADCS.backends.shared.plotting import (
     plot, SatelliteAttitudeQuaternionPlot, BodyAngularRatePlot, PositionPlot,
     VelocityPlot, AltitudePlot, LatLonPlot, SunVectorPlot, EarthVectorPlot,
@@ -87,8 +115,8 @@ def main():
     )
     started = perf_counter()
     result = simulate(satellite, environment, dynamics, state, solver,
-                      backend="Rust", resultsformat=format)
-    print(f"Rust DOP853: {steps:,} intervals, {len(result.satellites['sat_000'].times_s):,} samples, "
+                      backend={"python": "Python", "cpp": "C", "rust": "Rust"}[backed], resultsformat=format)
+    print(f"{backed} DOP853: {steps:,} intervals, {len(result.satellites['sat_000'].times_s):,} samples, "
           f"{perf_counter() - started:.1f} s")
 
     groups = [

@@ -1,19 +1,46 @@
 """Common observable MEKF simulation for estimator plots."""
 
+# Select the backend for this example: "rust", "cpp", or "python".
+backed = "python"
+
+if backed not in ("rust", "cpp", "python"):
+    raise ValueError("backed must be rust, cpp, or python")
+
+from importlib import import_module
+
 import numpy as np
 
-from GenADCS.backends.python.config import DynamicsConfig
-from GenADCS.backends.python.environment import DE421, Earth, Environment
-from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
-from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem, AttitudeMEKF
-from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import AutonomousStarTracker, Gyroscope
-from GenADCS.backends.python.propagation import CoupledRK4Propagator
-from GenADCS.backends.python.simulate import ResultsFormat, simulate
-from GenADCS.backends.python.solver import CoupledSolver
-from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
 
+def run_example(progress=True, backed=backed):
+    if backed not in ("rust", "cpp", "python"):
+        raise ValueError("backed must be rust, cpp, or python")
+    _config = import_module(f"GenADCS.backends.{backed}.config")
+    DynamicsConfig = _config.DynamicsConfig
+    _environment = import_module(f"GenADCS.backends.{backed}.environment")
+    DE421 = _environment.DE421
+    Earth = _environment.Earth
+    Environment = _environment.Environment
+    _hardware = import_module(f"GenADCS.backends.{backed}.hardware")
+    Satellite = _hardware.Satellite
+    SatelliteGeometry = _hardware.SatelliteGeometry
+    _hardware_ADCS_subsystem = import_module(f"GenADCS.backends.{backed}.hardware.ADCS_subsystem")
+    ADCSSubsystem = _hardware_ADCS_subsystem.ADCSSubsystem
+    AttitudeMEKF = _hardware_ADCS_subsystem.AttitudeMEKF
+    _hardware_ADCS_subsystem_sensors = import_module(f"GenADCS.backends.{backed}.hardware.ADCS_subsystem.sensors")
+    AutonomousStarTracker = _hardware_ADCS_subsystem_sensors.AutonomousStarTracker
+    Gyroscope = _hardware_ADCS_subsystem_sensors.Gyroscope
+    _propagation = import_module(f"GenADCS.backends.{backed}.propagation")
+    CoupledRK4Propagator = _propagation.CoupledRK4Propagator
+    _simulate = import_module(f"GenADCS.backends.{backed}.simulate")
+    ResultsFormat = _simulate.ResultsFormat
+    simulate = _simulate.simulate
+    _solver = import_module(f"GenADCS.backends.{backed}.solver")
+    CoupledSolver = _solver.CoupledSolver
+    _state = import_module(f"GenADCS.backends.{backed}.state")
+    AttitudeState = _state.AttitudeState
+    OrbitalState = _state.OrbitalState
+    State = _state.State
 
-def run_example(progress=True):
     identity = np.array([1., 0., 0., 0.])
     rate = np.array([.01, -.015, .02])
     gyro = Gyroscope(np.zeros(3), identity, identity, 10., np.eye(3) * 1e-8, np.zeros(3))

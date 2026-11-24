@@ -1,20 +1,45 @@
 """Show fine Sun sensor alpha/beta angles during a spacecraft turn."""
+
+# Select the backend for this example: "rust", "cpp", or "python".
+backed = "python"
+
+if backed not in ("rust", "cpp", "python"):
+    raise ValueError("backed must be rust, cpp, or python")
+
+from importlib import import_module
 from pathlib import Path
 import sys
 import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
-from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
-from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem
-from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import FineSunSensor
-from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
-from GenADCS.backends.python.environment import Earth, Environment, DE421
-from GenADCS.backends.python.config import DynamicsConfig
-from GenADCS.backends.python.propagation import CoupledRK4Propagator
-from GenADCS.backends.python.solver import CoupledSolver
-from GenADCS.backends.python.simulate import ResultsFormat, simulate
+_hardware = import_module(f"GenADCS.backends.{backed}.hardware")
+Satellite = _hardware.Satellite
+SatelliteGeometry = _hardware.SatelliteGeometry
+_hardware_ADCS_subsystem = import_module(f"GenADCS.backends.{backed}.hardware.ADCS_subsystem")
+ADCSSubsystem = _hardware_ADCS_subsystem.ADCSSubsystem
+_hardware_ADCS_subsystem_sensors = import_module(f"GenADCS.backends.{backed}.hardware.ADCS_subsystem.sensors")
+FineSunSensor = _hardware_ADCS_subsystem_sensors.FineSunSensor
+_state = import_module(f"GenADCS.backends.{backed}.state")
+AttitudeState = _state.AttitudeState
+OrbitalState = _state.OrbitalState
+State = _state.State
+_environment = import_module(f"GenADCS.backends.{backed}.environment")
+Earth = _environment.Earth
+Environment = _environment.Environment
+DE421 = _environment.DE421
+_config = import_module(f"GenADCS.backends.{backed}.config")
+DynamicsConfig = _config.DynamicsConfig
+_propagation = import_module(f"GenADCS.backends.{backed}.propagation")
+CoupledRK4Propagator = _propagation.CoupledRK4Propagator
+_solver = import_module(f"GenADCS.backends.{backed}.solver")
+CoupledSolver = _solver.CoupledSolver
+_simulate = import_module(f"GenADCS.backends.{backed}.simulate")
+ResultsFormat = _simulate.ResultsFormat
+simulate = _simulate.simulate
 from GenADCS.backends.shared.plotting import FineSunSensorPlot, plot
-from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import _axis_angle_to_quaternion
-from GenADCS.backends.python.helpers.math.time.conversions import utc_jd_to_tdb_jd
+_helpers_math_rotations_quaternion_conversions = import_module(f"GenADCS.backends.{backed}.helpers.math.rotations.quaternion.conversions")
+_axis_angle_to_quaternion = _helpers_math_rotations_quaternion_conversions._axis_angle_to_quaternion
+_helpers_math_time_conversions = import_module(f"GenADCS.backends.{backed}.helpers.math.time.conversions")
+utc_jd_to_tdb_jd = _helpers_math_time_conversions.utc_jd_to_tdb_jd
 
 def main():
     identity = np.array([1., 0., 0., 0.])

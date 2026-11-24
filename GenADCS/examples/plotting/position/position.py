@@ -4,6 +4,14 @@ Run from the repository root:
     venv/bin/python GenADCS/examples/plotting/attitude/position.py
 """
 
+# Select the backend for this example: "rust", "cpp", or "python".
+backed = "python"
+
+if backed not in ("rust", "cpp", "python"):
+    raise ValueError("backed must be rust, cpp, or python")
+
+from importlib import import_module
+
 from pathlib import Path
 import sys
 
@@ -12,14 +20,27 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
-from GenADCS.backends.python.config import DynamicsConfig
-from GenADCS.backends.python.dynamics import ZonalForceModel
-from GenADCS.backends.python.environment import Earth, Environment
-from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
-from GenADCS.backends.python.propagation import CoupledDOP853Propagator
-from GenADCS.backends.python.simulate import ResultsFormat, simulate
-from GenADCS.backends.python.solver import CoupledSolver
-from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
+_config = import_module(f"GenADCS.backends.{backed}.config")
+DynamicsConfig = _config.DynamicsConfig
+_dynamics = import_module(f"GenADCS.backends.{backed}.dynamics")
+ZonalForceModel = _dynamics.ZonalForceModel
+_environment = import_module(f"GenADCS.backends.{backed}.environment")
+Earth = _environment.Earth
+Environment = _environment.Environment
+_hardware = import_module(f"GenADCS.backends.{backed}.hardware")
+Satellite = _hardware.Satellite
+SatelliteGeometry = _hardware.SatelliteGeometry
+_propagation = import_module(f"GenADCS.backends.{backed}.propagation")
+CoupledDOP853Propagator = _propagation.CoupledDOP853Propagator
+_simulate = import_module(f"GenADCS.backends.{backed}.simulate")
+ResultsFormat = _simulate.ResultsFormat
+simulate = _simulate.simulate
+_solver = import_module(f"GenADCS.backends.{backed}.solver")
+CoupledSolver = _solver.CoupledSolver
+_state = import_module(f"GenADCS.backends.{backed}.state")
+AttitudeState = _state.AttitudeState
+OrbitalState = _state.OrbitalState
+State = _state.State
 from GenADCS.backends.shared.plotting import PositionPlot, plot
 
 
