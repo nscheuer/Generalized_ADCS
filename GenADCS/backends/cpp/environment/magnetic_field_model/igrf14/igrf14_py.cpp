@@ -18,5 +18,5 @@ namespace py = pybind11;
 namespace env = omni::environment;
 
 void bind_magnetic_field_model_igrf14_igrf14(py::module_& module) {
-    py::class_<env::IGRF14,env::MagneticFieldModel>(module,"IGRF14").def(py::init<>()).def("field",&env::IGRF14::field).def("field_inertial_tesla",&env::IGRF14::field_inertial_tesla);
+    py::class_<env::IGRF14,env::MagneticFieldModel,std::shared_ptr<env::IGRF14>>(module,"IGRF14").def(py::init<>()).def("field",&env::IGRF14::field).def("field_inertial_tesla",&env::IGRF14::field_inertial_tesla);
 }

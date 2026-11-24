@@ -18,6 +18,6 @@ namespace py = pybind11;
 namespace env = omni::environment;
 
 void bind_gravity_j4(py::module_& module) {
-    py::class_<env::J4, env::JGravityModel>(module, "J4").def(py::init<>());
+    py::class_<env::J4, env::JGravityModel, std::shared_ptr<env::J4>>(module, "J4").def(py::init<>());
     module.attr("J4").attr("degree") = 4;
 }

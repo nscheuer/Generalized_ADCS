@@ -18,6 +18,6 @@ namespace py = pybind11;
 namespace env = omni::environment;
 
 void bind_atmosphere_atmospheric_model(py::module_& module) {
-    py::class_<env::AtmosphericModel>(module,"AtmosphericModel").def_static("density",[](const Eigen::Vector3d& p,double jd){return env::atmospheric_density(p,jd);}).def_static("velocity",&env::co_rotating_atmosphere_velocity,py::arg("position_inertial_m"),py::arg("epoch_jd"),py::arg("angular_velocity_inertial_rad_s")=Eigen::Vector3d(0.0,0.0,7.2921150e-5));
+    py::class_<env::AtmosphericModel, std::shared_ptr<env::AtmosphericModel>>(module,"AtmosphericModel").def_static("density",[](const Eigen::Vector3d& p,double jd){return env::atmospheric_density(p,jd);}).def_static("velocity",&env::co_rotating_atmosphere_velocity,py::arg("position_inertial_m"),py::arg("epoch_jd"),py::arg("angular_velocity_inertial_rad_s")=Eigen::Vector3d(0.0,0.0,7.2921150e-5));
     module.def("atmospheric_density",&env::atmospheric_density);module.def("co_rotating_atmosphere_velocity",&env::co_rotating_atmosphere_velocity,py::arg("position_inertial_m"),py::arg("epoch_jd"),py::arg("angular_velocity_inertial_rad_s")=Eigen::Vector3d(0.0,0.0,7.2921150e-5));
 }

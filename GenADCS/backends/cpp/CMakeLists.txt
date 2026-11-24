@@ -45,6 +45,19 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(cpp_test_solver
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/solver/test_solver.cpp"
+    )
+    target_include_directories(cpp_test_solver PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME cpp_solver COMMAND cpp_test_solver)
+
+    add_executable(cpp_test_coupled_solver
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/solver/test_coupled_solver.cpp"
+    )
+    target_include_directories(cpp_test_coupled_solver PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_features(cpp_test_coupled_solver PRIVATE cxx_std_17)
+    add_test(NAME cpp_coupled_solver COMMAND cpp_test_coupled_solver)
+
     add_executable(cpp_test_bias
         "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/bias/test_bias.cpp"
         bias/bias.cpp
@@ -52,7 +65,6 @@ if(BUILD_TESTING)
     target_include_directories(cpp_test_bias PRIVATE bias)
     add_test(NAME cpp_bias COMMAND cpp_test_bias)
 
-    find_package(Python COMPONENTS Interpreter Development.Embed REQUIRED)
     add_library(dynamics_native_test_core STATIC
         dynamics/drag_model/projected_area.cpp
         dynamics/gravity_gradient_model/static.cpp
@@ -75,6 +87,7 @@ if(BUILD_TESTING)
     endforeach()
     find_program(CARGO_EXECUTABLE cargo REQUIRED)
     add_library(environment_native_test_core STATIC
+        environment/environment.cpp
         environment/native_models.cpp
         environment/atmosphere/atmospheric_model.cpp
         environment/atmosphere/NRMLSISE00/nrlmsise00.cpp
@@ -89,6 +102,8 @@ if(BUILD_TESTING)
         environment/magnetic_field_model/chaos8/chaos8.cpp
         environment/magnetic_field_model/wmm/wmm.cpp
         environment/gravity/j_gravity_model.cpp
+        environment/planetary_body/planetary_body.cpp
+        environment/planetary_body/earth.cpp
         environment/gravity/j2.cpp
         environment/gravity/j3.cpp
         environment/gravity/j4.cpp
@@ -105,6 +120,11 @@ if(BUILD_TESTING)
         environment/atmosphere/NRMLSISE00
     )
     target_link_libraries(environment_native_test_core PUBLIC Eigen3::Eigen)
+    add_executable(cpp_test_environment_environment
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/environment/test_environment.cpp"
+    )
+    target_link_libraries(cpp_test_environment_environment PRIVATE environment_native_test_core)
+    add_test(NAME cpp_environment_environment COMMAND cpp_test_environment_environment)
     set(environment_test_cases
         atmosphere
         de421
@@ -150,6 +170,14 @@ if(BUILD_TESTING)
         target_include_directories(cpp_test_${component} PRIVATE hardware/satellite_geometry)
         add_test(NAME cpp_${component} COMMAND cpp_test_${component})
     endforeach()
+    add_executable(cpp_test_satellite
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/test_satellite.cpp"
+        hardware/satellite.cpp
+        hardware/satellite_geometry/satellite_geometry.cpp
+        hardware/satellite_geometry/satellite_panel.cpp
+    )
+    target_include_directories(cpp_test_satellite PRIVATE hardware)
+    add_test(NAME cpp_satellite COMMAND cpp_test_satellite)
     foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor fine_sun_sensor fine_earth_sensor)
         if(component STREQUAL "gyroscope" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "coarse_sun_sensor" OR component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor")
             set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/sensors/test_${component}.cpp")
@@ -159,6 +187,14 @@ if(BUILD_TESTING)
         add_executable(cpp_test_${component}
             "${test_source}"
         )
+        if(component STREQUAL "adcs_subsystem")
+            target_sources(cpp_test_${component} PRIVATE
+                hardware/ADCS_subsystem/adcs_subsystem.cpp
+                hardware/ADCS_subsystem/reaction_wheel.cpp
+                hardware/ADCS_subsystem/magnetorquer.cpp
+            )
+            target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem)
+        endif()
         if(component STREQUAL "effects")
             target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem)
         endif()
@@ -169,9 +205,6 @@ if(BUILD_TESTING)
         if(component STREQUAL "reaction_wheel")
             target_sources(cpp_test_${component} PRIVATE hardware/ADCS_subsystem/reaction_wheel.cpp)
             target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem)
-        endif()
-        if(NOT component STREQUAL "effects" AND NOT component STREQUAL "fine_earth_sensor" AND NOT component STREQUAL "coarse_sun_sensor" AND NOT component STREQUAL "fine_sun_sensor" AND NOT component STREQUAL "magnetometer" AND NOT component STREQUAL "accelerometer" AND NOT component STREQUAL "gyroscope" AND NOT component STREQUAL "reaction_wheel" AND NOT component STREQUAL "magnetorquer")
-            target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
         endif()
         if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor" OR component STREQUAL "gyroscope")
             target_sources(cpp_test_${component} PRIVATE
@@ -431,6 +464,8 @@ if(BUILD_TESTING)
             add_test(NAME cpp_${component} COMMAND cpp_test_${component})
         elseif(component STREQUAL "reaction_wheel")
             add_test(NAME cpp_${component} COMMAND cpp_test_${component})
+        elseif(component STREQUAL "adcs_subsystem")
+            add_test(NAME cpp_${component} COMMAND cpp_test_${component})
         elseif(NOT component STREQUAL "effects" AND NOT component STREQUAL "fine_earth_sensor" AND NOT component STREQUAL "fine_sun_sensor" AND NOT component STREQUAL "accelerometer")
             add_dependencies(cpp_test_${component} _adcs_subsystem)
             add_test(NAME cpp_${component}
@@ -514,17 +549,9 @@ if(BUILD_TESTING)
             target_include_directories(cpp_test_${component} PRIVATE config)
             add_test(NAME cpp_${component} COMMAND cpp_test_${component})
         else()
-            target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
-            target_compile_definitions(cpp_test_${component} PRIVATE
-                GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
-            )
-            set_target_properties(cpp_test_${component} PROPERTIES
-                CXX_VISIBILITY_PRESET hidden
-                VISIBILITY_INLINES_HIDDEN ON)
-            add_dependencies(cpp_test_${component} _config)
-            add_test(NAME cpp_${component}
-                COMMAND cpp_test_${component} "$<TARGET_FILE:_config>"
-            )
+            target_sources(cpp_test_${component} PRIVATE config/simulation_config.cpp)
+            target_include_directories(cpp_test_${component} PRIVATE config)
+            add_test(NAME cpp_${component} COMMAND cpp_test_${component})
         endif()
     endforeach()
 endif()
@@ -571,11 +598,13 @@ set_target_properties(_coupled PROPERTIES
 file(GLOB_RECURSE SOLVER_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/solver/*_py.cpp")
 
-pybind11_add_module(_solver ${SOLVER_PYBIND_SOURCES} solver/coupled_solver.cpp solver/solver.cpp)
+pybind11_add_module(_solver ${SOLVER_PYBIND_SOURCES} solver/coupled_solver.cpp)
 set_target_properties(_solver PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/solver")
 
-pybind11_add_module(_simulate simulate_py.cpp simulate.cpp)
-set_target_properties(_simulate PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-
-pybind11_add_module(_satellite hardware/satellite_py.cpp hardware/satellite.cpp)
+pybind11_add_module(_satellite
+    hardware/satellite_py.cpp
+    hardware/satellite.cpp
+    hardware/satellite_geometry/satellite_geometry.cpp
+    hardware/satellite_geometry/satellite_panel.cpp)
+target_include_directories(_satellite PRIVATE hardware)
 set_target_properties(_satellite PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware")

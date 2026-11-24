@@ -1,10 +1,10 @@
 #include "satellite.hpp"
-namespace py = pybind11;
+
+#include <utility>
+
 namespace omni::hardware {
-Satellite::Satellite(py::object geometry_value, py::object adcs_value,
-                     py::object state_machine_value)
-    : geometry(geometry_value), adcs(adcs_value), state_machine(state_machine_value) {
-    if (adcs.is_none())
-        adcs = py::module_::import("GenADCS.backends.cpp.hardware.ADCS_subsystem").attr("ADCSSubsystem")();
-}
-}
+
+Satellite::Satellite(SatelliteGeometry geometry_value, std::string initial_mode)
+    : geometry(std::move(geometry_value)), mode(std::move(initial_mode)) {}
+
+}  // namespace omni::hardware

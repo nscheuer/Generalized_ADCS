@@ -18,7 +18,7 @@ namespace py = pybind11;
 namespace env = omni::environment;
 
 void bind_planetary_body_planetary_body(py::module_& module) {
-    py::class_<env::PlanetaryBody>(module, "PlanetaryBody")
+    py::class_<env::PlanetaryBody, std::shared_ptr<env::PlanetaryBody>>(module, "PlanetaryBody")
         .def(py::init<std::string,double,double>(),py::arg("name"),py::arg("gravitational_parameter"),py::arg("reference_radius"))
         .def_readwrite("name",&env::PlanetaryBody::name)
         .def_readwrite("gravitational_parameter",&env::PlanetaryBody::gravitational_parameter)

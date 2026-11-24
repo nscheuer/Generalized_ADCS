@@ -18,7 +18,7 @@ namespace py = pybind11;
 namespace env = omni::environment;
 
 void bind_gravity_j_gravity_model(py::module_& module) {
-    py::class_<env::JGravityModel>(module,"JGravityModel")
+    py::class_<env::JGravityModel, std::shared_ptr<env::JGravityModel>>(module,"JGravityModel")
         .def(py::init<std::vector<int>,const Eigen::VectorXd&>(),py::arg("degrees")=std::vector<int>{2,3,4,5,6},py::arg("coefficients")=Eigen::VectorXd())
         .def("evaluate",&env::JGravityModel::evaluate,py::arg("position_inertial_m"),py::arg("epoch_jd")=0.0)
         .def("acceleration",&env::JGravityModel::acceleration,py::arg("position_inertial_m"),py::arg("epoch_jd")=0.0)

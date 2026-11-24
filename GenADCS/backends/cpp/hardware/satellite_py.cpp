@@ -1,12 +1,16 @@
 #include "satellite.hpp"
+
 #include <pybind11/pybind11.h>
+
 namespace py = pybind11;
+
 PYBIND11_MODULE(_satellite, module) {
-    py::class_<omni::hardware::Satellite>(module, "Satellite")
-        .def(py::init<py::object, py::object, py::object>(),
-             py::arg("geometry"), py::arg("adcs") = py::none(),
-             py::arg("state_machine") = py::none())
+    // Ensure the SatelliteGeometry caster is registered before exposing Satellite.
+    py::module_::import("GenADCS.backends.cpp.hardware.satellite_geometry");
+
+    py::class_<omni::hardware::Satellite>(module, "Satellite", py::dynamic_attr())
+        .def(py::init<omni::hardware::SatelliteGeometry, std::string>(),
+             py::arg("geometry"), py::arg("initial_mode") = "idle")
         .def_readwrite("geometry", &omni::hardware::Satellite::geometry)
-        .def_readwrite("adcs", &omni::hardware::Satellite::adcs)
-        .def_readwrite("state_machine", &omni::hardware::Satellite::state_machine);
+        .def_readwrite("mode", &omni::hardware::Satellite::mode);
 }

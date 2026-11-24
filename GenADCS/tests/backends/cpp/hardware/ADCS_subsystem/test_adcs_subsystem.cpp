@@ -1,44 +1,35 @@
+#include "adcs_subsystem.hpp"
 #include "check.hpp"
 
-int main(int argc, char** argv) {
-    py::scoped_interpreter interpreter{};
-    CHECK(argc == 2);
-    py::module_ module = load_adcs_subsystem_module(argv[1]);
-    py::object subsystem_type = module.attr("ADCSSubsystem");
+using omni::hardware::ADCSSubsystem;
+using omni::hardware::Magnetorquer;
+using omni::hardware::ReactionWheel;
 
-    py::object first = subsystem_type();
-    py::object second = subsystem_type();
-    CHECK(py::len(field(first, "reaction_wheels")) == 0);
-    CHECK(py::len(field(first, "magnetorquers")) == 0);
-    CHECK(!field(first, "reaction_wheels").is(field(second, "reaction_wheels")));
-    CHECK(!field(first, "magnetorquers").is(field(second, "magnetorquers")));
+int main() {
+    const ADCSSubsystem empty;
+    CHECK(empty.reaction_wheels.empty());
+    CHECK(empty.magnetorquers.empty());
 
-    py::list wheels;
-    py::list magnetorquers;
-    py::object wheel = module.attr("ReactionWheel")(
-        py::make_tuple(1, 2, 3), py::make_tuple(0, 0, 1), 0.05, 0.15, 3.0);
-    py::object mtq = module.attr("Magnetorquer")(
-        py::make_tuple(0, 1, 0), py::make_tuple(1, 0, 0), 0.25);
-    wheels.append(wheel);
-    magnetorquers.append(mtq);
-    py::object subsystem = subsystem_type(wheels, magnetorquers);
-    CHECK(field(subsystem, "reaction_wheels").is(wheels));
-    CHECK(field(subsystem, "magnetorquers").is(magnetorquers));
-    wheels.append("live mutation");
-    CHECK(py::len(field(subsystem, "reaction_wheels")) == 2);
+    const ReactionWheel wheel({{1.0, 2.0, 3.0}}, {{0.0, 0.0, 1.0}},
+                              0.05, 0.15, 3.0);
+    const Magnetorquer torquer({{0.0, 1.0, 0.0}}, {{1.0, 0.0, 0.0}}, 0.25);
+    const ADCSSubsystem populated({wheel}, {torquer});
+    CHECK(populated.reaction_wheels.size() == 1);
+    CHECK(populated.magnetorquers.size() == 1);
+    CHECK((populated.reaction_wheels.front().position == ReactionWheel::Vector3{{1.0, 2.0, 3.0}}));
+    CHECK((populated.reaction_wheels.front().orientation == ReactionWheel::Vector3{{0.0, 0.0, 1.0}}));
+    CHECK(populated.reaction_wheels.front().rotational_inertia == 0.05);
+    CHECK(populated.reaction_wheels.front().max_torque == 0.15);
+    CHECK(populated.reaction_wheels.front().max_momentum == 3.0);
+    CHECK((populated.magnetorquers.front().position == Magnetorquer::V{{0.0, 1.0, 0.0}}));
+    CHECK((populated.magnetorquers.front().orientation == Magnetorquer::V{{1.0, 0.0, 0.0}}));
+    CHECK(populated.magnetorquers.front().max_dipole == 0.25);
 
-    py::list new_wheels;
-    py::list new_mtqs;
-    subsystem.attr("reaction_wheels") = new_wheels;
-    subsystem.attr("magnetorquers") = new_mtqs;
-    CHECK(field(subsystem, "reaction_wheels").is(new_wheels));
-    CHECK(field(subsystem, "magnetorquers").is(new_mtqs));
-
-    py::object equivalent = subsystem_type(new_wheels, new_mtqs);
-    CHECK(subsystem.equal(equivalent));
-    CHECK(py::str(subsystem).cast<std::string>().find("ADCSSubsystem") != std::string::npos);
-    bool extra_attribute_rejected = false;
-    try { subsystem.attr("name") = "extra"; }
-    catch (const py::error_already_set&) { extra_attribute_rejected = true; PyErr_Clear(); }
-    CHECK(extra_attribute_rejected);
+    ADCSSubsystem mutable_subsystem;
+    mutable_subsystem.reaction_wheels.push_back(wheel);
+    mutable_subsystem.magnetorquers.push_back(torquer);
+    mutable_subsystem.reaction_wheels.front().max_torque = 0.2;
+    CHECK(mutable_subsystem.reaction_wheels.front().max_torque == 0.2);
+    CHECK(empty.reaction_wheels.empty());
+    CHECK(empty.magnetorquers.empty());
 }

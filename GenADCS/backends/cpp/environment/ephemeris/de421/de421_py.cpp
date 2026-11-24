@@ -41,7 +41,7 @@ template<class Function> py::object vectorized_epoch(const py::object& epoch, Fu
 }
 }
 void bind_ephemeris_de421_de421(py::module_& module) {
-    py::class_<env::DE421>(module,"DE421").def(py::init([](py::object filepath){return filepath.is_none()?env::DE421():env::DE421(py::cast<std::filesystem::path>(filepath));}),py::arg("filepath")=py::none()).def_property_readonly("available_bodies",&env::DE421::available_bodies).def_property_readonly("filepath",&env::DE421::filepath)
+    py::class_<env::DE421, std::shared_ptr<env::DE421>>(module,"DE421").def(py::init([](py::object filepath){return filepath.is_none()?env::DE421():env::DE421(py::cast<std::filesystem::path>(filepath));}),py::arg("filepath")=py::none()).def_property_readonly("available_bodies",&env::DE421::available_bodies).def_property_readonly("filepath",&env::DE421::filepath)
       .def("position_eci",[](const env::DE421& self,py::object target,py::object epoch,py::object observer){const std::string t=body_name(target),o=body_name(observer);return vectorized_epoch(epoch,[&](double jd){return self.position_eci(t,jd,o);});},py::arg("target"),py::arg("epoch_jd_tdb"),py::arg("observer")="earth")
       .def("velocity_eci",[](const env::DE421& self,py::object target,py::object epoch,py::object observer){const std::string t=body_name(target),o=body_name(observer);return vectorized_epoch(epoch,[&](double jd){return self.velocity_eci(t,jd,o);});},py::arg("target"),py::arg("epoch_jd_tdb"),py::arg("observer")="earth")
       .def("state_eci",[](const env::DE421& self,py::object target,double jd,py::object observer){return self.state_eci(body_name(target),jd,body_name(observer));},py::arg("target"),py::arg("epoch_jd_tdb"),py::arg("observer")="earth")

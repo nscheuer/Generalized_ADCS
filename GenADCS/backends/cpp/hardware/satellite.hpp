@@ -1,11 +1,19 @@
 #pragma once
-#include <pybind11/pybind11.h>
+
+#include "satellite_geometry/satellite_geometry.hpp"
+
+#include <string>
+
 namespace omni::hardware {
+
+// Native satellite configuration. Python-facing subsystem objects are handled
+// by the binding layer; this type owns only native C++ values.
 struct Satellite {
-    pybind11::object geometry;
-    pybind11::object adcs;
-    pybind11::object state_machine;
-    Satellite(pybind11::object geometry_value, pybind11::object adcs_value,
-              pybind11::object state_machine_value);
+    explicit Satellite(SatelliteGeometry geometry_value,
+                       std::string initial_mode = "idle");
+
+    SatelliteGeometry geometry;
+    std::string mode;
 };
-}
+
+}  // namespace omni::hardware
