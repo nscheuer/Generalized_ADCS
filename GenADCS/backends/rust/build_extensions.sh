@@ -33,6 +33,10 @@ for entry in "${packages[@]}"; do
     module="${entry##*:}"
     package_dir="$rust_root/$directory"
     options=(build --manifest-path "$package_dir/Cargo.toml" --quiet)
+    if [[ "$directory" == "." ]]; then
+        # The root simulation crate is excluded from Cargo's default-members.
+        options+=(--package adcs-omni-rust-simulate)
+    fi
     case "$directory" in
         state|helpers/math/frames|environment/atmosphere|environment/ephemeris|environment/gravity|environment/magnetic_field_model|propagation/coupled_propagators)
             options+=(--features python-extension)

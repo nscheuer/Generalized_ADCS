@@ -22,7 +22,7 @@ from GenADCS.backends.python.simulate import ResultsFormat, SimulationResult, si
 
 
 def main():
-    steps = 4_000_000
+    steps = 400_000
     dt = 0.25
     geometry = SatelliteGeometry(mass=12.0, inertia=np.diag((0.13, 0.10, 0.05)), panels=[])
     satellite = Satellite(geometry=geometry)
