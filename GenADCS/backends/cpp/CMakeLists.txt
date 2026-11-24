@@ -455,9 +455,11 @@ pybind11_add_module(_adcs_subsystem
     helpers/math/rotations/sensor_kernels.cpp
     helpers/math/rotations/sensor_kernels_py.cpp
     helpers/random/philox.cpp
+    helpers/random/philox_py.cpp
 )
 target_compile_features(_adcs_subsystem PRIVATE cxx_std_17)
 target_link_libraries(_adcs_subsystem PRIVATE Eigen3::Eigen)
+target_link_libraries(_adcs_subsystem PRIVATE attitude_estimator_native)
 target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem hardware/ADCS_subsystem/sensors helpers/random helpers/math/rotations)
 set_target_properties(_adcs_subsystem PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware/ADCS_subsystem")
@@ -624,3 +626,38 @@ pybind11_add_module(_satellite
     hardware/satellite_geometry/satellite_panel.cpp)
 target_include_directories(_satellite PRIVATE hardware)
 set_target_properties(_satellite PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware")
+
+set(ATTITUDE_ESTIMATOR_DIR hardware/ADCS_subsystem/estimator/attitude_estimator)
+add_library(attitude_estimator_native STATIC
+    ${ATTITUDE_ESTIMATOR_DIR}/base.cpp
+    ${ATTITUDE_ESTIMATOR_DIR}/attitude_mekf.cpp)
+target_link_libraries(attitude_estimator_native PUBLIC Eigen3::Eigen)
+target_include_directories(attitude_estimator_native PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(attitude_estimator_native PROPERTIES POSITION_INDEPENDENT_CODE ON)
+pybind11_add_module(_attitude_estimator
+    ${ATTITUDE_ESTIMATOR_DIR}/module_py.cpp
+    ${ATTITUDE_ESTIMATOR_DIR}/base_py.cpp
+    ${ATTITUDE_ESTIMATOR_DIR}/attitude_mekf_py.cpp)
+target_link_libraries(_attitude_estimator PRIVATE attitude_estimator_native)
+set_target_properties(_attitude_estimator PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${ATTITUDE_ESTIMATOR_DIR}")
+if(BUILD_TESTING)
+    foreach(component base attitude_mekf)
+        add_executable(cpp_test_estimator_${component}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/estimator/attitude_estimator/test_${component}.cpp")
+        target_link_libraries(cpp_test_estimator_${component} PRIVATE attitude_estimator_native)
+        add_test(NAME cpp_estimator_${component} COMMAND cpp_test_estimator_${component})
+    endforeach()
+endif()
+
+add_library(noise_native STATIC noise/noise.cpp helpers/random/philox.cpp)
+target_link_libraries(noise_native PUBLIC Eigen3::Eigen)
+target_include_directories(noise_native PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(noise_native PROPERTIES POSITION_INDEPENDENT_CODE ON)
+pybind11_add_module(_noise noise/noise_py.cpp)
+target_link_libraries(_noise PRIVATE noise_native)
+set_target_properties(_noise PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/noise")
+if(BUILD_TESTING)
+    add_executable(cpp_test_noise ../../tests/backends/cpp/noise/test_noise.cpp)
+    target_link_libraries(cpp_test_noise PRIVATE noise_native)
+    add_test(NAME cpp_noise COMMAND cpp_test_noise)
+endif()

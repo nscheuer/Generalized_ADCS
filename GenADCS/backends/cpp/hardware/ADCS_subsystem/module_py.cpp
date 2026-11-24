@@ -12,6 +12,7 @@ void bind_sensors_autonomous_star_tracker(py::module_ &module);
 void bind_sensors_fine_sun_sensor(py::module_ &module);
 void bind_sensors_fine_earth_sensor(py::module_ &module);
 void bind_sensors_gnss(py::module_ &module);
+void bind_philox(py::module_ &module);
 
 PYBIND11_MODULE(_adcs_subsystem, module)
 {
@@ -27,4 +28,5 @@ PYBIND11_MODULE(_adcs_subsystem, module)
     bind_sensors_fine_sun_sensor(module);
     bind_sensors_fine_earth_sensor(module);
     bind_sensors_gnss(module);
+    bind_philox(module);
 }

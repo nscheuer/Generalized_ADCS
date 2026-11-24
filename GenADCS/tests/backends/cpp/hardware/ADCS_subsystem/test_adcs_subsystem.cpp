@@ -1,5 +1,6 @@
 #include "adcs_subsystem.hpp"
 #include "check.hpp"
+#include <stdexcept>
 
 using omni::hardware::ADCSSubsystem;
 using omni::hardware::Magnetorquer;
@@ -7,6 +8,15 @@ using omni::hardware::ReactionWheel;
 
 int main()
 {
+    const ADCSSubsystem scheduled({}, {}, {}, 3);
+    CHECK(scheduled.N == 3);
+    CHECK(scheduled.every_step(0));
+    CHECK(!scheduled.every_step(1));
+    CHECK(scheduled.every_step(3));
+    bool rejected = false;
+    try { ADCSSubsystem invalid({}, {}, {}, 0); }
+    catch (const std::invalid_argument&) { rejected = true; }
+    CHECK(rejected);
     const ADCSSubsystem empty;
     CHECK(empty.reaction_wheels.empty());
     CHECK(empty.magnetorquers.empty());
