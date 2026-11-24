@@ -39,6 +39,11 @@ def test_prediction_noise_and_compiled_sensor_step():
     _, _, propagated = predict(IDENTITY, np.zeros(3), covariance, psd, 2.)
     np.testing.assert_allclose(propagated[:3, :3], psd * 8. / 3.)
     np.testing.assert_allclose(propagated[3:, 3:], psd * 2.)
+    np.testing.assert_allclose(propagated[:3, 3:], -psd * 2.)
+    turning, _, _ = predict(IDENTITY, np.array([0., 0., .2]),
+                           np.eye(6), psd, 1.)
+    np.testing.assert_allclose(turning, rotation_vector_to_quaternion(
+        np.array([0., 0., -.2])), atol=1e-14)
 
     gyro = Gyroscope(np.zeros(3), IDENTITY, IDENTITY, 10., np.eye(3) * 1e-6,
                      np.zeros(3))
@@ -55,6 +60,18 @@ def test_prediction_noise_and_compiled_sensor_step():
     assert np.linalg.norm(w) < 0.01
     np.testing.assert_allclose(np.linalg.norm(q), 1., atol=1e-14)
     assert np.linalg.eigvalsh(p).min() >= -1e-12
+
+
+def test_plotting_example_converges():
+    from GenADCS.examples.plotting.estimators._setup import run_example
+
+    rows = run_example(progress=False).satellites["sat_000"]
+    dot = np.sum(rows.satellite_attitude * rows.estimated_attitude, axis=1)
+    attitude_error = 2 * np.arccos(np.clip(np.abs(dot), 0., 1.))
+    rate_error = np.linalg.norm(rows.satellite_rate - rows.estimated_rate, axis=1)
+    assert attitude_error[-1] < 0.001
+    assert attitude_error[-1] < attitude_error[0] / 3
+    assert rate_error[-1] < rate_error[0]
 
 
 def test_missing_tracker_and_mixed_sensor_order():

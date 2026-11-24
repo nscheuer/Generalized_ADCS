@@ -25,15 +25,15 @@ def predict(q, w, p, acceleration_psd, dt):
     """Propagate the nominal state and its left/body attitude error."""
     if dt < 0.0:
         raise ValueError("dt must be nonnegative")
-    rotation = w * dt
+    rotation = -w * dt
     increment = rotation_vector_to_quaternion(rotation)
     q_next = _normalize_quaternion(_multiply(increment, q))
     phi = np.eye(6)
     phi[:3, :3] = _quaternion_to_dcm(increment)
-    phi[:3, 3:6] = so3_left_jacobian(rotation) * dt
+    phi[:3, 3:6] = -so3_left_jacobian(rotation) * dt
     noise = np.zeros((6, 6))
     noise[:3, :3] = acceleration_psd * (dt**3 / 3.0)
-    noise[:3, 3:6] = acceleration_psd * (dt**2 / 2.0)
+    noise[:3, 3:6] = -acceleration_psd * (dt**2 / 2.0)
     noise[3:6, :3] = noise[:3, 3:6]
     noise[3:6, 3:6] = acceleration_psd * dt
     result = phi @ p @ phi.T + noise

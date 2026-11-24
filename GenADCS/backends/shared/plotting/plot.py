@@ -298,26 +298,122 @@ class EstimatedRatePlot(Subplot):
 
 
 class _EstimatedCovariancePlot(Subplot):
+    def __init__(self, field, *, option="individual", **kwargs):
+        if option not in ("individual", "trace", "eigenvalues"):
+            raise ValueError("option must be 'individual', 'trace', or 'eigenvalues'")
+        self.option = option
+        if "labels" not in kwargs:
+            kwargs["labels"] = (("trace",) if option == "trace" else
+                                ("largest", "middle", "smallest") if option == "eigenvalues" else
+                                ("x", "y", "z"))
+        super().__init__(field, **kwargs)
+
     def _series(self, run):
         times, values = super()._series(run)
-        diagonal = np.diagonal(values.reshape((-1, 3, 3)), axis1=1, axis2=2)
+        matrices = values.reshape((-1, 3, 3))
+        if self.option == "trace":
+            return times, np.sqrt(np.maximum(np.trace(matrices, axis1=1, axis2=2), 0.0))[:, None]
+            eigenvalues = np.linalg.eigvalsh(matrices)[:, ::-1]
+            return times, np.sqrt(np.maximum(eigenvalues, 0.0))
+        diagonal = np.diagonal(matrices, axis1=1, axis2=2)
         return times, np.sqrt(np.maximum(diagonal, 0.0))
 
 
 class EstimatedAttitudeCovariancePlot(_EstimatedCovariancePlot):
-    def __init__(self, **kwargs):
+    def __init__(self, *, option="individual", **kwargs):
         kwargs.setdefault("title", "Estimated Attitude Standard Deviation")
         kwargs.setdefault("ylabel", "Standard deviation [rad]")
-        kwargs.setdefault("labels", ("x", "y", "z"))
-        super().__init__("estimated_attitude_covariance", **kwargs)
+        super().__init__("estimated_attitude_covariance", option=option, **kwargs)
 
 
 class EstimatedRateCovariancePlot(_EstimatedCovariancePlot):
-    def __init__(self, **kwargs):
+    def __init__(self, *, option="individual", **kwargs):
         kwargs.setdefault("title", "Estimated Rate Standard Deviation")
         kwargs.setdefault("ylabel", "Standard deviation [rad/s]")
-        kwargs.setdefault("labels", ("x", "y", "z"))
-        super().__init__("estimated_rate_covariance", **kwargs)
+        super().__init__("estimated_rate_covariance", option=option, **kwargs)
+
+
+class MeasurementInnovationPlot(Subplot):
+    def __init__(self, *, option="individual", **kwargs):
+        if option not in ("individual", "trace"):
+            raise ValueError("option must be 'individual' or 'trace'")
+        self.option = option
+        kwargs.setdefault("title", "Measurement Innovation")
+        kwargs.setdefault("ylabel", "Innovation [rad]")
+        kwargs.setdefault("labels", ("magnitude",) if option == "trace" else ("x", "y", "z"))
+        super().__init__("measurement_innovation", **kwargs)
+
+    def _series(self, run):
+        times, values = super()._series(run)
+        if self.option == "trace":
+            return times, np.linalg.norm(values, axis=1)[:, None]
+        return times, values
+
+
+class MeasurementInnovationCovariancePlot(_EstimatedCovariancePlot):
+    def __init__(self, *, option="individual", **kwargs):
+        kwargs.setdefault("title", "Measurement Innovation Covariance")
+        kwargs.setdefault("ylabel", "Innovation standard deviation [rad]")
+        super().__init__("measurement_innovation_covariance", option=option, **kwargs)
+
+
+class _NormalizedSquaredMetricPlot(Subplot):
+    def __init__(self, field, *, option="individual", **kwargs):
+        if option != "individual":
+            raise ValueError("normalized squared metrics are scalar; option must be 'individual'")
+        self.option = option
+        kwargs.setdefault("labels", ("value",))
+        super().__init__(field, **kwargs)
+
+
+class NormalizedInnovationSquaredPlot(_NormalizedSquaredMetricPlot):
+    def __init__(self, *, option="individual", **kwargs):
+        kwargs.setdefault("title", "Normalized Innovation Squared")
+        kwargs.setdefault("ylabel", "NIS")
+        super().__init__("normalized_innovation_squared", option=option, **kwargs)
+
+
+class NormalizedEstimationErrorSquaredPlot(_NormalizedSquaredMetricPlot):
+    def __init__(self, *, option="individual", **kwargs):
+        kwargs.setdefault("title", "Normalized Estimation Error Squared")
+        kwargs.setdefault("ylabel", "NEES")
+        super().__init__("normalized_estimation_error_squared", option=option, **kwargs)
+
+
+class MeasurementResidualPlot(Subplot):
+    def __init__(self, *, option="individual", **kwargs):
+        if option not in ("individual", "trace"):
+            raise ValueError("option must be 'individual' or 'trace'")
+        self.option = option
+        kwargs.setdefault("title", "Measurement Residual")
+        kwargs.setdefault("ylabel", "Residual [rad]")
+        kwargs.setdefault("labels", ("magnitude",) if option == "trace" else ("x", "y", "z"))
+        super().__init__("measurement_residual", **kwargs)
+
+    def _series(self, run):
+        times, values = super()._series(run)
+        return (times, np.linalg.norm(values, axis=1, keepdims=True)) if self.option == "trace" else (times, values)
+
+
+class KalmanGainPlot(Subplot):
+    def __init__(self, *, option="individual", **kwargs):
+        if option not in ("individual", "trace", "eigenvalues"):
+            raise ValueError("option must be 'individual', 'trace', or 'eigenvalues'")
+        self.option = option
+        kwargs.setdefault("title", "Kalman Gain")
+        kwargs.setdefault("ylabel", "Gain")
+        kwargs.setdefault("labels", tuple(f"K{i}" for i in range(18)) if option == "individual" else
+                           (("Frobenius norm",) if option == "trace" else ("largest singular value", "middle singular value", "smallest singular value")))
+        super().__init__("kalman_gain", **kwargs)
+
+    def _series(self, run):
+        times, values = super()._series(run)
+        matrices = values.reshape((-1, 6, 3))
+        if self.option == "trace":
+            return times, np.linalg.norm(matrices, axis=(1, 2))[:, None]
+            singular = np.linalg.svd(matrices, compute_uv=False)
+            return times, singular
+        return times, values
 
 
 class AbsoluteKnowledgeErrorQuaternionPlot(Subplot):
@@ -328,7 +424,7 @@ class AbsoluteKnowledgeErrorQuaternionPlot(Subplot):
             raise ValueError("option must be 'individual' or 'magnitude'")
         self.option = option
         kwargs.setdefault("title", "Absolute Attitude Knowledge Error")
-        kwargs.setdefault("ylabel", "Error [rad]" if option == "individual" else "Magnitude [rad]")
+        kwargs.setdefault("ylabel", "Error [deg]" if option == "individual" else "Magnitude [deg]")
         kwargs.setdefault("labels", ("x", "y", "z") if option == "individual" else ("magnitude",))
         super().__init__("estimated_attitude", **kwargs)
 
@@ -352,7 +448,7 @@ class AbsoluteKnowledgeErrorQuaternionPlot(Subplot):
                              out=np.zeros_like(relative[:, 1:]), where=vector_norm > 1e-15)
         if self.option == "magnitude":
             rotation = np.linalg.norm(rotation, axis=1, keepdims=True)
-        return times, rotation
+        return times, np.rad2deg(rotation)
 
 
 class AbsoluteKnowledgeErrorRatePlot(Subplot):
@@ -947,7 +1043,18 @@ def plot(sim, *subplots: Subplot, mode="single", layout=None, title=None,
     ensure_close_all_button()
     flat = np.atleast_1d(axes).ravel()
     for ax, panel in zip(flat, subplots):
-        panel.draw(ax, runs, mode)
+        try:
+            panel.draw(ax, runs, mode)
+        except (ValueError, KeyError, IndexError, TypeError) as exc:
+            ax.clear()
+            ax.set_title(panel.title or panel.field.replace("_", " ").title())
+            ax.text(0.5, 0.5, f"Unable to plot data:\n{exc}",
+                    ha="center", va="center", wrap=True,
+                    transform=ax.transAxes, color="crimson")
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for spine in ax.spines.values():
+                spine.set_visible(False)
     for ax in flat[len(subplots):]:
         ax.set_visible(False)
     if title:

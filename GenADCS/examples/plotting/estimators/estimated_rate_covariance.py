@@ -2,31 +2,17 @@
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
-import numpy as np
-from GenADCS.backends.python.config import DynamicsConfig
-from GenADCS.backends.python.environment import Earth, Environment
-from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
-from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem, AttitudeMEKF
-from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import Gyroscope
-from GenADCS.backends.python.propagation import CoupledRK4Propagator
-from GenADCS.backends.python.simulate import ResultsFormat, simulate
-from GenADCS.backends.python.solver import CoupledSolver
-from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
+from GenADCS.examples.plotting.estimators._setup import run_example
 from GenADCS.backends.shared.plotting import EstimatedRateCovariancePlot, plot
 
 
 def main():
-    identity = np.array([1., 0., 0., 0.])
-    gyro = Gyroscope(np.zeros(3), identity, identity, 10., np.eye(3)*1e-8, np.zeros(3))
-    estimator = AttitudeMEKF(identity, np.array([.01, -.015, .02]), np.eye(6)*1e-3, 1e-8)
-    satellite = Satellite(SatelliteGeometry(12., np.diag([.13, .1, .05]), []),
-                          ADCSSubsystem(sensors=[gyro], estimator=estimator))
-    state = State(AttitudeState(identity, (.01, -.015, .02)),
-                  OrbitalState.from_cartesian((6878137., 0., 0.), (0., 7612.6, 0.), 2461000.5))
-    result = simulate(satellite, Environment(planetary_body=Earth()), DynamicsConfig(), state,
-        CoupledSolver(CoupledRK4Propagator(.25), tf=120., progress=True),
-        resultsformat=ResultsFormat(estimated_rate_covariance=True))
-    plot(result, EstimatedRateCovariancePlot(), show=True)
+    result = run_example()
+    plot(result,
+         EstimatedRateCovariancePlot(option="individual"),
+         EstimatedRateCovariancePlot(option="trace"),
+         EstimatedRateCovariancePlot(option="eigenvalues"),
+         layout=(1, 3), title="Estimated rate covariance", show=True)
     import matplotlib.pyplot as plt
     plt.show()
     return result
