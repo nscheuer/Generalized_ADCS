@@ -37,6 +37,30 @@ Eigen::Matrix<double, Size, 1> fixed(py::handle value, const char* name) {
     return result;
 }
 
+class PythonEphemeris final : public EphemerisProvider {
+public:
+    explicit PythonEphemeris(py::object value) : model(std::move(value)) {}
+
+    Vector3 position(int body_id, double julian_date) const override {
+        py::gil_scoped_acquire gil;
+        return fixed<3>(model.attr("position")(body_id, julian_date), "ephemeris position");
+    }
+
+    py::object model;
+};
+
+std::shared_ptr<const EphemerisProvider> provider(py::handle value) {
+    if (value.is_none()) return nullptr;
+    return std::make_shared<PythonEphemeris>(py::reinterpret_borrow<py::object>(value));
+}
+
+py::object ephemeris_object(const std::shared_ptr<const EphemerisProvider>& value) {
+    if (!value) return py::none();
+    const auto python = std::dynamic_pointer_cast<const PythonEphemeris>(value);
+    if (!python) return py::none();
+    return python->model;
+}
+
 Eigen::VectorXd variable(py::handle value, const char* name) {
     auto array = py::array_t<double, py::array::c_style | py::array::forcecast>(
         as_array(value, name, 1));
@@ -75,9 +99,8 @@ std::optional<Vector3> optional_vector(py::handle value, const char* name) {
 
 OrbitalState orbital(py::object position, py::object velocity, double jd, py::object ephemeris,
                      std::optional<KeplerianElements> elements = std::nullopt) {
-    OrbitalState result(optional_vector(position, "position"), optional_vector(velocity, "velocity"), jd, elements);
-    result.ephemeris = ephemeris;
-    return result;
+    return OrbitalState(optional_vector(position, "position"), optional_vector(velocity, "velocity"),
+                        jd, elements, provider(ephemeris));
 }
 
 OrbitalState orbital_from_python(py::object state) {
@@ -92,9 +115,6 @@ OrbitalState orbital_from_python(py::object state) {
 
 py::object body_position(OrbitalState& orbit, py::object body) {
     const std::string key = py::str(py::type::of(body)).cast<std::string>() + ":" + py::str(body).cast<std::string>();
-    auto found = orbit.body_positions.find(key);
-    if (found != orbit.body_positions.end()) return found->second;
-    if (orbit.ephemeris.is_none()) throw py::value_error("an ephemeris must be configured");
     int body_id;
     if (py::isinstance<py::str>(body)) {
         const std::string name = py::str(body.attr("lower")());
@@ -103,9 +123,12 @@ py::object body_position(OrbitalState& orbit, py::object body) {
         else if (name == "moon") body_id = 2;
         else throw py::key_error(name);
     } else body_id = body.cast<int>();
-    py::object result = orbit.ephemeris.attr("position")(body_id, orbit.julian_date);
-    orbit.body_positions.emplace(key, result);
-    return result;
+    try {
+        return to_array(orbit.body_position(key, body_id));
+    } catch (const std::logic_error& error) {
+        if (!orbit.ephemeris) throw py::value_error(error.what());
+        throw;
+    }
 }
 
 py::object to_python(const AttitudeState& state) {
@@ -119,12 +142,12 @@ py::object to_python(const OrbitalState& state) {
         py::tuple args(8);
         for (py::ssize_t i = 0; i < 6; ++i) args[i] = (*state.keplerian_elements)[i];
         args[6] = state.julian_date;
-        args[7] = state.ephemeris;
+        args[7] = ephemeris_object(state.ephemeris);
         return python_states().attr("OrbitalState").attr("from_keplerian")(*args);
     }
     return python_states().attr("OrbitalState")(state.position ? py::object(to_array(*state.position)) : py::none(),
                                                   state.velocity ? py::object(to_array(*state.velocity)) : py::none(),
-                                                  state.julian_date, state.ephemeris);
+                                                  state.julian_date, ephemeris_object(state.ephemeris));
 }
 
 py::object state_record(const State& state, py::object wheel_count) {
@@ -211,7 +234,18 @@ PYBIND11_MODULE(_state, m) {
         .def_property_readonly("position", [](const OrbitalState& s) { return to_array(s.cartesian_position()); })
         .def_property_readonly("velocity", [](const OrbitalState& s) { return to_array(s.cartesian_velocity()); })
         .def_readwrite("julian_date", &OrbitalState::julian_date)
-        .def_readwrite("ephemeris", &OrbitalState::ephemeris)
+        .def_property("ephemeris", [](const OrbitalState& s) { return ephemeris_object(s.ephemeris); },
+                      [](OrbitalState& s, py::handle value) { s.ephemeris = provider(value); })
+        .def_property("_body_positions", [](const OrbitalState& s) {
+            py::dict result;
+            for (const auto& entry : s.body_positions) result[py::str(entry.first)] = to_array(entry.second);
+            return result;
+        }, [](OrbitalState& s, py::dict values) {
+            s.body_positions.clear();
+            for (const auto& entry : values) {
+                s.body_positions.emplace(py::cast<std::string>(entry.first), fixed<3>(entry.second, "body position"));
+            }
+        })
         .def_property_readonly("_keplerian_elements", [](const OrbitalState& s) -> py::object { return s.keplerian_elements ? py::cast(*s.keplerian_elements) : py::none(); })
         .def("body_position", &body_position)
         .def_property_readonly("sun_position", [](OrbitalState& s) { return body_position(s, py::str("sun")); })

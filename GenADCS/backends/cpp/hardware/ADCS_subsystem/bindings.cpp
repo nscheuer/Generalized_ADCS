@@ -17,6 +17,22 @@ namespace hardware = omni::hardware;
 namespace native_sensors = omni::hardware::sensors;
 
 namespace {
+struct BoundMagnetorquer {
+    hardware::Magnetorquer native;
+    py::list effects;
+
+    BoundMagnetorquer(hardware::Magnetorquer value, py::list effect_values)
+        : native(std::move(value)), effects(std::move(effect_values)) {}
+};
+
+struct BoundReactionWheel {
+    hardware::ReactionWheel native;
+    py::list effects;
+
+    BoundReactionWheel(hardware::ReactionWheel value, py::list effect_values)
+        : native(std::move(value)), effects(std::move(effect_values)) {}
+};
+
 py::list fresh_list(const py::object& value) {
     if (value.is_none()) return py::list();
     if (PyList_Check(value.ptr()) != 0) return py::reinterpret_borrow<py::list>(value);
@@ -67,6 +83,7 @@ std::array<double,N> read_fixed(py::handle value, const char* name) {
 }
 template <typename Values>
 py::array_t<double> vector_array_2(const Values& values) { return vector_array(values); }
+
 }
 
 PYBIND11_MODULE(_adcs_subsystem, module) {
@@ -76,62 +93,99 @@ PYBIND11_MODULE(_adcs_subsystem, module) {
                py::arg("value"), py::arg("effects"), py::arg("dt"),
                py::arg("rng") = py::none());
 
-    py::class_<hardware::ReactionWheel>(module, "ReactionWheel")
-        .def(py::init([](py::object position, py::object orientation,
+    py::class_<BoundReactionWheel>(module, "ReactionWheel")
+        .def(py::init([](py::handle position, py::handle orientation,
                          double rotational_inertia, double max_torque,
                          double max_momentum, py::object misalignment,
                          py::object effects) {
             if (misalignment.is_none()) misalignment = py::make_tuple(0.0, 0.0, 0.0);
-            return hardware::ReactionWheel(std::move(position), std::move(orientation),
-                rotational_inertia, max_torque, max_momentum, std::move(misalignment),
-                fresh_list(effects));
+            auto native = hardware::ReactionWheel(read_fixed<3>(position, "position"),
+                read_fixed<3>(orientation, "orientation"), rotational_inertia,
+                max_torque, max_momentum, read_fixed<3>(misalignment, "misalignment"));
+            return BoundReactionWheel(std::move(native), fresh_list(effects));
         }), py::arg("position"), py::arg("orientation"),
             py::arg("rotational_inertia"), py::arg("max_torque"),
             py::arg("max_momentum"), py::arg("misalignment") = py::none(),
             py::arg("effects") = py::none())
-        .def_readwrite("position", &hardware::ReactionWheel::position)
-        .def_readwrite("orientation", &hardware::ReactionWheel::orientation)
-        .def_readwrite("rotational_inertia", &hardware::ReactionWheel::rotational_inertia)
-        .def_readwrite("max_torque", &hardware::ReactionWheel::max_torque)
-        .def_readwrite("max_momentum", &hardware::ReactionWheel::max_momentum)
-        .def_readwrite("misalignment", &hardware::ReactionWheel::misalignment)
-        .def_readwrite("effects", &hardware::ReactionWheel::effects)
-        .def_property_readonly("noises", &hardware::ReactionWheel::noises)
-        .def_property_readonly("biases", &hardware::ReactionWheel::biases)
-        .def("apply_errors", &hardware::ReactionWheel::apply_errors,
-             py::arg("value"), py::arg("dt"), py::arg("rng") = py::none())
-        .def("__eq__", [](const hardware::ReactionWheel& left,
-                           const hardware::ReactionWheel& right) {
-            return same(left.position, right.position) && same(left.orientation, right.orientation)
-                && (left.rotational_inertia == right.rotational_inertia)
-                && (left.max_torque == right.max_torque)
-                && (left.max_momentum == right.max_momentum)
-                && same(left.misalignment, right.misalignment) && same(left.effects, right.effects);
+        .def_property("position", [](const BoundReactionWheel& self) {
+            return py::make_tuple(self.native.position[0], self.native.position[1], self.native.position[2]);
+        }, [](BoundReactionWheel& self, py::handle value) { self.native.position = read_fixed<3>(value, "position"); })
+        .def_property("orientation", [](const BoundReactionWheel& self) {
+            return py::make_tuple(self.native.orientation[0], self.native.orientation[1], self.native.orientation[2]);
+        }, [](BoundReactionWheel& self, py::handle value) { self.native.orientation = read_fixed<3>(value, "orientation"); })
+        .def_readwrite("rotational_inertia", &BoundReactionWheel::native.rotational_inertia)
+        .def_readwrite("max_torque", &BoundReactionWheel::native.max_torque)
+        .def_readwrite("max_momentum", &BoundReactionWheel::native.max_momentum)
+        .def_property("misalignment", [](const BoundReactionWheel& self) {
+            return py::make_tuple(self.native.misalignment[0], self.native.misalignment[1], self.native.misalignment[2]);
+        }, [](BoundReactionWheel& self, py::handle value) { self.native.misalignment = read_fixed<3>(value, "misalignment"); })
+        .def_readwrite("effects", &BoundReactionWheel::effects)
+        .def_property_readonly("noises", [](const BoundReactionWheel& self) {
+            return hardware::filter_effects(self.effects, "GenADCS.backends.python.noise", "Noise");
+        })
+        .def_property_readonly("biases", [](const BoundReactionWheel& self) {
+            return hardware::filter_effects(self.effects, "GenADCS.backends.python.bias", "Bias");
+        })
+        .def("apply_errors", [](const BoundReactionWheel& self, py::object value,
+                                  double dt, py::object rng) {
+            return hardware::apply_effects(std::move(value), self.effects, dt, std::move(rng));
+        }, py::arg("value"), py::arg("dt"), py::arg("rng") = py::none())
+        .def("__eq__", [](const BoundReactionWheel& left,
+                           const BoundReactionWheel& right) {
+            return left.native.position == right.native.position
+                && left.native.orientation == right.native.orientation
+                && (left.native.rotational_inertia == right.native.rotational_inertia)
+                && (left.native.max_torque == right.native.max_torque)
+                && (left.native.max_momentum == right.native.max_momentum)
+                && left.native.misalignment == right.native.misalignment
+                && same(left.effects, right.effects);
         });
 
-    py::class_<hardware::Magnetorquer>(module, "Magnetorquer")
+    py::class_<BoundMagnetorquer>(module, "Magnetorquer")
         .def(py::init([](py::object position, py::object orientation,
                          double max_dipole, py::object misalignment,
                          py::object effects) {
             if (misalignment.is_none()) misalignment = py::make_tuple(0.0, 0.0, 0.0);
-            return hardware::Magnetorquer(std::move(position), std::move(orientation),
-                max_dipole, std::move(misalignment), fresh_list(effects));
+            return BoundMagnetorquer(hardware::Magnetorquer(
+                read_fixed<3>(position, "position"),
+                read_fixed<3>(orientation, "orientation"), max_dipole,
+                read_fixed<3>(misalignment, "misalignment")), fresh_list(effects));
         }), py::arg("position"), py::arg("orientation"), py::arg("max_dipole"),
             py::arg("misalignment") = py::none(), py::arg("effects") = py::none())
-        .def_readwrite("position", &hardware::Magnetorquer::position)
-        .def_readwrite("orientation", &hardware::Magnetorquer::orientation)
-        .def_readwrite("max_dipole", &hardware::Magnetorquer::max_dipole)
-        .def_readwrite("misalignment", &hardware::Magnetorquer::misalignment)
-        .def_readwrite("effects", &hardware::Magnetorquer::effects)
-        .def_property_readonly("noises", &hardware::Magnetorquer::noises)
-        .def_property_readonly("biases", &hardware::Magnetorquer::biases)
-        .def("apply_errors", &hardware::Magnetorquer::apply_errors,
-             py::arg("value"), py::arg("dt"), py::arg("rng") = py::none())
-        .def("__eq__", [](const hardware::Magnetorquer& left,
-                           const hardware::Magnetorquer& right) {
-            return same(left.position, right.position) && same(left.orientation, right.orientation)
-                && (left.max_dipole == right.max_dipole)
-                && same(left.misalignment, right.misalignment) && same(left.effects, right.effects);
+        .def_property("position", [](const BoundMagnetorquer& self) {
+            return py::make_tuple(self.native.position[0], self.native.position[1], self.native.position[2]);
+        }, [](BoundMagnetorquer& self, py::handle value) {
+            self.native.position = read_fixed<3>(value, "position");
+        })
+        .def_property("orientation", [](const BoundMagnetorquer& self) {
+            return py::make_tuple(self.native.orientation[0], self.native.orientation[1], self.native.orientation[2]);
+        }, [](BoundMagnetorquer& self, py::handle value) {
+            self.native.orientation = read_fixed<3>(value, "orientation");
+        })
+        .def_readwrite("max_dipole", &BoundMagnetorquer::native.max_dipole)
+        .def_property("misalignment", [](const BoundMagnetorquer& self) {
+            return py::make_tuple(self.native.misalignment[0], self.native.misalignment[1], self.native.misalignment[2]);
+        }, [](BoundMagnetorquer& self, py::handle value) {
+            self.native.misalignment = read_fixed<3>(value, "misalignment");
+        })
+        .def_readwrite("effects", &BoundMagnetorquer::effects)
+        .def_property_readonly("noises", [](const BoundMagnetorquer& self) {
+            return hardware::filter_effects(self.effects, "GenADCS.backends.python.noise", "Noise");
+        })
+        .def_property_readonly("biases", [](const BoundMagnetorquer& self) {
+            return hardware::filter_effects(self.effects, "GenADCS.backends.python.bias", "Bias");
+        })
+        .def("apply_errors", [](const BoundMagnetorquer& self, py::object value,
+                                 double dt, py::object rng) {
+            return hardware::apply_effects(std::move(value), self.effects, dt, std::move(rng));
+        }, py::arg("value"), py::arg("dt"), py::arg("rng") = py::none())
+        .def("__eq__", [](const BoundMagnetorquer& left,
+                           const BoundMagnetorquer& right) {
+            return left.native.position == right.native.position
+                && left.native.orientation == right.native.orientation
+                && (left.native.max_dipole == right.native.max_dipole)
+                && left.native.misalignment == right.native.misalignment
+                && same(left.effects, right.effects);
         });
 
     py::class_<hardware::ADCSSubsystem>(module, "ADCSSubsystem")

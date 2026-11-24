@@ -3,8 +3,6 @@
 #include "orbital_state.hpp"
 #include "state.hpp"
 
-#include <pybind11/embed.h>
-
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -13,12 +11,9 @@
     if (!(condition)) throw std::runtime_error("check failed: " #condition); \
 } while (false)
 
-namespace py = pybind11;
 using namespace omni;
 
 int main() {
-    py::scoped_interpreter interpreter{};
-
     Quaternion q; q << 2.0, 0.0, 0.0, 0.0;
     Vector3 rates; rates << 0.01, 0.02, 0.03;
     AttitudeState attitude(q, rates);

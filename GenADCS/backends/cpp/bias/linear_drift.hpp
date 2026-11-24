@@ -5,7 +5,7 @@
 namespace omni::bias {
 struct LinearDrift : Bias {
     explicit LinearDrift(double rate, double initial_value = 0.0)
-        : rate(rate), initial_value(initial_value) {}
+        : Bias({initial_value}), rate(rate), initial_value(initial_value) {}
     double rate;
     double initial_value;
 };

@@ -1,63 +1,26 @@
-#include "check.hpp"
+#include "magnetorquer.hpp"
 
-int main(int argc, char** argv) {
-    py::scoped_interpreter interpreter{};
-    CHECK(argc == 2);
-    py::module_ module = load_adcs_subsystem_module(argv[1]);
-    install_effect_type_stubs();
-    py::object type = module.attr("Magnetorquer");
+#include <stdexcept>
+#include <string>
 
-    py::object mtq = type(py::make_tuple(1, 2, 3), py::make_tuple(0, 0, 1), 0.25);
-    CHECK(field(mtq, "position").equal(py::make_tuple(1, 2, 3)));
-    CHECK(field(mtq, "orientation").equal(py::make_tuple(0, 0, 1)));
-    CHECK(field(mtq, "max_dipole").cast<double>() == 0.25);
-    CHECK(field(mtq, "misalignment").equal(py::make_tuple(0.0, 0.0, 0.0)));
-    CHECK(py::len(field(mtq, "effects")) == 0);
-    CHECK(py::len(field(mtq, "noises")) == 0);
-    CHECK(py::len(field(mtq, "biases")) == 0);
+using omni::hardware::Magnetorquer;
 
-    py::object noise_type = py::module_::import("GenADCS.backends.python.noise").attr("Noise");
-    py::object bias_type = py::module_::import("GenADCS.backends.python.bias").attr("Bias");
-    py::object noise_a = noise_type();
-    py::object bias_a = bias_type();
-    py::object plain = py::module_::import("builtins").attr("object")();
-    py::object noise_b = noise_type();
-    py::object bias_b = bias_type();
-    py::list effects;
-    effects.append(noise_a); effects.append(bias_a); effects.append(plain);
-    effects.append(noise_b); effects.append(bias_b);
-    mtq.attr("effects") = effects;
-    CHECK(field(mtq, "effects").is(effects));
-    CHECK(py::len(field(mtq, "noises")) == 2);
-    CHECK(item(field(mtq, "noises"), 0).is(noise_a));
-    CHECK(item(field(mtq, "noises"), 1).is(noise_b));
-    CHECK(py::len(field(mtq, "biases")) == 2);
-    CHECK(item(field(mtq, "biases"), 0).is(bias_a));
-    CHECK(item(field(mtq, "biases"), 1).is(bias_b));
+#define CHECK(condition) do { if (!(condition)) throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " failed: " #condition); } while (false)
 
-    py::dict scope;
-    py::exec(R"PY(
-class Add:
-    def __init__(self, amount, calls): self.amount, self.calls = amount, calls
-    def apply(self, value, dt, rng=None):
-        self.calls.append((value, dt, rng))
-        return value + self.amount
-calls = []
-)PY", scope);
-    py::object calls = scope["calls"];
-    py::object rng = py::module_::import("builtins").attr("object")();
-    py::list apply_effects;
-    apply_effects.append(scope["Add"](2.0, calls));
-    apply_effects.append(scope["Add"](-0.5, calls));
-    mtq.attr("effects") = apply_effects;
-    CHECK(mtq.attr("apply_errors")(1.0, 0.125, rng).cast<double>() == 2.5);
-    CHECK(item(item(calls, 0), 1).cast<double>() == 0.125 && item(item(calls, 0), 2).is(rng));
-    CHECK(item(item(calls, 1), 0).cast<double>() == 3.0 && item(item(calls, 1), 2).is(rng));
+int main() {
+    const Magnetorquer::V position{{1.0, 2.0, 3.0}};
+    const Magnetorquer::V orientation{{0.0, 0.0, 1.0}};
+    Magnetorquer torquer(position, orientation, 0.25);
 
-    mtq.attr("position") = py::make_tuple(4, 5, 6);
-    mtq.attr("max_dipole") = 0.5;
-    mtq.attr("misalignment") = py::make_tuple(0.1, 0.0, -0.1);
-    CHECK(field(mtq, "position").equal(py::make_tuple(4, 5, 6)));
-    CHECK(field(mtq, "max_dipole").cast<double>() == 0.5);
-    CHECK(field(mtq, "misalignment").equal(py::make_tuple(0.1, 0.0, -0.1)));
+    CHECK(torquer.position == position);
+    CHECK(torquer.orientation == orientation);
+    CHECK(torquer.max_dipole == 0.25);
+    CHECK((torquer.misalignment == Magnetorquer::V{{0.0, 0.0, 0.0}}));
+
+    torquer.position = {{4.0, 5.0, 6.0}};
+    torquer.max_dipole = 0.5;
+    torquer.misalignment = {{0.1, 0.0, -0.1}};
+    CHECK((torquer.position == Magnetorquer::V{{4.0, 5.0, 6.0}}));
+    CHECK(torquer.max_dipole == 0.5);
+    CHECK((torquer.misalignment == Magnetorquer::V{{0.1, 0.0, -0.1}}));
 }

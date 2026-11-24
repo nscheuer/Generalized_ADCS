@@ -3,9 +3,9 @@
 #include <utility>
 
 namespace omni::hardware {
-SatellitePanel::SatellitePanel(pybind11::object position_value,
-                               pybind11::object orientation_value,
-                               pybind11::object dimensions_value,
+SatellitePanel::SatellitePanel(std::array<double, 3> position_value,
+                               std::array<double, 3> orientation_value,
+                               std::array<double, 2> dimensions_value,
                                double eta_s_value,
                                double eta_d_value,
                                double eta_a_value,

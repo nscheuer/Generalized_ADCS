@@ -4,7 +4,7 @@
 
 namespace omni::bias {
 struct FixedBias : Bias {
-    explicit FixedBias(double value) : value(value) {}
+    explicit FixedBias(double value) : Bias({value}), value(value) {}
     double value;
 };
 }  // namespace omni::bias

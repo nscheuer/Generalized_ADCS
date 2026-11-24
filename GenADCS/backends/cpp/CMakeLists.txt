@@ -45,6 +45,13 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(cpp_test_bias
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/bias/test_bias.cpp"
+        bias/bias.cpp
+    )
+    target_include_directories(cpp_test_bias PRIVATE bias)
+    add_test(NAME cpp_bias COMMAND cpp_test_bias)
+
     find_package(Python COMPONENTS Interpreter Development.Embed REQUIRED)
     add_library(dynamics_native_test_core STATIC
         dynamics/drag_model/projected_area.cpp
@@ -132,19 +139,16 @@ if(BUILD_TESTING)
     set_tests_properties(rust_config PROPERTIES
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../rust/config"
     )
-    execute_process(
-        COMMAND "${Python_EXECUTABLE}" -c "import site; print(site.getsitepackages()[0])"
-        OUTPUT_VARIABLE GENADCS_PYTHON_SITE_PACKAGES
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
     foreach(component satellite_geometry satellite_panel)
         add_executable(cpp_test_${component}
             ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/satellite_geometry/test_${component}.cpp
+            hardware/satellite_geometry/${component}.cpp
         )
-        target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
-        target_compile_definitions(cpp_test_${component} PRIVATE
-            GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
-        )
+        if(component STREQUAL "satellite_geometry")
+            target_sources(cpp_test_${component} PRIVATE hardware/satellite_geometry/satellite_panel.cpp)
+        endif()
+        target_include_directories(cpp_test_${component} PRIVATE hardware/satellite_geometry)
+        add_test(NAME cpp_${component} COMMAND cpp_test_${component})
     endforeach()
     foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor fine_sun_sensor fine_earth_sensor)
         if(component STREQUAL "gyroscope" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "coarse_sun_sensor" OR component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor")
@@ -155,7 +159,15 @@ if(BUILD_TESTING)
         add_executable(cpp_test_${component}
             "${test_source}"
         )
-        if(NOT component STREQUAL "coarse_sun_sensor" AND NOT component STREQUAL "fine_sun_sensor" AND NOT component STREQUAL "magnetometer" AND NOT component STREQUAL "accelerometer" AND NOT component STREQUAL "gyroscope")
+        if(component STREQUAL "magnetorquer")
+            target_sources(cpp_test_${component} PRIVATE hardware/ADCS_subsystem/magnetorquer.cpp)
+            target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem)
+        endif()
+        if(component STREQUAL "reaction_wheel")
+            target_sources(cpp_test_${component} PRIVATE hardware/ADCS_subsystem/reaction_wheel.cpp)
+            target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem)
+        endif()
+        if(NOT component STREQUAL "coarse_sun_sensor" AND NOT component STREQUAL "fine_sun_sensor" AND NOT component STREQUAL "magnetometer" AND NOT component STREQUAL "accelerometer" AND NOT component STREQUAL "gyroscope" AND NOT component STREQUAL "reaction_wheel" AND NOT component STREQUAL "magnetorquer")
             target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
         endif()
         if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor" OR component STREQUAL "gyroscope")
@@ -210,7 +222,7 @@ if(BUILD_TESTING)
                 target_include_directories(cpp_test_${component} PRIVATE helpers/random)
             endif()
         endif()
-        if(NOT component STREQUAL "coarse_sun_sensor" AND NOT component STREQUAL "fine_sun_sensor" AND NOT component STREQUAL "magnetometer" AND NOT component STREQUAL "accelerometer" AND NOT component STREQUAL "gyroscope")
+        if(NOT component STREQUAL "coarse_sun_sensor" AND NOT component STREQUAL "fine_sun_sensor" AND NOT component STREQUAL "magnetometer" AND NOT component STREQUAL "accelerometer" AND NOT component STREQUAL "gyroscope" AND NOT component STREQUAL "reaction_wheel" AND NOT component STREQUAL "magnetorquer")
             target_compile_definitions(cpp_test_${component} PRIVATE
                 GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
                 GENADCS_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../.."
@@ -242,7 +254,7 @@ if(BUILD_TESTING)
     )
     target_compile_features(state_native_core PUBLIC cxx_std_17)
     target_include_directories(state_native_core PUBLIC state)
-    target_link_libraries(state_native_core PUBLIC Eigen3::Eigen pybind11::embed Python::Python)
+    target_link_libraries(state_native_core PUBLIC Eigen3::Eigen)
     set_target_properties(state_native_core PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON)
@@ -402,7 +414,9 @@ if(BUILD_TESTING)
         )
     endforeach()
     foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor fine_sun_sensor fine_earth_sensor)
-        if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "gyroscope")
+        if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "gyroscope" OR component STREQUAL "magnetorquer")
+            add_test(NAME cpp_${component} COMMAND cpp_test_${component})
+        elseif(component STREQUAL "reaction_wheel")
             add_test(NAME cpp_${component} COMMAND cpp_test_${component})
         elseif(NOT component STREQUAL "fine_sun_sensor" AND NOT component STREQUAL "accelerometer")
             add_dependencies(cpp_test_${component} _adcs_subsystem)

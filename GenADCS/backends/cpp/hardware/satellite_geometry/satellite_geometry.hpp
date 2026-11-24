@@ -1,19 +1,22 @@
 #ifndef ADCS_OMNI_HARDWARE_SATELLITE_GEOMETRY_HPP
 #define ADCS_OMNI_HARDWARE_SATELLITE_GEOMETRY_HPP
 
-#include <pybind11/pybind11.h>
+#include "satellite_panel.hpp"
+
+#include <array>
+#include <vector>
 
 namespace omni::hardware {
 struct SatelliteGeometry {
     SatelliteGeometry(double mass_value,
-                      pybind11::object inertia_value,
-                      pybind11::list panels_value,
-                      pybind11::object center_of_mass_value);
+                      std::array<double, 9> inertia_value,
+                      std::vector<SatellitePanel> panels_value = {},
+                      std::array<double, 3> center_of_mass_value = {0.0, 0.0, 0.0});
 
     double mass;
-    pybind11::object inertia;
-    pybind11::list panels;
-    pybind11::object center_of_mass;
+    std::array<double, 9> inertia;
+    std::vector<SatellitePanel> panels;
+    std::array<double, 3> center_of_mass;
 };
 }
 
