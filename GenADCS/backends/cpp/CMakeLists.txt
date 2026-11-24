@@ -146,13 +146,33 @@ if(BUILD_TESTING)
             GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
         )
     endforeach()
-    foreach(component adcs_subsystem effects magnetorquer reaction_wheel)
+    foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor fine_sun_sensor fine_earth_sensor)
+        if(component STREQUAL "gyroscope" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "coarse_sun_sensor" OR component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor")
+            set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/sensors/test_${component}.cpp")
+        else()
+            set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/test_${component}.cpp")
+        endif()
         add_executable(cpp_test_${component}
-            ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/test_${component}.cpp
+            "${test_source}"
         )
         target_link_libraries(cpp_test_${component} PRIVATE pybind11::embed Python::Python)
+        if(component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor")
+            target_sources(cpp_test_${component} PRIVATE
+                hardware/ADCS_subsystem/sensors/kernels.cpp
+                helpers/math/rotations/sensor_kernels.cpp
+            )
+            target_include_directories(cpp_test_${component} PRIVATE
+                hardware/ADCS_subsystem/sensors helpers/math/rotations
+            )
+            target_link_libraries(cpp_test_${component} PRIVATE Eigen3::Eigen)
+            if(component STREQUAL "fine_earth_sensor")
+                target_sources(cpp_test_${component} PRIVATE helpers/random/philox.cpp)
+                target_include_directories(cpp_test_${component} PRIVATE helpers/random)
+            endif()
+        endif()
         target_compile_definitions(cpp_test_${component} PRIVATE
             GENADCS_PYTHON_SITE_PACKAGES="${GENADCS_PYTHON_SITE_PACKAGES}"
+            GENADCS_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../.."
         )
     endforeach()
     foreach(component derivatives dynamics vector)
@@ -236,6 +256,12 @@ if(BUILD_TESTING)
         target_link_libraries(cpp_test_frames_${component} PRIVATE frames_native_core)
         add_test(NAME cpp_frames_${component} COMMAND cpp_test_frames_${component})
     endforeach()
+    add_executable(cpp_test_random_philox
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/helpers/random/test_philox.cpp
+        helpers/random/philox.cpp
+    )
+    target_include_directories(cpp_test_random_philox PRIVATE helpers/random)
+    add_test(NAME cpp_random_philox COMMAND cpp_test_random_philox)
 endif()
 
 pybind11_add_module(_bias
@@ -301,9 +327,18 @@ pybind11_add_module(_adcs_subsystem
     hardware/ADCS_subsystem/effects.cpp
     hardware/ADCS_subsystem/magnetorquer.cpp
     hardware/ADCS_subsystem/reaction_wheel.cpp
+    hardware/ADCS_subsystem/sensors/gyroscope.cpp
+    hardware/ADCS_subsystem/sensors/magnetometer.cpp
+    hardware/ADCS_subsystem/sensors/kernels.cpp
+    hardware/ADCS_subsystem/sensors/accelerometer.cpp
+    hardware/ADCS_subsystem/sensors/coarse_sun_sensor.cpp
+    hardware/ADCS_subsystem/sensors/fine_sun_sensor.cpp
+    helpers/math/rotations/sensor_kernels.cpp
+    helpers/random/philox.cpp
 )
 target_compile_features(_adcs_subsystem PRIVATE cxx_std_17)
-target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem)
+target_link_libraries(_adcs_subsystem PRIVATE Eigen3::Eigen)
+target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem hardware/ADCS_subsystem/sensors helpers/random helpers/math/rotations)
 set_target_properties(_adcs_subsystem PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware/ADCS_subsystem")
 
@@ -323,7 +358,7 @@ if(BUILD_TESTING)
             COMMAND cpp_test_${component} "$<TARGET_FILE:_satellite_geometry>"
         )
     endforeach()
-    foreach(component adcs_subsystem effects magnetorquer reaction_wheel)
+    foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor fine_sun_sensor fine_earth_sensor)
         add_dependencies(cpp_test_${component} _adcs_subsystem)
         add_test(NAME cpp_${component}
             COMMAND cpp_test_${component} "$<TARGET_FILE:_adcs_subsystem>"
