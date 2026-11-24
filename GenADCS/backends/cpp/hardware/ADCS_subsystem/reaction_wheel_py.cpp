@@ -20,9 +20,10 @@ namespace {
 struct BoundReactionWheel {
     hardware::ReactionWheel native;
     py::list effects;
+    py::object position, orientation, misalignment;
 
-    BoundReactionWheel(hardware::ReactionWheel value, py::list effect_values)
-        : native(std::move(value)), effects(std::move(effect_values)) {}
+    BoundReactionWheel(hardware::ReactionWheel value, py::list effect_values, py::object p, py::object o, py::object m)
+        : native(std::move(value)), effects(std::move(effect_values)), position(std::move(p)), orientation(std::move(o)), misalignment(std::move(m)) {}
 };
 
 
@@ -55,26 +56,18 @@ void bind_reaction_wheel(py::module_& module) {
                          double max_momentum, py::object misalignment,
                          py::object effects) {
             if (misalignment.is_none()) misalignment = py::make_tuple(0.0, 0.0, 0.0);
-            auto native = hardware::ReactionWheel(read_fixed<3>(position, "position"),
-                read_fixed<3>(orientation, "orientation"), rotational_inertia,
-                max_torque, max_momentum, read_fixed<3>(misalignment, "misalignment"));
-            return BoundReactionWheel(std::move(native), fresh_list(effects));
+            auto native = hardware::ReactionWheel({}, {}, rotational_inertia, max_torque, max_momentum, {});
+            return BoundReactionWheel(std::move(native), fresh_list(effects), py::reinterpret_borrow<py::object>(position), py::reinterpret_borrow<py::object>(orientation), misalignment);
         }), py::arg("position"), py::arg("orientation"),
             py::arg("rotational_inertia"), py::arg("max_torque"),
             py::arg("max_momentum"), py::arg("misalignment") = py::none(),
             py::arg("effects") = py::none())
-        .def_property("position", [](const BoundReactionWheel& self) {
-            return py::make_tuple(self.native.position[0], self.native.position[1], self.native.position[2]);
-        }, [](BoundReactionWheel& self, py::handle value) { self.native.position = read_fixed<3>(value, "position"); })
-        .def_property("orientation", [](const BoundReactionWheel& self) {
-            return py::make_tuple(self.native.orientation[0], self.native.orientation[1], self.native.orientation[2]);
-        }, [](BoundReactionWheel& self, py::handle value) { self.native.orientation = read_fixed<3>(value, "orientation"); })
+        .def_readwrite("position", &BoundReactionWheel::position)
+        .def_readwrite("orientation", &BoundReactionWheel::orientation)
         .def_property("rotational_inertia", [](const BoundReactionWheel& self) { return self.native.rotational_inertia; }, [](BoundReactionWheel& self, double value) { self.native.rotational_inertia = value; })
         .def_property("max_torque", [](const BoundReactionWheel& self) { return self.native.max_torque; }, [](BoundReactionWheel& self, double value) { self.native.max_torque = value; })
         .def_property("max_momentum", [](const BoundReactionWheel& self) { return self.native.max_momentum; }, [](BoundReactionWheel& self, double value) { self.native.max_momentum = value; })
-        .def_property("misalignment", [](const BoundReactionWheel& self) {
-            return py::make_tuple(self.native.misalignment[0], self.native.misalignment[1], self.native.misalignment[2]);
-        }, [](BoundReactionWheel& self, py::handle value) { self.native.misalignment = read_fixed<3>(value, "misalignment"); })
+        .def_readwrite("misalignment", &BoundReactionWheel::misalignment)
         .def_readwrite("effects", &BoundReactionWheel::effects)
         .def_property_readonly("noises", [](const BoundReactionWheel& self) {
             return hardware::filter_effects(self.effects, "GenADCS.backends.python.noise", "Noise");
@@ -88,12 +81,12 @@ void bind_reaction_wheel(py::module_& module) {
         }, py::arg("value"), py::arg("dt"), py::arg("rng") = py::none())
         .def("__eq__", [](const BoundReactionWheel& left,
                            const BoundReactionWheel& right) {
-            return left.native.position == right.native.position
-                && left.native.orientation == right.native.orientation
+            return same(left.position, right.position)
+                && same(left.orientation, right.orientation)
                 && (left.native.rotational_inertia == right.native.rotational_inertia)
                 && (left.native.max_torque == right.native.max_torque)
                 && (left.native.max_momentum == right.native.max_momentum)
-                && left.native.misalignment == right.native.misalignment
+                && same(left.misalignment, right.misalignment)
                 && same(left.effects, right.effects);
         });
 

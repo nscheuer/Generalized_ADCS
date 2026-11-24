@@ -1,8 +1,18 @@
 #include "python_conversions.hpp"
 using namespace omni::state_bindings;
 
+namespace {
+py::object cached_body_position(py::object self, py::object body) {
+    if (!py::hasattr(self, "_cached_python_positions"))
+        self.attr("_cached_python_positions") = py::dict();
+    py::dict cache = self.attr("_cached_python_positions");
+    py::str key = py::str(body);
+    if (!cache.contains(key)) cache[key] = body_position(self.cast<OrbitalState&>(), body);
+    return py::reinterpret_borrow<py::object>(cache[key]);
+}
+}
 void bind_orbital_state(py::module_& m) {
-    py::class_<OrbitalState>(m, "OrbitalState")
+    py::class_<OrbitalState>(m, "OrbitalState", py::dynamic_attr())
         .def(py::init([](py::object p, py::object v, double jd, py::object e) { return orbital(p, v, jd, e); }), py::arg("_position"), py::arg("_velocity"), py::arg("julian_date"), py::arg("ephemeris") = py::none())
         .def_static("from_cartesian", [](py::object p, py::object v, double jd, py::object e) { return orbital(p, v, jd, e); }, py::arg("position"), py::arg("velocity"), py::arg("julian_date"), py::arg("ephemeris") = py::none())
         .def_static("from_keplerian", [](double a, double e, double i, double node, double periapsis, double anomaly, double jd, py::object ephemeris) {
@@ -30,10 +40,10 @@ void bind_orbital_state(py::module_& m) {
             }
         })
         .def_property_readonly("_keplerian_elements", [](const OrbitalState& s) -> py::object { return s.keplerian_elements ? py::cast(*s.keplerian_elements) : py::none(); })
-        .def("body_position", &body_position)
-        .def_property_readonly("sun_position", [](OrbitalState& s) { return body_position(s, py::str("sun")); })
-        .def_property_readonly("earth_position", [](OrbitalState& s) { return body_position(s, py::str("earth")); })
-        .def_property_readonly("moon_position", [](OrbitalState& s) { return body_position(s, py::str("moon")); })
+        .def("body_position", &cached_body_position)
+        .def_property_readonly("sun_position", [](py::object self) { return cached_body_position(self, py::str("sun")); })
+        .def_property_readonly("earth_position", [](py::object self) { return cached_body_position(self, py::str("earth")); })
+        .def_property_readonly("moon_position", [](py::object self) { return cached_body_position(self, py::str("moon")); })
         .def_static("from_python", &orbital_from_python)
         .def("to_python", [](const OrbitalState& s) { return to_python(s); });
 
