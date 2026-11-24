@@ -4,13 +4,17 @@
 #include <string>
 #include <vector>
 
-#define CHECK(condition) do { \
-    if (!(condition)) throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " failed: " #condition); \
-} while (false)
+#define CHECK(condition)                                                                                               \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (!(condition))                                                                                              \
+            throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " failed: " #condition); \
+    } while (false)
 
 using omni::config::DynamicsConfig;
 
-int main() {
+int main()
+{
     DynamicsConfig first;
     DynamicsConfig second;
     CHECK(first.forces.empty());

@@ -6,9 +6,15 @@
 using omni::hardware::Satellite;
 using omni::hardware::SatelliteGeometry;
 
-#define CHECK(condition) do { if (!(condition)) throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " failed: " #condition); } while (false)
+#define CHECK(condition)                                                                                               \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (!(condition))                                                                                              \
+            throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " failed: " #condition); \
+    } while (false)
 
-int main() {
+int main()
+{
     SatelliteGeometry geometry(12.5, {{2, 0, 0, 0, 3, 0, 0, 0, 4}});
     Satellite satellite(geometry);
     CHECK(satellite.geometry.mass == 12.5);

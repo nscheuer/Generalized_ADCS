@@ -6,7 +6,8 @@
 
 using namespace omni::environment;
 
-int main() {
+int main()
+{
     const auto igrf_kernel = environment_data_path("magnetic_field_model/igrf14/IGRF14.shc");
     const auto chaos_core_kernel = environment_data_path("magnetic_field_model/chaos8/CHAOS-8.7_core.shc");
     const auto chaos_static_kernel = environment_data_path("magnetic_field_model/chaos8/CHAOS-8.7_static.shc");
@@ -27,8 +28,14 @@ int main() {
         malformed << "1 1 1 0 0\n2020\n1 0\n";
     }
     bool rejected = false;
-    try { (void)read_shc(path, 1, 1); }
-    catch (const std::runtime_error&) { rejected = true; }
+    try
+    {
+        (void)read_shc(path, 1, 1);
+    }
+    catch (const std::runtime_error &)
+    {
+        rejected = true;
+    }
     std::filesystem::remove(path);
     CHECK(rejected);
     return 0;

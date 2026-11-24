@@ -4,33 +4,45 @@
 #include <limits>
 #include <stdexcept>
 
-namespace {
-struct TestPropagator {
+namespace
+{
+struct TestPropagator
+{
     double step_size;
 
-    double dt() const { return step_size; }
+    double dt() const
+    {
+        return step_size;
+    }
 
-    int step(int state, int satellite, int environment, int dynamics) const {
+    int step(int state, int satellite, int environment, int dynamics) const
+    {
         return state + satellite + environment + dynamics;
     }
 };
 
-void check(bool condition) {
-    if (!condition) throw std::runtime_error("coupled solver test assertion failed");
+void check(bool condition)
+{
+    if (!condition)
+        throw std::runtime_error("coupled solver test assertion failed");
 }
 
-template <typename Function>
-bool throws_invalid_argument(Function&& function) {
-    try {
+template <typename Function> bool throws_invalid_argument(Function &&function)
+{
+    try
+    {
         function();
-    } catch (const std::invalid_argument&) {
+    }
+    catch (const std::invalid_argument &)
+    {
         return true;
     }
     return false;
 }
-}
+} // namespace
 
-int main() {
+int main()
+{
     using Solver = omni::solver::CoupledSolver<TestPropagator>;
 
     const Solver solver(TestPropagator{0.25}, 10.0, true, 20);
@@ -46,19 +58,9 @@ int main() {
     check(!zero_duration.progress);
     check(zero_duration.progress_chunk_steps == 500);
 
-    check(throws_invalid_argument([] {
-        Solver(TestPropagator{0.1}, -1.0);
-    }));
-    check(throws_invalid_argument([] {
-        Solver(TestPropagator{0.1}, std::numeric_limits<double>::infinity());
-    }));
-    check(throws_invalid_argument([] {
-        Solver(TestPropagator{0.1}, std::numeric_limits<double>::quiet_NaN());
-    }));
-    check(throws_invalid_argument([] {
-        Solver(TestPropagator{0.1}, 1.0, false, 0);
-    }));
-    check(throws_invalid_argument([] {
-        Solver(TestPropagator{0.1}, 1.0, false, -1);
-    }));
+    check(throws_invalid_argument([] { Solver(TestPropagator{0.1}, -1.0); }));
+    check(throws_invalid_argument([] { Solver(TestPropagator{0.1}, std::numeric_limits<double>::infinity()); }));
+    check(throws_invalid_argument([] { Solver(TestPropagator{0.1}, std::numeric_limits<double>::quiet_NaN()); }));
+    check(throws_invalid_argument([] { Solver(TestPropagator{0.1}, 1.0, false, 0); }));
+    check(throws_invalid_argument([] { Solver(TestPropagator{0.1}, 1.0, false, -1); }));
 }

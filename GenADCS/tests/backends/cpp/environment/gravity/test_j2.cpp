@@ -4,7 +4,8 @@
 
 using namespace omni::environment;
 
-int main() {
+int main()
+{
     const Eigen::Vector3d position(7'000'000.0, 0.0, 0.0);
     const J2 model;
     const Eigen::Vector3d acceleration = model.evaluate(position);

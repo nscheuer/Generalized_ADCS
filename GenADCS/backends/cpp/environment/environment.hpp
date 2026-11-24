@@ -8,16 +8,16 @@
 
 #include <memory>
 
-namespace omni::environment {
+namespace omni::environment
+{
 
 // Holds the native environmental models used by a simulation. Python objects
 // are converted to these native model types in environment_py.cpp.
-struct Environment {
+struct Environment
+{
     Environment();
-    Environment(std::shared_ptr<PlanetaryBody> planetary_body,
-                std::shared_ptr<AtmosphericModel> atmosphere,
-                std::shared_ptr<MagneticFieldModel> magnetic_field,
-                std::shared_ptr<JGravityModel> j_gravity,
+    Environment(std::shared_ptr<PlanetaryBody> planetary_body, std::shared_ptr<AtmosphericModel> atmosphere,
+                std::shared_ptr<MagneticFieldModel> magnetic_field, std::shared_ptr<JGravityModel> j_gravity,
                 std::shared_ptr<DE421> ephemeris);
 
     std::shared_ptr<PlanetaryBody> planetary_body;

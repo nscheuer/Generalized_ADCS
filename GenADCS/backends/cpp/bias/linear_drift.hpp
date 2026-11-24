@@ -2,11 +2,15 @@
 
 #include "bias.hpp"
 
-namespace omni::bias {
-struct LinearDrift : Bias {
+namespace omni::bias
+{
+struct LinearDrift : Bias
+{
     explicit LinearDrift(double rate, double initial_value = 0.0)
-        : Bias({initial_value}), rate(rate), initial_value(initial_value) {}
+        : Bias({initial_value}), rate(rate), initial_value(initial_value)
+    {
+    }
     double rate;
     double initial_value;
 };
-}  // namespace omni::bias
+} // namespace omni::bias

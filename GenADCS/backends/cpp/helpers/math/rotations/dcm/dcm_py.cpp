@@ -1,14 +1,14 @@
 #include "derivatives.hpp"
 #include "dynamics.hpp"
 #include "rotations/_parameter_base.hpp"
-#include "rotations/quaternion/algebra.hpp"
-#include "rotations/quaternion/conversions.hpp"
-#include "rotations/quaternion/interpolation.hpp"
-#include "rotations/quaternion/quaternion.hpp"
 #include "rotations/dcm/dcm.hpp"
 #include "rotations/dcm/kernels.hpp"
 #include "rotations/mrp/kernels.hpp"
 #include "rotations/mrp/modified_rodrigues_parameters.hpp"
+#include "rotations/quaternion/algebra.hpp"
+#include "rotations/quaternion/conversions.hpp"
+#include "rotations/quaternion/interpolation.hpp"
+#include "rotations/quaternion/quaternion.hpp"
 #include "rotations/rodrigues/kernels.hpp"
 #include "rotations/rodrigues/rodrigues_parameters.hpp"
 #include "vector.hpp"
@@ -23,16 +23,20 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-namespace {
-py::object numpy_array(py::object value, py::object dtype) {
+namespace
+{
+py::object numpy_array(py::object value, py::object dtype)
+{
     py::object numpy = py::module_::import("numpy");
-    if (dtype.is_none()) return numpy.attr("asarray")(value).attr("copy")();
+    if (dtype.is_none())
+        return numpy.attr("asarray")(value).attr("copy")();
     return numpy.attr("asarray")(value, py::arg("dtype") = dtype).attr("copy")();
 }
-}
-void bind_rotations_dcm_dcm(py::module_& module) {
+} // namespace
+void bind_rotations_dcm_dcm(py::module_ &module)
+{
     py::class_<rotations::DCM>(module, "DCM")
-        .def(py::init<const rotations::Matrix3&>(), py::arg("matrix") = rotations::Matrix3::Identity())
+        .def(py::init<const rotations::Matrix3 &>(), py::arg("matrix") = rotations::Matrix3::Identity())
         .def_static("identity", &rotations::DCM::identity)
         .def_static("from_axis_angle", &rotations::DCM::from_axis_angle)
         .def_static("from_rotation_vector", &rotations::DCM::from_rotation_vector)
@@ -54,8 +58,8 @@ void bind_rotations_dcm_dcm(py::module_& module) {
         .def("body_to_inertial", &rotations::DCM::body_to_inertial)
         .def("relative_to", &rotations::DCM::relative_to)
         .def("__mul__", &rotations::DCM::multiply)
-        .def("__array__", [](const rotations::DCM& self, py::object dtype) {
-            return numpy_array(py::cast(self.as_matrix()), dtype);
-        }, py::arg("dtype") = py::none());
-
+        .def(
+            "__array__",
+            [](const rotations::DCM &self, py::object dtype) { return numpy_array(py::cast(self.as_matrix()), dtype); },
+            py::arg("dtype") = py::none());
 }

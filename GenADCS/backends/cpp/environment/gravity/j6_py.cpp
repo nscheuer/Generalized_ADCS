@@ -1,8 +1,8 @@
+#include "atmosphere/atmospheric_model.hpp"
 #include "environment.hpp"
 #include "gravity/j_gravity_model.hpp"
-#include "planetary_body/planetary_body.hpp"
-#include "atmosphere/atmospheric_model.hpp"
 #include "native_models.hpp"
+#include "planetary_body/planetary_body.hpp"
 
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
@@ -17,7 +17,8 @@
 namespace py = pybind11;
 namespace env = omni::environment;
 
-void bind_gravity_j6(py::module_& module) {
+void bind_gravity_j6(py::module_ &module)
+{
     py::class_<env::J6, env::JGravityModel, std::shared_ptr<env::J6>>(module, "J6").def(py::init<>());
     module.attr("J6").attr("degree") = 6;
 }

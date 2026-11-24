@@ -6,15 +6,16 @@
 
 #include <vector>
 
-namespace omni::hardware {
-struct ADCSSubsystem {
+namespace omni::hardware
+{
+struct ADCSSubsystem
+{
     ADCSSubsystem() = default;
-    ADCSSubsystem(std::vector<ReactionWheel> reaction_wheels_value,
-                  std::vector<Magnetorquer> magnetorquers_value);
+    ADCSSubsystem(std::vector<ReactionWheel> reaction_wheels_value, std::vector<Magnetorquer> magnetorquers_value);
 
     std::vector<ReactionWheel> reaction_wheels;
     std::vector<Magnetorquer> magnetorquers;
 };
-}
+} // namespace omni::hardware
 
 #endif

@@ -1,3 +1,6 @@
 #pragma once
 #include "j_gravity_model.hpp"
-namespace omni::environment { class J5; }
+namespace omni::environment
+{
+class J5;
+}

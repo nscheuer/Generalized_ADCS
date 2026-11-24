@@ -3,8 +3,10 @@
 
 #include <array>
 
-namespace omni::hardware {
-struct Magnetorquer {
+namespace omni::hardware
+{
+struct Magnetorquer
+{
     using V = std::array<double, 3>;
 
     Magnetorquer(V position_value, V orientation_value, double max_dipole_value,
@@ -15,6 +17,6 @@ struct Magnetorquer {
     double max_dipole;
     V misalignment;
 };
-}
+} // namespace omni::hardware
 
 #endif

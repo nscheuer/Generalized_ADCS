@@ -6,14 +6,17 @@
 #include <stdexcept>
 #include <string>
 
-#define CHECK(condition) do { \
-    if (!(condition)) throw std::runtime_error(std::string(__FILE__) + ":" + \
-        std::to_string(__LINE__) + " failed: " #condition); \
-} while (false)
+#define CHECK(condition)                                                                                               \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (!(condition))                                                                                              \
+            throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " failed: " #condition); \
+    } while (false)
 
 namespace random_helper = omni::helpers::random;
 
-void test_philox4x32_10_reference_vector() {
+void test_philox4x32_10_reference_vector()
+{
     const auto words = random_helper::philox4x32(0, 0, 0, 0);
     CHECK(words[0] == 0x6627E8D5U);
     CHECK(words[1] == 0xE169C58DU);
@@ -21,7 +24,8 @@ void test_philox4x32_10_reference_vector() {
     CHECK(words[3] == 0x9B00DBD8U);
 }
 
-void test_normals_are_repeatable_and_counter_separated() {
+void test_normals_are_repeatable_and_counter_separated()
+{
     constexpr std::uint64_t seed = 123456789;
     const auto values = random_helper::standard_normals(seed, 7, 2, 6);
     const auto repeated = random_helper::standard_normals(seed, 7, 2, 6);
@@ -32,13 +36,21 @@ void test_normals_are_repeatable_and_counter_separated() {
     CHECK(values != other_tick);
     CHECK(values != other_sensor);
     CHECK(values != other_seed);
-    for (double value : values) CHECK(std::isfinite(value));
+    for (double value : values)
+        CHECK(std::isfinite(value));
 }
 
-void test_invalid_seed_is_rejected() {
+void test_invalid_seed_is_rejected()
+{
     const auto rejected = [](auto seed) {
-        try { (void)random_helper::validate_seed(seed); }
-        catch (const std::invalid_argument&) { return true; }
+        try
+        {
+            (void)random_helper::validate_seed(seed);
+        }
+        catch (const std::invalid_argument &)
+        {
+            return true;
+        }
         return false;
     };
     CHECK(rejected(-1LL));
@@ -49,7 +61,8 @@ void test_invalid_seed_is_rejected() {
           std::numeric_limits<std::uint64_t>::max());
 }
 
-int main() {
+int main()
+{
     test_philox4x32_10_reference_vector();
     test_normals_are_repeatable_and_counter_separated();
     test_invalid_seed_is_rejected();

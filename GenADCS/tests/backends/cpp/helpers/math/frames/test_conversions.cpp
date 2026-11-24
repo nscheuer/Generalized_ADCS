@@ -4,16 +4,25 @@
 #include <limits>
 #include <stdexcept>
 
-#define CHECK(x) do { if (!(x)) throw std::runtime_error("failed: " #x); } while (false)
+#define CHECK(x)                                                                                                       \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (!(x))                                                                                                      \
+            throw std::runtime_error("failed: " #x);                                                                   \
+    } while (false)
 using namespace omni::frames;
 
-int main() {
+int main()
+{
     constexpr double jd = 2451545.0;
-    FrameContext context; context.jd_ut1 = jd; context.jd_tt = jd;
+    FrameContext context;
+    context.jd_ut1 = jd;
+    context.jd_tt = jd;
     context.position_gcrf = Vector3(7e6, 0, 0);
     context.velocity_gcrf = Vector3(0, 7500, 0);
     context.quaternion_body_from_gcrf = Quaternion(1, 0, 0, 0);
-    for (Frame target : {Frame::Gcrf, Frame::Ecef, Frame::Teme, Frame::Lvlh, Frame::Body}) {
+    for (Frame target : {Frame::Gcrf, Frame::Ecef, Frame::Teme, Frame::Lvlh, Frame::Body})
+    {
         const auto matrix = frame_rotation(Frame::Gcrf, target, context);
         CHECK((matrix * matrix.transpose()).isApprox(Matrix3::Identity(), 2e-12));
         CHECK(std::abs(matrix.determinant() - 1.0) < 2e-12);
@@ -27,37 +36,94 @@ int main() {
     CHECK(lvlh.isApprox(Matrix3::Identity(), 1e-14));
     Vector3 zero = Vector3::Zero();
     bool rejected = false;
-    try { (void)gcrf_to_lvlh_matrix(zero, *context.velocity_gcrf); } catch (const std::invalid_argument&) { rejected = true; }
+    try
+    {
+        (void)gcrf_to_lvlh_matrix(zero, *context.velocity_gcrf);
+    }
+    catch (const std::invalid_argument &)
+    {
+        rejected = true;
+    }
     CHECK(rejected);
     rejected = false;
-    try { (void)frame_rotation(Frame::Gcrf, Frame::Ecef); } catch (const std::invalid_argument&) { rejected = true; }
+    try
+    {
+        (void)frame_rotation(Frame::Gcrf, Frame::Ecef);
+    }
+    catch (const std::invalid_argument &)
+    {
+        rejected = true;
+    }
     CHECK(rejected);
     rejected = false;
-    try { (void)parse_frame("invalid"); } catch (const std::invalid_argument&) { rejected = true; }
+    try
+    {
+        (void)parse_frame("invalid");
+    }
+    catch (const std::invalid_argument &)
+    {
+        rejected = true;
+    }
     CHECK(rejected);
     rejected = false;
-    try { FrameContext missing; missing.jd_ut1 = jd; (void)frame_rotation(Frame::Gcrf, Frame::Teme, missing); }
-    catch (const std::invalid_argument&) { rejected = true; }
+    try
+    {
+        FrameContext missing;
+        missing.jd_ut1 = jd;
+        (void)frame_rotation(Frame::Gcrf, Frame::Teme, missing);
+    }
+    catch (const std::invalid_argument &)
+    {
+        rejected = true;
+    }
     CHECK(rejected);
     rejected = false;
-    try { FrameContext missing; (void)frame_rotation(Frame::Gcrf, Frame::Lvlh, missing); }
-    catch (const std::invalid_argument&) { rejected = true; }
+    try
+    {
+        FrameContext missing;
+        (void)frame_rotation(Frame::Gcrf, Frame::Lvlh, missing);
+    }
+    catch (const std::invalid_argument &)
+    {
+        rejected = true;
+    }
     CHECK(rejected);
     rejected = false;
-    try { FrameContext missing; (void)frame_rotation(Frame::Gcrf, Frame::Body, missing); }
-    catch (const std::invalid_argument&) { rejected = true; }
+    try
+    {
+        FrameContext missing;
+        (void)frame_rotation(Frame::Gcrf, Frame::Body, missing);
+    }
+    catch (const std::invalid_argument &)
+    {
+        rejected = true;
+    }
     CHECK(rejected);
     rejected = false;
-    try { (void)gcrf_to_ecef_matrix(std::numeric_limits<double>::quiet_NaN(), jd); }
-    catch (const std::invalid_argument&) { rejected = true; }
+    try
+    {
+        (void)gcrf_to_ecef_matrix(std::numeric_limits<double>::quiet_NaN(), jd);
+    }
+    catch (const std::invalid_argument &)
+    {
+        rejected = true;
+    }
     CHECK(rejected);
-    Vector3 parallel; parallel << 2, 0, 0;
+    Vector3 parallel;
+    parallel << 2, 0, 0;
     rejected = false;
-    try { (void)gcrf_to_lvlh_matrix(*context.position_gcrf, parallel); }
-    catch (const std::invalid_argument&) { rejected = true; }
+    try
+    {
+        (void)gcrf_to_lvlh_matrix(*context.position_gcrf, parallel);
+    }
+    catch (const std::invalid_argument &)
+    {
+        rejected = true;
+    }
     CHECK(rejected);
 
-    Vector3 x; x << 1, -2, 3;
+    Vector3 x;
+    x << 1, -2, 3;
     const auto converted = convert_vector(x, Frame::Gcrf, Frame::Ecef, context);
     CHECK(convert_vector(converted, Frame::Ecef, Frame::Gcrf, context).isApprox(x, 2e-12));
     const auto equator = ecef_to_geodetic(Vector3(6378137.0, 0, 0));
@@ -70,7 +136,15 @@ int main() {
     CHECK(std::abs(ecef_to_geodetic(Vector3(0, -6378137.0, 0))[1] + 90.0) < 1e-10);
     CHECK(std::abs(ecef_to_geodetic(Vector3(-6378137.0, 0, 0))[1] - 180.0) < 1e-10);
     rejected = false;
-    Vector3 nonfinite = Vector3::Zero(); nonfinite[0] = std::numeric_limits<double>::infinity();
-    try { (void)ecef_to_geodetic(nonfinite); } catch (const std::invalid_argument&) { rejected = true; }
+    Vector3 nonfinite = Vector3::Zero();
+    nonfinite[0] = std::numeric_limits<double>::infinity();
+    try
+    {
+        (void)ecef_to_geodetic(nonfinite);
+    }
+    catch (const std::invalid_argument &)
+    {
+        rejected = true;
+    }
     CHECK(rejected);
 }

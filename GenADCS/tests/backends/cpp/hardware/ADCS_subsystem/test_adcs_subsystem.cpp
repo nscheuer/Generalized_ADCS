@@ -5,13 +5,13 @@ using omni::hardware::ADCSSubsystem;
 using omni::hardware::Magnetorquer;
 using omni::hardware::ReactionWheel;
 
-int main() {
+int main()
+{
     const ADCSSubsystem empty;
     CHECK(empty.reaction_wheels.empty());
     CHECK(empty.magnetorquers.empty());
 
-    const ReactionWheel wheel({{1.0, 2.0, 3.0}}, {{0.0, 0.0, 1.0}},
-                              0.05, 0.15, 3.0);
+    const ReactionWheel wheel({{1.0, 2.0, 3.0}}, {{0.0, 0.0, 1.0}}, 0.05, 0.15, 3.0);
     const Magnetorquer torquer({{0.0, 1.0, 0.0}}, {{1.0, 0.0, 0.0}}, 0.25);
     const ADCSSubsystem populated({wheel}, {torquer});
     CHECK(populated.reaction_wheels.size() == 1);

@@ -3,4 +3,4 @@
 
 #include "rotation_types.hpp"
 
-#endif  // ADCS_OMNI_ROTATIONS__PARAMETER_BASE_HPP_HPP
+#endif // ADCS_OMNI_ROTATIONS__PARAMETER_BASE_HPP_HPP

@@ -3,4 +3,4 @@
 
 #include "../rotation_types.hpp"
 
-#endif  // ADCS_OMNI_ROTATIONS_RODRIGUES_KERNELS_HPP_HPP
+#endif // ADCS_OMNI_ROTATIONS_RODRIGUES_KERNELS_HPP_HPP

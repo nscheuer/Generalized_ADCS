@@ -4,11 +4,17 @@
 #include <stdexcept>
 #include <string>
 
-#define CHECK(condition) do { if (!(condition)) throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " failed: " #condition); } while (false)
+#define CHECK(condition)                                                                                               \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (!(condition))                                                                                              \
+            throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + " failed: " #condition); \
+    } while (false)
 
 using namespace omni::environment;
 
-int main() {
+int main()
+{
     const Environment defaults;
     CHECK(defaults.planetary_body != nullptr);
     CHECK(defaults.planetary_body->name == "Earth");

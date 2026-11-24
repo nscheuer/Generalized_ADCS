@@ -2,9 +2,13 @@
 
 #include "bias.hpp"
 
-namespace omni::bias {
-struct FixedBias : Bias {
-    explicit FixedBias(double value) : Bias({value}), value(value) {}
+namespace omni::bias
+{
+struct FixedBias : Bias
+{
+    explicit FixedBias(double value) : Bias({value}), value(value)
+    {
+    }
     double value;
 };
-}  // namespace omni::bias
+} // namespace omni::bias

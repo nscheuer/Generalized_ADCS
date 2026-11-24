@@ -6,10 +6,11 @@
 #include <array>
 #include <vector>
 
-namespace omni::hardware {
-struct SatelliteGeometry {
-    SatelliteGeometry(double mass_value,
-                      std::array<double, 9> inertia_value,
+namespace omni::hardware
+{
+struct SatelliteGeometry
+{
+    SatelliteGeometry(double mass_value, std::array<double, 9> inertia_value,
                       std::vector<SatellitePanel> panels_value = {},
                       std::array<double, 3> center_of_mass_value = {0.0, 0.0, 0.0});
 
@@ -18,6 +19,6 @@ struct SatelliteGeometry {
     std::vector<SatellitePanel> panels;
     std::array<double, 3> center_of_mass;
 };
-}
+} // namespace omni::hardware
 
 #endif

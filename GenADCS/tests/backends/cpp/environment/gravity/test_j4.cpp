@@ -3,7 +3,8 @@
 
 using namespace omni::environment;
 
-int main() {
+int main()
+{
     const J4 model;
     const JGravityModel point_mass(std::vector<int>{});
     const Eigen::Vector3d p(7e6, 0.0, 1e6);
