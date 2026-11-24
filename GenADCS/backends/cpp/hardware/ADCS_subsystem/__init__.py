@@ -6,5 +6,6 @@ from .sensors.accelerometer import Accelerometer
 from .sensors.coarse_sun_sensor import CoarseSunSensor
 from .sensors.fine_sun_sensor import FineSunSensor
 from .sensors.fine_earth_sensor import FineEarthSensor
+from .sensors import GNSS
 
-__all__ = ["ADCSSubsystem", "Accelerometer", "CoarseSunSensor", "FineEarthSensor", "FineSunSensor", "Gyroscope", "Magnetometer", "Magnetorquer", "ReactionWheel"]
+__all__ = ["ADCSSubsystem", "Accelerometer", "CoarseSunSensor", "FineEarthSensor", "FineSunSensor", "GNSS", "Gyroscope", "Magnetometer", "Magnetorquer", "ReactionWheel"]
