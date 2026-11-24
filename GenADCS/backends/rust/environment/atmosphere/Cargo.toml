@@ -16,3 +16,6 @@ python-extension = ["pyo3/extension-module"]
 pyo3 = { version = "0.20" }
 nrlmsise00 = { version = "0.2", default-features = false }
 magnetic_native = { package = "adcs-omni-rust-magnetic-field", path = "../magnetic_field_model", default-features = false }
+
+[dev-dependencies]
+pyo3 = { version = "0.20", features = ["auto-initialize"] }

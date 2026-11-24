@@ -1,15 +1,7 @@
-#[pyclass(extends = JGravityModel)]
-struct J2;
+/// Native marker for the degree-2 zonal gravity model.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct J2;
 
-#[pymethods]
 impl J2 {
-    #[classattr]
-    fn degree() -> i32 {
-        2
-    }
-
-    #[new]
-    fn new() -> PyClassInitializer<Self> {
-        PyClassInitializer::from(JGravityModel::configured(vec![2], None).unwrap()).add_subclass(Self)
-    }
+    pub const DEGREE: u8 = 2;
 }

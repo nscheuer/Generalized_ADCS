@@ -1,4 +1,4 @@
-pub fn native_density(position: [f64; 3], jd: f64) -> PyResult<f64> {
+pub fn native_density(position: [f64; 3], jd: f64) -> Result<f64, String> {
     native_density_with(position, jd, 150., 150., 4., [-1.; 7], true)
 }
 pub fn native_density_with(
@@ -9,10 +9,10 @@ pub fn native_density_with(
     ap: f64,
     history: [f64; 7],
     effective: bool,
-) -> PyResult<f64> {
+) -> Result<f64, String> {
     let (year, month, day, seconds) = native_calendar(jd);
     let doy = day_of_year(year, month, day);
-    let rot = magnetic_native::native_rotation(jd)?;
+    let rot = magnetic_native::native_rotation(jd).map_err(|error| error.to_string())?;
     let fixed = [
         rot[0][0] * position[0] + rot[0][1] * position[1] + rot[0][2] * position[2],
         rot[1][0] * position[0] + rot[1][1] * position[1] + rot[1][2] * position[2],

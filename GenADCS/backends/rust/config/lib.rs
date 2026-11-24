@@ -2,8 +2,10 @@
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-include!("dynamics_config.rs");
-include!("simulation_config.rs");
+mod dynamics_config;
+include!("dynamics_config_py.rs");
+mod simulation_config;
+include!("simulation_config_py.rs");
 
 #[cfg(test)]
 #[path = "../../../tests/backends/rust/config/test_dynamics_config.rs"]

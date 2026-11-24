@@ -1,9 +1,12 @@
 #![allow(non_local_definitions)]
+use pyo3::exceptions::{PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
 
 include!("NRMLSISE00/_nrlmsise00_core.rs");
 include!("NRMLSISE00/nrlmsise00.rs");
+include!("NRMLSISE00/nrlmsise00_py.rs");
 include!("atmospheric_model.rs");
+include!("atmospheric_model_py.rs");
 include!("native.rs");
 
 #[cfg(test)]

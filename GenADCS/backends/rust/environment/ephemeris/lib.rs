@@ -3,7 +3,9 @@ use numpy::ToPyArray;
 use pyo3::prelude::*;
 
 include!("ephemeris_model.rs");
+include!("ephemeris_model_py.rs");
 include!("de421/de421.rs");
+include!("de421/de421_py.rs");
 include!("native.rs");
 
 #[cfg(test)]

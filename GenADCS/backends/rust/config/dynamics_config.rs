@@ -1,37 +1,15 @@
-#[pyclass]
-pub struct DynamicsConfig {
-    forces: Vec<PyObject>,
-    torques: Vec<PyObject>,
+/// Native summary of configured force and torque model kinds.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DynamicsConfigCore {
+    pub force_model_kinds: Vec<String>,
+    pub torque_model_kinds: Vec<String>,
 }
 
-#[pymethods]
-impl DynamicsConfig {
-    #[new]
-    #[pyo3(signature = (forces=None, torques=None))]
-    fn new(forces: Option<Vec<PyObject>>, torques: Option<Vec<PyObject>>) -> Self {
+impl DynamicsConfigCore {
+    pub fn new(force_model_kinds: Vec<String>, torque_model_kinds: Vec<String>) -> Self {
         Self {
-            forces: forces.unwrap_or_default(),
-            torques: torques.unwrap_or_default(),
+            force_model_kinds,
+            torque_model_kinds,
         }
-    }
-
-    #[getter]
-    fn forces(&self, py: Python<'_>) -> PyObject {
-        self.forces.clone().into_py(py)
-    }
-
-    #[setter]
-    fn set_forces(&mut self, forces: Vec<PyObject>) {
-        self.forces = forces;
-    }
-
-    #[getter]
-    fn torques(&self, py: Python<'_>) -> PyObject {
-        self.torques.clone().into_py(py)
-    }
-
-    #[setter]
-    fn set_torques(&mut self, torques: Vec<PyObject>) {
-        self.torques = torques;
     }
 }

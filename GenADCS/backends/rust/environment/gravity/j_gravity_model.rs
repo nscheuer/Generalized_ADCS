@@ -1,26 +1,54 @@
-use pyo3::exceptions::PyValueError;
-use pyo3::types::PyTuple;
+use std::fmt;
 
-const EARTH_ZONAL_COEFFICIENTS: [f64; 5] = [
+pub const EARTH_ZONAL_COEFFICIENTS: [f64; 5] = [
     1.08262668e-3,
     -2.5324105e-6,
     -1.6198976e-6,
     -2.2729608e-7,
     5.406812e-7,
 ];
-const EARTH_MU_M3_S2: f64 = 3.986004418e14;
-const EARTH_REFERENCE_RADIUS_M: f64 = 6_378_137.0;
+pub const EARTH_MU_M3_S2: f64 = 3.986004418e14;
+pub const EARTH_REFERENCE_RADIUS_M: f64 = 6_378_137.0;
 
-fn acceleration(position: [f64; 3], mu: f64, reference_radius: f64, coefficients: &[f64]) -> PyResult<[f64; 3]> {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum GravityError {
+    AtBodyCentre,
+    InvalidDegree(i32),
+    InsufficientCoefficients { provided: usize, required: usize },
+}
+
+impl fmt::Display for GravityError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AtBodyCentre => write!(f, "Gravity is undefined at the body's centre"),
+            Self::InvalidDegree(degree) => {
+                write!(f, "J-gravity degree {degree} is outside the supported range 2 through 6")
+            }
+            Self::InsufficientCoefficients { provided, required } => write!(
+                f,
+                "Provide {required} coefficients ordered as J2, J3, J4, J5, J6 (got {provided})"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for GravityError {}
+
+pub fn native_acceleration(
+    position: [f64; 3],
+    mu: f64,
+    radius: f64,
+    coefficients: &[f64],
+) -> Result<[f64; 3], GravityError> {
     let [x, y, z] = position;
     let r2 = x * x + y * y + z * z;
     let r = r2.sqrt();
     if r == 0.0 {
-        return Err(PyValueError::new_err("Gravity is undefined at the body's centre"));
+        return Err(GravityError::AtBodyCentre);
     }
     let inv_r = 1.0 / r;
     let s = z * inv_r;
-    let ratio = reference_radius * inv_r;
+    let ratio = radius * inv_r;
     let mut ratio_n = ratio * ratio;
     let p = [
         0.5 * (3.0 * s * s - 1.0),
@@ -54,106 +82,86 @@ fn acceleration(position: [f64; 3], mu: f64, reference_radius: f64, coefficients
     ])
 }
 
-pub fn native_acceleration(position: [f64; 3], mu: f64, radius: f64, coefficients: &[f64]) -> PyResult<[f64; 3]> {
-    acceleration(position, mu, radius, coefficients)
+pub fn acceleration(
+    position: [f64; 3],
+    mu: f64,
+    radius: f64,
+    coefficients: &[f64],
+) -> Result<[f64; 3], GravityError> {
+    native_acceleration(position, mu, radius, coefficients)
 }
 
-fn vector3(py: Python<'_>, value: &PyAny, name: &str) -> PyResult<[f64; 3]> {
-    let values: Vec<f64> = py.import("numpy")?.call_method1("asarray", (value,))?
-        .call_method1("astype", ("float64",))?.call_method0("tolist")?.extract()?;
-    if values.len() != 3 {
-        return Err(PyValueError::new_err(format!("{name} must be a 3-vector")));
-    }
-    Ok([values[0], values[1], values[2]])
-}
-
-#[pyfunction]
-fn gravity_acceleration_inertial_m_s2(
-    py: Python<'_>,
-    position_inertial_m: &PyAny,
-    epoch_jd: f64,
-    gravitational_parameter_m3_s2: f64,
-    reference_radius_m: f64,
-    zonal_coefficients: &PyAny,
-) -> PyResult<PyObject> {
-    let position = vector3(py, position_inertial_m, "position_inertial_m")?;
-    let coefficients: Vec<f64> = py.import("numpy")?.call_method1("asarray", (zonal_coefficients,))?
-        .call_method1("astype", ("float64",))?.call_method0("tolist")?.extract()?;
-    let _ = epoch_jd;
-    Ok(acceleration(position, gravitational_parameter_m3_s2, reference_radius_m, &coefficients)?.to_pyarray(py).into_py(py))
-}
-
-#[pyclass(subclass)]
-struct JGravityModel {
+#[derive(Clone, Debug, PartialEq)]
+pub struct JGravityModel {
     degrees: Vec<i32>,
     zonal_coefficients: [f64; 5],
 }
 
 impl JGravityModel {
-    fn configured(degrees: Vec<i32>, coefficients: Option<Vec<f64>>) -> PyResult<Self> {
-        let mut degrees = degrees;
+    pub fn configured(
+        degrees: Vec<i32>,
+        coefficients: Option<Vec<f64>>,
+    ) -> Result<Self, GravityError> {
+        Self::new(Some(degrees), coefficients)
+    }
+
+    pub fn new(
+        degrees: Option<Vec<i32>>,
+        coefficients: Option<Vec<f64>>,
+    ) -> Result<Self, GravityError> {
+        let mut degrees = degrees.unwrap_or_else(|| vec![2, 3, 4, 5, 6]);
         degrees.sort_unstable();
         degrees.dedup();
-        if degrees.iter().any(|degree| !(2..=6).contains(degree)) {
-            return Err(PyValueError::new_err("J-gravity degrees must be selected from 2 through 6"));
+        if let Some(degree) = degrees.iter().find(|degree| !(2..=6).contains(*degree)) {
+            return Err(GravityError::InvalidDegree(*degree));
         }
-        if coefficients.as_ref().is_some_and(|values| values.len() < 5) {
-            return Err(PyValueError::new_err("Provide five coefficients ordered as J2, J3, J4, J5, J6"));
+        if let Some(values) = &coefficients {
+            if values.len() < 5 {
+                return Err(GravityError::InsufficientCoefficients {
+                    provided: values.len(),
+                    required: 5,
+                });
+            }
         }
-        let mut selected = [0.0; 5];
         let source = coefficients.unwrap_or_else(|| EARTH_ZONAL_COEFFICIENTS.to_vec());
+        let mut zonal_coefficients = [0.0; 5];
         for degree in &degrees {
-            selected[(degree - 2) as usize] = source[(degree - 2) as usize];
+            zonal_coefficients[(degree - 2) as usize] = source[(degree - 2) as usize];
         }
-        Ok(Self { degrees, zonal_coefficients: selected })
-    }
-}
-
-#[pymethods]
-impl JGravityModel {
-    #[new]
-    #[pyo3(signature = (degrees=None, coefficients=None))]
-    fn new(degrees: Option<Vec<i32>>, coefficients: Option<Vec<f64>>) -> PyResult<Self> {
-        Self::configured(degrees.unwrap_or_else(|| vec![2, 3, 4, 5, 6]), coefficients)
+        Ok(Self {
+            degrees,
+            zonal_coefficients,
+        })
     }
 
-    #[getter]
-    fn degrees(&self, py: Python<'_>) -> PyObject {
-        PyTuple::new(py, self.degrees.iter()).into()
+    pub fn degrees(&self) -> &[i32] {
+        &self.degrees
     }
 
-    #[getter]
-    fn zonal_coefficients(&self, py: Python<'_>) -> PyObject {
-        self.zonal_coefficients.to_pyarray(py).into_py(py)
+    pub fn zonal_coefficients(&self) -> &[f64; 5] {
+        &self.zonal_coefficients
     }
 
-    #[classattr]
-    fn degree() -> Option<i32> {
-        None
+    pub fn evaluate(&self, position_inertial_m: [f64; 3]) -> Result<[f64; 3], GravityError> {
+        native_acceleration(
+            position_inertial_m,
+            EARTH_MU_M3_S2,
+            EARTH_REFERENCE_RADIUS_M,
+            &self.zonal_coefficients,
+        )
     }
 
-    #[pyo3(signature = (position_inertial_m, epoch_jd=0.0))]
-    fn evaluate(&self, py: Python<'_>, position_inertial_m: &PyAny, epoch_jd: f64) -> PyResult<PyObject> {
-        let position = vector3(py, position_inertial_m, "position_inertial_m")?;
-        let _ = epoch_jd;
-        Ok(acceleration(position, EARTH_MU_M3_S2, EARTH_REFERENCE_RADIUS_M, &self.zonal_coefficients)?.to_pyarray(py).into_py(py))
-    }
-
-    #[pyo3(signature = (position_inertial_m, epoch_jd=0.0))]
-    fn acceleration(&self, py: Python<'_>, position_inertial_m: &PyAny, epoch_jd: f64) -> PyResult<PyObject> {
-        self.evaluate(py, position_inertial_m, epoch_jd)
-    }
-
-    #[staticmethod]
-    fn acceleration_inertial_m_s2(
-        py: Python<'_>,
-        position_inertial_m: &PyAny,
-        epoch_jd: f64,
+    pub fn acceleration_inertial_m_s2(
+        position_inertial_m: [f64; 3],
         gravitational_parameter_m3_s2: f64,
         reference_radius_m: f64,
-        zonal_coefficients: &PyAny,
-    ) -> PyResult<PyObject> {
-        gravity_acceleration_inertial_m_s2(py, position_inertial_m, epoch_jd,
-            gravitational_parameter_m3_s2, reference_radius_m, zonal_coefficients)
+        zonal_coefficients: &[f64],
+    ) -> Result<[f64; 3], GravityError> {
+        native_acceleration(
+            position_inertial_m,
+            gravitational_parameter_m3_s2,
+            reference_radius_m,
+            zonal_coefficients,
+        )
     }
 }

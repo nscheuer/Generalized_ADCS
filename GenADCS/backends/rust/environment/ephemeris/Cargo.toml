@@ -16,3 +16,6 @@ python-extension = ["pyo3/extension-module"]
 pyo3 = { version = "0.20" }
 numpy = { version = "0.20", features = ["nalgebra"] }
 once_cell = "1"
+
+[dev-dependencies]
+pyo3 = { version = "0.20", features = ["auto-initialize"] }

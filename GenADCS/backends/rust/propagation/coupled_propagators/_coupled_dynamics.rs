@@ -227,7 +227,8 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> PyResult<Vec<f64>> {
     let mut torque = [0.; 3];
     let mut accel = gravity_native::native_acceleration(pos, p.mu, p.radius, &p.zonals)?;
     if p.drag_force || p.drag_torque {
-        let density = atmosphere_native::native_density(pos, jd)?;
+        let density = atmosphere_native::native_density(pos, jd)
+            .map_err(PyValueError::new_err)?;
         let relative = sub3(vel, atmosphere_native::native_corotation(pos));
         let v = mv3(rot, relative);
         let speed = norm3(v);
