@@ -3,8 +3,6 @@
 import gc
 import weakref
 
-import pytest
-
 
 def make_wheel(api):
     return api.ReactionWheel((1, 0, 0), (0, 0, 1), 0.02, 0.1, 2.0)

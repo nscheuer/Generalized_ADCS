@@ -3,4 +3,4 @@ from .rodrigues_parameters import Rodrigues_Parameters, Rodriguez_Parameters
 
 RodriguesParameters = Rodriguez_Parameters
 
-__all__ = ["Rodriguez_Parameters", "Rodrigues_Parameters", "RodriguesParameters"]
+__all__ = ["RodriguesParameters", "Rodrigues_Parameters", "Rodriguez_Parameters"]

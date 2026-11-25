@@ -1,7 +1,7 @@
 """Integration tests for the Python-facing C++ simulation adapter."""
 
-import sys
 import importlib
+import sys
 from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from GenADCS.backends.python.helpers.math import time as ts
 
 SECONDS_PER_DAY = 86400.0

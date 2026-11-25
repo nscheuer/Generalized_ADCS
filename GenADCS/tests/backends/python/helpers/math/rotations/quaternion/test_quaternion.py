@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
 
+from GenADCS.backends.python.helpers.math.rotations.quaternion.interpolation import (
+    quaternion_to_rotation_vector,
+    rotation_vector_to_quaternion,
+    slerp,
+)
 from GenADCS.backends.python.helpers.math.rotations.quaternion.quaternion import (
     Quaternion,
-)
-from GenADCS.backends.python.helpers.math.rotations.quaternion.interpolation import (
-    slerp,
-    rotation_vector_to_quaternion,
-    quaternion_to_rotation_vector,
 )
 
 

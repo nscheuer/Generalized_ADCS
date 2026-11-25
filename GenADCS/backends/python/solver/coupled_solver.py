@@ -1,6 +1,5 @@
-from dataclasses import dataclass
-
 import math
+from dataclasses import dataclass
 
 from GenADCS.backends.python.propagation import (
     CoupledDOP853Propagator,

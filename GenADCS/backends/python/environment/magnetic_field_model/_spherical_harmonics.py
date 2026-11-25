@@ -127,7 +127,7 @@ def _eval_one(ri, th_deg, ph_deg, g, h, nmax, Pc, P1, P2, Dc, D1, D2, cosmp, sin
     sq = 0.0
     for n in range(1, nmax + 1):
         arn *= a_r
-        for m in range(0, n + 1):
+        for m in range(n + 1):
             if n == m:
                 Pc[n] = sinth * P1[m - 1]
                 Dc[n] = sinth * D1[m - 1] + costh * P1[n - 1]
@@ -145,7 +145,7 @@ def _eval_one(ri, th_deg, ph_deg, g, h, nmax, Pc, P1, P2, Dc, D1, D2, cosmp, sin
         Pc[n + 1] = 0.0
         Dc[n + 1] = 0.0
 
-        for m in range(0, n + 1):
+        for m in range(n + 1):
             gnm = g[n, m]
             hnm = h[n, m]
             cc = gnm * cosmp[m] + hnm * sinmp[m]

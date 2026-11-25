@@ -7,9 +7,9 @@ from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import (
     _normalize_quaternion,
 )
 from GenADCS.backends.python.helpers.math.rotations.quaternion.interpolation import (
-    slerp,
-    rotation_vector_to_quaternion,
     quaternion_to_rotation_vector,
+    rotation_vector_to_quaternion,
+    slerp,
 )
 
 

@@ -1,6 +1,8 @@
 from types import SimpleNamespace
+
 import numpy as np
 import pytest
+
 from GenADCS.backends.python.dynamics.third_body_model import (
     LunisolarForceModel,
     lunisolar_acceleration,

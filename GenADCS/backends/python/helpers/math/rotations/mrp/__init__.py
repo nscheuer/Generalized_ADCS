@@ -7,7 +7,7 @@ from .modified_rodrigues_parameters import (
 ModifiedRodriguesParameters = Modified_Rodriguez_Parameters
 
 __all__ = [
-    "Modified_Rodriguez_Parameters",
-    "Modified_Rodrigues_Parameters",
     "ModifiedRodriguesParameters",
+    "Modified_Rodrigues_Parameters",
+    "Modified_Rodriguez_Parameters",
 ]

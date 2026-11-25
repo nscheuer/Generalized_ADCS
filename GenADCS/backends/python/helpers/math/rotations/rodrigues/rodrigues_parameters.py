@@ -1,5 +1,5 @@
-from .kernels import quaternion_to_rodrigues, rodrigues_to_quaternion
 from .._parameter_base import _RotationParameter
+from .kernels import quaternion_to_rodrigues, rodrigues_to_quaternion
 
 
 class Rodriguez_Parameters(_RotationParameter):

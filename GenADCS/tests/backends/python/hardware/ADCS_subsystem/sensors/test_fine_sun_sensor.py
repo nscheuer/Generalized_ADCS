@@ -1,6 +1,7 @@
 """Tests for the two-axis fine Sun sensor measurement model."""
 
 import numpy as np
+
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import FineSunSensor
 from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import (
     _axis_angle_to_quaternion,

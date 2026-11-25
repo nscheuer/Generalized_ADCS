@@ -1,27 +1,19 @@
 """Numba-compatible autonomous star-tracker measurement model."""
 
 import numpy as np
-from GenADCS.backends.python.helpers.random.philox import next_draw
 
-from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import (
-    _conjugate,
-    _multiply,
-    _normalize_quaternion,
-)
-from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import (
-    _quaternion_to_dcm,
-)
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
     star_tracker_angle_jacobian,
-    small_rotation_noise_quaternion,
+)
+from GenADCS.backends.python.helpers.random.philox import next_draw
+
+from .kernels import (
+    star_tracker_information,
+    star_tracker_measurement,
+    star_tracker_mrp_jacobian,
+    star_tracker_residual,
 )
 from .sensor import Sensor
-from .kernels import (
-    star_tracker_measurement,
-    star_tracker_residual,
-    star_tracker_mrp_jacobian,
-    star_tracker_information,
-)
 
 
 class AutonomousStarTracker:

@@ -2,13 +2,14 @@
 
 import numpy as np
 from numba import njit
+
 from GenADCS.backends.python.helpers.random.philox import standard_normals
 
+from ..vector import skew
+from .mrp.kernels import mrp_to_quaternion
 from .quaternion.algebra import _multiply, _normalize_quaternion
 from .quaternion.conversions import _quaternion_to_dcm
 from .quaternion.interpolation import rotation_vector_to_quaternion
-from .mrp.kernels import mrp_to_quaternion
-from ..vector import skew
 
 
 @njit(cache=True)

@@ -1,7 +1,6 @@
-import numpy as np
 
-from .kernels import mrp_shadow_set, mrp_to_quaternion, quaternion_to_mrp
 from .._parameter_base import _RotationParameter
+from .kernels import mrp_shadow_set, mrp_to_quaternion, quaternion_to_mrp
 
 
 class Modified_Rodriguez_Parameters(_RotationParameter):

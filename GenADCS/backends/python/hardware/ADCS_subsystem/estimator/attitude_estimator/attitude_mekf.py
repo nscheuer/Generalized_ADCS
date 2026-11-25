@@ -3,7 +3,6 @@
 import numpy as np
 from numba import njit
 
-from GenADCS.backends.python.helpers.math.vector import skew
 from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import (
     _conjugate,
     _multiply,
@@ -13,12 +12,14 @@ from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions impor
     _quaternion_to_dcm,
 )
 from GenADCS.backends.python.helpers.math.rotations.quaternion.interpolation import (
-    rotation_vector_to_quaternion,
     quaternion_to_rotation_vector,
+    rotation_vector_to_quaternion,
 )
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
     so3_left_jacobian,
 )
+from GenADCS.backends.python.helpers.math.vector import skew
+
 from .base import AttitudeEstimator
 
 

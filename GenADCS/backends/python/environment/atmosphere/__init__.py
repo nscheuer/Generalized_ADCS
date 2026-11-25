@@ -3,4 +3,4 @@ from .atmospheric_model import (
     atmospheric_density,
     co_rotating_atmosphere_velocity,
 )
-from .NRMLSISE00 import NRMLSISE, NRLMSISE00
+from .NRMLSISE00 import NRLMSISE00, NRMLSISE

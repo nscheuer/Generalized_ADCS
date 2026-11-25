@@ -1,6 +1,7 @@
 """Tests for the six-component inertial GNSS sensor."""
 
 import numpy as np
+
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import GNSS
 
 

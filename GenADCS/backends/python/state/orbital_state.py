@@ -2,11 +2,11 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from GenADCS.backends.python.environment.ephemeris import EphemerisModel
 from GenADCS.backends.python.environment.ephemeris import (
     BODY_EARTH,
     BODY_MOON,
     BODY_SUN,
+    EphemerisModel,
 )
 
 

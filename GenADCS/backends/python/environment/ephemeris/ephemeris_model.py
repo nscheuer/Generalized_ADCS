@@ -32,8 +32,7 @@ def _segment_state(target, et, segments, times, data):
     record = int((et - initial) / interval_length)
     if record >= record_count:
         record = record_count - 1
-    if record < 0:
-        record = 0
+    record = max(record, 0)
     base = offset + record * record_size
     midpoint = data[base]
     radius = data[base + 1]

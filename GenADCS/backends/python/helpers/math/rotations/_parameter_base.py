@@ -1,7 +1,7 @@
 import numpy as np
 
-from .quaternion import Quaternion
 from ..vector import norm as _vector_norm
+from .quaternion import Quaternion
 
 
 class _RotationParameter:

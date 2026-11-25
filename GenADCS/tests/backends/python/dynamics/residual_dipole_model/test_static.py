@@ -1,6 +1,8 @@
 from types import SimpleNamespace
+
 import numpy as np
 import pytest
+
 from GenADCS.backends.python.dynamics.residual_dipole_model import (
     StaticResidualDipoleModel,
     static_residual_dipole_torque,

@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 
 
 def test_calendar_jd_and_decomposition_agree(time_backends):

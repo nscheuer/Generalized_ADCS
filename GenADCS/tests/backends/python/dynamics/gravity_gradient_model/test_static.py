@@ -1,6 +1,8 @@
 from types import SimpleNamespace
+
 import numpy as np
 import pytest
+
 from GenADCS.backends.python.dynamics.gravity_gradient_model import (
     StaticGravityGradientModel,
     static_gravity_gradient_torque,

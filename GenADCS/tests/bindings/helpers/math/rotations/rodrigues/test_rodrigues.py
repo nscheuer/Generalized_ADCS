@@ -1,10 +1,11 @@
+from importlib import import_module
+
 import numpy as np
 import pytest
-from importlib import import_module
 
 
 def cls(r):
-    return getattr(r, "Rodriguez_Parameters")
+    return r.Rodriguez_Parameters
 
 
 def test_rodrigues_aliases_numpy_roundtrip_and_ownership(rotations):

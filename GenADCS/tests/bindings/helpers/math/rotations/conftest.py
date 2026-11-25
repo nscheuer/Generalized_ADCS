@@ -1,6 +1,7 @@
 """Shared fixtures for Python calls into native rotation extensions."""
 
 from importlib import import_module
+
 import pytest
 
 

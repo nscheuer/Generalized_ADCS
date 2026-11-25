@@ -5,7 +5,6 @@ import pytest
 
 from GenADCS.backends.python.state.orbital_state import OrbitalState
 
-
 JD = 2451545.0
 
 

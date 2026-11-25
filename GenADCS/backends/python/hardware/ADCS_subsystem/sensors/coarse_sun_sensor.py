@@ -1,18 +1,16 @@
 """Numba-compatible photodiode coarse Sun sensor."""
 
 import numpy as np
-from GenADCS.backends.python.helpers.random.philox import next_draw
 
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
-    sun_in_body,
-    coarse_sun_measurement,
     coarse_sun_attitude_jacobian,
-    mounting_dcm,
 )
+from GenADCS.backends.python.helpers.random.philox import next_draw
+
 from .kernels import (
-    scalar_sun_measurement,
     coarse_sun_available,
     coarse_sun_information,
+    scalar_sun_measurement,
 )
 
 

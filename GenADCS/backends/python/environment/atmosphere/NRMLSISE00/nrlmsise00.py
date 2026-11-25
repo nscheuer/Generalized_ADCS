@@ -8,14 +8,15 @@ The numerical model and coefficient tables are implemented in Numba modules.
 import numpy as np
 from numba import njit
 
-from ..atmospheric_model import AtmosphericModel
-from ._nrlmsise00_core import msis_gtd7
 from GenADCS.backends.python.helpers.math.frames import gcrf_position_to_geodetic
 from GenADCS.backends.python.helpers.math.time import (
     day_of_year,
     jd_to_utc_calendar_fields,
     utc_jd_to_tt_jd,
 )
+
+from ..atmospheric_model import AtmosphericModel
+from ._nrlmsise00_core import msis_gtd7
 
 
 @njit(cache=True)

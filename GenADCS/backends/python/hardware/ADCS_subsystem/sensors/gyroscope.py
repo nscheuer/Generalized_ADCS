@@ -1,13 +1,11 @@
 """Compiled three-axis gyroscope measurement model."""
 
 import numpy as np
+
 from GenADCS.backends.python.helpers.random.philox import next_draw
-from .sensor import Sensor
-from .magnetometer import _saturate
-from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
-    rotate_body_to_sensor,
-)
+
 from .kernels import rate_measurement
+from .sensor import Sensor
 
 
 class Gyroscope:

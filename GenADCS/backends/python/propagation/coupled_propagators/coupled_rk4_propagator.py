@@ -3,22 +3,22 @@
 import numpy as np
 from numba import njit
 
+from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import (
+    prepare_estimator,
+    update_estimator,
+)
+from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
+    prepare_sensors,
+    sample_sensors,
+)
+
 from ._coupled_dynamics import (
     SECONDS_PER_DAY,
-    _Runtime,
     _derivative,
     _prepare,
     _project_wheel_momentum,
 )
 from ._state_layout import pack_state, unpack_state
-from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
-    sample_sensors,
-    prepare_sensors,
-)
-from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import (
-    prepare_estimator,
-    update_estimator,
-)
 
 # Keep the _Runtime re-export so existing Numba disk caches can be unpickled.
 

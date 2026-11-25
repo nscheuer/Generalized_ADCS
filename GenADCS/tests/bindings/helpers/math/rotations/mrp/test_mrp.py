@@ -1,10 +1,11 @@
 import gc
+
 import numpy as np
 import pytest
 
 
 def cls(r):
-    return getattr(r, "Modified_Rodriguez_Parameters")
+    return r.Modified_Rodriguez_Parameters
 
 
 def test_mrp_aliases_numpy_conversion_and_ownership(rotations):

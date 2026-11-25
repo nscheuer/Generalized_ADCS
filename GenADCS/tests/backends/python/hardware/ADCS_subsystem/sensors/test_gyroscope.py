@@ -4,11 +4,11 @@ import numpy as np
 import pytest
 
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import Gyroscope
+from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import _multiply
 from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import (
     _axis_angle_to_quaternion,
     _quaternion_to_dcm,
 )
-from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import _multiply
 
 
 def make_sensor(

@@ -6,7 +6,7 @@ from .wmm import WMM
 __all__ = [
     "CHAOS8",
     "IGRF14",
-    "MagneticFieldModel",
     "WMM",
+    "MagneticFieldModel",
     "magnetic_field_inertial_tesla",
 ]

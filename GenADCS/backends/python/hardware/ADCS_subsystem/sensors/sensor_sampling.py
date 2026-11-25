@@ -2,39 +2,38 @@
 
 import numpy as np
 from numba import njit
-from GenADCS.backends.python.helpers.random.philox import standard_normals
 
-from .kernels import (
-    rate_measurement,
-    vector_measurement,
-    scalar_sun_measurement,
-    fine_direction_measurement,
-    gnss_measurement,
-    star_tracker_measurement,
-    coarse_sun_available,
-    fine_direction_available,
-    rotate_inertial_to_sensor,
-)
-from GenADCS.backends.python.propagation.coupled_propagators._coupled_dynamics import (
-    _derivative,
-)
+from GenADCS.backends.python.dynamics.srp_model.projected_area import SUN_RADIUS_M
 from GenADCS.backends.python.environment.ephemeris import (
-    BODY_EARTH,
     BODY_SUN,
-    ephemeris_position,
     eclipse_state,
-)
-from GenADCS.backends.python.environment.magnetic_field_model.igrf14.igrf14 import (
-    igrf14_field_inertial_tesla,
-)
-from GenADCS.backends.python.environment.magnetic_field_model.chaos8.chaos8 import (
-    chaos8_field_inertial_tesla,
+    ephemeris_position,
 )
 from GenADCS.backends.python.environment.gravity.j_gravity_model import (
     gravity_acceleration_inertial_m_s2,
 )
+from GenADCS.backends.python.environment.magnetic_field_model.chaos8.chaos8 import (
+    chaos8_field_inertial_tesla,
+)
+from GenADCS.backends.python.environment.magnetic_field_model.igrf14.igrf14 import (
+    igrf14_field_inertial_tesla,
+)
 from GenADCS.backends.python.helpers.math.time.conversions import utc_jd_to_tdb_jd
-from GenADCS.backends.python.dynamics.srp_model.projected_area import SUN_RADIUS_M
+from GenADCS.backends.python.helpers.random.philox import standard_normals
+from GenADCS.backends.python.propagation.coupled_propagators._coupled_dynamics import (
+    _derivative,
+)
+
+from .kernels import (
+    fine_direction_available,
+    fine_direction_measurement,
+    gnss_measurement,
+    rate_measurement,
+    rotate_inertial_to_sensor,
+    scalar_sun_measurement,
+    star_tracker_measurement,
+    vector_measurement,
+)
 
 SENSOR_NAMES = (
     "gyroscope",

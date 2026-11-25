@@ -5,12 +5,15 @@ Adapted from the public-domain TCL Python transcription by N. Donatelli
 public-domain NRL reference C tables supplied with this task.
 """
 
-from typing import NamedTuple, Optional, Sequence, Tuple
-from numpy.typing import NDArray
+from collections.abc import Sequence
+from typing import NamedTuple
+
 import numpy as np
-from numba import njit, float64, int64
+from numba import float64, int64, njit
 from numba.experimental import jitclass
-from ._nrlmsise00_data import PT, PD, PS, PDL, PTM, PDM, PTL, PMA, PAVGM
+from numpy.typing import NDArray
+
+from ._nrlmsise00_data import PAVGM, PD, PDL, PDM, PMA, PS, PT, PTL, PTM
 
 
 class NRLMSISEOutput(NamedTuple):
@@ -79,7 +82,7 @@ class _Input:
         f107a: float,
         f107: float,
         ap: float,
-        ap_a: Optional[Sequence[float]] = None,
+        ap_a: Sequence[float] | None = None,
     ):
         self.doy = doy
         self.sec = sec
@@ -185,7 +188,7 @@ class _Model:
         zn2: Sequence[float],
         tn2: Sequence[float],
         tgn2: Sequence[float],
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Temperature/density profiles for the lower atmosphere.
 
         Returns (density-or-temperature, tz), the C double return plus
@@ -201,7 +204,7 @@ class _Model:
             return d0, tz
 
         # Stratosphere/mesosphere temperature.
-        z = alt if alt > zn2[mn2 - 1] else zn2[mn2 - 1]
+        z = max(zn2[mn2 - 1], alt)
         mn = mn2
         z1 = zn2[0]
         z2 = zn2[mn - 1]
@@ -225,8 +228,7 @@ class _Model:
             gamm = xm * glb * zgdif / rgas
             yi = _splini(xs, ys, y2out, x)
             expl = gamm * yi
-            if expl > 50.0:
-                expl = 50.0
+            expl = min(expl, 50.0)
             densm_tmp = densm_tmp * (t1 / tz) * np.exp(-expl)
 
         if alt > zn3[0]:
@@ -259,8 +261,7 @@ class _Model:
             gamm = xm * glb * zgdif / rgas
             yi = _splini(xs, ys, y2out, x)
             expl = gamm * yi
-            if expl > 50.0:
-                expl = 50.0
+            expl = min(expl, 50.0)
             densm_tmp = densm_tmp * (t1 / tz) * np.exp(-expl)
         if xm == 0.0:
             return tz, tz
@@ -280,7 +281,7 @@ class _Model:
         zn1: Sequence[float],
         tn1,
         tgn1,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Temperature/density profiles for the MSIS thermosphere.
 
         Returns (density-or-temperature, tz). tn1/tgn1 are mutated at
@@ -299,7 +300,7 @@ class _Model:
         y2out = [0.0]
 
         za = zn1[0]
-        z = alt if alt > za else za
+        z = max(za, alt)
 
         zg2 = self._zeta(z, zlb)
         tt = tinf - (tinf - tlb) * np.exp(-s2 * zg2)
@@ -312,7 +313,7 @@ class _Model:
             dta = (tinf - ta) * s2 * ((self.re + zlb) / (self.re + za)) ** 2
             tgn1[0] = dta
             tn1[0] = ta
-            z = alt if alt > zn1[mn1 - 1] else zn1[mn1 - 1]
+            z = max(zn1[mn1 - 1], alt)
             mn = mn1
             z1 = zn1[0]
             z2 = zn1[mn - 1]
@@ -336,8 +337,7 @@ class _Model:
         glb = self.gsurf / ((1.0 + zlb / self.re) ** 2)
         gamma = xm * glb / (s2 * rgas * tinf)
         expl = np.exp(-s2 * gamma * zg2)
-        if expl > 50.0:
-            expl = 50.0
+        expl = min(expl, 50.0)
         if tt <= 0:
             expl = 50.0
 
@@ -352,8 +352,7 @@ class _Model:
 
         yi = _splini(xs, ys, y2out, x)
         expl = gamm * yi
-        if expl > 50.0:
-            expl = 50.0
+        expl = min(expl, 50.0)
         if tz <= 0:
             expl = 50.0
 
@@ -499,8 +498,7 @@ class _Model:
                     * np.sqrt(p[51] * p[51])
                     / (1.0 + p[138] * (45.0 - np.sqrt(inp.g_lat * inp.g_lat)))
                 )
-                if exp1 > 0.99999:
-                    exp1 = 0.99999
+                exp1 = min(exp1, 0.99999)
                 if p[24] < 1.0e-4:
                     # The C mutates the shared coefficient array; the
                     # clamp is idempotent so persistence is harmless.
@@ -1302,7 +1300,7 @@ class _Model:
         xmm = PDM[2][4]
 
         # Thermosphere/mesosphere (above zn2[0]).
-        altt = inp.alt if inp.alt > zn2[0] else zn2[0]
+        altt = max(zn2[0], inp.alt)
         tmp = inp.alt
         inp.alt = altt
         soutput = self._gts7(inp, flags)
@@ -1501,7 +1499,6 @@ def _dnet(dde: float, dm: float, zhm: float, xmm: float, xm: float) -> float:
     """Turbopause correction (root mean density)."""
     a = zhm / (xmm - xm)
     if not ((dm > 0) and (dde > 0)):
-        pass
         if (dde == 0) and (dm == 0):
             dde = 1.0
         if dm == 0:
@@ -1526,7 +1523,7 @@ def _splini(xa, ya, y2a, x: float) -> float:
     while (x > xa[klo]) and (khi < n):
         xx = x
         if khi < (n - 1):
-            xx = x if x < xa[khi] else xa[khi]
+            xx = min(xa[khi], x)
         h = xa[khi] - xa[klo]
         a = (xa[khi] - xx) / h
         b = (xx - xa[klo]) / h

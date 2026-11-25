@@ -1,18 +1,18 @@
 """Native simulation sampling, estimator cadence, and portable hardware snapshots."""
 
 import importlib.util
-from pathlib import Path
 from dataclasses import replace
+from pathlib import Path
 
 import numpy as np
 import pytest
 
-from GenADCS.backends.rust.simulate import simulate, ResultsFormat
-from GenADCS.backends.rust.solver import CoupledSolver
 from GenADCS.backends.rust.propagation import (
-    CoupledRK4Propagator,
     CoupledDOP853Propagator,
+    CoupledRK4Propagator,
 )
+from GenADCS.backends.rust.simulate import ResultsFormat, simulate
+from GenADCS.backends.rust.solver import CoupledSolver
 
 
 @pytest.fixture

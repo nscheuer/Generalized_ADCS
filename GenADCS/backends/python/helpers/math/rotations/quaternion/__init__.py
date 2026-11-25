@@ -23,7 +23,7 @@ from .quaternion import Quaternion
 
 __all__ = [
     "Quaternion",
-    "slerp",
-    "rotation_vector_to_quaternion",
     "quaternion_to_rotation_vector",
+    "rotation_vector_to_quaternion",
+    "slerp",
 ]

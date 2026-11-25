@@ -1,5 +1,7 @@
 import numpy as np
 
+from ..quaternion.conversions import _dcm_to_quaternion, _quaternion_to_dcm
+from ..quaternion.interpolation import rotation_vector_to_quaternion
 from .kernels import (
     axis_angle_to_dcm,
     compose_dcm,
@@ -9,8 +11,6 @@ from .kernels import (
     relative_dcm,
     rotate_vector,
 )
-from ..quaternion.conversions import _dcm_to_quaternion, _quaternion_to_dcm
-from ..quaternion.interpolation import rotation_vector_to_quaternion
 
 
 class DCM:

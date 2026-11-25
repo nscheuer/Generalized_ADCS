@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from GenADCS.backends.python.dynamics.srp_model import (
     projected_area_srp_force,
     projected_area_srp_torque,

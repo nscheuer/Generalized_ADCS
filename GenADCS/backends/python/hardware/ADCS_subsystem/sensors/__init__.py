@@ -1,21 +1,21 @@
-from .sensor import Sensor
-from .magnetometer import Magnetometer
-from .gyroscope import Gyroscope
+from .accelerometer import Accelerometer
 from .autonomous_star_tracker import AutonomousStarTracker
 from .coarse_sun_sensor import CoarseSunSensor
-from .fine_sun_sensor import FineSunSensor
 from .fine_earth_sensor import FineEarthSensor
+from .fine_sun_sensor import FineSunSensor
 from .gnss import GNSS
-from .accelerometer import Accelerometer
+from .gyroscope import Gyroscope
+from .magnetometer import Magnetometer
+from .sensor import Sensor
 
 __all__ = [
-    "Sensor",
-    "Magnetometer",
-    "Gyroscope",
-    "AutonomousStarTracker",
-    "CoarseSunSensor",
-    "FineSunSensor",
-    "FineEarthSensor",
     "GNSS",
     "Accelerometer",
+    "AutonomousStarTracker",
+    "CoarseSunSensor",
+    "FineEarthSensor",
+    "FineSunSensor",
+    "Gyroscope",
+    "Magnetometer",
+    "Sensor",
 ]

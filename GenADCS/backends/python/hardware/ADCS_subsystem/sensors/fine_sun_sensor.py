@@ -1,16 +1,15 @@
 """Numba-compatible fine Sun sensor returning two boresight angles."""
 
 import numpy as np
-from GenADCS.backends.python.helpers.random.philox import next_draw
 
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
     fine_sun_angles,
     fine_sun_attitude_jacobian,
     fine_sun_fisher_information,
-    mounting_dcm,
-    sun_in_body,
 )
-from .kernels import fine_direction_measurement, fine_direction_available
+from GenADCS.backends.python.helpers.random.philox import next_draw
+
+from .kernels import fine_direction_available, fine_direction_measurement
 
 
 class FineSunSensor:

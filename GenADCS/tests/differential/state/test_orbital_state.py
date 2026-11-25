@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-
 JD = 2451545.0
 
 

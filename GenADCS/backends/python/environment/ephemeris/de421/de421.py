@@ -1,8 +1,8 @@
 """JPL DE421 planetary ephemeris read directly from its SPK binary kernel."""
 
+import struct
 from functools import lru_cache
 from pathlib import Path
-import struct
 
 import numpy as np
 
@@ -12,8 +12,8 @@ from ..ephemeris_model import (
     BODY_SUN,
     EphemerisModel,
     planetary_position,
-    planetary_velocity,
     planetary_state,
+    planetary_velocity,
 )
 
 

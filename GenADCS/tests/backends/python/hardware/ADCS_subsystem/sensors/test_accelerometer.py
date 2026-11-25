@@ -1,6 +1,7 @@
 """Tests for the Numba three-axis specific-force accelerometer."""
 
 import numpy as np
+
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import Accelerometer
 from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import _multiply
 from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import (

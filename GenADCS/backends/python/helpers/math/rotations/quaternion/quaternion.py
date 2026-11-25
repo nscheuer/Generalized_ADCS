@@ -1,6 +1,5 @@
 import numpy as np
 
-from .interpolation import rotation_vector_to_quaternion
 from .algebra import (
     _conjugate,
     _hamilton_to_jpl,
@@ -17,6 +16,7 @@ from .conversions import (
     _quaternion_to_dcm,
     _rotate_vector,
 )
+from .interpolation import rotation_vector_to_quaternion
 
 
 class Quaternion:
@@ -28,7 +28,7 @@ class Quaternion:
     kernels use normalized scalar-first Hamilton quaternions.
     """
 
-    __slots__ = ("_hamilton", "_convention")
+    __slots__ = ("_convention", "_hamilton")
 
     def __init__(self, values=(1.0, 0.0, 0.0, 0.0), convention="Hamilton"):
         raw = np.asarray(values, dtype=np.float64)

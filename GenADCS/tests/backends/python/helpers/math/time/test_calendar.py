@@ -1,11 +1,10 @@
-import math
-import numpy as np
 import pytest
+
 from GenADCS.backends.python.helpers.math.time import (
     calendar_to_jd,
+    day_of_year,
     jd_to_calendar,
     jd_to_utc_calendar_fields,
-    day_of_year,
 )
 
 

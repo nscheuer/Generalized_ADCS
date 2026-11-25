@@ -1,8 +1,8 @@
 """Cross-backend tests for SimulationConfig's Python binding contract."""
 
-from types import SimpleNamespace
 import gc
 import weakref
+from types import SimpleNamespace
 
 import pytest
 

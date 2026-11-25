@@ -1,17 +1,17 @@
 """Numba-compatible three-axis specific-force accelerometer."""
 
 import numpy as np
-from GenADCS.backends.python.helpers.random.philox import next_draw
 
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
-    rotate_inertial_to_sensor,
-    attitude_vector_jacobian_quaternion,
-    attitude_vector_jacobian_mrp,
     attitude_vector_jacobian_angle,
+    attitude_vector_jacobian_mrp,
+    attitude_vector_jacobian_quaternion,
+    rotate_inertial_to_sensor,
 )
-from GenADCS.backends.python.helpers.math.vector import saturate_vector
-from .sensor import Sensor
+from GenADCS.backends.python.helpers.random.philox import next_draw
+
 from .kernels import vector_measurement
+from .sensor import Sensor
 
 
 class Accelerometer:

@@ -25,18 +25,18 @@ from GenADCS.backends.python.dynamics.third_body_model.lunisolar import (
     SUN_MU_M3_S2,
     lunisolar_acceleration,
 )
+from GenADCS.backends.python.environment.atmosphere.atmospheric_model import (
+    co_rotating_atmosphere_velocity,
+)
 from GenADCS.backends.python.environment.atmosphere.NRMLSISE00.nrlmsise00 import (
     NRLMSISE00,
     nrlmsise00_density,
 )
-from GenADCS.backends.python.environment.atmosphere.atmospheric_model import (
-    co_rotating_atmosphere_velocity,
-)
 from GenADCS.backends.python.environment.ephemeris import (
     BODY_MOON,
     BODY_SUN,
-    ephemeris_position,
     eclipse_state,
+    ephemeris_position,
 )
 from GenADCS.backends.python.environment.ephemeris.de421 import DE421
 from GenADCS.backends.python.environment.gravity.j_gravity_model import (
@@ -285,13 +285,13 @@ def _derivative(y, epoch_jd, p):
 
 def _prepare(satellite, environment, dynamics):
     from GenADCS.backends.python.dynamics import (
+        LunisolarForceModel,
         ProjectedAreaDragForceModel,
         ProjectedAreaDragTorqueModel,
         ProjectedAreaSRPForceModel,
         ProjectedAreaSRPTorqueModel,
         StaticGravityGradientModel,
         StaticResidualDipoleModel,
-        LunisolarForceModel,
         ZonalForceModel,
     )
     from GenADCS.backends.python.dynamics._geometry import prepare_panels

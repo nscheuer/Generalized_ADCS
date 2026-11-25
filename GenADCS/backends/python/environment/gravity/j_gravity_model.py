@@ -8,7 +8,6 @@ accepted for API compatibility and is not needed by this time-independent model.
 import numpy as np
 from numba import njit
 
-
 # Earth zonal harmonics, dimensionless, with the conventional positive J2 sign.
 EARTH_ZONAL_COEFFICIENTS = np.array(
     (1.08262668e-3, -2.5324105e-6, -1.6198976e-6, -2.2729608e-7, 5.406812e-7),

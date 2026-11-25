@@ -11,7 +11,6 @@ from .dynamics import (
     wheel_coupled_angular_acceleration,
     wheel_momentum_derivative,
 )
-from .rotations.dcm import DCM
 from .frames import (
     body_to_inertial,
     body_to_inertial_matrix,
@@ -21,12 +20,13 @@ from .frames import (
     transform_vector,
 )
 from .rotations import (
-    Modified_Rodriguez_Parameters,
     Modified_Rodrigues_Parameters,
+    Modified_Rodriguez_Parameters,
     Quaternion,
-    Rodriguez_Parameters,
     Rodrigues_Parameters,
+    Rodriguez_Parameters,
 )
+from .rotations.dcm import DCM
 from .rotations.mrp import (
     ModifiedRodriguesParameters,
     mrp_shadow_set,

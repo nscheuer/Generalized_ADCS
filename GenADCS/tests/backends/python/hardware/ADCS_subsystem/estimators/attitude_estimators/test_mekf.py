@@ -2,15 +2,19 @@ import numpy as np
 import pytest
 from numba import njit
 
+from GenADCS.backends.python.config import DynamicsConfig
+from GenADCS.backends.python.environment import Earth, Environment
+from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
+from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem
 from GenADCS.backends.python.hardware.ADCS_subsystem.estimator import AttitudeMEKF
 from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.attitude_estimator import (
     correct_star_tracker,
     predict,
     step,
 )
-from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import Gyroscope
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import (
     AutonomousStarTracker,
+    Gyroscope,
 )
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
     prepare_sensors,
@@ -18,18 +22,13 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling imp
 from GenADCS.backends.python.helpers.math.rotations.quaternion.interpolation import (
     rotation_vector_to_quaternion,
 )
-from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
-from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem
-from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
-from GenADCS.backends.python.environment import Earth, Environment
-from GenADCS.backends.python.config import DynamicsConfig
 from GenADCS.backends.python.propagation import (
-    CoupledRK4Propagator,
     CoupledDOP853Propagator,
+    CoupledRK4Propagator,
 )
-from GenADCS.backends.python.solver import CoupledSolver
 from GenADCS.backends.python.simulate import ResultsFormat, simulate
-
+from GenADCS.backends.python.solver import CoupledSolver
+from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
 
 IDENTITY = np.array([1.0, 0.0, 0.0, 0.0])
 

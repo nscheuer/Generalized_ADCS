@@ -2,19 +2,20 @@
 
 import math
 from dataclasses import replace
+
 import numpy as np
 
-from .helpers.input_output.resultsformat import ResultsFormat
-from GenADCS.backends.shared.simulationresult import SimulationResult
 from GenADCS.backends.shared.simulationresult.record import record_samples
-from .solver import CoupledSolver, Solver
-from .state import State
+
 from .hardware.ADCS_subsystem.sensors.sensor_sampling import (
     SENSOR_NAMES,
     prepare_sensors,
 )
-from .propagation.coupled_propagators.coupled_rk4_propagator import CoupledRK4Propagator
+from .helpers.input_output.resultsformat import ResultsFormat
 from .helpers.random.philox import validate_seed
+from .propagation.coupled_propagators.coupled_rk4_propagator import CoupledRK4Propagator
+from .solver import CoupledSolver, Solver
+from .state import State
 
 
 def simulate(

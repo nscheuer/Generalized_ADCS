@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 
+from .estimator import AttitudeEstimator
 from .magnetorquer import Magnetorquer
 from .reaction_wheel import ReactionWheel
 from .sensors import Sensor
-from .estimator import AttitudeEstimator
 
 
 @dataclass(slots=True)

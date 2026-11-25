@@ -1,7 +1,9 @@
 """Numba-compatible inertial position and velocity GNSS measurement model."""
 
 import numpy as np
+
 from GenADCS.backends.python.helpers.random.philox import next_draw
+
 from .kernels import gnss_measurement
 
 

@@ -1,19 +1,19 @@
-from .base import AttitudeEstimator
 from .attitude_mekf import (
     AttitudeMEKF,
-    predict,
     correct,
     correct_gyro,
     correct_star_tracker,
+    predict,
     step,
 )
+from .base import AttitudeEstimator
 
 __all__ = [
     "AttitudeEstimator",
     "AttitudeMEKF",
-    "predict",
     "correct",
     "correct_gyro",
     "correct_star_tracker",
+    "predict",
     "step",
 ]
