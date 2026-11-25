@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 pyo3 = { version = "0.20", features = ["auto-initialize"] }
+philox_native = { package = "adcs-omni-rust-random", path = "../../helpers/random", default-features = false }
 
 [features]
 python-extension = ["pyo3/extension-module"]

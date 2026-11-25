@@ -12,7 +12,7 @@ pyo3={version="0.20",features=["auto-initialize"]}
 [workspace]
 resolver = "2"
 members = [
-    "bias", "config", "dynamics", "environment/atmosphere",
+    "bias", "config", "dynamics", "noise", "environment/atmosphere",
     "environment/ephemeris", "environment/gravity",
     "environment/magnetic_field_model", "environment/planetary_body",
     "hardware/ADCS_subsystem", "hardware/satellite",
@@ -20,7 +20,7 @@ members = [
     "propagation/coupled_propagators", "solver", "state",
 ]
 default-members = [
-    "config", "dynamics", "hardware/ADCS_subsystem",
+    "config", "dynamics", "noise", "hardware/ADCS_subsystem",
     "hardware/satellite_geometry", "helpers/math", "helpers/math/frames", "state",
     "environment/atmosphere", "environment/ephemeris", "environment/gravity",
     "environment/magnetic_field_model",

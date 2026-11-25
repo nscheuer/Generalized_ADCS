@@ -6,6 +6,7 @@ version = 4
 name = "adcs-omni-rust-adcs-subsystem"
 version = "0.1.0"
 dependencies = [
+ "adcs-omni-rust-random",
  "pyo3",
 ]
 
@@ -93,6 +94,14 @@ version = "0.1.0"
 dependencies = [
  "nalgebra",
  "numpy",
+ "pyo3",
+]
+
+[[package]]
+name = "adcs-omni-rust-noise"
+version = "0.1.0"
+dependencies = [
+ "adcs-omni-rust-random",
  "pyo3",
 ]
 
