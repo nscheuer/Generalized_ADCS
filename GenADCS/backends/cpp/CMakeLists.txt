@@ -16,6 +16,11 @@ if(GENADCS_STRICT_WARNINGS)
     endif()
 endif()
 
+# Keep generated Python extensions out of the source tree for isolated builds
+# such as sanitizer and coverage runs. The default preserves the package layout.
+set(GENADCS_EXTENSION_OUTPUT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH
+    "Root directory for generated Python extension modules")
+
 set(PYBIND11_FINDPYTHON ON)
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
@@ -373,7 +378,7 @@ pybind11_add_module(_bias
     bias/bias.cpp
 )
 target_compile_features(_bias PRIVATE cxx_std_17)
-set_target_properties(_bias PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bias")
+set_target_properties(_bias PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/bias")
 
 file(GLOB_RECURSE STATE_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/state/*_py.cpp")
@@ -391,7 +396,7 @@ target_include_directories(_state PRIVATE state)
 set_target_properties(_state PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}")
 
 file(GLOB_RECURSE FRAMES_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math/frames/*_py.cpp"
@@ -406,7 +411,7 @@ target_compile_features(_frames PRIVATE cxx_std_17)
 target_link_libraries(_frames PRIVATE Eigen3::Eigen)
 target_include_directories(_frames PRIVATE helpers/math/frames)
 set_target_properties(_frames PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math/frames")
+    LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/helpers/math/frames")
 
 file(GLOB_RECURSE HELPERS_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math/*_py.cpp")
@@ -433,7 +438,7 @@ target_compile_features(_helpers PRIVATE cxx_std_17)
 target_link_libraries(_helpers PRIVATE Eigen3::Eigen)
 target_include_directories(_helpers PRIVATE helpers/math)
 set_target_properties(_helpers PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math")
+    LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/helpers/math")
 
 file(GLOB_RECURSE ADCS_SUBSYSTEM_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/hardware/ADCS_subsystem/*_py.cpp")
@@ -462,7 +467,7 @@ target_link_libraries(_adcs_subsystem PRIVATE Eigen3::Eigen)
 target_link_libraries(_adcs_subsystem PRIVATE attitude_estimator_native)
 target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem hardware/ADCS_subsystem/sensors helpers/random helpers/math/rotations)
 set_target_properties(_adcs_subsystem PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware/ADCS_subsystem")
+    LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/hardware/ADCS_subsystem")
 
 file(GLOB_RECURSE SATELLITE_GEOMETRY_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/hardware/satellite_geometry/*_py.cpp")
@@ -475,7 +480,7 @@ pybind11_add_module(_satellite_geometry
 target_compile_features(_satellite_geometry PRIVATE cxx_std_17)
 target_include_directories(_satellite_geometry PRIVATE hardware/satellite_geometry)
 set_target_properties(_satellite_geometry PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware/satellite_geometry")
+    LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/hardware/satellite_geometry")
 if(BUILD_TESTING)
     foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor autonomous_star_tracker fine_sun_sensor fine_earth_sensor gnss)
         if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "autonomous_star_tracker" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "gyroscope" OR component STREQUAL "magnetorquer" OR component STREQUAL "gnss")
@@ -533,7 +538,7 @@ set_target_properties(_environment PROPERTIES
     C_VISIBILITY_PRESET hidden
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/environment")
+    LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/environment")
 
 file(GLOB_RECURSE DYNAMICS_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/dynamics/*_py.cpp")
@@ -550,14 +555,14 @@ pybind11_add_module(_dynamics
     environment/gravity/j_gravity_model.cpp
 )
 target_link_libraries(_dynamics PRIVATE Eigen3::Eigen)
-set_target_properties(_dynamics PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dynamics")
+set_target_properties(_dynamics PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/dynamics")
 
 file(GLOB_RECURSE CONFIG_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/config/*_py.cpp")
 
 pybind11_add_module(_config ${CONFIG_PYBIND_SOURCES} config/simulation_config.cpp)
 target_link_libraries(_config PRIVATE Eigen3::Eigen)
-set_target_properties(_config PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config")
+set_target_properties(_config PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/config")
 if(BUILD_TESTING)
     foreach(component dynamics_config simulation_config)
         add_executable(cpp_test_${component}
@@ -622,13 +627,13 @@ set_target_properties(_coupled PROPERTIES
     C_VISIBILITY_PRESET hidden
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/propagation/coupled_propagators")
+    LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/propagation/coupled_propagators")
 
 file(GLOB_RECURSE SOLVER_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/solver/*_py.cpp")
 
 pybind11_add_module(_solver ${SOLVER_PYBIND_SOURCES} solver/coupled_solver.cpp)
-set_target_properties(_solver PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/solver")
+set_target_properties(_solver PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/solver")
 
 pybind11_add_module(_satellite
     hardware/satellite_py.cpp
@@ -636,7 +641,7 @@ pybind11_add_module(_satellite
     hardware/satellite_geometry/satellite_geometry.cpp
     hardware/satellite_geometry/satellite_panel.cpp)
 target_include_directories(_satellite PRIVATE hardware)
-set_target_properties(_satellite PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hardware")
+set_target_properties(_satellite PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/hardware")
 
 set(ATTITUDE_ESTIMATOR_DIR hardware/ADCS_subsystem/estimator/attitude_estimator)
 add_library(attitude_estimator_native STATIC
@@ -650,7 +655,7 @@ pybind11_add_module(_attitude_estimator
     ${ATTITUDE_ESTIMATOR_DIR}/base_py.cpp
     ${ATTITUDE_ESTIMATOR_DIR}/attitude_mekf_py.cpp)
 target_link_libraries(_attitude_estimator PRIVATE attitude_estimator_native)
-set_target_properties(_attitude_estimator PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${ATTITUDE_ESTIMATOR_DIR}")
+set_target_properties(_attitude_estimator PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/${ATTITUDE_ESTIMATOR_DIR}")
 if(BUILD_TESTING)
     foreach(component base attitude_mekf)
         add_executable(cpp_test_estimator_${component}
@@ -666,7 +671,7 @@ target_include_directories(noise_native PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(noise_native PROPERTIES POSITION_INDEPENDENT_CODE ON)
 pybind11_add_module(_noise noise/noise_py.cpp)
 target_link_libraries(_noise PRIVATE noise_native)
-set_target_properties(_noise PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/noise")
+set_target_properties(_noise PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/noise")
 if(BUILD_TESTING)
     add_executable(cpp_test_noise ../../tests/backends/cpp/noise/test_noise.cpp)
     target_link_libraries(cpp_test_noise PRIVATE noise_native)

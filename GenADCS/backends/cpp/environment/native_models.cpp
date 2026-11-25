@@ -12,11 +12,6 @@
 #include <stdexcept>
 #include <utility>
 namespace omni::environment {
-constexpr double kJ2000 = 2451545.0;
-constexpr double kSecondsPerDay = 86400.0;
-
-constexpr std::array<int, 12> kTargets{1, 2, 3, 4, 5, 6, 7, 8, 9, 301, 10, 399};
-
 uint32_t read_u32(const std::vector<unsigned char> &raw, std::size_t offset,
                   bool little) {
   if (offset + 4U > raw.size())
