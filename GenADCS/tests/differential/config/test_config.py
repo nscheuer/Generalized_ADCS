@@ -6,7 +6,7 @@ class State:
     def __init__(self, date: Any) -> None:
         self.orbit = SimpleNamespace(julian_date=date)
         self.record = object()
-        self.calls = []
+        self.calls: list[Any] = []
 
     def to_record(self, wheel_count: Any) -> Any:
         self.calls.append(wheel_count)
@@ -14,7 +14,7 @@ class State:
 
 
 def test_dynamics_values_match_across_backends(config_backends: Any) -> None:
-    configs = {
+    configs: dict[str, Any] = {
         name: api.DynamicsConfig(["drag"], ["magnetic"])
         for name, api in config_backends.items()
     }
@@ -23,7 +23,7 @@ def test_dynamics_values_match_across_backends(config_backends: Any) -> None:
 
 
 def test_simulation_derived_values_and_dependencies_match(config_backends: Any) -> None:
-    configs = {}
+    configs: dict[str, tuple[Any, tuple[Any, ...], State]] = {}
     for name, api in config_backends.items():
         sat = SimpleNamespace(adcs=SimpleNamespace(reaction_wheels=[None, None, None]))
         state = State(2460000.25)

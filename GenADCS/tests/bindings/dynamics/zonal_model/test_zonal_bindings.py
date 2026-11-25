@@ -3,6 +3,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 
 def test_native_zonal_binding_accepts_numpy_inputs(dynamics_backend: Any) -> None:
@@ -12,7 +13,7 @@ def test_native_zonal_binding_accepts_numpy_inputs(dynamics_backend: Any) -> Non
     radius = 6_378_137.0
     coefficients = np.zeros(5, dtype=np.float32)
 
-    force = dynamics_backend.zonal_gravity_force(
+    force: NDArray[np.float64] = dynamics_backend.zonal_gravity_force(
         position, mass, 0.0, mu, radius, coefficients
     )
 
@@ -34,7 +35,9 @@ def test_zonal_force_model_binding_uses_body_parameters(dynamics_backend: Any) -
         SimpleNamespace(mass=10.0), environment, degrees=()
     )
 
-    force = model.evaluate(np.array([7e6, 0.0, 0.0], dtype=np.float32))
+    force: NDArray[np.float64] = model.evaluate(
+        np.array([7e6, 0.0, 0.0], dtype=np.float32)
+    )
     assert force.shape == (3,)
     assert force.dtype == np.float64
     assert np.isfinite(force).all()

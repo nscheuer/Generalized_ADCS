@@ -4,6 +4,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 
 @pytest.fixture(params=("cpp", "rust"), ids=("cpp", "rust"))
@@ -21,7 +22,9 @@ def context() -> Any:
 
 
 def test_frame_rotation_accepts_numpy_context_and_returns_matrix(frames: Any) -> Any:
-    result = frames.frame_rotation("GCRF", "ECEF", **context())
+    result: NDArray[np.float64] = frames.frame_rotation(
+        "GCRF", "ECEF", **context()
+    )
     assert isinstance(result, np.ndarray)
     assert result.shape == (3, 3) and result.dtype == np.float64
     np.testing.assert_allclose(result @ result.T, np.eye(3), atol=2e-12)
@@ -29,9 +32,13 @@ def test_frame_rotation_accepts_numpy_context_and_returns_matrix(frames: Any) ->
 
 def test_convert_vector_numpy_input_and_inverse_roundtrip(frames: Any) -> Any:
     vector = np.array([1.0, -2.0, 3.0], dtype=np.float32)
-    converted = frames.convert_vector(vector, "GCRF", "ECEF", **context())
+    converted: NDArray[np.float64] = frames.convert_vector(
+        vector, "GCRF", "ECEF", **context()
+    )
     assert converted.shape == (3,) and converted.dtype == np.float64
-    restored = frames.convert_vector(converted, "ECEF", "GCRF", **context())
+    restored: NDArray[np.float64] = frames.convert_vector(
+        converted, "ECEF", "GCRF", **context()
+    )
     np.testing.assert_allclose(restored, vector, atol=2e-6)
 
 
@@ -39,11 +46,13 @@ def test_optional_numpy_body_context_converts_through_native_api(frames: Any) ->
     position = np.array([7e6, 0.0, 0.0], dtype=np.float32)
     velocity = np.array([0.0, 7500.0, 0.0], dtype=np.float32)
     q = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
-    matrix = frames.frame_rotation(
+    matrix: NDArray[np.float64] = frames.frame_rotation(
         "GCRF", "LVLH", position_gcrf=position, velocity_gcrf=velocity
     )
     np.testing.assert_allclose(matrix, np.eye(3), atol=1e-14)
-    body = frames.frame_rotation("GCRF", "BODY", q_body_from_gcrf=q)
+    body: NDArray[np.float64] = frames.frame_rotation(
+        "GCRF", "BODY", q_body_from_gcrf=q
+    )
     np.testing.assert_allclose(body, np.eye(3), atol=1e-14)
 
 
@@ -75,7 +84,7 @@ def test_bad_vector_maps_to_value_error(frames: Any, bad_vector: Any) -> Any:
     ],
 )
 def test_geodetic_numpy_conversion_and_output_shape(frames: Any, position: Any, expected: Any) -> Any:
-    result = frames.ecef_to_geodetic(position)
+    result: NDArray[np.float64] = frames.ecef_to_geodetic(position)
     assert isinstance(result, np.ndarray)
     assert result.shape == (3,) and result.dtype == np.float64
     np.testing.assert_allclose(result, expected, atol=2e-6)

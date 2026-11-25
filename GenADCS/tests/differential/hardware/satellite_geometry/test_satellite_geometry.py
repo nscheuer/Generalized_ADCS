@@ -6,7 +6,7 @@ import numpy as np
 
 
 def test_geometry_defaults_and_explicit_fields_match_pairwise(geometry_backends: Any) -> None:
-    defaults = {
+    defaults: dict[str, Any] = {
         name: api.SatelliteGeometry(2.0, np.eye(3))
         for name, api in geometry_backends.items()
     }
@@ -16,11 +16,11 @@ def test_geometry_defaults_and_explicit_fields_match_pairwise(geometry_backends:
         assert geometry.panels == [], backend
         assert geometry.center_of_mass == (0.0, 0.0, 0.0), backend
 
-    panel_results = {
+    panel_results: dict[str, Any] = {
         name: api.SatellitePanel((1, 2, 3), (0, 0, 1), (4, 5), 0.1, 0.2, 0.7, 2.0)
         for name, api in geometry_backends.items()
     }
-    geometries = {
+    geometries: dict[str, Any] = {
         name: api.SatelliteGeometry(
             7.5, np.diag([2.0, 3.0, 4.0]), [panel_results[name]], (0.25, -0.1, 0.0)
         )
@@ -39,7 +39,7 @@ def test_geometry_defaults_and_explicit_fields_match_pairwise(geometry_backends:
 
 
 def test_geometry_mutable_fields_match_pairwise(geometry_backends: Any) -> None:
-    results = {}
+    results: dict[str, Any] = {}
     for name, api in geometry_backends.items():
         geometry = api.SatelliteGeometry(1.0, np.eye(3))
         geometry.mass = 3.5

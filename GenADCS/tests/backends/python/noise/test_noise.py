@@ -16,14 +16,16 @@ from GenADCS.backends.python.noise.noise import gaussian_sample
 
 def test_covariance_noise_cholesky_and_reproducible_sample() -> None:
     noise = Noise([[4.0, 2.0], [2.0, 3.0]])
-    np.testing.assert_allclose(noise.cholesky_factor, [[2.0, 0.0], [1.0, np.sqrt(2.0)]])
+    factor = noise.cholesky_factor
+    assert factor is not None
+    np.testing.assert_allclose(factor, [[2.0, 0.0], [1.0, np.sqrt(2.0)]])
 
-    first = gaussian_sample(noise.cholesky_factor, np.uint64(12), 3)
+    first = gaussian_sample(factor, np.uint64(12), 3)
     np.testing.assert_array_equal(
-        first, gaussian_sample(noise.cholesky_factor, np.uint64(12), 3)
+        first, gaussian_sample(factor, np.uint64(12), 3)
     )
     assert not np.array_equal(
-        first, gaussian_sample(noise.cholesky_factor, np.uint64(12), 4)
+        first, gaussian_sample(factor, np.uint64(12), 4)
     )
 
     value = np.array([1.0, -1.0])
@@ -35,7 +37,12 @@ def test_covariance_noise_cholesky_and_reproducible_sample() -> None:
             return draw
 
     np.testing.assert_allclose(
-        noise.apply(value, 0.1, rng=FixedRng()), value + noise.cholesky_factor @ draw
+        noise.apply(
+            value,
+            0.1,
+            rng=FixedRng(),  # pyright: ignore[reportArgumentType] -- deterministic test double provides the RNG method used by apply.
+        ),
+        value + factor @ draw,
     )
 
 

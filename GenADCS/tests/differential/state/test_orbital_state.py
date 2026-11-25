@@ -8,7 +8,7 @@ JD = 2451545.0
 
 class Ephemeris:
     def __init__(self) -> None:
-        self.calls = []
+        self.calls: list[tuple[Any, Any]] = []
 
     def position(self, body: Any, date: Any) -> Any:
         self.calls.append((body, date))
@@ -16,7 +16,7 @@ class Ephemeris:
 
 
 def test_cartesian_and_keplerian_values_agree(state_backends: Any) -> None:
-    cartesian = [
+    cartesian: list[Any] = [
         module.OrbitalState.from_cartesian([7e6, 1, 2], [3, 7500, 4], JD)
         for module in state_backends.values()
     ]
@@ -24,7 +24,7 @@ def test_cartesian_and_keplerian_values_agree(state_backends: Any) -> None:
         np.testing.assert_array_equal(orbit.position, cartesian[0].position)
         np.testing.assert_array_equal(orbit.velocity, cartesian[0].velocity)
         assert orbit.julian_date == cartesian[0].julian_date
-    keplerian = [
+    keplerian: list[Any] = [
         module.OrbitalState.from_keplerian(7000, 0.01, 0.2, 0.3, 0.4, 0.5, JD)
         for module in state_backends.values()
     ]
@@ -36,7 +36,7 @@ def test_cartesian_and_keplerian_values_agree(state_backends: Any) -> None:
 
 
 def test_ephemeris_results_and_cache_calls_agree(state_backends: Any) -> None:
-    outputs = []
+    outputs: list[tuple[Any, Any, Any, Any, list[tuple[Any, Any]]]] = []
     for module in state_backends.values():
         ephemeris = Ephemeris()
         orbit = module.OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD, ephemeris)

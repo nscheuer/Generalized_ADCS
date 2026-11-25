@@ -7,8 +7,8 @@ import pytest
 
 
 @pytest.fixture(scope="module")
-def state_backends() -> Any:
-    modules = {}
+def state_backends() -> dict[str, Any]:
+    modules: dict[str, Any] = {}
     for name in ("python", "cpp", "rust"):
         try:
             modules[name] = import_module(f"GenADCS.backends.{name}.state")

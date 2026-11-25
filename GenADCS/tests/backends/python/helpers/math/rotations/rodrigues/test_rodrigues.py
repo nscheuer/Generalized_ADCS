@@ -8,7 +8,7 @@ from GenADCS.backends.python.helpers.math.rotations.rodrigues.rodrigues_paramete
 
 def test_identity_quaternion_and_inverse() -> None:
     np.testing.assert_array_equal(RP.identity().components, [0, 0, 0])
-    r = RP.from_axis_angle([0, 0, 1], np.pi / 3)
+    r = RP.from_axis_angle(np.array([0, 0, 1]), np.pi / 3)
     np.testing.assert_allclose(
         RP.from_quaternion(r.to_quaternion()).to_dcm(), r.to_dcm(), atol=1e-14
     )
@@ -16,7 +16,7 @@ def test_identity_quaternion_and_inverse() -> None:
 
 
 def test_vector_rotation_and_relative_rotation() -> None:
-    r = RP.from_rotation_vector([0, 0, np.pi / 4])
+    r = RP.from_rotation_vector(np.array([0, 0, np.pi / 4]))
     v = np.array([1.0, 2.0, 3.0])
     np.testing.assert_allclose(r.body_to_inertial(r.rotate(v)), v, atol=1e-14)
     np.testing.assert_allclose(
@@ -26,24 +26,24 @@ def test_vector_rotation_and_relative_rotation() -> None:
 
 def test_singularity_and_invalid_parameters() -> None:
     with pytest.raises(ValueError, match="singular"):
-        RP.from_axis_angle([1, 0, 0], np.pi)
+        RP.from_axis_angle(np.array([1, 0, 0]), np.pi)
     with pytest.raises(ValueError):
-        RP([1, 2])
+        RP(np.array([1, 2]))
     with pytest.raises(ValueError):
-        RP([np.nan, 0, 0])
+        RP(np.array([np.nan, 0, 0]))
 
 
 def test_components_are_copies_and_bad_relative_input_is_rejected() -> None:
-    rotation = RP([0.1, 0.2, 0.3])
+    rotation = RP(np.array([0.1, 0.2, 0.3]))
     values = rotation.components
     values[0] = 99
     assert rotation.components[0] == pytest.approx(0.1)
     with pytest.raises(TypeError):
-        rotation.relative_to([0, 0, 0])
+        rotation.relative_to([0, 0, 0])  # pyright: ignore[reportArgumentType] -- intentionally supplies an invalid runtime parameter.
 
 
 def test_dcm_and_quaternion_constructors_agree() -> None:
-    original = RP([0.2, -0.1, 0.3])
+    original = RP(np.array([0.2, -0.1, 0.3]))
     np.testing.assert_allclose(
         RP.from_dcm(original.to_dcm()).to_dcm(), original.to_dcm(), atol=1e-14
     )

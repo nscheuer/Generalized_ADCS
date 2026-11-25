@@ -5,7 +5,7 @@ from typing import Any
 
 
 def test_panel_fields_match_pairwise(geometry_backends: Any) -> None:
-    results = {
+    results: dict[str, Any] = {
         name: api.SatellitePanel(
             position=(1.0, -2.0, 3.5),
             orientation=(0.0, 0.6, 0.8),
@@ -27,7 +27,7 @@ def test_panel_fields_match_pairwise(geometry_backends: Any) -> None:
 
 
 def test_panel_field_updates_match_pairwise(geometry_backends: Any) -> None:
-    results = {}
+    results: dict[str, Any] = {}
     for name, api in geometry_backends.items():
         panel = api.SatellitePanel((0, 0, 0), (1, 0, 0), (1, 1))
         panel.position = (4.0, 5.0, 6.0)

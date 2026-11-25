@@ -5,8 +5,8 @@ import pytest
 
 
 @pytest.fixture(scope="module")
-def adcs_backends() -> Any:
-    result = {}
+def adcs_backends() -> dict[str, Any]:
+    result: dict[str, Any] = {}
     for name in ("python", "cpp", "rust"):
         try:
             result[name] = import_module(

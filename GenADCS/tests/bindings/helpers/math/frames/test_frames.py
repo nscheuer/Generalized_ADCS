@@ -4,6 +4,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 
 @pytest.fixture(params=("cpp", "rust"), ids=("cpp", "rust"))
@@ -16,7 +17,7 @@ def test_numpy_vectors_convert_to_native_and_back(frames: Any) -> Any:
     vector = np.array([1, 0, 0], dtype=np.float32)
     original_q = q.copy()
     original_vector = vector.copy()
-    body = frames.inertial_to_body(vector, q)
+    body: NDArray[np.float64] = frames.inertial_to_body(vector, q)
     assert isinstance(body, np.ndarray)
     assert body.dtype == np.float64
     np.testing.assert_allclose(body, [0, 1, 0], atol=1e-7)
@@ -29,7 +30,7 @@ def test_numpy_vectors_convert_to_native_and_back(frames: Any) -> Any:
 
 def test_numpy_matrix_conversion_and_result_ownership(frames: Any) -> Any:
     q = np.array([1.0, 0, 0, 0])
-    matrix = frames.inertial_to_body_matrix(q)
+    matrix: NDArray[np.float64] = frames.inertial_to_body_matrix(q)
     assert matrix.shape == (3, 3) and matrix.dtype == np.float64
     matrix[0, 0] = 99
     np.testing.assert_array_equal(frames.inertial_to_body_matrix(q), np.eye(3))

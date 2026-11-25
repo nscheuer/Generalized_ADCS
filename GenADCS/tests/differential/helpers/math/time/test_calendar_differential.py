@@ -10,7 +10,7 @@ def test_calendar_jd_and_decomposition_agree(time_backends: Any) -> None:
         (1900, 3, 1, 0, 0, 0.0),
         (1969, 7, 20, 20, 17, 40.0),
     ]
-    outputs = []
+    outputs: list[list[tuple[Any, Any, Any]]] = []
     for api in time_backends.values():
         outputs.append(
             [
@@ -39,5 +39,5 @@ def test_day_of_year_results_agree(time_backends: Any) -> None:
         (2023, 12, 31, 365),
         (2024, 12, 31, 366),
     ]:
-        vals = [api.day_of_year(y, m, d) for api in time_backends.values()]
+        vals: list[Any] = [api.day_of_year(y, m, d) for api in time_backends.values()]
         assert vals == [expected] * 3

@@ -1,21 +1,23 @@
 from collections import Counter
+from typing import cast
 
 import numpy as np
 import pytest
 from numpy.typing import ArrayLike
 
+from GenADCS.backends.python.environment.ephemeris import EphemerisModel
 from GenADCS.backends.python.state.orbital_state import OrbitalState
 
 JD = 2451545.0
 
 
-class CountingEphemeris:
+class CountingEphemeris(EphemerisModel):
     def __init__(self) -> None:
-        self.calls = Counter()
+        self.calls: Counter[tuple[int, float]] = Counter()
 
-    def position(self, body: str | int, julian_date: float) -> np.ndarray:
-        self.calls[(body, julian_date)] += 1
-        return np.array([float(body), julian_date, 0.0])
+    def position(self, body_id: int, epoch_jd: float) -> np.ndarray:
+        self.calls[(body_id, epoch_jd)] += 1
+        return np.array([float(body_id), epoch_jd, 0.0])
 
 
 def test_cartesian_values_are_validated_converted_and_detached() -> None:
@@ -47,8 +49,12 @@ def test_rejects_invalid_position_and_velocity(bad: ArrayLike) -> None:
 
 def test_keplerian_fields_and_unimplemented_cartesian_conversion() -> None:
     orbit = OrbitalState.from_keplerian(7000, 0.01, 0.2, 0.3, 0.4, 0.5, JD)
-    assert orbit._keplerian_elements == (7000, 0.01, 0.2, 0.3, 0.4, 0.5)
-    assert orbit._position is None and orbit._velocity is None
+    elements_attribute = "_keplerian_elements"
+    elements = cast(tuple[float, ...] | None, getattr(orbit, elements_attribute))
+    assert elements == (7000, 0.01, 0.2, 0.3, 0.4, 0.5)
+    position_attribute, velocity_attribute = "_position", "_velocity"
+    assert getattr(orbit, position_attribute) is None
+    assert getattr(orbit, velocity_attribute) is None
     for name in ("position", "velocity"):
         with pytest.raises(
             NotImplementedError, match="Keplerian to Cartesian conversion"
@@ -67,7 +73,9 @@ def test_body_positions_are_cached_per_input_and_ephemeris_is_called_once_per_ke
     assert orbit.moon_position[0] == 2
     assert orbit.body_position(1)[0] == 1
     assert ephemeris.calls[(1, JD)] == 2
-    assert len(orbit._body_positions) == 5
+    cache_attribute = "_body_positions"
+    cached_positions = cast(dict[object, np.ndarray], getattr(orbit, cache_attribute))
+    assert len(cached_positions) == 5
 
 
 def test_missing_ephemeris_and_unknown_body() -> None:
@@ -111,22 +119,26 @@ def test_cache_is_not_invalidated_when_time_or_ephemeris_changes() -> None:
 
 def test_position_and_velocity_assignments_are_not_revalidated() -> None:
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD)
-    orbit._position = [1, 2]
-    orbit._velocity = [np.nan]
-    assert orbit._position == [1, 2]
-    assert np.isnan(orbit._velocity[0])
+    position_attribute, velocity_attribute = "_position", "_velocity"
+    setattr(orbit, position_attribute, [1, 2])
+    setattr(orbit, velocity_attribute, [np.nan])
+    position = cast(list[int], getattr(orbit, position_attribute))
+    velocity = cast(list[float], getattr(orbit, velocity_attribute))
+    assert position == [1, 2]
+    assert np.isnan(velocity[0])
 
 
 def test_body_ids_accept_int_coercible_values_and_key_errors_are_preserved() -> None:
     ephemeris = CountingEphemeris()
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD, ephemeris)
-    assert orbit.body_position(1.9)[0] == 1
+    assert orbit.body_position(1.9)[0] == 1  # pyright: ignore[reportArgumentType] -- verifies runtime integer coercion beyond the declared API type.
     with pytest.raises(KeyError):
         orbit.body_position("pluto")
 
 
 def test_slots_and_constructor_defaults() -> None:
     orbit = OrbitalState(None, None, JD)
-    assert orbit.ephemeris is None and orbit._keplerian_elements is None
+    elements_attribute = "_keplerian_elements"
+    assert orbit.ephemeris is None and getattr(orbit, elements_attribute) is None
     with pytest.raises(AttributeError):
-        orbit.extra = True
+        orbit.extra = True  # pyright: ignore[reportAttributeAccessIssue]

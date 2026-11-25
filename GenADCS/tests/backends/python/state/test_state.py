@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from numpy.typing import ArrayLike
 
+from GenADCS.backends.python.environment.ephemeris import EphemerisModel
 from GenADCS.backends.python.state import (
     AttitudeState,
     InternalState,
@@ -26,7 +27,7 @@ def test_state_default_internal_is_independent() -> None:
         AttitudeState([1, 0, 0, 0], [0, 0, 0]), OrbitalState([0, 0, 0], [0, 0, 0], 1)
     )
     base.internal.wheel_momentum = np.array([3.0])
-    assert other.internal.wheel_momentum.size == 0
+    assert np.asarray(other.internal.wheel_momentum).size == 0
 
 
 def test_to_record_schema_and_values() -> None:
@@ -39,7 +40,9 @@ def test_to_record_schema_and_values() -> None:
         "velocity",
         "momentum",
     )
-    assert record.dtype["quaternion"].subdtype[0] == np.dtype(np.float64)
+    quaternion_subdtype = record.dtype["quaternion"].subdtype
+    assert quaternion_subdtype is not None
+    assert quaternion_subdtype[0] == np.dtype(np.float64)
     np.testing.assert_array_equal(record["quaternion"][0], [1, 0, 0, 0])
     np.testing.assert_array_equal(record["rates"][0], [0.01, 0.02, 0.03])
     np.testing.assert_array_equal(record["position"][0], [7e6, 0, 0])
@@ -76,12 +79,19 @@ def test_from_record_roundtrip_and_owns_data() -> None:
         rebuilt.internal.wheel_momentum, original.internal.wheel_momentum
     )
     record["momentum"][0, 0] = 9
-    assert rebuilt.internal.wheel_momentum[0] == 0.1
+    assert np.asarray(rebuilt.internal.wheel_momentum)[0] == 0.1
 
 
 def test_from_record_accepts_numpy_record_scalar_and_propagates_ephemeris() -> None:
     record = make_state().to_record()[0]
-    marker = object()
+    class MarkerEphemeris(EphemerisModel):
+        def __init__(self) -> None:
+            pass
+
+        def position(self, body_id: int, epoch_jd: float) -> np.ndarray:
+            return np.zeros(3)
+
+    marker = MarkerEphemeris()
     rebuilt = State.from_record(record, 123.0, marker)
     assert rebuilt.orbit.julian_date == 123.0
     assert rebuilt.orbit.ephemeris is marker
@@ -93,4 +103,4 @@ def test_state_slots_and_component_assignment_are_direct() -> None:
     state.internal = replacement
     assert state.internal is replacement
     with pytest.raises(AttributeError):
-        state.extra = 1
+        state.extra = 1  # pyright: ignore[reportAttributeAccessIssue]

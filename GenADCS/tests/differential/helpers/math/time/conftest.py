@@ -5,8 +5,8 @@ import pytest
 
 
 @pytest.fixture(scope="module")
-def time_backends() -> Any:
-    result = {}
+def time_backends() -> dict[str, Any]:
+    result: dict[str, Any] = {}
     for name in ("python", "cpp", "rust"):
         try:
             result[name] = import_module(f"GenADCS.backends.{name}.helpers.math.time")

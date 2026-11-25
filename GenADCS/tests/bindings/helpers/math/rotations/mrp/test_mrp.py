@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 
-def cls(r: Any) -> None:
+def cls(r: Any) -> Any:
     return r.Modified_Rodriguez_Parameters
 
 
@@ -13,20 +13,20 @@ def test_mrp_aliases_numpy_conversion_and_ownership(rotations: Any) -> None:
     C = cls(rotations)
     assert C is rotations.ModifiedRodriguesParameters
     source = np.array([2.0, 0.0, 0.0], dtype=np.float32)
-    p = C(source)
+    p: Any = C(source)
     source[0] = 4
     np.testing.assert_allclose(np.asarray(p), [-0.5, 0, 0])
     assert np.asarray(p).dtype == np.float64
-    arr = np.asarray(p)
+    arr: np.ndarray = np.asarray(p)
     del p
     gc.collect()
     np.testing.assert_allclose(arr, [-0.5, 0, 0])
 
 
 def test_mrp_shadow_and_quaternion_binding(rotations: Any) -> None:
-    p = cls(rotations)([0.2, 0.3, 0.4])
+    p: Any = cls(rotations)([0.2, 0.3, 0.4])
     p.to_quaternion()
-    shadow = p.switch_shadow_set()
+    shadow: Any = p.switch_shadow_set()
     np.testing.assert_allclose(shadow.to_dcm(), p.to_dcm(), atol=1e-12)
     np.testing.assert_allclose(
         rotations.quaternion_to_mrp(rotations.mrp_to_quaternion([0.2, 0.3, 0.4])),

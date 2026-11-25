@@ -7,7 +7,7 @@ import pytest
 
 def test_calendar_keywords_defaults_and_python_scalar_types(time_api: Any) -> Any:
     assert time_api.calendar_to_jd(2000, 1, 1, hour=12) == pytest.approx(2451545.0)
-    result = time_api.jd_to_calendar(2451545.0)
+    result: tuple[Any, ...] = time_api.jd_to_calendar(2451545.0)
     assert isinstance(result, tuple) and len(result) == 6
     assert result[:5] == (2000, 1, 1, 12, 0)
     assert isinstance(result[-1], float)

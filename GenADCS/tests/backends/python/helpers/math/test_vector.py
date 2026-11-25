@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from numpy.typing import ArrayLike
 
 from GenADCS.backends.python.helpers.math.vector import (
     cross,
@@ -14,11 +15,13 @@ from GenADCS.backends.python.helpers.math.vector import (
     "a,b",
     [([1.0, 0.0, 0.0], [0.0, 1.0, 0.0]), ([1.0, 2.0, 3.0], [-4.0, 5.0, 2.0])],
 )
-def test_cross_matches_numpy_and_is_orthogonal(a: object, b: object) -> None:
-    actual = cross(np.asarray(a), np.asarray(b))
-    np.testing.assert_allclose(actual, np.cross(a, b))
-    assert np.dot(actual, a) == pytest.approx(0.0, abs=1e-14)
-    assert np.dot(actual, b) == pytest.approx(0.0, abs=1e-14)
+def test_cross_matches_numpy_and_is_orthogonal(a: ArrayLike, b: ArrayLike) -> None:
+    a_array = np.asarray(a)
+    b_array = np.asarray(b)
+    actual = cross(a_array, b_array)
+    np.testing.assert_allclose(actual, np.cross(a_array, b_array))
+    assert np.dot(actual, a_array) == pytest.approx(0.0, abs=1e-14)
+    assert np.dot(actual, b_array) == pytest.approx(0.0, abs=1e-14)
 
 
 def test_cross_is_antisymmetric_and_zero_for_parallel_vectors() -> None:

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from GenADCS.backends.python.helpers.random.philox import (
-    _philox4x32,
+    _philox4x32,  # pyright: ignore[reportPrivateUsage] -- verifies a published internal test vector.
     standard_normals,
     validate_seed,
 )
@@ -32,4 +32,4 @@ def test_normals_are_repeatable_and_counter_separated() -> None:
 @pytest.mark.parametrize("bad_seed", [-1, 2**64, 1.5, True])
 def test_invalid_seed_is_rejected(bad_seed: float | bool) -> None:
     with pytest.raises(ValueError):
-        validate_seed(bad_seed)
+        validate_seed(bad_seed)  # pyright: ignore[reportArgumentType] -- exercises runtime rejection of non-integer values.

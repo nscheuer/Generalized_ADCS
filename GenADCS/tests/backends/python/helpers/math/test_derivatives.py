@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 import numpy as np
 import pytest
+from numpy.typing import ArrayLike
 
 from GenADCS.backends.python.helpers.math.derivatives import (
     angular_velocity_from_quaternion_derivative,
@@ -10,9 +11,6 @@ from GenADCS.backends.python.helpers.math.derivatives import (
     quaternion_rate_matrix,
     quaternion_to_euler321,
     rotated_vector_quaternion_jacobian,
-)
-from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import (
-    _rotate_vector,
 )
 
 
@@ -62,7 +60,8 @@ def test_quaternion_derivative_preserves_unit_norm_to_first_order() -> None:
 
 def test_quaternion_normalization_jacobian_matches_finite_difference() -> None:
     q = np.array([0.4, -1.2, 0.7, 2.0])
-    normalize = lambda value: value / np.linalg.norm(value)
+    def normalize(value: np.ndarray) -> np.ndarray:
+        return value / np.linalg.norm(value)
     actual = quaternion_normalization_jacobian(q)
     np.testing.assert_allclose(
         actual, _finite_difference_jacobian(normalize, q), rtol=2e-8, atol=2e-9
@@ -94,7 +93,13 @@ def test_rotated_vector_quaternion_jacobian_matches_vector_rotation_finite_diffe
     # The rotation function expects a unit quaternion; choose a unit point for
     # the derivative check so the finite difference matches the helper's model.
     q = q / np.linalg.norm(q)
-    function = lambda value: _rotate_vector(value, vector)
+    def function(value: np.ndarray) -> np.ndarray:
+        scalar = value[0]
+        vector_part = value[1:]
+        return vector + 2.0 * (
+            scalar * np.cross(vector_part, vector)
+            + np.cross(vector_part, np.cross(vector_part, vector))
+        )
     actual = rotated_vector_quaternion_jacobian(q, vector)
     np.testing.assert_allclose(
         actual, _finite_difference_jacobian(function, q), rtol=3e-7, atol=3e-8
@@ -110,10 +115,10 @@ def test_rotated_vector_quaternion_jacobian_matches_vector_rotation_finite_diffe
     ],
 )
 def test_quaternion_to_euler321_identity_and_principal_axis_rotations(
-    q: object, expected: object
+    q: ArrayLike, expected: ArrayLike
 ) -> None:
     np.testing.assert_allclose(
-        quaternion_to_euler321(np.asarray(q)), expected, atol=1e-14
+        quaternion_to_euler321(np.asarray(q)), np.asarray(expected), atol=1e-14
     )
 
 

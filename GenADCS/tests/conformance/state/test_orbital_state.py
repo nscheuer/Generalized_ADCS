@@ -8,7 +8,7 @@ JD = 2451545.0
 
 class Ephemeris:
     def __init__(self) -> None:
-        self.calls = []
+        self.calls: list[tuple[int, float]] = []
 
     def position(self, body: int, date: float) -> np.ndarray:
         self.calls.append((body, date))

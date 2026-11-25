@@ -2,10 +2,11 @@ from typing import Any
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 
 def test_native_lunisolar_binding_accepts_numpy_vectors(dynamics_backend: Any) -> None:
-    acceleration = dynamics_backend.lunisolar_acceleration(
+    acceleration: NDArray[np.float64] = dynamics_backend.lunisolar_acceleration(
         np.array([7e6, 0.0, 0.0], dtype=np.float32),
         np.array([1.5e11, 0.0, 0.0], dtype=np.float64),
         np.array([0.0, 3.8e8, 0.0], dtype=np.float32),

@@ -5,9 +5,9 @@ import pytest
 
 
 @pytest.fixture(scope="module")
-def dynamics_backends(request: Any) -> Any:
+def dynamics_backends(request: Any) -> dict[str, Any]:
     model = request.node.path.parent.name
-    modules = {}
+    modules: dict[str, Any] = {}
     for name in ("python", "cpp", "rust"):
         try:
             modules[name] = import_module(f"GenADCS.backends.{name}.dynamics.{model}")

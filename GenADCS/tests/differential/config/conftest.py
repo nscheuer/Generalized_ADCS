@@ -5,7 +5,7 @@ import pytest
 
 
 @pytest.fixture(scope="module")
-def config_backends() -> Any:
+def config_backends() -> dict[str, Any]:
     try:
         return {
             name: import_module(f"GenADCS.backends.{name}.config")

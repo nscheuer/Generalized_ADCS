@@ -74,7 +74,7 @@ def test_ut1_dut1_forward_inverse_and_all_scale_paths(time_api: Any) -> None:
 
 
 def test_tdb_correction_stays_small_and_varies_smoothly(time_api: Any) -> None:
-    vals = [
+    vals: list[float] = [
         (
             time_api.tt_jd_to_tdb_jd(2451545.0 + i * 365.25 / 99)
             - (2451545.0 + i * 365.25 / 99)

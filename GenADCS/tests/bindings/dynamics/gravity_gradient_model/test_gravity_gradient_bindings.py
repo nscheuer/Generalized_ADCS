@@ -3,6 +3,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 
 def test_native_gravity_gradient_accepts_numpy_inputs(dynamics_backend: Any) -> None:
@@ -10,7 +11,7 @@ def test_native_gravity_gradient_accepts_numpy_inputs(dynamics_backend: Any) -> 
     quaternion = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
     inertia = np.diag(np.array([2.0, 3.0, 4.0], dtype=np.float32))
 
-    torque = dynamics_backend.static_gravity_gradient_torque(
+    torque: NDArray[np.float64] = dynamics_backend.static_gravity_gradient_torque(
         position, quaternion, inertia, 3.986e14
     )
 
@@ -30,7 +31,9 @@ def test_gravity_gradient_model_binding_reads_geometry_and_environment(
     )
     model = dynamics_backend.StaticGravityGradientModel(geometry)
 
-    torque = model.evaluate([7e6, 7e6, 0.0], [1.0, 0.0, 0.0, 0.0], environment)
+    torque: NDArray[np.float64] = model.evaluate(
+        [7e6, 7e6, 0.0], [1.0, 0.0, 0.0, 0.0], environment
+    )
     assert torque.shape == (3,)
     assert np.isfinite(torque).all()
 

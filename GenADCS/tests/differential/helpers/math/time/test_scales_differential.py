@@ -6,7 +6,7 @@ SEC = 86400.0
 
 
 def test_time_scale_conversion_graph_matches(time_backends: Any) -> None:
-    utc_by_backend = []
+    utc_by_backend: list[tuple[Any, ...]] = []
     for api in time_backends.values():
         utc = api.calendar_to_jd(2022, 9, 17, 3, 4, 5.0)
         dut1 = -0.137
@@ -63,7 +63,7 @@ def test_leap_table_offsets_match_at_every_transition(time_backends: Any) -> Non
         2457754.5,
     ]
     for i, jd in enumerate(effective):
-        offsets = [
+        offsets: list[Any] = [
             (api.utc_jd_to_tai_jd(jd) - jd) * SEC for api in time_backends.values()
         ]
         for offset in offsets:

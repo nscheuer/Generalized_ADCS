@@ -3,6 +3,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 
 def test_native_drag_functions_accept_numpy_inputs_and_return_vectors(dynamics_backend: Any) -> None:
@@ -13,10 +14,10 @@ def test_native_drag_functions_accept_numpy_inputs_and_return_vectors(dynamics_b
     areas = np.array([2.0], dtype=np.float32)
     coefficients = np.array([2.2], dtype=np.float32)
 
-    force = dynamics_backend.projected_area_drag_force(
+    force: NDArray[np.float64] = dynamics_backend.projected_area_drag_force(
         velocity, quaternion, 1e-11, normals, areas, coefficients
     )
-    torque = dynamics_backend.projected_area_drag_torque(
+    torque: NDArray[np.float64] = dynamics_backend.projected_area_drag_torque(
         velocity, quaternion, 1e-11, normals, arms, areas, coefficients
     )
 
@@ -75,14 +76,21 @@ def test_drag_model_binding_uses_environment_and_panel_data(dynamics_backend: An
     )
     geometry = SimpleNamespace(panels=[panel], center_of_mass=np.zeros(3))
     model = dynamics_backend.ProjectedAreaDragForceModel(geometry)
+
+    def density(*_args: Any) -> float:
+        return 1.0
+
+    def velocity(*_args: Any) -> NDArray[np.float64]:
+        return np.zeros(3)
+
     environment = SimpleNamespace(
         atmosphere=SimpleNamespace(
-            density=lambda *_: 1.0,
-            velocity=lambda *_: np.zeros(3),
+            density=density,
+            velocity=velocity,
         )
     )
 
-    result = model.evaluate(
+    result: NDArray[np.float64] = model.evaluate(
         np.zeros(3),
         [0.0, 0.0, 10.0],
         [1.0, 0.0, 0.0, 0.0],

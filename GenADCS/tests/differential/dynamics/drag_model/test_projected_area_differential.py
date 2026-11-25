@@ -27,7 +27,7 @@ def test_drag_force_and_torque_match_across_backends(dynamics_backends: Any) -> 
     )
 
     for velocity, quaternion, density, normals, arms, areas, coefficients in cases:
-        outputs = {}
+        outputs: dict[str, tuple[Any, Any]] = {}
         for name, backend in dynamics_backends.items():
             outputs[name] = (
                 backend.projected_area_drag_force(

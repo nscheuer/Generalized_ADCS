@@ -5,12 +5,12 @@ import pytest
 
 
 @pytest.fixture(scope="module")
-def rotation_backends() -> Any:
-    result = {}
+def rotation_backends() -> dict[str, Any]:
+    result: dict[str, Any] = {}
     for name in ("python", "cpp", "rust"):
         try:
             root = f"GenADCS.backends.{name}.helpers.math.rotations"
-            module = import_module(root)
+            module: Any = import_module(root)
             module.quaternion = import_module(root + ".quaternion")
             module.dcm = import_module(root + ".dcm")
             module.DCM = module.dcm.DCM

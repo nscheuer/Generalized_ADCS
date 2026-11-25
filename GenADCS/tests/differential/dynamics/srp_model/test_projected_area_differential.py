@@ -28,7 +28,7 @@ def test_srp_force_and_torque_match_across_backends(dynamics_backends: Any) -> N
     )
 
     for position, sun, quaternion, normals, arms, areas, optical, illumination in cases:
-        results = {}
+        results: dict[str, tuple[Any, Any]] = {}
         for name, backend in dynamics_backends.items():
             results[name] = (
                 backend.projected_area_srp_force(

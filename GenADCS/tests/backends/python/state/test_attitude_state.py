@@ -7,11 +7,12 @@ from GenADCS.backends.python.state.attitude_state import AttitudeState
 def test_rates_are_finite_contiguous_float64_and_detached() -> None:
     source = np.array([1, 2, 3], dtype=np.float32)
     state = AttitudeState([2, 0, 0, 0], source)
-    assert state.rates.dtype == np.float64
-    assert state.rates.flags.c_contiguous
-    np.testing.assert_array_equal(state.rates, [1, 2, 3])
+    rates = np.asarray(state.rates)
+    assert rates.dtype == np.float64
+    assert rates.flags.c_contiguous
+    np.testing.assert_array_equal(rates, [1, 2, 3])
     source[0] = 99
-    assert state.rates[0] == 1
+    assert np.asarray(state.rates)[0] == 1
 
 
 @pytest.mark.parametrize("rates", [[1, 2], [[1, 2, 3]], [0, np.inf, 0], [0, np.nan, 0]])
@@ -64,4 +65,4 @@ def test_accepts_negative_scaled_quaternion_and_returns_contiguous_unit_copy() -
 
 def test_slots_reject_unknown_attributes() -> None:
     with pytest.raises(AttributeError):
-        AttitudeState([1, 0, 0, 0], [0, 0, 0]).extra = 1
+        AttitudeState([1, 0, 0, 0], [0, 0, 0]).extra = 1  # pyright: ignore[reportAttributeAccessIssue]

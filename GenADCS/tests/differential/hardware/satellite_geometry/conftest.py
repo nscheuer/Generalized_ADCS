@@ -5,8 +5,8 @@ import pytest
 
 
 @pytest.fixture(scope="module")
-def geometry_backends() -> Any:
-    backends = {}
+def geometry_backends() -> dict[str, Any]:
+    backends: dict[str, Any] = {}
     for name in ("python", "cpp", "rust"):
         try:
             backends[name] = import_module(

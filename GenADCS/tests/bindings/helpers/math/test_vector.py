@@ -5,6 +5,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 
 def test_vector_bindings_accept_sequences_and_numpy_dtypes(math_backend: Any) -> None:
@@ -13,7 +14,7 @@ def test_vector_bindings_accept_sequences_and_numpy_dtypes(math_backend: Any) ->
         ([1.0, 2.0, 3.0], (-4.0, 5.0, 2.0)),
         (np.array([1, 2, 3], dtype=np.float32), np.array([-4, 5, 2], dtype=np.float32)),
     ):
-        result = math_backend.cross(left, right)
+        result: NDArray[np.float64] = math_backend.cross(left, right)
         assert isinstance(result, np.ndarray)
         assert result.shape == (3,)
         assert result.dtype == np.float64
@@ -34,13 +35,13 @@ def test_noncontiguous_numpy_input_is_converted_without_mutation(math_backend: A
 
 def test_returned_arrays_are_independent_owned_results(math_backend: Any) -> None:
     source = np.array([3.0, 4.0, 0.0], dtype=np.float32)
-    normalized = math_backend.normalize(source)
+    normalized: NDArray[np.float64] = math_backend.normalize(source)
     assert normalized.dtype == np.float64
     normalized[0] = 123.0
     np.testing.assert_array_equal(source, [3.0, 4.0, 0.0])
     np.testing.assert_allclose(math_backend.normalize(source), [0.6, 0.8, 0.0])
 
-    matrix = math_backend.skew([1.5, -2.0, 4.0])
+    matrix: NDArray[np.float64] = math_backend.skew([1.5, -2.0, 4.0])
     assert matrix.shape == (3, 3) and matrix.dtype == np.float64
     matrix[0, 0] = 99.0
     assert math_backend.skew([1.5, -2.0, 4.0])[0, 0] == 0.0

@@ -29,7 +29,7 @@ def test_magnetorquer_effects_are_handled_at_the_binding_boundary(subsystem_back
     assert torquer.noises == [noise]
     assert torquer.biases == [bias]
 
-    calls = []
+    calls: list[tuple[Any, float, Any]] = []
     rng = object()
     torquer.effects = [AddEffect(2.0, calls), AddEffect(-0.5, calls)]
     assert torquer.apply_errors(1.0, 0.125, rng) == 2.5

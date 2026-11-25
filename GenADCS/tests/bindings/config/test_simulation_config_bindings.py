@@ -12,7 +12,7 @@ class StateDouble:
     def __init__(self, date: float = 2451545.0) -> None:
         self.orbit = SimpleNamespace(julian_date=date)
         self.record = object()
-        self.wheel_counts = []
+        self.wheel_counts: list[int] = []
 
     def to_record(self, wheel_count: int) -> object:
         self.wheel_counts.append(wheel_count)
@@ -115,7 +115,7 @@ def test_constructor_retains_python_dependencies_until_config_is_destroyed(
     config_backend: Any,
 ) -> None:
     class Dependency:
-        pass
+        adcs: Any
 
     satellite = Dependency()
     satellite.adcs = SimpleNamespace(reaction_wheels=[object()])

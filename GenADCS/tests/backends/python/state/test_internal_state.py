@@ -11,16 +11,17 @@ from GenADCS.backends.python.state.internal_state import (
 
 def test_empty_default_is_independent() -> None:
     first, second = InternalState(), InternalState()
-    assert first.wheel_momentum.shape == (0,)
+    assert np.asarray(first.wheel_momentum).shape == (0,)
     first.wheel_momentum = np.array([1.0])
-    assert second.wheel_momentum.shape == (0,)
+    assert np.asarray(second.wheel_momentum).shape == (0,)
 
 
 def test_momentum_is_finite_contiguous_float64_and_detached() -> None:
     source = np.array([1, 2], dtype=np.float32)
     state = InternalState(source)
-    assert state.wheel_momentum.dtype == np.float64
-    assert state.wheel_momentum.flags.c_contiguous
+    momentum = np.asarray(state.wheel_momentum)
+    assert momentum.dtype == np.float64
+    assert momentum.flags.c_contiguous
     source[0] = 99
     np.testing.assert_array_equal(state.wheel_momentum, [1, 2])
 
@@ -37,7 +38,7 @@ def test_wheel_state_copies_wheel_values_without_mutating_wheels() -> None:
     state = WheelMomentumState(subsystem)
     np.testing.assert_array_equal(state.wheel_momentum, [1.5, -2])
     wheels[0].h = 9
-    assert state.wheel_momentum[0] == 1.5
+    assert np.asarray(state.wheel_momentum)[0] == 1.5
     assert isinstance(state, InternalState)
 
 
@@ -58,10 +59,10 @@ def test_public_assignment_is_direct_and_can_replace_with_array() -> None:
 
 
 def test_wheel_state_none_sources_and_empty_subsystem() -> None:
-    assert WheelMomentumState().wheel_momentum.shape == (0,)
-    assert WheelMomentumState(
-        SimpleNamespace(reaction_wheels=[])
-    ).wheel_momentum.shape == (0,)
+    assert np.asarray(WheelMomentumState().wheel_momentum).shape == (0,)
+    assert np.asarray(
+        WheelMomentumState(SimpleNamespace(reaction_wheels=[])).wheel_momentum
+    ).shape == (0,)
 
 
 def test_wheel_state_propagates_bad_source_values_through_validation() -> None:

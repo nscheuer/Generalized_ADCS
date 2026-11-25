@@ -14,7 +14,7 @@ def test_rigid_body_and_wheel_dynamics_match_pairwise(math_backends: Any) -> Non
     wheel_torque = np.array([0.2, -0.1])
     acceleration = np.array([0.3, -0.4, 0.2])
     momentum_axes = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
-    results = {
+    results: dict[str, tuple[Any, ...]] = {
         name: (
             api.rigid_body_angular_acceleration(omega, torque, inertia),
             api.wheel_coupled_angular_acceleration(
@@ -37,7 +37,7 @@ def test_empty_wheel_results_match_across_backends(math_backends: Any) -> None:
     torque = np.array([0.01, 0.02, -0.03])
     inertia = np.diag([2.0, 3.0, 4.0])
     alpha = np.array([0.3, 0.2, -0.1])
-    results = []
+    results: list[tuple[Any, Any]] = []
     for api in math_backends.values():
         results.append(
             (

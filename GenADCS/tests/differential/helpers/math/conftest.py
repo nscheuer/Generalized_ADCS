@@ -7,8 +7,8 @@ import pytest
 
 
 @pytest.fixture(scope="module")
-def math_backends() -> Any:
-    modules = {}
+def math_backends() -> dict[str, Any]:
+    modules: dict[str, Any] = {}
     for name in ("python", "cpp", "rust"):
         try:
             modules[name] = import_module(f"GenADCS.backends.{name}.helpers.math")
