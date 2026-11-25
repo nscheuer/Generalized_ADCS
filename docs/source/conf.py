@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'Generalized ADCS'
 copyright = '2026, Niclas Scheuer, Patrick McKeen'
 author = 'Niclas Scheuer, Patrick McKeen'
-release = '2026'
+release = '0.3.0'
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -16,7 +16,17 @@ extensions = [
     'sphinx.ext.mathjax',
     'myst_parser',
     'sphinx_sitemap',
+    'sphinx_multiversion',
+    'sphinx.ext.apidoc',
 ]
+
+apidoc_modules = [{'path': '../../GenADCS', 'destination': '.', 'maxdepth': 1}]
+# Historical releases are built separately after sphinx-apidoc runs in each tag.
+smv_tag_whitelist = None
+smv_branch_whitelist = r'^main$'
+smv_remote_whitelist = None
+smv_outputdir_format = '{ref.name}'
+smv_latest_version = 'main'
 
 autodoc_mock_imports = ["saltro_py", "matplotlib", "mpl_toolkits", "pyvista", "vtk", "rich", "trajectory_planner.build"]
 
@@ -37,7 +47,7 @@ napoleon_google_docstring = True
 napoleon_numpy_docstring = True
 
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns = ['tutorials/**', 'installation/**', 'satellite_factory/**', 'papers/**', 'ssc26/**', 'contributing/**', 'release_notes/**', 'ADCS.rst', 'ADCS.*.rst']
 
 html_theme = 'furo'
 html_static_path = ['_static']

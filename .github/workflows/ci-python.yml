@@ -1,0 +1,31 @@
+name: Python backend
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Build Python package
+        shell: bash
+        run: |
+          python -m pip install --upgrade build
+          python -m build --wheel
+          python -m pip install -e '.[dev]'
+      - name: Test Python backend
+        shell: bash
+        run: python -m pytest GenADCS/tests/backends/python -n auto

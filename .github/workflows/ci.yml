@@ -1,60 +1,57 @@
-# .github/workflows/ci.yml
-
-name: Run Pytest
+name: CI
 
 on:
   push:
-    branches:
-      - main
-  # No base-branch filter: this repo stacks PRs (12 open PRs currently
-  # target another PR's branch), and a `branches: [main]` filter means
-  # every one of them merges without ever having been tested.
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  check_all_pytests:
-    runs-on: ubuntu-latest
+  cpp:
+    name: C++ / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    uses: ./.github/workflows/ci-cpp.yml
+    with:
+      runner: ${{ matrix.os }}
 
-    steps:
-      - name: ⬇️ Checkout Repository
-        uses: actions/checkout@v4
+  rust:
+    name: Rust / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    uses: ./.github/workflows/ci-rust.yml
+    with:
+      runner: ${{ matrix.os }}
 
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+  python:
+    name: Python / ${{ matrix.os }}
+    needs: [cpp, rust]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    uses: ./.github/workflows/ci-python.yml
+    with:
+      runner: ${{ matrix.os }}
 
-      - name: ⚙️ Create and Activate Virtual Environment
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          
-      - name: 📦 Install Dependencies
-        run: |
-          source .venv/bin/activate
-          pip install -r requirements.txt
-          pip uninstall -y cmake
-          
-      - name: 🧪 Run Pytest
-        run: |
-          source .venv/bin/activate
-          mkdir -p testing/artifacts
-          pytest \
-            testing/ \
-            -m "not local" \
-            --durations=0 \
-            --durations-min=0.0 \
-            --junitxml=testing/artifacts/pytest.xml
-
-      - name: 📦 Upload Pytest JUnit XML
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pytest-junit-report
-          path: testing/artifacts/pytest.xml
-
-      - name: 📋 Publish Test Summary
-        if: always()
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: testing/artifacts/pytest.xml
+  integration:
+    name: Bindings and cross-backend / ${{ matrix.os }}
+    needs: [cpp, rust, python]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    uses: ./.github/workflows/ci-integration.yml
+    with:
+      runner: ${{ matrix.os }}

@@ -11,7 +11,7 @@ In order to register new Python modules (generate new .rst files):
 ```bash
 cd docs/
 find source -maxdepth 1 -type f -name "*.rst" ! -name "index.rst" -delete
-sphinx-apidoc -f -e --maxdepth 1 -o source/ ../ADCS/
+sphinx-apidoc -f -e --maxdepth 1 -o source/ ../GenADCS/
 ```
 
 ## Viewing Documentation

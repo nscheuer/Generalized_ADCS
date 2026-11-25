@@ -1,0 +1,62 @@
+name: Rust backend
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ${{ inputs.runner }}
+    env:
+      SCCACHE_GHA_ENABLED: 'on'
+      RUSTC_WRAPPER: sccache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ runner.os }}-${{ hashFiles('GenADCS/backends/rust/Cargo.lock') }}
+      - uses: mozilla-actions/sccache-action@v0.0.11
+      - name: Install Python build dependencies
+        shell: bash
+        run: python -m pip install -e .
+      - name: Build Rust extensions and workspace
+        shell: bash
+        env:
+          PYO3_PYTHON: python
+        run: |
+          export CARGO_BUILD_JOBS="$(python -c 'import os; print(os.cpu_count() or 2)')"
+          bash GenADCS/backends/rust/build_extensions.sh
+          cargo build --manifest-path GenADCS/backends/rust/Cargo.toml --workspace --jobs "$(python -c 'import os; print(os.cpu_count() or 2)')"
+      - name: Test Rust workspace
+        shell: bash
+        env:
+          PYO3_PYTHON: python
+        run: cargo test --manifest-path GenADCS/backends/rust/Cargo.toml --workspace --jobs "$(python -c 'import os; print(os.cpu_count() or 2)')" -- --test-threads="$(python -c 'import os; print(os.cpu_count() or 2)')"
+      - name: Compiler cache statistics
+        if: always()
+        shell: bash
+        run: sccache --show-stats
+      - name: Stage Python extensions
+        shell: bash
+        run: python .github/scripts/stage_extensions.py GenADCS/backends/rust _ci_extensions/rust
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust-extensions-${{ inputs.runner }}
+          path: _ci_extensions/rust/
+          if-no-files-found: error
+          retention-days: 2

@@ -2,3 +2,4 @@ sphinx
 furo
 myst-parser
 sphinx-sitemap
+sphinx-multiversion

@@ -4,13 +4,8 @@ requires = ["setuptools>=77", "wheel>=0.43"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "Generalized_ADCS"
-# NOTE: this had drifted. docs/source/release_notes/ documents releases through
-# 0.1.7 (remote execution, benchmarks) while pyproject still said 0.1.5, so the
-# first PyPI upload went out as 0.1.5 -- two behind the documented state, and
-# built before the choldate removal. PyPI versions are immutable, so this moves
-# forward past the documented 0.1.7 rather than trying to reuse a number.
-version = "0.2.2"
+name = "GenADCS"
+version = "0.3.0"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
     { name = "Patrick McKeen", email = "pmckeen@mit.edu" },
@@ -50,60 +45,15 @@ classifiers = [
     "Natural Language :: English",
 ]
 
-# Runtime dependencies.
-#
-# This list is exactly what ``import ADCS`` needs, with compatible ranges
-# rather than exact pins so the package can be installed into an existing
-# environment. Transitive dependencies (matplotlib's contourpy/pillow/...,
-# skyfield's sgp4/jplephem/certifi, ...) are resolved by pip and are
-# deliberately NOT restated here.
-#
-# For bit-reproducible paper campaigns use the exact pins instead:
-#     pip install -r requirements-repro.txt
+# Dependencies for the GenADCS Python backend.
 dependencies = [
     "numpy>=1.26",
-    "scipy>=1.10",
-    "matplotlib>=3.7",
     "numba>=0.59",
-    "skyfield>=1.45",
     "tqdm>=4.60",
-    "rich>=13.0",
-    "DracoPy>=2.2",
-    "h5py>=3.8",
 ]
 
 # Optional extras
 [project.optional-dependencies]
-# The legacy geomagnetic field model, selectable with
-# magnetic_model="igrf_ppigrf" to reproduce results from 0.1.8 and earlier.
-# The default in-tree igrf_numba model needs nothing extra.
-ppigrf = [
-    "ppigrf>=2.0",
-]
-nrlmsise = [
-    "pymsis>=0.12",
-]
-# Visualization helpers: PyVista orbit plots, Godot asset texture processing,
-# and Pillow-based rendering/export utilities.
-viz = [
-    "pyvista>=0.44",
-    "Pillow>=10.0",
-]
-
-# Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
-#
-# SOURCE CHECKOUT ONLY. This installs the compilers/bindings, but the add-ons
-# themselves live in the SALTRO and OldPlanner git submodules, which are NOT
-# part of the distribution -- so `pip install "generalized-adcs[cpp]"` gives a
-# pip user the toolchain and nothing to build with it. Useful only alongside a
-# clone of the repository. Neither add-on is needed for the pure-Python
-# framework; both are guarded optional imports.
-cpp = [
-    "cmake>=3.27",
-    "Cython>=3.0",
-    "pybind11>=2.12",
-]
-
 docs = [
     "sphinx>=7.2",
     "sphinx-autodoc-typehints",
@@ -111,10 +61,7 @@ docs = [
     "myst-parser",
     "furo",
     "sphinx-sitemap",
-]
-
-poster = [
-    "qrcode[pil]",
+    "sphinx-multiversion",
 ]
 
 dev = [
@@ -125,11 +72,6 @@ dev = [
     "ruff",
     "pyright",
     "pip-audit",
-    # Reference implementation for testing/test_igrf.py. ADCS.environment.igrf
-    # replaced it at runtime, but it stays the oracle the new kernel is checked
-    # against, so a drift in the field model fails a test rather than quietly
-    # changing every simulation.
-    "ppigrf>=2.0",
 ]
 
 [project.urls]
@@ -139,241 +81,28 @@ Homepage = "https://nscheuer.github.io/Generalized_ADCS/"
 Documentation = "https://nscheuer.github.io/Generalized_ADCS/"
 Repository = "https://github.com/nscheuer/Generalized_ADCS"
 Issues = "https://github.com/nscheuer/Generalized_ADCS/issues"
-Changelog = "https://nscheuer.github.io/Generalized_ADCS/release_notes/index.html"
+Changelog = "https://github.com/nscheuer/Generalized_ADCS/releases"
 
-[tool.setuptools]
-# The generalized-control pipeline lives with the paper it belongs to, under
-# papers/Generalized_ACS/pipeline/, but is still shipped and imported as
-# ADCS.pipeline. Mapping it here keeps the source layout paper-centric without
-# taking the adapter out of the installed package -- the poster, the landing
-# page and the Colab notebook all depend on `pip install generalized-adcs`
-# providing it.
-package-dir = { "" = ".", "ADCS.pipeline" = "papers/Generalized_ACS/pipeline" }
+[tool.setuptools.packages.find]
+include = ["GenADCS", "GenADCS.*"]
+exclude = ["GenADCS.tests*", "GenADCS.examples*"]
 
-# Explicit rather than `packages.find`, because find cannot discover
-# ADCS.pipeline -- it is not under ADCS/ -- and setuptools will not merge a
-# find directive with an extra entry. testing/test_packaging.py asserts this
-# list still matches what is on disk, so adding a subpackage and forgetting to
-# list it here fails CI instead of silently shipping a broken wheel.
-packages = [
-    "ADCS",
-    "GenADCS",
-    "GenADCS.kernels",
-    "GenADCS.kernels.environment",
-    "GenADCS.kernels.environment.ephemeris",
-    "GenADCS.kernels.environment.ephemeris.de421",
-    "GenADCS.kernels.environment.magnetic_field_model",
-    "GenADCS.kernels.environment.magnetic_field_model.igrf14",
-    "GenADCS.kernels.environment.magnetic_field_model.chaos8",
-    "GenADCS.backends.python",
-    "GenADCS.backends.cpp",
-    "GenADCS.backends.cpp.state",
-    "GenADCS.backends.python.bias",
-    "GenADCS.backends.python.config",
-    "GenADCS.backends.python.dynamics",
-    "GenADCS.backends.python.dynamics.drag_model",
-    "GenADCS.backends.python.dynamics.srp_model",
-    "GenADCS.backends.python.dynamics.residual_dipole_model",
-    "GenADCS.backends.python.dynamics.gravity_gradient_model",
-    "GenADCS.backends.python.dynamics.third_body_model",
-    "GenADCS.backends.python.dynamics.zonal_model",
-    "GenADCS.backends.python.environment",
-    "GenADCS.backends.python.environment.atmosphere",
-    "GenADCS.backends.python.environment.ephemeris",
-    "GenADCS.backends.python.environment.ephemeris.de421",
-    "GenADCS.backends.python.environment.gravity",
-    "GenADCS.backends.python.environment.magnetic_field_model",
-    "GenADCS.backends.python.environment.magnetic_field_model.chaos8",
-    "GenADCS.backends.python.environment.magnetic_field_model.igrf14",
-    "GenADCS.backends.python.environment.magnetic_field_model.wmm",
-    "GenADCS.backends.python.environment.planetary_body",
-    "GenADCS.backends.python.helpers",
-    "GenADCS.backends.python.helpers.math",
-    "GenADCS.backends.python.helpers.math.frames",
-    "GenADCS.backends.python.helpers.math.time",
-    "GenADCS.backends.python.helpers.math.rotations.dcm",
-    "GenADCS.backends.python.helpers.math.rotations",
-    "GenADCS.backends.python.helpers.math.rotations.mrp",
-    "GenADCS.backends.python.helpers.math.rotations.quaternion",
-    "GenADCS.backends.python.helpers.math.rotations.rodrigues",
-    "GenADCS.backends.python.hardware",
-    "GenADCS.backends.python.hardware.ADCS_subsystem",
-    "GenADCS.backends.python.hardware.ADCS_subsystem.estimator",
-    "GenADCS.backends.python.hardware.ADCS_subsystem.estimator.attitude_estimator",
-    "GenADCS.backends.python.hardware.satellite_geometry",
-    "GenADCS.backends.python.hardware.state_machine",
-    "GenADCS.backends.python.noise",
-    "GenADCS.backends.python.propagation",
-    "GenADCS.backends.python.propagation.attitude_propagators",
-    "GenADCS.backends.python.propagation.orbital_propagators",
-    "GenADCS.backends.python.propagation.coupled_propagators",
-    "GenADCS.backends.python.solver",
-    "GenADCS.backends.python.state",
-    "ADCS.CONOPS",
-    "ADCS.CONOPS.goallist",
-    "ADCS.CONOPS.goals",
-    "ADCS.CONOPS.goals.attitude_goals",
-    "ADCS.CONOPS.goals.vector_goals",
-    "ADCS.controller",
-    "ADCS.controller.helpers",
-    "ADCS.controller.neo_planner",
-    "ADCS.controller.plan_and_track",
-    "ADCS.controller.saltro",
-    "ADCS.environment",
-    "ADCS.environment.atmosphere",
-    "ADCS.environment.ephemeris",
-    "ADCS.environment.kernels",
-    "ADCS.environment.magnetic_field",
-    "ADCS.environment.star_catalogue",
-    "ADCS.examples",
-    "ADCS.estimators",
-    "ADCS.estimators.attitude_estimators",
-    "ADCS.estimators.estimator_helpers",
-    "ADCS.estimators.orbit_estimators",
-    "ADCS.flight_software",
-    "ADCS.flight_software.single_core",
-    "ADCS.flight_software.tasks",
-    "ADCS.helpers",
-    "ADCS.helpers.animations",
-    "ADCS.helpers.animations.godot",
-    "ADCS.helpers.animations.godot.assets",
-    "ADCS.helpers.animations.godot.mesh_import",
-    "ADCS.helpers.math",
-    "ADCS.helpers.plot",
-    "ADCS.helpers.plot.control",
-    "ADCS.helpers.plot.orbit",
-    "ADCS.helpers.plot.sensors",
-    "ADCS.helpers.plot.states",
-    "ADCS.helpers.plotting",
-    "ADCS.helpers.plotting_mc",
-    "ADCS.helpers.save_and_load",
-    "ADCS.mc",
-    "ADCS.orbits",
-    "ADCS.orbits.helpers",
-    "ADCS.remote",
-    "ADCS.satellite_factory",
-    "ADCS.satellite_factory.actuators",
-    "ADCS.satellite_factory.satellites",
-    "ADCS.satellite_factory.sensors",
-    "ADCS.satellite_hardware",
-    "ADCS.satellite_hardware.actuators",
-    "ADCS.satellite_hardware.disturbances",
-    "ADCS.satellite_hardware.disturbances.helpers",
-    "ADCS.satellite_hardware.errors",
-    "ADCS.satellite_hardware.errors.helpers",
-    "ADCS.satellite_hardware.satellite",
-    "ADCS.satellite_hardware.sensors",
-    "ADCS.pipeline",
-    "ADCS.pipeline.allocation",
-    "ADCS.pipeline.compensation",
-    "ADCS.pipeline.control_law",
-    "ADCS.pipeline.goal_formulation",
-    "GenADCS.backends",
-    "GenADCS.backends.cpp.config",
-    "GenADCS.backends.cpp.dynamics",
-    "GenADCS.backends.cpp.dynamics.drag_model",
-    "GenADCS.backends.cpp.dynamics.gravity_gradient_model",
-    "GenADCS.backends.cpp.dynamics.residual_dipole_model",
-    "GenADCS.backends.cpp.dynamics.srp_model",
-    "GenADCS.backends.cpp.dynamics.third_body_model",
-    "GenADCS.backends.cpp.dynamics.zonal_model",
-    "GenADCS.backends.cpp.environment",
-    "GenADCS.backends.cpp.environment.atmosphere",
-    "GenADCS.backends.cpp.environment.atmosphere.NRMLSISE00",
-    "GenADCS.backends.cpp.environment.ephemeris",
-    "GenADCS.backends.cpp.environment.ephemeris.de421",
-    "GenADCS.backends.cpp.environment.gravity",
-    "GenADCS.backends.cpp.environment.magnetic_field_model",
-    "GenADCS.backends.cpp.environment.magnetic_field_model.chaos8",
-    "GenADCS.backends.cpp.environment.magnetic_field_model.igrf14",
-    "GenADCS.backends.cpp.environment.magnetic_field_model.wmm",
-    "GenADCS.backends.cpp.environment.planetary_body",
-    "GenADCS.backends.cpp.hardware",
-    "GenADCS.backends.cpp.hardware.ADCS_subsystem",
-    "GenADCS.backends.cpp.hardware.satellite_geometry",
-    "GenADCS.backends.cpp.helpers",
-    "GenADCS.backends.cpp.helpers.math",
-    "GenADCS.backends.cpp.helpers.math.frames",
-    "GenADCS.backends.cpp.helpers.math.rotations",
-    "GenADCS.backends.cpp.helpers.math.rotations.dcm",
-    "GenADCS.backends.cpp.helpers.math.rotations.mrp",
-    "GenADCS.backends.cpp.helpers.math.rotations.quaternion",
-    "GenADCS.backends.cpp.helpers.math.rotations.rodrigues",
-    "GenADCS.backends.cpp.helpers.math.time",
-    "GenADCS.backends.cpp.propagation",
-    "GenADCS.backends.cpp.propagation.coupled_propagators",
-    "GenADCS.backends.cpp.solver",
-    "GenADCS.backends.python.environment.atmosphere.NRMLSISE00",
-    "GenADCS.backends.rust",
-    "GenADCS.backends.rust.config",
-    "GenADCS.backends.rust.dynamics",
-    "GenADCS.backends.rust.dynamics.drag_model",
-    "GenADCS.backends.rust.dynamics.gravity_gradient_model",
-    "GenADCS.backends.rust.dynamics.residual_dipole_model",
-    "GenADCS.backends.rust.dynamics.srp_model",
-    "GenADCS.backends.rust.dynamics.third_body_model",
-    "GenADCS.backends.rust.dynamics.zonal_model",
-    "GenADCS.backends.rust.environment",
-    "GenADCS.backends.rust.environment.atmosphere",
-    "GenADCS.backends.rust.environment.atmosphere.NRMLSISE00",
-    "GenADCS.backends.rust.environment.ephemeris",
-    "GenADCS.backends.rust.environment.ephemeris.de421",
-    "GenADCS.backends.rust.environment.gravity",
-    "GenADCS.backends.rust.environment.magnetic_field_model",
-    "GenADCS.backends.rust.environment.magnetic_field_model.chaos8",
-    "GenADCS.backends.rust.environment.magnetic_field_model.igrf14",
-    "GenADCS.backends.rust.environment.magnetic_field_model.wmm",
-    "GenADCS.backends.rust.environment.planetary_body",
-    "GenADCS.backends.rust.hardware",
-    "GenADCS.backends.rust.hardware.ADCS_subsystem",
-    "GenADCS.backends.rust.hardware.satellite",
-    "GenADCS.backends.rust.hardware.satellite_geometry",
-    "GenADCS.backends.rust.helpers",
-    "GenADCS.backends.rust.helpers.math",
-    "GenADCS.backends.rust.helpers.math.frames",
-    "GenADCS.backends.rust.helpers.math.rotations",
-    "GenADCS.backends.rust.helpers.math.rotations.dcm",
-    "GenADCS.backends.rust.helpers.math.rotations.mrp",
-    "GenADCS.backends.rust.helpers.math.rotations.quaternion",
-    "GenADCS.backends.rust.helpers.math.rotations.rodrigues",
-    "GenADCS.backends.rust.helpers.math.time",
-    "GenADCS.backends.rust.propagation",
-    "GenADCS.backends.rust.propagation.coupled_propagators",
-    "GenADCS.backends.rust.solver",
-    "GenADCS.backends.rust.state",
-]
-
-# Without this, setuptools ships ONLY .py files: the 0.1.5 wheel contained no
-# data files at all, so the Earth textures were missing and the orbit
-# animation silently lost its texture.
-#
-# DE421, WMM2025 coefficients, IGRF14, and the bright-star catalogue are
-# bundled for offline use; larger optional kernels are cached on demand.
-# py.typed marks the package as PEP 561 typed, so downstream type checkers use
-# our annotations instead of discarding them. Only safe now that the public
-# signatures are correct -- see the 0.1.9 release note.
 [tool.setuptools.package-data]
-"ADCS" = ["py.typed"]
 "GenADCS.kernels.environment.ephemeris.de421" = ["de421.bsp"]
 "GenADCS.kernels.environment.magnetic_field_model.chaos8" = ["*.shc"]
 "GenADCS.kernels.environment.magnetic_field_model.igrf14" = ["*.shc"]
-"ADCS.examples" = ["README.md"]
-"ADCS.environment.kernels" = ["de421.bsp", "IGRF14.shc", "WMM2025.COF", "bsc5_catalog.gz"]
-"ADCS.helpers.animations.godot" = ["bin/LICENSE-GODOT.txt", "bin/COPYRIGHT-GODOT.txt", "viewer/*.godot", "viewer/*.tscn", "viewer/*.json", "viewer/shaders/*.gdshader", "viewer/shaders/*.gdshaderinc", "viewer/src/*.gd", "viewer/src/*/*.gd", "viewer/src/*/*/*.gd", "viewer/tests/*.gd", "_viewer_manifest.json"]
-"ADCS.helpers.animations.godot.assets" = ["sources.json"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["textures/*", "assets/raw/*", "assets/processed/*", "*.jpg", "*.png", "*.exr", "*.tif"]
 
 [tool.pytest.ini_options]
-testpaths = ["testing"]
+testpaths = ["GenADCS/tests"]
 markers = [
     "local: requires locally installed or downloaded tools and is excluded from CI",
 ]
 norecursedirs = [
     ".git",
     ".pytest_cache",
-    "SALTRO/external",
     "venv",
 ]
 addopts = [
@@ -382,7 +111,6 @@ addopts = [
     "--tb=short",
     "--durations=15",
     "--durations-min=0.1",
-    "--junitxml=testing/artifacts/pytest.xml",
 ]
 junit_family = "xunit2"
 

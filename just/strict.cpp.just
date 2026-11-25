@@ -19,7 +19,7 @@ typecheck: configure
 # Run selected clang-tidy bug, performance, and readability checks.
 lint: typecheck
     command -v clang-tidy >/dev/null
-    find {{cpp_source}} GenADCS/tests/backends/cpp -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \) -print0 | xargs -0 -r -P "$(getconf _NPROCESSORS_ONLN)" clang-tidy -p {{strict_build}}/clang -checks='bugprone-*,performance-*,readability-*,-readability-magic-numbers,-readability-identifier-length' -warnings-as-errors='*'
+    find {{cpp_source}} GenADCS/tests/backends/cpp -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \) -print0 | xargs -0 -r -P "$(getconf _NPROCESSORS_ONLN)" clang-tidy -p {{strict_build}}/clang -checks='bugprone-*,performance-*,readability-*,-readability-magic-numbers' -warnings-as-errors='*'
 
 # Run the Clang Static Analyzer checks provided through clang-tidy.
 analyze: typecheck

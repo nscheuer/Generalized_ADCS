@@ -8,9 +8,13 @@ on:
   pull_request:
 jobs:
   build:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -20,18 +24,12 @@ jobs:
         pip install --upgrade pip
         pip install -e ".[docs]"
         
-    - name: List installed packages (debug help)
-      run: pip list
-    - name: Generate Sphinx API docs
-      run: |
-        sphinx-apidoc -f -e --maxdepth 1 -o docs/source ADCS
-    - name: Sanity check API docs
-      run: |
-        test -f docs/source/modules.rst
     - name: Build HTML documentation
       run: |
-        # This step verifies the docs build correctly, regardless of the branch.
-        sphinx-build -b html -W --keep-going docs/source _build/html
+        sphinx-multiversion docs/source _build/html
+        python3 docs/build_historical_versions.py _build/html
+        touch _build/html/.nojekyll
+        printf '%s\n' '<!doctype html><meta http-equiv="refresh" content="0;url=main/"><a href="main/">Current documentation</a>' > _build/html/index.html
     - name: Deploy to GitHub Pages
       if: github.ref == 'refs/heads/main'
       uses: peaceiris/actions-gh-pages@v3

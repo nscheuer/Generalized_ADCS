@@ -1,0 +1,36 @@
+name: Binding and cross-backend tests
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install Python package and test tools
+        shell: bash
+        run: python -m pip install -e '.[dev]'
+      - uses: actions/download-artifact@v4
+        with:
+          name: cpp-extensions-${{ inputs.runner }}
+          path: GenADCS/backends/cpp
+      - uses: actions/download-artifact@v4
+        with:
+          name: rust-extensions-${{ inputs.runner }}
+          path: GenADCS/backends/rust
+      - name: Test bindings, conformance, and differential behavior
+        shell: bash
+        run: python -m pytest GenADCS/tests/bindings GenADCS/tests/conformance GenADCS/tests/differential -n auto

@@ -1,0 +1,57 @@
+name: C++ backend
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ${{ inputs.runner }}
+    env:
+      SCCACHE_GHA_ENABLED: 'on'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - uses: mozilla-actions/sccache-action@v0.0.11
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Install build tools
+        shell: bash
+        run: python -m pip install --upgrade cmake ninja pybind11
+      - name: Configure
+        shell: bash
+        run: |
+          cmake -S GenADCS/backends/cpp -B build/ci-cpp -G Ninja \
+            -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -DPython_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')"
+      - name: Build
+        shell: bash
+        run: cmake --build build/ci-cpp --parallel "$(python -c 'import os; print(os.cpu_count() or 2)')"
+      - name: Test C++ backend
+        shell: bash
+        run: ctest --test-dir build/ci-cpp --output-on-failure --parallel "$(python -c 'import os; print(os.cpu_count() or 2)')"
+      - name: Compiler cache statistics
+        if: always()
+        shell: bash
+        run: sccache --show-stats
+      - name: Stage Python extensions
+        shell: bash
+        run: python .github/scripts/stage_extensions.py GenADCS/backends/cpp _ci_extensions/cpp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cpp-extensions-${{ inputs.runner }}
+          path: _ci_extensions/cpp/
+          if-no-files-found: error
+          retention-days: 2

@@ -47,6 +47,20 @@ for entry in "${packages[@]}"; do
         options+=(--release)
     fi
     cargo "${options[@]}"
-    cp "$rust_root/target/$profile/lib${module}.so" "$package_dir/${module}.so"
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*)
+            built_module="$rust_root/target/$profile/${module}.dll"
+            installed_module="$package_dir/${module}.pyd"
+            ;;
+        Darwin*)
+            built_module="$rust_root/target/$profile/lib${module}.dylib"
+            installed_module="$package_dir/${module}.so"
+            ;;
+        *)
+            built_module="$rust_root/target/$profile/lib${module}.so"
+            installed_module="$package_dir/${module}.so"
+            ;;
+    esac
+    cp "$built_module" "$installed_module"
     echo "Built $directory/$module"
 done

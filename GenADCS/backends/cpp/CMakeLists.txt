@@ -46,7 +46,22 @@ if(CCACHE_EXECUTABLE)
 else()
     message(STATUS "ccache not found; compiling without a compiler cache")
 endif()
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 3.3 QUIET NO_MODULE)
+if(NOT Eigen3_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(eigen
+        URL https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+        URL_HASH SHA256=8586084f71f9bde545ee7fa6d00288b264a2b7ac3607b974e54d13e7162c1c72
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_GetProperties(eigen)
+    if(NOT eigen_POPULATED)
+        FetchContent_Populate(eigen)
+    endif()
+    add_library(Eigen3::Eigen INTERFACE IMPORTED)
+    set_target_properties(Eigen3::Eigen PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${eigen_SOURCE_DIR}")
+endif()
 
 include(CTest)
 if(BUILD_TESTING)
@@ -90,7 +105,6 @@ if(BUILD_TESTING)
         target_link_libraries(cpp_test_dynamics_${component} PRIVATE dynamics_native_test_core)
         add_test(NAME cpp_dynamics_${component} COMMAND cpp_test_dynamics_${component})
     endforeach()
-    find_program(CARGO_EXECUTABLE cargo REQUIRED)
     add_library(environment_native_test_core STATIC
         environment/environment.cpp
         environment/native_models.cpp
@@ -157,13 +171,6 @@ if(BUILD_TESTING)
         target_link_libraries(cpp_test_environment_${component} PRIVATE environment_native_test_core)
         add_test(NAME cpp_environment_${component} COMMAND cpp_test_environment_${component})
     endforeach()
-    add_test(NAME rust_config
-        COMMAND "${CARGO_EXECUTABLE}" test --manifest-path
-            "${CMAKE_CURRENT_SOURCE_DIR}/../rust/config/Cargo.toml"
-    )
-    set_tests_properties(rust_config PROPERTIES
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../rust/config"
-    )
     foreach(component satellite_geometry satellite_panel)
         add_executable(cpp_test_${component}
             ${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/satellite_geometry/test_${component}.cpp
