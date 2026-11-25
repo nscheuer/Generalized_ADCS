@@ -83,10 +83,7 @@ impl SimulationConfig {
     fn backend(&self) -> &str { &self.inner.backend }
     #[setter]
     fn set_backend(&mut self, value: &str) -> PyResult<()> {
-        self.inner.backend = crate::simulation_config::SimulationBackend::parse(value)
-            .map_err(PyValueError::new_err)?
-            .as_str()
-            .to_owned();
+        self.inner.backend = value.to_owned();
         Ok(())
     }
 

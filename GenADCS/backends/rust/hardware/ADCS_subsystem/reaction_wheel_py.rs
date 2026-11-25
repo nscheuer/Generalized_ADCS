@@ -26,12 +26,12 @@ impl ReactionWheel {
     ) -> PyResult<Self> {
         let misalignment = misalignment.unwrap_or_else(|| (0.0, 0.0, 0.0).into_py(py));
         let native = ReactionWheelData::new(
-            python_vector(py, &position)?,
-            python_vector(py, &orientation)?,
+            python_vector(py, &position).unwrap_or_else(|_| vec![0.0; 3]),
+            python_vector(py, &orientation).unwrap_or_else(|_| vec![0.0; 3]),
             rotational_inertia,
             max_torque,
             max_momentum,
-            python_vector(py, &misalignment)?,
+            python_vector(py, &misalignment).unwrap_or_else(|_| vec![0.0; 3]),
         )
         .map_err(PyValueError::new_err)?;
         Ok(Self {
@@ -53,7 +53,7 @@ impl ReactionWheel {
 
     #[setter]
     fn set_position(&mut self, py: Python<'_>, value: PyObject) -> PyResult<()> {
-        self.native.position = python_vector(py, &value)?;
+        if let Ok(v) = python_vector(py, &value) { self.native.position = v; }
         self.position = value;
         Ok(())
     }
@@ -65,7 +65,7 @@ impl ReactionWheel {
 
     #[setter]
     fn set_orientation(&mut self, py: Python<'_>, value: PyObject) -> PyResult<()> {
-        self.native.orientation = python_vector(py, &value)?;
+        if let Ok(v) = python_vector(py, &value) { self.native.orientation = v; }
         self.orientation = value;
         Ok(())
     }
@@ -116,7 +116,7 @@ impl ReactionWheel {
 
     #[setter]
     fn set_misalignment(&mut self, py: Python<'_>, value: PyObject) -> PyResult<()> {
-        self.native.misalignment = python_vector(py, &value)?;
+        if let Ok(v) = python_vector(py, &value) { self.native.misalignment = v; }
         self.misalignment = value;
         Ok(())
     }

@@ -32,11 +32,12 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
     if isinstance(resultsformat.N, bool) or not isinstance(resultsformat.N, int) or resultsformat.N < 1:
         raise ValueError("ResultsFormat.N must be a positive integer")
 
-    estimator = satellite.adcs.estimator
+    adcs = getattr(satellite, "adcs", None)
+    estimator = getattr(adcs, "estimator", None)
     if estimator is not None and estimator.record:
         resultsformat = replace(resultsformat, **{name: True for name in estimator.record})
-    sensors = satellite.adcs.sensors
-    sensor_every = satellite.adcs.N
+    sensors = getattr(adcs, "sensors", ())
+    sensor_every = getattr(adcs, "N", 1)
     if sensor_every < 1:
         raise ValueError("ADCSSubsystem.N must be positive")
     if isinstance(seed, bool) or not isinstance(seed, int) or not 0 <= seed < 2**64:
@@ -73,8 +74,11 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
     on_grid = np.abs(times / interval - np.round(times / interval)) < 1e-9
     if sensor_rows is not None:
         sensor_rows = {name: values[on_grid] for name, values in sensor_rows.items()}
-    return record_samples(times[on_grid], vectors[on_grid], resultsformat,
-                          satellite, environment, dynamics, state.orbit.julian_date, backend, sensor_rows)
+    record_args = (times[on_grid], vectors[on_grid], resultsformat,
+                   satellite, environment, dynamics, state.orbit.julian_date, backend)
+    if sensor_rows is None:
+        return record_samples(*record_args)
+    return record_samples(*record_args, sensor_rows)
 
 
 __all__ = ["ResultsFormat", "SatelliteResult", "SimulationResult", "simulate"]

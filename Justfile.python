@@ -8,6 +8,6 @@ build:
 
 # Run the Python backend suite; native binding suites are run after building their backend.
 test:
-    python -m pytest GenADCS/tests/backends/python
+    python -m pytest GenADCS/tests
 
 all: build test

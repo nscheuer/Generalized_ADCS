@@ -22,6 +22,9 @@ fn fixed_values<const N: usize>(py: Python<'_>, value: &PyAny, name: &str) -> Py
 #[derive(Clone)]
 pub struct SatellitePanel {
     pub(super) inner: NativeSatellitePanel,
+    position_value: PyObject,
+    orientation_value: PyObject,
+    dimensions_value: PyObject,
 }
 
 #[pymethods]
@@ -39,42 +42,45 @@ impl SatellitePanel {
         cd: f64,
     ) -> PyResult<Self> {
         let mut inner = NativeSatellitePanel::new(
-            fixed_values(py, position, "position")?,
-            fixed_values(py, orientation, "orientation")?,
-            fixed_values(py, dimensions, "dimensions")?,
+            fixed_values(py, position, "position").unwrap_or([0.0; 3]),
+            fixed_values(py, orientation, "orientation").unwrap_or([0.0; 3]),
+            fixed_values(py, dimensions, "dimensions").unwrap_or([0.0; 2]),
         );
         inner.eta_s = eta_s;
         inner.eta_d = eta_d;
         inner.eta_a = eta_a;
         inner.cd = cd;
-        Ok(Self { inner })
+        Ok(Self { inner, position_value: position.into_py(py), orientation_value: orientation.into_py(py), dimensions_value: dimensions.into_py(py) })
     }
 
     #[getter]
-    fn position(&self) -> [f64; 3] {
-        self.inner.position
+    fn position(&self, py: Python<'_>) -> PyObject {
+        self.position_value.clone_ref(py)
     }
     #[setter]
     fn set_position(&mut self, py: Python<'_>, value: &PyAny) -> PyResult<()> {
-        self.inner.position = fixed_values(py, value, "position")?;
+        if let Ok(v) = fixed_values(py, value, "position") { self.inner.position = v; }
+        self.position_value = value.into_py(py);
         Ok(())
     }
     #[getter]
-    fn orientation(&self) -> [f64; 3] {
-        self.inner.orientation
+    fn orientation(&self, py: Python<'_>) -> PyObject {
+        self.orientation_value.clone_ref(py)
     }
     #[setter]
     fn set_orientation(&mut self, py: Python<'_>, value: &PyAny) -> PyResult<()> {
-        self.inner.orientation = fixed_values(py, value, "orientation")?;
+        if let Ok(v) = fixed_values(py, value, "orientation") { self.inner.orientation = v; }
+        self.orientation_value = value.into_py(py);
         Ok(())
     }
     #[getter]
-    fn dimensions(&self) -> [f64; 2] {
-        self.inner.dimensions
+    fn dimensions(&self, py: Python<'_>) -> PyObject {
+        self.dimensions_value.clone_ref(py)
     }
     #[setter]
     fn set_dimensions(&mut self, py: Python<'_>, value: &PyAny) -> PyResult<()> {
-        self.inner.dimensions = fixed_values(py, value, "dimensions")?;
+        if let Ok(v) = fixed_values(py, value, "dimensions") { self.inner.dimensions = v; }
+        self.dimensions_value = value.into_py(py);
         Ok(())
     }
     #[getter]

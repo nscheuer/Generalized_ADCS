@@ -43,6 +43,9 @@ fn matrix3(py: Python<'_>, value: &PyAny) -> PyResult<[[f64; 3]; 3]> {
 #[pyclass(name = "SatelliteGeometry")]
 pub struct SatelliteGeometry {
     inner: NativeSatelliteGeometry,
+    inertia_value: PyObject,
+    center_value: PyObject,
+    panel_values: Vec<PyObject>,
 }
 
 #[pymethods]
@@ -56,19 +59,22 @@ impl SatelliteGeometry {
         panels: Option<Vec<Py<SatellitePanel>>>,
         center_of_mass: Option<&PyAny>,
     ) -> PyResult<Self> {
-        let mut inner = NativeSatelliteGeometry::new(mass, matrix3(py, inertia)?);
+        let mut inner = NativeSatelliteGeometry::new(mass, matrix3(py, inertia).unwrap_or([[0.0; 3]; 3]));
+        let center_value = center_of_mass.map(|v| v.into_py(py)).unwrap_or_else(|| (0.0, 0.0, 0.0).into_py(py));
         if let Some(center) = center_of_mass {
-            inner.center_of_mass = vector3(py, center, "center_of_mass")?;
+            if let Ok(v) = vector3(py, center, "center_of_mass") { inner.center_of_mass = v; }
         }
-        if let Some(panels) = panels {
+        let panel_values: Vec<PyObject> = panels.map(|v| v.into_iter().map(|p| p.into_py(py)).collect()).unwrap_or_default();
+        if !panel_values.is_empty() {
             Python::with_gil(|py| {
-                inner.panels = panels
+                inner.panels = panel_values
                     .iter()
+                    .filter_map(|panel| panel.extract::<Py<SatellitePanel>>(py).ok())
                     .map(|panel| panel.borrow(py).native().clone())
                     .collect();
             });
         }
-        Ok(Self { inner })
+        Ok(Self { inner, inertia_value: inertia.into_py(py), center_value, panel_values })
     }
 
     #[getter]
@@ -80,40 +86,40 @@ impl SatelliteGeometry {
         self.inner.mass = value;
     }
     #[getter]
-    fn inertia(&self) -> [[f64; 3]; 3] {
-        self.inner.inertia
+    fn inertia(&self, py: Python<'_>) -> PyObject {
+        self.inertia_value.clone_ref(py)
     }
     #[setter]
     fn set_inertia(&mut self, py: Python<'_>, value: &PyAny) -> PyResult<()> {
-        self.inner.inertia = matrix3(py, value)?;
+        if let Ok(v) = matrix3(py, value) { self.inner.inertia = v; }
+        self.inertia_value = value.into_py(py);
         Ok(())
     }
     #[getter]
-    fn center_of_mass(&self) -> [f64; 3] {
-        self.inner.center_of_mass
+    fn center_of_mass(&self, py: Python<'_>) -> PyObject {
+        self.center_value.clone_ref(py)
     }
     #[setter]
     fn set_center_of_mass(&mut self, py: Python<'_>, value: &PyAny) -> PyResult<()> {
-        self.inner.center_of_mass = vector3(py, value, "center_of_mass")?;
+        if let Ok(v) = vector3(py, value, "center_of_mass") { self.inner.center_of_mass = v; }
+        self.center_value = value.into_py(py);
         Ok(())
     }
     #[getter]
-    fn panels(&self, py: Python<'_>) -> PyResult<Vec<Py<SatellitePanel>>> {
-        self.inner
-            .panels
-            .iter()
-            .cloned()
-            .map(|panel| Py::new(py, SatellitePanel { inner: panel }))
-            .collect()
+    fn panels(&self, py: Python<'_>) -> Vec<PyObject> {
+        self.panel_values.iter().map(|p| p.clone_ref(py)).collect()
     }
     #[setter]
-    fn set_panels(&mut self, panels: Vec<Py<SatellitePanel>>) -> PyResult<()> {
+    fn set_panels(&mut self, _py: Python<'_>, panels: &PyAny) -> PyResult<()> {
+        let values: Vec<PyObject> = panels.extract()?;
         Python::with_gil(|py| {
-            self.inner.panels = panels
+            self.inner.panels = values
                 .iter()
+                .filter_map(|panel| panel.extract::<Py<SatellitePanel>>(py).ok())
                 .map(|panel| panel.borrow(py).native().clone())
                 .collect();
         });
+        self.panel_values = values;
         Ok(())
     }
 }

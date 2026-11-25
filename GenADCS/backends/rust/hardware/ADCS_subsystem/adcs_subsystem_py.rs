@@ -21,7 +21,10 @@ fn positive_integer(value: &PyAny) -> PyResult<usize> {
 
 fn collection(py: Python<'_>, value: Option<PyObject>) -> PyResult<PyObject> {
     match value {
-        Some(values) => Ok(values),
+        Some(values) => {
+            let items: Vec<PyObject> = values.as_ref(py).extract()?;
+            Ok(PyList::new(py, items).into())
+        },
         None => Ok(PyList::empty(py).into()),
     }
 }
@@ -88,7 +91,7 @@ impl ADCSSubsystem {
 
     #[getter]
     fn reaction_wheels(&self, py: Python<'_>) -> PyObject {
-        self.reaction_wheels.clone_ref(py)
+        PyList::new(py, items(py, &self.reaction_wheels).unwrap_or_default()).into()
     }
     #[setter]
     fn set_reaction_wheels(&mut self, py: Python<'_>, value: PyObject) -> PyResult<()> {
@@ -99,7 +102,7 @@ impl ADCSSubsystem {
 
     #[getter]
     fn magnetorquers(&self, py: Python<'_>) -> PyObject {
-        self.magnetorquers.clone_ref(py)
+        PyList::new(py, items(py, &self.magnetorquers).unwrap_or_default()).into()
     }
     #[setter]
     fn set_magnetorquers(&mut self, py: Python<'_>, value: PyObject) -> PyResult<()> {
@@ -110,7 +113,7 @@ impl ADCSSubsystem {
 
     #[getter]
     fn sensors(&self, py: Python<'_>) -> PyObject {
-        self.sensors.clone_ref(py)
+        PyList::new(py, items(py, &self.sensors).unwrap_or_default()).into()
     }
     #[setter]
     fn set_sensors(&mut self, py: Python<'_>, value: PyObject) -> PyResult<()> {
