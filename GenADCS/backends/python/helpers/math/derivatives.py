@@ -3,7 +3,9 @@ from numba import njit
 
 
 @njit(cache=True)
-def quaternion_derivative(q_b_from_i, angular_velocity_b):
+def quaternion_derivative(
+    q_b_from_i: np.ndarray, angular_velocity_b: np.ndarray
+) -> np.ndarray:
     q = q_b_from_i
     w = angular_velocity_b
     return 0.5 * np.array(
@@ -17,13 +19,15 @@ def quaternion_derivative(q_b_from_i, angular_velocity_b):
 
 
 @njit(cache=True)
-def quaternion_rate_matrix(q_b_from_i):
+def quaternion_rate_matrix(q_b_from_i: np.ndarray) -> np.ndarray:
     w, x, y, z = q_b_from_i
     return 0.5 * np.array(((x, y, z), (-w, -z, y), (z, -w, -x), (-y, x, -w)))
 
 
 @njit(cache=True)
-def angular_velocity_from_quaternion_derivative(q_b_from_i, qdot_b_from_i):
+def angular_velocity_from_quaternion_derivative(
+    q_b_from_i: np.ndarray, qdot_b_from_i: np.ndarray
+) -> np.ndarray:
     q = q_b_from_i
     qdot = qdot_b_from_i
     return 2.0 * np.array(
@@ -36,7 +40,7 @@ def angular_velocity_from_quaternion_derivative(q_b_from_i, qdot_b_from_i):
 
 
 @njit(cache=True)
-def quaternion_normalization_jacobian(quaternion):
+def quaternion_normalization_jacobian(quaternion: np.ndarray) -> np.ndarray:
     magnitude = np.sqrt(np.dot(quaternion, quaternion))
     if magnitude == 0.0:
         raise ValueError("quaternion must have nonzero norm")
@@ -44,7 +48,9 @@ def quaternion_normalization_jacobian(quaternion):
 
 
 @njit(cache=True)
-def rotated_vector_quaternion_jacobian(q_b_from_i, vector_i):
+def rotated_vector_quaternion_jacobian(
+    q_b_from_i: np.ndarray, vector_i: np.ndarray
+) -> np.ndarray:
     qv = q_b_from_i[1:4]
     jacobian = np.empty((3, 4))
     jacobian[:, 0] = 2.0 * np.cross(qv, vector_i)
@@ -65,7 +71,7 @@ def rotated_vector_quaternion_jacobian(q_b_from_i, vector_i):
 
 
 @njit(cache=True)
-def quaternion_to_euler321(q_b_from_i):
+def quaternion_to_euler321(q_b_from_i: np.ndarray) -> np.ndarray:
     w, x, y, z = q_b_from_i
     roll = np.arctan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y))
     sin_pitch = 2.0 * (w * y - z * x)

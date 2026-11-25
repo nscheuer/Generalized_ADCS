@@ -27,17 +27,17 @@ from GenADCS.backends.python.noise.noise import add_gaussian_noise
 
 @njit(cache=True)
 def vector_measurement(
-    vector,
-    attitude,
-    orientation,
-    misalignment,
-    bias,
-    noise_cholesky,
-    saturation,
-    with_bias,
-    with_noise,
-    noise_draw=None,
-):
+    vector: np.ndarray,
+    attitude: np.ndarray,
+    orientation: np.ndarray,
+    misalignment: np.ndarray,
+    bias: np.ndarray,
+    noise_cholesky: np.ndarray,
+    saturation: float,
+    with_bias: bool,
+    with_noise: bool,
+    noise_draw: np.ndarray | None = None,
+) -> np.ndarray:
     """Magnetometer or accelerometer measurement in sensor coordinates."""
     result = rotate_inertial_to_sensor(vector, attitude, orientation, misalignment)
     if with_bias:
@@ -53,16 +53,16 @@ def vector_measurement(
 
 @njit(cache=True)
 def rate_measurement(
-    angular_velocity_body,
-    orientation,
-    misalignment,
-    bias,
-    noise_cholesky,
-    saturation,
-    with_bias,
-    with_noise,
-    noise_draw=None,
-):
+    angular_velocity_body: np.ndarray,
+    orientation: np.ndarray,
+    misalignment: np.ndarray,
+    bias: np.ndarray,
+    noise_cholesky: np.ndarray,
+    saturation: float,
+    with_bias: bool,
+    with_noise: bool,
+    noise_draw: np.ndarray | None = None,
+) -> np.ndarray:
     result = rotate_body_to_sensor(angular_velocity_body, orientation, misalignment)
     if with_bias:
         result = add_bias(result, bias)
@@ -77,19 +77,19 @@ def rate_measurement(
 
 @njit(cache=True)
 def scalar_sun_measurement(
-    sun_inertial,
-    attitude,
-    orientation,
-    misalignment,
-    normal,
-    sensitivity,
-    bias,
-    noise_std,
-    saturation,
-    with_bias,
-    with_noise,
-    noise_draw=None,
-):
+    sun_inertial: np.ndarray,
+    attitude: np.ndarray,
+    orientation: np.ndarray,
+    misalignment: np.ndarray,
+    normal: np.ndarray,
+    sensitivity: float,
+    bias: float,
+    noise_std: float,
+    saturation: float,
+    with_bias: bool,
+    with_noise: bool,
+    noise_draw: np.ndarray | None = None,
+) -> float:
     result = coarse_sun_measurement(
         sun_inertial, attitude, orientation, misalignment, normal, sensitivity
     )
@@ -106,16 +106,16 @@ def scalar_sun_measurement(
 
 @njit(cache=True)
 def fine_direction_measurement(
-    direction_inertial,
-    attitude,
-    orientation,
-    misalignment,
-    bias,
-    noise_cholesky,
-    with_bias,
-    with_noise,
-    noise_draw=None,
-):
+    direction_inertial: np.ndarray,
+    attitude: np.ndarray,
+    orientation: np.ndarray,
+    misalignment: np.ndarray,
+    bias: np.ndarray,
+    noise_cholesky: np.ndarray,
+    with_bias: bool,
+    with_noise: bool,
+    noise_draw: np.ndarray | None = None,
+) -> np.ndarray:
     result = fine_sun_angles(direction_inertial, attitude, orientation, misalignment)
     if with_bias:
         result = add_bias(result, bias)
@@ -130,14 +130,14 @@ def fine_direction_measurement(
 
 @njit(cache=True)
 def gnss_measurement(
-    position_inertial,
-    velocity_inertial,
-    bias,
-    noise_cholesky,
-    with_bias,
-    with_noise,
-    noise_draw=None,
-):
+    position_inertial: np.ndarray,
+    velocity_inertial: np.ndarray,
+    bias: np.ndarray,
+    noise_cholesky: np.ndarray,
+    with_bias: bool,
+    with_noise: bool,
+    noise_draw: np.ndarray | None = None,
+) -> np.ndarray:
     result = np.concatenate((position_inertial, velocity_inertial))
     if with_bias:
         result = add_bias(result, bias)
@@ -152,8 +152,13 @@ def gnss_measurement(
 
 @njit(cache=True)
 def star_tracker_measurement(
-    attitude, orientation, misalignment, noise_cholesky, with_noise, noise_draw=None
-):
+    attitude: np.ndarray,
+    orientation: np.ndarray,
+    misalignment: np.ndarray,
+    noise_cholesky: np.ndarray,
+    with_noise: bool,
+    noise_draw: np.ndarray | None = None,
+) -> np.ndarray:
     result = _normalize_quaternion(
         _multiply(misalignment, _multiply(orientation, attitude))
     )
@@ -166,7 +171,9 @@ def star_tracker_measurement(
 
 
 @njit(cache=True)
-def small_rotation_noise_quaternion_from_cholesky(noise_cholesky, noise_draw=None):
+def small_rotation_noise_quaternion_from_cholesky(
+    noise_cholesky: np.ndarray, noise_draw: np.ndarray | None = None
+) -> np.ndarray:
     eta = noise_cholesky @ (
         standard_normals(np.uint64(0), 0, 0, 3) if noise_draw is None else noise_draw
     )
@@ -177,7 +184,9 @@ def small_rotation_noise_quaternion_from_cholesky(noise_cholesky, noise_draw=Non
 
 
 @njit(cache=True)
-def star_tracker_residual(measured_attitude, estimated_attitude):
+def star_tracker_residual(
+    measured_attitude: np.ndarray, estimated_attitude: np.ndarray
+) -> np.ndarray:
     relative = _normalize_quaternion(
         _multiply(measured_attitude, _conjugate(estimated_attitude))
     )
@@ -187,7 +196,7 @@ def star_tracker_residual(measured_attitude, estimated_attitude):
 
 
 @njit(cache=True)
-def star_tracker_mrp_jacobian(delta_mrp):
+def star_tracker_mrp_jacobian(delta_mrp: np.ndarray) -> np.ndarray:
     square = np.dot(delta_mrp, delta_mrp)
     return (
         4.0
@@ -197,20 +206,22 @@ def star_tracker_mrp_jacobian(delta_mrp):
 
 
 @njit(cache=True)
-def star_tracker_information(noise_covariance, orientation, misalignment):
+def star_tracker_information(
+    noise_covariance: np.ndarray, orientation: np.ndarray, misalignment: np.ndarray
+) -> np.ndarray:
     mounting = mounting_dcm(orientation, misalignment)
     return mounting.T @ np.linalg.solve(noise_covariance, mounting)
 
 
 @njit(cache=True)
 def magnetometer_information(
-    field_inertial,
-    attitude,
-    orientation,
-    misalignment,
-    noise_covariance,
-    field_covariance,
-):
+    field_inertial: np.ndarray,
+    attitude: np.ndarray,
+    orientation: np.ndarray,
+    misalignment: np.ndarray,
+    noise_covariance: np.ndarray,
+    field_covariance: np.ndarray,
+) -> np.ndarray:
     mounting = mounting_dcm(orientation, misalignment)
     q = attitude / np.sqrt(np.dot(attitude, attitude))
     body_rotation = _quaternion_to_dcm(q)
@@ -225,15 +236,15 @@ def magnetometer_information(
 
 @njit(cache=True)
 def coarse_sun_available(
-    sun_inertial,
-    attitude,
-    orientation,
-    misalignment,
-    normal,
-    fov_half_angle,
-    enabled,
-    sun_visible,
-):
+    sun_inertial: np.ndarray,
+    attitude: np.ndarray,
+    orientation: np.ndarray,
+    misalignment: np.ndarray,
+    normal: np.ndarray,
+    fov_half_angle: float,
+    enabled: bool,
+    sun_visible: bool,
+) -> bool:
     if not enabled or not sun_visible:
         return False
     sun_body = sun_in_body(sun_inertial, attitude)
@@ -243,14 +254,14 @@ def coarse_sun_available(
 
 @njit(cache=True)
 def coarse_sun_information(
-    sun_inertial,
-    attitude,
-    orientation,
-    misalignment,
-    normal,
-    sensitivity,
-    noise_variance,
-):
+    sun_inertial: np.ndarray,
+    attitude: np.ndarray,
+    orientation: np.ndarray,
+    misalignment: np.ndarray,
+    normal: np.ndarray,
+    sensitivity: float,
+    noise_variance: float,
+) -> np.ndarray:
     sun_body = sun_in_body(sun_inertial, attitude)
     normal_body = mounting_dcm(orientation, misalignment).T @ normal
     direction = np.cross(normal_body, sun_body)
@@ -259,14 +270,14 @@ def coarse_sun_information(
 
 @njit(cache=True)
 def fine_direction_available(
-    direction_inertial,
-    attitude,
-    orientation,
-    misalignment,
-    fov_half_angles,
-    enabled,
-    visible,
-):
+    direction_inertial: np.ndarray,
+    attitude: np.ndarray,
+    orientation: np.ndarray,
+    misalignment: np.ndarray,
+    fov_half_angles: np.ndarray,
+    enabled: bool,
+    visible: bool,
+) -> bool:
     if not enabled or not visible:
         return False
     angles = fine_sun_angles(direction_inertial, attitude, orientation, misalignment)

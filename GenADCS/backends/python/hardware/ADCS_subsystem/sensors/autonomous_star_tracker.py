@@ -25,14 +25,14 @@ class AutonomousStarTracker:
 
     def __init__(
         self,
-        position,
-        orientation,
-        misalignment,
-        saturation_value,
-        noise,
-        bias,
-        fov_half_angle=np.pi,
-    ):
+        position: np.ndarray,
+        orientation: np.ndarray,
+        misalignment: np.ndarray,
+        saturation_value: float,
+        noise: np.ndarray,
+        bias: np.ndarray,
+        fov_half_angle: float = np.pi,
+    ) -> None:
         base = Sensor(
             position, orientation, misalignment, saturation_value, noise, bias
         )
@@ -48,15 +48,15 @@ class AutonomousStarTracker:
             raise ValueError("fov_half_angle must be in (0, pi]")
         self.fov_half_angle = float(fov_half_angle)
 
-    def noiseless_biasfree_measurement(self, attitude):
+    def noiseless_biasfree_measurement(self, attitude: np.ndarray) -> np.ndarray:
         return star_tracker_measurement(
             attitude, self.orientation, self.misalignment, self.noise_cholesky, False
         )
 
-    def noiseless_biased_measurement(self, attitude):
+    def noiseless_biased_measurement(self, attitude: np.ndarray) -> np.ndarray:
         return self.noiseless_biasfree_measurement(attitude)
 
-    def noisy_biasfree_measurement(self, attitude):
+    def noisy_biasfree_measurement(self, attitude: np.ndarray) -> np.ndarray:
         return star_tracker_measurement(
             attitude,
             self.orientation,
@@ -66,22 +66,29 @@ class AutonomousStarTracker:
             next_draw(self, 3),
         )
 
-    def noisy_biased_measurement(self, attitude):
+    def noisy_biased_measurement(self, attitude: np.ndarray) -> np.ndarray:
         return self.noisy_biasfree_measurement(attitude)
 
-    def residual(self, measured_attitude, estimated_attitude):
+    def residual(
+        self, measured_attitude: np.ndarray, estimated_attitude: np.ndarray
+    ) -> np.ndarray:
         return star_tracker_residual(measured_attitude, estimated_attitude)
 
-    def jacobian_relative_quaternion(self):
+    def jacobian_relative_quaternion(self) -> np.ndarray:
         return 2.0 * np.eye(3)
 
-    def jacobian_relative_mrp(self, delta_mrp):
+    def jacobian_relative_mrp(self, delta_mrp: np.ndarray) -> np.ndarray:
         return star_tracker_mrp_jacobian(delta_mrp)
 
-    def jacobian_relative_angle_vector(self, delta_angle):
+    def jacobian_relative_angle_vector(self, delta_angle: np.ndarray) -> np.ndarray:
         return star_tracker_angle_jacobian(delta_angle)
 
-    def availability(self, attitude=None, earth_inertial=None, sun_inertial=None):
+    def availability(
+        self,
+        attitude: np.ndarray | None = None,
+        earth_inertial: np.ndarray | None = None,
+        sun_inertial: np.ndarray | None = None,
+    ) -> bool:
         if not self.enabled:
             return False
         if attitude is None:
@@ -104,7 +111,7 @@ class AutonomousStarTracker:
                 return False
         return True
 
-    def fisher_information_matrix(self):
+    def fisher_information_matrix(self) -> np.ndarray:
         if not self.enabled:
             return np.zeros((3, 3))
         # Mounting maps body attitude error into tracker coordinates.

@@ -3,6 +3,8 @@
 import numpy as np
 from numba import njit
 
+from GenADCS.backends.python.environment.ephemeris import EphemerisModel
+from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry
 from GenADCS.backends.python.environment.ephemeris import (
     BODY_MOON,
     BODY_SUN,
@@ -17,8 +19,12 @@ KM_TO_M = 1000.0
 
 @njit(cache=True)
 def lunisolar_acceleration(
-    position_i, sun_position_i, moon_position_i, sun_mu, moon_mu
-):
+    position_i: np.ndarray,
+    sun_position_i: np.ndarray,
+    moon_position_i: np.ndarray,
+    sun_mu: float,
+    moon_mu: float,
+) -> np.ndarray:
     """Return third-body acceleration [m/s²] in inertial axes.
 
     Positions are Earth-centered inertial metres. The indirect term accounts
@@ -39,8 +45,13 @@ def lunisolar_acceleration(
 
 @njit(cache=True)
 def _lunisolar_force_from_ephemeris(
-    position_i, epoch_utc_jd, segments, times, data, mass
-):
+    position_i: np.ndarray,
+    epoch_utc_jd: float,
+    segments: np.ndarray,
+    times: np.ndarray,
+    data: np.ndarray,
+    mass: float,
+) -> np.ndarray:
     epoch_tdb = utc_jd_to_tdb_jd(epoch_utc_jd)
     sun_i = KM_TO_M * ephemeris_position(BODY_SUN, epoch_tdb, segments, times, data)
     moon_i = KM_TO_M * ephemeris_position(BODY_MOON, epoch_tdb, segments, times, data)
@@ -60,7 +71,9 @@ class LunisolarForceModel:
     hot path only passes numerical values into the compiled evaluator.
     """
 
-    def __init__(self, geometry, ephemeris):
+    def __init__(
+        self, geometry: SatelliteGeometry, ephemeris: EphemerisModel | None
+    ) -> None:
         if ephemeris is None or not all(
             hasattr(ephemeris, name) for name in ("_segments", "_times", "_data")
         ):
@@ -74,7 +87,7 @@ class LunisolarForceModel:
         self.times = ephemeris._times
         self.data = ephemeris._data
 
-    def evaluate(self, position_i, epoch_utc_jd):
+    def evaluate(self, position_i: np.ndarray, epoch_utc_jd: float) -> np.ndarray:
         position_i = np.ascontiguousarray(position_i, dtype=np.float64)
         if position_i.shape != (3,) or not np.all(np.isfinite(position_i)):
             raise ValueError("position_i must be a finite inertial 3-vector")

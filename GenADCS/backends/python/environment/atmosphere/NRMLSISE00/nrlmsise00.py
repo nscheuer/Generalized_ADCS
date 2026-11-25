@@ -7,6 +7,7 @@ The numerical model and coefficient tables are implemented in Numba modules.
 
 import numpy as np
 from numba import njit
+from numpy.typing import NDArray
 
 from GenADCS.backends.python.helpers.math.frames import gcrf_position_to_geodetic
 from GenADCS.backends.python.helpers.math.time import (
@@ -21,16 +22,16 @@ from ._nrlmsise00_core import msis_gtd7
 
 @njit(cache=True)
 def nrlmsise00_density_geodetic(
-    day_of_year_utc,
-    seconds_utc,
-    altitude_km,
-    latitude_deg,
-    longitude_deg,
-    f107=150.0,
-    f107a=150.0,
-    ap=4.0,
-    effective_density=True,
-):
+    day_of_year_utc: int,
+    seconds_utc: float,
+    altitude_km: float,
+    latitude_deg: float,
+    longitude_deg: float,
+    f107: float = 150.0,
+    f107a: float = 150.0,
+    ap: float = 4.0,
+    effective_density: bool = True,
+) -> float:
     """Density [kg/m³] when geodetic location and UTC fields are already known."""
     local_solar_time = (seconds_utc / 3600.0 + longitude_deg / 15.0) % 24.0
     ap_history = np.full(7, -1.0)
@@ -51,14 +52,14 @@ def nrlmsise00_density_geodetic(
 
 @njit(cache=True)
 def nrlmsise00_density(
-    position_inertial_m,
-    epoch_jd,
-    f107=150.0,
-    f107a=150.0,
-    ap=4.0,
-    effective_density=True,
-    ap_array=None,
-):
+    position_inertial_m: NDArray[np.float64],
+    epoch_jd: float,
+    f107: float = 150.0,
+    f107a: float = 150.0,
+    ap: float = 4.0,
+    effective_density: bool = True,
+    ap_array: NDArray[np.float64] | None = None,
+) -> float:
     """NRLMSISE-00 mass density [kg/m³] at an ECI position [m].
 
     ``f107`` is the preceding day's flux; ``f107a`` is the 81-day mean.

@@ -20,7 +20,7 @@ class SimulationConfig:
     state_record: np.ndarray = field(init=False, repr=False)
     julian_date: float = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.backend not in ("Python", "C", "Rust", "JAX"):
             raise ValueError("backend must be Python, C, Rust, or JAX")
         self.state_record = self.state.to_record(

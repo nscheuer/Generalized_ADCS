@@ -14,7 +14,7 @@ class GNSS:
     (m), then velocity (m/s). Measurement output follows the same ordering.
     """
 
-    def __init__(self, noise, bias):
+    def __init__(self, noise: np.ndarray, bias: np.ndarray) -> None:
         if noise.shape != (6, 6) or bias.shape != (6,):
             raise ValueError("noise must be 6x6 and bias must have 6 components")
         self.noise = noise
@@ -22,7 +22,9 @@ class GNSS:
         self.bias = bias
         self.enabled = True
 
-    def noiseless_biasfree_measurement(self, position_inertial, velocity_inertial):
+    def noiseless_biasfree_measurement(
+        self, position_inertial: np.ndarray, velocity_inertial: np.ndarray
+    ) -> np.ndarray:
         return gnss_measurement(
             position_inertial,
             velocity_inertial,
@@ -32,7 +34,9 @@ class GNSS:
             False,
         )
 
-    def noiseless_biased_measurement(self, position_inertial, velocity_inertial):
+    def noiseless_biased_measurement(
+        self, position_inertial: np.ndarray, velocity_inertial: np.ndarray
+    ) -> np.ndarray:
         return gnss_measurement(
             position_inertial,
             velocity_inertial,
@@ -42,49 +46,53 @@ class GNSS:
             False,
         )
 
-    def noisy_biasfree_measurement(self, position_inertial, velocity_inertial):
+    def noisy_biasfree_measurement(
+        self, position_inertial: np.ndarray, velocity_inertial: np.ndarray
+    ) -> np.ndarray:
         return gnss_measurement(
             position_inertial,
             velocity_inertial,
             self.bias,
             self.noise_cholesky,
             False,
-            True,
-            next_draw(self, 6),
-        )
-
-    def noisy_biased_measurement(self, position_inertial, velocity_inertial):
-        return gnss_measurement(
-            position_inertial,
-            velocity_inertial,
-            self.bias,
-            self.noise_cholesky,
-            True,
             True,
             next_draw(self, 6),
         )
 
-    def jacobian_relative_quaternion(self):
+    def noisy_biased_measurement(
+        self, position_inertial: np.ndarray, velocity_inertial: np.ndarray
+    ) -> np.ndarray:
+        return gnss_measurement(
+            position_inertial,
+            velocity_inertial,
+            self.bias,
+            self.noise_cholesky,
+            True,
+            True,
+            next_draw(self, 6),
+        )
+
+    def jacobian_relative_quaternion(self) -> np.ndarray:
         return np.zeros((6, 3))
 
-    def jacobian_relative_mrp(self):
+    def jacobian_relative_mrp(self) -> np.ndarray:
         return np.zeros((6, 3))
 
-    def jacobian_relative_angle_vector(self):
+    def jacobian_relative_angle_vector(self) -> np.ndarray:
         return np.zeros((6, 3))
 
-    def jacobian_position(self):
+    def jacobian_position(self) -> np.ndarray:
         result = np.zeros((6, 3))
         result[0:3, 0:3] = np.eye(3)
         return result
 
-    def jacobian_velocity(self):
+    def jacobian_velocity(self) -> np.ndarray:
         result = np.zeros((6, 3))
         result[3:6, 0:3] = np.eye(3)
         return result
 
-    def jacobian_bias(self):
+    def jacobian_bias(self) -> np.ndarray:
         return np.eye(6)
 
-    def availability(self):
+    def availability(self) -> bool:
         return self.enabled

@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from GenADCS.backends.python.state import State
 from GenADCS.backends.python.state import (
     AttitudeState,
     OrbitalState,
@@ -17,7 +18,7 @@ WHEEL_MOMENTUM = slice(13, None)
 BASE_SIZE = 13
 
 
-def pack_state(state, wheel_count):
+def pack_state(state: State, wheel_count: int) -> np.ndarray:
     momentum = state.internal.wheel_momentum
     if momentum.size != wheel_count:
         raise ValueError(f"expected {wheel_count} wheel momenta, got {momentum.size}")
@@ -32,7 +33,7 @@ def pack_state(state, wheel_count):
     )
 
 
-def unpack_state(values, initial_state, elapsed_s):
+def unpack_state(values: np.ndarray, initial_state: State, elapsed_s: float) -> State:
     return State(
         AttitudeState(values[QUATERNION].copy(), values[RATES].copy()),
         OrbitalState.from_cartesian(

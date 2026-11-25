@@ -3,7 +3,7 @@ from numba import njit
 
 
 @njit(cache=True)
-def _rotate_vector(q, vector):
+def _rotate_vector(q: np.ndarray, vector: np.ndarray) -> np.ndarray:
     qv = q[1:4]
     return vector + 2.0 * (
         q[0] * np.cross(qv, vector) + np.cross(qv, np.cross(qv, vector))
@@ -11,7 +11,7 @@ def _rotate_vector(q, vector):
 
 
 @njit(cache=True)
-def _quaternion_to_dcm(q):
+def _quaternion_to_dcm(q: np.ndarray) -> np.ndarray:
     w, x, y, z = q
     return np.array(
         (
@@ -35,7 +35,7 @@ def _quaternion_to_dcm(q):
 
 
 @njit(cache=True)
-def _dcm_to_quaternion(matrix):
+def _dcm_to_quaternion(matrix: np.ndarray) -> np.ndarray:
     q = np.empty(4, dtype=np.float64)
     trace = matrix[0, 0] + matrix[1, 1] + matrix[2, 2]
     if trace > 0.0:
@@ -66,7 +66,7 @@ def _dcm_to_quaternion(matrix):
 
 
 @njit(cache=True)
-def _axis_angle_to_quaternion(axis, angle):
+def _axis_angle_to_quaternion(axis: np.ndarray, angle: float) -> np.ndarray:
     axis_norm = np.sqrt(np.dot(axis, axis))
     if axis_norm == 0.0:
         raise ValueError("axis must be nonzero")

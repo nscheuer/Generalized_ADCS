@@ -7,7 +7,7 @@ import numpy as np
 class InternalState:
     wheel_momentum: object = field(default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         momentum = np.asarray(self.wheel_momentum, dtype=np.float64)
         if momentum.ndim != 1 or not np.all(np.isfinite(momentum)):
             raise ValueError("wheel_momentum must be a finite 1D array")
@@ -21,7 +21,12 @@ class WheelMomentumState(InternalState):
     Their scalar ``h`` values are copied; propagation does not mutate them.
     """
 
-    def __init__(self, subsystem=None, *, wheel_momentum=None):
+    def __init__(
+        self,
+        subsystem: object | None = None,
+        *,
+        wheel_momentum: object | None = None,
+    ) -> None:
         if subsystem is not None and wheel_momentum is not None:
             raise ValueError("provide subsystem or wheel_momentum, not both")
         if subsystem is not None:

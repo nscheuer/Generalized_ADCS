@@ -5,7 +5,7 @@ from .algebra import _normalize_quaternion
 
 
 @njit(cache=True)
-def slerp(q0, q1, fraction):
+def slerp(q0: np.ndarray, q1: np.ndarray, fraction: float) -> np.ndarray:
     a = _normalize_quaternion(q0)
     b = _normalize_quaternion(q1)
     cosine = np.dot(a, b)
@@ -24,7 +24,7 @@ def slerp(q0, q1, fraction):
 
 
 @njit(cache=True)
-def rotation_vector_to_quaternion(rotation_vector):
+def rotation_vector_to_quaternion(rotation_vector: np.ndarray) -> np.ndarray:
     angle = np.sqrt(np.dot(rotation_vector, rotation_vector))
     if angle == 0.0:
         return np.array((1.0, 0.0, 0.0, 0.0))
@@ -35,7 +35,7 @@ def rotation_vector_to_quaternion(rotation_vector):
 
 
 @njit(cache=True)
-def quaternion_to_rotation_vector(q):
+def quaternion_to_rotation_vector(q: np.ndarray) -> np.ndarray:
     unit_q = _normalize_quaternion(q)
     if unit_q[0] < 0.0:
         unit_q = -unit_q

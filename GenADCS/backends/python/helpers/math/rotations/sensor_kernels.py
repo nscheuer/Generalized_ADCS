@@ -15,12 +15,12 @@ DEFAULT_SEED = np.uint64(0)
 
 
 @njit(cache=True)
-def mounting_dcm(orientation, misalignment):
+def mounting_dcm(orientation: np.ndarray, misalignment: np.ndarray) -> np.ndarray:
     return _quaternion_to_dcm(_multiply(misalignment, orientation))
 
 
 @njit(cache=True)
-def rotate_inertial_to_sensor(vector_inertial, attitude, orientation, misalignment):
+def rotate_inertial_to_sensor(vector_inertial: np.ndarray, attitude: np.ndarray, orientation: np.ndarray, misalignment: np.ndarray) -> np.ndarray:
     q = attitude / np.sqrt(np.dot(attitude, attitude))
     return mounting_dcm(orientation, misalignment) @ (
         _quaternion_to_dcm(q) @ vector_inertial
@@ -28,12 +28,12 @@ def rotate_inertial_to_sensor(vector_inertial, attitude, orientation, misalignme
 
 
 @njit(cache=True)
-def rotate_body_to_sensor(vector_body, orientation, misalignment):
+def rotate_body_to_sensor(vector_body: np.ndarray, orientation: np.ndarray, misalignment: np.ndarray) -> np.ndarray:
     return mounting_dcm(orientation, misalignment) @ vector_body
 
 
 @njit(cache=True)
-def attitude_vector_jacobian_quaternion(vector, delta_q):
+def attitude_vector_jacobian_quaternion(vector: np.ndarray, delta_q: np.ndarray) -> np.ndarray:
     q = delta_q / np.sqrt(np.dot(delta_q, delta_q))
     rotated = _quaternion_to_dcm(q) @ vector
     v = q[1:4]
@@ -41,7 +41,7 @@ def attitude_vector_jacobian_quaternion(vector, delta_q):
 
 
 @njit(cache=True)
-def attitude_vector_jacobian_mrp(vector, delta_mrp):
+def attitude_vector_jacobian_mrp(vector: np.ndarray, delta_mrp: np.ndarray) -> np.ndarray:
     square = np.dot(delta_mrp, delta_mrp)
     rotated = _quaternion_to_dcm(mrp_to_quaternion(delta_mrp)) @ vector
     matrix = (
@@ -53,7 +53,7 @@ def attitude_vector_jacobian_mrp(vector, delta_mrp):
 
 
 @njit(cache=True)
-def so3_left_jacobian(vector):
+def so3_left_jacobian(vector: np.ndarray) -> np.ndarray:
     angle = np.sqrt(np.dot(vector, vector))
     cross = skew(vector)
     if angle < 1e-5:
@@ -66,13 +66,13 @@ def so3_left_jacobian(vector):
 
 
 @njit(cache=True)
-def attitude_vector_jacobian_angle(vector, delta_angle):
+def attitude_vector_jacobian_angle(vector: np.ndarray, delta_angle: np.ndarray) -> np.ndarray:
     rotated = _quaternion_to_dcm(rotation_vector_to_quaternion(delta_angle)) @ vector
     return -skew(rotated) @ so3_left_jacobian(delta_angle)
 
 
 @njit(cache=True)
-def star_tracker_angle_jacobian(delta_angle):
+def star_tracker_angle_jacobian(delta_angle: np.ndarray) -> np.ndarray:
     angle = np.sqrt(np.dot(delta_angle, delta_angle))
     if angle < 1e-7:
         a = 1.0 - angle * angle / 24.0
@@ -84,7 +84,7 @@ def star_tracker_angle_jacobian(delta_angle):
 
 
 @njit(cache=True)
-def small_rotation_noise_quaternion(covariance, seed=DEFAULT_SEED, tick=0):
+def small_rotation_noise_quaternion(covariance: np.ndarray, seed: int = DEFAULT_SEED, tick: int = 0) -> np.ndarray:
     """Sample a small rotation vector from covariance and return its quaternion."""
     eta = np.linalg.cholesky(covariance) @ standard_normals(seed, tick, 0, 3)
     return _normalize_quaternion(np.concatenate((np.ones(1), 0.5 * eta)))
@@ -92,22 +92,22 @@ def small_rotation_noise_quaternion(covariance, seed=DEFAULT_SEED, tick=0):
 
 @njit(cache=True)
 def coarse_sun_measurement(
-    sun_inertial, attitude, orientation, misalignment, normal, sensitivity
-):
+    sun_inertial: np.ndarray, attitude: np.ndarray, orientation: np.ndarray, misalignment: np.ndarray, normal: np.ndarray, sensitivity: float
+) -> float:
     sun_body = sun_in_body(sun_inertial, attitude)
     normal_body = mounting_dcm(orientation, misalignment).T @ normal
     return sensitivity * max(0.0, np.dot(normal_body, sun_body))
 
 
 @njit(cache=True)
-def sun_in_body(sun_inertial, attitude):
+def sun_in_body(sun_inertial: np.ndarray, attitude: np.ndarray) -> np.ndarray:
     """Rotate an inertial Sun vector into body coordinates."""
     q = attitude / np.sqrt(np.dot(attitude, attitude))
     return _quaternion_to_dcm(q) @ sun_inertial
 
 
 @njit(cache=True)
-def scalar_measurement_angle_jacobian(angle):
+def scalar_measurement_angle_jacobian(angle: np.ndarray) -> np.ndarray:
     """SO(3) angle-vector Jacobian used for scalar attitude measurements."""
     magnitude = np.sqrt(np.dot(angle, angle))
     cross = skew(angle)
@@ -122,15 +122,15 @@ def scalar_measurement_angle_jacobian(angle):
 
 @njit(cache=True)
 def coarse_sun_attitude_jacobian(
-    sun_inertial,
-    attitude,
-    orientation,
-    misalignment,
-    normal,
-    sensitivity,
-    parameter,
-    kind,
-):
+    sun_inertial: np.ndarray,
+    attitude: np.ndarray,
+    orientation: np.ndarray,
+    misalignment: np.ndarray,
+    normal: np.ndarray,
+    sensitivity: float,
+    parameter: np.ndarray,
+    kind: int,
+) -> np.ndarray:
     """Scalar sun-angle Jacobian; kind: 0 quaternion, 1 MRP, 2 angle vector."""
     q = attitude / np.sqrt(np.dot(attitude, attitude))
     sun_body = sun_in_body(sun_inertial, q)
@@ -158,13 +158,13 @@ def coarse_sun_attitude_jacobian(
 
 
 @njit(cache=True)
-def fine_sun_angles(sun_inertial, attitude, orientation, misalignment):
+def fine_sun_angles(sun_inertial: np.ndarray, attitude: np.ndarray, orientation: np.ndarray, misalignment: np.ndarray) -> np.ndarray:
     s = rotate_inertial_to_sensor(sun_inertial, attitude, orientation, misalignment)
     return np.array((np.arctan2(s[0], s[2]), np.arctan2(s[1], s[2])))
 
 
 @njit(cache=True)
-def fine_sun_direction_jacobian(sensor_vector):
+def fine_sun_direction_jacobian(sensor_vector: np.ndarray) -> np.ndarray:
     x, y, z = sensor_vector
     xden = x * x + z * z
     yden = y * y + z * z
@@ -176,8 +176,8 @@ def fine_sun_direction_jacobian(sensor_vector):
 
 @njit(cache=True)
 def fine_sun_attitude_jacobian(
-    sun_inertial, attitude, orientation, misalignment, parameter, kind
-):
+    sun_inertial: np.ndarray, attitude: np.ndarray, orientation: np.ndarray, misalignment: np.ndarray, parameter: np.ndarray, kind: int
+) -> np.ndarray:
     sun_body = sun_in_body(sun_inertial, attitude)
     mounting = mounting_dcm(orientation, misalignment)
     if kind == 0:
@@ -200,7 +200,7 @@ def fine_sun_attitude_jacobian(
 
 
 @njit(cache=True)
-def fine_sun_fisher_information(angles, covariance, orientation, misalignment):
+def fine_sun_fisher_information(angles: np.ndarray, covariance: np.ndarray, orientation: np.ndarray, misalignment: np.ndarray) -> np.ndarray:
     alpha, beta = angles
     u, v = np.tan(alpha), np.tan(beta)
     k = np.array(

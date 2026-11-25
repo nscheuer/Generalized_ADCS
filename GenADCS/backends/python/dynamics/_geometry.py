@@ -6,8 +6,12 @@ to the local +Z face normal. Panel position is its body-frame centroid.
 
 import numpy as np
 
+from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry
 
-def prepare_panels(geometry):
+
+def prepare_panels(
+    geometry: SatelliteGeometry,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     count = len(geometry.panels)
     normals = np.empty((count, 3), dtype=np.float64)
     arms = np.empty((count, 3), dtype=np.float64)

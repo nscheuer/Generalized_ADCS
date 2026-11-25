@@ -3,6 +3,10 @@
 import numpy as np
 from numba import njit
 
+from GenADCS.backends.python.config.dynamics_config import DynamicsConfig
+from GenADCS.backends.python.environment import Environment
+from GenADCS.backends.python.hardware.satellite import Satellite
+from GenADCS.backends.python.state import State
 from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import (
     prepare_estimator,
     update_estimator,
@@ -14,6 +18,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling imp
 
 from ._coupled_dynamics import (
     SECONDS_PER_DAY,
+    _Runtime,
     _derivative,
     _prepare,
     _project_wheel_momentum,
@@ -24,7 +29,7 @@ from ._state_layout import pack_state, unpack_state
 
 
 @njit(cache=True)
-def _rk4_step(y, epoch_jd, dt, p):
+def _rk4_step(y: np.ndarray, epoch_jd: float, dt: float, p: _Runtime) -> np.ndarray:
     k1 = _derivative(y, epoch_jd, p)
     trial = y + 0.5 * dt * k1
     k2 = _derivative(trial, epoch_jd + 0.5 * dt / SECONDS_PER_DAY, p)
@@ -41,29 +46,29 @@ def _rk4_step(y, epoch_jd, dt, p):
 
 @njit(cache=True)
 def _integrate_chunk(
-    y,
-    initial_jd,
-    dt,
-    full_steps,
-    remainder,
-    p,
-    output,
-    start,
-    count,
-    record_every,
-    sensor_every,
-    sensor_config,
-    clean,
-    reading,
-    seed,
-    estimator_kind,
-    estimate_q,
-    estimate_w,
-    estimate_p,
-    acceleration_psd,
-    estimates,
-    estimator_flags,
-):
+    y: np.ndarray,
+    initial_jd: float,
+    dt: float,
+    full_steps: int,
+    remainder: float,
+    p: _Runtime,
+    output: np.ndarray,
+    start: int,
+    count: int,
+    record_every: int,
+    sensor_every: int,
+    sensor_config: tuple,
+    clean: np.ndarray,
+    reading: np.ndarray,
+    seed: int,
+    estimator_kind: int,
+    estimate_q: np.ndarray,
+    estimate_w: np.ndarray,
+    estimate_p: np.ndarray,
+    acceleration_psd: np.ndarray,
+    estimates: np.ndarray,
+    estimator_flags: int,
+) -> np.ndarray:
     """Advance consecutive RK4 steps without returning to Python between them."""
     for row in range(start, start + count):
         elapsed_s = row * dt
@@ -121,32 +126,32 @@ class CoupledRK4Propagator:
     optional wheel momenta. Every contribution is reevaluated at each RK stage.
     """
 
-    def __init__(self, dt):
+    def __init__(self, dt: float) -> None:
         self.dt = float(dt)
         if not np.isfinite(self.dt) or self.dt <= 0:
             raise ValueError("dt must be finite and positive seconds")
         self._runtime = None
         self._configuration = None
 
-    def reset_runtime(self):
+    def reset_runtime(self) -> None:
         """Rebuild numerical parameters on the next step after configuration edits."""
         self._runtime = None
         self._configuration = None
 
     def integrate(
         self,
-        state,
-        satellite,
-        environment,
-        dynamics,
-        tf,
-        progress=False,
-        progress_chunk_steps=500,
-        record_every=1,
-        sensor_every=0,
-        seed=0,
-        estimator_flags=0,
-    ):
+        state: State,
+        satellite: Satellite,
+        environment: Environment,
+        dynamics: DynamicsConfig,
+        tf: float,
+        progress: bool = False,
+        progress_chunk_steps: int = 500,
+        record_every: int = 1,
+        sensor_every: int = 0,
+        seed: int = 0,
+        estimator_flags: int = 0,
+    ) -> tuple[np.ndarray, ...]:
         """Return elapsed seconds and numeric states for the complete interval.
 
         Numeric state columns are quaternion (0:4), body rates (4:7),
@@ -320,7 +325,13 @@ class CoupledRK4Propagator:
             else (elapsed, output)
         )
 
-    def step(self, state, satellite, environment, dynamics):
+    def step(
+        self,
+        state: State,
+        satellite: Satellite,
+        environment: Environment,
+        dynamics: DynamicsConfig,
+    ) -> State:
         if self._configuration != (id(satellite), id(environment), id(dynamics)):
             self._runtime = _prepare(satellite, environment, dynamics)
             self._configuration = (id(satellite), id(environment), id(dynamics))

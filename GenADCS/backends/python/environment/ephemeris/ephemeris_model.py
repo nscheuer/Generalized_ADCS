@@ -13,7 +13,13 @@ _TABLE_TARGETS = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 301, 10, 399], dtype=np.in
 
 
 @njit(cache=True)
-def _segment_state(target, et, segments, times, data):
+def _segment_state(
+    target: int,
+    et: float,
+    segments: np.ndarray,
+    times: np.ndarray,
+    data: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, int]:
     """Evaluate an SPK type 2/3 segment; output is km and km/s."""
     selected = -1
     for i in range(segments.shape[0]):
@@ -84,7 +90,9 @@ def _segment_state(target, et, segments, times, data):
 
 
 @njit(cache=True)
-def _barycentric_state(target, et, segments, times, data):
+def _barycentric_state(
+    target: int, et: float, segments: np.ndarray, times: np.ndarray, data: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     pos = np.zeros(3, dtype=np.float64)
     vel = np.zeros(3, dtype=np.float64)
     node = target
@@ -99,7 +107,13 @@ def _barycentric_state(target, et, segments, times, data):
 
 
 @njit(cache=True)
-def planetary_position(body_index, epoch_jd, segments, times, data):
+def planetary_position(
+    body_index: int,
+    epoch_jd: float,
+    segments: np.ndarray,
+    times: np.ndarray,
+    data: np.ndarray,
+) -> np.ndarray:
     """Earth-centered position [km] for a DE421 table body index (0-11)."""
     if body_index < 0 or body_index >= _TABLE_TARGETS.size:
         raise ValueError("body_index must be in the DE421 body range 0..11")
@@ -113,7 +127,13 @@ def planetary_position(body_index, epoch_jd, segments, times, data):
 
 
 @njit(cache=True)
-def planetary_velocity(body_index, epoch_jd, segments, times, data):
+def planetary_velocity(
+    body_index: int,
+    epoch_jd: float,
+    segments: np.ndarray,
+    times: np.ndarray,
+    data: np.ndarray,
+) -> np.ndarray:
     """Earth-centered velocity [km/s] for a DE421 table body index (0-11)."""
     if body_index < 0 or body_index >= _TABLE_TARGETS.size:
         raise ValueError("body_index must be in the DE421 body range 0..11")
@@ -127,7 +147,13 @@ def planetary_velocity(body_index, epoch_jd, segments, times, data):
 
 
 @njit(cache=True)
-def planetary_state(body_index, epoch_jd, segments, times, data):
+def planetary_state(
+    body_index: int,
+    epoch_jd: float,
+    segments: np.ndarray,
+    times: np.ndarray,
+    data: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
     """Earth-centered position and velocity from one SPK traversal [km, km/s]."""
     if body_index < 0 or body_index >= _TABLE_TARGETS.size:
         raise ValueError("body_index must be in the DE421 body range 0..11")
@@ -141,7 +167,13 @@ def planetary_state(body_index, epoch_jd, segments, times, data):
 
 
 @njit(cache=True)
-def ephemeris_position(body_id, epoch_jd, segments, times, data):
+def ephemeris_position(
+    body_id: int,
+    epoch_jd: float,
+    segments: np.ndarray,
+    times: np.ndarray,
+    data: np.ndarray,
+) -> np.ndarray:
     """Earth-centered DE421 position [km]; epoch is TDB Julian date."""
     if body_id == BODY_EARTH:
         return np.zeros(3, dtype=np.float64)
@@ -155,7 +187,13 @@ def ephemeris_position(body_id, epoch_jd, segments, times, data):
 
 
 @njit(cache=True)
-def ephemeris_velocity(body_id, epoch_jd, segments, times, data):
+def ephemeris_velocity(
+    body_id: int,
+    epoch_jd: float,
+    segments: np.ndarray,
+    times: np.ndarray,
+    data: np.ndarray,
+) -> np.ndarray:
     """Earth-centered DE421 velocity [km/s]; epoch is TDB Julian date."""
     if body_id == BODY_EARTH:
         return np.zeros(3, dtype=np.float64)
@@ -170,8 +208,11 @@ def ephemeris_velocity(body_id, epoch_jd, segments, times, data):
 
 @njit(cache=True)
 def eclipse_state(
-    spacecraft_position_m, sun_position_m, occulting_body_radius_m, sun_radius_m
-):
+    spacecraft_position_m: np.ndarray,
+    sun_position_m: np.ndarray,
+    occulting_body_radius_m: float,
+    sun_radius_m: float,
+) -> tuple[float, bool, bool]:
     spacecraft_to_sun = sun_position_m - spacecraft_position_m
     spacecraft_to_body = -spacecraft_position_m
     sun_distance = np.sqrt(np.dot(spacecraft_to_sun, spacecraft_to_sun))
@@ -217,25 +258,30 @@ def eclipse_state(
 class EphemerisModel:
     """Base class for models backed by parsed SPK segments."""
 
-    def __init__(self, segments, times, data):
+    def __init__(
+        self, segments: np.ndarray, times: np.ndarray, data: np.ndarray
+    ) -> None:
         self._segments = np.ascontiguousarray(segments, dtype=np.int64)
         self._times = np.ascontiguousarray(times, dtype=np.float64)
         self._data = np.ascontiguousarray(data, dtype=np.float64)
 
-    def position(self, body_id, epoch_jd):
+    def position(self, body_id: int, epoch_jd: float) -> np.ndarray:
         return ephemeris_position(
             int(body_id), float(epoch_jd), self._segments, self._times, self._data
         )
 
-    def velocity(self, body_id, epoch_jd):
+    def velocity(self, body_id: int, epoch_jd: float) -> np.ndarray:
         return ephemeris_velocity(
             int(body_id), float(epoch_jd), self._segments, self._times, self._data
         )
 
     @staticmethod
     def eclipse_state(
-        spacecraft_position_m, sun_position_m, occulting_body_radius_m, sun_radius_m
-    ):
+        spacecraft_position_m: np.ndarray,
+        sun_position_m: np.ndarray,
+        occulting_body_radius_m: float,
+        sun_radius_m: float,
+    ) -> tuple[float, bool, bool]:
         return eclipse_state(
             spacecraft_position_m, sun_position_m, occulting_body_radius_m, sun_radius_m
         )

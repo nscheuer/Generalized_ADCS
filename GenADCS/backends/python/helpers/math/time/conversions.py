@@ -82,7 +82,14 @@ _TAI_MINUS_UTC = np.array(
 
 
 @njit(cache=True)
-def calendar_to_jd(year, month, day, hour=0, minute=0, second=0.0):
+def calendar_to_jd(
+    year: int,
+    month: int,
+    day: int,
+    hour: int = 0,
+    minute: int = 0,
+    second: float = 0.0,
+) -> float:
     """Convert a proleptic Gregorian calendar date/time to Julian Date."""
     y = year
     m = month
@@ -96,7 +103,7 @@ def calendar_to_jd(year, month, day, hour=0, minute=0, second=0.0):
 
 
 @njit(cache=True)
-def jd_to_calendar(jd):
+def jd_to_calendar(jd: float) -> tuple[int, int, int, int, int, float]:
     """Convert a Julian Date to (year, month, day, hour, minute, second)."""
     zf = np.floor(jd + 0.5)
     f = jd + 0.5 - zf
@@ -120,7 +127,7 @@ def jd_to_calendar(jd):
 
 
 @njit(cache=True)
-def _tai_minus_utc(utc_jd):
+def _tai_minus_utc(utc_jd: float) -> float:
     if utc_jd < _UTC_EFFECTIVE_JD[0]:
         raise ValueError("UTC/TAI conversion is supported from 1972-01-01")
     offset = _TAI_MINUS_UTC[0]
@@ -132,13 +139,13 @@ def _tai_minus_utc(utc_jd):
 
 
 @njit(cache=True)
-def utc_jd_to_tai_jd(utc_jd):
+def utc_jd_to_tai_jd(utc_jd: float) -> float:
     """Convert UTC JD to TAI JD using the bundled leap-second table."""
     return utc_jd + _tai_minus_utc(utc_jd) / _SECONDS_PER_DAY
 
 
 @njit(cache=True)
-def tai_jd_to_utc_jd(tai_jd):
+def tai_jd_to_utc_jd(tai_jd: float) -> float:
     """Convert TAI JD to UTC JD using fixed-point offset selection."""
     utc_jd = tai_jd - 10.0 / _SECONDS_PER_DAY
     for _ in range(3):
@@ -147,41 +154,41 @@ def tai_jd_to_utc_jd(tai_jd):
 
 
 @njit(cache=True)
-def tai_jd_to_tt_jd(tai_jd):
+def tai_jd_to_tt_jd(tai_jd: float) -> float:
     """Convert TAI JD to TT JD (TT = TAI + 32.184 s)."""
     return tai_jd + 32.184 / _SECONDS_PER_DAY
 
 
 @njit(cache=True)
-def tt_jd_to_tai_jd(tt_jd):
+def tt_jd_to_tai_jd(tt_jd: float) -> float:
     """Convert TT JD to TAI JD."""
     return tt_jd - 32.184 / _SECONDS_PER_DAY
 
 
 @njit(cache=True)
-def utc_jd_to_tt_jd(utc_jd):
+def utc_jd_to_tt_jd(utc_jd: float) -> float:
     return tai_jd_to_tt_jd(utc_jd_to_tai_jd(utc_jd))
 
 
 @njit(cache=True)
-def tt_jd_to_utc_jd(tt_jd):
+def tt_jd_to_utc_jd(tt_jd: float) -> float:
     return tai_jd_to_utc_jd(tt_jd_to_tai_jd(tt_jd))
 
 
 @njit(cache=True)
-def utc_jd_to_ut1_jd(utc_jd, dut1_seconds):
+def utc_jd_to_ut1_jd(utc_jd: float, dut1_seconds: float) -> float:
     """Convert UTC JD to UT1 JD; DUT1 is UT1 - UTC in SI seconds."""
     return utc_jd + dut1_seconds / _SECONDS_PER_DAY
 
 
 @njit(cache=True)
-def ut1_jd_to_utc_jd(ut1_jd, dut1_seconds):
+def ut1_jd_to_utc_jd(ut1_jd: float, dut1_seconds: float) -> float:
     """Convert UT1 JD to UTC JD using caller-supplied DUT1 seconds."""
     return ut1_jd - dut1_seconds / _SECONDS_PER_DAY
 
 
 @njit(cache=True)
-def _tdb_minus_tt_seconds(tt_jd):
+def _tdb_minus_tt_seconds(tt_jd: float) -> float:
     # Dominant geocentric periodic terms; approximately millisecond accuracy.
     days = tt_jd - _J2000
     g = np.deg2rad(357.53 + 0.9856003 * days)
@@ -189,7 +196,7 @@ def _tdb_minus_tt_seconds(tt_jd):
 
 
 @njit(cache=True)
-def tdb_jd_to_tt_jd(tdb_jd):
+def tdb_jd_to_tt_jd(tdb_jd: float) -> float:
     """Invert the compact TT/TDB approximation iteratively."""
     tt_jd = tdb_jd
     for _ in range(3):
@@ -198,70 +205,70 @@ def tdb_jd_to_tt_jd(tdb_jd):
 
 
 @njit(cache=True)
-def utc_jd_to_tdb_jd(utc_jd):
+def utc_jd_to_tdb_jd(utc_jd: float) -> float:
     return tt_jd_to_tdb_jd(utc_jd_to_tt_jd(utc_jd))
 
 
 @njit(cache=True)
-def tdb_jd_to_utc_jd(tdb_jd):
+def tdb_jd_to_utc_jd(tdb_jd: float) -> float:
     return tt_jd_to_utc_jd(tdb_jd_to_tt_jd(tdb_jd))
 
 
 @njit(cache=True)
-def tai_jd_to_ut1_jd(tai_jd, dut1_seconds):
+def tai_jd_to_ut1_jd(tai_jd: float, dut1_seconds: float) -> float:
     return utc_jd_to_ut1_jd(tai_jd_to_utc_jd(tai_jd), dut1_seconds)
 
 
 @njit(cache=True)
-def ut1_jd_to_tai_jd(ut1_jd, dut1_seconds):
+def ut1_jd_to_tai_jd(ut1_jd: float, dut1_seconds: float) -> float:
     return utc_jd_to_tai_jd(ut1_jd_to_utc_jd(ut1_jd, dut1_seconds))
 
 
 @njit(cache=True)
-def tt_jd_to_ut1_jd(tt_jd, dut1_seconds):
+def tt_jd_to_ut1_jd(tt_jd: float, dut1_seconds: float) -> float:
     return utc_jd_to_ut1_jd(tt_jd_to_utc_jd(tt_jd), dut1_seconds)
 
 
 @njit(cache=True)
-def ut1_jd_to_tt_jd(ut1_jd, dut1_seconds):
+def ut1_jd_to_tt_jd(ut1_jd: float, dut1_seconds: float) -> float:
     return utc_jd_to_tt_jd(ut1_jd_to_utc_jd(ut1_jd, dut1_seconds))
 
 
 @njit(cache=True)
-def tt_jd_to_tdb_jd(tt_jd):
+def tt_jd_to_tdb_jd(tt_jd: float) -> float:
     """Convert TT JD to approximate TDB JD (compact periodic model)."""
     return tt_jd + _tdb_minus_tt_seconds(tt_jd) / _SECONDS_PER_DAY
 
 
 @njit(cache=True)
-def tai_jd_to_tdb_jd(tai_jd):
+def tai_jd_to_tdb_jd(tai_jd: float) -> float:
     return tt_jd_to_tdb_jd(tai_jd_to_tt_jd(tai_jd))
 
 
 @njit(cache=True)
-def tdb_jd_to_tai_jd(tdb_jd):
+def tdb_jd_to_tai_jd(tdb_jd: float) -> float:
     return tt_jd_to_tai_jd(tdb_jd_to_tt_jd(tdb_jd))
 
 
 @njit(cache=True)
-def ut1_jd_to_tdb_jd(ut1_jd, dut1_seconds):
+def ut1_jd_to_tdb_jd(ut1_jd: float, dut1_seconds: float) -> float:
     return utc_jd_to_tdb_jd(ut1_jd_to_utc_jd(ut1_jd, dut1_seconds))
 
 
 @njit(cache=True)
-def tdb_jd_to_ut1_jd(tdb_jd, dut1_seconds):
+def tdb_jd_to_ut1_jd(tdb_jd: float, dut1_seconds: float) -> float:
     return utc_jd_to_ut1_jd(tdb_jd_to_utc_jd(tdb_jd), dut1_seconds)
 
 
 @njit(cache=True)
-def jd_to_utc_calendar_fields(jd):
+def jd_to_utc_calendar_fields(jd: float) -> tuple[int, int, int, float]:
     """Return Gregorian year, month, day, and seconds since UTC midnight."""
     year, month, day, hour, minute, second = jd_to_calendar(jd)
     return year, month, day, hour * 3600.0 + minute * 60.0 + second
 
 
 @njit(cache=True)
-def day_of_year(year, month, day):
+def day_of_year(year: int, month: int, day: int) -> int:
     """Return the Gregorian day number within a year (January 1 is 1)."""
     lengths = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
     doy = day

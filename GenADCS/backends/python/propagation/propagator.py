@@ -7,7 +7,7 @@ class Propagator:
     orbital: object | None = None
     coupled: object | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if (
             self.coupled is None and (self.attitude is None or self.orbital is None)
         ) or (

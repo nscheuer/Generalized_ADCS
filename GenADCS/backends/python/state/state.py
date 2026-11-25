@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from GenADCS.backends.python.environment.ephemeris import EphemerisModel
+
 from .attitude_state import AttitudeState
 from .internal_state import InternalState
 from .orbital_state import OrbitalState
@@ -13,7 +15,7 @@ class State:
     orbit: OrbitalState
     internal: InternalState = field(default_factory=InternalState)
 
-    def to_record(self, wheel_count=None):
+    def to_record(self, wheel_count: int | None = None) -> np.ndarray:
         momentum = self.internal.wheel_momentum
         count = momentum.size if wheel_count is None else int(wheel_count)
         if count != momentum.size:
@@ -38,7 +40,12 @@ class State:
         return record
 
     @classmethod
-    def from_record(cls, record, julian_date, ephemeris=None):
+    def from_record(
+        cls,
+        record: np.ndarray | np.void,
+        julian_date: float,
+        ephemeris: EphemerisModel | None = None,
+    ) -> "State":
         value = record[0] if isinstance(record, np.ndarray) else record
         attitude = AttitudeState(value["quaternion"].copy(), value["rates"].copy())
         orbit = OrbitalState.from_cartesian(

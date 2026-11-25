@@ -39,7 +39,22 @@ def _schmidt_table(nmax: int) -> np.ndarray:
 
 
 @njit(cache=True, fastmath=True, nogil=True, inline="always")
-def _eval_one(ri, th_deg, ph_deg, g, h, nmax, Pc, P1, P2, Dc, D1, D2, cosmp, sinmp):
+def _eval_one(
+    ri: float,
+    th_deg: float,
+    ph_deg: float,
+    g: np.ndarray,
+    h: np.ndarray,
+    nmax: int,
+    Pc: np.ndarray,
+    P1: np.ndarray,
+    P2: np.ndarray,
+    Dc: np.ndarray,
+    D1: np.ndarray,
+    D2: np.ndarray,
+    cosmp: np.ndarray,
+    sinmp: np.ndarray,
+) -> tuple[float, float, float]:
     r"""
     Evaluate one sample against a single set of Gauss coefficients.
 

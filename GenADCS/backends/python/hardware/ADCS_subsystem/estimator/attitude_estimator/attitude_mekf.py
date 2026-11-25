@@ -33,7 +33,9 @@ class AttitudeMEKF(AttitudeEstimator):
 
 
 @njit(cache=True)
-def predict(q, w, p, acceleration_psd, dt):
+def predict(
+    q: np.ndarray, w: np.ndarray, p: np.ndarray, acceleration_psd: np.ndarray, dt: float
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Propagate the nominal state and its left/body attitude error."""
     if dt < 0.0:
         raise ValueError("dt must be nonnegative")
@@ -53,7 +55,14 @@ def predict(q, w, p, acceleration_psd, dt):
 
 
 @njit(cache=True)
-def correct(q, w, p, residual, h, covariance):
+def correct(
+    q: np.ndarray,
+    w: np.ndarray,
+    p: np.ndarray,
+    residual: np.ndarray,
+    h: np.ndarray,
+    covariance: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Shared Joseph-form correction and multiplicative covariance reset."""
     innovation = h @ p @ h.T + covariance
     gain = np.linalg.solve(innovation, h @ p).T
@@ -72,7 +81,14 @@ def correct(q, w, p, residual, h, covariance):
 
 
 @njit(cache=True)
-def correct_gyro(q, w, p, measured_rate, mounting, covariance):
+def correct_gyro(
+    q: np.ndarray,
+    w: np.ndarray,
+    p: np.ndarray,
+    measured_rate: np.ndarray,
+    mounting: np.ndarray,
+    covariance: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Update the rate from a body-to-sensor mounted gyroscope."""
     h = np.zeros((3, 6))
     h[:, 3:6] = mounting
@@ -80,7 +96,14 @@ def correct_gyro(q, w, p, measured_rate, mounting, covariance):
 
 
 @njit(cache=True)
-def correct_star_tracker(q, w, p, measured_quaternion, mounting_quaternion, covariance):
+def correct_star_tracker(
+    q: np.ndarray,
+    w: np.ndarray,
+    p: np.ndarray,
+    measured_quaternion: np.ndarray,
+    mounting_quaternion: np.ndarray,
+    covariance: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Update attitude from a scalar-first body-to-sensor mounted tracker."""
     predicted = _multiply(mounting_quaternion, q)
     relative = _multiply(measured_quaternion, _conjugate(predicted))
@@ -91,7 +114,15 @@ def correct_star_tracker(q, w, p, measured_quaternion, mounting_quaternion, cova
 
 
 @njit(cache=True)
-def step(q, w, p, acceleration_psd, dt, readings, sensor_config):
+def step(
+    q: np.ndarray,
+    w: np.ndarray,
+    p: np.ndarray,
+    acceleration_psd: np.ndarray,
+    dt: float,
+    readings: np.ndarray,
+    sensor_config: tuple,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Predict and consume all valid gyro/tracker readings at one sensor tick.
 
     Other sensor types remain available to future estimator implementations.
@@ -141,18 +172,18 @@ def step(q, w, p, acceleration_psd, dt, readings, sensor_config):
 
 @njit(cache=True)
 def step_with_diagnostics(
-    q,
-    w,
-    p,
-    acceleration_psd,
-    dt,
-    readings,
-    sensor_config,
-    flags,
-    truth_q,
-    truth_w,
-    diagnostics,
-):
+    q: np.ndarray,
+    w: np.ndarray,
+    p: np.ndarray,
+    acceleration_psd: np.ndarray,
+    dt: float,
+    readings: np.ndarray,
+    sensor_config: tuple,
+    flags: int,
+    truth_q: np.ndarray,
+    truth_w: np.ndarray,
+    diagnostics: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compiled update; diagnostics describe the last valid measurement at a tick.
 
     A tick with no valid measurement leaves measurement fields as NaN.

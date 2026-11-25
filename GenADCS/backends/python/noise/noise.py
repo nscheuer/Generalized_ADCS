@@ -1,6 +1,7 @@
 """Noise configuration and cached numerical kernels for compiled simulation."""
 
 import numpy as np
+from numpy.typing import ArrayLike
 from numba import njit
 
 from GenADCS.backends.python.helpers.random.philox import next_draw, standard_normals
@@ -9,20 +10,27 @@ DEFAULT_SEED = np.uint64(0)
 
 
 @njit(cache=True)
-def gaussian_sample(cholesky_factor, seed=DEFAULT_SEED, tick=0):
+def gaussian_sample(
+    cholesky_factor: np.ndarray, seed: int = DEFAULT_SEED, tick: int = 0
+) -> np.ndarray:
     """Draw correlated zero-mean Gaussian noise using a prepared Cholesky factor."""
     return cholesky_factor @ standard_normals(seed, tick, 0, cholesky_factor.shape[0])
 
 
 @njit(cache=True)
-def add_gaussian_noise(value, cholesky_factor, seed=DEFAULT_SEED, tick=0):
+def add_gaussian_noise(
+    value: np.ndarray,
+    cholesky_factor: np.ndarray,
+    seed: int = DEFAULT_SEED,
+    tick: int = 0,
+) -> np.ndarray:
     return value + gaussian_sample(cholesky_factor, seed, tick)
 
 
 class Noise:
     """Gaussian covariance noise; ``cholesky_factor`` enters compiled kernels."""
 
-    def __init__(self, covariance=None):
+    def __init__(self, covariance: ArrayLike | None = None) -> None:
         if covariance is None:
             self.covariance = None
             self.cholesky_factor = None
@@ -33,7 +41,12 @@ class Noise:
         self.cholesky_factor = np.linalg.cholesky(covariance)
         self.covariance = covariance
 
-    def apply(self, value, dt, rng=None):
+    def apply(
+        self,
+        value: ArrayLike,
+        dt: float,
+        rng: np.random.Generator | None = None,
+    ) -> np.ndarray:
         factor = getattr(self, "cholesky_factor", None)
         if factor is None:
             raise NotImplementedError(

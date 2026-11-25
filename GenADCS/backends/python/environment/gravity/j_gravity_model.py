@@ -19,12 +19,12 @@ EARTH_REFERENCE_RADIUS_M = 6378137.0
 
 @njit(cache=True)
 def gravity_acceleration_inertial_m_s2(
-    position_inertial_m,
-    epoch_jd,
-    gravitational_parameter_m3_s2,
-    reference_radius_m,
-    zonal_coefficients,
-):
+    position_inertial_m: np.ndarray,
+    epoch_jd: float,
+    gravitational_parameter_m3_s2: float,
+    reference_radius_m: float,
+    zonal_coefficients: np.ndarray,
+) -> np.ndarray:
     """Return central plus J2--J6 acceleration in inertial Cartesian axes.
 
     ``zonal_coefficients[k]`` is J(k+2); pass zeros to omit terms. ``epoch_jd``
@@ -81,7 +81,11 @@ class JGravityModel:
 
     degree = None
 
-    def __init__(self, degrees=(2, 3, 4, 5, 6), coefficients=None):
+    def __init__(
+        self,
+        degrees: tuple[int, ...] = (2, 3, 4, 5, 6),
+        coefficients: np.ndarray | None = None,
+    ) -> None:
         if self.degree is not None and degrees == (2, 3, 4, 5, 6):
             degrees = (self.degree,)
         self.degrees = tuple(sorted(set(degrees)))
@@ -96,7 +100,9 @@ class JGravityModel:
         self.gravitational_parameter_m3_s2 = EARTH_MU_M3_S2
         self.reference_radius_m = EARTH_REFERENCE_RADIUS_M
 
-    def evaluate(self, position_inertial_m, epoch_jd=0.0):
+    def evaluate(
+        self, position_inertial_m: np.ndarray, epoch_jd: float = 0.0
+    ) -> np.ndarray:
         return gravity_acceleration_inertial_m_s2(
             np.asarray(position_inertial_m, dtype=np.float64),
             epoch_jd,

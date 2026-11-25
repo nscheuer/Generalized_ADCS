@@ -4,10 +4,17 @@ import numpy as np
 from numba import njit
 
 from GenADCS.backends.python.helpers.math.frames.frames import inertial_to_body
+from GenADCS.backends.python.environment import Environment
+from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry
 
 
 @njit(cache=True)
-def static_gravity_gradient_torque(position_i, q_b_from_i, inertia_b, mu):
+def static_gravity_gradient_torque(
+    position_i: np.ndarray,
+    q_b_from_i: np.ndarray,
+    inertia_b: np.ndarray,
+    mu: float,
+) -> np.ndarray:
     """Return 3μ/r³ (r_hat_b × I r_hat_b) [N m]."""
     radius = np.sqrt(np.dot(position_i, position_i))
     if radius == 0.0:
@@ -17,14 +24,19 @@ def static_gravity_gradient_torque(position_i, q_b_from_i, inertia_b, mu):
 
 
 class StaticGravityGradientModel:
-    def __init__(self, geometry):
+    def __init__(self, geometry: SatelliteGeometry) -> None:
         self.inertia_b = np.ascontiguousarray(geometry.inertia, dtype=np.float64)
         if self.inertia_b.shape != (3, 3) or not np.all(np.isfinite(self.inertia_b)):
             raise ValueError("geometry.inertia must be a finite 3x3 matrix")
         if not np.allclose(self.inertia_b, self.inertia_b.T):
             raise ValueError("geometry.inertia must be symmetric")
 
-    def evaluate(self, position_i, q_b_from_i, environment):
+    def evaluate(
+        self,
+        position_i: np.ndarray,
+        q_b_from_i: np.ndarray,
+        environment: Environment,
+    ) -> np.ndarray:
         return static_gravity_gradient_torque(
             np.asarray(position_i, dtype=np.float64),
             np.asarray(q_b_from_i, dtype=np.float64),

@@ -22,8 +22,14 @@ class Accelerometer:
     """
 
     def __init__(
-        self, position, orientation, misalignment, saturation_value, noise, bias
-    ):
+        self,
+        position: np.ndarray,
+        orientation: np.ndarray,
+        misalignment: np.ndarray,
+        saturation_value: float,
+        noise: np.ndarray,
+        bias: np.ndarray,
+    ) -> None:
         base = Sensor(
             position, orientation, misalignment, saturation_value, noise, bias
         )
@@ -37,8 +43,11 @@ class Accelerometer:
         self.enabled = base.enabled
 
     def noiseless_biasfree_measurement(
-        self, acceleration_inertial, gravity_inertial, attitude
-    ):
+        self,
+        acceleration_inertial: np.ndarray,
+        gravity_inertial: np.ndarray,
+        attitude: np.ndarray,
+    ) -> np.ndarray:
         return vector_measurement(
             acceleration_inertial - gravity_inertial,
             attitude,
@@ -52,8 +61,11 @@ class Accelerometer:
         )
 
     def noiseless_biased_measurement(
-        self, acceleration_inertial, gravity_inertial, attitude
-    ):
+        self,
+        acceleration_inertial: np.ndarray,
+        gravity_inertial: np.ndarray,
+        attitude: np.ndarray,
+    ) -> np.ndarray:
         return vector_measurement(
             acceleration_inertial - gravity_inertial,
             attitude,
@@ -67,8 +79,11 @@ class Accelerometer:
         )
 
     def noisy_biasfree_measurement(
-        self, acceleration_inertial, gravity_inertial, attitude
-    ):
+        self,
+        acceleration_inertial: np.ndarray,
+        gravity_inertial: np.ndarray,
+        attitude: np.ndarray,
+    ) -> np.ndarray:
         return vector_measurement(
             acceleration_inertial - gravity_inertial,
             attitude,
@@ -83,8 +98,11 @@ class Accelerometer:
         )
 
     def noisy_biased_measurement(
-        self, acceleration_inertial, gravity_inertial, attitude
-    ):
+        self,
+        acceleration_inertial: np.ndarray,
+        gravity_inertial: np.ndarray,
+        attitude: np.ndarray,
+    ) -> np.ndarray:
         return vector_measurement(
             acceleration_inertial - gravity_inertial,
             attitude,
@@ -99,8 +117,12 @@ class Accelerometer:
         )
 
     def jacobian_relative_quaternion(
-        self, acceleration_inertial, gravity_inertial, attitude, delta_quaternion
-    ):
+        self,
+        acceleration_inertial: np.ndarray,
+        gravity_inertial: np.ndarray,
+        attitude: np.ndarray,
+        delta_quaternion: np.ndarray,
+    ) -> np.ndarray:
         force = rotate_inertial_to_sensor(
             acceleration_inertial - gravity_inertial,
             attitude,
@@ -110,8 +132,12 @@ class Accelerometer:
         return attitude_vector_jacobian_quaternion(force, delta_quaternion)
 
     def jacobian_relative_mrp(
-        self, acceleration_inertial, gravity_inertial, attitude, delta_mrp
-    ):
+        self,
+        acceleration_inertial: np.ndarray,
+        gravity_inertial: np.ndarray,
+        attitude: np.ndarray,
+        delta_mrp: np.ndarray,
+    ) -> np.ndarray:
         force = rotate_inertial_to_sensor(
             acceleration_inertial - gravity_inertial,
             attitude,
@@ -121,8 +147,12 @@ class Accelerometer:
         return attitude_vector_jacobian_mrp(force, delta_mrp)
 
     def jacobian_relative_angle_vector(
-        self, acceleration_inertial, gravity_inertial, attitude, delta_angle
-    ):
+        self,
+        acceleration_inertial: np.ndarray,
+        gravity_inertial: np.ndarray,
+        attitude: np.ndarray,
+        delta_angle: np.ndarray,
+    ) -> np.ndarray:
         force = rotate_inertial_to_sensor(
             acceleration_inertial - gravity_inertial,
             attitude,
@@ -131,8 +161,8 @@ class Accelerometer:
         )
         return attitude_vector_jacobian_angle(force, delta_angle)
 
-    def jacobian_bias(self):
+    def jacobian_bias(self) -> np.ndarray:
         return np.eye(3)
 
-    def availability(self):
+    def availability(self) -> bool:
         return self.enabled

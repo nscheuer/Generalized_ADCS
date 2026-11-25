@@ -11,5 +11,5 @@ class AttitudeSolver:
     propagator: RK4AttitudePropagator | AdaptiveRK45AttitudePropagator
 
     @property
-    def dt(self):
+    def dt(self) -> float:
         return self.propagator.dt

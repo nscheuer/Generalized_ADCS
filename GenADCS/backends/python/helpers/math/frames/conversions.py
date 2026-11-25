@@ -20,25 +20,25 @@ _ARCSEC_TO_RAD = np.pi / (180.0 * 3600.0)
 
 
 @njit(cache=True)
-def _r1(angle):
+def _r1(angle: float) -> np.ndarray:
     c, s = np.cos(angle), np.sin(angle)
     return np.array(((1.0, 0.0, 0.0), (0.0, c, -s), (0.0, s, c)))
 
 
 @njit(cache=True)
-def _r2(angle):
+def _r2(angle: float) -> np.ndarray:
     c, s = np.cos(angle), np.sin(angle)
     return np.array(((c, 0.0, s), (0.0, 1.0, 0.0), (-s, 0.0, c)))
 
 
 @njit(cache=True)
-def _r3(angle):
+def _r3(angle: float) -> np.ndarray:
     c, s = np.cos(angle), np.sin(angle)
     return np.array(((c, -s, 0.0), (s, c, 0.0), (0.0, 0.0, 1.0)))
 
 
 @njit(cache=True)
-def _precession_gcrf_to_mod(jd_tt):
+def _precession_gcrf_to_mod(jd_tt: float) -> np.ndarray:
     t = (jd_tt - 2451545.0) / 36525.0
     arcsec = np.pi / (180.0 * 3600.0)
     zeta = (2306.2181 * t + 0.30188 * t * t + 0.017998 * t**3) * arcsec
@@ -48,7 +48,7 @@ def _precession_gcrf_to_mod(jd_tt):
 
 
 @njit(cache=True)
-def _nutation_4term(jd_tt):
+def _nutation_4term(jd_tt: float) -> tuple[float, float, float]:
     t = (jd_tt - 2451545.0) / 36525.0
     deg = np.pi / 180.0
     arcsec = np.pi / (180.0 * 3600.0)
@@ -72,7 +72,7 @@ def _nutation_4term(jd_tt):
 
 
 @njit(cache=True)
-def _gcrf_to_teme(jd_tt):
+def _gcrf_to_teme(jd_tt: float) -> np.ndarray:
     precession = _precession_gcrf_to_mod(jd_tt)
     dpsi, deps, eps = _nutation_4term(jd_tt)
     nutation = _r1(-(eps + deps)) @ _r3(-dpsi) @ _r1(eps)
@@ -83,7 +83,7 @@ def _gcrf_to_teme(jd_tt):
 
 
 @njit(cache=True)
-def _gmst82(jd_ut1):
+def _gmst82(jd_ut1: float) -> float:
     t = (jd_ut1 - 2451545.0) / 36525.0
     seconds = (
         67310.54841
@@ -97,19 +97,21 @@ def _gmst82(jd_ut1):
 
 
 @njit(cache=True)
-def _teme_to_ecef(jd_ut1, xp, yp):
+def _teme_to_ecef(jd_ut1: float, xp: float, yp: float) -> np.ndarray:
     # GMST82 is the conventional TEME-to-PEF rotation; polar motion then maps
     # PEF to the terrestrial frame.
     return _r2(-xp) @ _r1(-yp) @ _r3(-_gmst82(jd_ut1))
 
 
 @njit(cache=True)
-def _gcrf_to_ecef(jd_ut1, jd_tt, xp, yp):
+def _gcrf_to_ecef(jd_ut1: float, jd_tt: float, xp: float, yp: float) -> np.ndarray:
     return _teme_to_ecef(jd_ut1, xp, yp) @ _gcrf_to_teme(jd_tt)
 
 
 @njit(cache=True)
-def gcrf_to_lvlh_matrix(position_gcrf, velocity_gcrf):
+def gcrf_to_lvlh_matrix(
+    position_gcrf: np.ndarray, velocity_gcrf: np.ndarray
+) -> np.ndarray:
     """Return GCRF-to-LVLH rotation; axes are radial, along-track, normal."""
     r = np.asarray(position_gcrf, dtype=np.float64)
     v = np.asarray(velocity_gcrf, dtype=np.float64)
@@ -128,15 +130,15 @@ def gcrf_to_lvlh_matrix(position_gcrf, velocity_gcrf):
 
 
 def _gcrf_to_frame_matrix(
-    frame,
-    jd_ut1=None,
-    jd_tt=None,
-    xp=0.0,
-    yp=0.0,
-    position_gcrf=None,
-    velocity_gcrf=None,
-    q_body_from_gcrf=None,
-):
+    frame: str,
+    jd_ut1: float | None = None,
+    jd_tt: float | None = None,
+    xp: float = 0.0,
+    yp: float = 0.0,
+    position_gcrf: np.ndarray | None = None,
+    velocity_gcrf: np.ndarray | None = None,
+    q_body_from_gcrf: np.ndarray | None = None,
+) -> np.ndarray:
     if frame == "GCRF":
         return np.eye(3)
     if frame in ("ECEF", "TEME") and jd_ut1 is None:
@@ -165,17 +167,17 @@ def _gcrf_to_frame_matrix(
 
 
 def frame_rotation(
-    source,
-    target,
+    source: str,
+    target: str,
     *,
-    jd_ut1=None,
-    jd_tt=None,
-    xp=0.0,
-    yp=0.0,
-    position_gcrf=None,
-    velocity_gcrf=None,
-    q_body_from_gcrf=None,
-):
+    jd_ut1: float | None = None,
+    jd_tt: float | None = None,
+    xp: float = 0.0,
+    yp: float = 0.0,
+    position_gcrf: np.ndarray | None = None,
+    velocity_gcrf: np.ndarray | None = None,
+    q_body_from_gcrf: np.ndarray | None = None,
+) -> np.ndarray:
     """Return a 3x3 source-to-target rotation between supported frames.
 
     ``jd_ut1`` and ``jd_tt`` are required when either frame is ECEF or TEME.
@@ -213,7 +215,9 @@ def frame_rotation(
     return r_target_from_gcrf @ r_source_from_gcrf.T
 
 
-def convert_vector(vector, source, target, **frame_context):
+def convert_vector(
+    vector: np.ndarray, source: str, target: str, **frame_context: object
+) -> np.ndarray:
     """Rotate a finite 3-vector between frames."""
     value = np.asarray(vector, dtype=np.float64)
     if value.shape != (3,) or not np.all(np.isfinite(value)):
@@ -222,33 +226,41 @@ def convert_vector(vector, source, target, **frame_context):
 
 
 @njit(cache=True)
-def gcrf_to_ecef_matrix(jd_ut1, jd_tt, xp=0.0, yp=0.0):
+def gcrf_to_ecef_matrix(
+    jd_ut1: float, jd_tt: float, xp: float = 0.0, yp: float = 0.0
+) -> np.ndarray:
     return _gcrf_to_ecef(float(jd_ut1), float(jd_tt), float(xp), float(yp))
 
 
 @njit(cache=True)
-def ecef_to_gcrf_matrix(jd_ut1, jd_tt, xp=0.0, yp=0.0):
+def ecef_to_gcrf_matrix(
+    jd_ut1: float, jd_tt: float, xp: float = 0.0, yp: float = 0.0
+) -> np.ndarray:
     return gcrf_to_ecef_matrix(jd_ut1, jd_tt, xp, yp).T
 
 
-def gcrf_to_teme_matrix(jd_tt):
+def gcrf_to_teme_matrix(jd_tt: float) -> np.ndarray:
     return _gcrf_to_teme(float(jd_tt))
 
 
-def teme_to_gcrf_matrix(jd_tt):
+def teme_to_gcrf_matrix(jd_tt: float) -> np.ndarray:
     return gcrf_to_teme_matrix(jd_tt).T
 
 
-def teme_to_ecef_matrix(jd_ut1, xp=0.0, yp=0.0):
+def teme_to_ecef_matrix(
+    jd_ut1: float, xp: float = 0.0, yp: float = 0.0
+) -> np.ndarray:
     return _teme_to_ecef(float(jd_ut1), float(xp), float(yp))
 
 
-def ecef_to_teme_matrix(jd_ut1, xp=0.0, yp=0.0):
+def ecef_to_teme_matrix(
+    jd_ut1: float, xp: float = 0.0, yp: float = 0.0
+) -> np.ndarray:
     return teme_to_ecef_matrix(jd_ut1, xp, yp).T
 
 
 @njit(cache=True)
-def ecef_to_geodetic(position_ecef_m):
+def ecef_to_geodetic(position_ecef_m: np.ndarray) -> tuple[float, float, float]:
     """Convert ECEF metres to WGS84 geodetic latitude/longitude [deg], altitude [km]."""
     x, y, z = position_ecef_m[0], position_ecef_m[1], position_ecef_m[2]
     a = 6378137.0
@@ -271,7 +283,13 @@ def ecef_to_geodetic(position_ecef_m):
 
 
 @njit(cache=True)
-def gcrf_position_to_geodetic(position_gcrf_m, jd_ut1, jd_tt, xp=0.0, yp=0.0):
+def gcrf_position_to_geodetic(
+    position_gcrf_m: np.ndarray,
+    jd_ut1: float,
+    jd_tt: float,
+    xp: float = 0.0,
+    yp: float = 0.0,
+) -> tuple[float, float, float]:
     """Convert GCRF position [m] to WGS84 geodetic lat/lon [deg], altitude [km]."""
     position_ecef = gcrf_to_ecef_matrix(jd_ut1, jd_tt, xp, yp) @ position_gcrf_m
     return ecef_to_geodetic(position_ecef)

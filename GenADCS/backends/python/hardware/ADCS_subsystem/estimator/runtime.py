@@ -8,7 +8,9 @@ from .attitude_estimator.attitude_mekf import step as mekf_step
 from .attitude_estimator.attitude_mekf import step_with_diagnostics
 
 
-def prepare_estimator(estimator):
+def prepare_estimator(
+    estimator: AttitudeEstimator | None,
+) -> tuple[int, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     if estimator is None:
         return (
             0,
@@ -24,19 +26,19 @@ def prepare_estimator(estimator):
 
 @njit(cache=True)
 def update_estimator(
-    kind,
-    q,
-    w,
-    covariance,
-    acceleration_psd,
-    dt,
-    readings,
-    sensor_config,
-    flags=0,
-    truth_q=None,
-    truth_w=None,
-    diagnostics=None,
-):
+    kind: int,
+    q: np.ndarray,
+    w: np.ndarray,
+    covariance: np.ndarray,
+    acceleration_psd: np.ndarray,
+    dt: float,
+    readings: np.ndarray,
+    sensor_config: tuple,
+    flags: int = 0,
+    truth_q: np.ndarray | None = None,
+    truth_w: np.ndarray | None = None,
+    diagnostics: np.ndarray | None = None,
+) -> None:
     if kind == 1:
         if flags & 1020:
             q_new, w_new, p_new = step_with_diagnostics(

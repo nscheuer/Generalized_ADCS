@@ -1,17 +1,22 @@
 import numpy as np
+from numpy.typing import NDArray
 from numba import njit
 
 
 @njit(cache=True)
-def atmospheric_density(position_inertial_m, epoch_jd):
+def atmospheric_density(
+    position_inertial_m: NDArray[np.float64], epoch_jd: float
+) -> float:
     """Density [kg/m³] for an ECI position [m] at UTC Julian date."""
     raise NotImplementedError
 
 
 @njit(cache=True)
 def co_rotating_atmosphere_velocity(
-    position_inertial_m, epoch_jd, angular_velocity_inertial_rad_s=None
-):
+    position_inertial_m: NDArray[np.float64],
+    epoch_jd: float,
+    angular_velocity_inertial_rad_s: NDArray[np.float64] | None = None,
+) -> NDArray[np.float64]:
     """Rigidly co-rotating atmospheric velocity in ECI coordinates [m/s].
 
     The optional angular-velocity vector allows callers to supply their own

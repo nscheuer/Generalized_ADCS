@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 
+import numpy as np
+
 from GenADCS.backends.python.bias import Bias
 from GenADCS.backends.python.noise import Noise
 
@@ -17,12 +19,17 @@ class ReactionWheel:
     effects: list[Noise | Bias] = field(default_factory=list)
 
     @property
-    def noises(self):
+    def noises(self) -> list[Noise]:
         return [effect for effect in self.effects if isinstance(effect, Noise)]
 
     @property
-    def biases(self):
+    def biases(self) -> list[Bias]:
         return [effect for effect in self.effects if isinstance(effect, Bias)]
 
-    def apply_errors(self, value, dt, rng=None):
+    def apply_errors(
+        self,
+        value: np.ndarray,
+        dt: float,
+        rng: object | None = None,
+    ) -> np.ndarray:
         return apply_effects(value, self.effects, dt, rng)

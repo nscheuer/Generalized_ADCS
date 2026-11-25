@@ -3,7 +3,9 @@
 import numpy as np
 from numba import njit
 
+from GenADCS.backends.python.environment import Environment
 from GenADCS.backends.python.environment.ephemeris import BODY_SUN
+from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry
 from GenADCS.backends.python.helpers.math.frames.frames import (
     body_to_inertial,
     inertial_to_body,
@@ -19,14 +21,14 @@ SUN_RADIUS_M = 696_340_000.0
 
 @njit(cache=True)
 def _panel_srp_force_b(
-    position_i,
-    sun_position_i,
-    q_b_from_i,
-    normals_b,
-    areas,
-    optical_coefficients,
-    illumination,
-):
+    position_i: np.ndarray,
+    sun_position_i: np.ndarray,
+    q_b_from_i: np.ndarray,
+    normals_b: np.ndarray,
+    areas: np.ndarray,
+    optical_coefficients: np.ndarray,
+    illumination: float,
+) -> np.ndarray:
     sun_direction_i = sun_position_i - position_i
     distance = np.sqrt(np.dot(sun_direction_i, sun_direction_i))
     if distance == 0.0:
@@ -52,14 +54,14 @@ def _panel_srp_force_b(
 
 @njit(cache=True)
 def projected_area_srp_force(
-    position_i,
-    sun_position_i,
-    q_b_from_i,
-    normals_b,
-    areas,
-    optical_coefficients,
-    illumination=1.0,
-):
+    position_i: np.ndarray,
+    sun_position_i: np.ndarray,
+    q_b_from_i: np.ndarray,
+    normals_b: np.ndarray,
+    areas: np.ndarray,
+    optical_coefficients: np.ndarray,
+    illumination: float = 1.0,
+) -> np.ndarray:
     """Return solar radiation pressure force in inertial coordinates [N]."""
     force_b = _panel_srp_force_b(
         position_i,
@@ -75,15 +77,15 @@ def projected_area_srp_force(
 
 @njit(cache=True)
 def projected_area_srp_torque(
-    position_i,
-    sun_position_i,
-    q_b_from_i,
-    normals_b,
-    arms_b,
-    areas,
-    optical_coefficients,
-    illumination=1.0,
-):
+    position_i: np.ndarray,
+    sun_position_i: np.ndarray,
+    q_b_from_i: np.ndarray,
+    normals_b: np.ndarray,
+    arms_b: np.ndarray,
+    areas: np.ndarray,
+    optical_coefficients: np.ndarray,
+    illumination: float = 1.0,
+) -> np.ndarray:
     """Return solar radiation pressure torque about the center of mass in body coordinates [N m]."""
     sun_direction_i = sun_position_i - position_i
     distance = np.sqrt(np.dot(sun_direction_i, sun_direction_i))
@@ -110,12 +112,14 @@ def projected_area_srp_torque(
 
 
 class _ProjectedAreaSRPBase:
-    def __init__(self, geometry):
+    def __init__(self, geometry: SatelliteGeometry) -> None:
         self.normals_b, self.arms_b, self.areas, coefficients = prepare_panels(geometry)
         self.optical_coefficients = np.ascontiguousarray(coefficients[:, 1:4])
 
     @staticmethod
-    def _illumination(position_i, epoch_jd, environment):
+    def _illumination(
+        position_i: np.ndarray, epoch_jd: float, environment: Environment
+    ) -> tuple[np.ndarray, np.ndarray, float]:
         if environment.ephemeris is None:
             raise ValueError("SRP requires environment.ephemeris")
         position_i = np.asarray(position_i, dtype=np.float64)
@@ -134,7 +138,13 @@ class _ProjectedAreaSRPBase:
 
 
 class ProjectedAreaSRPForceModel(_ProjectedAreaSRPBase):
-    def evaluate(self, position_i, q_b_from_i, epoch_jd, environment):
+    def evaluate(
+        self,
+        position_i: np.ndarray,
+        q_b_from_i: np.ndarray,
+        epoch_jd: float,
+        environment: Environment,
+    ) -> np.ndarray:
         position_i, sun_position_i, illumination = self._illumination(
             position_i, epoch_jd, environment
         )
@@ -150,7 +160,13 @@ class ProjectedAreaSRPForceModel(_ProjectedAreaSRPBase):
 
 
 class ProjectedAreaSRPTorqueModel(_ProjectedAreaSRPBase):
-    def evaluate(self, position_i, q_b_from_i, epoch_jd, environment):
+    def evaluate(
+        self,
+        position_i: np.ndarray,
+        q_b_from_i: np.ndarray,
+        epoch_jd: float,
+        environment: Environment,
+    ) -> np.ndarray:
         position_i, sun_position_i, illumination = self._illumination(
             position_i, epoch_jd, environment
         )

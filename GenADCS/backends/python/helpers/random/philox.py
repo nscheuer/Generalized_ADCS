@@ -6,13 +6,16 @@ sampling order and of adaptive integrator trial steps.
 """
 
 import math
+from typing import Any
 
 import numpy as np
 from numba import njit
 
 
 @njit(cache=True, inline="always")
-def _philox4x32(seed, tick, sensor, block):
+def _philox4x32(
+    seed: int | np.integer, tick: int, sensor: int, block: int
+) -> tuple[int, int, int, int]:
     mask = np.uint64(0xFFFFFFFF)
     c0 = np.uint64(tick) & mask
     c1 = (np.uint64(tick) >> np.uint64(32)) & mask
@@ -35,7 +38,9 @@ def _philox4x32(seed, tick, sensor, block):
 
 
 @njit(cache=True)
-def standard_normals(seed, tick, sensor, count):
+def standard_normals(
+    seed: int | np.integer, tick: int, sensor: int, count: int
+) -> np.ndarray:
     """Generate normals from Philox words using a fixed Box-Muller mapping."""
     out = np.empty(count, dtype=np.float64)
     for block in range((count + 3) // 4):
@@ -54,7 +59,7 @@ def standard_normals(seed, tick, sensor, count):
     return out
 
 
-def validate_seed(seed):
+def validate_seed(seed: int | np.integer) -> np.uint64:
     if (
         isinstance(seed, (bool, np.bool_))
         or not isinstance(seed, (int, np.integer))
@@ -64,7 +69,7 @@ def validate_seed(seed):
     return np.uint64(seed)
 
 
-def next_draw(owner, count):
+def next_draw(owner: Any, count: int) -> np.ndarray:
     """Advance the local stream for a standalone noise or sensor object."""
     tick = getattr(owner, "_random_tick", 0)
     draw = standard_normals(

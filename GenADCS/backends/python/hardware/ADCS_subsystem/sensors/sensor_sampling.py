@@ -2,6 +2,7 @@
 
 import numpy as np
 from numba import njit
+from GenADCS.backends.python.environment import Environment
 
 from GenADCS.backends.python.dynamics.srp_model.projected_area import SUN_RADIUS_M
 from GenADCS.backends.python.environment.ephemeris import (
@@ -60,7 +61,9 @@ SENSOR_CLASSES = (
 WIDTHS = (3, 3, 4, 1, 2, 2, 6, 3)
 
 
-def prepare_sensors(sensors, environment):
+def prepare_sensors(
+    sensors: list, environment: Environment
+) -> tuple[np.ndarray, ...]:
     """Convert heterogeneous Python sensor objects to fixed numeric arrays once."""
     n = len(sensors)
     code = np.empty(n, np.int64)
@@ -134,7 +137,16 @@ def prepare_sensors(sensors, environment):
 
 
 @njit(cache=True)
-def sample_sensors(y, jd, p, config, clean, reading, seed=DEFAULT_SEED, tick=0):
+def sample_sensors(
+    y: np.ndarray,
+    jd: float,
+    p: object,
+    config: tuple,
+    clean: np.ndarray,
+    reading: np.ndarray,
+    seed: int = DEFAULT_SEED,
+    tick: int = 0,
+) -> None:
     """Write every sensor's clean and noisy values into preallocated rows."""
     (
         code,

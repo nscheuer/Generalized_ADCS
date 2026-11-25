@@ -1,12 +1,8 @@
 """Bounded random-walk bias model."""
 
-from typing import TYPE_CHECKING
-
 import numpy as np
+from numpy.typing import ArrayLike
 from numba import njit
-
-if TYPE_CHECKING:
-    from ADCS.covariance import Covariance
 
 from GenADCS.backends.python.helpers.random.philox import (
     standard_normals,
@@ -17,22 +13,22 @@ DEFAULT_SEED = np.uint64(0)
 
 
 @njit(cache=True)
-def add_bias(value, bias):
+def add_bias(value: np.ndarray, bias: np.ndarray) -> np.ndarray:
     """Add a prepared bias vector within a compiled measurement kernel."""
     return value + bias
 
 
 @njit(cache=True)
 def advance_random_walk_bias(
-    current,
-    standard_deviation,
-    lower,
-    upper,
-    dt_seconds,
-    seed=DEFAULT_SEED,
-    tick=0,
-    stream=0x80000000,
-):
+    current: np.ndarray,
+    standard_deviation: np.ndarray,
+    lower: np.ndarray,
+    upper: np.ndarray,
+    dt_seconds: float,
+    seed: int | np.integer = DEFAULT_SEED,
+    tick: int = 0,
+    stream: int = 0x80000000,
+) -> np.ndarray:
     """Advance a bounded vector random walk by elapsed seconds."""
     if dt_seconds < 0.0:
         raise ValueError("dt_seconds must be nonnegative")
@@ -45,7 +41,12 @@ def advance_random_walk_bias(
 class Bias:
     """Bias with a configurable initial value, random-walk rate, and bounds."""
 
-    def __init__(self, bias=0.0, std_bias=0.0, bounds=(-np.inf, np.inf)):
+    def __init__(
+        self,
+        bias: ArrayLike = 0.0,
+        std_bias: ArrayLike = 0.0,
+        bounds: tuple[ArrayLike, ArrayLike] = (-np.inf, np.inf),
+    ) -> None:
         bias = np.atleast_1d(np.asarray(bias, dtype=float))
         std_bias = np.atleast_1d(np.asarray(std_bias, dtype=float))
         lo, hi = (np.asarray(bound, dtype=float) for bound in bounds)
@@ -66,7 +67,7 @@ class Bias:
         self.bounds = (lo.copy(), hi.copy())
         self._random_tick = 0
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return not (np.all(self.bias == 0.0) and np.all(self.std_bias == 0.0))
 
     def broadcast_to(self, length: int, *, owner: str = "sensor") -> "Bias":
@@ -77,7 +78,7 @@ class Bias:
                 f"{owner} bias model has {self.std_bias.size} entries for a {length}-output sensor"
             )
 
-        def repeat(value):
+        def repeat(value: ArrayLike) -> np.ndarray:
             array = np.asarray(value, dtype=float).reshape(-1)
             return np.full(length, array[0]) if array.size == 1 else array.copy()
 
@@ -87,34 +88,28 @@ class Bias:
             (repeat(self.bounds[0]), repeat(self.bounds[1])),
         )
 
-    def copy(self):
+    def copy(self) -> "Bias":
         result = Bias(self.bias, self.std_bias, self.bounds)
         result.estimated_std_bias = self.estimated_std_bias.copy()
         result._random_tick = self._random_tick
         return result
 
-    def process_covariance(
-        self, dt: float = 1.0, *, form: str = "full"
-    ) -> "Covariance":
-        from ADCS.covariance import Covariance
-
+    def process_covariance(self, dt: float = 1.0) -> np.ndarray:
         dt = float(dt)
         if not np.isfinite(dt) or dt < 0.0:
             raise ValueError("dt must be finite and non-negative")
-        return Covariance(
-            self.process_psd().as_matrix() * dt, form=form, coordinates="bias"
-        )
+        return self.process_psd() * dt
 
-    def process_psd(self, *, form: str = "full") -> "Covariance":
-        from ADCS.covariance import Covariance
+    def process_psd(self) -> np.ndarray:
+        return np.diagflat(self.std_bias * self.std_bias)
 
-        return Covariance(
-            np.diagflat(self.std_bias * self.std_bias),
-            form=form,
-            coordinates="bias_rate",
-        )
-
-    def _update_bias(self, j2000: float, rng=None, seed=0, stream=0x80000000) -> None:
+    def _update_bias(
+        self,
+        j2000: float,
+        rng: np.random.Generator | None = None,
+        seed: int | np.integer = 0,
+        stream: int = 0x80000000,
+    ) -> None:
         j2000 = float(j2000)
         if not np.isfinite(self.last_bias_time):
             self.last_bias_time = j2000
@@ -134,10 +129,15 @@ class Bias:
         self.bias = np.clip(self.bias, self.bounds[0], self.bounds[1])
         self.last_bias_time = j2000
 
-    def get_bias(self, j2000: float):
+    def get_bias(self, j2000: float) -> float | np.ndarray:
         return self.bias.item() if self.bias.size == 1 else self.bias
 
-    def apply(self, value, dt, rng=None):
+    def apply(
+        self,
+        value: ArrayLike,
+        dt: float,
+        rng: np.random.Generator | None = None,
+    ) -> np.ndarray:
         value = np.asarray(value, dtype=np.float64)
         if value.shape != self.bias.shape:
             raise ValueError("value and bias must have matching shapes")

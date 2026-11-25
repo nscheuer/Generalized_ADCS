@@ -29,7 +29,15 @@ class AttitudeEstimator:
         )
     )
 
-    def __init__(self, quaternion, rate, covariance, acceleration_psd, *, record=()):
+    def __init__(
+        self,
+        quaternion: np.ndarray,
+        rate: np.ndarray,
+        covariance: np.ndarray,
+        acceleration_psd: float | np.ndarray,
+        *,
+        record: tuple[str, ...] = (),
+    ) -> None:
         q = np.asarray(quaternion, dtype=np.float64)
         w = np.asarray(rate, dtype=np.float64)
         p = np.asarray(covariance, dtype=np.float64)
@@ -57,7 +65,7 @@ class AttitudeEstimator:
         if unknown:
             raise ValueError(f"unknown estimator diagnostic fields: {sorted(unknown)}")
 
-    def prepare(self):
+    def prepare(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Return independent numeric state for one simulation run."""
         return (
             self.quaternion.copy(),

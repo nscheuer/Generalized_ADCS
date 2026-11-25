@@ -19,8 +19,15 @@ _KERNEL_DIR = (
 
 @njit(cache=True, nogil=True)
 def chaos8_field_inertial_tesla(
-    position_inertial_m, epoch_jd, times, g, h, static_g, static_h, include_static
-):
+    position_inertial_m: np.ndarray,
+    epoch_jd: float,
+    times: np.ndarray,
+    g: np.ndarray,
+    h: np.ndarray,
+    static_g: np.ndarray,
+    static_h: np.ndarray,
+    include_static: bool,
+) -> np.ndarray:
     """Compiled scalar GCRF field [T] with six-point core interpolation."""
     year = 2000.0 + (epoch_jd - 2451544.5) / 365.25
     if year < times[0] or year > times[-1]:
@@ -53,7 +60,7 @@ def chaos8_field_inertial_tesla(
 class CHAOS8(MagneticFieldModel):
     """CHAOS-8.7 internal field; optional degree 21–185 static field."""
 
-    def __init__(self, include_static=True):
+    def __init__(self, include_static: bool = True) -> None:
         self._times, self._g, self._h = read_shc(
             str(_KERNEL_DIR / "CHAOS-8.7_core.shc"), 1, 20
         )
@@ -65,7 +72,9 @@ class CHAOS8(MagneticFieldModel):
             self._static_g = np.zeros((1, 1))
             self._static_h = np.zeros((1, 1))
 
-    def field_inertial_tesla(self, position_inertial_m, epoch_jd):
+    def field_inertial_tesla(
+        self, position_inertial_m: np.ndarray, epoch_jd: float
+    ) -> np.ndarray:
         return chaos8_field_inertial_tesla(
             np.asarray(position_inertial_m, dtype=np.float64),
             float(epoch_jd),

@@ -3,8 +3,10 @@
 import struct
 from functools import lru_cache
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from ..ephemeris_model import (
     BODY_EARTH,
@@ -18,7 +20,9 @@ from ..ephemeris_model import (
 
 
 @lru_cache(maxsize=4)
-def _load_spk(path_string):
+def _load_spk(
+    path_string: str,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Parse DAF/SPK descriptors and retain the Chebyshev segment data."""
     path = Path(path_string)
     raw = path.read_bytes()
@@ -129,7 +133,7 @@ class DE421(EphemerisModel):
 
     DATA_FILENAME = "de421.bsp"
 
-    def __init__(self, filepath=None):
+    def __init__(self, filepath: str | Path | None = None) -> None:
         path = (
             Path(filepath).expanduser().resolve()
             if filepath is not None
@@ -138,7 +142,7 @@ class DE421(EphemerisModel):
         super().__init__(*_load_spk(str(path)))
 
     @staticmethod
-    def _packaged_ephemeris_path():
+    def _packaged_ephemeris_path() -> Path:
         return (
             Path(__file__).resolve().parents[5]
             / "kernels/environment/ephemeris/de421"
@@ -146,11 +150,11 @@ class DE421(EphemerisModel):
         )
 
     @property
-    def available_bodies(self):
+    def available_bodies(self) -> tuple[str, ...]:
         return tuple(sorted(_BODY_INDICES))
 
     @staticmethod
-    def _planet_index(body):
+    def _planet_index(body: str | int) -> int:
         if isinstance(body, str):
             try:
                 return _BODY_INDICES[body.lower()]
@@ -164,7 +168,13 @@ class DE421(EphemerisModel):
         except KeyError as error:
             raise ValueError(f"unsupported DE421 body identifier {body_id}") from error
 
-    def _relative_eci(self, kernel, target, epoch_jd_tdb, observer):
+    def _relative_eci(
+        self,
+        kernel: Callable[[int, float, np.ndarray, np.ndarray, np.ndarray], np.ndarray],
+        target: str | int,
+        epoch_jd_tdb: ArrayLike,
+        observer: str | int,
+    ) -> np.ndarray:
         target_index = self._planet_index(target)
         observer_index = self._planet_index(observer)
         epochs = np.asarray(epoch_jd_tdb, dtype=np.float64)
@@ -182,15 +192,33 @@ class DE421(EphemerisModel):
             ) - kernel(observer_index, epoch, self._segments, self._times, self._data)
         return output
 
-    def position_eci(self, target, epoch_jd_tdb, *, observer="earth"):
+    def position_eci(
+        self,
+        target: str | int,
+        epoch_jd_tdb: ArrayLike,
+        *,
+        observer: str | int = "earth",
+    ) -> np.ndarray:
         """Return geometric target-minus-observer position [km] at TDB JD."""
         return self._relative_eci(planetary_position, target, epoch_jd_tdb, observer)
 
-    def velocity_eci(self, target, epoch_jd_tdb, *, observer="earth"):
+    def velocity_eci(
+        self,
+        target: str | int,
+        epoch_jd_tdb: ArrayLike,
+        *,
+        observer: str | int = "earth",
+    ) -> np.ndarray:
         """Return geometric target-minus-observer velocity [km/s] at TDB JD."""
         return self._relative_eci(planetary_velocity, target, epoch_jd_tdb, observer)
 
-    def state_eci(self, target, epoch_jd_tdb, *, observer="earth"):
+    def state_eci(
+        self,
+        target: str | int,
+        epoch_jd_tdb: float,
+        *,
+        observer: str | int = "earth",
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Return geometric position [km] and velocity [km/s] together."""
         target_index = self._planet_index(target)
         observer_index = self._planet_index(observer)
@@ -205,7 +233,7 @@ class DE421(EphemerisModel):
         )
         return target_pos - observer_pos, target_vel - observer_vel
 
-    def sun_position_eci(self, epoch_jd_tdb):
+    def sun_position_eci(self, epoch_jd_tdb: float) -> np.ndarray:
         return self.position(BODY_SUN, epoch_jd_tdb)
 
 

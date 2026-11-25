@@ -3,13 +3,13 @@ from numba import njit
 
 
 @njit(cache=True)
-def rodrigues_to_quaternion(parameters):
+def rodrigues_to_quaternion(parameters: np.ndarray) -> np.ndarray:
     denominator = np.sqrt(1.0 + np.dot(parameters, parameters))
     return np.concatenate((np.array((1.0 / denominator,)), parameters / denominator))
 
 
 @njit(cache=True)
-def quaternion_to_rodrigues(quaternion):
+def quaternion_to_rodrigues(quaternion: np.ndarray) -> np.ndarray:
     q = quaternion / np.sqrt(np.dot(quaternion, quaternion))
     if q[0] < 0.0:
         q = -q

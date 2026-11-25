@@ -11,7 +11,7 @@ from typing import NamedTuple
 import numpy as np
 from numba import float64, int64, njit
 from numba.experimental import jitclass
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 
 from ._nrlmsise00_data import PAVGM, PD, PDL, PDM, PMA, PS, PT, PTL, PTM
 
@@ -41,7 +41,7 @@ class NRLMSISEOutput(NamedTuple):
 class _Flags:
     """The 24 model switches and their derived sw/swc forms (tselec)."""
 
-    def __init__(self, switches: Sequence[float]):
+    def __init__(self, switches: Sequence[float]) -> None:
         self.switches = np.asarray(switches)
         self.sw = np.zeros(24)
         self.swc = np.zeros(24)
@@ -83,7 +83,7 @@ class _Input:
         f107: float,
         ap: float,
         ap_a: Sequence[float] | None = None,
-    ):
+    ) -> None:
         self.doy = doy
         self.sec = sec
         self.alt = alt
@@ -279,8 +279,8 @@ class _Model:
         zlb: float,
         s2: float,
         zn1: Sequence[float],
-        tn1,
-        tgn1,
+        tn1: NDArray[np.float64],
+        tgn1: NDArray[np.float64],
     ) -> tuple[float, float]:
         """Temperature/density profiles for the MSIS thermosphere.
 
@@ -406,7 +406,7 @@ class _Model:
             self.s3tloc = np.sin(3.0 * hr * tloc)
             self.c3tloc = np.cos(3.0 * hr * tloc)
 
-    def _globe7(self, p, inp: _Input, flags: _Flags) -> float:
+    def _globe7(self, p: NDArray[np.float64], inp: _Input, flags: _Flags) -> float:
         """Upper-thermosphere G(L); mutates the LPOLY shared state."""
         t = [0.0] * 15
         sr = 7.2722e-5
@@ -647,7 +647,7 @@ class _Model:
             tinf = tinf + abs(flags.sw[i + 1]) * t[i]
         return tinf
 
-    def _glob7s(self, p, inp: _Input, flags: _Flags) -> float:
+    def _glob7s(self, p: NDArray[np.float64], inp: _Input, flags: _Flags) -> float:
         """Lower-atmosphere version of the G(L) function."""
         pset = 2.0
         t = [0.0] * 14
@@ -1513,7 +1513,9 @@ def _dnet(dde: float, dm: float, zhm: float, xmm: float, xm: float) -> float:
 
 
 @njit(cache=True)
-def _splini(xa, ya, y2a, x: float) -> float:
+def _splini(
+    xa: ArrayLike, ya: ArrayLike, y2a: ArrayLike, x: float
+) -> float:
     """Integrate the cubic spline from xa[0] to x."""
     n = len(xa)
     yi = 0.0
@@ -1545,7 +1547,9 @@ def _splini(xa, ya, y2a, x: float) -> float:
 
 
 @njit(cache=True)
-def _splint(xa, ya, y2a, x: float) -> float:
+def _splint(
+    xa: ArrayLike, ya: ArrayLike, y2a: ArrayLike, x: float
+) -> float:
     """Cubic spline interpolation (Numerical Recipes form)."""
     n = len(xa)
     klo = 0
@@ -1569,7 +1573,9 @@ def _splint(xa, ya, y2a, x: float) -> float:
 
 
 @njit(cache=True)
-def _spline(x, y, yp1: float, ypn: float):
+def _spline(
+    x: ArrayLike, y: ArrayLike, yp1: float, ypn: float
+) -> list[float]:
     """Second derivatives of the cubic spline (Numerical Recipes)."""
     n = len(x)
     y2 = [0.0] * n
@@ -1608,7 +1614,7 @@ def _spline(x, y, yp1: float, ypn: float):
 
 
 @njit(cache=True)
-def _g0(a: float, p) -> float:
+def _g0(a: float, p: NDArray[np.float64]) -> float:
     """3-hour magnetic activity function, Eq. A24d."""
     return (
         a
@@ -1630,7 +1636,9 @@ def _sumex(ex: float) -> float:
 
 
 @njit(cache=True)
-def _sg0(ex: float, p, ap) -> float:
+def _sg0(
+    ex: float, p: NDArray[np.float64], ap: NDArray[np.float64]
+) -> float:
     """Eq. A24a."""
     return (
         _g0(ap[1], p)
@@ -1647,18 +1655,18 @@ def _sg0(ex: float, p, ap) -> float:
 
 @njit(cache=True)
 def msis_gtd7(
-    doy,
-    sec,
-    alt_km,
-    lat_deg,
-    lon_deg,
-    lst,
-    f107a,
-    f107,
-    ap,
-    ap_array,
-    effective_density=False,
-):
+    doy: int,
+    sec: float,
+    alt_km: float,
+    lat_deg: float,
+    lon_deg: float,
+    lst: float,
+    f107a: float,
+    f107: float,
+    ap: float,
+    ap_array: NDArray[np.float64],
+    effective_density: bool = False,
+) -> NRLMSISEOutput:
     switches = np.ones(24)
     if ap_array[0] >= 0.0:
         switches[9] = -1.0

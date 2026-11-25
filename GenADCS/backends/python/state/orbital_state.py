@@ -19,7 +19,7 @@ class OrbitalState:
     _keplerian_elements: tuple | None = None
     _body_positions: dict = field(default_factory=dict, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.julian_date = float(self.julian_date)
         if not np.isfinite(self.julian_date):
             raise ValueError("julian_date must be finite")
@@ -29,28 +29,34 @@ class OrbitalState:
             self._velocity = self._vector(self._velocity, "velocity")
 
     @staticmethod
-    def _vector(value, name):
+    def _vector(value: object, name: str) -> np.ndarray:
         vector = np.asarray(value, dtype=np.float64)
         if vector.shape != (3,) or not np.all(np.isfinite(vector)):
             raise ValueError(f"{name} must be a finite 3-vector")
         return np.ascontiguousarray(vector)
 
     @classmethod
-    def from_cartesian(cls, position, velocity, julian_date, ephemeris=None):
+    def from_cartesian(
+        cls,
+        position: object,
+        velocity: object,
+        julian_date: float,
+        ephemeris: EphemerisModel | None = None,
+    ) -> "OrbitalState":
         return cls(position, velocity, julian_date, ephemeris)
 
     @classmethod
     def from_keplerian(
         cls,
-        semi_major_axis,
-        eccentricity,
-        inclination,
-        ascending_node,
-        argument_of_periapsis,
-        true_anomaly,
-        julian_date,
-        ephemeris=None,
-    ):
+        semi_major_axis: float,
+        eccentricity: float,
+        inclination: float,
+        ascending_node: float,
+        argument_of_periapsis: float,
+        true_anomaly: float,
+        julian_date: float,
+        ephemeris: EphemerisModel | None = None,
+    ) -> "OrbitalState":
         elements = (
             semi_major_axis,
             eccentricity,
@@ -61,23 +67,23 @@ class OrbitalState:
         )
         return cls(None, None, julian_date, ephemeris, elements)
 
-    def _load_cartesian(self):
+    def _load_cartesian(self) -> None:
         if self._position is None or self._velocity is None:
             raise NotImplementedError(
                 "Keplerian to Cartesian conversion is not implemented"
             )
 
     @property
-    def position(self):
+    def position(self) -> np.ndarray:
         self._load_cartesian()
         return self._position
 
     @property
-    def velocity(self):
+    def velocity(self) -> np.ndarray:
         self._load_cartesian()
         return self._velocity
 
-    def body_position(self, body):
+    def body_position(self, body: str | int) -> np.ndarray:
         if body not in self._body_positions:
             if self.ephemeris is None:
                 raise ValueError("an ephemeris must be configured")
@@ -89,13 +95,13 @@ class OrbitalState:
         return self._body_positions[body]
 
     @property
-    def sun_position(self):
+    def sun_position(self) -> np.ndarray:
         return self.body_position("sun")
 
     @property
-    def earth_position(self):
+    def earth_position(self) -> np.ndarray:
         return self.body_position("earth")
 
     @property
-    def moon_position(self):
+    def moon_position(self) -> np.ndarray:
         return self.body_position("moon")

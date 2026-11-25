@@ -5,6 +5,7 @@ from typing import NamedTuple
 import numpy as np
 from numba import njit
 
+from GenADCS.backends.python.config.dynamics_config import DynamicsConfig
 from GenADCS.backends.python.dynamics.drag_model.projected_area import (
     projected_area_drag_force,
     projected_area_drag_torque,
@@ -42,6 +43,8 @@ from GenADCS.backends.python.environment.ephemeris.de421 import DE421
 from GenADCS.backends.python.environment.gravity.j_gravity_model import (
     gravity_acceleration_inertial_m_s2,
 )
+from GenADCS.backends.python.environment import Environment
+from GenADCS.backends.python.hardware.satellite import Satellite
 from GenADCS.backends.python.environment.magnetic_field_model.chaos8.chaos8 import (
     CHAOS8,
     chaos8_field_inertial_tesla,
@@ -94,7 +97,9 @@ class _Runtime(NamedTuple):
 
 
 @njit(cache=True, inline="always")
-def _environment_conditions(position, velocity, epoch_jd, p):
+def _environment_conditions(
+    position: np.ndarray, velocity: np.ndarray, epoch_jd: float, p: _Runtime
+) -> tuple[float, np.ndarray, np.ndarray, np.ndarray, float, np.ndarray]:
     """Evaluate only the environmental quantities requested by active models.
 
     Drag force and torque share density/flow; SRP force and torque share the
@@ -148,7 +153,13 @@ def _environment_conditions(position, velocity, epoch_jd, p):
 
 
 @njit(cache=True, inline="always")
-def _force_acceleration(position, q, epoch_jd, p, conditions):
+def _force_acceleration(
+    position: np.ndarray,
+    q: np.ndarray,
+    epoch_jd: float,
+    p: _Runtime,
+    conditions: tuple[float, np.ndarray, np.ndarray, np.ndarray, float, np.ndarray],
+) -> np.ndarray:
     """Sum all inertial forces, then divide by spacecraft mass."""
     density, relative_velocity, sun, moon, illumination, _ = conditions
     acceleration = gravity_acceleration_inertial_m_s2(
@@ -171,7 +182,12 @@ def _force_acceleration(position, q, epoch_jd, p, conditions):
 
 
 @njit(cache=True, inline="always")
-def _body_torque(position, q, p, conditions):
+def _body_torque(
+    position: np.ndarray,
+    q: np.ndarray,
+    p: _Runtime,
+    conditions: tuple[float, np.ndarray, np.ndarray, np.ndarray, float, np.ndarray],
+) -> np.ndarray:
     """Sum environmental and actuator torques in body coordinates."""
     density, relative_velocity, sun, _, illumination, field = conditions
     torque = np.zeros(3)
@@ -207,8 +223,17 @@ def _body_torque(position, q, p, conditions):
 
 @njit(cache=True, inline="always")
 def _internal_derivative(
-    dy, y, q, omega, position, velocity, epoch_jd, conditions, omega_dot, p
-):
+    dy: np.ndarray,
+    y: np.ndarray,
+    q: np.ndarray,
+    omega: np.ndarray,
+    position: np.ndarray,
+    velocity: np.ndarray,
+    epoch_jd: float,
+    conditions: tuple[float, np.ndarray, np.ndarray, np.ndarray, float, np.ndarray],
+    omega_dot: np.ndarray,
+    p: _Runtime,
+) -> None:
     """Sum internal providers with access to the full stage and environment.
 
     ADCS wheel convention: storage torque opposes body torque. Additional
@@ -228,7 +253,7 @@ def _internal_derivative(
 
 
 @njit(cache=True, inline="always")
-def _project_wheel_momentum(y, p):
+def _project_wheel_momentum(y: np.ndarray, p: _Runtime) -> None:
     """Keep wheel momentum states within their ADCS-defined limits."""
     for wheel in range(p.wheel_commands.size):
         limit = p.wheel_max_momentum[wheel]
@@ -239,7 +264,7 @@ def _project_wheel_momentum(y, p):
 
 
 @njit(cache=True)
-def _derivative(y, epoch_jd, p):
+def _derivative(y: np.ndarray, epoch_jd: float, p: _Runtime) -> np.ndarray:
     q = y[0:4].copy()
     q /= np.sqrt(np.dot(q, q))
     omega = y[4:7]
@@ -283,7 +308,9 @@ def _derivative(y, epoch_jd, p):
     return dy
 
 
-def _prepare(satellite, environment, dynamics):
+def _prepare(
+    satellite: Satellite, environment: Environment, dynamics: DynamicsConfig
+) -> _Runtime:
     from GenADCS.backends.python.dynamics import (
         LunisolarForceModel,
         ProjectedAreaDragForceModel,

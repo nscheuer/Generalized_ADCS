@@ -3,7 +3,7 @@ from numba import njit
 
 
 @njit(cache=True)
-def axis_angle_to_dcm(axis, angle):
+def axis_angle_to_dcm(axis: np.ndarray, angle: float) -> np.ndarray:
     axis_norm = np.sqrt(np.dot(axis, axis))
     if axis_norm == 0.0:
         raise ValueError("axis must be nonzero")
@@ -33,33 +33,33 @@ def axis_angle_to_dcm(axis, angle):
 
 
 @njit(cache=True)
-def rotate_vector(dcm_b_from_i, vector_i):
+def rotate_vector(dcm_b_from_i: np.ndarray, vector_i: np.ndarray) -> np.ndarray:
     return dcm_b_from_i @ vector_i
 
 
 @njit(cache=True)
-def inverse_dcm(dcm_b_from_i):
+def inverse_dcm(dcm_b_from_i: np.ndarray) -> np.ndarray:
     return dcm_b_from_i.T
 
 
 @njit(cache=True)
-def compose_dcm(left, right):
+def compose_dcm(left: np.ndarray, right: np.ndarray) -> np.ndarray:
     return left @ right
 
 
 @njit(cache=True)
-def relative_dcm(target, reference):
+def relative_dcm(target: np.ndarray, reference: np.ndarray) -> np.ndarray:
     return target @ reference.T
 
 
 @njit(cache=True)
-def dcm_orthogonality_error(matrix):
+def dcm_orthogonality_error(matrix: np.ndarray) -> float:
     residual = matrix.T @ matrix - np.eye(3)
     return np.sqrt(np.sum(residual * residual))
 
 
 @njit(cache=True)
-def normalize_dcm(matrix):
+def normalize_dcm(matrix: np.ndarray) -> np.ndarray:
     first = np.array((matrix[0, 0], matrix[1, 0], matrix[2, 0]))
     first_norm = np.sqrt(np.dot(first, first))
     if first_norm == 0.0:

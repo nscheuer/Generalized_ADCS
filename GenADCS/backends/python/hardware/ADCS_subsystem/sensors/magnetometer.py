@@ -16,7 +16,7 @@ from .sensor import Sensor
 
 
 @njit(cache=True)
-def _saturate(value, limit):
+def _saturate(value: np.ndarray, limit: float) -> np.ndarray:
     return np.minimum(np.maximum(value, -limit), limit)
 
 
@@ -24,8 +24,14 @@ class Magnetometer:
     """Body-to-sensor mounting with componentwise saturation and Gaussian noise."""
 
     def __init__(
-        self, position, orientation, misalignment, saturation_value, noise, bias
-    ):
+        self,
+        position: np.ndarray,
+        orientation: np.ndarray,
+        misalignment: np.ndarray,
+        saturation_value: float,
+        noise: np.ndarray,
+        bias: np.ndarray,
+    ) -> None:
         base = Sensor(
             position, orientation, misalignment, saturation_value, noise, bias
         )
@@ -38,7 +44,9 @@ class Magnetometer:
         self.bias = base.bias
         self.enabled = base.enabled
 
-    def noiseless_biasfree_measurement(self, field_inertial, attitude):
+    def noiseless_biasfree_measurement(
+        self, field_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
         return vector_measurement(
             field_inertial,
             attitude,
@@ -51,7 +59,9 @@ class Magnetometer:
             False,
         )
 
-    def noiseless_biased_measurement(self, field_inertial, attitude):
+    def noiseless_biased_measurement(
+        self, field_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
         return vector_measurement(
             field_inertial,
             attitude,
@@ -64,7 +74,9 @@ class Magnetometer:
             False,
         )
 
-    def noisy_biasfree_measurement(self, field_inertial, attitude):
+    def noisy_biasfree_measurement(
+        self, field_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
         return vector_measurement(
             field_inertial,
             attitude,
@@ -74,49 +86,71 @@ class Magnetometer:
             self.noise_cholesky,
             self.saturation_value,
             False,
-            True,
-            next_draw(self, 3),
-        )
-
-    def noisy_biased_measurement(self, field_inertial, attitude):
-        return vector_measurement(
-            field_inertial,
-            attitude,
-            self.orientation,
-            self.misalignment,
-            self.bias,
-            self.noise_cholesky,
-            self.saturation_value,
-            True,
             True,
             next_draw(self, 3),
         )
 
-    def jacobian_bias(self):
+    def noisy_biased_measurement(
+        self, field_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
+        return vector_measurement(
+            field_inertial,
+            attitude,
+            self.orientation,
+            self.misalignment,
+            self.bias,
+            self.noise_cholesky,
+            self.saturation_value,
+            True,
+            True,
+            next_draw(self, 3),
+        )
+
+    def jacobian_bias(self) -> np.ndarray:
         return np.eye(3)
 
-    def jacobian_relative_quaternion(self, field_inertial, attitude, delta_quaternion):
+    def jacobian_relative_quaternion(
+        self,
+        field_inertial: np.ndarray,
+        attitude: np.ndarray,
+        delta_quaternion: np.ndarray,
+    ) -> np.ndarray:
         field = rotate_inertial_to_sensor(
             field_inertial, attitude, self.orientation, self.misalignment
         )
         return attitude_vector_jacobian_quaternion(field, delta_quaternion)
 
-    def jacobian_relative_mrp(self, field_inertial, attitude, delta_mrp):
+    def jacobian_relative_mrp(
+        self,
+        field_inertial: np.ndarray,
+        attitude: np.ndarray,
+        delta_mrp: np.ndarray,
+    ) -> np.ndarray:
         field = rotate_inertial_to_sensor(
             field_inertial, attitude, self.orientation, self.misalignment
         )
         return attitude_vector_jacobian_mrp(field, delta_mrp)
 
-    def jacobian_relative_angle_vector(self, field_inertial, attitude, delta_angle):
+    def jacobian_relative_angle_vector(
+        self,
+        field_inertial: np.ndarray,
+        attitude: np.ndarray,
+        delta_angle: np.ndarray,
+    ) -> np.ndarray:
         field = rotate_inertial_to_sensor(
             field_inertial, attitude, self.orientation, self.misalignment
         )
         return attitude_vector_jacobian_angle(field, delta_angle)
 
-    def availability(self):
+    def availability(self) -> bool:
         return self.enabled
 
-    def fisher_information_matrix(self, field_inertial, attitude, field_covariance):
+    def fisher_information_matrix(
+        self,
+        field_inertial: np.ndarray,
+        attitude: np.ndarray,
+        field_covariance: np.ndarray,
+    ) -> np.ndarray:
         if not self.enabled:
             return np.zeros((3, 3))
         return magnetometer_information(

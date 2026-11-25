@@ -16,8 +16,14 @@ class FineSunSensor:
     """Two-axis angular Sun sensor; angles and FOV limits are in radians."""
 
     def __init__(
-        self, position, orientation, misalignment, noise, bias, fov_half_angles
-    ):
+        self,
+        position: np.ndarray,
+        orientation: np.ndarray,
+        misalignment: np.ndarray,
+        noise: np.ndarray,
+        bias: np.ndarray,
+        fov_half_angles: np.ndarray,
+    ) -> None:
         if (
             position.shape != (3,)
             or orientation.shape != (4,)
@@ -35,7 +41,9 @@ class FineSunSensor:
         self.fov_half_angles = fov_half_angles
         self.enabled = True
 
-    def noiseless_biasfree_measurement(self, sun_inertial, attitude):
+    def noiseless_biasfree_measurement(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
         return fine_direction_measurement(
             sun_inertial,
             attitude,
@@ -47,7 +55,9 @@ class FineSunSensor:
             False,
         )
 
-    def noiseless_biased_measurement(self, sun_inertial, attitude):
+    def noiseless_biased_measurement(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
         return fine_direction_measurement(
             sun_inertial,
             attitude,
@@ -59,7 +69,9 @@ class FineSunSensor:
             False,
         )
 
-    def noisy_biasfree_measurement(self, sun_inertial, attitude):
+    def noisy_biasfree_measurement(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
         return fine_direction_measurement(
             sun_inertial,
             attitude,
@@ -68,27 +80,31 @@ class FineSunSensor:
             self.bias,
             self.noise_cholesky,
             False,
-            True,
-            next_draw(self, 2),
-        )
-
-    def noisy_biased_measurement(self, sun_inertial, attitude):
-        return fine_direction_measurement(
-            sun_inertial,
-            attitude,
-            self.orientation,
-            self.misalignment,
-            self.bias,
-            self.noise_cholesky,
-            True,
             True,
             next_draw(self, 2),
         )
 
-    def jacobian_bias(self):
+    def noisy_biased_measurement(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
+        return fine_direction_measurement(
+            sun_inertial,
+            attitude,
+            self.orientation,
+            self.misalignment,
+            self.bias,
+            self.noise_cholesky,
+            True,
+            True,
+            next_draw(self, 2),
+        )
+
+    def jacobian_bias(self) -> np.ndarray:
         return np.eye(2)
 
-    def jacobian_relative_quaternion(self, sun_inertial, attitude, delta_quaternion):
+    def jacobian_relative_quaternion(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray, delta_quaternion: np.ndarray
+    ) -> np.ndarray:
         return fine_sun_attitude_jacobian(
             sun_inertial,
             attitude,
@@ -98,17 +114,23 @@ class FineSunSensor:
             0,
         )
 
-    def jacobian_relative_mrp(self, sun_inertial, attitude, delta_mrp):
+    def jacobian_relative_mrp(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray, delta_mrp: np.ndarray
+    ) -> np.ndarray:
         return fine_sun_attitude_jacobian(
             sun_inertial, attitude, self.orientation, self.misalignment, delta_mrp, 1
         )
 
-    def jacobian_relative_angle_vector(self, sun_inertial, attitude, delta_angle):
+    def jacobian_relative_angle_vector(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray, delta_angle: np.ndarray
+    ) -> np.ndarray:
         return fine_sun_attitude_jacobian(
             sun_inertial, attitude, self.orientation, self.misalignment, delta_angle, 2
         )
 
-    def availability(self, sun_inertial, attitude, sun_visible=True):
+    def availability(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray, sun_visible: bool = True
+    ) -> bool:
         return fine_direction_available(
             sun_inertial,
             attitude,
@@ -119,7 +141,9 @@ class FineSunSensor:
             sun_visible,
         )
 
-    def fisher_information_matrix(self, sun_inertial, attitude, sun_visible=True):
+    def fisher_information_matrix(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray, sun_visible: bool = True
+    ) -> np.ndarray:
         if not self.availability(sun_inertial, attitude, sun_visible):
             return np.zeros((3, 3))
         angles = fine_sun_angles(

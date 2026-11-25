@@ -1,6 +1,7 @@
 """Native internal geomagnetic field kernels. Input is GCRF metres and UTC JD."""
 
 from functools import lru_cache
+from os import PathLike
 
 import numpy as np
 from numba import njit
@@ -11,7 +12,9 @@ from ._spherical_harmonics import _eval_one, _schmidt_table
 
 
 @lru_cache(maxsize=4)
-def read_shc(path, nmin, nmax):
+def read_shc(
+    path: str | PathLike[str], nmin: int, nmax: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Read an SHC file and fold Schmidt factors into its coefficients."""
     with open(path, encoding="ascii") as source:
         lines = (
@@ -47,7 +50,13 @@ def read_shc(path, nmin, nmax):
 
 
 @njit(cache=True, nogil=True)
-def magnetic_field_inertial_tesla(position_inertial_m, epoch_jd, g, h, nmax):
+def magnetic_field_inertial_tesla(
+    position_inertial_m: np.ndarray,
+    epoch_jd: float,
+    g: np.ndarray,
+    h: np.ndarray,
+    nmax: int,
+) -> np.ndarray:
     """Evaluate Schmidt normalized internal Gauss coefficients in GCRF [T]."""
     jd_tt = utc_jd_to_tt_jd(epoch_jd) if epoch_jd >= 2441317.5 else epoch_jd
     rotation = gcrf_to_ecef_matrix(epoch_jd, jd_tt)
@@ -98,8 +107,10 @@ def magnetic_field_inertial_tesla(position_inertial_m, epoch_jd, g, h, nmax):
 class MagneticFieldModel:
     """Interface for GCRF magnetic vectors [T] at UTC Julian dates."""
 
-    def field_inertial_tesla(self, position_inertial_m, epoch_jd):
+    def field_inertial_tesla(
+        self, position_inertial_m: np.ndarray, epoch_jd: float
+    ) -> np.ndarray:
         raise NotImplementedError("Choose a magnetic field model")
 
-    def field(self, position_inertial_m, epoch_jd):
+    def field(self, position_inertial_m: np.ndarray, epoch_jd: float) -> np.ndarray:
         return self.field_inertial_tesla(position_inertial_m, epoch_jd)

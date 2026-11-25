@@ -11,8 +11,14 @@ class Sensor:
     """Numba-compatible sensor configuration; noise is a 3x3 covariance."""
 
     def __init__(
-        self, position, orientation, misalignment, saturation_value, noise, bias
-    ):
+        self,
+        position: np.ndarray,
+        orientation: np.ndarray,
+        misalignment: np.ndarray,
+        saturation_value: float,
+        noise: np.ndarray,
+        bias: np.ndarray,
+    ) -> None:
         if (
             position.shape != (3,)
             or orientation.shape != (4,)
@@ -31,5 +37,5 @@ class Sensor:
         self.bias = bias
         self.enabled = True
 
-    def availability(self):
+    def availability(self) -> bool:
         return self.enabled

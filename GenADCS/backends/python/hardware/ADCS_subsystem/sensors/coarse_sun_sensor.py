@@ -23,16 +23,16 @@ class CoarseSunSensor:
 
     def __init__(
         self,
-        position,
-        orientation,
-        misalignment,
-        normal,
-        sensitivity,
-        saturation_value,
-        noise_variance,
-        bias,
-        fov_half_angle,
-    ):
+        position: np.ndarray,
+        orientation: np.ndarray,
+        misalignment: np.ndarray,
+        normal: np.ndarray,
+        sensitivity: float,
+        saturation_value: float,
+        noise_variance: float,
+        bias: float,
+        fov_half_angle: float,
+    ) -> None:
         if position.shape != (3,) or normal.shape != (3,):
             raise ValueError("position and normal must have 3 components")
         if orientation.shape != (4,) or misalignment.shape != (4,):
@@ -60,7 +60,9 @@ class CoarseSunSensor:
         self.fov_half_angle = fov_half_angle
         self.enabled = True
 
-    def noiseless_biasfree_measurement(self, sun_inertial, attitude):
+    def noiseless_biasfree_measurement(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray
+    ) -> float:
         return scalar_sun_measurement(
             sun_inertial,
             attitude,
@@ -75,7 +77,9 @@ class CoarseSunSensor:
             False,
         )
 
-    def noiseless_biased_measurement(self, sun_inertial, attitude):
+    def noiseless_biased_measurement(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray
+    ) -> float:
         return scalar_sun_measurement(
             sun_inertial,
             attitude,
@@ -90,7 +94,9 @@ class CoarseSunSensor:
             False,
         )
 
-    def noisy_biasfree_measurement(self, sun_inertial, attitude):
+    def noisy_biasfree_measurement(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray
+    ) -> float:
         return scalar_sun_measurement(
             sun_inertial,
             attitude,
@@ -102,30 +108,34 @@ class CoarseSunSensor:
             self.noise_std,
             self.saturation_value,
             False,
-            True,
-            next_draw(self, 1),
-        )
-
-    def noisy_biased_measurement(self, sun_inertial, attitude):
-        return scalar_sun_measurement(
-            sun_inertial,
-            attitude,
-            self.orientation,
-            self.misalignment,
-            self.normal,
-            self.sensitivity,
-            self.bias,
-            self.noise_std,
-            self.saturation_value,
-            True,
             True,
             next_draw(self, 1),
         )
 
-    def jacobian_bias(self):
+    def noisy_biased_measurement(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray
+    ) -> float:
+        return scalar_sun_measurement(
+            sun_inertial,
+            attitude,
+            self.orientation,
+            self.misalignment,
+            self.normal,
+            self.sensitivity,
+            self.bias,
+            self.noise_std,
+            self.saturation_value,
+            True,
+            True,
+            next_draw(self, 1),
+        )
+
+    def jacobian_bias(self) -> float:
         return 1.0
 
-    def jacobian_relative_quaternion(self, sun_inertial, attitude, delta_quaternion):
+    def jacobian_relative_quaternion(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray, delta_quaternion: np.ndarray
+    ) -> np.ndarray:
         return coarse_sun_attitude_jacobian(
             sun_inertial,
             attitude,
@@ -137,7 +147,9 @@ class CoarseSunSensor:
             0,
         )
 
-    def jacobian_relative_mrp(self, sun_inertial, attitude, delta_mrp):
+    def jacobian_relative_mrp(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray, delta_mrp: np.ndarray
+    ) -> np.ndarray:
         return coarse_sun_attitude_jacobian(
             sun_inertial,
             attitude,
@@ -149,7 +161,9 @@ class CoarseSunSensor:
             1,
         )
 
-    def jacobian_relative_angle_vector(self, sun_inertial, attitude, delta_angle):
+    def jacobian_relative_angle_vector(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray, delta_angle: np.ndarray
+    ) -> np.ndarray:
         return coarse_sun_attitude_jacobian(
             sun_inertial,
             attitude,
@@ -161,7 +175,9 @@ class CoarseSunSensor:
             2,
         )
 
-    def availability(self, sun_inertial, attitude, sun_visible=True):
+    def availability(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray, sun_visible: bool = True
+    ) -> bool:
         return coarse_sun_available(
             sun_inertial,
             attitude,
@@ -173,7 +189,9 @@ class CoarseSunSensor:
             sun_visible,
         )
 
-    def fisher_information_matrix(self, sun_inertial, attitude, sun_visible=True):
+    def fisher_information_matrix(
+        self, sun_inertial: np.ndarray, attitude: np.ndarray, sun_visible: bool = True
+    ) -> np.ndarray:
         if not self.availability(sun_inertial, attitude, sun_visible):
             return np.zeros((3, 3))
         return coarse_sun_information(

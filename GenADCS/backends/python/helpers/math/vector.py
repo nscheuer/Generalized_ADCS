@@ -3,7 +3,7 @@ from numba import njit
 
 
 @njit(cache=True)
-def cross(a, b):
+def cross(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return np.array(
         (
             a[1] * b[2] - a[2] * b[1],
@@ -14,7 +14,7 @@ def cross(a, b):
 
 
 @njit(cache=True)
-def norm(vector):
+def norm(vector: np.ndarray) -> float:
     # A scalar loop handles strided views without Numba's np.dot contiguity
     # performance warning or an implicit copy.
     squared = 0.0
@@ -24,7 +24,7 @@ def norm(vector):
 
 
 @njit(cache=True)
-def normalize(vector):
+def normalize(vector: np.ndarray) -> np.ndarray:
     magnitude = norm(vector)
     if magnitude == 0.0:
         return np.zeros_like(vector)
@@ -32,7 +32,7 @@ def normalize(vector):
 
 
 @njit(cache=True)
-def unit(vector):
+def unit(vector: np.ndarray) -> np.ndarray:
     magnitude = norm(vector)
     if magnitude == 0.0:
         raise ValueError("cannot normalize a zero vector")
@@ -40,7 +40,7 @@ def unit(vector):
 
 
 @njit(cache=True)
-def skew(vector):
+def skew(vector: np.ndarray) -> np.ndarray:
     return np.array(
         (
             (0.0, -vector[2], vector[1]),
@@ -51,6 +51,6 @@ def skew(vector):
 
 
 @njit(cache=True)
-def saturate_vector(vector, limit):
+def saturate_vector(vector: np.ndarray, limit: float) -> np.ndarray:
     """Clamp each component of a vector to symmetric limits."""
     return np.minimum(np.maximum(vector, -limit), limit)

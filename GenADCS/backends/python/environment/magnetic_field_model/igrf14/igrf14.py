@@ -19,7 +19,13 @@ _KERNEL_DIR = (
 
 
 @njit(cache=True, nogil=True)
-def igrf14_field_inertial_tesla(position_inertial_m, epoch_jd, epochs, g, h):
+def igrf14_field_inertial_tesla(
+    position_inertial_m: np.ndarray,
+    epoch_jd: float,
+    epochs: np.ndarray,
+    g: np.ndarray,
+    h: np.ndarray,
+) -> np.ndarray:
     """Compiled scalar GCRF field [T]; coefficients are loaded by IGRF14."""
     if epoch_jd < epochs[0] or epoch_jd > epochs[-1]:
         raise ValueError("IGRF-14 coefficients cover 1900-01-01 to 2030-01-01")
@@ -39,11 +45,13 @@ def igrf14_field_inertial_tesla(position_inertial_m, epoch_jd, epochs, g, h):
 class IGRF14(MagneticFieldModel):
     """IGRF-14 using bundled coefficients and paired UTC Julian date input."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         years, self._g, self._h = read_shc(str(_KERNEL_DIR / "IGRF14.shc"), 1, 13)
         self._epochs = np.array([calendar_to_jd(int(y), 1, 1) for y in years])
 
-    def field_inertial_tesla(self, position_inertial_m, epoch_jd):
+    def field_inertial_tesla(
+        self, position_inertial_m: np.ndarray, epoch_jd: float
+    ) -> np.ndarray:
         return igrf14_field_inertial_tesla(
             np.asarray(position_inertial_m, dtype=np.float64),
             float(epoch_jd),

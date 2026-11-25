@@ -7,14 +7,21 @@ from GenADCS.backends.python.helpers.math.frames.frames import (
     body_to_inertial,
     inertial_to_body,
 )
+from GenADCS.backends.python.environment import Environment
+from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry
 
 from .._geometry import prepare_panels
 
 
 @njit(cache=True)
 def projected_area_drag_force(
-    velocity_relative_i, q_b_from_i, density, normals_b, areas, drag_coefficients
-):
+    velocity_relative_i: np.ndarray,
+    q_b_from_i: np.ndarray,
+    density: float,
+    normals_b: np.ndarray,
+    areas: np.ndarray,
+    drag_coefficients: np.ndarray,
+) -> np.ndarray:
     """Return aerodynamic drag force in inertial coordinates [N]."""
     if len(normals_b) != len(areas) or len(drag_coefficients) != len(areas):
         raise ValueError("panel arrays must have matching row counts")
@@ -39,14 +46,14 @@ def projected_area_drag_force(
 
 @njit(cache=True)
 def projected_area_drag_torque(
-    velocity_relative_i,
-    q_b_from_i,
-    density,
-    normals_b,
-    arms_b,
-    areas,
-    drag_coefficients,
-):
+    velocity_relative_i: np.ndarray,
+    q_b_from_i: np.ndarray,
+    density: float,
+    normals_b: np.ndarray,
+    arms_b: np.ndarray,
+    areas: np.ndarray,
+    drag_coefficients: np.ndarray,
+) -> np.ndarray:
     """Return aerodynamic drag torque about the center of mass in body coordinates [N m]."""
     if (
         len(normals_b) != len(areas)
@@ -75,12 +82,17 @@ def projected_area_drag_torque(
 
 
 class _ProjectedAreaDragBase:
-    def __init__(self, geometry):
+    def __init__(self, geometry: SatelliteGeometry) -> None:
         self.normals_b, self.arms_b, self.areas, coefficients = prepare_panels(geometry)
         self.drag_coefficients = np.ascontiguousarray(coefficients[:, 0])
 
     @staticmethod
-    def _flow(position_i, velocity_i, epoch_jd, environment):
+    def _flow(
+        position_i: np.ndarray,
+        velocity_i: np.ndarray,
+        epoch_jd: float,
+        environment: Environment,
+    ) -> tuple[np.ndarray, float]:
         if environment.atmosphere is None:
             raise ValueError("drag requires environment.atmosphere")
         position_i = np.asarray(position_i, dtype=np.float64)
@@ -90,7 +102,14 @@ class _ProjectedAreaDragBase:
 
 
 class ProjectedAreaDragForceModel(_ProjectedAreaDragBase):
-    def evaluate(self, position_i, velocity_i, q_b_from_i, epoch_jd, environment):
+    def evaluate(
+        self,
+        position_i: np.ndarray,
+        velocity_i: np.ndarray,
+        q_b_from_i: np.ndarray,
+        epoch_jd: float,
+        environment: Environment,
+    ) -> np.ndarray:
         relative_velocity, density = self._flow(
             position_i, velocity_i, epoch_jd, environment
         )
@@ -105,7 +124,14 @@ class ProjectedAreaDragForceModel(_ProjectedAreaDragBase):
 
 
 class ProjectedAreaDragTorqueModel(_ProjectedAreaDragBase):
-    def evaluate(self, position_i, velocity_i, q_b_from_i, epoch_jd, environment):
+    def evaluate(
+        self,
+        position_i: np.ndarray,
+        velocity_i: np.ndarray,
+        q_b_from_i: np.ndarray,
+        epoch_jd: float,
+        environment: Environment,
+    ) -> np.ndarray:
         relative_velocity, density = self._flow(
             position_i, velocity_i, epoch_jd, environment
         )

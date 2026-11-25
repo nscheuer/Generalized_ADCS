@@ -1,6 +1,6 @@
 class StateMachine:
-    def __init__(self, initial_mode="idle"):
+    def __init__(self, initial_mode: str = "idle") -> None:
         self.mode = initial_mode
 
-    def update(self, state, time):
+    def update(self, state: object, time: float) -> None:
         raise NotImplementedError

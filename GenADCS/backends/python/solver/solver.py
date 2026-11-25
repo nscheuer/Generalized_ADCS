@@ -14,7 +14,7 @@ class Solver:
     attitude: AttitudeSolver | None = None
     coupled: CoupledSolver | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if (
             self.coupled is None and (self.orbital is None or self.attitude is None)
         ) or (

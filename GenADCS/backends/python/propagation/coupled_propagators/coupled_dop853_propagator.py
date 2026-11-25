@@ -2,6 +2,7 @@
 
 import numpy as np
 from numba import njit
+from numpy.typing import ArrayLike
 
 from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import (
     prepare_estimator,
@@ -11,8 +12,13 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling imp
     prepare_sensors,
     sample_sensors,
 )
+from GenADCS.backends.python.config.dynamics_config import DynamicsConfig
+from GenADCS.backends.python.environment import Environment
+from GenADCS.backends.python.hardware import Satellite
+from GenADCS.backends.python.state import State
 
 from ._coupled_dynamics import (
+    _Runtime,
     SECONDS_PER_DAY,
     _derivative,
     _prepare,
@@ -25,7 +31,15 @@ DEFAULT_SEED = np.uint64(0)
 
 
 @njit(cache=True)
-def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
+def _dop853_attempt(
+    y: np.ndarray,
+    f: np.ndarray,
+    epoch_jd: float,
+    h: float,
+    p: _Runtime,
+    rtol: float,
+    atol: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, float]:
     """One DOP853 trial, including the embedded 5/3 error estimate."""
     components = y.size
     stages = np.empty((13, components), dtype=np.float64)
@@ -78,32 +92,32 @@ def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
 
 @njit(cache=True)
 def _integrate_adaptive_chunk(
-    y,
-    f,
-    t,
-    h,
-    initial_jd,
-    tf,
-    p,
-    rtol,
-    atol,
-    max_step,
-    min_step,
-    max_accepted_steps,
-    sample_interval=0.0,
-    sensor_interval=0.0,
-    sensor_config=None,
-    clean=None,
-    reading=None,
-    seed=DEFAULT_SEED,
-    estimator_kind=0,
-    estimate_q=None,
-    estimate_w=None,
-    estimate_p=None,
-    acceleration_psd=None,
-    estimates=None,
-    estimator_flags=0,
-):
+    y: np.ndarray,
+    f: np.ndarray,
+    t: float,
+    h: float,
+    initial_jd: float,
+    tf: float,
+    p: _Runtime,
+    rtol: float,
+    atol: np.ndarray,
+    max_step: float,
+    min_step: float,
+    max_accepted_steps: int,
+    sample_interval: float = 0.0,
+    sensor_interval: float = 0.0,
+    sensor_config: tuple[np.ndarray, ...] | None = None,
+    clean: np.ndarray | None = None,
+    reading: np.ndarray | None = None,
+    seed: int = DEFAULT_SEED,
+    estimator_kind: int = 0,
+    estimate_q: np.ndarray | None = None,
+    estimate_w: np.ndarray | None = None,
+    estimate_p: np.ndarray | None = None,
+    acceleration_psd: np.ndarray | None = None,
+    estimates: np.ndarray | None = None,
+    estimator_flags: int = 0,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, float]:
     """Store accepted states while all adaptive trial steps stay inside Numba."""
     capacity = min(max_accepted_steps + 1, 1024)
     capacity = max(capacity, 1)
@@ -221,7 +235,14 @@ class CoupledDOP853Propagator:
     and a common relative tolerance.
     """
 
-    def __init__(self, dt, rtol=1e-9, atol=1e-12, max_step=np.inf, min_step=1e-6):
+    def __init__(
+        self,
+        dt: float,
+        rtol: float = 1e-9,
+        atol: ArrayLike = 1e-12,
+        max_step: float = np.inf,
+        min_step: float = 1e-6,
+    ) -> None:
         self.dt = float(dt)
         self.rtol = float(rtol)
         self.max_step = float(max_step)
@@ -254,18 +275,18 @@ class CoupledDOP853Propagator:
 
     def integrate(
         self,
-        state,
-        satellite,
-        environment,
-        dynamics,
-        tf,
-        progress=False,
-        progress_chunk_steps=500,
-        record_every=None,
-        sensor_every=0,
-        seed=0,
-        estimator_flags=0,
-    ):
+        state: State,
+        satellite: Satellite,
+        environment: Environment,
+        dynamics: DynamicsConfig,
+        tf: float,
+        progress: bool = False,
+        progress_chunk_steps: int = 500,
+        record_every: int | None = None,
+        sensor_every: int = 0,
+        seed: int = 0,
+        estimator_flags: int = 0,
+    ) -> tuple[np.ndarray, ...]:
         tf = float(tf)
         if not np.isfinite(tf) or tf < 0.0:
             raise ValueError("tf must be finite and nonnegative seconds")
@@ -483,7 +504,13 @@ class CoupledDOP853Propagator:
             else (times, states)
         )
 
-    def step(self, state, satellite, environment, dynamics):
+    def step(
+        self,
+        state: State,
+        satellite: Satellite,
+        environment: Environment,
+        dynamics: DynamicsConfig,
+    ) -> State:
         """Advance by dt seconds using as many adaptive substeps as needed."""
         _, vectors = self.integrate(state, satellite, environment, dynamics, self.dt)
         result = vectors[-1]

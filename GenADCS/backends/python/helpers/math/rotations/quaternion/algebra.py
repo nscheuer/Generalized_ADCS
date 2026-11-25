@@ -3,7 +3,7 @@ from numba import njit
 
 
 @njit(cache=True)
-def _normalize_quaternion(q):
+def _normalize_quaternion(q: np.ndarray) -> np.ndarray:
     magnitude = np.sqrt(np.dot(q, q))
     if magnitude == 0.0:
         raise ValueError("quaternion must have nonzero norm")
@@ -11,27 +11,27 @@ def _normalize_quaternion(q):
 
 
 @njit(cache=True)
-def _quaternion_norm(q):
+def _quaternion_norm(q: np.ndarray) -> float:
     return np.sqrt(np.dot(q, q))
 
 
 @njit(cache=True)
-def _jpl_to_hamilton(q_jpl):
+def _jpl_to_hamilton(q_jpl: np.ndarray) -> np.ndarray:
     return np.array((q_jpl[3], -q_jpl[0], -q_jpl[1], -q_jpl[2]))
 
 
 @njit(cache=True)
-def _hamilton_to_jpl(q_hamilton):
+def _hamilton_to_jpl(q_hamilton: np.ndarray) -> np.ndarray:
     return np.array((-q_hamilton[1], -q_hamilton[2], -q_hamilton[3], q_hamilton[0]))
 
 
 @njit(cache=True)
-def _conjugate(q):
+def _conjugate(q: np.ndarray) -> np.ndarray:
     return np.array((q[0], -q[1], -q[2], -q[3]))
 
 
 @njit(cache=True)
-def _inverse(q):
+def _inverse(q: np.ndarray) -> np.ndarray:
     squared_norm = np.dot(q, q)
     if squared_norm == 0.0:
         raise ValueError("zero quaternion has no inverse")
@@ -39,7 +39,7 @@ def _inverse(q):
 
 
 @njit(cache=True)
-def _multiply(p, q):
+def _multiply(p: np.ndarray, q: np.ndarray) -> np.ndarray:
     return np.array(
         (
             p[0] * q[0] - np.dot(p[1:4], q[1:4]),
@@ -51,7 +51,7 @@ def _multiply(p, q):
 
 
 @njit(cache=True)
-def _relative_quaternion(reference, target):
+def _relative_quaternion(reference: np.ndarray, target: np.ndarray) -> np.ndarray:
     relative = _multiply(target, _inverse(reference))
     relative = _normalize_quaternion(relative)
     if relative[0] < 0.0:

@@ -11,5 +11,5 @@ class OrbitalSolver:
     propagator: KeplerianOrbitalPropagator | SGP4OrbitalPropagator
 
     @property
-    def dt(self):
+    def dt(self) -> float:
         return self.propagator.dt

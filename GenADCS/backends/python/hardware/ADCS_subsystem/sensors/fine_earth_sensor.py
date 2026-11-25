@@ -16,8 +16,14 @@ class FineEarthSensor:
     """Two-axis angular Earth sensor; angles and FOV limits are in radians."""
 
     def __init__(
-        self, position, orientation, misalignment, noise, bias, fov_half_angles
-    ):
+        self,
+        position: np.ndarray,
+        orientation: np.ndarray,
+        misalignment: np.ndarray,
+        noise: np.ndarray,
+        bias: np.ndarray,
+        fov_half_angles: np.ndarray,
+    ) -> None:
         if (
             position.shape != (3,)
             or orientation.shape != (4,)
@@ -35,7 +41,9 @@ class FineEarthSensor:
         self.fov_half_angles = fov_half_angles
         self.enabled = True
 
-    def noiseless_biasfree_measurement(self, earth_inertial, attitude):
+    def noiseless_biasfree_measurement(
+        self, earth_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
         return fine_direction_measurement(
             earth_inertial,
             attitude,
@@ -47,7 +55,9 @@ class FineEarthSensor:
             False,
         )
 
-    def noiseless_biased_measurement(self, earth_inertial, attitude):
+    def noiseless_biased_measurement(
+        self, earth_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
         return fine_direction_measurement(
             earth_inertial,
             attitude,
@@ -59,7 +69,9 @@ class FineEarthSensor:
             False,
         )
 
-    def noisy_biasfree_measurement(self, earth_inertial, attitude):
+    def noisy_biasfree_measurement(
+        self, earth_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
         return fine_direction_measurement(
             earth_inertial,
             attitude,
@@ -68,27 +80,31 @@ class FineEarthSensor:
             self.bias,
             self.noise_cholesky,
             False,
-            True,
-            next_draw(self, 2),
-        )
-
-    def noisy_biased_measurement(self, earth_inertial, attitude):
-        return fine_direction_measurement(
-            earth_inertial,
-            attitude,
-            self.orientation,
-            self.misalignment,
-            self.bias,
-            self.noise_cholesky,
-            True,
             True,
             next_draw(self, 2),
         )
 
-    def jacobian_bias(self):
+    def noisy_biased_measurement(
+        self, earth_inertial: np.ndarray, attitude: np.ndarray
+    ) -> np.ndarray:
+        return fine_direction_measurement(
+            earth_inertial,
+            attitude,
+            self.orientation,
+            self.misalignment,
+            self.bias,
+            self.noise_cholesky,
+            True,
+            True,
+            next_draw(self, 2),
+        )
+
+    def jacobian_bias(self) -> np.ndarray:
         return np.eye(2)
 
-    def jacobian_relative_quaternion(self, earth_inertial, attitude, delta_quaternion):
+    def jacobian_relative_quaternion(
+        self, earth_inertial: np.ndarray, attitude: np.ndarray, delta_quaternion: np.ndarray
+    ) -> np.ndarray:
         return fine_sun_attitude_jacobian(
             earth_inertial,
             attitude,
@@ -98,12 +114,16 @@ class FineEarthSensor:
             0,
         )
 
-    def jacobian_relative_mrp(self, earth_inertial, attitude, delta_mrp):
+    def jacobian_relative_mrp(
+        self, earth_inertial: np.ndarray, attitude: np.ndarray, delta_mrp: np.ndarray
+    ) -> np.ndarray:
         return fine_sun_attitude_jacobian(
             earth_inertial, attitude, self.orientation, self.misalignment, delta_mrp, 1
         )
 
-    def jacobian_relative_angle_vector(self, earth_inertial, attitude, delta_angle):
+    def jacobian_relative_angle_vector(
+        self, earth_inertial: np.ndarray, attitude: np.ndarray, delta_angle: np.ndarray
+    ) -> np.ndarray:
         return fine_sun_attitude_jacobian(
             earth_inertial,
             attitude,
@@ -113,7 +133,9 @@ class FineEarthSensor:
             2,
         )
 
-    def availability(self, earth_inertial, attitude, earth_visible=True):
+    def availability(
+        self, earth_inertial: np.ndarray, attitude: np.ndarray, earth_visible: bool = True
+    ) -> bool:
         return fine_direction_available(
             earth_inertial,
             attitude,
@@ -124,7 +146,9 @@ class FineEarthSensor:
             earth_visible,
         )
 
-    def fisher_information_matrix(self, earth_inertial, attitude, earth_visible=True):
+    def fisher_information_matrix(
+        self, earth_inertial: np.ndarray, attitude: np.ndarray, earth_visible: bool = True
+    ) -> np.ndarray:
         if not self.availability(earth_inertial, attitude, earth_visible):
             return np.zeros((3, 3))
         angles = fine_sun_angles(
