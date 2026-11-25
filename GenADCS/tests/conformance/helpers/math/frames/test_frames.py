@@ -26,7 +26,7 @@ def test_vector_argument_validation(frames, bad):
 
 
 def test_frame_rotation_context_and_inverse_contract(frames):
-    context = dict(jd_ut1=2451545.0, jd_tt=2451545.0, xp=1e-6, yp=-2e-6)
+    context = {"jd_ut1": 2451545.0, "jd_tt": 2451545.0, "xp": 1e-6, "yp": -2e-6}
     matrix = frames.frame_rotation("GCRF", "ECEF", **context)
     np.testing.assert_allclose(matrix @ matrix.T, np.eye(3), atol=2e-12)
     np.testing.assert_allclose(

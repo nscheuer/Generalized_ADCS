@@ -12,9 +12,9 @@ def frames(request):
 
 
 def context():
-    return dict(
-        jd_ut1=2451545.0, jd_tt=2451545.0, xp=np.float64(1e-6), yp=np.float64(-2e-6)
-    )
+    return {
+        "jd_ut1": 2451545.0, "jd_tt": 2451545.0, "xp": np.float64(1e-6), "yp": np.float64(-2e-6)
+    }
 
 
 def test_frame_rotation_accepts_numpy_context_and_returns_matrix(frames):

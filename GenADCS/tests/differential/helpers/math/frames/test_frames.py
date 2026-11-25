@@ -21,7 +21,7 @@ def test_rotation_and_covariance_outputs_agree(frame_backends):
 
 def test_frame_conversion_named_helpers_agree(frame_backends):
     jd = 2459123.25
-    context = dict(jd_ut1=jd, jd_tt=jd + 0.0008, xp=1.2e-6, yp=-2.3e-6)
+    context = {"jd_ut1": jd, "jd_tt": jd + 0.0008, "xp": 1.2e-6, "yp": -2.3e-6}
     names = (
         "gcrf_to_ecef_matrix",
         "ecef_to_gcrf_matrix",

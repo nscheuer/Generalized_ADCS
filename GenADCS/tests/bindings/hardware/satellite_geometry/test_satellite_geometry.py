@@ -8,9 +8,9 @@ import pytest
 
 
 def make_panel(api, **overrides):
-    values = dict(
-        position=(1.0, 2.0, 3.0), orientation=(0.0, 0.0, 1.0), dimensions=(2.0, 1.0)
-    )
+    values = {
+        "position": (1.0, 2.0, 3.0), "orientation": (0.0, 0.0, 1.0), "dimensions": (2.0, 1.0)
+    }
     values.update(overrides)
     return api.SatellitePanel(**values)
 

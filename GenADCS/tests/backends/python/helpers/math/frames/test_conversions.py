@@ -20,13 +20,13 @@ JD = 2451545.0
 
 @pytest.mark.parametrize("frame", ["GCRF", "ECEF", "TEME", "LVLH", "BODY"])
 def test_frame_rotation_is_orthonormal_with_required_context(frame):
-    context = dict(
-        jd_ut1=JD,
-        jd_tt=JD,
-        position_gcrf=np.array([7e6, 0, 0.0]),
-        velocity_gcrf=np.array([0, 7500, 0.0]),
-        q_body_from_gcrf=[1, 0, 0, 0],
-    )
+    context = {
+        "jd_ut1": JD,
+        "jd_tt": JD,
+        "position_gcrf": np.array([7e6, 0, 0.0]),
+        "velocity_gcrf": np.array([0, 7500, 0.0]),
+        "q_body_from_gcrf": [1, 0, 0, 0],
+    }
     matrix = frame_rotation("GCRF", frame, **context)
     np.testing.assert_allclose(matrix @ matrix.T, np.eye(3), atol=2e-12)
     assert np.linalg.det(matrix) == pytest.approx(1.0, abs=2e-12)
@@ -59,7 +59,7 @@ def test_unsupported_frame_names_raise_value_error():
 
 
 def test_frame_rotations_compose_and_inverse():
-    kw = dict(jd_ut1=JD + 0.25, jd_tt=JD + 0.25, xp=1e-6, yp=-2e-6)
+    kw = {"jd_ut1": JD + 0.25, "jd_tt": JD + 0.25, "xp": 1e-6, "yp": -2e-6}
     r_ge = frame_rotation("GCRF", "ECEF", **kw)
     r_et = frame_rotation("ECEF", "TEME", **kw)
     r_gt = frame_rotation("GCRF", "TEME", **kw)
@@ -68,7 +68,7 @@ def test_frame_rotations_compose_and_inverse():
 
 
 def test_vector_conversion_agrees_with_rotation_and_roundtrips():
-    context = dict(jd_ut1=JD, jd_tt=JD)
+    context = {"jd_ut1": JD, "jd_tt": JD}
     vector = np.array([1.0, -2, 3])
     converted = convert_vector(vector, "GCRF", "ECEF", **context)
     np.testing.assert_allclose(
