@@ -1,9 +1,9 @@
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PySlice, PyTuple};
+use pyo3::types::{PyDict, PyTuple};
 
 #[pyfunction]
-#[pyo3(signature=(satellite,environment,dynamics,state,solver,backend="Rust",resultsformat=None))]
+#[pyo3(signature=(satellite,environment,dynamics,state,solver,backend="Rust",resultsformat=None,seed=0))]
 pub fn simulate(
     py: Python<'_>,
     satellite: PyObject,
@@ -13,6 +13,7 @@ pub fn simulate(
     mut solver: PyObject,
     backend: &str,
     resultsformat: Option<PyObject>,
+    seed: u64,
 ) -> PyResult<PyObject> {
     if backend != "Rust" {
         return Err(PyValueError::new_err("backend must be Rust"));
@@ -45,7 +46,7 @@ pub fn simulate(
     }
     let solver_ref = solver.as_ref(py);
     let tf: f64 = solver_ref.getattr("tf")?.extract()?;
-    let format = match resultsformat {
+    let mut format = match resultsformat {
         Some(value) => value,
         None => py
             .import("GenADCS.backends.shared.simulationresult.resultsformat")?
@@ -53,6 +54,23 @@ pub fn simulate(
             .call0()?
             .into_py(py),
     };
+    let adcs = satellite.as_ref(py).getattr("adcs")?;
+    let sensor_n: usize = adcs.getattr("N")?.extract()?;
+    if sensor_n == 0 {
+        return Err(PyValueError::new_err("ADCSSubsystem.N must be positive"));
+    }
+    let estimator = adcs.getattr("estimator")?.into_py(py);
+    if !estimator.is_none(py) {
+        let flags = PyDict::new(py);
+        for name in estimator.as_ref(py).getattr("record")?.iter()? {
+            flags.set_item(name?, true)?;
+        }
+        format = py
+            .import("dataclasses")?
+            .getattr("replace")?
+            .call((format,), Some(flags))?
+            .into_py(py);
+    }
     let n: usize = format.as_ref(py).getattr("N")?.extract()?;
     let kwargs = PyDict::new(py);
     kwargs.set_item("progress", solver_ref.getattr("progress")?)?;
@@ -60,7 +78,21 @@ pub fn simulate(
         "progress_chunk_steps",
         solver_ref.getattr("progress_chunk_steps")?,
     )?;
-    kwargs.set_item("record_every", n)?;
+    if n == 0 {
+        return Err(PyValueError::new_err("ResultsFormat.N must be positive"));
+    }
+    let stride = if estimator.is_none(py) {
+        n
+    } else {
+        let (mut a, mut b) = (n, sensor_n);
+        while b != 0 {
+            let r = a % b;
+            a = b;
+            b = r;
+        }
+        a
+    };
+    kwargs.set_item("record_every", stride)?;
     let environment_for_record = environment.clone_ref(py);
     let dynamics_for_record = dynamics.clone_ref(py);
     let satellite_for_record = satellite.clone_ref(py);
@@ -104,17 +136,55 @@ pub fn simulate(
         .getattr("dt")?
         .extract::<f64>()?
         * n as f64;
-    let sample_range = trajectory
-        .sampled_range(interval)
-        .map_err(PyValueError::new_err)?;
-    let rows = PySlice::new(
-        py,
-        sample_range.start as isize,
-        sample_range.end as isize,
-        1,
-    );
-    let sampled_times = times.as_ref(py).get_item(rows)?;
-    let sampled_vectors = vectors.get_item((rows, PySlice::new(py, 0, shape[1] as isize, 1)))?;
+    let rows: Vec<usize> = trajectory
+        .times
+        .iter()
+        .enumerate()
+        .filter_map(|(i, t)| {
+            if (t / interval - (t / interval).round()).abs() < 1e-9 {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .collect();
+    let sampled_times = times.as_ref(py).get_item(rows.clone())?;
+    let sampled_vectors = vectors.get_item(rows.clone())?;
+    let prepared = py
+        .import("GenADCS.backends.rust.propagation.coupled_propagators._coupled_dynamics")?
+        .getattr("_prepare")?
+        .call1((
+            satellite_for_record.as_ref(py),
+            environment_for_record.as_ref(py),
+            dynamics_for_record.as_ref(py),
+        ))?;
+    let adcs = satellite_for_record.as_ref(py).getattr("adcs")?;
+    let sensor_n: usize = adcs.getattr("N")?.extract()?;
+    if sensor_n == 0 {
+        return Err(PyValueError::new_err("ADCSSubsystem.N must be positive"));
+    }
+    let dt: f64 = solver_ref.getattr("propagator")?.getattr("dt")?.extract()?;
+    let samples = py
+        .import("GenADCS.backends.rust.propagation.coupled_propagators._coupled")?
+        .getattr("sample_sensors")?
+        .call1((
+            times.as_ref(py),
+            vectors,
+            epoch_jd,
+            dt * sensor_n as f64,
+            prepared,
+            adcs.getattr("sensors")?,
+            environment_for_record.as_ref(py),
+            seed,
+            estimator,
+            format
+                .as_ref(py)
+                .getattr("normalized_estimation_error_squared")?,
+        ))?;
+    let selected = PyDict::new(py);
+    for (key, value) in samples.downcast::<PyDict>()? {
+        selected.set_item(key, value.get_item(rows.clone())?)?;
+    }
     let result = py
         .import("GenADCS.backends.shared.simulationresult.record")?
         .getattr("record_samples")?
@@ -127,6 +197,7 @@ pub fn simulate(
             dynamics_for_record,
             epoch_jd,
             backend,
+            selected,
         ))?;
     Ok(result.into_py(py))
 }

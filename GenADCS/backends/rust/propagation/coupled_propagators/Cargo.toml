@@ -17,3 +17,5 @@ atmosphere_native = { package = "adcs-omni-rust-atmosphere", path = "../../envir
 ephemeris_native = { package = "adcs-omni-rust-ephemeris", path = "../../environment/ephemeris", default-features = false }
 magnetic_native = { package = "adcs-omni-rust-magnetic-field", path = "../../environment/magnetic_field_model", default-features = false }
 gravity_native = { package = "adcs-omni-rust-gravity", path = "../../environment/gravity", default-features = false }
+
+philox_native = { package = "adcs-omni-rust-random", path = "../../helpers/random" }

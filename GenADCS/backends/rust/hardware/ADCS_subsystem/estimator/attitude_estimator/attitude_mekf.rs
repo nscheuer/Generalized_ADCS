@@ -356,3 +356,128 @@ fn inverse3(a: Mat3) -> Option<Mat3> {
         .map(|row| row.map(|x| x / d)),
     )
 }
+
+/// One subsystem tick, including the diagnostics of the last valid correction.
+/// Diagnostic layout matches the shared simulation result fields.
+pub fn step_diagnostics(
+    state: &mut AttitudeEstimator,
+    dt: f64,
+    readings: &[f64],
+    config: &SensorConfig,
+    truth: &[f64],
+    nees: bool,
+) -> Result<[f64; 96], &'static str> {
+    let (mut q, mut w, mut p) = predict(
+        state.quaternion,
+        state.rate,
+        state.covariance,
+        state.acceleration_psd,
+        dt,
+    )?;
+    let mut out = [f64::NAN; 96];
+    for i in 0..config.code.len() {
+        let kind = config.code[i];
+        if !config.enabled[i] || (kind != 0 && kind != 2) {
+            continue;
+        }
+        let offset = config.offsets[i];
+        let width = if kind == 0 { 3 } else { 4 };
+        let value = readings
+            .get(offset..offset + width)
+            .ok_or("invalid sensor offset")?;
+        if value.iter().any(|x| !x.is_finite()) {
+            continue;
+        }
+        let mount = normalize(mul(config.misalignment[i], config.orientation[i]));
+        let rotation = dcm(mount);
+        let mut h = [[0.; 6]; 3];
+        let mut r = [[0.; 3]; 3];
+        for a in 0..3 {
+            for b in 0..3 {
+                h[a][b + if kind == 0 { 3 } else { 0 }] = rotation[a][b];
+                r[a][b] = (0..3)
+                    .map(|k| config.noise_cholesky[i][a][k] * config.noise_cholesky[i][b][k])
+                    .sum();
+            }
+        }
+        let residual = if kind == 0 {
+            let predicted = mul3v(rotation, w);
+            std::array::from_fn(|j| value[j] - config.bias[i][j] - predicted[j])
+        } else {
+            quaternion_to_rotation_vector(mul(
+                [value[0], value[1], value[2], value[3]],
+                conjugate(mul(mount, q)),
+            ))
+        };
+        let pht = matmul6x3x6(p, h);
+        let s = add3m(matmul3x6x6x3(h, pht), r);
+        let inv = inverse3(s).ok_or("measurement innovation covariance is singular")?;
+        let gain = matmul6x3(pht, inv);
+        let delta = mul6x3v(gain, residual);
+        out[43..46].copy_from_slice(&residual);
+        for a in 0..3 {
+            for b in 0..3 {
+                out[46 + a * 3 + b] = s[a][b];
+            }
+        }
+        out[55] = dot3(residual, mul3v(inv, residual));
+        for a in 0..3 {
+            out[57 + a] = residual[a] - (0..6).map(|b| h[a][b] * delta[b]).sum::<f64>();
+        }
+        for a in 0..6 {
+            for b in 0..3 {
+                out[60 + a * 3 + b] = gain[a][b];
+            }
+        }
+        (q, w, p) = correct(q, w, p, residual, h, r)?;
+    }
+    out[..4].copy_from_slice(&q);
+    out[4..7].copy_from_slice(&w);
+    for a in 0..6 {
+        for b in 0..6 {
+            out[7 + a * 6 + b] = p[a][b];
+        }
+    }
+    for a in 0..3 {
+        for b in 0..3 {
+            out[78 + a * 3 + b] = p[a][b];
+            out[87 + a * 3 + b] = p[a + 3][b + 3];
+        }
+    }
+    if nees {
+        let rotation = quaternion_to_rotation_vector(mul(
+            [truth[0], truth[1], truth[2], truth[3]],
+            conjugate(q),
+        ));
+        let error = [
+            rotation[0],
+            rotation[1],
+            rotation[2],
+            truth[4] - w[0],
+            truth[5] - w[1],
+            truth[6] - w[2],
+        ];
+        // Cholesky solve for e^T P^-1 e, without forming an inverse.
+        let mut l = [[0.; 6]; 6];
+        let mut z = [0.; 6];
+        for a in 0..6 {
+            for b in 0..=a {
+                let v = p[a][b] - (0..b).map(|k| l[a][k] * l[b][k]).sum::<f64>();
+                if a == b {
+                    if v <= 0. {
+                        return Err("estimator covariance is not positive definite");
+                    }
+                    l[a][b] = v.sqrt();
+                } else {
+                    l[a][b] = v / l[b][b];
+                }
+            }
+            z[a] = (error[a] - (0..a).map(|b| l[a][b] * z[b]).sum::<f64>()) / l[a][a];
+        }
+        out[56] = z.iter().map(|x| x * x).sum();
+    }
+    state.quaternion = q;
+    state.rate = w;
+    state.covariance = p;
+    Ok(out)
+}

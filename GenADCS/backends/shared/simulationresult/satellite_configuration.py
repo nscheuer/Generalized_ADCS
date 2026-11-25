@@ -37,10 +37,10 @@ def _cpp_sensor_config(sensor):
         raise TypeError(f"unsupported C++ sensor: {kind}")
     return {"type": kind,
             "args": [_values(getattr(sensor, name)) for name in _CPP_SENSOR_ARGS[kind]],
-            "enabled": bool(sensor.enabled), "seed": int(sensor.seed)}
+            "enabled": bool(sensor.enabled), "seed": int(getattr(sensor, "seed", 0))}
 
 
-def from_satellite(satellite):
+def from_satellite(satellite, backend=None):
     """Capture hardware data once, independently of sampled state vectors."""
     geometry = satellite.geometry
     adcs = satellite.adcs
@@ -71,9 +71,12 @@ def from_satellite(satellite):
         ],
         "adcs_N": int(getattr(adcs, "N", 1)),
         "sensors": ([_cpp_sensor_config(sensor) for sensor in adcs.sensors]
-                    if type(satellite).__module__.startswith("GenADCS.backends.cpp")
+                    if backend in ("C", "Rust") or type(satellite).__module__.startswith("GenADCS.backends.cpp")
                     else _packed(adcs.sensors) if getattr(adcs, "sensors", None) else None),
-        "estimator": _packed(adcs.estimator) if getattr(adcs, "estimator", None) is not None else None,
+        "estimator": ({"type": "AttitudeMEKF", "args": [_values(getattr(adcs.estimator, name))
+                       for name in ("quaternion", "rate", "covariance", "acceleration_psd")],
+                       "record": list(adcs.estimator.record)} if backend == "Rust"
+                       else _packed(adcs.estimator)) if getattr(adcs, "estimator", None) is not None else None,
         "state_machine": _packed(satellite.state_machine) if satellite.state_machine is not None else None,
     }
 
@@ -97,15 +100,21 @@ def to_satellite(config, backend):
         device["misalignment"], _unpacked(device["effects"]))
         for device in config["magnetorquers"]]
     adcs = hardware.ADCSSubsystem(wheels, magnetorquers)
-    if backend == "C":
+    if backend in ("C", "Rust"):
         adcs.N = config.get("adcs_N", 1)
         sensors = []
         for entry in config.get("sensors") or []:
-            sensor = getattr(hardware, entry["type"])(*entry["args"])
+            sensor_module = __import__(f"GenADCS.backends.{backend_name}.hardware.ADCS_subsystem.sensors", fromlist=[entry["type"]])
+            sensor = getattr(sensor_module, entry["type"])(*entry["args"])
             sensor.enabled = entry["enabled"]
-            sensor.seed = entry["seed"]
+            if backend == "C":
+                sensor.seed = entry["seed"]
             sensors.append(sensor)
         adcs.sensors = sensors
+    if backend == "Rust" and config.get("estimator"):
+        from GenADCS.backends.rust.hardware.ADCS_subsystem import AttitudeMEKF
+        entry = config["estimator"]
+        adcs.estimator = AttitudeMEKF(*entry["args"], record=entry["record"])
     if backend == "Python":
         adcs.N = config.get("adcs_N", 1)
         adcs.sensors = _unpacked(config["sensors"]) if config.get("sensors") else []

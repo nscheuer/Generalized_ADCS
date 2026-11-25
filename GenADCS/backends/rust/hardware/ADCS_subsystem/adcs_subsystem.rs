@@ -11,7 +11,13 @@ pub struct ADCSSubsystem<W = (), M = (), S = (), E = ()> {
 
 impl<W, M, S, E> Default for ADCSSubsystem<W, M, S, E> {
     fn default() -> Self {
-        Self { reaction_wheels: Vec::new(), magnetorquers: Vec::new(), sensors: Vec::new(), N: 1, estimator: None }
+        Self {
+            reaction_wheels: Vec::new(),
+            magnetorquers: Vec::new(),
+            sensors: Vec::new(),
+            N: 1,
+            estimator: None,
+        }
     }
 }
 
@@ -36,6 +42,12 @@ impl<W, M, S, E> ADCSSubsystem<W, M, S, E> {
         if n == 0 {
             return Err("N must be a positive integer");
         }
-        Ok(Self { reaction_wheels, magnetorquers, sensors, N: n, estimator })
+        Ok(Self {
+            reaction_wheels,
+            magnetorquers,
+            sensors,
+            N: n,
+            estimator,
+        })
     }
 }

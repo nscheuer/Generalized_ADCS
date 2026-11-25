@@ -6,6 +6,8 @@ mod coarse_sun_sensor;
 mod coarse_sun_sensor_py;
 mod fine_earth_sensor;
 mod fine_earth_sensor_py;
+mod fine_sun_sensor;
+mod fine_sun_sensor_py;
 mod gnss;
 mod gnss_py;
 mod gyroscope;
@@ -29,6 +31,8 @@ pub use coarse_sun_sensor_py::PyCoarseSunSensor;
 pub use fine_earth_sensor::FineEarthSensor;
 pub use fine_earth_sensor::FineEarthSensor as NativeFineEarthSensor;
 pub use fine_earth_sensor_py::PyFineEarthSensor;
+pub use fine_sun_sensor::FineSunSensor as NativeFineSunSensor;
+pub use fine_sun_sensor_py::PyFineSunSensor;
 pub use gnss::GNSS;
 pub use gnss::GNSS as NativeGNSS;
 pub use gnss_py::PyGNSS;
@@ -54,6 +58,9 @@ mod test_coarse_sun_sensor;
 #[path = "../../../../../tests/backends/rust/hardware/ADCS_subsystem/sensors/test_fine_earth_sensor.rs"]
 mod test_fine_earth_sensor;
 #[cfg(test)]
+#[path = "../../../../../tests/backends/rust/hardware/ADCS_subsystem/sensors/test_fine_sun_sensor.rs"]
+mod test_fine_sun_sensor;
+#[cfg(test)]
 #[path = "../../../../../tests/backends/rust/hardware/ADCS_subsystem/sensors/test_gnss.rs"]
 mod test_gnss;
 #[cfg(test)]
@@ -70,6 +77,7 @@ pub fn register(module: &pyo3::types::PyModule) -> pyo3::PyResult<()> {
     module.add_class::<PyAutonomousStarTracker>()?;
     module.add_class::<PyCoarseSunSensor>()?;
     module.add_class::<PyFineEarthSensor>()?;
+    module.add_class::<PyFineSunSensor>()?;
     module.add_class::<PyGNSS>()?;
     module.add_class::<PyGyroscope>()?;
     module.add_class::<PyMagnetometer>()?;

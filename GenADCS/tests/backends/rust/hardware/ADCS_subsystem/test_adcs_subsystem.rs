@@ -2,7 +2,8 @@ use super::NativeADCSSubsystem;
 
 #[test]
 fn native_component_collections_are_independent_and_replaceable() {
-    let mut first = NativeADCSSubsystem::new(vec!["wheel"], Vec::<&str>::new());
+    let mut first =
+        NativeADCSSubsystem::<&str, &str, (), ()>::new(vec!["wheel"], Vec::<&str>::new());
     let second = NativeADCSSubsystem::<&str, &str>::default();
 
     first.reaction_wheels = vec!["replacement"];
@@ -32,8 +33,14 @@ fn native_subsystem_accepts_sensors_estimator_and_positive_substeps() {
     assert_eq!(system.sensors, ["gyro", "tracker"]);
     assert_eq!(system.N, 4);
     assert_eq!(system.estimator, Some("mekf"));
-    assert!(NativeADCSSubsystem::with_components::<&str, &str, &str, &str>(
-        vec![], vec![], vec![], 0, None
-    )
-    .is_err());
+    assert!(
+        NativeADCSSubsystem::<&str, &str, &str, &str>::with_components(
+            vec![],
+            vec![],
+            vec![],
+            0,
+            None
+        )
+        .is_err()
+    );
 }

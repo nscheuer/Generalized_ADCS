@@ -42,6 +42,7 @@ dependencies = [
  "adcs-omni-rust-ephemeris",
  "adcs-omni-rust-gravity",
  "adcs-omni-rust-magnetic-field",
+ "adcs-omni-rust-random",
  "numpy",
  "pyo3",
 ]

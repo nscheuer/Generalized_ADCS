@@ -131,5 +131,5 @@ def record_samples(times, vectors, format, satellite, environment, dynamics, epo
             for name in diagnostics:
                 output[name].append(values[name])
         fields.update({name: np.asarray(values, dtype=np.float64) for name, values in output.items()})
-    sat = SatelliteResult(times, fields, from_satellite(satellite))
+    sat = SatelliteResult(times, fields, from_satellite(satellite, backend))
     return SimulationResult(epoch_jd, format.N, backend, {"sat_000": sat})

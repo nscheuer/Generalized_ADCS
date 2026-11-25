@@ -1,6 +1,7 @@
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyList};
+use pyo3::PyTypeInfo;
 
 use super::adcs_subsystem::ADCSSubsystem as NativeADCSSubsystem;
 use super::estimator::attitude_estimator::PyAttitudeEstimator;
@@ -48,10 +49,10 @@ impl ADCSSubsystem {
         reaction_wheels: Option<PyObject>,
         magnetorquers: Option<PyObject>,
         sensors: Option<PyObject>,
-        N: &PyAny,
+        #[pyo3(from_py_with = "positive_integer")] N: usize,
         estimator: Option<PyObject>,
     ) -> PyResult<Self> {
-        let n = positive_integer(N)?;
+        let n = N;
         if let Some(ref object) = estimator {
             if !object
                 .as_ref(py)
