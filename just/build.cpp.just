@@ -7,9 +7,9 @@ build:
     command -v ninja >/dev/null
     command -v sccache >/dev/null
     cmake -S GenADCS/backends/cpp -B build/genadcs_cpp_ninja -G Ninja -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
-    cmake --build build/genadcs_cpp_ninja --parallel
+    cmake --build build/genadcs_cpp_ninja --parallel "$(getconf _NPROCESSORS_ONLN)"
 
 test:
-    ctest --test-dir build/genadcs_cpp_ninja --output-on-failure --parallel
+    ctest --test-dir build/genadcs_cpp_ninja --output-on-failure --parallel "$(getconf _NPROCESSORS_ONLN)"
 
 all: build test

@@ -1,0 +1,15 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+default: all
+
+# Build all Python-importable Rust extensions and all workspace crates.
+build:
+    command -v sccache >/dev/null
+    RUSTC_WRAPPER=sccache PYO3_PYTHON="$(python -c 'import sys; print(sys.executable)')" PYTHONPATH="$(python -c 'import site; print(site.getsitepackages()[0])'):$PWD" bash GenADCS/backends/rust/build_extensions.sh
+    RUSTC_WRAPPER=sccache cargo build --jobs "$(getconf _NPROCESSORS_ONLN)" --manifest-path GenADCS/backends/rust/Cargo.toml --workspace
+
+# PyO3 unit tests use the active virtualenv and run across all available CPUs.
+test:
+    RUSTC_WRAPPER=sccache PYO3_PYTHON="$(python -c 'import sys; print(sys.executable)')" PYTHONPATH="$(python -c 'import site; print(site.getsitepackages()[0])'):$PWD" cargo test --jobs "$(getconf _NPROCESSORS_ONLN)" --manifest-path GenADCS/backends/rust/Cargo.toml --workspace -- --test-threads="$(getconf _NPROCESSORS_ONLN)"
+
+all: build test
