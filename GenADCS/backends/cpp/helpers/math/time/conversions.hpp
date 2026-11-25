@@ -3,9 +3,9 @@
 
 #include <tuple>
 
-namespace omni::time
-{
-double calendar_to_jd(int year, int month, int day, int hour = 0, int minute = 0, double second = 0.0);
+namespace omni::time {
+double calendar_to_jd(int year, int month, int day, int hour = 0,
+                      int minute = 0, double second = 0.0);
 std::tuple<int, int, int, int, int, double> jd_to_calendar(double jd);
 double utc_jd_to_tai_jd(double utc_jd);
 double tai_jd_to_utc_jd(double tai_jd);

@@ -5,6 +5,7 @@ import weakref
 
 import pytest
 
+
 def make_wheel(api):
     return api.ReactionWheel((1, 0, 0), (0, 0, 1), 0.02, 0.1, 2.0)
 
@@ -13,7 +14,9 @@ def make_magnetorquer(api):
     return api.Magnetorquer((0, 1, 0), (1, 0, 0), 0.25)
 
 
-def test_subsystem_defaults_and_list_ownership_quirks(subsystem_backend, subsystem_backend_name):
+def test_subsystem_defaults_and_list_ownership_quirks(
+    subsystem_backend, subsystem_backend_name
+):
     first, second = subsystem_backend.ADCSSubsystem(), subsystem_backend.ADCSSubsystem()
     assert first.reaction_wheels == first.magnetorquers == []
     first.reaction_wheels = [make_wheel(subsystem_backend)]
@@ -38,7 +41,9 @@ def test_subsystem_defaults_and_list_ownership_quirks(subsystem_backend, subsyst
         assert system.reaction_wheels == []
 
 
-def test_device_and_subsystem_keep_references_and_release_on_replacement(subsystem_backend):
+def test_device_and_subsystem_keep_references_and_release_on_replacement(
+    subsystem_backend,
+):
     class Retained:
         pass
 
@@ -67,5 +72,3 @@ def test_device_and_subsystem_keep_references_and_release_on_replacement(subsyst
     del system
     gc.collect()
     assert retained_effect_ref() is None
-
-

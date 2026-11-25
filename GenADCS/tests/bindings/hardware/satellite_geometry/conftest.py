@@ -10,4 +10,6 @@ def geometry_backend_name(request):
 
 @pytest.fixture
 def geometry_backend(geometry_backend_name):
-    return import_module(f"GenADCS.backends.{geometry_backend_name}.hardware.satellite_geometry")
+    return import_module(
+        f"GenADCS.backends.{geometry_backend_name}.hardware.satellite_geometry"
+    )

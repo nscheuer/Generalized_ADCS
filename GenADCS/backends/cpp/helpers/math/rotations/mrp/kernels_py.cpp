@@ -23,9 +23,8 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-void bind_rotations_mrp_kernels(py::module_ &module)
-{
-    module.def("mrp_to_quaternion", &rotations::mrp_to_quaternion_parameters);
-    module.def("quaternion_to_mrp", &rotations::quaternion_to_mrp_parameters);
-    module.def("mrp_shadow_set", &rotations::mrp_shadow_set);
+void bind_rotations_mrp_kernels(py::module_ &module) {
+  module.def("mrp_to_quaternion", &rotations::mrp_to_quaternion_parameters);
+  module.def("quaternion_to_mrp", &rotations::quaternion_to_mrp_parameters);
+  module.def("mrp_shadow_set", &rotations::mrp_shadow_set);
 }

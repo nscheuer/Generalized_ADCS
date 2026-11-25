@@ -32,8 +32,13 @@ def test_panel_defaults_follow_dataclass_contract():
 def test_panel_supports_positional_and_keyword_construction_with_value_equality():
     positional = SatellitePanel((1, 2, 3), (0, 0, 1), (4, 5), 0.1, 0.2, 0.7, 2.0)
     keyword = SatellitePanel(
-        dimensions=(4, 5), orientation=(0, 0, 1), position=(1, 2, 3),
-        eta_s=0.1, eta_d=0.2, eta_a=0.7, cd=2.0,
+        dimensions=(4, 5),
+        orientation=(0, 0, 1),
+        position=(1, 2, 3),
+        eta_s=0.1,
+        eta_d=0.2,
+        eta_a=0.7,
+        cd=2.0,
     )
     assert positional == keyword
     assert "SatellitePanel" in repr(positional)

@@ -13,7 +13,11 @@ class StateRecordSource:
 
     def __init__(self, julian_date=2451545.0, record=None):
         self.orbit = SimpleNamespace(julian_date=julian_date)
-        self.record = np.array([(1.0,)], dtype=[("sentinel", np.float64)]) if record is None else record
+        self.record = (
+            np.array([(1.0,)], dtype=[("sentinel", np.float64)])
+            if record is None
+            else record
+        )
         self.wheel_counts = []
 
     def to_record(self, wheel_count):
@@ -22,7 +26,9 @@ class StateRecordSource:
 
 
 def make_dependencies(*, wheel_count=0, julian_date=2451545.0, record=None):
-    satellite = SimpleNamespace(adcs=SimpleNamespace(reaction_wheels=[object() for _ in range(wheel_count)]))
+    satellite = SimpleNamespace(
+        adcs=SimpleNamespace(reaction_wheels=[object() for _ in range(wheel_count)])
+    )
     state = StateRecordSource(julian_date=julian_date, record=record)
     return satellite, SimpleNamespace(), state, SimpleNamespace(), SimpleNamespace()
 
@@ -57,10 +63,14 @@ def test_unsupported_backend_is_rejected_with_clear_error(backend):
 
 
 def test_state_record_and_julian_date_are_initialized_from_dependencies():
-    record = np.zeros(1, dtype=[("position", np.float64, (3,)), ("momentum", np.float64, (2,))])
+    record = np.zeros(
+        1, dtype=[("position", np.float64, (3,)), ("momentum", np.float64, (2,))]
+    )
     record["position"][0] = [7.0e6, 1.0, -2.0]
     record["momentum"][0] = [0.25, -0.5]
-    dependencies = make_dependencies(wheel_count=2, julian_date=2460000.25, record=record)
+    dependencies = make_dependencies(
+        wheel_count=2, julian_date=2460000.25, record=record
+    )
 
     config = SimulationConfig(*dependencies)
 

@@ -3,7 +3,11 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from GenADCS.backends.python.environment.ephemeris import EphemerisModel
-from GenADCS.backends.python.environment.ephemeris import BODY_EARTH, BODY_MOON, BODY_SUN
+from GenADCS.backends.python.environment.ephemeris import (
+    BODY_EARTH,
+    BODY_MOON,
+    BODY_SUN,
+)
 
 
 @dataclass(slots=True)
@@ -36,13 +40,32 @@ class OrbitalState:
         return cls(position, velocity, julian_date, ephemeris)
 
     @classmethod
-    def from_keplerian(cls, semi_major_axis, eccentricity, inclination, ascending_node, argument_of_periapsis, true_anomaly, julian_date, ephemeris=None):
-        elements = (semi_major_axis, eccentricity, inclination, ascending_node, argument_of_periapsis, true_anomaly)
+    def from_keplerian(
+        cls,
+        semi_major_axis,
+        eccentricity,
+        inclination,
+        ascending_node,
+        argument_of_periapsis,
+        true_anomaly,
+        julian_date,
+        ephemeris=None,
+    ):
+        elements = (
+            semi_major_axis,
+            eccentricity,
+            inclination,
+            ascending_node,
+            argument_of_periapsis,
+            true_anomaly,
+        )
         return cls(None, None, julian_date, ephemeris, elements)
 
     def _load_cartesian(self):
         if self._position is None or self._velocity is None:
-            raise NotImplementedError("Keplerian to Cartesian conversion is not implemented")
+            raise NotImplementedError(
+                "Keplerian to Cartesian conversion is not implemented"
+            )
 
     @property
     def position(self):
@@ -60,7 +83,9 @@ class OrbitalState:
                 raise ValueError("an ephemeris must be configured")
             body_ids = {"sun": BODY_SUN, "earth": BODY_EARTH, "moon": BODY_MOON}
             body_id = body_ids[body.lower()] if isinstance(body, str) else int(body)
-            self._body_positions[body] = self.ephemeris.position(body_id, self.julian_date)
+            self._body_positions[body] = self.ephemeris.position(
+                body_id, self.julian_date
+            )
         return self._body_positions[body]
 
     @property

@@ -13,14 +13,14 @@ mod dynamics_py;
 mod propagators_py;
 
 #[allow(dead_code)]
-#[path = "../../hardware/ADCS_subsystem/sensors/kernels.rs"]
-mod sensor_kernels;
-#[allow(dead_code)]
 #[path = "../../hardware/ADCS_subsystem/estimator/attitude_estimator/base.rs"]
 mod base;
 #[allow(dead_code)]
 #[path = "../../hardware/ADCS_subsystem/estimator/attitude_estimator/attitude_mekf.rs"]
 mod mekf;
+#[allow(dead_code)]
+#[path = "../../hardware/ADCS_subsystem/sensors/kernels.rs"]
+mod sensor_kernels;
 mod sensor_sampling;
 
 #[pymodule]

@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 
-from GenADCS.backends.python.helpers.math.vector import cross, norm, normalize, skew, unit
+from GenADCS.backends.python.helpers.math.vector import (
+    cross,
+    norm,
+    normalize,
+    skew,
+    unit,
+)
 
 
 @pytest.mark.parametrize(
@@ -22,7 +28,9 @@ def test_cross_is_antisymmetric_and_zero_for_parallel_vectors():
     np.testing.assert_array_equal(cross(a, 3.5 * a), np.zeros(3))
 
 
-@pytest.mark.parametrize("vector", [np.array([3.0, 4.0, 0.0]), np.array([1.0, -2.0, 2.0]), np.zeros(3)])
+@pytest.mark.parametrize(
+    "vector", [np.array([3.0, 4.0, 0.0]), np.array([1.0, -2.0, 2.0]), np.zeros(3)]
+)
 def test_norm_matches_euclidean_norm(vector):
     assert norm(vector) == pytest.approx(np.linalg.norm(vector))
 

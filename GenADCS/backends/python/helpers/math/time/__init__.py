@@ -6,6 +6,7 @@ DUT1 = UT1 - UTC in seconds. TDB uses a compact millisecond-level periodic
 approximation; use a full ephemeris/SOFA implementation when higher accuracy
 is needed.
 """
+
 from .conversions import (
     calendar_to_jd,
     day_of_year,

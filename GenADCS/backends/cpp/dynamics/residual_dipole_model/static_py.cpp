@@ -6,9 +6,9 @@ using omni::dynamics::M;
 using omni::dynamics::Q;
 using omni::dynamics::V;
 
-void bind_residual_dipole_model_static(py::module_ &m)
-{
-    m.def("static_residual_dipole_torque", [](const V &dipole, const V &field, const Q &q) {
-        return omni::dynamics::residual_dipole(dipole, field, q);
-    });
+void bind_residual_dipole_model_static(py::module_ &m) {
+  m.def("static_residual_dipole_torque",
+        [](const V &dipole, const V &field, const Q &q) {
+          return omni::dynamics::residual_dipole(dipole, field, q);
+        });
 }

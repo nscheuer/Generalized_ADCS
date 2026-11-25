@@ -1,6 +1,7 @@
 from importlib import import_module
 import pytest
 
+
 @pytest.fixture(params=("python", "cpp", "rust"), ids=("python", "cpp", "rust"))
 def rotations(request):
     try:
@@ -17,8 +18,14 @@ def rotations(request):
         module.rodrigues_to_quaternion = module.rodrigues.rodrigues_to_quaternion
         module.quaternion_to_rodrigues = module.rodrigues.quaternion_to_rodrigues
         module.slerp = module.quaternion.slerp
-        module.quaternion_to_rotation_vector = module.quaternion.quaternion_to_rotation_vector
-        module.rotation_vector_to_quaternion = module.quaternion.rotation_vector_to_quaternion
+        module.quaternion_to_rotation_vector = (
+            module.quaternion.quaternion_to_rotation_vector
+        )
+        module.rotation_vector_to_quaternion = (
+            module.quaternion.rotation_vector_to_quaternion
+        )
         return module
     except ImportError as exc:
-        pytest.fail(f"{request.param} rotation backend unavailable; build extensions first: {exc}")
+        pytest.fail(
+            f"{request.param} rotation backend unavailable; build extensions first: {exc}"
+        )

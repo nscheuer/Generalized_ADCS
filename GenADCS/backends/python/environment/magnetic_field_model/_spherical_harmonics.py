@@ -11,6 +11,7 @@ from numba import njit
 
 RE = 6371.2  # Magnetic harmonic reference radius [km].
 
+
 @njit(cache=True, nogil=True)
 def _schmidt_table(nmax: int) -> np.ndarray:
     r"""
@@ -32,9 +33,10 @@ def _schmidt_table(nmax: int) -> np.ndarray:
         S[n, 0] = S[n - 1, 0] * (2.0 * n - 1.0) / n
         for m in range(1, n + 1):
             S[n, m] = S[n, m - 1] * np.sqrt(
-                (n - m + 1.0) * ((2.0 if m == 1 else 1.0)) / (n + m)
+                (n - m + 1.0) * (2.0 if m == 1 else 1.0) / (n + m)
             )
     return S
+
 
 @njit(cache=True, fastmath=True, nogil=True, inline="always")
 def _eval_one(ri, th_deg, ph_deg, g, h, nmax, Pc, P1, P2, Dc, D1, D2, cosmp, sinmp):
@@ -155,5 +157,3 @@ def _eval_one(ri, th_deg, ph_deg, g, h, nmax, Pc, P1, P2, Dc, D1, D2, cosmp, sin
         D2, D1, Dc = D1, Dc, D2
 
     return sr, st, sq / sinth
-
-

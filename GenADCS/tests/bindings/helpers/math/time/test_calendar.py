@@ -13,8 +13,14 @@ def test_calendar_keywords_defaults_and_python_scalar_types(time_api):
 
 
 def test_python_numeric_scalars_and_numpy_scalar_arguments_convert(time_api):
-    jd = time_api.calendar_to_jd(np.int64(2024), np.int32(2), np.int64(29),
-                                 np.int32(6), np.int64(7), np.float64(8.5))
+    jd = time_api.calendar_to_jd(
+        np.int64(2024),
+        np.int32(2),
+        np.int64(29),
+        np.int32(6),
+        np.int64(7),
+        np.float64(8.5),
+    )
     assert isinstance(jd, float)
     assert time_api.jd_to_calendar(jd)[:5] == (2024, 2, 29, 6, 7)
     assert time_api.jd_to_calendar(jd)[5] == pytest.approx(8.5, abs=4e-5)
@@ -27,7 +33,9 @@ def test_bad_calendar_binding_signatures_raise_python_errors(time_api, args):
 
 
 def test_binding_returns_owned_immutable_values_after_gc(time_api):
-    returned = time_api.jd_to_calendar(time_api.calendar_to_jd(2024, 2, 29, 23, 59, 59.25))
+    returned = time_api.jd_to_calendar(
+        time_api.calendar_to_jd(2024, 2, 29, 23, 59, 59.25)
+    )
     snapshot = tuple(returned)
     del returned
     gc.collect()

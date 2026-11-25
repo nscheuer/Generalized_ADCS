@@ -3,9 +3,9 @@
 
 #include <Eigen/Core>
 
-namespace omni::math
-{
-Eigen::Vector3d cross(const Eigen::Vector3d &left, const Eigen::Vector3d &right);
+namespace omni::math {
+Eigen::Vector3d cross(const Eigen::Vector3d &left,
+                      const Eigen::Vector3d &right);
 double norm(const Eigen::VectorXd &vector);
 Eigen::VectorXd normalize(const Eigen::VectorXd &vector);
 Eigen::VectorXd unit(const Eigen::VectorXd &vector);

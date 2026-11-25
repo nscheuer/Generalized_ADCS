@@ -3,7 +3,9 @@ import pytest
 
 
 def test_quaternion_normalization_and_rate_values(state_backend):
-    state = state_backend.AttitudeState([2, 0, 0, 0], np.array([1, 2, 3], dtype=np.float32))
+    state = state_backend.AttitudeState(
+        [2, 0, 0, 0], np.array([1, 2, 3], dtype=np.float32)
+    )
     np.testing.assert_array_equal(state.quaternion_array, [1, 0, 0, 0])
     np.testing.assert_array_equal(state.rates, [1, 2, 3])
     assert np.asarray(state.quaternion_array).dtype == np.float64

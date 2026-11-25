@@ -22,15 +22,27 @@ def prepare_panels(geometry):
         dimensions = np.asarray(panel.dimensions, dtype=np.float64)
         optical = np.asarray((panel.eta_s, panel.eta_d, panel.eta_a), dtype=np.float64)
         if angles.shape != (3,) or position.shape != (3,) or dimensions.shape != (2,):
-            raise ValueError("panel orientation, position, and dimensions must have lengths 3, 3, and 2")
-        if not (np.all(np.isfinite(angles)) and np.all(np.isfinite(position))
-                and np.all(np.isfinite(dimensions)) and np.all(np.isfinite(optical))
-                and np.isfinite(panel.cd)):
+            raise ValueError(
+                "panel orientation, position, and dimensions must have lengths 3, 3, and 2"
+            )
+        if not (
+            np.all(np.isfinite(angles))
+            and np.all(np.isfinite(position))
+            and np.all(np.isfinite(dimensions))
+            and np.all(np.isfinite(optical))
+            and np.isfinite(panel.cd)
+        ):
             raise ValueError("panel values must be finite")
         if np.any(dimensions <= 0.0) or panel.cd < 0.0:
             raise ValueError("panel dimensions must be positive and cd nonnegative")
-        if np.any(optical < 0.0) or np.any(optical > 1.0) or not np.isclose(np.sum(optical), 1.0):
-            raise ValueError("panel optical coefficients must be in [0, 1] and sum to one")
+        if (
+            np.any(optical < 0.0)
+            or np.any(optical > 1.0)
+            or not np.isclose(np.sum(optical), 1.0)
+        ):
+            raise ValueError(
+                "panel optical coefficients must be in [0, 1] and sum to one"
+            )
         roll, pitch, yaw = angles
         normals[i] = (
             np.cos(yaw) * np.sin(pitch) * np.cos(roll) + np.sin(yaw) * np.sin(roll),
@@ -40,4 +52,6 @@ def prepare_panels(geometry):
         arms[i] = position - center
         areas[i] = dimensions[0] * dimensions[1]
         coefficients[i] = (panel.cd, *optical)
-    return tuple(np.ascontiguousarray(array) for array in (normals, arms, areas, coefficients))
+    return tuple(
+        np.ascontiguousarray(array) for array in (normals, arms, areas, coefficients)
+    )

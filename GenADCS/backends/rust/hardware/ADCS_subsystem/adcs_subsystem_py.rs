@@ -24,7 +24,7 @@ fn collection(py: Python<'_>, value: Option<PyObject>) -> PyResult<PyObject> {
         Some(values) => {
             let items: Vec<PyObject> = values.as_ref(py).extract()?;
             Ok(PyList::new(py, items).into())
-        },
+        }
         None => Ok(PyList::empty(py).into()),
     }
 }

@@ -2,10 +2,15 @@ import numpy as np
 
 
 def test_zonal_force_matches_across_backends(dynamics_backends):
-    coefficients = np.array([
-        1.08262668e-3, -2.5324105e-6, -1.6198976e-6,
-        -2.2729608e-7, 5.406812e-7,
-    ])
+    coefficients = np.array(
+        [
+            1.08262668e-3,
+            -2.5324105e-6,
+            -1.6198976e-6,
+            -2.2729608e-7,
+            5.406812e-7,
+        ]
+    )
     cases = (
         (np.array([7e6, 0.0, 0.0]), 10.0, 0.0, 3.986004418e14, 6_378_137.0),
         (np.array([-2e6, 3e6, 6e6]), 125.0, 2451545.0, 3.986004418e14, 6_378_137.0),

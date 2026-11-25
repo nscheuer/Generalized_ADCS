@@ -55,7 +55,11 @@ def test_apply_errors_runs_effects_sequentially_and_passes_rng_and_dt():
     calls = []
     rng = object()
     wheel = ReactionWheel(
-        (0, 0, 0), (1, 0, 0), 0.04, 0.2, 4.0,
+        (0, 0, 0),
+        (1, 0, 0),
+        0.04,
+        0.2,
+        4.0,
         effects=[AddEffect(-1.0, calls), AddEffect(0.25, calls)],
     )
     assert wheel.apply_errors(2.0, 0.5, rng) == 1.25
@@ -76,7 +80,11 @@ def test_fields_are_mutable_instance_is_slotted_and_missing_arguments_fail():
     wheel.max_momentum = 2.5
     wheel.misalignment = (0.01, 0.0, -0.01)
     assert wheel.position == (1, 0, 0)
-    assert (wheel.rotational_inertia, wheel.max_torque, wheel.max_momentum) == (0.05, 0.12, 2.5)
+    assert (wheel.rotational_inertia, wheel.max_torque, wheel.max_momentum) == (
+        0.05,
+        0.12,
+        2.5,
+    )
     assert wheel.misalignment == (0.01, 0.0, -0.01)
     with pytest.raises(AttributeError):
         wheel.extra = True

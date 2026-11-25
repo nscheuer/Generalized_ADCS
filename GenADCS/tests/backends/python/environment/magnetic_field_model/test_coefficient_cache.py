@@ -2,7 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from GenADCS.backends.python.environment.magnetic_field_model.magnetic_field_model import read_shc
+from GenADCS.backends.python.environment.magnetic_field_model.magnetic_field_model import (
+    read_shc,
+)
 
 
 def test_shc_coefficients_are_cached():

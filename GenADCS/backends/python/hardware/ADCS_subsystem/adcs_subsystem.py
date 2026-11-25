@@ -17,5 +17,7 @@ class ADCSSubsystem:
     def __post_init__(self):
         if isinstance(self.N, bool) or not isinstance(self.N, int) or self.N < 1:
             raise ValueError("N must be a positive integer")
-        if self.estimator is not None and not isinstance(self.estimator, AttitudeEstimator):
+        if self.estimator is not None and not isinstance(
+            self.estimator, AttitudeEstimator
+        ):
             raise TypeError("estimator must be an AttitudeEstimator")

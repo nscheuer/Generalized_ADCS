@@ -9,6 +9,7 @@ celestial terms and sub-daily Earth-orientation corrections.
 LVLH axes are +x radial, +y along-track, +z orbit-normal. Body attitude uses
 the scalar-first Hamilton quaternion q_body_from_gcrf.
 """
+
 import numpy as np
 from numba import njit
 
@@ -54,12 +55,19 @@ def _nutation_4term(jd_tt):
     omega = (125.04452 - 1934.136261 * t) * deg
     mean_sun = (280.4665 + 36000.7698 * t) * deg
     mean_moon = (218.3165 + 481267.8813 * t) * deg
-    dpsi = (-17.20 * np.sin(omega) - 1.32 * np.sin(2.0 * mean_sun)
-            - 0.23 * np.sin(2.0 * mean_moon) + 0.21 * np.sin(2.0 * omega)) * arcsec
-    deps = (9.20 * np.cos(omega) + 0.57 * np.cos(2.0 * mean_sun)
-            + 0.10 * np.cos(2.0 * mean_moon) - 0.09 * np.cos(2.0 * omega)) * arcsec
-    eps = (23.43929111 - 0.013004167 * t - 1.64e-7 * t * t
-           + 5.04e-7 * t**3) * deg
+    dpsi = (
+        -17.20 * np.sin(omega)
+        - 1.32 * np.sin(2.0 * mean_sun)
+        - 0.23 * np.sin(2.0 * mean_moon)
+        + 0.21 * np.sin(2.0 * omega)
+    ) * arcsec
+    deps = (
+        9.20 * np.cos(omega)
+        + 0.57 * np.cos(2.0 * mean_sun)
+        + 0.10 * np.cos(2.0 * mean_moon)
+        - 0.09 * np.cos(2.0 * omega)
+    ) * arcsec
+    eps = (23.43929111 - 0.013004167 * t - 1.64e-7 * t * t + 5.04e-7 * t**3) * deg
     return dpsi, deps, eps
 
 
@@ -77,8 +85,12 @@ def _gcrf_to_teme(jd_tt):
 @njit(cache=True)
 def _gmst82(jd_ut1):
     t = (jd_ut1 - 2451545.0) / 36525.0
-    seconds = (67310.54841 + (876600.0 * 3600.0 + 8640184.812866) * t
-               + 0.093104 * t * t - 6.2e-6 * t**3)
+    seconds = (
+        67310.54841
+        + (876600.0 * 3600.0 + 8640184.812866) * t
+        + 0.093104 * t * t
+        - 6.2e-6 * t**3
+    )
     turns = seconds / 86400.0
     turns -= np.floor(turns)
     return turns * (2.0 * np.pi)
@@ -115,9 +127,16 @@ def gcrf_to_lvlh_matrix(position_gcrf, velocity_gcrf):
     return np.vstack((x_axis, y_axis, z_axis))
 
 
-def _gcrf_to_frame_matrix(frame, jd_ut1=None, jd_tt=None, xp=0.0, yp=0.0,
-                          position_gcrf=None, velocity_gcrf=None,
-                          q_body_from_gcrf=None):
+def _gcrf_to_frame_matrix(
+    frame,
+    jd_ut1=None,
+    jd_tt=None,
+    xp=0.0,
+    yp=0.0,
+    position_gcrf=None,
+    velocity_gcrf=None,
+    q_body_from_gcrf=None,
+):
     if frame == "GCRF":
         return np.eye(3)
     if frame in ("ECEF", "TEME") and jd_ut1 is None:
@@ -130,18 +149,33 @@ def _gcrf_to_frame_matrix(frame, jd_ut1=None, jd_tt=None, xp=0.0, yp=0.0,
         return _gcrf_to_teme(float(jd_tt))
     if frame == "LVLH":
         if position_gcrf is None or velocity_gcrf is None:
-            raise ValueError("position_gcrf and velocity_gcrf are required for LVLH conversions")
+            raise ValueError(
+                "position_gcrf and velocity_gcrf are required for LVLH conversions"
+            )
         return gcrf_to_lvlh_matrix(position_gcrf, velocity_gcrf)
     if frame == "BODY":
         if q_body_from_gcrf is None:
             raise ValueError("q_body_from_gcrf is required for body-frame conversions")
-        return np.asarray(_quaternion_to_dcm(np.asarray(q_body_from_gcrf, dtype=np.float64)))
-    raise ValueError(f"unsupported frame {frame!r}; expected one of {sorted(_FRAME_NAMES)}")
+        return np.asarray(
+            _quaternion_to_dcm(np.asarray(q_body_from_gcrf, dtype=np.float64))
+        )
+    raise ValueError(
+        f"unsupported frame {frame!r}; expected one of {sorted(_FRAME_NAMES)}"
+    )
 
 
-def frame_rotation(source, target, *, jd_ut1=None, jd_tt=None, xp=0.0, yp=0.0,
-                   position_gcrf=None, velocity_gcrf=None,
-                   q_body_from_gcrf=None):
+def frame_rotation(
+    source,
+    target,
+    *,
+    jd_ut1=None,
+    jd_tt=None,
+    xp=0.0,
+    yp=0.0,
+    position_gcrf=None,
+    velocity_gcrf=None,
+    q_body_from_gcrf=None,
+):
     """Return a 3x3 source-to-target rotation between supported frames.
 
     ``jd_ut1`` and ``jd_tt`` are required when either frame is ECEF or TEME.
@@ -157,11 +191,23 @@ def frame_rotation(source, target, *, jd_ut1=None, jd_tt=None, xp=0.0, yp=0.0,
     if source == target:
         return np.eye(3)
     r_target_from_gcrf = _gcrf_to_frame_matrix(
-        target, jd_ut1, jd_tt, xp, yp, position_gcrf, velocity_gcrf,
+        target,
+        jd_ut1,
+        jd_tt,
+        xp,
+        yp,
+        position_gcrf,
+        velocity_gcrf,
         q_body_from_gcrf,
     )
     r_source_from_gcrf = _gcrf_to_frame_matrix(
-        source, jd_ut1, jd_tt, xp, yp, position_gcrf, velocity_gcrf,
+        source,
+        jd_ut1,
+        jd_tt,
+        xp,
+        yp,
+        position_gcrf,
+        velocity_gcrf,
         q_body_from_gcrf,
     )
     return r_target_from_gcrf @ r_source_from_gcrf.T

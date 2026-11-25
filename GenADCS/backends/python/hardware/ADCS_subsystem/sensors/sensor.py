@@ -10,8 +10,14 @@ import numpy as np
 class Sensor:
     """Numba-compatible sensor configuration; noise is a 3x3 covariance."""
 
-    def __init__(self, position, orientation, misalignment, saturation_value, noise, bias):
-        if position.shape != (3,) or orientation.shape != (4,) or misalignment.shape != (4,):
+    def __init__(
+        self, position, orientation, misalignment, saturation_value, noise, bias
+    ):
+        if (
+            position.shape != (3,)
+            or orientation.shape != (4,)
+            or misalignment.shape != (4,)
+        ):
             raise ValueError("position must have 3 components and quaternions 4")
         if noise.shape != (3, 3) or bias.shape != (3,):
             raise ValueError("noise must be a 3x3 covariance and bias a 3-vector")

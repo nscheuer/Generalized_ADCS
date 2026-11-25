@@ -15,10 +15,14 @@ def test_quaternion_derivative_sequence_array_and_dtype_parity(math_backend):
     np.testing.assert_allclose(result, [0.0, -0.4, 0.7, -0.2])
     np.testing.assert_array_equal(q, q_before)
     np.testing.assert_array_equal(omega, omega_before)
-    np.testing.assert_allclose(math_backend.quaternion_derivative(tuple(q), tuple(omega)), result)
+    np.testing.assert_allclose(
+        math_backend.quaternion_derivative(tuple(q), tuple(omega)), result
+    )
 
 
-def test_derivative_outputs_own_their_memory_and_survive_argument_destruction(math_backend):
+def test_derivative_outputs_own_their_memory_and_survive_argument_destruction(
+    math_backend,
+):
     q = np.array([1.0, 0.0, 0.0, 0.0])
     omega = np.array([1.0, 2.0, 3.0])
     result = math_backend.quaternion_derivative(q, omega)
@@ -47,14 +51,20 @@ def test_normalization_jacobian_zero_quaternion_maps_to_value_error(math_backend
         math_backend.quaternion_normalization_jacobian(np.zeros(4))
 
 
-@pytest.mark.parametrize("bad_q,bad_w", [([1.0, 0.0], [0.0, 0.0, 0.0]), ([1.0, 0.0, 0.0, 0.0], [1.0, 2.0])])
-def test_wrong_derivative_argument_shapes_raise_python_exception(math_backend, backend_name, bad_q, bad_w):
+@pytest.mark.parametrize(
+    "bad_q,bad_w", [([1.0, 0.0], [0.0, 0.0, 0.0]), ([1.0, 0.0, 0.0, 0.0], [1.0, 2.0])]
+)
+def test_wrong_derivative_argument_shapes_raise_python_exception(
+    math_backend, backend_name, bad_q, bad_w
+):
     expected_exception = TypeError if backend_name == "cpp" else ValueError
     with pytest.raises(expected_exception):
         math_backend.quaternion_derivative(bad_q, bad_w)
 
 
-def test_quaternion_object_constructor_and_destructor_keep_native_data_valid(math_backend):
+def test_quaternion_object_constructor_and_destructor_keep_native_data_valid(
+    math_backend,
+):
     source = np.array([2.0, 0.0, 0.0, 0.0], dtype=np.float32)
     quaternion = math_backend.Quaternion(source)
     source[:] = 0.0

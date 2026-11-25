@@ -2,7 +2,11 @@
 
 import pytest
 
-from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem, Magnetorquer, ReactionWheel
+from GenADCS.backends.python.hardware.ADCS_subsystem import (
+    ADCSSubsystem,
+    Magnetorquer,
+    ReactionWheel,
+)
 
 
 def test_default_actuator_collections_are_empty_and_independent():

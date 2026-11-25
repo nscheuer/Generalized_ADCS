@@ -4,7 +4,8 @@ import numpy as np
 def test_srp_force_and_torque_match_across_backends(dynamics_backends):
     cases = (
         (
-            np.zeros(3), np.array([149_597_870_700.0, 0.0, 0.0]),
+            np.zeros(3),
+            np.array([149_597_870_700.0, 0.0, 0.0]),
             np.array([1.0, 0.0, 0.0, 0.0]),
             np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]),
             np.array([[0.0, 0.5, 0.0], [0.0, 0.0, -0.3]]),
@@ -32,7 +33,14 @@ def test_srp_force_and_torque_match_across_backends(dynamics_backends):
                     position, sun, quaternion, normals, areas, optical, illumination
                 ),
                 backend.projected_area_srp_torque(
-                    position, sun, quaternion, normals, arms, areas, optical, illumination
+                    position,
+                    sun,
+                    quaternion,
+                    normals,
+                    arms,
+                    areas,
+                    optical,
+                    illumination,
                 ),
             )
 

@@ -16,7 +16,9 @@ def test_magnetorquer_effects_are_handled_at_the_binding_boundary(subsystem_back
 
     noise, bias = Noise(), Bias()
     torquer = subsystem_backend.Magnetorquer(
-        (1, 2, 3), (0, 0, 1), 0.25,
+        (1, 2, 3),
+        (0, 0, 1),
+        0.25,
         effects=[noise, bias],
     )
 

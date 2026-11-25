@@ -1,6 +1,14 @@
 import numpy as np
 
-from .kernels import axis_angle_to_dcm, compose_dcm, dcm_orthogonality_error, inverse_dcm, normalize_dcm, relative_dcm, rotate_vector
+from .kernels import (
+    axis_angle_to_dcm,
+    compose_dcm,
+    dcm_orthogonality_error,
+    inverse_dcm,
+    normalize_dcm,
+    relative_dcm,
+    rotate_vector,
+)
 from ..quaternion.conversions import _dcm_to_quaternion, _quaternion_to_dcm
 from ..quaternion.interpolation import rotation_vector_to_quaternion
 
@@ -11,10 +19,16 @@ class DCM:
     __slots__ = ("_matrix",)
 
     def __init__(self, matrix=None):
-        value = np.eye(3, dtype=np.float64) if matrix is None else np.asarray(matrix, dtype=np.float64)
+        value = (
+            np.eye(3, dtype=np.float64)
+            if matrix is None
+            else np.asarray(matrix, dtype=np.float64)
+        )
         if value.shape != (3, 3) or not np.all(np.isfinite(value)):
             raise ValueError("DCM must be a finite 3x3 matrix")
-        if not np.allclose(value.T @ value, np.eye(3), atol=1e-8) or not np.isclose(np.linalg.det(value), 1.0, atol=1e-8):
+        if not np.allclose(value.T @ value, np.eye(3), atol=1e-8) or not np.isclose(
+            np.linalg.det(value), 1.0, atol=1e-8
+        ):
             raise ValueError("DCM must be a proper rotation matrix")
         self._matrix = value.copy()
 
@@ -25,7 +39,11 @@ class DCM:
     @classmethod
     def from_axis_angle(cls, axis, angle):
         axis = np.asarray(axis, dtype=np.float64)
-        if axis.shape != (3,) or not np.all(np.isfinite(axis)) or not np.isfinite(angle):
+        if (
+            axis.shape != (3,)
+            or not np.all(np.isfinite(axis))
+            or not np.isfinite(angle)
+        ):
             raise ValueError("axis must be a finite 3-vector and angle finite")
         return cls(axis_angle_to_dcm(axis, float(angle)))
 

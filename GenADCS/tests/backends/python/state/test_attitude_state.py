@@ -37,7 +37,9 @@ def test_orientation_object_and_late_validation():
         _ = state.quaternion_array
 
 
-@pytest.mark.parametrize("orientation", [[1, 0, 0], [1, 0, np.nan, 0], [np.inf, 0, 0, 0]])
+@pytest.mark.parametrize(
+    "orientation", [[1, 0, 0], [1, 0, np.nan, 0], [np.inf, 0, 0, 0]]
+)
 def test_rejects_invalid_orientation_on_access(orientation):
     state = AttitudeState(orientation, [0, 0, 0])
     with pytest.raises(ValueError, match="finite Hamilton quaternion"):

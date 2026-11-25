@@ -17,7 +17,10 @@ def slerp(q0, q1, fraction):
         return _normalize_quaternion((1.0 - fraction) * a + fraction * b)
     angle = np.arccos(cosine)
     denominator = np.sin(angle)
-    return _normalize_quaternion((np.sin((1.0 - fraction) * angle) * a + np.sin(fraction * angle) * b) / denominator)
+    return _normalize_quaternion(
+        (np.sin((1.0 - fraction) * angle) * a + np.sin(fraction * angle) * b)
+        / denominator
+    )
 
 
 @njit(cache=True)
@@ -26,7 +29,9 @@ def rotation_vector_to_quaternion(rotation_vector):
     if angle == 0.0:
         return np.array((1.0, 0.0, 0.0, 0.0))
     half = 0.5 * angle
-    return np.concatenate((np.array((np.cos(half),)), rotation_vector * (np.sin(half) / angle)))
+    return np.concatenate(
+        (np.array((np.cos(half),)), rotation_vector * (np.sin(half) / angle))
+    )
 
 
 @njit(cache=True)

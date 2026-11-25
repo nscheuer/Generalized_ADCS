@@ -12,7 +12,9 @@ def test_quaternion_derivative_family_matches_pairwise(math_backends):
         name: (
             api.quaternion_derivative(q, omega),
             api.quaternion_rate_matrix(q),
-            api.angular_velocity_from_quaternion_derivative(q, api.quaternion_derivative(q, omega)),
+            api.angular_velocity_from_quaternion_derivative(
+                q, api.quaternion_derivative(q, omega)
+            ),
             api.quaternion_normalization_jacobian(q),
             api.rotated_vector_quaternion_jacobian(q, vector),
             api.quaternion_to_euler321(q),
@@ -22,4 +24,6 @@ def test_quaternion_derivative_family_matches_pairwise(math_backends):
     reference = results["python"]
     for backend, values in results.items():
         for actual, expected in zip(values, reference):
-            np.testing.assert_allclose(actual, expected, rtol=3e-13, atol=3e-14, err_msg=backend)
+            np.testing.assert_allclose(
+                actual, expected, rtol=3e-13, atol=3e-14, err_msg=backend
+            )

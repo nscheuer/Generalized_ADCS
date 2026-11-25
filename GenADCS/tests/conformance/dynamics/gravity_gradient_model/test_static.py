@@ -8,7 +8,9 @@ def test_gravity_gradient_matches_central_field_formula(dynamics_api):
     inertia = np.diag([2.0, 3.0, 4.0])
     mu = 3.986e14
     radial = position / np.linalg.norm(position)
-    expected = 3.0 * mu / np.linalg.norm(position) ** 3 * np.cross(radial, inertia @ radial)
+    expected = (
+        3.0 * mu / np.linalg.norm(position) ** 3 * np.cross(radial, inertia @ radial)
+    )
 
     torque = dynamics_api.static_gravity_gradient_torque(
         position, quaternion, inertia, mu
@@ -18,8 +20,10 @@ def test_gravity_gradient_matches_central_field_formula(dynamics_api):
 
 def test_gravity_gradient_is_zero_for_spherical_inertia(dynamics_api):
     torque = dynamics_api.static_gravity_gradient_torque(
-        np.array([7e6, -2e6, 1e6]), np.array([1.0, 0.0, 0.0, 0.0]),
-        4.0 * np.eye(3), 3.986e14,
+        np.array([7e6, -2e6, 1e6]),
+        np.array([1.0, 0.0, 0.0, 0.0]),
+        4.0 * np.eye(3),
+        3.986e14,
     )
     np.testing.assert_allclose(torque, np.zeros(3), atol=1e-15)
 

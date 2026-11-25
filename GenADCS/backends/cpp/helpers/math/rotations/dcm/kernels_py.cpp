@@ -23,14 +23,15 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-void bind_rotations_dcm_kernels(py::module_ &module)
-{
-    module.def("axis_angle_to_dcm", &rotations::axis_angle_to_dcm);
-    module.def("rotate_vector",
-               py::overload_cast<const rotations::Matrix3 &, const rotations::Vector3 &>(&rotations::rotate_vector));
-    module.def("inverse_dcm", &rotations::inverse_dcm);
-    module.def("compose_dcm", &rotations::compose_dcm);
-    module.def("relative_dcm", &rotations::relative_dcm);
-    module.def("dcm_orthogonality_error", &rotations::dcm_orthogonality_error);
-    module.def("normalize_dcm", &rotations::normalize_dcm);
+void bind_rotations_dcm_kernels(py::module_ &module) {
+  module.def("axis_angle_to_dcm", &rotations::axis_angle_to_dcm);
+  module.def(
+      "rotate_vector",
+      py::overload_cast<const rotations::Matrix3 &, const rotations::Vector3 &>(
+          &rotations::rotate_vector));
+  module.def("inverse_dcm", &rotations::inverse_dcm);
+  module.def("compose_dcm", &rotations::compose_dcm);
+  module.def("relative_dcm", &rotations::relative_dcm);
+  module.def("dcm_orthogonality_error", &rotations::dcm_orthogonality_error);
+  module.def("normalize_dcm", &rotations::normalize_dcm);
 }

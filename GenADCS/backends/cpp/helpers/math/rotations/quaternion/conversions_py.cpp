@@ -23,11 +23,12 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-void bind_rotations_quaternion_conversions(py::module_ &module)
-{
-    module.def("_quaternion_to_dcm", &rotations::quaternion_to_dcm);
-    module.def("_dcm_to_quaternion", &rotations::dcm_to_quaternion);
-    module.def("_axis_angle_to_quaternion", &rotations::axis_angle_to_quaternion);
-    module.def("rotation_vector_to_quaternion", &rotations::rotation_vector_to_quaternion);
-    module.def("quaternion_to_rotation_vector", &rotations::quaternion_to_rotation_vector);
+void bind_rotations_quaternion_conversions(py::module_ &module) {
+  module.def("_quaternion_to_dcm", &rotations::quaternion_to_dcm);
+  module.def("_dcm_to_quaternion", &rotations::dcm_to_quaternion);
+  module.def("_axis_angle_to_quaternion", &rotations::axis_angle_to_quaternion);
+  module.def("rotation_vector_to_quaternion",
+             &rotations::rotation_vector_to_quaternion);
+  module.def("quaternion_to_rotation_vector",
+             &rotations::quaternion_to_rotation_vector);
 }

@@ -15,7 +15,9 @@ def test_rigid_body_and_wheel_dynamics_match_pairwise(math_backends):
     results = {
         name: (
             api.rigid_body_angular_acceleration(omega, torque, inertia),
-            api.wheel_coupled_angular_acceleration(omega, wheel_momentum, wheel_axes, torque, inertia),
+            api.wheel_coupled_angular_acceleration(
+                omega, wheel_momentum, wheel_axes, torque, inertia
+            ),
             api.wheel_momentum_derivative(wheel_torque, acceleration, momentum_axes),
         )
         for name, api in math_backends.items()
@@ -23,7 +25,9 @@ def test_rigid_body_and_wheel_dynamics_match_pairwise(math_backends):
     reference = results["python"]
     for backend, values in results.items():
         for actual, expected in zip(values, reference):
-            np.testing.assert_allclose(actual, expected, rtol=3e-13, atol=3e-14, err_msg=backend)
+            np.testing.assert_allclose(
+                actual, expected, rtol=3e-13, atol=3e-14, err_msg=backend
+            )
 
 
 def test_empty_wheel_results_match_across_backends(math_backends):
@@ -33,10 +37,14 @@ def test_empty_wheel_results_match_across_backends(math_backends):
     alpha = np.array([0.3, 0.2, -0.1])
     results = []
     for api in math_backends.values():
-        results.append((
-            api.wheel_coupled_angular_acceleration(omega, np.empty(0), np.empty((0, 3)), torque, inertia),
-            api.wheel_momentum_derivative(np.empty(0), alpha, np.empty((0, 3))),
-        ))
+        results.append(
+            (
+                api.wheel_coupled_angular_acceleration(
+                    omega, np.empty(0), np.empty((0, 3)), torque, inertia
+                ),
+                api.wheel_momentum_derivative(np.empty(0), alpha, np.empty((0, 3))),
+            )
+        )
     for rigid, derivative in results[1:]:
         np.testing.assert_allclose(rigid, results[0][0], rtol=3e-13, atol=3e-14)
         assert np.asarray(derivative).shape == results[0][1].shape == (0,)

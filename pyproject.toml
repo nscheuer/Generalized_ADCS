@@ -119,6 +119,7 @@ poster = [
 
 dev = [
     "pytest",
+    "pytest-xdist",
     "numdifftools",
     "black",
     "ruff",

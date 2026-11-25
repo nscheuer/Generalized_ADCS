@@ -9,7 +9,7 @@ import pytest
 def test_vector_bindings_accept_sequences_and_numpy_dtypes(math_backend):
     expected = np.array([-11.0, -14.0, 13.0])
     for left, right in (
-        ([1.0, 2.0, 3.0], ( -4.0, 5.0, 2.0)),
+        ([1.0, 2.0, 3.0], (-4.0, 5.0, 2.0)),
         (np.array([1, 2, 3], dtype=np.float32), np.array([-4, 5, 2], dtype=np.float32)),
     ):
         result = math_backend.cross(left, right)

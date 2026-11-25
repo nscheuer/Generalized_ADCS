@@ -27,6 +27,7 @@ class StaticGravityGradientModel:
     def evaluate(self, position_i, q_b_from_i, environment):
         return static_gravity_gradient_torque(
             np.asarray(position_i, dtype=np.float64),
-            np.asarray(q_b_from_i, dtype=np.float64), self.inertia_b,
+            np.asarray(q_b_from_i, dtype=np.float64),
+            self.inertia_b,
             float(environment.planetary_body.gravitational_parameter),
         )

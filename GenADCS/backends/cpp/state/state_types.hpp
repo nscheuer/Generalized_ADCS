@@ -3,8 +3,7 @@
 
 #include <Eigen/Core>
 
-namespace omni
-{
+namespace omni {
 using Vector3 = Eigen::Vector3d;
 using Quaternion = Eigen::Matrix<double, 4, 1>;
 using KeplerianElements = Eigen::Matrix<double, 6, 1>;

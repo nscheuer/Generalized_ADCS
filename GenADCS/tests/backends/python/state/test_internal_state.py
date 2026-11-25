@@ -3,7 +3,10 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from GenADCS.backends.python.state.internal_state import InternalState, WheelMomentumState
+from GenADCS.backends.python.state.internal_state import (
+    InternalState,
+    WheelMomentumState,
+)
 
 
 def test_empty_default_is_independent():
@@ -56,7 +59,9 @@ def test_public_assignment_is_direct_and_can_replace_with_array():
 
 def test_wheel_state_none_sources_and_empty_subsystem():
     assert WheelMomentumState().wheel_momentum.shape == (0,)
-    assert WheelMomentumState(SimpleNamespace(reaction_wheels=[])).wheel_momentum.shape == (0,)
+    assert WheelMomentumState(
+        SimpleNamespace(reaction_wheels=[])
+    ).wheel_momentum.shape == (0,)
 
 
 def test_wheel_state_propagates_bad_source_values_through_validation():

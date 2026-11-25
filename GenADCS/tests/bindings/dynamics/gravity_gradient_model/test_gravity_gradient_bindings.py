@@ -20,16 +20,16 @@ def test_native_gravity_gradient_accepts_numpy_inputs(dynamics_backend):
     assert np.linalg.norm(torque) > 0.0
 
 
-def test_gravity_gradient_model_binding_reads_geometry_and_environment(dynamics_backend):
+def test_gravity_gradient_model_binding_reads_geometry_and_environment(
+    dynamics_backend,
+):
     geometry = SimpleNamespace(inertia=np.diag([2.0, 3.0, 4.0]))
     environment = SimpleNamespace(
         planetary_body=SimpleNamespace(gravitational_parameter=3.986e14)
     )
     model = dynamics_backend.StaticGravityGradientModel(geometry)
 
-    torque = model.evaluate(
-        [7e6, 7e6, 0.0], [1.0, 0.0, 0.0, 0.0], environment
-    )
+    torque = model.evaluate([7e6, 7e6, 0.0], [1.0, 0.0, 0.0, 0.0], environment)
     assert torque.shape == (3,)
     assert np.isfinite(torque).all()
 

@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 
-def test_native_srp_functions_accept_numpy_inputs_and_scale_with_illumination(dynamics_backend):
+def test_native_srp_functions_accept_numpy_inputs_and_scale_with_illumination(
+    dynamics_backend,
+):
     position = np.zeros(3, dtype=np.float32)
     sun = np.array([149_597_870_700.0, 0.0, 0.0], dtype=np.float64)
     quaternion = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
@@ -31,6 +33,10 @@ def test_native_srp_functions_accept_numpy_inputs_and_scale_with_illumination(dy
 def test_native_srp_binding_maps_coincident_positions_to_value_error(dynamics_backend):
     with pytest.raises(ValueError, match="positions coincide"):
         dynamics_backend.projected_area_srp_force(
-            [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0],
-            [[1.0, 0.0, 0.0]], [1.0], [[0.0, 0.0, 1.0]],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0, 0.0],
+            [[1.0, 0.0, 0.0]],
+            [1.0],
+            [[0.0, 0.0, 1.0]],
         )

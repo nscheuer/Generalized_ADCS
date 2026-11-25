@@ -39,10 +39,18 @@ def test_native_state_record_and_array_layout(backend):
         backend.InternalState(np.array([0.1, -0.2], dtype=np.float32)),
     )
     record = state.to_record()
-    assert record.dtype.names == ("quaternion", "rates", "position", "velocity", "momentum")
+    assert record.dtype.names == (
+        "quaternion",
+        "rates",
+        "position",
+        "velocity",
+        "momentum",
+    )
     np.testing.assert_array_equal(record["quaternion"][0], [1, 0, 0, 0])
     np.testing.assert_allclose(record["momentum"][0], [0.1, -0.2], rtol=1e-6)
-    assert backend.State.from_record(record, 2451545.0).internal.wheel_momentum.size == 2
+    assert (
+        backend.State.from_record(record, 2451545.0).internal.wheel_momentum.size == 2
+    )
 
 
 def test_ephemeris_reference_survives_original_owner_destruction(backend):
@@ -51,7 +59,9 @@ def test_ephemeris_reference_survives_original_owner_destruction(backend):
             return np.array([body, julian_date, 0.0])
 
     ephemeris = Ephemeris()
-    orbit = backend.OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], 2451545.0, ephemeris)
+    orbit = backend.OrbitalState.from_cartesian(
+        [0, 0, 0], [0, 0, 0], 2451545.0, ephemeris
+    )
     del ephemeris
     gc.collect()
     np.testing.assert_array_equal(orbit.sun_position, [0, 2451545.0, 0])

@@ -12,7 +12,9 @@ def test_momentum_values_agree(state_backends, momentum):
 
 
 def test_wheel_source_values_agree(state_backends):
-    source = SimpleNamespace(reaction_wheels=[SimpleNamespace(h=1.5), SimpleNamespace(h=-0.25)])
+    source = SimpleNamespace(
+        reaction_wheels=[SimpleNamespace(h=1.5), SimpleNamespace(h=-0.25)]
+    )
     results = [module.WheelMomentumState(source) for module in state_backends.values()]
     for result in results[1:]:
         np.testing.assert_array_equal(result.wheel_momentum, results[0].wheel_momentum)

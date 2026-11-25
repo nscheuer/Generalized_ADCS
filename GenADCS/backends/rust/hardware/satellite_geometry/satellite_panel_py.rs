@@ -50,7 +50,12 @@ impl SatellitePanel {
         inner.eta_d = eta_d;
         inner.eta_a = eta_a;
         inner.cd = cd;
-        Ok(Self { inner, position_value: position.into_py(py), orientation_value: orientation.into_py(py), dimensions_value: dimensions.into_py(py) })
+        Ok(Self {
+            inner,
+            position_value: position.into_py(py),
+            orientation_value: orientation.into_py(py),
+            dimensions_value: dimensions.into_py(py),
+        })
     }
 
     #[getter]
@@ -59,7 +64,9 @@ impl SatellitePanel {
     }
     #[setter]
     fn set_position(&mut self, py: Python<'_>, value: &PyAny) -> PyResult<()> {
-        if let Ok(v) = fixed_values(py, value, "position") { self.inner.position = v; }
+        if let Ok(v) = fixed_values(py, value, "position") {
+            self.inner.position = v;
+        }
         self.position_value = value.into_py(py);
         Ok(())
     }
@@ -69,7 +76,9 @@ impl SatellitePanel {
     }
     #[setter]
     fn set_orientation(&mut self, py: Python<'_>, value: &PyAny) -> PyResult<()> {
-        if let Ok(v) = fixed_values(py, value, "orientation") { self.inner.orientation = v; }
+        if let Ok(v) = fixed_values(py, value, "orientation") {
+            self.inner.orientation = v;
+        }
         self.orientation_value = value.into_py(py);
         Ok(())
     }
@@ -79,7 +88,9 @@ impl SatellitePanel {
     }
     #[setter]
     fn set_dimensions(&mut self, py: Python<'_>, value: &PyAny) -> PyResult<()> {
-        if let Ok(v) = fixed_values(py, value, "dimensions") { self.inner.dimensions = v; }
+        if let Ok(v) = fixed_values(py, value, "dimensions") {
+            self.inner.dimensions = v;
+        }
         self.dimensions_value = value.into_py(py);
         Ok(())
     }

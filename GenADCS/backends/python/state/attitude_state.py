@@ -17,7 +17,9 @@ class AttitudeState:
     @property
     def quaternion_array(self):
         if hasattr(self.orientation, "hamilton_components"):
-            quaternion = np.asarray(self.orientation.hamilton_components, dtype=np.float64)
+            quaternion = np.asarray(
+                self.orientation.hamilton_components, dtype=np.float64
+            )
         else:
             quaternion = np.asarray(self.orientation, dtype=np.float64)
         if quaternion.shape != (4,) or not np.all(np.isfinite(quaternion)):

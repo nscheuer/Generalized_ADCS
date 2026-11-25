@@ -27,17 +27,34 @@ def test_native_drag_functions_accept_numpy_inputs_and_return_vectors(dynamics_b
     assert np.isfinite(torque).all()
 
 
-@pytest.mark.parametrize("function,args", [
-    ("projected_area_drag_force", (
-        [0.0, 0.0, 10.0], [1.0, 0.0, 0.0, 0.0], 1.0,
-        [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]], [2.0], [2.2],
-    )),
-    ("projected_area_drag_torque", (
-        [0.0, 0.0, 10.0], [1.0, 0.0, 0.0, 0.0], 1.0,
-        [[0.0, 0.0, 1.0]], [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
-        [2.0], [2.2],
-    )),
-])
+@pytest.mark.parametrize(
+    "function,args",
+    [
+        (
+            "projected_area_drag_force",
+            (
+                [0.0, 0.0, 10.0],
+                [1.0, 0.0, 0.0, 0.0],
+                1.0,
+                [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]],
+                [2.0],
+                [2.2],
+            ),
+        ),
+        (
+            "projected_area_drag_torque",
+            (
+                [0.0, 0.0, 10.0],
+                [1.0, 0.0, 0.0, 0.0],
+                1.0,
+                [[0.0, 0.0, 1.0]],
+                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                [2.0],
+                [2.2],
+            ),
+        ),
+    ],
+)
 def test_native_drag_bindings_reject_mismatched_panel_counts(
     dynamics_backend, function, args
 ):
@@ -47,9 +64,13 @@ def test_native_drag_bindings_reject_mismatched_panel_counts(
 
 def test_drag_model_binding_uses_environment_and_panel_data(dynamics_backend):
     panel = SimpleNamespace(
-        orientation=np.zeros(3), position=np.array([1.0, 0.0, 0.0]),
-        dimensions=np.array([1.0, 1.0]), eta_s=0.0, eta_d=0.0,
-        eta_a=1.0, cd=2.2,
+        orientation=np.zeros(3),
+        position=np.array([1.0, 0.0, 0.0]),
+        dimensions=np.array([1.0, 1.0]),
+        eta_s=0.0,
+        eta_d=0.0,
+        eta_a=1.0,
+        cd=2.2,
     )
     geometry = SimpleNamespace(panels=[panel], center_of_mass=np.zeros(3))
     model = dynamics_backend.ProjectedAreaDragForceModel(geometry)
@@ -61,7 +82,10 @@ def test_drag_model_binding_uses_environment_and_panel_data(dynamics_backend):
     )
 
     result = model.evaluate(
-        np.zeros(3), [0.0, 0.0, 10.0], [1.0, 0.0, 0.0, 0.0], 0.0,
+        np.zeros(3),
+        [0.0, 0.0, 10.0],
+        [1.0, 0.0, 0.0, 0.0],
+        0.0,
         environment,
     )
     assert result.shape == (3,)

@@ -18,9 +18,13 @@ def test_zonal_force_reduces_to_central_gravity_with_zero_coefficients(dynamics_
 
 def test_zonal_force_scales_linearly_with_mass(dynamics_api):
     args = (
-        np.array([7e6, 0.0, 0.0]), 0.0, 3.986004418e14,
-        6_378_137.0, np.array([1.08262668e-3, -2.5324105e-6,
-                               -1.6198976e-6, -2.2729608e-7, 5.406812e-7]),
+        np.array([7e6, 0.0, 0.0]),
+        0.0,
+        3.986004418e14,
+        6_378_137.0,
+        np.array(
+            [1.08262668e-3, -2.5324105e-6, -1.6198976e-6, -2.2729608e-7, 5.406812e-7]
+        ),
     )
     one = dynamics_api.zonal_gravity_force(args[0], 1.0, *args[1:])
     two = dynamics_api.zonal_gravity_force(args[0], 2.0, *args[1:])
@@ -31,6 +35,10 @@ def test_zonal_force_scales_linearly_with_mass(dynamics_api):
 def test_zonal_force_rejects_body_centre_singularity(dynamics_api):
     with pytest.raises(ValueError, match="body's centre"):
         dynamics_api.zonal_gravity_force(
-            np.zeros(3), 10.0, 0.0, 3.986004418e14, 6_378_137.0,
+            np.zeros(3),
+            10.0,
+            0.0,
+            3.986004418e14,
+            6_378_137.0,
             np.zeros(5),
         )

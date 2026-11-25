@@ -52,7 +52,9 @@ def test_effects_reference_is_preserved_and_noise_bias_views_filter_in_order():
 def test_apply_errors_runs_effects_sequentially_and_passes_rng_and_dt():
     calls = []
     rng = object()
-    mtq = Magnetorquer((0, 0, 0), (1, 0, 0), 0.5, effects=[AddEffect(2, calls), AddEffect(-0.5, calls)])
+    mtq = Magnetorquer(
+        (0, 0, 0), (1, 0, 0), 0.5, effects=[AddEffect(2, calls), AddEffect(-0.5, calls)]
+    )
     assert mtq.apply_errors(1.0, 0.125, rng) == 2.5
     assert calls == [(1.0, 0.125, rng), (3.0, 0.125, rng)]
 

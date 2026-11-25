@@ -23,11 +23,10 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-void bind_vector(py::module_ &module)
-{
-    module.def("cross", &math::cross);
-    module.def("norm", &math::norm);
-    module.def("normalize", &math::normalize);
-    module.def("unit", &math::unit);
-    module.def("skew", &math::skew);
+void bind_vector(py::module_ &module) {
+  module.def("cross", &math::cross);
+  module.def("norm", &math::norm);
+  module.def("normalize", &math::normalize);
+  module.def("unit", &math::unit);
+  module.def("skew", &math::skew);
 }

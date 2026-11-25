@@ -10,4 +10,6 @@ def subsystem_backend_name(request):
 
 @pytest.fixture
 def subsystem_backend(subsystem_backend_name):
-    return import_module(f"GenADCS.backends.{subsystem_backend_name}.hardware.ADCS_subsystem")
+    return import_module(
+        f"GenADCS.backends.{subsystem_backend_name}.hardware.ADCS_subsystem"
+    )

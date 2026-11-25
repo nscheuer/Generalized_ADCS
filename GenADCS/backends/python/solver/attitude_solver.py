@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 
-from GenADCS.backends.python.propagation import AdaptiveRK45AttitudePropagator, RK4AttitudePropagator
+from GenADCS.backends.python.propagation import (
+    AdaptiveRK45AttitudePropagator,
+    RK4AttitudePropagator,
+)
 
 
 @dataclass(slots=True)

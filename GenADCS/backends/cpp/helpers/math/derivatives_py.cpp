@@ -23,12 +23,14 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-void bind_derivatives(py::module_ &module)
-{
-    module.def("quaternion_derivative", &math::quaternion_derivative);
-    module.def("quaternion_rate_matrix", &math::quaternion_rate_matrix);
-    module.def("angular_velocity_from_quaternion_derivative", &math::angular_velocity_from_quaternion_derivative);
-    module.def("quaternion_normalization_jacobian", &math::quaternion_normalization_jacobian);
-    module.def("rotated_vector_quaternion_jacobian", &math::rotated_vector_quaternion_jacobian);
-    module.def("quaternion_to_euler321", &math::quaternion_to_euler321);
+void bind_derivatives(py::module_ &module) {
+  module.def("quaternion_derivative", &math::quaternion_derivative);
+  module.def("quaternion_rate_matrix", &math::quaternion_rate_matrix);
+  module.def("angular_velocity_from_quaternion_derivative",
+             &math::angular_velocity_from_quaternion_derivative);
+  module.def("quaternion_normalization_jacobian",
+             &math::quaternion_normalization_jacobian);
+  module.def("rotated_vector_quaternion_jacobian",
+             &math::rotated_vector_quaternion_jacobian);
+  module.def("quaternion_to_euler321", &math::quaternion_to_euler321);
 }

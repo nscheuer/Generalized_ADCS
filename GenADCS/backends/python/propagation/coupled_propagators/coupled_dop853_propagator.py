@@ -2,11 +2,22 @@
 
 import numpy as np
 from numba import njit
-from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import sample_sensors, prepare_sensors
-from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import prepare_estimator, update_estimator
+from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
+    sample_sensors,
+    prepare_sensors,
+)
+from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import (
+    prepare_estimator,
+    update_estimator,
+)
 
 from ._dop853_coefficients import A, B, C, E3, E5
-from ._coupled_dynamics import SECONDS_PER_DAY, _derivative, _prepare, _project_wheel_momentum
+from ._coupled_dynamics import (
+    SECONDS_PER_DAY,
+    _derivative,
+    _prepare,
+    _project_wheel_momentum,
+)
 from ._state_layout import pack_state, unpack_state
 
 
@@ -23,7 +34,9 @@ def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
             if coefficient != 0.0:
                 for component in range(components):
                     trial[component] += coefficient * stages[previous, component]
-        stages[stage, :] = _derivative(trial, epoch_jd + C[stage] * h / SECONDS_PER_DAY, p)
+        stages[stage, :] = _derivative(
+            trial, epoch_jd + C[stage] * h / SECONDS_PER_DAY, p
+        )
 
     candidate = y.copy()
     for stage in range(12):
@@ -39,7 +52,9 @@ def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
     norm5_squared = 0.0
     norm3_squared = 0.0
     for component in range(components):
-        scale = atol[component] + rtol * max(abs(y[component]), abs(candidate[component]))
+        scale = atol[component] + rtol * max(
+            abs(y[component]), abs(candidate[component])
+        )
         err5 = 0.0
         err3 = 0.0
         for stage in range(13):
@@ -50,16 +65,42 @@ def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
     if norm5_squared == 0.0 and norm3_squared == 0.0:
         error_norm = 0.0
     else:
-        error_norm = abs(h) * norm5_squared / np.sqrt((norm5_squared + 0.01 * norm3_squared) * components)
+        error_norm = (
+            abs(h)
+            * norm5_squared
+            / np.sqrt((norm5_squared + 0.01 * norm3_squared) * components)
+        )
     return candidate, stages[12, :].copy(), error_norm
 
 
 @njit(cache=True)
-def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
-                              max_step, min_step, max_accepted_steps, sample_interval=0.0,
-                              sensor_interval=0.0, sensor_config=None, clean=None, reading=None, seed=np.uint64(0),
-                              estimator_kind=0, estimate_q=None, estimate_w=None, estimate_p=None,
-                              acceleration_psd=None, estimates=None, estimator_flags=0):
+def _integrate_adaptive_chunk(
+    y,
+    f,
+    t,
+    h,
+    initial_jd,
+    tf,
+    p,
+    rtol,
+    atol,
+    max_step,
+    min_step,
+    max_accepted_steps,
+    sample_interval=0.0,
+    sensor_interval=0.0,
+    sensor_config=None,
+    clean=None,
+    reading=None,
+    seed=np.uint64(0),
+    estimator_kind=0,
+    estimate_q=None,
+    estimate_w=None,
+    estimate_p=None,
+    acceleration_psd=None,
+    estimates=None,
+    estimator_flags=0,
+):
     """Store accepted states while all adaptive trial steps stay inside Numba."""
     capacity = min(max_accepted_steps + 1, 1024)
     capacity = max(capacity, 1)
@@ -69,7 +110,11 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
     states[0, :] = y
     count = 1
     accepted = 0
-    next_sample = (np.floor(t / sample_interval + 1e-10) + 1.0) * sample_interval if sample_interval > 0.0 else 0.0
+    next_sample = (
+        (np.floor(t / sample_interval + 1e-10) + 1.0) * sample_interval
+        if sample_interval > 0.0
+        else 0.0
+    )
 
     while t < tf and accepted < max_accepted_steps:
         remaining = tf - t
@@ -78,12 +123,20 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
             step = min(step, next_sample - t)
         if step <= 0.0 or t + step == t:
             raise ValueError("DOP853 step is too small to advance simulation time")
-        boundary_limited = sample_interval > 0.0 and next_sample < tf and next_sample - t <= min_step
+        boundary_limited = (
+            sample_interval > 0.0 and next_sample < tf and next_sample - t <= min_step
+        )
         if step < min_step and remaining > min_step and not boundary_limited:
             raise ValueError("DOP853 reached min_step before satisfying tolerances")
 
         candidate, next_f, error = _dop853_attempt(
-            y, f, initial_jd + t / SECONDS_PER_DAY, step, p, rtol, atol,
+            y,
+            f,
+            initial_jd + t / SECONDS_PER_DAY,
+            step,
+            p,
+            rtol,
+            atol,
         )
         if not np.isfinite(error):
             raise ValueError("DOP853 produced a nonfinite error estimate")
@@ -91,7 +144,9 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
             t += step
             y = candidate
             f = next_f
-            save = sample_interval == 0.0 or abs(t - next_sample) <= 1e-10 * max(1.0, next_sample)
+            save = sample_interval == 0.0 or abs(t - next_sample) <= 1e-10 * max(
+                1.0, next_sample
+            )
             if save and count == capacity:
                 new_capacity = capacity * 2
                 new_times = np.empty(new_capacity, dtype=np.float64)
@@ -104,13 +159,34 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
             if save:
                 if sensor_interval > 0.0:
                     sensor_index = int(np.round(t / sensor_interval))
-                    if sensor_index < clean.shape[0] and abs(t - sensor_index * sensor_interval) < 1e-9 * max(1.0, t):
-                        sample_sensors(y, initial_jd + t / SECONDS_PER_DAY, p,
-                                       sensor_config, clean[sensor_index], reading[sensor_index], seed, sensor_index)
+                    if sensor_index < clean.shape[0] and abs(
+                        t - sensor_index * sensor_interval
+                    ) < 1e-9 * max(1.0, t):
+                        sample_sensors(
+                            y,
+                            initial_jd + t / SECONDS_PER_DAY,
+                            p,
+                            sensor_config,
+                            clean[sensor_index],
+                            reading[sensor_index],
+                            seed,
+                            sensor_index,
+                        )
                         if estimator_kind:
-                            update_estimator(estimator_kind, estimate_q, estimate_w, estimate_p,
-                                             acceleration_psd, sensor_interval, reading[sensor_index], sensor_config,
-                                             estimator_flags, y[:4], y[4:7], estimates[sensor_index, 43:])
+                            update_estimator(
+                                estimator_kind,
+                                estimate_q,
+                                estimate_w,
+                                estimate_p,
+                                acceleration_psd,
+                                sensor_interval,
+                                reading[sensor_index],
+                                sensor_config,
+                                estimator_flags,
+                                y[:4],
+                                y[4:7],
+                                estimates[sensor_index, 43:],
+                            )
                             if estimator_flags & 1:
                                 estimates[sensor_index, :4] = estimate_q
                             if estimator_flags & 2:
@@ -123,7 +199,9 @@ def _integrate_adaptive_chunk(y, f, t, h, initial_jd, tf, p, rtol, atol,
                 if sample_interval > 0.0:
                     next_sample += sample_interval
             accepted += 1
-            factor = 10.0 if error == 0.0 else min(10.0, max(0.2, 0.9 * error ** (-0.125)))
+            factor = (
+                10.0 if error == 0.0 else min(10.0, max(0.2, 0.9 * error ** (-0.125)))
+            )
             h = min(max_step, step * factor)
         else:
             h = step * max(0.2, 0.9 * error ** (-0.125))
@@ -150,7 +228,9 @@ class CoupledDOP853Propagator:
         if self._scalar_atol:
             absolute = np.full(13, float(absolute), dtype=np.float64)
         if absolute.ndim != 1 or absolute.size < 13:
-            raise ValueError("atol must be a scalar or vector with at least 13 elements")
+            raise ValueError(
+                "atol must be a scalar or vector with at least 13 elements"
+            )
         self.atol = np.ascontiguousarray(absolute)
         if not np.isfinite(self.dt) or self.dt <= 0.0:
             raise ValueError("dt must be finite and positive seconds")
@@ -160,17 +240,37 @@ class CoupledDOP853Propagator:
             raise ValueError("atol must contain finite positive values")
         if self.max_step <= 0.0 or np.isnan(self.max_step):
             raise ValueError("max_step must be positive")
-        if not np.isfinite(self.min_step) or self.min_step <= 0.0 or self.min_step > self.max_step:
-            raise ValueError("min_step must be finite, positive, and no greater than max_step")
+        if (
+            not np.isfinite(self.min_step)
+            or self.min_step <= 0.0
+            or self.min_step > self.max_step
+        ):
+            raise ValueError(
+                "min_step must be finite, positive, and no greater than max_step"
+            )
 
-    def integrate(self, state, satellite, environment, dynamics, tf, progress=False,
-                  progress_chunk_steps=500, record_every=None, sensor_every=0, seed=0, estimator_flags=0):
+    def integrate(
+        self,
+        state,
+        satellite,
+        environment,
+        dynamics,
+        tf,
+        progress=False,
+        progress_chunk_steps=500,
+        record_every=None,
+        sensor_every=0,
+        seed=0,
+        estimator_flags=0,
+    ):
         tf = float(tf)
         if not np.isfinite(tf) or tf < 0.0:
             raise ValueError("tf must be finite and nonnegative seconds")
-        if progress and (isinstance(progress_chunk_steps, bool)
-                         or not isinstance(progress_chunk_steps, int)
-                         or progress_chunk_steps <= 0):
+        if progress and (
+            isinstance(progress_chunk_steps, bool)
+            or not isinstance(progress_chunk_steps, int)
+            or progress_chunk_steps <= 0
+        ):
             raise ValueError("progress_chunk_steps must be a positive integer")
         p = _prepare(satellite, environment, dynamics)
         y = pack_state(state, p.wheel_commands.size)
@@ -179,19 +279,47 @@ class CoupledDOP853Propagator:
         atol = np.full(y.size, self.atol[0]) if self._scalar_atol else self.atol
         if atol.shape != (y.size,):
             raise ValueError(f"atol must contain {y.size} values for this state")
-        sensor_config = prepare_sensors(satellite.adcs.sensors if sensor_every else [], environment)
+        sensor_config = prepare_sensors(
+            satellite.adcs.sensors if sensor_every else [], environment
+        )
         width = max(1, int(np.sum(sensor_config[-2])))
-        sensor_rows = int(np.floor(tf / (self.dt * sensor_every) + 1e-10)) + 1 if sensor_every else 1
+        sensor_rows = (
+            int(np.floor(tf / (self.dt * sensor_every) + 1e-10)) + 1
+            if sensor_every
+            else 1
+        )
         clean = np.full((sensor_rows, width), np.nan)
         reading = np.full_like(clean, np.nan)
-        estimator_kind, estimate_q, estimate_w, estimate_p, acceleration_psd = prepare_estimator(satellite.adcs.estimator)
+        estimator_kind, estimate_q, estimate_w, estimate_p, acceleration_psd = (
+            prepare_estimator(satellite.adcs.estimator)
+        )
         estimates = np.full((sensor_rows, 96), np.nan)
         if sensor_every:
-            sample_sensors(y, state.orbit.julian_date, p, sensor_config, clean[0], reading[0], seed, 0)
+            sample_sensors(
+                y,
+                state.orbit.julian_date,
+                p,
+                sensor_config,
+                clean[0],
+                reading[0],
+                seed,
+                0,
+            )
             if estimator_kind:
-                update_estimator(estimator_kind, estimate_q, estimate_w, estimate_p,
-                                 acceleration_psd, 0.0, reading[0], sensor_config,
-                                 estimator_flags, y[:4], y[4:7], estimates[0, 43:])
+                update_estimator(
+                    estimator_kind,
+                    estimate_q,
+                    estimate_w,
+                    estimate_p,
+                    acceleration_psd,
+                    0.0,
+                    reading[0],
+                    sensor_config,
+                    estimator_flags,
+                    y[:4],
+                    y[4:7],
+                    estimates[0, 43:],
+                )
                 if estimator_flags & 1:
                     estimates[0, :4] = estimate_q
                 if estimator_flags & 2:
@@ -200,9 +328,19 @@ class CoupledDOP853Propagator:
                     estimates[0, 7:43] = estimate_p.ravel()
         if tf == 0.0:
             result = (np.array([0.0]), y.reshape(1, y.size))
-            return (*result, clean, reading, estimates) if estimator_kind else (*result, clean, reading) if sensor_every else result
+            return (
+                (*result, clean, reading, estimates)
+                if estimator_kind
+                else (*result, clean, reading)
+                if sensor_every
+                else result
+            )
 
-        if record_every is not None and (isinstance(record_every, bool) or not isinstance(record_every, int) or record_every < 1):
+        if record_every is not None and (
+            isinstance(record_every, bool)
+            or not isinstance(record_every, int)
+            or record_every < 1
+        ):
             raise ValueError("record_every must be a positive integer")
         sample_interval = 0.0 if record_every is None else record_every * self.dt
 
@@ -213,30 +351,80 @@ class CoupledDOP853Propagator:
             from tqdm import tqdm
 
             with tqdm(total=1, desc="Compiling Numba kernels", unit="stage") as bar:
-                _integrate_adaptive_chunk(y, f, t, h, state.orbit.julian_date, tf,
-                                          p, self.rtol, atol, self.max_step,
-                                          self.min_step, 0, sample_interval,
-                                          self.dt * sensor_every, sensor_config, clean, reading, seed,
-                                          estimator_kind, estimate_q, estimate_w, estimate_p, acceleration_psd, estimates, estimator_flags)
+                _integrate_adaptive_chunk(
+                    y,
+                    f,
+                    t,
+                    h,
+                    state.orbit.julian_date,
+                    tf,
+                    p,
+                    self.rtol,
+                    atol,
+                    self.max_step,
+                    self.min_step,
+                    0,
+                    sample_interval,
+                    self.dt * sensor_every,
+                    sensor_config,
+                    clean,
+                    reading,
+                    seed,
+                    estimator_kind,
+                    estimate_q,
+                    estimate_w,
+                    estimate_p,
+                    acceleration_psd,
+                    estimates,
+                    estimator_flags,
+                )
                 bar.update(1)
             time_parts = [np.array([0.0])]
             state_parts = [y.reshape(1, y.size)]
             main_step_count = int(np.ceil(tf / self.dt))
             completed_main_steps = 0
-            with tqdm(total=main_step_count, desc="Running coupled DOP853", unit="step",
-                      dynamic_ncols=True, mininterval=0.1, miniters=1) as bar:
+            with tqdm(
+                total=main_step_count,
+                desc="Running coupled DOP853",
+                unit="step",
+                dynamic_ncols=True,
+                mininterval=0.1,
+                miniters=1,
+            ) as bar:
                 while t < tf:
                     times, states, y, f, new_t, h = _integrate_adaptive_chunk(
-                        y, f, t, h, state.orbit.julian_date, tf, p,
-                        self.rtol, atol, self.max_step, self.min_step,
+                        y,
+                        f,
+                        t,
+                        h,
+                        state.orbit.julian_date,
+                        tf,
+                        p,
+                        self.rtol,
+                        atol,
+                        self.max_step,
+                        self.min_step,
                         progress_chunk_steps,
-                        sample_interval, self.dt * sensor_every, sensor_config, clean, reading, seed,
-                        estimator_kind, estimate_q, estimate_w, estimate_p, acceleration_psd, estimates, estimator_flags,
+                        sample_interval,
+                        self.dt * sensor_every,
+                        sensor_config,
+                        clean,
+                        reading,
+                        seed,
+                        estimator_kind,
+                        estimate_q,
+                        estimate_w,
+                        estimate_p,
+                        acceleration_psd,
+                        estimates,
+                        estimator_flags,
                     )
                     time_parts.append(times[1:])
                     state_parts.append(states[1:, :])
                     t = new_t
-                    current_main_steps = min(main_step_count, int(np.floor(t / self.dt + 1e-12)))
+                    current_main_steps = min(
+                        main_step_count, int(np.floor(t / self.dt + 1e-12))
+                    )
                     if t >= tf:
                         current_main_steps = main_step_count
                     bar.update(current_main_steps - completed_main_steps)
@@ -246,21 +434,51 @@ class CoupledDOP853Propagator:
             if sample_interval and abs(times[-1] - tf) > 1e-10 * max(1.0, tf):
                 times = np.append(times, tf)
                 states = np.vstack((states, y))
-            return ((times, states, clean, reading, estimates) if estimator_kind else
-                    (times, states, clean, reading) if sensor_every else (times, states))
+            return (
+                (times, states, clean, reading, estimates)
+                if estimator_kind
+                else (times, states, clean, reading)
+                if sensor_every
+                else (times, states)
+            )
 
         times, states, y, _, _, _ = _integrate_adaptive_chunk(
-            y, f, t, h, state.orbit.julian_date, tf, p,
-            self.rtol, atol, self.max_step, self.min_step,
+            y,
+            f,
+            t,
+            h,
+            state.orbit.julian_date,
+            tf,
+            p,
+            self.rtol,
+            atol,
+            self.max_step,
+            self.min_step,
             2_147_483_647,
-            sample_interval, self.dt * sensor_every, sensor_config, clean, reading, seed,
-            estimator_kind, estimate_q, estimate_w, estimate_p, acceleration_psd, estimates, estimator_flags,
+            sample_interval,
+            self.dt * sensor_every,
+            sensor_config,
+            clean,
+            reading,
+            seed,
+            estimator_kind,
+            estimate_q,
+            estimate_w,
+            estimate_p,
+            acceleration_psd,
+            estimates,
+            estimator_flags,
         )
         if sample_interval and abs(times[-1] - tf) > 1e-10 * max(1.0, tf):
             times = np.append(times, tf)
             states = np.vstack((states, y))
-        return ((times, states, clean, reading, estimates) if estimator_kind else
-                (times, states, clean, reading) if sensor_every else (times, states))
+        return (
+            (times, states, clean, reading, estimates)
+            if estimator_kind
+            else (times, states, clean, reading)
+            if sensor_every
+            else (times, states)
+        )
 
     def step(self, state, satellite, environment, dynamics):
         """Advance by dt seconds using as many adaptive substeps as needed."""

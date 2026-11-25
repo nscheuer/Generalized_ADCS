@@ -1,5 +1,3 @@
 #pragma once
 #include "../native_models.hpp"
-namespace omni::environment
-{
-}
+namespace omni::environment {}

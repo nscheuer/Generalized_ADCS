@@ -10,4 +10,6 @@ def dynamics_api(request):
             f"GenADCS.backends.{request.param}.dynamics.{request.node.path.parent.name}"
         )
     except ImportError as exc:
-        pytest.fail(f"{request.param} dynamics backend unavailable; build extensions first: {exc}")
+        pytest.fail(
+            f"{request.param} dynamics backend unavailable; build extensions first: {exc}"
+        )

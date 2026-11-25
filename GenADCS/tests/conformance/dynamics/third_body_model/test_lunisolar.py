@@ -12,11 +12,12 @@ def test_lunisolar_acceleration_matches_differential_gravity_formula(dynamics_ap
     def differential_acceleration(body, gravitational_parameter):
         relative = body - position
         return gravitational_parameter * (
-            relative / np.linalg.norm(relative) ** 3
-            - body / np.linalg.norm(body) ** 3
+            relative / np.linalg.norm(relative) ** 3 - body / np.linalg.norm(body) ** 3
         )
 
-    expected = differential_acceleration(sun, sun_mu) + differential_acceleration(moon, moon_mu)
+    expected = differential_acceleration(sun, sun_mu) + differential_acceleration(
+        moon, moon_mu
+    )
     acceleration = dynamics_api.lunisolar_acceleration(
         position, sun, moon, sun_mu, moon_mu
     )
@@ -24,11 +25,14 @@ def test_lunisolar_acceleration_matches_differential_gravity_formula(dynamics_ap
     np.testing.assert_allclose(acceleration, expected, rtol=5e-11, atol=1e-20)
 
 
-@pytest.mark.parametrize("sun,moon", [
-    (np.zeros(3), np.ones(3)),
-    (np.ones(3), np.zeros(3)),
-    (np.array([7e6, 0.0, 0.0]), np.ones(3)),
-])
+@pytest.mark.parametrize(
+    "sun,moon",
+    [
+        (np.zeros(3), np.ones(3)),
+        (np.ones(3), np.zeros(3)),
+        (np.array([7e6, 0.0, 0.0]), np.ones(3)),
+    ],
+)
 def test_lunisolar_rejects_zero_body_or_relative_separation(dynamics_api, sun, moon):
     with pytest.raises(ValueError, match="distance must be nonzero"):
         dynamics_api.lunisolar_acceleration(

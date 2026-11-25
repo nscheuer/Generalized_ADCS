@@ -12,5 +12,7 @@ def state_backends():
         try:
             modules[name] = import_module(f"GenADCS.backends.{name}.state")
         except ImportError as exc:
-            pytest.fail(f"build the {name} state backend before differential tests: {exc}")
+            pytest.fail(
+                f"build the {name} state backend before differential tests: {exc}"
+            )
     return modules

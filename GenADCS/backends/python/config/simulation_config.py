@@ -23,5 +23,7 @@ class SimulationConfig:
     def __post_init__(self):
         if self.backend not in ("Python", "C", "Rust", "JAX"):
             raise ValueError("backend must be Python, C, Rust, or JAX")
-        self.state_record = self.state.to_record(len(self.satellite.adcs.reaction_wheels))
+        self.state_record = self.state.to_record(
+            len(self.satellite.adcs.reaction_wheels)
+        )
         self.julian_date = self.state.orbit.julian_date

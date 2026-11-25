@@ -15,12 +15,18 @@ def test_structured_records_and_roundtrips_agree(state_backends):
     for record in records[1:]:
         assert record.dtype == records[0].dtype
         for field in record.dtype.names:
-            np.testing.assert_allclose(record[field], records[0][field], rtol=0, atol=1e-14)
-    rebuilt = [module.State.from_record(record, 2451545.0)
-               for module, record in zip(state_backends.values(), records)]
+            np.testing.assert_allclose(
+                record[field], records[0][field], rtol=0, atol=1e-14
+            )
+    rebuilt = [
+        module.State.from_record(record, 2451545.0)
+        for module, record in zip(state_backends.values(), records)
+    ]
     for state in rebuilt[1:]:
         for field in records[0].dtype.names:
-            np.testing.assert_allclose(state.to_record()[field], rebuilt[0].to_record()[field])
+            np.testing.assert_allclose(
+                state.to_record()[field], rebuilt[0].to_record()[field]
+            )
 
 
 def test_wheel_count_error_category_agrees(state_backends):

@@ -25,7 +25,9 @@ def test_gravity_gradient_torque_matches_across_backends(dynamics_backends):
 
     for position, quaternion, inertia, mu in cases:
         results = {
-            name: backend.static_gravity_gradient_torque(position, quaternion, inertia, mu)
+            name: backend.static_gravity_gradient_torque(
+                position, quaternion, inertia, mu
+            )
             for name, backend in dynamics_backends.items()
         }
         reference = results["python"]

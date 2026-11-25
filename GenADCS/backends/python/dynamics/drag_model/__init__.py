@@ -6,6 +6,8 @@ from .projected_area import (
 )
 
 __all__ = [
-    "ProjectedAreaDragForceModel", "ProjectedAreaDragTorqueModel",
-    "projected_area_drag_force", "projected_area_drag_torque",
+    "ProjectedAreaDragForceModel",
+    "ProjectedAreaDragTorqueModel",
+    "projected_area_drag_force",
+    "projected_area_drag_torque",
 ]

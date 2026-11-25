@@ -5,17 +5,33 @@ from numba import njit
 @njit(cache=True)
 def _rotate_vector(q, vector):
     qv = q[1:4]
-    return vector + 2.0 * (q[0] * np.cross(qv, vector) + np.cross(qv, np.cross(qv, vector)))
+    return vector + 2.0 * (
+        q[0] * np.cross(qv, vector) + np.cross(qv, np.cross(qv, vector))
+    )
 
 
 @njit(cache=True)
 def _quaternion_to_dcm(q):
     w, x, y, z = q
-    return np.array((
-        (w * w + x * x - y * y - z * z, 2.0 * (x * y - w * z), 2.0 * (x * z + w * y)),
-        (2.0 * (x * y + w * z), w * w - x * x + y * y - z * z, 2.0 * (y * z - w * x)),
-        (2.0 * (x * z - w * y), 2.0 * (y * z + w * x), w * w - x * x - y * y + z * z),
-    ))
+    return np.array(
+        (
+            (
+                w * w + x * x - y * y - z * z,
+                2.0 * (x * y - w * z),
+                2.0 * (x * z + w * y),
+            ),
+            (
+                2.0 * (x * y + w * z),
+                w * w - x * x + y * y - z * z,
+                2.0 * (y * z - w * x),
+            ),
+            (
+                2.0 * (x * z - w * y),
+                2.0 * (y * z + w * x),
+                w * w - x * x - y * y + z * z,
+            ),
+        )
+    )
 
 
 @njit(cache=True)
@@ -56,4 +72,6 @@ def _axis_angle_to_quaternion(axis, angle):
         raise ValueError("axis must be nonzero")
     half_angle = 0.5 * angle
     scale = np.sin(half_angle) / axis_norm
-    return np.array((np.cos(half_angle), axis[0] * scale, axis[1] * scale, axis[2] * scale))
+    return np.array(
+        (np.cos(half_angle), axis[0] * scale, axis[1] * scale, axis[2] * scale)
+    )

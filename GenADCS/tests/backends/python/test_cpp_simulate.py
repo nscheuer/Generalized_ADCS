@@ -45,22 +45,34 @@ def test_simulate_passes_native_integrator_samples_to_result_recorder():
     propagator = Propagator()
     expected = object()
 
-    with patch.dict(sys.modules, {
-        "GenADCS.backends.cpp.state": cpp_state_module,
-        "GenADCS.backends.cpp.solver": solver_module,
-        "GenADCS.backends.python.state": python_state_module,
-    }), patch.object(cpp_simulate, "record_samples", return_value=expected) as record:
+    with (
+        patch.dict(
+            sys.modules,
+            {
+                "GenADCS.backends.cpp.state": cpp_state_module,
+                "GenADCS.backends.cpp.solver": solver_module,
+                "GenADCS.backends.python.state": python_state_module,
+            },
+        ),
+        patch.object(cpp_simulate, "record_samples", return_value=expected) as record,
+    ):
         state = State()
         satellite, environment, dynamics = object(), object(), object()
         result = cpp_simulate.simulate(
-            satellite, environment, dynamics, state,
-            Solver(CoupledSolver(propagator)), resultsformat=ResultsFormat(N=2),
+            satellite,
+            environment,
+            dynamics,
+            state,
+            Solver(CoupledSolver(propagator)),
+            resultsformat=ResultsFormat(N=2),
         )
 
     assert result is expected
     assert propagator.args == (state, satellite, environment, dynamics, 2.5)
     assert propagator.kwargs == {
-        "progress": False, "progress_chunk_steps": 500, "record_every": 2,
+        "progress": False,
+        "progress_chunk_steps": 500,
+        "record_every": 2,
     }
     args = record.call_args.args
     np.testing.assert_array_equal(args[0], [0.0, 2.0])

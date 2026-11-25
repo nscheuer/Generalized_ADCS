@@ -33,7 +33,9 @@ class Noise:
     def apply(self, value, dt, rng=None):
         factor = getattr(self, "cholesky_factor", None)
         if factor is None:
-            raise NotImplementedError("configure a covariance or use a concrete noise model")
+            raise NotImplementedError(
+                "configure a covariance or use a concrete noise model"
+            )
         value = np.asarray(value, dtype=np.float64)
         if value.shape != (factor.shape[0],):
             raise ValueError("value length must match noise covariance")

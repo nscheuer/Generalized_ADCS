@@ -59,12 +59,19 @@ impl SatelliteGeometry {
         panels: Option<Vec<Py<SatellitePanel>>>,
         center_of_mass: Option<&PyAny>,
     ) -> PyResult<Self> {
-        let mut inner = NativeSatelliteGeometry::new(mass, matrix3(py, inertia).unwrap_or([[0.0; 3]; 3]));
-        let center_value = center_of_mass.map(|v| v.into_py(py)).unwrap_or_else(|| (0.0, 0.0, 0.0).into_py(py));
+        let mut inner =
+            NativeSatelliteGeometry::new(mass, matrix3(py, inertia).unwrap_or([[0.0; 3]; 3]));
+        let center_value = center_of_mass
+            .map(|v| v.into_py(py))
+            .unwrap_or_else(|| (0.0, 0.0, 0.0).into_py(py));
         if let Some(center) = center_of_mass {
-            if let Ok(v) = vector3(py, center, "center_of_mass") { inner.center_of_mass = v; }
+            if let Ok(v) = vector3(py, center, "center_of_mass") {
+                inner.center_of_mass = v;
+            }
         }
-        let panel_values: Vec<PyObject> = panels.map(|v| v.into_iter().map(|p| p.into_py(py)).collect()).unwrap_or_default();
+        let panel_values: Vec<PyObject> = panels
+            .map(|v| v.into_iter().map(|p| p.into_py(py)).collect())
+            .unwrap_or_default();
         if !panel_values.is_empty() {
             Python::with_gil(|py| {
                 inner.panels = panel_values
@@ -74,7 +81,12 @@ impl SatelliteGeometry {
                     .collect();
             });
         }
-        Ok(Self { inner, inertia_value: inertia.into_py(py), center_value, panel_values })
+        Ok(Self {
+            inner,
+            inertia_value: inertia.into_py(py),
+            center_value,
+            panel_values,
+        })
     }
 
     #[getter]
@@ -91,7 +103,9 @@ impl SatelliteGeometry {
     }
     #[setter]
     fn set_inertia(&mut self, py: Python<'_>, value: &PyAny) -> PyResult<()> {
-        if let Ok(v) = matrix3(py, value) { self.inner.inertia = v; }
+        if let Ok(v) = matrix3(py, value) {
+            self.inner.inertia = v;
+        }
         self.inertia_value = value.into_py(py);
         Ok(())
     }
@@ -101,7 +115,9 @@ impl SatelliteGeometry {
     }
     #[setter]
     fn set_center_of_mass(&mut self, py: Python<'_>, value: &PyAny) -> PyResult<()> {
-        if let Ok(v) = vector3(py, value, "center_of_mass") { self.inner.center_of_mass = v; }
+        if let Ok(v) = vector3(py, value, "center_of_mass") {
+            self.inner.center_of_mass = v;
+        }
         self.center_value = value.into_py(py);
         Ok(())
     }

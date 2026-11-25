@@ -3,12 +3,10 @@
 
 #include "fine_sun_sensor.hpp"
 
-namespace omni::hardware::sensors
-{
+namespace omni::hardware::sensors {
 // Earth and Sun use the same two-axis direction measurement model.
-struct FineEarthSensor : FineSunSensor
-{
-    using FineSunSensor::FineSunSensor;
+struct FineEarthSensor : FineSunSensor {
+  using FineSunSensor::FineSunSensor;
 };
 } // namespace omni::hardware::sensors
 

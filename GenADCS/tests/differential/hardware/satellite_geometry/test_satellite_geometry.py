@@ -4,7 +4,10 @@ import numpy as np
 
 
 def test_geometry_defaults_and_explicit_fields_match_pairwise(geometry_backends):
-    defaults = {name: api.SatelliteGeometry(2.0, np.eye(3)) for name, api in geometry_backends.items()}
+    defaults = {
+        name: api.SatelliteGeometry(2.0, np.eye(3))
+        for name, api in geometry_backends.items()
+    }
     for backend, geometry in defaults.items():
         assert geometry.mass == 2.0, backend
         np.testing.assert_array_equal(geometry.inertia, np.eye(3), err_msg=backend)
@@ -24,7 +27,9 @@ def test_geometry_defaults_and_explicit_fields_match_pairwise(geometry_backends)
     reference = geometries["python"]
     for backend, geometry in geometries.items():
         assert geometry.mass == reference.mass, backend
-        np.testing.assert_array_equal(geometry.inertia, reference.inertia, err_msg=backend)
+        np.testing.assert_array_equal(
+            geometry.inertia, reference.inertia, err_msg=backend
+        )
         assert geometry.center_of_mass == reference.center_of_mass, backend
         assert len(geometry.panels) == len(reference.panels) == 1, backend
         assert geometry.panels[0].position == reference.panels[0].position, backend
@@ -43,6 +48,8 @@ def test_geometry_mutable_fields_match_pairwise(geometry_backends):
     reference = results["python"]
     for backend, geometry in results.items():
         assert geometry.mass == reference.mass, backend
-        np.testing.assert_array_equal(geometry.inertia, reference.inertia, err_msg=backend)
+        np.testing.assert_array_equal(
+            geometry.inertia, reference.inertia, err_msg=backend
+        )
         assert geometry.center_of_mass == reference.center_of_mass, backend
         assert geometry.panels[0].dimensions == reference.panels[0].dimensions, backend

@@ -21,20 +21,46 @@ class GNSS:
         self.enabled = True
 
     def noiseless_biasfree_measurement(self, position_inertial, velocity_inertial):
-        return gnss_measurement(position_inertial, velocity_inertial, self.bias,
-                                self.noise_cholesky, False, False)
+        return gnss_measurement(
+            position_inertial,
+            velocity_inertial,
+            self.bias,
+            self.noise_cholesky,
+            False,
+            False,
+        )
 
     def noiseless_biased_measurement(self, position_inertial, velocity_inertial):
-        return gnss_measurement(position_inertial, velocity_inertial, self.bias,
-                                self.noise_cholesky, True, False)
+        return gnss_measurement(
+            position_inertial,
+            velocity_inertial,
+            self.bias,
+            self.noise_cholesky,
+            True,
+            False,
+        )
 
     def noisy_biasfree_measurement(self, position_inertial, velocity_inertial):
-        return gnss_measurement(position_inertial, velocity_inertial, self.bias,
-                                self.noise_cholesky, False, True, next_draw(self, 6))
+        return gnss_measurement(
+            position_inertial,
+            velocity_inertial,
+            self.bias,
+            self.noise_cholesky,
+            False,
+            True,
+            next_draw(self, 6),
+        )
 
     def noisy_biased_measurement(self, position_inertial, velocity_inertial):
-        return gnss_measurement(position_inertial, velocity_inertial, self.bias,
-                                self.noise_cholesky, True, True, next_draw(self, 6))
+        return gnss_measurement(
+            position_inertial,
+            velocity_inertial,
+            self.bias,
+            self.noise_cholesky,
+            True,
+            True,
+            next_draw(self, 6),
+        )
 
     def jacobian_relative_quaternion(self):
         return np.zeros((6, 3))

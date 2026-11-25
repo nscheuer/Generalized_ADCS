@@ -86,7 +86,9 @@ class _RotationParameter:
     def relative_to(self, reference):
         if not isinstance(reference, _RotationParameter):
             raise TypeError("reference must be a rotation-parameter object")
-        return type(self).from_quaternion(self.to_quaternion().relative_to(reference.to_quaternion()))
+        return type(self).from_quaternion(
+            self.to_quaternion().relative_to(reference.to_quaternion())
+        )
 
     def __mul__(self, other):
         return self.multiply(other)

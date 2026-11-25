@@ -2,12 +2,17 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 default: all
 
+# Apply Ruff's formatter to the Python backend and its tests.
+format:
+    command -v ruff >/dev/null
+    ruff format GenADCS/backends/python GenADCS/tests
+
 # Install the project and test dependencies into the active Python environment.
 build:
     python -m pip install -r requirements.txt
 
 # Run the Python backend suite; native binding suites are run after building their backend.
 test:
-    python -m pytest GenADCS/tests
+    python -m pytest -n auto GenADCS/tests
 
-all: build test
+all: format build test

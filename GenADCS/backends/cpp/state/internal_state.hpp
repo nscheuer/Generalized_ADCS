@@ -3,19 +3,16 @@
 
 #include <Eigen/Core>
 
-namespace omni
-{
-struct InternalState
-{
-    Eigen::VectorXd wheel_momentum;
+namespace omni {
+struct InternalState {
+  Eigen::VectorXd wheel_momentum;
 
-    explicit InternalState(const Eigen::VectorXd &momentum = Eigen::VectorXd{});
-    virtual ~InternalState() noexcept = default;
+  explicit InternalState(const Eigen::VectorXd &momentum = Eigen::VectorXd{});
+  virtual ~InternalState() noexcept = default;
 };
 
-struct WheelMomentumState final : InternalState
-{
-    using InternalState::InternalState;
+struct WheelMomentumState final : InternalState {
+  using InternalState::InternalState;
 };
 } // namespace omni
 

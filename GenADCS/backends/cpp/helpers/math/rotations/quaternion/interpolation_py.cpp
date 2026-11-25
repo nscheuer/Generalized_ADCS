@@ -23,7 +23,6 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-void bind_rotations_quaternion_interpolation(py::module_ &module)
-{
-    module.def("slerp", &rotations::slerp);
+void bind_rotations_quaternion_interpolation(py::module_ &module) {
+  module.def("slerp", &rotations::slerp);
 }

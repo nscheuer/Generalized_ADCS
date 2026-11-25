@@ -6,12 +6,14 @@ from numba import njit
 def quaternion_derivative(q_b_from_i, angular_velocity_b):
     q = q_b_from_i
     w = angular_velocity_b
-    return 0.5 * np.array((
-        np.dot(q[1:4], w),
-        -(q[0] * w[0] + w[1] * q[3] - w[2] * q[2]),
-        -(q[0] * w[1] + w[2] * q[1] - w[0] * q[3]),
-        -(q[0] * w[2] + w[0] * q[2] - w[1] * q[1]),
-    ))
+    return 0.5 * np.array(
+        (
+            np.dot(q[1:4], w),
+            -(q[0] * w[0] + w[1] * q[3] - w[2] * q[2]),
+            -(q[0] * w[1] + w[2] * q[1] - w[0] * q[3]),
+            -(q[0] * w[2] + w[0] * q[2] - w[1] * q[1]),
+        )
+    )
 
 
 @njit(cache=True)
@@ -24,11 +26,13 @@ def quaternion_rate_matrix(q_b_from_i):
 def angular_velocity_from_quaternion_derivative(q_b_from_i, qdot_b_from_i):
     q = q_b_from_i
     qdot = qdot_b_from_i
-    return 2.0 * np.array((
-        q[1] * qdot[0] - q[0] * qdot[1] + q[3] * qdot[2] - q[2] * qdot[3],
-        q[2] * qdot[0] - q[3] * qdot[1] - q[0] * qdot[2] + q[1] * qdot[3],
-        q[3] * qdot[0] + q[2] * qdot[1] - q[1] * qdot[2] - q[0] * qdot[3],
-    ))
+    return 2.0 * np.array(
+        (
+            q[1] * qdot[0] - q[0] * qdot[1] + q[3] * qdot[2] - q[2] * qdot[3],
+            q[2] * qdot[0] - q[3] * qdot[1] - q[0] * qdot[2] + q[1] * qdot[3],
+            q[3] * qdot[0] + q[2] * qdot[1] - q[1] * qdot[2] - q[0] * qdot[3],
+        )
+    )
 
 
 @njit(cache=True)
@@ -48,7 +52,14 @@ def rotated_vector_quaternion_jacobian(q_b_from_i, vector_i):
         (np.dot(qv, vector_i) * np.eye(3))
         + np.outer(qv, vector_i)
         - 2.0 * np.outer(vector_i, qv)
-        - q_b_from_i[0] * np.array(((0.0, -vector_i[2], vector_i[1]), (vector_i[2], 0.0, -vector_i[0]), (-vector_i[1], vector_i[0], 0.0)))
+        - q_b_from_i[0]
+        * np.array(
+            (
+                (0.0, -vector_i[2], vector_i[1]),
+                (vector_i[2], 0.0, -vector_i[0]),
+                (-vector_i[1], vector_i[0], 0.0),
+            )
+        )
     )
     return jacobian
 

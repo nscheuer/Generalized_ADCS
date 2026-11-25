@@ -7,7 +7,9 @@ import pytest
 
 
 def test_panel_constructor_defaults_and_explicit_fields(geometry_backend):
-    panel = geometry_backend.SatellitePanel((1.0, 2.0, 3.0), (0.0, 0.0, 1.0), (2.0, 1.0))
+    panel = geometry_backend.SatellitePanel(
+        (1.0, 2.0, 3.0), (0.0, 0.0, 1.0), (2.0, 1.0)
+    )
     assert panel.position == (1.0, 2.0, 3.0)
     assert panel.orientation == (0.0, 0.0, 1.0)
     assert panel.dimensions == (2.0, 1.0)
@@ -19,11 +21,18 @@ def test_panel_constructor_defaults_and_explicit_fields(geometry_backend):
     assert explicit.position == [1, -2, 3]
     assert explicit.orientation == [0.0, 0.6, 0.8]
     assert explicit.dimensions == [4, 5]
-    assert (explicit.eta_s, explicit.eta_d, explicit.eta_a, explicit.cd) == (0.2, 0.3, 0.5, 2.1)
+    assert (explicit.eta_s, explicit.eta_d, explicit.eta_a, explicit.cd) == (
+        0.2,
+        0.3,
+        0.5,
+        2.1,
+    )
 
 
 def test_panel_fields_can_be_read_and_mutated(geometry_backend):
-    panel = geometry_backend.SatellitePanel((1.0, 2.0, 3.0), (0.0, 0.0, 1.0), (2.0, 1.0))
+    panel = geometry_backend.SatellitePanel(
+        (1.0, 2.0, 3.0), (0.0, 0.0, 1.0), (2.0, 1.0)
+    )
     panel.position = (9.0, 8.0, 7.0)
     panel.orientation = (1.0, 0.0, 0.0)
     panel.dimensions = (3.0, 4.0)
@@ -62,7 +71,9 @@ def test_panel_constructor_arguments_are_checked_by_binding(geometry_backend):
         geometry_backend.SatellitePanel((0, 0, 0), (1, 0, 0))
 
 
-def test_panel_equality_behavior_is_explicit_for_each_backend(geometry_backend, geometry_backend_name):
+def test_panel_equality_behavior_is_explicit_for_each_backend(
+    geometry_backend, geometry_backend_name
+):
     panel_a = geometry_backend.SatellitePanel((1, 2, 3), (0, 0, 1), (4, 5))
     panel_b = geometry_backend.SatellitePanel((1, 2, 3), (0, 0, 1), (4, 5))
     if geometry_backend_name == "cpp":

@@ -28,13 +28,18 @@ def test_rotation_vector_and_array_protocol():
     np.testing.assert_allclose(r.to_dcm(), r.as_matrix())
 
 
-@pytest.mark.parametrize("bad", [np.zeros((2, 2)), np.zeros((3, 3)), np.diag([1, 1, -1]), np.full((3, 3), np.nan)])
+@pytest.mark.parametrize(
+    "bad",
+    [np.zeros((2, 2)), np.zeros((3, 3)), np.diag([1, 1, -1]), np.full((3, 3), np.nan)],
+)
 def test_rejects_bad_matrices(bad):
     with pytest.raises(ValueError):
         DCM(bad)
 
 
-@pytest.mark.parametrize("axis,angle", [([0, 0], 1), ([np.inf, 0, 0], 1), ([1, 0, 0], np.nan)])
+@pytest.mark.parametrize(
+    "axis,angle", [([0, 0], 1), ([np.inf, 0, 0], 1), ([1, 0, 0], np.nan)]
+)
 def test_rejects_bad_axis_angle(axis, angle):
     with pytest.raises(ValueError):
         DCM.from_axis_angle(axis, angle)
@@ -47,10 +52,16 @@ def test_rejects_bad_vectors(vector):
 
 
 def test_normalized_conjugate_and_relative_rotation():
-    rotation = DCM.from_axis_angle([1, 0, 0], .4)
-    np.testing.assert_allclose(rotation.normalized().as_matrix(), rotation.as_matrix(), atol=1e-14)
-    np.testing.assert_allclose(rotation.conjugate().as_matrix(), rotation.inverse().as_matrix(), atol=1e-14)
-    np.testing.assert_allclose(rotation.relative_to(rotation).as_matrix(), np.eye(3), atol=1e-14)
+    rotation = DCM.from_axis_angle([1, 0, 0], 0.4)
+    np.testing.assert_allclose(
+        rotation.normalized().as_matrix(), rotation.as_matrix(), atol=1e-14
+    )
+    np.testing.assert_allclose(
+        rotation.conjugate().as_matrix(), rotation.inverse().as_matrix(), atol=1e-14
+    )
+    np.testing.assert_allclose(
+        rotation.relative_to(rotation).as_matrix(), np.eye(3), atol=1e-14
+    )
 
 
 def test_input_matrix_and_array_protocol_are_owned():

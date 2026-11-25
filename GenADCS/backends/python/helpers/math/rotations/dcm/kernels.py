@@ -11,11 +11,25 @@ def axis_angle_to_dcm(axis, angle):
     cosine = np.cos(angle)
     sine = np.sin(angle)
     one_minus_cosine = 1.0 - cosine
-    return np.array((
-        (cosine + x * x * one_minus_cosine, x * y * one_minus_cosine - z * sine, x * z * one_minus_cosine + y * sine),
-        (y * x * one_minus_cosine + z * sine, cosine + y * y * one_minus_cosine, y * z * one_minus_cosine - x * sine),
-        (z * x * one_minus_cosine - y * sine, z * y * one_minus_cosine + x * sine, cosine + z * z * one_minus_cosine),
-    ))
+    return np.array(
+        (
+            (
+                cosine + x * x * one_minus_cosine,
+                x * y * one_minus_cosine - z * sine,
+                x * z * one_minus_cosine + y * sine,
+            ),
+            (
+                y * x * one_minus_cosine + z * sine,
+                cosine + y * y * one_minus_cosine,
+                y * z * one_minus_cosine - x * sine,
+            ),
+            (
+                z * x * one_minus_cosine - y * sine,
+                z * y * one_minus_cosine + x * sine,
+                cosine + z * z * one_minus_cosine,
+            ),
+        )
+    )
 
 
 @njit(cache=True)

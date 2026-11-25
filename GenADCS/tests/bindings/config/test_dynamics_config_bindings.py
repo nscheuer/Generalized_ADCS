@@ -51,9 +51,16 @@ def test_list_getter_ownership_and_mutation_quirks(config_backend, config_backen
 def test_collection_setter_sequence_conversion(config_backend, config_backend_name):
     config = config_backend.DynamicsConfig()
     config.forces = ("a", "b")
-    assert config.forces == ["a", "b"] if config_backend_name != "python" else config.forces == ("a", "b")
+    assert (
+        config.forces == ["a", "b"]
+        if config_backend_name != "python"
+        else config.forces == ("a", "b")
+    )
 
-def test_none_constructor_argument_is_backend_specific(config_backend, config_backend_name):
+
+def test_none_constructor_argument_is_backend_specific(
+    config_backend, config_backend_name
+):
     if config_backend_name == "cpp":
         with pytest.raises(TypeError):
             config_backend.DynamicsConfig(forces=None)
@@ -63,7 +70,9 @@ def test_none_constructor_argument_is_backend_specific(config_backend, config_ba
         assert config_backend.DynamicsConfig(forces=None).forces == []
 
 
-def test_item_references_survive_collection_and_are_released_on_destruction(config_backend):
+def test_item_references_survive_collection_and_are_released_on_destruction(
+    config_backend,
+):
     class RetainedItem:
         pass
 

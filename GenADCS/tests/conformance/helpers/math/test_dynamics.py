@@ -32,7 +32,9 @@ def test_wheel_coupled_acceleration_uses_total_momentum(math_api):
     total_momentum = inertia @ omega + axes.T @ momentum
     expected = np.linalg.solve(inertia, torque - np.cross(omega, total_momentum))
     np.testing.assert_allclose(
-        math_api.wheel_coupled_angular_acceleration(omega, momentum, axes, torque, inertia),
+        math_api.wheel_coupled_angular_acceleration(
+            omega, momentum, axes, torque, inertia
+        ),
         expected,
         rtol=2e-13,
         atol=2e-14,
@@ -42,11 +44,15 @@ def test_wheel_coupled_acceleration_uses_total_momentum(math_api):
 def test_wheel_momentum_derivative_and_empty_wheel_contract(math_api):
     wheel_torque = np.array([0.2, -0.1, 0.05])
     acceleration = np.array([0.3, -0.4, 0.2])
-    axes = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1 / np.sqrt(2), 0.0, 1 / np.sqrt(2)]])
+    axes = np.array(
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1 / np.sqrt(2), 0.0, 1 / np.sqrt(2)]]
+    )
     np.testing.assert_allclose(
         math_api.wheel_momentum_derivative(wheel_torque, acceleration, axes),
         wheel_torque - axes @ acceleration,
         atol=2e-14,
     )
-    empty = math_api.wheel_momentum_derivative(np.empty(0), acceleration, np.empty((0, 3)))
+    empty = math_api.wheel_momentum_derivative(
+        np.empty(0), acceleration, np.empty((0, 3))
+    )
     assert np.asarray(empty).shape == (0,)

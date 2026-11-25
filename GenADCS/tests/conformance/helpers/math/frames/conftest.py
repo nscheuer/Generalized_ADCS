@@ -8,4 +8,6 @@ def frames(request):
     try:
         return import_module(f"GenADCS.backends.{request.param}.helpers.math.frames")
     except ImportError as exc:
-        pytest.fail(f"{request.param} frame backend unavailable; build native extensions first: {exc}")
+        pytest.fail(
+            f"{request.param} frame backend unavailable; build native extensions first: {exc}"
+        )

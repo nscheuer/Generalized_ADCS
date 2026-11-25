@@ -53,11 +53,18 @@ def test_effects_can_transform_arrays_without_mutating_original_when_returning_n
 
 def test_effects_accept_any_iterable_and_propagate_exceptions_without_running_later_effects():
     calls = []
-    effects = (effect for effect in [
-        RecordingEffect("before", lambda value: value + 1, calls),
-        RecordingEffect("failure", lambda value: (_ for _ in ()).throw(RuntimeError("effect failed")), calls),
-        RecordingEffect("after", lambda value: value + 1, calls),
-    ])
+    effects = (
+        effect
+        for effect in [
+            RecordingEffect("before", lambda value: value + 1, calls),
+            RecordingEffect(
+                "failure",
+                lambda value: (_ for _ in ()).throw(RuntimeError("effect failed")),
+                calls,
+            ),
+            RecordingEffect("after", lambda value: value + 1, calls),
+        ]
+    )
     with pytest.raises(RuntimeError, match="effect failed"):
         apply_effects(0, effects, 1.0)
     assert [call[0] for call in calls] == ["before", "failure"]

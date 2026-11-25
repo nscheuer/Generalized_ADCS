@@ -17,7 +17,8 @@
 namespace py = pybind11;
 namespace env = omni::environment;
 
-void bind_planetary_body_earth(py::module_ &module)
-{
-    py::class_<env::Earth, env::PlanetaryBody, std::shared_ptr<env::Earth>>(module, "Earth").def(py::init<>());
+void bind_planetary_body_earth(py::module_ &module) {
+  py::class_<env::Earth, env::PlanetaryBody, std::shared_ptr<env::Earth>>(
+      module, "Earth")
+      .def(py::init<>());
 }

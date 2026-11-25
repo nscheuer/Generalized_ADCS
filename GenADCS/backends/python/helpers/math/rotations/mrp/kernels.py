@@ -6,7 +6,12 @@ from numba import njit
 def mrp_to_quaternion(parameters):
     squared_norm = np.dot(parameters, parameters)
     denominator = 1.0 + squared_norm
-    return np.concatenate((np.array(((1.0 - squared_norm) / denominator,)), 2.0 * parameters / denominator))
+    return np.concatenate(
+        (
+            np.array(((1.0 - squared_norm) / denominator,)),
+            2.0 * parameters / denominator,
+        )
+    )
 
 
 @njit(cache=True)

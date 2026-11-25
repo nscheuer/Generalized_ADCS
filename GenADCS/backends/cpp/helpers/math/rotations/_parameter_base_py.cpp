@@ -23,16 +23,17 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-void bind_rotations__parameter_base(py::module_ &module)
-{
-    py::class_<rotations::RotationParameter>(module, "_RotationParameter")
-        .def_property_readonly("components", &rotations::RotationParameter::components)
-        .def_property_readonly("hamilton_components", &rotations::RotationParameter::hamilton_components)
-        .def_property_readonly("norm", &rotations::RotationParameter::norm)
-        .def("as_vector", &rotations::RotationParameter::as_vector)
-        .def("to_quaternion", &rotations::RotationParameter::to_quaternion)
-        .def("to_dcm", &rotations::RotationParameter::to_dcm)
-        .def("rotate", &rotations::RotationParameter::rotate)
-        .def("inertial_to_body", &rotations::RotationParameter::inertial_to_body)
-        .def("body_to_inertial", &rotations::RotationParameter::body_to_inertial);
+void bind_rotations__parameter_base(py::module_ &module) {
+  py::class_<rotations::RotationParameter>(module, "_RotationParameter")
+      .def_property_readonly("components",
+                             &rotations::RotationParameter::components)
+      .def_property_readonly("hamilton_components",
+                             &rotations::RotationParameter::hamilton_components)
+      .def_property_readonly("norm", &rotations::RotationParameter::norm)
+      .def("as_vector", &rotations::RotationParameter::as_vector)
+      .def("to_quaternion", &rotations::RotationParameter::to_quaternion)
+      .def("to_dcm", &rotations::RotationParameter::to_dcm)
+      .def("rotate", &rotations::RotationParameter::rotate)
+      .def("inertial_to_body", &rotations::RotationParameter::inertial_to_body)
+      .def("body_to_inertial", &rotations::RotationParameter::body_to_inertial);
 }

@@ -11,4 +11,6 @@ def state_backend(request):
     try:
         return import_module(f"GenADCS.backends.{name}.state")
     except ImportError as exc:
-        pytest.fail(f"{name} state backend is unavailable; build its extension before conformance tests: {exc}")
+        pytest.fail(
+            f"{name} state backend is unavailable; build its extension before conformance tests: {exc}"
+        )

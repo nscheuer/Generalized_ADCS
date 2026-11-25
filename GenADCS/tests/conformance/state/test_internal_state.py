@@ -30,4 +30,6 @@ def test_wheel_momentum_from_subsystem(state_backend):
 
 def test_wheel_sources_are_mutually_exclusive(state_backend):
     with pytest.raises(ValueError):
-        state_backend.WheelMomentumState(SimpleNamespace(reaction_wheels=[]), wheel_momentum=[])
+        state_backend.WheelMomentumState(
+            SimpleNamespace(reaction_wheels=[]), wheel_momentum=[]
+        )

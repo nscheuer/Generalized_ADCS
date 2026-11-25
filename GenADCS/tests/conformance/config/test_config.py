@@ -15,7 +15,13 @@ class State:
 
 
 def dependencies(wheels=2):
-    return (SimpleNamespace(adcs=SimpleNamespace(reaction_wheels=[None] * wheels)), object(), State(), object(), object())
+    return (
+        SimpleNamespace(adcs=SimpleNamespace(reaction_wheels=[None] * wheels)),
+        object(),
+        State(),
+        object(),
+        object(),
+    )
 
 
 def test_dynamics_config_defaults_and_mutable_collections(config_api):
@@ -30,14 +36,21 @@ def test_simulation_config_default_backend_dependencies_and_snapshot(config_api)
     values = dependencies()
     config = config_api.SimulationConfig(*values)
     assert config.backend == "Python"
-    assert all(getattr(config, key) is value for key, value in zip(("satellite", "environment", "state", "propagator", "solver"), values))
+    assert all(
+        getattr(config, key) is value
+        for key, value in zip(
+            ("satellite", "environment", "state", "propagator", "solver"), values
+        )
+    )
     assert config.state_record is values[2].record
     assert config.julian_date == 2451545.0 and values[2].count == 2
 
 
 @pytest.mark.parametrize("backend", ["Python", "C", "Rust", "JAX"])
 def test_supported_simulation_backends(config_api, backend):
-    assert config_api.SimulationConfig(*dependencies(), backend=backend).backend == backend
+    assert (
+        config_api.SimulationConfig(*dependencies(), backend=backend).backend == backend
+    )
 
 
 def test_invalid_backend_fails_before_state_record_is_requested(config_api):

@@ -23,9 +23,10 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-void bind_dynamics(py::module_ &module)
-{
-    module.def("rigid_body_angular_acceleration", &math::rigid_body_angular_acceleration);
-    module.def("wheel_coupled_angular_acceleration", &math::wheel_coupled_angular_acceleration);
-    module.def("wheel_momentum_derivative", &math::wheel_momentum_derivative);
+void bind_dynamics(py::module_ &module) {
+  module.def("rigid_body_angular_acceleration",
+             &math::rigid_body_angular_acceleration);
+  module.def("wheel_coupled_angular_acceleration",
+             &math::wheel_coupled_angular_acceleration);
+  module.def("wheel_momentum_derivative", &math::wheel_momentum_derivative);
 }

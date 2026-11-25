@@ -9,7 +9,9 @@ from GenADCS.backends.python.helpers.math.derivatives import (
     quaternion_to_euler321,
     rotated_vector_quaternion_jacobian,
 )
-from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import _rotate_vector
+from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import (
+    _rotate_vector,
+)
 
 
 def _finite_difference_jacobian(function, x, step=1e-7):
@@ -29,16 +31,22 @@ def test_quaternion_derivative_matches_rate_matrix_and_inverse_recovers_angular_
     omega = np.array([0.4, -0.7, 0.2])
     qdot = quaternion_derivative(q, omega)
     np.testing.assert_allclose(qdot, quaternion_rate_matrix(q) @ omega)
-    np.testing.assert_allclose(angular_velocity_from_quaternion_derivative(q, qdot), omega)
+    np.testing.assert_allclose(
+        angular_velocity_from_quaternion_derivative(q, qdot), omega
+    )
 
 
 def test_quaternion_rate_matrix_is_linear_and_has_expected_shape():
     q = np.array([1.0, 0.0, 0.0, 0.0])
     matrix = quaternion_rate_matrix(q)
     assert matrix.shape == (4, 3)
-    np.testing.assert_allclose(matrix, [[0, 0, 0], [-0.5, 0, 0], [0, -0.5, 0], [0, 0, -0.5]])
+    np.testing.assert_allclose(
+        matrix, [[0, 0, 0], [-0.5, 0, 0], [0, -0.5, 0], [0, 0, -0.5]]
+    )
     omega = np.array([1.0, 2.0, -3.0])
-    np.testing.assert_allclose(quaternion_derivative(q, 2 * omega), 2 * quaternion_derivative(q, omega))
+    np.testing.assert_allclose(
+        quaternion_derivative(q, 2 * omega), 2 * quaternion_derivative(q, omega)
+    )
 
 
 def test_quaternion_derivative_preserves_unit_norm_to_first_order():
@@ -52,14 +60,19 @@ def test_quaternion_normalization_jacobian_matches_finite_difference():
     q = np.array([0.4, -1.2, 0.7, 2.0])
     normalize = lambda value: value / np.linalg.norm(value)
     actual = quaternion_normalization_jacobian(q)
-    np.testing.assert_allclose(actual, _finite_difference_jacobian(normalize, q), rtol=2e-8, atol=2e-9)
+    np.testing.assert_allclose(
+        actual, _finite_difference_jacobian(normalize, q), rtol=2e-8, atol=2e-9
+    )
     np.testing.assert_allclose(actual @ q, np.zeros(4), atol=1e-14)
     np.testing.assert_allclose(actual, actual.T, atol=1e-14)
 
 
 def test_quaternion_normalization_jacobian_is_scale_invariant_with_inverse_scaling():
     q = np.array([0.2, 0.3, -0.4, 0.5])
-    np.testing.assert_allclose(quaternion_normalization_jacobian(3.0 * q), quaternion_normalization_jacobian(q) / 3.0)
+    np.testing.assert_allclose(
+        quaternion_normalization_jacobian(3.0 * q),
+        quaternion_normalization_jacobian(q) / 3.0,
+    )
 
 
 def test_quaternion_normalization_jacobian_rejects_zero_norm():
@@ -67,15 +80,21 @@ def test_quaternion_normalization_jacobian_rejects_zero_norm():
         quaternion_normalization_jacobian(np.zeros(4))
 
 
-@pytest.mark.parametrize("q", [np.array([0.8, -0.1, 0.3, 0.5]), np.array([1.0, 0.0, 0.0, 0.0])])
-def test_rotated_vector_quaternion_jacobian_matches_vector_rotation_finite_difference(q):
+@pytest.mark.parametrize(
+    "q", [np.array([0.8, -0.1, 0.3, 0.5]), np.array([1.0, 0.0, 0.0, 0.0])]
+)
+def test_rotated_vector_quaternion_jacobian_matches_vector_rotation_finite_difference(
+    q,
+):
     vector = np.array([1.3, -0.7, 2.1])
     # The rotation function expects a unit quaternion; choose a unit point for
     # the derivative check so the finite difference matches the helper's model.
     q = q / np.linalg.norm(q)
     function = lambda value: _rotate_vector(value, vector)
     actual = rotated_vector_quaternion_jacobian(q, vector)
-    np.testing.assert_allclose(actual, _finite_difference_jacobian(function, q), rtol=3e-7, atol=3e-8)
+    np.testing.assert_allclose(
+        actual, _finite_difference_jacobian(function, q), rtol=3e-7, atol=3e-8
+    )
 
 
 @pytest.mark.parametrize(
@@ -87,7 +106,9 @@ def test_rotated_vector_quaternion_jacobian_matches_vector_rotation_finite_diffe
     ],
 )
 def test_quaternion_to_euler321_identity_and_principal_axis_rotations(q, expected):
-    np.testing.assert_allclose(quaternion_to_euler321(np.asarray(q)), expected, atol=1e-14)
+    np.testing.assert_allclose(
+        quaternion_to_euler321(np.asarray(q)), expected, atol=1e-14
+    )
 
 
 def test_quaternion_to_euler321_clamps_roundoff_at_pitch_singularity():

@@ -10,4 +10,6 @@ def math_api(request):
     try:
         return import_module(f"GenADCS.backends.{request.param}.helpers.math")
     except ImportError as exc:
-        pytest.fail(f"{request.param} math backend unavailable; build native extensions first: {exc}")
+        pytest.fail(
+            f"{request.param} math backend unavailable; build native extensions first: {exc}"
+        )

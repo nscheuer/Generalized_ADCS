@@ -18,14 +18,15 @@ def test_native_lunisolar_binding_accepts_numpy_vectors(dynamics_backend):
     assert 1e-8 < np.linalg.norm(acceleration) < 1e-5
 
 
-@pytest.mark.parametrize("sun,moon", [
-    ([0.0, 0.0, 0.0], [0.0, 1.0, 0.0]),
-    ([0.0, 1.0, 0.0], [0.0, 0.0, 0.0]),
-])
+@pytest.mark.parametrize(
+    "sun,moon",
+    [
+        ([0.0, 0.0, 0.0], [0.0, 1.0, 0.0]),
+        ([0.0, 1.0, 0.0], [0.0, 0.0, 0.0]),
+    ],
+)
 def test_native_lunisolar_binding_maps_zero_separation_to_value_error(
     dynamics_backend, sun, moon
 ):
     with pytest.raises(ValueError, match="distance must be nonzero"):
-        dynamics_backend.lunisolar_acceleration(
-            [0.0, 0.0, 0.0], sun, moon, 1.0, 1.0
-        )
+        dynamics_backend.lunisolar_acceleration([0.0, 0.0, 0.0], sun, moon, 1.0, 1.0)

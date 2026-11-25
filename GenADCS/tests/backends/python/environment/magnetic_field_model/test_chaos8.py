@@ -26,4 +26,6 @@ def test_chaos8_static_field_loads_and_changes_the_result():
 
 def test_chaos8_rejects_epoch_outside_core_coefficients():
     with pytest.raises(ValueError, match="outside CHAOS-8.7"):
-        CHAOS8(include_static=False).field((6_778_137.0, 0.0, 0.0), calendar_to_jd(1800, 1, 1))
+        CHAOS8(include_static=False).field(
+            (6_778_137.0, 0.0, 0.0), calendar_to_jd(1800, 1, 1)
+        )

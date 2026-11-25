@@ -1,4 +1,5 @@
 """World Magnetic Model placeholder."""
+
 from ..magnetic_field_model import MagneticFieldModel
 
 

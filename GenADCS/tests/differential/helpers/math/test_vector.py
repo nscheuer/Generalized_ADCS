@@ -19,6 +19,8 @@ def test_vector_operations_match_pairwise(math_backends):
     reference = results["python"]
     for backend, values in results.items():
         for actual, expected in zip(values, reference):
-            np.testing.assert_allclose(actual, expected, rtol=2e-14, atol=2e-14, err_msg=backend)
+            np.testing.assert_allclose(
+                actual, expected, rtol=2e-14, atol=2e-14, err_msg=backend
+            )
     for values in results.values():
         np.testing.assert_allclose(values[4] @ right, values[0], atol=2e-14)

@@ -2,6 +2,11 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 default: all
 
+# Apply rustfmt to every crate in the Rust workspace.
+format:
+    command -v cargo >/dev/null
+    cargo fmt --manifest-path GenADCS/backends/rust/Cargo.toml --all
+
 # Build all Python-importable Rust extensions and all workspace crates.
 build:
     command -v sccache >/dev/null
@@ -12,4 +17,4 @@ build:
 test:
     RUSTC_WRAPPER=sccache PYO3_PYTHON="$(python -c 'import sys; print(sys.executable)')" PYTHONPATH="$(python -c 'import site; print(site.getsitepackages()[0])'):$PWD" cargo test --manifest-path GenADCS/backends/rust/Cargo.toml --workspace -- --test-threads=1
 
-all: build test
+all: format build test

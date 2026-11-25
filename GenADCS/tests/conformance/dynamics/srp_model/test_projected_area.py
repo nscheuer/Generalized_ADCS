@@ -26,9 +26,12 @@ def test_srp_force_and_torque_match_absorbing_panel_formula(dynamics_api):
 
 def test_srp_force_scales_with_illumination_and_zero_illumination(dynamics_api):
     args = (
-        np.zeros(3), np.array([149_597_870_700.0, 0.0, 0.0]),
-        np.array([1.0, 0.0, 0.0, 0.0]), np.array([[1.0, 0.0, 0.0]]),
-        np.array([2.0]), np.array([[0.0, 0.0, 1.0]]),
+        np.zeros(3),
+        np.array([149_597_870_700.0, 0.0, 0.0]),
+        np.array([1.0, 0.0, 0.0, 0.0]),
+        np.array([[1.0, 0.0, 0.0]]),
+        np.array([2.0]),
+        np.array([[0.0, 0.0, 1.0]]),
     )
     full = dynamics_api.projected_area_srp_force(*args)
     half = dynamics_api.projected_area_srp_force(*args, 0.5)
@@ -40,7 +43,10 @@ def test_srp_force_scales_with_illumination_and_zero_illumination(dynamics_api):
 def test_srp_rejects_coincident_spacecraft_and_sun_positions(dynamics_api):
     with pytest.raises(ValueError, match="positions coincide"):
         dynamics_api.projected_area_srp_force(
-            np.zeros(3), np.zeros(3), np.array([1.0, 0.0, 0.0, 0.0]),
-            np.array([[1.0, 0.0, 0.0]]), np.array([1.0]),
+            np.zeros(3),
+            np.zeros(3),
+            np.array([1.0, 0.0, 0.0, 0.0]),
+            np.array([[1.0, 0.0, 0.0]]),
+            np.array([1.0]),
             np.array([[0.0, 0.0, 1.0]]),
         )

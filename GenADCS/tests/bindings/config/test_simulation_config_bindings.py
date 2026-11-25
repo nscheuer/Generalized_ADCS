@@ -19,7 +19,9 @@ class StateDouble:
 
 
 def make_dependencies(wheels=2, date=2451545.0):
-    satellite = SimpleNamespace(adcs=SimpleNamespace(reaction_wheels=[object() for _ in range(wheels)]))
+    satellite = SimpleNamespace(
+        adcs=SimpleNamespace(reaction_wheels=[object() for _ in range(wheels)])
+    )
     state = StateDouble(date)
     return satellite, SimpleNamespace(), state, SimpleNamespace(), SimpleNamespace()
 
@@ -28,7 +30,9 @@ def test_constructor_defaults_backend_and_initializes_state_snapshots(config_bac
     values = make_dependencies(wheels=2, date=2460000.25)
     config = config_backend.SimulationConfig(*values)
 
-    for name, expected in zip(("satellite", "environment", "state", "propagator", "solver"), values):
+    for name, expected in zip(
+        ("satellite", "environment", "state", "propagator", "solver"), values
+    ):
         assert getattr(config, name) is expected
     assert config.backend == "Python"
     assert config.state_record is values[2].record
@@ -38,13 +42,20 @@ def test_constructor_defaults_backend_and_initializes_state_snapshots(config_bac
 
 @pytest.mark.parametrize("backend", ["Python", "C", "Rust", "JAX"])
 def test_supported_backend_names_are_accepted(config_backend, backend):
-    assert config_backend.SimulationConfig(*make_dependencies(), backend=backend).backend == backend
+    assert (
+        config_backend.SimulationConfig(*make_dependencies(), backend=backend).backend
+        == backend
+    )
 
 
 @pytest.mark.parametrize("backend", ["", "python", "CUDA", None])
 def test_unsupported_backend_names_are_rejected(config_backend, backend):
     values = make_dependencies()
-    expected_error = TypeError if config_backend.__name__.endswith("rust.config") and backend is None else ValueError
+    expected_error = (
+        TypeError
+        if config_backend.__name__.endswith("rust.config") and backend is None
+        else ValueError
+    )
     with pytest.raises(expected_error):
         config_backend.SimulationConfig(*values, backend=backend)
     assert values[2].wheel_counts == []
@@ -55,7 +66,9 @@ def test_missing_required_constructor_arguments_are_rejected(config_backend):
         config_backend.SimulationConfig()
 
 
-def test_snapshot_property_mutability_is_backend_specific(config_backend, config_backend_name):
+def test_snapshot_property_mutability_is_backend_specific(
+    config_backend, config_backend_name
+):
     config = config_backend.SimulationConfig(*make_dependencies())
     replacement = object()
     if config_backend_name == "python":
@@ -71,7 +84,9 @@ def test_snapshot_property_mutability_is_backend_specific(config_backend, config
             config.julian_date = 2452000.0
 
 
-def test_dependency_and_backend_properties_remain_mutable_after_construction(config_backend):
+def test_dependency_and_backend_properties_remain_mutable_after_construction(
+    config_backend,
+):
     config = config_backend.SimulationConfig(*make_dependencies())
     new_solver = object()
     config.solver = new_solver
@@ -80,7 +95,9 @@ def test_dependency_and_backend_properties_remain_mutable_after_construction(con
     assert config.backend == "not-validated-on-assignment"
 
 
-def test_native_backend_requires_string_backend_value(config_backend, config_backend_name):
+def test_native_backend_requires_string_backend_value(
+    config_backend, config_backend_name
+):
     if config_backend_name == "python":
         with pytest.raises(ValueError):
             config_backend.SimulationConfig(*make_dependencies(), backend=1)
@@ -93,7 +110,9 @@ def test_native_backend_requires_string_backend_value(config_backend, config_bac
             config_backend.SimulationConfig(*make_dependencies(), backend=1)
 
 
-def test_constructor_retains_python_dependencies_until_config_is_destroyed(config_backend):
+def test_constructor_retains_python_dependencies_until_config_is_destroyed(
+    config_backend,
+):
     class Dependency:
         pass
 

@@ -3,13 +3,20 @@
 import numpy as np
 import pytest
 
-from GenADCS.backends.python.helpers.random.philox import _philox4x32, standard_normals, validate_seed
+from GenADCS.backends.python.helpers.random.philox import (
+    _philox4x32,
+    standard_normals,
+    validate_seed,
+)
 
 
 def test_philox4x32_10_reference_vector():
     # Random123 Philox4x32-10, zero counter and zero key.
     assert tuple(int(word) for word in _philox4x32(np.uint64(0), 0, 0, 0)) == (
-        0x6627E8D5, 0xE169C58D, 0xBC57AC4C, 0x9B00DBD8,
+        0x6627E8D5,
+        0xE169C58D,
+        0xBC57AC4C,
+        0x9B00DBD8,
     )
 
 

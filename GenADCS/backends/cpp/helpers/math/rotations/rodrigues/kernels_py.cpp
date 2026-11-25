@@ -23,8 +23,9 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-void bind_rotations_rodrigues_kernels(py::module_ &module)
-{
-    module.def("rodrigues_to_quaternion", &rotations::rodrigues_to_quaternion_parameters);
-    module.def("quaternion_to_rodrigues", &rotations::quaternion_to_rodrigues_parameters);
+void bind_rotations_rodrigues_kernels(py::module_ &module) {
+  module.def("rodrigues_to_quaternion",
+             &rotations::rodrigues_to_quaternion_parameters);
+  module.def("quaternion_to_rodrigues",
+             &rotations::quaternion_to_rodrigues_parameters);
 }

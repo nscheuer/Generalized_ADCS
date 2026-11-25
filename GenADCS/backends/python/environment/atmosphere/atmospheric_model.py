@@ -9,7 +9,9 @@ def atmospheric_density(position_inertial_m, epoch_jd):
 
 
 @njit(cache=True)
-def co_rotating_atmosphere_velocity(position_inertial_m, epoch_jd, angular_velocity_inertial_rad_s=None):
+def co_rotating_atmosphere_velocity(
+    position_inertial_m, epoch_jd, angular_velocity_inertial_rad_s=None
+):
     """Rigidly co-rotating atmospheric velocity in ECI coordinates [m/s].
 
     The optional angular-velocity vector allows callers to supply their own

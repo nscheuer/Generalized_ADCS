@@ -14,12 +14,20 @@ class AttitudeEstimator:
     No sensor or actuator bias is part of this state.
     """
 
-    DIAGNOSTIC_FIELDS = frozenset((
-        "estimated_attitude", "estimated_rate", "estimated_attitude_covariance",
-        "estimated_rate_covariance", "measurement_innovation",
-        "measurement_innovation_covariance", "normalized_innovation_squared",
-        "normalized_estimation_error_squared", "measurement_residual", "kalman_gain",
-    ))
+    DIAGNOSTIC_FIELDS = frozenset(
+        (
+            "estimated_attitude",
+            "estimated_rate",
+            "estimated_attitude_covariance",
+            "estimated_rate_covariance",
+            "measurement_innovation",
+            "measurement_innovation_covariance",
+            "normalized_innovation_squared",
+            "normalized_estimation_error_squared",
+            "measurement_residual",
+            "kalman_gain",
+        )
+    )
 
     def __init__(self, quaternion, rate, covariance, acceleration_psd, *, record=()):
         q = np.asarray(quaternion, dtype=np.float64)
@@ -51,5 +59,9 @@ class AttitudeEstimator:
 
     def prepare(self):
         """Return independent numeric state for one simulation run."""
-        return (self.quaternion.copy(), self.rate.copy(), self.covariance.copy(),
-                self.acceleration_psd.copy())
+        return (
+            self.quaternion.copy(),
+            self.rate.copy(),
+            self.covariance.copy(),
+            self.acceleration_psd.copy(),
+        )

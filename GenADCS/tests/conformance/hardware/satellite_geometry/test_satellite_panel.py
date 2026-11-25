@@ -15,8 +15,15 @@ def test_required_fields_defaults_and_keyword_construction(geometry_api):
     assert panel.dimensions == (2.5, 1.25)
     assert (panel.eta_s, panel.eta_d, panel.eta_a, panel.cd) == (0.0, 0.0, 1.0, 2.2)
 
-    explicit = geometry_api.SatellitePanel((0, 1, 0), (0, 0, 1), (3, 4), 0.15, 0.25, 0.60, 2.3)
-    assert (explicit.eta_s, explicit.eta_d, explicit.eta_a, explicit.cd) == (0.15, 0.25, 0.60, 2.3)
+    explicit = geometry_api.SatellitePanel(
+        (0, 1, 0), (0, 0, 1), (3, 4), 0.15, 0.25, 0.60, 2.3
+    )
+    assert (explicit.eta_s, explicit.eta_d, explicit.eta_a, explicit.cd) == (
+        0.15,
+        0.25,
+        0.60,
+        2.3,
+    )
 
 
 def test_panel_fields_are_readable_and_mutable(geometry_api):

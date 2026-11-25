@@ -3,7 +3,10 @@
 import numpy as np
 import pytest
 
-from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry, SatellitePanel
+from GenADCS.backends.python.hardware.satellite_geometry import (
+    SatelliteGeometry,
+    SatellitePanel,
+)
 
 
 def test_geometry_requires_mass_and_inertia_and_preserves_supplied_values():

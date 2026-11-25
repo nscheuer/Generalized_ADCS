@@ -4,6 +4,7 @@ All scale conversion functions take and return Julian Date values in the named
 scale. Calendar conversion uses the proleptic Gregorian calendar. The UTC/TAI
 mapping is supported from 1972-01-01, when integral leap seconds began.
 """
+
 import numpy as np
 from numba import njit
 
@@ -12,18 +13,72 @@ _J2000 = 2451545.0
 
 # Effective UTC Julian dates and corresponding TAI-UTC seconds. IERS leap
 # second steps, through the latest step effective 2017-01-01.
-_UTC_EFFECTIVE_JD = np.array([
-    2441317.5, 2441499.5, 2441683.5, 2442048.5, 2442413.5, 2442778.5,
-    2443144.5, 2443509.5, 2443874.5, 2444239.5, 2444786.5, 2445151.5,
-    2445516.5, 2446247.5, 2447161.5, 2447892.5, 2448257.5, 2448804.5,
-    2449169.5, 2449534.5, 2450083.5, 2450630.5, 2451179.5, 2453736.5,
-    2454832.5, 2456109.5, 2457204.5, 2457754.5,
-], dtype=np.float64)
-_TAI_MINUS_UTC = np.array([
-    10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0,
-    20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0,
-    30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0, 37.0,
-], dtype=np.float64)
+_UTC_EFFECTIVE_JD = np.array(
+    [
+        2441317.5,
+        2441499.5,
+        2441683.5,
+        2442048.5,
+        2442413.5,
+        2442778.5,
+        2443144.5,
+        2443509.5,
+        2443874.5,
+        2444239.5,
+        2444786.5,
+        2445151.5,
+        2445516.5,
+        2446247.5,
+        2447161.5,
+        2447892.5,
+        2448257.5,
+        2448804.5,
+        2449169.5,
+        2449534.5,
+        2450083.5,
+        2450630.5,
+        2451179.5,
+        2453736.5,
+        2454832.5,
+        2456109.5,
+        2457204.5,
+        2457754.5,
+    ],
+    dtype=np.float64,
+)
+_TAI_MINUS_UTC = np.array(
+    [
+        10.0,
+        11.0,
+        12.0,
+        13.0,
+        14.0,
+        15.0,
+        16.0,
+        17.0,
+        18.0,
+        19.0,
+        20.0,
+        21.0,
+        22.0,
+        23.0,
+        24.0,
+        25.0,
+        26.0,
+        27.0,
+        28.0,
+        29.0,
+        30.0,
+        31.0,
+        32.0,
+        33.0,
+        34.0,
+        35.0,
+        36.0,
+        37.0,
+    ],
+    dtype=np.float64,
+)
 
 
 @njit(cache=True)

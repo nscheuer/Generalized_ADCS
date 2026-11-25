@@ -6,14 +6,13 @@
 
 #include <Eigen/Core>
 
-namespace omni::detail
-{
-template <typename Derived> void require_finite(const Eigen::MatrixBase<Derived> &values, const char *field_name)
-{
-    if (!values.allFinite())
-    {
-        throw std::invalid_argument(std::string(field_name) + " must be finite");
-    }
+namespace omni::detail {
+template <typename Derived>
+void require_finite(const Eigen::MatrixBase<Derived> &values,
+                    const char *field_name) {
+  if (!values.allFinite()) {
+    throw std::invalid_argument(std::string(field_name) + " must be finite");
+  }
 }
 } // namespace omni::detail
 

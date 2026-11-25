@@ -24,8 +24,11 @@ def test_drag_force_and_torque_match_panel_physics(dynamics_api):
 
 def test_drag_force_scales_with_density_and_vanishes_without_incidence(dynamics_api):
     args = (
-        np.array([0.0, 0.0, 10.0]), np.array([1.0, 0.0, 0.0, 0.0]),
-        np.array([[0.0, 0.0, 1.0]]), np.array([2.0]), np.array([2.2]),
+        np.array([0.0, 0.0, 10.0]),
+        np.array([1.0, 0.0, 0.0, 0.0]),
+        np.array([[0.0, 0.0, 1.0]]),
+        np.array([2.0]),
+        np.array([2.2]),
     )
     force = dynamics_api.projected_area_drag_force(*args[:2], 1.0, *args[2:])
     doubled = dynamics_api.projected_area_drag_force(*args[:2], 2.0, *args[2:])
@@ -44,14 +47,18 @@ def test_drag_rejects_mismatched_panel_arrays(dynamics_api, kind):
     common = (np.array([0.0, 0.0, 10.0]), np.array([1.0, 0.0, 0.0, 0.0]), 1.0)
     if kind == "force":
         call = lambda: dynamics_api.projected_area_drag_force(
-            *common, np.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]),
-            np.array([2.0]), np.array([2.2])
+            *common,
+            np.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]),
+            np.array([2.0]),
+            np.array([2.2]),
         )
     else:
         call = lambda: dynamics_api.projected_area_drag_torque(
-            *common, np.array([[0.0, 0.0, 1.0]]),
+            *common,
+            np.array([[0.0, 0.0, 1.0]]),
             np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]),
-            np.array([2.0]), np.array([2.2])
+            np.array([2.0]),
+            np.array([2.2]),
         )
     with pytest.raises(ValueError, match="panel arrays must have matching row counts"):
         call()

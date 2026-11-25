@@ -1,8 +1,22 @@
 import numpy as np
 
 from .interpolation import rotation_vector_to_quaternion
-from .algebra import _conjugate, _hamilton_to_jpl, _inverse, _jpl_to_hamilton, _multiply, _normalize_quaternion, _quaternion_norm, _relative_quaternion
-from .conversions import _axis_angle_to_quaternion, _dcm_to_quaternion, _quaternion_to_dcm, _rotate_vector
+from .algebra import (
+    _conjugate,
+    _hamilton_to_jpl,
+    _inverse,
+    _jpl_to_hamilton,
+    _multiply,
+    _normalize_quaternion,
+    _quaternion_norm,
+    _relative_quaternion,
+)
+from .conversions import (
+    _axis_angle_to_quaternion,
+    _dcm_to_quaternion,
+    _quaternion_to_dcm,
+    _rotate_vector,
+)
 
 
 class Quaternion:
@@ -38,7 +52,11 @@ class Quaternion:
     @classmethod
     def from_axis_angle(cls, axis, angle):
         axis = np.asarray(axis, dtype=np.float64)
-        if axis.shape != (3,) or not np.all(np.isfinite(axis)) or not np.isfinite(angle):
+        if (
+            axis.shape != (3,)
+            or not np.all(np.isfinite(axis))
+            or not np.isfinite(angle)
+        ):
             raise ValueError("axis must be a finite 3-vector and angle finite")
         return cls(_axis_angle_to_quaternion(axis, float(angle)))
 
@@ -54,7 +72,9 @@ class Quaternion:
         matrix = np.asarray(matrix, dtype=np.float64)
         if matrix.shape != (3, 3) or not np.all(np.isfinite(matrix)):
             raise ValueError("matrix must be a finite 3x3 DCM")
-        if not np.allclose(matrix @ matrix.T, np.eye(3), atol=1e-8) or not np.isclose(np.linalg.det(matrix), 1.0, atol=1e-8):
+        if not np.allclose(matrix @ matrix.T, np.eye(3), atol=1e-8) or not np.isclose(
+            np.linalg.det(matrix), 1.0, atol=1e-8
+        ):
             raise ValueError("matrix must be a proper rotation matrix")
         return cls(_dcm_to_quaternion(matrix))
 

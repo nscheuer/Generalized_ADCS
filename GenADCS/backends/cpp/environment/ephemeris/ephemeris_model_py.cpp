@@ -17,7 +17,6 @@
 namespace py = pybind11;
 namespace env = omni::environment;
 
-void bind_ephemeris_ephemeris_model(py::module_ &module)
-{
-    module.def("eclipse_state", &env::eclipse_state);
+void bind_ephemeris_ephemeris_model(py::module_ &module) {
+  module.def("eclipse_state", &env::eclipse_state);
 }

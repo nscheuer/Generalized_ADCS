@@ -22,8 +22,11 @@ class StaticResidualDipoleModel:
         if environment.magnetic_field is None:
             raise ValueError("residual dipole requires environment.magnetic_field")
         field_i = environment.magnetic_field.field_inertial_tesla(
-            np.asarray(position_i, dtype=np.float64), epoch_jd,
+            np.asarray(position_i, dtype=np.float64),
+            epoch_jd,
         )
         return static_residual_dipole_torque(
-            self.dipole_b, field_i, np.asarray(q_b_from_i, dtype=np.float64),
+            self.dipole_b,
+            field_i,
+            np.asarray(q_b_from_i, dtype=np.float64),
         )

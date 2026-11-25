@@ -17,122 +17,163 @@ namespace py = pybind11;
 namespace hardware = omni::hardware;
 namespace native_sensors = omni::hardware::sensors;
 
-namespace
-{
-template <typename Values> py::array_t<double> vector_array(const Values &values)
-{
-    py::array_t<double> result(static_cast<py::ssize_t>(values.size()));
-    auto out = result.mutable_unchecked<1>();
-    for (py::ssize_t i = 0; i < static_cast<py::ssize_t>(values.size()); ++i)
-        out(i) = values[static_cast<std::size_t>(i)];
-    return result;
+namespace {
+template <typename Values>
+py::array_t<double> vector_array(const Values &values) {
+  py::array_t<double> result(static_cast<py::ssize_t>(values.size()));
+  auto out = result.mutable_unchecked<1>();
+  for (py::ssize_t i = 0; i < static_cast<py::ssize_t>(values.size()); ++i)
+    out(i) = values[static_cast<std::size_t>(i)];
+  return result;
 }
 
-template <typename Matrix> py::array_t<double> matrix_array(const Matrix &values)
-{
-    py::array_t<double> result({3, 3});
-    auto out = result.mutable_unchecked<2>();
-    for (py::ssize_t i = 0; i < 3; ++i)
-        for (py::ssize_t j = 0; j < 3; ++j)
-            out(i, j) = values[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)];
-    return result;
+template <typename Matrix>
+py::array_t<double> matrix_array(const Matrix &values) {
+  py::array_t<double> result({3, 3});
+  auto out = result.mutable_unchecked<2>();
+  for (py::ssize_t i = 0; i < 3; ++i)
+    for (py::ssize_t j = 0; j < 3; ++j)
+      out(i, j) =
+          values[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)];
+  return result;
 }
 } // namespace
 
-void bind_sensors_accelerometer(py::module_ &module)
-{
-    py::class_<native_sensors::Accelerometer>(module, "Accelerometer")
-        .def(py::init([](py::object position, py::object orientation, py::object misalignment, double saturation,
-                         py::object noise, py::object bias) {
-                 return native_sensors::Accelerometer(
-                     native_sensors::kernels::read_vector3(position, "position"),
-                     native_sensors::kernels::read_quaternion(orientation, "orientation"),
-                     native_sensors::kernels::read_quaternion(misalignment, "misalignment"), saturation,
-                     native_sensors::kernels::read_matrix(noise, "noise"),
-                     native_sensors::kernels::read_vector3(bias, "bias"));
-             }),
-             py::arg("position"), py::arg("orientation"), py::arg("misalignment"), py::arg("saturation_value"),
-             py::arg("noise"), py::arg("bias"))
-        .def_property_readonly("position",
-                               [](const native_sensors::Accelerometer &s) { return vector_array(s.position); })
-        .def_property_readonly("orientation",
-                               [](const native_sensors::Accelerometer &s) { return vector_array(s.orientation); })
-        .def_property_readonly("misalignment",
-                               [](const native_sensors::Accelerometer &s) { return vector_array(s.misalignment); })
-        .def_readonly("saturation_value", &native_sensors::Accelerometer::saturation_value)
-        .def_property_readonly("noise", [](const native_sensors::Accelerometer &s) { return matrix_array(s.noise); })
-        .def_property_readonly("noise_cholesky",
-                               [](const native_sensors::Accelerometer &s) { return matrix_array(s.noise_cholesky); })
-        .def_property_readonly("bias", [](const native_sensors::Accelerometer &s) { return vector_array(s.bias); })
-        .def_readwrite("enabled", &native_sensors::Accelerometer::enabled)
-        .def_readwrite("seed", &native_sensors::Accelerometer::seed)
-        .def("noiseless_biasfree_measurement",
-             [](const native_sensors::Accelerometer &s, py::object a, py::object g, py::object q) {
-                 return vector_array(
-                     s.noiseless_biasfree_measurement(native_sensors::kernels::read_vector3(a, "acceleration_inertial"),
-                                                      native_sensors::kernels::read_vector3(g, "gravity_inertial"),
-                                                      native_sensors::kernels::read_quaternion(q, "attitude")));
-             })
-        .def("noiseless_biased_measurement",
-             [](const native_sensors::Accelerometer &s, py::object a, py::object g, py::object q) {
-                 return vector_array(
-                     s.noiseless_biased_measurement(native_sensors::kernels::read_vector3(a, "acceleration_inertial"),
-                                                    native_sensors::kernels::read_vector3(g, "gravity_inertial"),
-                                                    native_sensors::kernels::read_quaternion(q, "attitude")));
-             })
-        .def("noisy_biasfree_measurement",
-             [](native_sensors::Accelerometer &s, py::object a, py::object g, py::object q) {
-                 return vector_array(
-                     s.noisy_biasfree_measurement(native_sensors::kernels::read_vector3(a, "acceleration_inertial"),
-                                                  native_sensors::kernels::read_vector3(g, "gravity_inertial"),
-                                                  native_sensors::kernels::read_quaternion(q, "attitude")));
-             })
-        .def("noisy_biased_measurement",
-             [](native_sensors::Accelerometer &s, py::object a, py::object g, py::object q) {
-                 return vector_array(
-                     s.noisy_biased_measurement(native_sensors::kernels::read_vector3(a, "acceleration_inertial"),
-                                                native_sensors::kernels::read_vector3(g, "gravity_inertial"),
-                                                native_sensors::kernels::read_quaternion(q, "attitude")));
-             })
-        .def("jacobian_relative_quaternion",
-             [](const native_sensors::Accelerometer &s, py::object a, py::object g, py::object q, py::object d) {
-                 return matrix_array(
-                     s.jacobian_relative_quaternion(native_sensors::kernels::read_vector3(a, "acceleration_inertial"),
-                                                    native_sensors::kernels::read_vector3(g, "gravity_inertial"),
-                                                    native_sensors::kernels::read_quaternion(q, "attitude"),
-                                                    native_sensors::kernels::read_quaternion(d, "delta_quaternion")));
-             })
-        .def("jacobian_relative_mrp",
-             [](const native_sensors::Accelerometer &s, py::object a, py::object g, py::object q, py::object d) {
-                 return matrix_array(
-                     s.jacobian_relative_mrp(native_sensors::kernels::read_vector3(a, "acceleration_inertial"),
-                                             native_sensors::kernels::read_vector3(g, "gravity_inertial"),
-                                             native_sensors::kernels::read_quaternion(q, "attitude"),
-                                             native_sensors::kernels::read_vector3(d, "delta_mrp")));
-             })
-        .def("jacobian_relative_angle_vector",
-             [](const native_sensors::Accelerometer &s, py::object a, py::object g, py::object q, py::object d) {
-                 return matrix_array(
-                     s.jacobian_relative_angle_vector(native_sensors::kernels::read_vector3(a, "acceleration_inertial"),
-                                                      native_sensors::kernels::read_vector3(g, "gravity_inertial"),
-                                                      native_sensors::kernels::read_quaternion(q, "attitude"),
-                                                      native_sensors::kernels::read_vector3(d, "delta_angle")));
-             })
-        .def("jacobian_bias", [](const native_sensors::Accelerometer &s) { return matrix_array(s.jacobian_bias()); })
-        .def("availability", &native_sensors::Accelerometer::availability)
-        .def(py::pickle(
-            [](const native_sensors::Accelerometer &s) {
-                return py::make_tuple(s.position, s.orientation, s.misalignment,
-                    s.saturation_value, s.noise, s.bias, s.enabled, s.seed);
-            },
-            [](py::tuple state) {
-                if (state.size() != 8) throw py::value_error("invalid accelerometer state");
-                native_sensors::Accelerometer sensor(state[0].cast<native_sensors::Accelerometer::V>(),
-                    state[1].cast<native_sensors::Accelerometer::Q>(),
-                    state[2].cast<native_sensors::Accelerometer::Q>(), state[3].cast<double>(),
-                    state[4].cast<native_sensors::Accelerometer::M>(),
-                    state[5].cast<native_sensors::Accelerometer::V>());
-                sensor.enabled = state[6].cast<bool>(); sensor.seed = state[7].cast<std::uint64_t>();
-                return sensor;
-            }));
+void bind_sensors_accelerometer(py::module_ &module) {
+  py::class_<native_sensors::Accelerometer>(module, "Accelerometer")
+      .def(py::init([](py::object position, py::object orientation,
+                       py::object misalignment, double saturation,
+                       py::object noise, py::object bias) {
+             return native_sensors::Accelerometer(
+                 native_sensors::kernels::read_vector3(position, "position"),
+                 native_sensors::kernels::read_quaternion(orientation,
+                                                          "orientation"),
+                 native_sensors::kernels::read_quaternion(misalignment,
+                                                          "misalignment"),
+                 saturation,
+                 native_sensors::kernels::read_matrix(noise, "noise"),
+                 native_sensors::kernels::read_vector3(bias, "bias"));
+           }),
+           py::arg("position"), py::arg("orientation"), py::arg("misalignment"),
+           py::arg("saturation_value"), py::arg("noise"), py::arg("bias"))
+      .def_property_readonly("position",
+                             [](const native_sensors::Accelerometer &s) {
+                               return vector_array(s.position);
+                             })
+      .def_property_readonly("orientation",
+                             [](const native_sensors::Accelerometer &s) {
+                               return vector_array(s.orientation);
+                             })
+      .def_property_readonly("misalignment",
+                             [](const native_sensors::Accelerometer &s) {
+                               return vector_array(s.misalignment);
+                             })
+      .def_readonly("saturation_value",
+                    &native_sensors::Accelerometer::saturation_value)
+      .def_property_readonly("noise",
+                             [](const native_sensors::Accelerometer &s) {
+                               return matrix_array(s.noise);
+                             })
+      .def_property_readonly("noise_cholesky",
+                             [](const native_sensors::Accelerometer &s) {
+                               return matrix_array(s.noise_cholesky);
+                             })
+      .def_property_readonly("bias",
+                             [](const native_sensors::Accelerometer &s) {
+                               return vector_array(s.bias);
+                             })
+      .def_readwrite("enabled", &native_sensors::Accelerometer::enabled)
+      .def_readwrite("seed", &native_sensors::Accelerometer::seed)
+      .def("noiseless_biasfree_measurement",
+           [](const native_sensors::Accelerometer &s, py::object a,
+              py::object g, py::object q) {
+             return vector_array(s.noiseless_biasfree_measurement(
+                 native_sensors::kernels::read_vector3(a,
+                                                       "acceleration_inertial"),
+                 native_sensors::kernels::read_vector3(g, "gravity_inertial"),
+                 native_sensors::kernels::read_quaternion(q, "attitude")));
+           })
+      .def("noiseless_biased_measurement",
+           [](const native_sensors::Accelerometer &s, py::object a,
+              py::object g, py::object q) {
+             return vector_array(s.noiseless_biased_measurement(
+                 native_sensors::kernels::read_vector3(a,
+                                                       "acceleration_inertial"),
+                 native_sensors::kernels::read_vector3(g, "gravity_inertial"),
+                 native_sensors::kernels::read_quaternion(q, "attitude")));
+           })
+      .def("noisy_biasfree_measurement",
+           [](native_sensors::Accelerometer &s, py::object a, py::object g,
+              py::object q) {
+             return vector_array(s.noisy_biasfree_measurement(
+                 native_sensors::kernels::read_vector3(a,
+                                                       "acceleration_inertial"),
+                 native_sensors::kernels::read_vector3(g, "gravity_inertial"),
+                 native_sensors::kernels::read_quaternion(q, "attitude")));
+           })
+      .def("noisy_biased_measurement",
+           [](native_sensors::Accelerometer &s, py::object a, py::object g,
+              py::object q) {
+             return vector_array(s.noisy_biased_measurement(
+                 native_sensors::kernels::read_vector3(a,
+                                                       "acceleration_inertial"),
+                 native_sensors::kernels::read_vector3(g, "gravity_inertial"),
+                 native_sensors::kernels::read_quaternion(q, "attitude")));
+           })
+      .def("jacobian_relative_quaternion",
+           [](const native_sensors::Accelerometer &s, py::object a,
+              py::object g, py::object q, py::object d) {
+             return matrix_array(s.jacobian_relative_quaternion(
+                 native_sensors::kernels::read_vector3(a,
+                                                       "acceleration_inertial"),
+                 native_sensors::kernels::read_vector3(g, "gravity_inertial"),
+                 native_sensors::kernels::read_quaternion(q, "attitude"),
+                 native_sensors::kernels::read_quaternion(d,
+                                                          "delta_quaternion")));
+           })
+      .def("jacobian_relative_mrp",
+           [](const native_sensors::Accelerometer &s, py::object a,
+              py::object g, py::object q, py::object d) {
+             return matrix_array(s.jacobian_relative_mrp(
+                 native_sensors::kernels::read_vector3(a,
+                                                       "acceleration_inertial"),
+                 native_sensors::kernels::read_vector3(g, "gravity_inertial"),
+                 native_sensors::kernels::read_quaternion(q, "attitude"),
+                 native_sensors::kernels::read_vector3(d, "delta_mrp")));
+           })
+      .def("jacobian_relative_angle_vector",
+           [](const native_sensors::Accelerometer &s, py::object a,
+              py::object g, py::object q, py::object d) {
+             return matrix_array(s.jacobian_relative_angle_vector(
+                 native_sensors::kernels::read_vector3(a,
+                                                       "acceleration_inertial"),
+                 native_sensors::kernels::read_vector3(g, "gravity_inertial"),
+                 native_sensors::kernels::read_quaternion(q, "attitude"),
+                 native_sensors::kernels::read_vector3(d, "delta_angle")));
+           })
+      .def("jacobian_bias",
+           [](const native_sensors::Accelerometer &s) {
+             return matrix_array(s.jacobian_bias());
+           })
+      .def("availability", &native_sensors::Accelerometer::availability)
+      .def(py::pickle(
+          [](const native_sensors::Accelerometer &s) {
+            return py::make_tuple(s.position, s.orientation, s.misalignment,
+                                  s.saturation_value, s.noise, s.bias,
+                                  s.enabled, s.seed);
+          },
+          [](py::tuple state) {
+            if (state.size() != 8)
+              throw py::value_error("invalid accelerometer state");
+            native_sensors::Accelerometer sensor(
+                state[0].cast<native_sensors::Accelerometer::V>(),
+                state[1].cast<native_sensors::Accelerometer::Q>(),
+                state[2].cast<native_sensors::Accelerometer::Q>(),
+                state[3].cast<double>(),
+                state[4].cast<native_sensors::Accelerometer::M>(),
+                state[5].cast<native_sensors::Accelerometer::V>());
+            sensor.enabled = state[6].cast<bool>();
+            sensor.seed = state[7].cast<std::uint64_t>();
+            return sensor;
+          }));
 }

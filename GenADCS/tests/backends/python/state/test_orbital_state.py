@@ -37,7 +37,10 @@ def test_rejects_nonfinite_date(date):
 
 @pytest.mark.parametrize("bad", [[1, 2], [[1, 2, 3]], [1, np.nan, 3]])
 def test_rejects_invalid_position_and_velocity(bad):
-    for position, velocity, name in ((bad, [0, 0, 0], "position"), ([0, 0, 0], bad, "velocity")):
+    for position, velocity, name in (
+        (bad, [0, 0, 0], "position"),
+        ([0, 0, 0], bad, "velocity"),
+    ):
         with pytest.raises(ValueError, match=f"{name} must be a finite 3-vector"):
             OrbitalState(position, velocity, JD)
 
@@ -47,7 +50,9 @@ def test_keplerian_fields_and_unimplemented_cartesian_conversion():
     assert orbit._keplerian_elements == (7000, 0.01, 0.2, 0.3, 0.4, 0.5)
     assert orbit._position is None and orbit._velocity is None
     for name in ("position", "velocity"):
-        with pytest.raises(NotImplementedError, match="Keplerian to Cartesian conversion"):
+        with pytest.raises(
+            NotImplementedError, match="Keplerian to Cartesian conversion"
+        ):
             getattr(orbit, name)
 
 
@@ -74,7 +79,10 @@ def test_missing_ephemeris_and_unknown_body():
         orbit.body_position("pluto")
 
 
-@pytest.mark.parametrize("body,body_id", [("sun", 0), ("SUN", 0), ("earth", 1), ("moon", 2), (0, 0), (1, 1), (2, 2)])
+@pytest.mark.parametrize(
+    "body,body_id",
+    [("sun", 0), ("SUN", 0), ("earth", 1), ("moon", 2), (0, 0), (1, 1), (2, 2)],
+)
 def test_body_identifier_forms(body, body_id):
     ephemeris = CountingEphemeris()
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD, ephemeris)

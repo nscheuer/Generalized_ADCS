@@ -13,7 +13,10 @@ class State:
 
 
 def test_dynamics_values_match_across_backends(config_backends):
-    configs = {name: api.DynamicsConfig(["drag"], ["magnetic"]) for name, api in config_backends.items()}
+    configs = {
+        name: api.DynamicsConfig(["drag"], ["magnetic"])
+        for name, api in config_backends.items()
+    }
     for name, config in configs.items():
         assert (config.forces, config.torques) == (["drag"], ["magnetic"]), name
 
@@ -29,4 +32,9 @@ def test_simulation_derived_values_and_dependencies_match(config_backends):
         assert config.backend == "Rust", name
         assert config.state_record is state.record, name
         assert config.julian_date == 2460000.25 and state.calls == [3], name
-        assert all(getattr(config, key) is value for key, value in zip(("satellite", "environment", "state", "propagator", "solver"), deps)), name
+        assert all(
+            getattr(config, key) is value
+            for key, value in zip(
+                ("satellite", "environment", "state", "propagator", "solver"), deps
+            )
+        ), name

@@ -2,8 +2,12 @@ import numpy as np
 import pytest
 
 from GenADCS.backends.python.helpers.math.frames import (
-    body_to_inertial, body_to_inertial_matrix, inertial_to_body,
-    inertial_to_body_matrix, transform_covariance, transform_vector,
+    body_to_inertial,
+    body_to_inertial_matrix,
+    inertial_to_body,
+    inertial_to_body_matrix,
+    transform_covariance,
+    transform_vector,
 )
 
 
@@ -20,7 +24,9 @@ def test_quarter_turn_and_inverse_vector_transforms():
     body = inertial_to_body(vector_i, q)
     np.testing.assert_allclose(body, [0, 1, 0], atol=1e-14)
     np.testing.assert_allclose(body_to_inertial(body, q), vector_i, atol=1e-14)
-    np.testing.assert_allclose(body_to_inertial_matrix(q), inertial_to_body_matrix(q).T, atol=1e-15)
+    np.testing.assert_allclose(
+        body_to_inertial_matrix(q), inertial_to_body_matrix(q).T, atol=1e-15
+    )
 
 
 def test_rotation_matrix_is_orthogonal_and_proper():

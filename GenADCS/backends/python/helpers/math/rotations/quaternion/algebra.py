@@ -40,12 +40,14 @@ def _inverse(q):
 
 @njit(cache=True)
 def _multiply(p, q):
-    return np.array((
-        p[0] * q[0] - np.dot(p[1:4], q[1:4]),
-        p[0] * q[1] + q[0] * p[1] + p[2] * q[3] - p[3] * q[2],
-        p[0] * q[2] + q[0] * p[2] + p[3] * q[1] - p[1] * q[3],
-        p[0] * q[3] + q[0] * p[3] + p[1] * q[2] - p[2] * q[1],
-    ))
+    return np.array(
+        (
+            p[0] * q[0] - np.dot(p[1:4], q[1:4]),
+            p[0] * q[1] + q[0] * p[1] + p[2] * q[3] - p[3] * q[2],
+            p[0] * q[2] + q[0] * p[2] + p[3] * q[1] - p[1] * q[3],
+            p[0] * q[3] + q[0] * p[3] + p[1] * q[2] - p[2] * q[1],
+        )
+    )
 
 
 @njit(cache=True)

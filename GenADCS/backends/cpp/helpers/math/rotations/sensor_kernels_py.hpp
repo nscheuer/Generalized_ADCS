@@ -1,8 +1,7 @@
 #pragma once
 #include "sensor_kernels.hpp"
 #include <pybind11/numpy.h>
-namespace omni::hardware::sensors::kernels
-{
+namespace omni::hardware::sensors::kernels {
 V read_vector3(pybind11::handle value, const char *name);
 Q read_quaternion(pybind11::handle value, const char *name);
 M read_matrix(pybind11::handle value, const char *name);

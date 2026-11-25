@@ -8,4 +8,14 @@ from .fine_earth_sensor import FineEarthSensor
 from .gnss import GNSS
 from .accelerometer import Accelerometer
 
-__all__ = ["Sensor", "Magnetometer", "Gyroscope", "AutonomousStarTracker", "CoarseSunSensor", "FineSunSensor", "FineEarthSensor", "GNSS", "Accelerometer"]
+__all__ = [
+    "Sensor",
+    "Magnetometer",
+    "Gyroscope",
+    "AutonomousStarTracker",
+    "CoarseSunSensor",
+    "FineSunSensor",
+    "FineEarthSensor",
+    "GNSS",
+    "Accelerometer",
+]

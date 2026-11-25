@@ -15,5 +15,12 @@ class Solver:
     coupled: CoupledSolver | None = None
 
     def __post_init__(self):
-        if (self.coupled is None and (self.orbital is None or self.attitude is None)) or (self.coupled is not None and (self.orbital is not None or self.attitude is not None)):
-            raise ValueError("provide a coupled solver or both orbital and attitude solvers")
+        if (
+            self.coupled is None and (self.orbital is None or self.attitude is None)
+        ) or (
+            self.coupled is not None
+            and (self.orbital is not None or self.attitude is not None)
+        ):
+            raise ValueError(
+                "provide a coupled solver or both orbital and attitude solvers"
+            )

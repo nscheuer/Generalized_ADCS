@@ -4,10 +4,21 @@ import numpy as np
 from numba import njit
 
 from GenADCS.backends.python.helpers.math.vector import skew
-from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import _conjugate, _multiply, _normalize_quaternion
-from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import _quaternion_to_dcm
-from GenADCS.backends.python.helpers.math.rotations.quaternion.interpolation import rotation_vector_to_quaternion, quaternion_to_rotation_vector
-from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import so3_left_jacobian
+from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import (
+    _conjugate,
+    _multiply,
+    _normalize_quaternion,
+)
+from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import (
+    _quaternion_to_dcm,
+)
+from GenADCS.backends.python.helpers.math.rotations.quaternion.interpolation import (
+    rotation_vector_to_quaternion,
+    quaternion_to_rotation_vector,
+)
+from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
+    so3_left_jacobian,
+)
 from .base import AttitudeEstimator
 
 
@@ -46,7 +57,9 @@ def correct(q, w, p, residual, h, covariance):
     innovation = h @ p @ h.T + covariance
     gain = np.linalg.solve(innovation, h @ p).T
     delta = gain @ residual
-    q_next = _normalize_quaternion(_multiply(rotation_vector_to_quaternion(delta[:3]), q))
+    q_next = _normalize_quaternion(
+        _multiply(rotation_vector_to_quaternion(delta[:3]), q)
+    )
     w_next = w + delta[3:6]
     identity = np.eye(6)
     remainder = identity - gain @ h
@@ -84,7 +97,20 @@ def step(q, w, p, acceleration_psd, dt, readings, sensor_config):
     NaN readings, including occulted trackers, are skipped.
     """
     q, w, p = predict(q, w, p, acceleration_psd, dt)
-    code, orientation, misalignment, bias, chol, normal, fov, scalars, enabled, offsets, counts, starts = sensor_config
+    (
+        code,
+        orientation,
+        misalignment,
+        bias,
+        chol,
+        normal,
+        fov,
+        scalars,
+        enabled,
+        offsets,
+        counts,
+        starts,
+    ) = sensor_config
     for i in range(code.size):
         if not enabled[i]:
             continue
@@ -93,7 +119,7 @@ def step(q, w, p, acceleration_psd, dt, readings, sensor_config):
             continue
         offset = offsets[i]
         width = 3 if kind == 0 else 4
-        value = readings[offset:offset + width]
+        value = readings[offset : offset + width]
         if not np.all(np.isfinite(value)):
             continue
         mounting_q = _normalize_quaternion(_multiply(misalignment[i], orientation[i]))
@@ -104,27 +130,52 @@ def step(q, w, p, acceleration_psd, dt, readings, sensor_config):
                 for k in range(3):
                     noise[row, column] += chol[i, row, k] * chol[i, column, k]
         if kind == 0:
-            q, w, p = correct_gyro(q, w, p, value - bias[i, :3],
-                                   _quaternion_to_dcm(mounting_q), noise)
+            q, w, p = correct_gyro(
+                q, w, p, value - bias[i, :3], _quaternion_to_dcm(mounting_q), noise
+            )
         else:
             q, w, p = correct_star_tracker(q, w, p, value, mounting_q, noise)
     return q, w, p
 
 
 @njit(cache=True)
-def step_with_diagnostics(q, w, p, acceleration_psd, dt, readings, sensor_config,
-                          flags, truth_q, truth_w, diagnostics):
+def step_with_diagnostics(
+    q,
+    w,
+    p,
+    acceleration_psd,
+    dt,
+    readings,
+    sensor_config,
+    flags,
+    truth_q,
+    truth_w,
+    diagnostics,
+):
     """Compiled update; diagnostics describe the last valid measurement at a tick.
 
     A tick with no valid measurement leaves measurement fields as NaN.
     """
     q, w, p = predict(q, w, p, acceleration_psd, dt)
-    code, orientation, misalignment, bias, chol, normal, fov, scalars, enabled, offsets, counts, starts = sensor_config
+    (
+        code,
+        orientation,
+        misalignment,
+        bias,
+        chol,
+        normal,
+        fov,
+        scalars,
+        enabled,
+        offsets,
+        counts,
+        starts,
+    ) = sensor_config
     for i in range(code.size):
         kind = code[i]
         if not enabled[i] or (kind != 0 and kind != 2):
             continue
-        value = readings[offsets[i]:offsets[i] + (3 if kind == 0 else 4)]
+        value = readings[offsets[i] : offsets[i] + (3 if kind == 0 else 4)]
         if not np.all(np.isfinite(value)):
             continue
         mount_q = _normalize_quaternion(_multiply(misalignment[i], orientation[i]))
@@ -141,7 +192,9 @@ def step_with_diagnostics(q, w, p, acceleration_psd, dt, readings, sensor_config
         else:
             h[:, :3] = mount
             predicted = _multiply(mount_q, q)
-            residual = quaternion_to_rotation_vector(_multiply(value, _conjugate(predicted)))
+            residual = quaternion_to_rotation_vector(
+                _multiply(value, _conjugate(predicted))
+            )
         s = h @ p @ h.T + r
         gain = np.linalg.solve(s, h @ p).T
         delta = gain @ residual

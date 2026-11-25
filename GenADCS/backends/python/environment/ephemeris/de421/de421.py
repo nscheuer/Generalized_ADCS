@@ -7,8 +7,13 @@ import struct
 import numpy as np
 
 from ..ephemeris_model import (
-    BODY_EARTH, BODY_MOON, BODY_SUN, EphemerisModel,
-    planetary_position, planetary_velocity, planetary_state,
+    BODY_EARTH,
+    BODY_MOON,
+    BODY_SUN,
+    EphemerisModel,
+    planetary_position,
+    planetary_velocity,
+    planetary_state,
 )
 
 
@@ -46,8 +51,8 @@ def _load_spk(path_string):
         for i in range(int(count)):
             item_offset = record_offset + 24 + i * summary_size
             start_et, end_et = struct.unpack_from(endian + "dd", raw, item_offset)
-            target, center, frame, segment_type, first_word, last_word = struct.unpack_from(
-                endian + "6i", raw, item_offset + nd * 8
+            target, center, frame, segment_type, first_word, last_word = (
+                struct.unpack_from(endian + "6i", raw, item_offset + nd * 8)
             )
             if segment_type not in (2, 3):
                 continue
@@ -55,7 +60,9 @@ def _load_spk(path_string):
             last = last_word
             if first < 0 or last <= first or last * 8 > len(raw):
                 raise ValueError(f"invalid SPK data addresses for target {target}")
-            segment_data = np.frombuffer(raw, dtype=endian + "f8", count=last - first, offset=first * 8)
+            segment_data = np.frombuffer(
+                raw, dtype=endian + "f8", count=last - first, offset=first * 8
+            )
             if segment_data.size < 4:
                 raise ValueError(f"truncated SPK segment for target {target}")
             offset = sum(array.size for array in arrays)
@@ -74,14 +81,41 @@ def _load_spk(path_string):
 
 
 _BODY_INDICES = {
-    "mercury": 0, "venus": 1, "earth-moon barycenter": 2, "emb": 2,
-    "mars": 3, "jupiter": 4, "saturn": 5, "uranus": 6,
-    "neptune": 7, "pluto": 8, "moon": 9, "sun": 10, "earth": 11,
+    "mercury": 0,
+    "venus": 1,
+    "earth-moon barycenter": 2,
+    "emb": 2,
+    "mars": 3,
+    "jupiter": 4,
+    "saturn": 5,
+    "uranus": 6,
+    "neptune": 7,
+    "pluto": 8,
+    "moon": 9,
+    "sun": 10,
+    "earth": 11,
 }
 _NAIF_TO_INDEX = {
-    199: 0, 1: 0, 299: 1, 2: 1, 3: 2, 4: 3, 499: 3,
-    5: 4, 599: 4, 6: 5, 699: 5, 7: 6, 799: 6,
-    8: 7, 899: 7, 9: 8, 999: 8, 301: 9, 10: 10, 399: 11,
+    199: 0,
+    1: 0,
+    299: 1,
+    2: 1,
+    3: 2,
+    4: 3,
+    499: 3,
+    5: 4,
+    599: 4,
+    6: 5,
+    699: 5,
+    7: 6,
+    799: 6,
+    8: 7,
+    899: 7,
+    9: 8,
+    999: 8,
+    301: 9,
+    10: 10,
+    399: 11,
 }
 
 
@@ -96,12 +130,20 @@ class DE421(EphemerisModel):
     DATA_FILENAME = "de421.bsp"
 
     def __init__(self, filepath=None):
-        path = Path(filepath).expanduser().resolve() if filepath is not None else self._packaged_ephemeris_path()
+        path = (
+            Path(filepath).expanduser().resolve()
+            if filepath is not None
+            else self._packaged_ephemeris_path()
+        )
         super().__init__(*_load_spk(str(path)))
 
     @staticmethod
     def _packaged_ephemeris_path():
-        return Path(__file__).resolve().parents[5] / "kernels/environment/ephemeris/de421" / DE421.DATA_FILENAME
+        return (
+            Path(__file__).resolve().parents[5]
+            / "kernels/environment/ephemeris/de421"
+            / DE421.DATA_FILENAME
+        )
 
     @property
     def available_bodies(self):
@@ -127,15 +169,17 @@ class DE421(EphemerisModel):
         observer_index = self._planet_index(observer)
         epochs = np.asarray(epoch_jd_tdb, dtype=np.float64)
         if epochs.ndim == 0:
-            return (kernel(target_index, float(epochs), self._segments, self._times, self._data)
-                    - kernel(observer_index, float(epochs), self._segments, self._times, self._data))
+            return kernel(
+                target_index, float(epochs), self._segments, self._times, self._data
+            ) - kernel(
+                observer_index, float(epochs), self._segments, self._times, self._data
+            )
         output = np.empty(epochs.shape + (3,), dtype=np.float64)
         for index in np.ndindex(epochs.shape):
             epoch = float(epochs[index])
-            output[index] = (
-                kernel(target_index, epoch, self._segments, self._times, self._data)
-                - kernel(observer_index, epoch, self._segments, self._times, self._data)
-            )
+            output[index] = kernel(
+                target_index, epoch, self._segments, self._times, self._data
+            ) - kernel(observer_index, epoch, self._segments, self._times, self._data)
         return output
 
     def position_eci(self, target, epoch_jd_tdb, *, observer="earth"):
@@ -152,11 +196,13 @@ class DE421(EphemerisModel):
         observer_index = self._planet_index(observer)
         epoch = float(epoch_jd_tdb)
         target_pos, target_vel = planetary_state(
-            target_index, epoch, self._segments, self._times, self._data)
+            target_index, epoch, self._segments, self._times, self._data
+        )
         if observer_index == 11:
             return target_pos, target_vel
         observer_pos, observer_vel = planetary_state(
-            observer_index, epoch, self._segments, self._times, self._data)
+            observer_index, epoch, self._segments, self._times, self._data
+        )
         return target_pos - observer_pos, target_vel - observer_vel
 
     def sun_position_eci(self, epoch_jd_tdb):

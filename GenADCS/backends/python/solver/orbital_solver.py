@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 
-from GenADCS.backends.python.propagation import KeplerianOrbitalPropagator, SGP4OrbitalPropagator
+from GenADCS.backends.python.propagation import (
+    KeplerianOrbitalPropagator,
+    SGP4OrbitalPropagator,
+)
 
 
 @dataclass(slots=True)

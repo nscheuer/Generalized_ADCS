@@ -4,12 +4,14 @@ Adapted from the public-domain TCL Python transcription by N. Donatelli
 (https://github.com/nedonatelli/TCL). Coefficients originate in the
 public-domain NRL reference C tables supplied with this task.
 """
+
 from typing import NamedTuple, Optional, Sequence, Tuple
 from numpy.typing import NDArray
 import numpy as np
 from numba import njit, float64, int64
 from numba.experimental import jitclass
 from ._nrlmsise00_data import PT, PD, PS, PDL, PTM, PDM, PTL, PMA, PAVGM
+
 
 class NRLMSISEOutput(NamedTuple):
     """Result of the NRLMSISE-00 model.
@@ -49,7 +51,20 @@ class _Flags:
                 self.swc[i] = self.switches[i]
 
 
-@jitclass([("doy", int64), ("sec", float64), ("alt", float64), ("g_lat", float64), ("g_long", float64), ("lst", float64), ("f107A", float64), ("f107", float64), ("ap", float64), ("ap_a", float64[:])])
+@jitclass(
+    [
+        ("doy", int64),
+        ("sec", float64),
+        ("alt", float64),
+        ("g_lat", float64),
+        ("g_long", float64),
+        ("lst", float64),
+        ("f107A", float64),
+        ("f107", float64),
+        ("ap", float64),
+        ("ap_a", float64[:]),
+    ]
+)
 class _Input:
     """Mirror of the C nrlmsise_input struct."""
 
@@ -78,7 +93,38 @@ class _Input:
         self.ap_a = np.asarray(ap_a)
 
 
-@jitclass([("gsurf", float64), ("re", float64), ("dd", float64), ("dm04", float64), ("dm16", float64), ("dm28", float64), ("dm32", float64), ("dm40", float64), ("dm01", float64), ("dm14", float64), ("dfa", float64), ("ctloc", float64), ("stloc", float64), ("c2tloc", float64), ("s2tloc", float64), ("s3tloc", float64), ("c3tloc", float64), ("clong", float64), ("slong", float64), ("apdf", float64), ("meso_tn1", float64[:]), ("meso_tn2", float64[:]), ("meso_tn3", float64[:]), ("meso_tgn1", float64[:]), ("meso_tgn2", float64[:]), ("meso_tgn3", float64[:]), ("apt", float64[:]), ("plg", float64[:, :])])
+@jitclass(
+    [
+        ("gsurf", float64),
+        ("re", float64),
+        ("dd", float64),
+        ("dm04", float64),
+        ("dm16", float64),
+        ("dm28", float64),
+        ("dm32", float64),
+        ("dm40", float64),
+        ("dm01", float64),
+        ("dm14", float64),
+        ("dfa", float64),
+        ("ctloc", float64),
+        ("stloc", float64),
+        ("c2tloc", float64),
+        ("s2tloc", float64),
+        ("s3tloc", float64),
+        ("c3tloc", float64),
+        ("clong", float64),
+        ("slong", float64),
+        ("apdf", float64),
+        ("meso_tn1", float64[:]),
+        ("meso_tn2", float64[:]),
+        ("meso_tn3", float64[:]),
+        ("meso_tgn1", float64[:]),
+        ("meso_tgn2", float64[:]),
+        ("meso_tgn3", float64[:]),
+        ("apt", float64[:]),
+        ("plg", float64[:, :]),
+    ]
+)
 class _Model:
     """The shared-state block of the reference implementation.
 
@@ -1421,6 +1467,7 @@ class _Model:
             out.d[5] = out.d[5] / 1000.0
         return out
 
+
 @njit(cache=True)
 def _ccor(alt: float, r: float, h1: float, zh: float) -> float:
     """Chemistry/dissociation correction."""
@@ -1602,9 +1649,20 @@ def _sg0(ex: float, p, ap) -> float:
     ) / _sumex(ex)
 
 
-
 @njit(cache=True)
-def msis_gtd7(doy, sec, alt_km, lat_deg, lon_deg, lst, f107a, f107, ap, ap_array, effective_density=False):
+def msis_gtd7(
+    doy,
+    sec,
+    alt_km,
+    lat_deg,
+    lon_deg,
+    lst,
+    f107a,
+    f107,
+    ap,
+    ap_array,
+    effective_density=False,
+):
     switches = np.ones(24)
     if ap_array[0] >= 0.0:
         switches[9] = -1.0

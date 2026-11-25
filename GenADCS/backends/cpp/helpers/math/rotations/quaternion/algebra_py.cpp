@@ -23,16 +23,17 @@ namespace py = pybind11;
 namespace math = omni::math;
 namespace rotations = omni::rotations;
 
-void bind_rotations_quaternion_algebra(py::module_ &module)
-{
-    module.def("_normalize_quaternion", &rotations::normalize_quaternion);
-    module.def("_quaternion_norm", &rotations::quaternion_norm);
-    module.def("_jpl_to_hamilton", &rotations::jpl_to_hamilton);
-    module.def("_hamilton_to_jpl", &rotations::hamilton_to_jpl);
-    module.def("_conjugate", &rotations::conjugate);
-    module.def("_inverse", &rotations::inverse);
-    module.def("_multiply", &rotations::multiply);
-    module.def("_relative_quaternion", &rotations::relative_quaternion);
-    module.def("_rotate_vector", py::overload_cast<const rotations::QuaternionVector &, const rotations::Vector3 &>(
-                                     &rotations::rotate_vector));
+void bind_rotations_quaternion_algebra(py::module_ &module) {
+  module.def("_normalize_quaternion", &rotations::normalize_quaternion);
+  module.def("_quaternion_norm", &rotations::quaternion_norm);
+  module.def("_jpl_to_hamilton", &rotations::jpl_to_hamilton);
+  module.def("_hamilton_to_jpl", &rotations::hamilton_to_jpl);
+  module.def("_conjugate", &rotations::conjugate);
+  module.def("_inverse", &rotations::inverse);
+  module.def("_multiply", &rotations::multiply);
+  module.def("_relative_quaternion", &rotations::relative_quaternion);
+  module.def(
+      "_rotate_vector",
+      py::overload_cast<const rotations::QuaternionVector &,
+                        const rotations::Vector3 &>(&rotations::rotate_vector));
 }
