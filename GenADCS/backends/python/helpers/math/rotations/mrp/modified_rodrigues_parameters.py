@@ -1,4 +1,3 @@
-
 from .._parameter_base import _RotationParameter
 from .kernels import mrp_shadow_set, mrp_to_quaternion, quaternion_to_mrp
 

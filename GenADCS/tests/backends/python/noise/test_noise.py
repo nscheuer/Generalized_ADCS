@@ -19,8 +19,12 @@ def test_covariance_noise_cholesky_and_reproducible_sample():
     np.testing.assert_allclose(noise.cholesky_factor, [[2.0, 0.0], [1.0, np.sqrt(2.0)]])
 
     first = gaussian_sample(noise.cholesky_factor, np.uint64(12), 3)
-    np.testing.assert_array_equal(first, gaussian_sample(noise.cholesky_factor, np.uint64(12), 3))
-    assert not np.array_equal(first, gaussian_sample(noise.cholesky_factor, np.uint64(12), 4))
+    np.testing.assert_array_equal(
+        first, gaussian_sample(noise.cholesky_factor, np.uint64(12), 3)
+    )
+    assert not np.array_equal(
+        first, gaussian_sample(noise.cholesky_factor, np.uint64(12), 4)
+    )
 
     value = np.array([1.0, -1.0])
     draw = np.array([0.5, -0.25])
@@ -30,7 +34,9 @@ def test_covariance_noise_cholesky_and_reproducible_sample():
             assert size == 2
             return draw
 
-    np.testing.assert_allclose(noise.apply(value, 0.1, rng=FixedRng()), value + noise.cholesky_factor @ draw)
+    np.testing.assert_allclose(
+        noise.apply(value, 0.1, rng=FixedRng()), value + noise.cholesky_factor @ draw
+    )
 
 
 def test_covariance_noise_rejects_invalid_inputs():

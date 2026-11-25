@@ -88,7 +88,9 @@ class Bias:
         result._random_tick = self._random_tick
         return result
 
-    def process_covariance(self, dt: float = 1.0, *, form: str = "full") -> "Covariance":
+    def process_covariance(
+        self, dt: float = 1.0, *, form: str = "full"
+    ) -> "Covariance":
         from ADCS.covariance import Covariance
 
         dt = float(dt)
