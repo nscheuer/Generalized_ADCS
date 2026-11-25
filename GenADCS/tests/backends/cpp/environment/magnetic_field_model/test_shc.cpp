@@ -16,9 +16,9 @@ int main() {
   CHECK(std::filesystem::exists(igrf_kernel));
   CHECK(std::filesystem::exists(chaos_core_kernel));
   CHECK(std::filesystem::exists(chaos_static_kernel));
-  CHECK(igrf_kernel.string().find("/GenADCS/kernels/environment/") !=
+  CHECK(igrf_kernel.generic_string().find("/GenADCS/kernels/environment/") !=
         std::string::npos);
-  CHECK(chaos_core_kernel.string().find("/GenADCS/kernels/environment/") !=
+  CHECK(chaos_core_kernel.generic_string().find("/GenADCS/kernels/environment/") !=
         std::string::npos);
   const auto bundled = igrf_kernel;
   const auto first = read_shc(bundled, 1, 13);

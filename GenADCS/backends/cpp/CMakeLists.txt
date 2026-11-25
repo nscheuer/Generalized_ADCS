@@ -387,7 +387,14 @@ if(BUILD_TESTING)
     add_test(NAME cpp_random_philox COMMAND cpp_test_random_philox)
 endif()
 
-pybind11_add_module(_bias
+# MSVC link-time code generation is costly for the many CI extension modules.
+# Keep normal Release optimization and omit pybind11's optional LTO on Windows.
+set(GENADCS_PYBIND_OPTIONS)
+if(MSVC)
+    list(APPEND GENADCS_PYBIND_OPTIONS NO_EXTRAS)
+endif()
+
+pybind11_add_module(_bias ${GENADCS_PYBIND_OPTIONS}
     bias/bias_py.cpp
     bias/bias.cpp
 )
@@ -397,7 +404,7 @@ set_target_properties(_bias PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTEN
 file(GLOB_RECURSE STATE_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/state/*_py.cpp")
 
-pybind11_add_module(_state
+pybind11_add_module(_state ${GENADCS_PYBIND_OPTIONS}
     ${STATE_PYBIND_SOURCES}
     state/state.cpp
     state/attitude_state.cpp
@@ -416,7 +423,7 @@ file(GLOB_RECURSE FRAMES_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math/frames/*_py.cpp"
 )
 
-pybind11_add_module(_frames
+pybind11_add_module(_frames ${GENADCS_PYBIND_OPTIONS}
     ${FRAMES_PYBIND_SOURCES}
     helpers/math/frames/frames.cpp
     helpers/math/frames/conversions.cpp
@@ -430,7 +437,7 @@ set_target_properties(_frames PROPERTIES
 file(GLOB_RECURSE HELPERS_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/helpers/math/*_py.cpp")
 list(FILTER HELPERS_PYBIND_SOURCES EXCLUDE REGEX "/frames/|/sensor_kernels_py[.]cpp$")
-pybind11_add_module(_helpers
+pybind11_add_module(_helpers ${GENADCS_PYBIND_OPTIONS}
     ${HELPERS_PYBIND_SOURCES}
     helpers/math/vector.cpp
     helpers/math/derivatives.cpp
@@ -457,7 +464,7 @@ set_target_properties(_helpers PROPERTIES
 file(GLOB_RECURSE ADCS_SUBSYSTEM_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/hardware/ADCS_subsystem/*_py.cpp")
 
-pybind11_add_module(_adcs_subsystem
+pybind11_add_module(_adcs_subsystem ${GENADCS_PYBIND_OPTIONS}
     ${ADCS_SUBSYSTEM_PYBIND_SOURCES}
     hardware/ADCS_subsystem/adcs_subsystem.cpp
     hardware/ADCS_subsystem/effects.cpp
@@ -486,7 +493,7 @@ set_target_properties(_adcs_subsystem PROPERTIES
 file(GLOB_RECURSE SATELLITE_GEOMETRY_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/hardware/satellite_geometry/*_py.cpp")
 
-pybind11_add_module(_satellite_geometry
+pybind11_add_module(_satellite_geometry ${GENADCS_PYBIND_OPTIONS}
     ${SATELLITE_GEOMETRY_PYBIND_SOURCES}
     hardware/satellite_geometry/satellite_geometry.cpp
     hardware/satellite_geometry/satellite_panel.cpp
@@ -517,7 +524,7 @@ endif()
 file(GLOB_RECURSE ENVIRONMENT_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/environment/*_py.cpp")
 
-pybind11_add_module(_environment
+pybind11_add_module(_environment ${GENADCS_PYBIND_OPTIONS}
     ${ENVIRONMENT_PYBIND_SOURCES}
     environment/native_models.cpp
     environment/atmosphere/NRMLSISE00/nrlmsise00.cpp
@@ -557,7 +564,7 @@ set_target_properties(_environment PROPERTIES
 file(GLOB_RECURSE DYNAMICS_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/dynamics/*_py.cpp")
 
-pybind11_add_module(_dynamics
+pybind11_add_module(_dynamics ${GENADCS_PYBIND_OPTIONS}
     ${DYNAMICS_PYBIND_SOURCES}
     dynamics/_geometry.cpp
     dynamics/drag_model/projected_area.cpp
@@ -574,7 +581,7 @@ set_target_properties(_dynamics PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_E
 file(GLOB_RECURSE CONFIG_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/config/*_py.cpp")
 
-pybind11_add_module(_config ${CONFIG_PYBIND_SOURCES} config/simulation_config.cpp)
+pybind11_add_module(_config ${GENADCS_PYBIND_OPTIONS} ${CONFIG_PYBIND_SOURCES} config/simulation_config.cpp)
 target_link_libraries(_config PRIVATE Eigen3::Eigen)
 set_target_properties(_config PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/config")
 if(BUILD_TESTING)
@@ -596,7 +603,7 @@ endif()
 file(GLOB_RECURSE COUPLED_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/propagation/coupled_propagators/*_py.cpp")
 
-pybind11_add_module(_coupled
+pybind11_add_module(_coupled ${GENADCS_PYBIND_OPTIONS}
     propagation/coupled_propagators/sensor_sampling.cpp
     hardware/ADCS_subsystem/sensors/gyroscope.cpp
     hardware/ADCS_subsystem/sensors/magnetometer.cpp
@@ -646,10 +653,10 @@ set_target_properties(_coupled PROPERTIES
 file(GLOB_RECURSE SOLVER_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/solver/*_py.cpp")
 
-pybind11_add_module(_solver ${SOLVER_PYBIND_SOURCES} solver/coupled_solver.cpp)
+pybind11_add_module(_solver ${GENADCS_PYBIND_OPTIONS} ${SOLVER_PYBIND_SOURCES} solver/coupled_solver.cpp)
 set_target_properties(_solver PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/solver")
 
-pybind11_add_module(_satellite
+pybind11_add_module(_satellite ${GENADCS_PYBIND_OPTIONS}
     hardware/satellite_py.cpp
     hardware/satellite.cpp
     hardware/satellite_geometry/satellite_geometry.cpp
@@ -664,7 +671,7 @@ add_library(attitude_estimator_native STATIC
 target_link_libraries(attitude_estimator_native PUBLIC Eigen3::Eigen)
 target_include_directories(attitude_estimator_native PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(attitude_estimator_native PROPERTIES POSITION_INDEPENDENT_CODE ON)
-pybind11_add_module(_attitude_estimator
+pybind11_add_module(_attitude_estimator ${GENADCS_PYBIND_OPTIONS}
     ${ATTITUDE_ESTIMATOR_DIR}/module_py.cpp
     ${ATTITUDE_ESTIMATOR_DIR}/base_py.cpp
     ${ATTITUDE_ESTIMATOR_DIR}/attitude_mekf_py.cpp)
@@ -683,7 +690,7 @@ add_library(noise_native STATIC noise/noise.cpp helpers/random/philox.cpp)
 target_link_libraries(noise_native PUBLIC Eigen3::Eigen)
 target_include_directories(noise_native PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(noise_native PROPERTIES POSITION_INDEPENDENT_CODE ON)
-pybind11_add_module(_noise noise/noise_py.cpp)
+pybind11_add_module(_noise ${GENADCS_PYBIND_OPTIONS} noise/noise_py.cpp)
 target_link_libraries(_noise PRIVATE noise_native)
 set_target_properties(_noise PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/noise")
 if(BUILD_TESTING)
