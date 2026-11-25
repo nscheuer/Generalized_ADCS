@@ -72,7 +72,7 @@ class GNSS:
             next_draw(self, 6),
         )
 
-    def jacobianrelative_quaternion(self) -> np.ndarray:
+    def jacobian_relative_quaternion(self) -> np.ndarray:
         return np.zeros((6, 3))
 
     def jacobian_relative_mrp(self) -> np.ndarray:

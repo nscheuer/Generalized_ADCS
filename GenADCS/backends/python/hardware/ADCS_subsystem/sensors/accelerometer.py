@@ -116,7 +116,7 @@ class Accelerometer:
             next_draw(self, 3),
         )
 
-    def jacobianrelative_quaternion(
+    def jacobian_relative_quaternion(
         self,
         acceleration_inertial: np.ndarray,
         gravity_inertial: np.ndarray,

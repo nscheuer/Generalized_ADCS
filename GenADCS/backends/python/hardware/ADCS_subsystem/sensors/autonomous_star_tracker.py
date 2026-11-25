@@ -74,7 +74,7 @@ class AutonomousStarTracker:
     ) -> np.ndarray:
         return star_tracker_residual(measured_attitude, estimated_attitude)
 
-    def jacobianrelative_quaternion(self) -> np.ndarray:
+    def jacobian_relative_quaternion(self) -> np.ndarray:
         return 2.0 * np.eye(3)
 
     def jacobian_relative_mrp(self, delta_mrp: np.ndarray) -> np.ndarray:

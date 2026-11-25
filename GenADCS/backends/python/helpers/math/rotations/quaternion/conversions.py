@@ -75,3 +75,6 @@ def axis_angle_to_quaternion(axis: np.ndarray, angle: float) -> np.ndarray:
     return np.array(
         (np.cos(half_angle), axis[0] * scale, axis[1] * scale, axis[2] * scale)
     )
+
+_axis_angle_to_quaternion = axis_angle_to_quaternion
+_quaternion_to_dcm = quaternion_to_dcm

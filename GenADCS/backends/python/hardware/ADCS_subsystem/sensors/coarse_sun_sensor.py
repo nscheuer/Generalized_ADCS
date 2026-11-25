@@ -133,7 +133,7 @@ class CoarseSunSensor:
     def jacobian_bias(self) -> float:
         return 1.0
 
-    def jacobianrelative_quaternion(
+    def jacobian_relative_quaternion(
         self, sun_inertial: np.ndarray, attitude: np.ndarray, delta_quaternion: np.ndarray
     ) -> np.ndarray:
         return coarse_sun_attitude_jacobian(

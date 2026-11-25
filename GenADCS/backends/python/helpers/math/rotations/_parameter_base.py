@@ -1,3 +1,5 @@
+from typing import cast
+
 import numpy as np
 
 from ..vector import norm as _vector_norm
@@ -79,9 +81,13 @@ class RotationParameter:
         return self.conjugate()
 
     def multiply(self, other: "RotationParameter") -> "RotationParameter":
+        if not isinstance(cast(object, other), RotationParameter):
+            raise TypeError("other must be a rotation parameter")
         return type(self).from_quaternion(self.to_quaternion() * other.to_quaternion())
 
     def relative_to(self, reference: "RotationParameter") -> "RotationParameter":
+        if not isinstance(cast(object, reference), RotationParameter):
+            raise TypeError("reference must be a rotation parameter")
         return type(self).from_quaternion(
             self.to_quaternion().relative_to(reference.to_quaternion())
         )

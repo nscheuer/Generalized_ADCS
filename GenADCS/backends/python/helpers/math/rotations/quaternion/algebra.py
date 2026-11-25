@@ -57,3 +57,7 @@ def relative_quaternion(reference: np.ndarray, target: np.ndarray) -> np.ndarray
     if relative[0] < 0.0:
         relative = -relative
     return relative
+
+_inverse = inverse
+_multiply = multiply
+_normalize_quaternion = normalize_quaternion

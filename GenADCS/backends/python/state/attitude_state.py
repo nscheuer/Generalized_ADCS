@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 
@@ -21,8 +21,9 @@ class AttitudeState:
 
     @property
     def quaternion_array(self) -> np.ndarray:
-        if isinstance(self.orientation, Quaternion):
-            quaternion: np.ndarray = np.asarray(self.orientation.hamilton_components, dtype=np.float64)
+        if isinstance(self.orientation, Quaternion) or hasattr(self.orientation, "hamilton_components"):
+            components = cast(Any, self.orientation).hamilton_components
+            quaternion: np.ndarray = np.asarray(components, dtype=np.float64)
         else:
             quaternion = np.asarray(self.orientation, dtype=np.float64)
         if quaternion.shape != (4,) or not np.all(np.isfinite(quaternion)):
