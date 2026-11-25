@@ -10,6 +10,8 @@ from GenADCS.backends.python.helpers.random.philox import (
     validate_seed,
 )
 
+DEFAULT_SEED = np.uint64(0)
+
 
 @njit(cache=True)
 def add_bias(value, bias):
@@ -24,7 +26,7 @@ def advance_random_walk_bias(
     lower,
     upper,
     dt_seconds,
-    seed=np.uint64(0),
+    seed=DEFAULT_SEED,
     tick=0,
     stream=0x80000000,
 ):

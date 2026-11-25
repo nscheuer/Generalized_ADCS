@@ -21,6 +21,8 @@ from ._coupled_dynamics import (
 from ._dop853_coefficients import E3, E5, A, B, C
 from ._state_layout import pack_state, unpack_state
 
+DEFAULT_SEED = np.uint64(0)
+
 
 @njit(cache=True)
 def _dop853_attempt(y, f, epoch_jd, h, p, rtol, atol):
@@ -93,7 +95,7 @@ def _integrate_adaptive_chunk(
     sensor_config=None,
     clean=None,
     reading=None,
-    seed=np.uint64(0),
+    seed=DEFAULT_SEED,
     estimator_kind=0,
     estimate_q=None,
     estimate_w=None,

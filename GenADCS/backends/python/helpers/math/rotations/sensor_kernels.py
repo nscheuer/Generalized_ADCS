@@ -11,6 +11,8 @@ from .quaternion.algebra import _multiply, _normalize_quaternion
 from .quaternion.conversions import _quaternion_to_dcm
 from .quaternion.interpolation import rotation_vector_to_quaternion
 
+DEFAULT_SEED = np.uint64(0)
+
 
 @njit(cache=True)
 def mounting_dcm(orientation, misalignment):
@@ -82,7 +84,7 @@ def star_tracker_angle_jacobian(delta_angle):
 
 
 @njit(cache=True)
-def small_rotation_noise_quaternion(covariance, seed=np.uint64(0), tick=0):
+def small_rotation_noise_quaternion(covariance, seed=DEFAULT_SEED, tick=0):
     """Sample a small rotation vector from covariance and return its quaternion."""
     eta = np.linalg.cholesky(covariance) @ standard_normals(seed, tick, 0, 3)
     return _normalize_quaternion(np.concatenate((np.ones(1), 0.5 * eta)))

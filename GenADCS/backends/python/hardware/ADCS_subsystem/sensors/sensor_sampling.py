@@ -35,6 +35,8 @@ from .kernels import (
     vector_measurement,
 )
 
+DEFAULT_SEED = np.uint64(0)
+
 SENSOR_NAMES = (
     "gyroscope",
     "magnetometer",
@@ -132,7 +134,7 @@ def prepare_sensors(sensors, environment):
 
 
 @njit(cache=True)
-def sample_sensors(y, jd, p, config, clean, reading, seed=np.uint64(0), tick=0):
+def sample_sensors(y, jd, p, config, clean, reading, seed=DEFAULT_SEED, tick=0):
     """Write every sensor's clean and noisy values into preallocated rows."""
     (
         code,

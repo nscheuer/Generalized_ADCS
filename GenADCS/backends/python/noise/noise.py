@@ -5,15 +5,17 @@ from numba import njit
 
 from GenADCS.backends.python.helpers.random.philox import next_draw, standard_normals
 
+DEFAULT_SEED = np.uint64(0)
+
 
 @njit(cache=True)
-def gaussian_sample(cholesky_factor, seed=np.uint64(0), tick=0):
+def gaussian_sample(cholesky_factor, seed=DEFAULT_SEED, tick=0):
     """Draw correlated zero-mean Gaussian noise using a prepared Cholesky factor."""
     return cholesky_factor @ standard_normals(seed, tick, 0, cholesky_factor.shape[0])
 
 
 @njit(cache=True)
-def add_gaussian_noise(value, cholesky_factor, seed=np.uint64(0), tick=0):
+def add_gaussian_noise(value, cholesky_factor, seed=DEFAULT_SEED, tick=0):
     return value + gaussian_sample(cholesky_factor, seed, tick)
 
 
