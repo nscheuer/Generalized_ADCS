@@ -1,1 +1,1 @@
-from .state_machine import StateMachine
+from .state_machine import StateMachine as StateMachine
