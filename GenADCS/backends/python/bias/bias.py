@@ -1,7 +1,12 @@
 """Bounded random-walk bias model."""
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 from numba import njit
+
+if TYPE_CHECKING:
+    from ADCS.covariance import Covariance
 
 from GenADCS.backends.python.helpers.random.philox import (
     standard_normals,

@@ -5,8 +5,8 @@ import pytest
 
 from GenADCS.backends.python.noise import (
     FlickerNoise,
-    GaussMarkovNoise,
     GaussianWhiteNoise,
+    GaussMarkovNoise,
     Noise,
     QuantizationNoise,
     UniformNoise,
