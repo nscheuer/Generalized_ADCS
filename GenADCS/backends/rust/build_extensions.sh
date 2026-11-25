@@ -8,9 +8,9 @@ if [[ "$profile" != debug && "$profile" != release ]]; then
     exit 2
 fi
 
+is_macos=false
 if [[ "$(uname -s)" == Darwin ]]; then
-    # Python provides these symbols when it loads the extension module.
-    export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-Wl,-undefined,dynamic_lookup"
+    is_macos=true
 fi
 
 packages=(
@@ -50,6 +50,14 @@ for entry in "${packages[@]}"; do
     esac
     if [[ "$profile" == release ]]; then
         options+=(--release)
+    fi
+    if [[ "$is_macos" == true ]]; then
+        # Python provides these symbols when it loads an extension module.
+        # Passing this through Cargo config avoids an inherited
+        # CARGO_ENCODED_RUSTFLAGS value silently taking precedence over
+        # RUSTFLAGS on hosted runners.
+        options+=(--config 'target.aarch64-apple-darwin.rustflags=["-C", "link-arg=-Wl,-undefined,dynamic_lookup"]')
+        options+=(--config 'target.x86_64-apple-darwin.rustflags=["-C", "link-arg=-Wl,-undefined,dynamic_lookup"]')
     fi
     cargo "${options[@]}"
     case "$(uname -s)" in

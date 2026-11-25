@@ -3,8 +3,6 @@
 import numpy as np
 from numba import njit
 
-from ADCS.covariance import Covariance
-from ADCS.orbits.universal_constants import TimeConstants
 from GenADCS.backends.python.helpers.random.philox import (
     standard_normals,
     validate_seed,
@@ -90,7 +88,9 @@ class Bias:
         result._random_tick = self._random_tick
         return result
 
-    def process_covariance(self, dt: float = 1.0, *, form: str = "full") -> Covariance:
+    def process_covariance(self, dt: float = 1.0, *, form: str = "full") -> "Covariance":
+        from ADCS.covariance import Covariance
+
         dt = float(dt)
         if not np.isfinite(dt) or dt < 0.0:
             raise ValueError("dt must be finite and non-negative")
@@ -98,7 +98,9 @@ class Bias:
             self.process_psd().as_matrix() * dt, form=form, coordinates="bias"
         )
 
-    def process_psd(self, *, form: str = "full") -> Covariance:
+    def process_psd(self, *, form: str = "full") -> "Covariance":
+        from ADCS.covariance import Covariance
+
         return Covariance(
             np.diagflat(self.std_bias * self.std_bias),
             form=form,
@@ -113,7 +115,7 @@ class Bias:
         dt_centuries = j2000 - self.last_bias_time
         if dt_centuries <= 0.0:
             return
-        dt_sec = dt_centuries * TimeConstants.cent2sec
+        dt_sec = dt_centuries * 36525.0 * 86400.0
         if rng is None:
             draw = standard_normals(
                 validate_seed(seed), self._random_tick, stream, self.bias.size

@@ -306,6 +306,13 @@ if(BUILD_TESTING)
         endif()
         target_link_libraries(cpp_test_math_${component} PRIVATE Eigen3::Eigen)
         target_include_directories(cpp_test_math_${component} PRIVATE helpers/math helpers/math/rotations)
+        if(component STREQUAL "derivatives")
+            # GCC 15 reports Eigen's AVX load for fixed-size Vector3d expressions
+            # as an array-bounds error under -Werror. This small test executable
+            # does not need Eigen packetization, so keep the compiler diagnostic
+            # out without weakening warnings for the rest of the C++ build.
+            target_compile_definitions(cpp_test_math_${component} PRIVATE EIGEN_DONT_VECTORIZE)
+        endif()
         add_test(NAME cpp_math_${component} COMMAND cpp_test_math_${component})
     endforeach()
     add_library(state_native_core STATIC
