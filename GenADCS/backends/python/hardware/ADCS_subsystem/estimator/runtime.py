@@ -3,7 +3,7 @@
 import numpy as np
 from numba import njit
 
-from .attitude_estimator import AttitudeMEKF
+from .attitude_estimator import AttitudeEstimator, AttitudeMEKF
 from .attitude_estimator.attitude_mekf import step as mekf_step
 from .attitude_estimator.attitude_mekf import step_with_diagnostics
 

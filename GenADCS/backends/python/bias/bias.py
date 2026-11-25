@@ -1,8 +1,8 @@
 """Bounded random-walk bias model."""
 
 import numpy as np
-from numpy.typing import ArrayLike
 from numba import njit
+from numpy.typing import ArrayLike
 
 from GenADCS.backends.python.helpers.random.philox import (
     standard_normals,

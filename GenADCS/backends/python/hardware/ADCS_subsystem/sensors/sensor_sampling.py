@@ -2,9 +2,9 @@
 
 import numpy as np
 from numba import njit
-from GenADCS.backends.python.environment import Environment
 
 from GenADCS.backends.python.dynamics.srp_model.projected_area import SUN_RADIUS_M
+from GenADCS.backends.python.environment import Environment
 from GenADCS.backends.python.environment.ephemeris import (
     BODY_SUN,
     eclipse_state,

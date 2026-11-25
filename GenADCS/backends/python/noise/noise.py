@@ -1,8 +1,8 @@
 """Noise configuration and cached numerical kernels for compiled simulation."""
 
 import numpy as np
-from numpy.typing import ArrayLike
 from numba import njit
+from numpy.typing import ArrayLike
 
 from GenADCS.backends.python.helpers.random.philox import next_draw, standard_normals
 

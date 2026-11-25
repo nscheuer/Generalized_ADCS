@@ -53,11 +53,11 @@ class Quaternion:
         self._hamilton = _normalize_quaternion(hamilton)
 
     @classmethod
-    def identity(cls) -> "Quaternion":
+    def identity(cls) -> Quaternion:
         return cls()
 
     @classmethod
-    def from_axis_angle(cls, axis: ArrayLike, angle: float) -> "Quaternion":
+    def from_axis_angle(cls, axis: ArrayLike, angle: float) -> Quaternion:
         axis = np.asarray(axis, dtype=np.float64)
         if (
             axis.shape != (3,)
@@ -68,14 +68,14 @@ class Quaternion:
         return cls(_axis_angle_to_quaternion(axis, float(angle)))
 
     @classmethod
-    def from_rotation_vector(cls, rotation_vector: ArrayLike) -> "Quaternion":
+    def from_rotation_vector(cls, rotation_vector: ArrayLike) -> Quaternion:
         vector = np.asarray(rotation_vector, dtype=np.float64)
         if vector.shape != (3,) or not np.all(np.isfinite(vector)):
             raise ValueError("rotation_vector must be a finite 3-vector")
         return cls(rotation_vector_to_quaternion(vector))
 
     @classmethod
-    def from_dcm(cls, matrix: ArrayLike) -> "Quaternion":
+    def from_dcm(cls, matrix: ArrayLike) -> Quaternion:
         matrix = np.asarray(matrix, dtype=np.float64)
         if matrix.shape != (3, 3) or not np.all(np.isfinite(matrix)):
             raise ValueError("matrix must be a finite 3x3 DCM")
@@ -109,19 +109,19 @@ class Quaternion:
             return _hamilton_to_jpl(self._hamilton)
         raise ValueError("convention must be 'Hamilton' or 'JPL'")
 
-    def to_convention(self, convention: str = "Hamilton") -> "Quaternion":
+    def to_convention(self, convention: str = "Hamilton") -> Quaternion:
         return Quaternion(self.as_convention(convention), convention=convention)
 
-    def normalized(self) -> "Quaternion":
+    def normalized(self) -> Quaternion:
         return Quaternion(_normalize_quaternion(self._hamilton))
 
-    def conjugate(self) -> "Quaternion":
+    def conjugate(self) -> Quaternion:
         return Quaternion(_conjugate(self._hamilton))
 
-    def inverse(self) -> "Quaternion":
+    def inverse(self) -> Quaternion:
         return Quaternion(_inverse(self._hamilton))
 
-    def multiply(self, other: ArrayLike | "Quaternion") -> "Quaternion":
+    def multiply(self, other: ArrayLike | Quaternion) -> Quaternion:
         if not isinstance(other, Quaternion):
             other = Quaternion(other)
         return Quaternion(_multiply(self._hamilton, other._hamilton))
@@ -144,12 +144,12 @@ class Quaternion:
     def to_dcm(self) -> np.ndarray:
         return _quaternion_to_dcm(self._hamilton)
 
-    def relative_to(self, reference: ArrayLike | "Quaternion") -> "Quaternion":
+    def relative_to(self, reference: ArrayLike | Quaternion) -> Quaternion:
         if not isinstance(reference, Quaternion):
             reference = Quaternion(reference)
         return Quaternion(_relative_quaternion(reference._hamilton, self._hamilton))
 
-    def __mul__(self, other: ArrayLike | "Quaternion") -> "Quaternion":
+    def __mul__(self, other: ArrayLike | Quaternion) -> Quaternion:
         return self.multiply(other)
 
     def __array__(self, dtype: np.dtype | None = None) -> np.ndarray:

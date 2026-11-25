@@ -1,13 +1,13 @@
 import math
 from dataclasses import dataclass
 
+from GenADCS.backends.python.config.dynamics_config import DynamicsConfig
+from GenADCS.backends.python.environment import Environment
+from GenADCS.backends.python.hardware import Satellite
 from GenADCS.backends.python.propagation import (
     CoupledDOP853Propagator,
     CoupledRK4Propagator,
 )
-from GenADCS.backends.python.config.dynamics_config import DynamicsConfig
-from GenADCS.backends.python.environment import Environment
-from GenADCS.backends.python.hardware import Satellite
 from GenADCS.backends.python.state import State
 
 

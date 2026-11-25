@@ -4,6 +4,9 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike
 
+from GenADCS.backends.python.config.dynamics_config import DynamicsConfig
+from GenADCS.backends.python.environment import Environment
+from GenADCS.backends.python.hardware import Satellite
 from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import (
     prepare_estimator,
     update_estimator,
@@ -12,17 +15,14 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling imp
     prepare_sensors,
     sample_sensors,
 )
-from GenADCS.backends.python.config.dynamics_config import DynamicsConfig
-from GenADCS.backends.python.environment import Environment
-from GenADCS.backends.python.hardware import Satellite
 from GenADCS.backends.python.state import State
 
 from ._coupled_dynamics import (
-    _Runtime,
     SECONDS_PER_DAY,
     _derivative,
     _prepare,
     _project_wheel_momentum,
+    _Runtime,
 )
 from ._dop853_coefficients import E3, E5, A, B, C
 from ._state_layout import pack_state, unpack_state

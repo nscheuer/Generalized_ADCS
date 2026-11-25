@@ -2,7 +2,6 @@
 
 import numpy as np
 
-from GenADCS.backends.python.state import State
 from GenADCS.backends.python.state import (
     AttitudeState,
     OrbitalState,

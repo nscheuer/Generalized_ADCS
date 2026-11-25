@@ -26,6 +26,7 @@ from GenADCS.backends.python.dynamics.third_body_model.lunisolar import (
     SUN_MU_M3_S2,
     lunisolar_acceleration,
 )
+from GenADCS.backends.python.environment import Environment
 from GenADCS.backends.python.environment.atmosphere.atmospheric_model import (
     co_rotating_atmosphere_velocity,
 )
@@ -43,8 +44,6 @@ from GenADCS.backends.python.environment.ephemeris.de421 import DE421
 from GenADCS.backends.python.environment.gravity.j_gravity_model import (
     gravity_acceleration_inertial_m_s2,
 )
-from GenADCS.backends.python.environment import Environment
-from GenADCS.backends.python.hardware.satellite import Satellite
 from GenADCS.backends.python.environment.magnetic_field_model.chaos8.chaos8 import (
     CHAOS8,
     chaos8_field_inertial_tesla,
@@ -53,6 +52,7 @@ from GenADCS.backends.python.environment.magnetic_field_model.igrf14.igrf14 impo
     IGRF14,
     igrf14_field_inertial_tesla,
 )
+from GenADCS.backends.python.hardware.satellite import Satellite
 from GenADCS.backends.python.helpers.math.derivatives import quaternion_derivative
 from GenADCS.backends.python.helpers.math.time.conversions import utc_jd_to_tdb_jd
 

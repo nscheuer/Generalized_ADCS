@@ -3,8 +3,8 @@
 import numpy as np
 from numba import njit
 
-from GenADCS.backends.python.helpers.math.frames.frames import inertial_to_body
 from GenADCS.backends.python.environment import Environment
+from GenADCS.backends.python.helpers.math.frames.frames import inertial_to_body
 
 
 @njit(cache=True)

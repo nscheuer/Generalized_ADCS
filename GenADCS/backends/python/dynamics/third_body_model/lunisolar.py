@@ -3,13 +3,13 @@
 import numpy as np
 from numba import njit
 
-from GenADCS.backends.python.environment.ephemeris import EphemerisModel
-from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry
 from GenADCS.backends.python.environment.ephemeris import (
     BODY_MOON,
     BODY_SUN,
+    EphemerisModel,
     ephemeris_position,
 )
+from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry
 from GenADCS.backends.python.helpers.math.time.conversions import utc_jd_to_tdb_jd
 
 SUN_MU_M3_S2 = 1.32712440018e20

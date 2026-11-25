@@ -3,12 +3,12 @@
 import numpy as np
 from numba import njit
 
+from GenADCS.backends.python.environment import Environment
+from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry
 from GenADCS.backends.python.helpers.math.frames.frames import (
     body_to_inertial,
     inertial_to_body,
 )
-from GenADCS.backends.python.environment import Environment
-from GenADCS.backends.python.hardware.satellite_geometry import SatelliteGeometry
 
 from .._geometry import prepare_panels
 

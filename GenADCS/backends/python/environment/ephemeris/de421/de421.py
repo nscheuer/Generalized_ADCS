@@ -1,9 +1,9 @@
 """JPL DE421 planetary ephemeris read directly from its SPK binary kernel."""
 
 import struct
+from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 from numpy.typing import ArrayLike
