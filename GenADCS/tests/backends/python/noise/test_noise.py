@@ -1,0 +1,53 @@
+"""Tests for the Python backend's noise models and Gaussian kernels."""
+
+import numpy as np
+import pytest
+
+from GenADCS.backends.python.noise import (
+    FlickerNoise,
+    GaussMarkovNoise,
+    GaussianWhiteNoise,
+    Noise,
+    QuantizationNoise,
+    UniformNoise,
+)
+from GenADCS.backends.python.noise.noise import gaussian_sample
+
+
+def test_covariance_noise_cholesky_and_reproducible_sample():
+    noise = Noise([[4.0, 2.0], [2.0, 3.0]])
+    np.testing.assert_allclose(noise.cholesky_factor, [[2.0, 0.0], [1.0, np.sqrt(2.0)]])
+
+    first = gaussian_sample(noise.cholesky_factor, np.uint64(12), 3)
+    np.testing.assert_array_equal(first, gaussian_sample(noise.cholesky_factor, np.uint64(12), 3))
+    assert not np.array_equal(first, gaussian_sample(noise.cholesky_factor, np.uint64(12), 4))
+
+    value = np.array([1.0, -1.0])
+    draw = np.array([0.5, -0.25])
+
+    class FixedRng:
+        def standard_normal(self, size):
+            assert size == 2
+            return draw
+
+    np.testing.assert_allclose(noise.apply(value, 0.1, rng=FixedRng()), value + noise.cholesky_factor @ draw)
+
+
+def test_covariance_noise_rejects_invalid_inputs():
+    with pytest.raises(NotImplementedError):
+        Noise().apply([1.0], 0.1)
+    with pytest.raises(ValueError):
+        Noise([[1.0, 0.0], [0.0]])
+    with pytest.raises(np.linalg.LinAlgError):
+        Noise([[-1.0]])
+    with pytest.raises(ValueError):
+        Noise(np.eye(2)).apply([1.0], 0.1)
+
+
+def test_concrete_noise_models_store_parameters():
+    assert FlickerNoise(0.25).amplitude == 0.25
+    assert GaussMarkovNoise(0.5, 12.0).correlation_time == 12.0
+    assert GaussianWhiteNoise(0.1).standard_deviation == 0.1
+    assert QuantizationNoise(0.01).step_size == 0.01
+    uniform = UniformNoise(-1.0, 1.0)
+    assert (uniform.lower, uniform.upper) == (-1.0, 1.0)

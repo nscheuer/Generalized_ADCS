@@ -7,7 +7,8 @@ and navigation sensors. They are displayed and not saved.
 """
 
 # Select the backend for this example: "rust", "cpp", or "python".
-backed = "cpp"
+import os
+backed = os.environ.get("GENADCS_EXAMPLE_BACKEND", "cpp")
 
 if backed not in ("rust", "cpp", "python"):
     raise ValueError("backed must be rust, cpp, or python")
