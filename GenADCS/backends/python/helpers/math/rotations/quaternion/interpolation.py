@@ -1,23 +1,23 @@
 import numpy as np
 from numba import njit
 
-from .algebra import _normalize_quaternion
+from .algebra import normalize_quaternion
 
 
 @njit(cache=True)
 def slerp(q0: np.ndarray, q1: np.ndarray, fraction: float) -> np.ndarray:
-    a = _normalize_quaternion(q0)
-    b = _normalize_quaternion(q1)
+    a = normalize_quaternion(q0)
+    b = normalize_quaternion(q1)
     cosine = np.dot(a, b)
     if cosine < 0.0:
         b = -b
         cosine = -cosine
     cosine = min(cosine, 1.0)
     if cosine > 0.9995:
-        return _normalize_quaternion((1.0 - fraction) * a + fraction * b)
+        return normalize_quaternion((1.0 - fraction) * a + fraction * b)
     angle = np.arccos(cosine)
     denominator = np.sin(angle)
-    return _normalize_quaternion(
+    return normalize_quaternion(
         (np.sin((1.0 - fraction) * angle) * a + np.sin(fraction * angle) * b)
         / denominator
     )
@@ -36,7 +36,7 @@ def rotation_vector_to_quaternion(rotation_vector: np.ndarray) -> np.ndarray:
 
 @njit(cache=True)
 def quaternion_to_rotation_vector(q: np.ndarray) -> np.ndarray:
-    unit_q = _normalize_quaternion(q)
+    unit_q = normalize_quaternion(q)
     if unit_q[0] < 0.0:
         unit_q = -unit_q
     vector_norm = np.sqrt(np.dot(unit_q[1:4], unit_q[1:4]))

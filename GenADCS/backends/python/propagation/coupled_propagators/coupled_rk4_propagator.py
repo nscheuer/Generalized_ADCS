@@ -10,6 +10,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import (
     update_estimator,
 )
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
+    SensorConfig,
     prepare_sensors,
     sample_sensors,
 )
@@ -18,10 +19,18 @@ from GenADCS.backends.python.state import State
 
 from ._coupled_dynamics import (
     SECONDS_PER_DAY,
-    _derivative,
-    _prepare,
-    _project_wheel_momentum,
-    _Runtime,
+)
+from ._coupled_dynamics import (
+    RuntimeParameters as _Runtime,
+)
+from ._coupled_dynamics import (
+    derivative as _derivative,
+)
+from ._coupled_dynamics import (
+    prepare_runtime as _prepare,
+)
+from ._coupled_dynamics import (
+    project_wheel_momentum as _project_wheel_momentum,
 )
 from ._state_layout import pack_state, unpack_state
 
@@ -57,7 +66,7 @@ def _integrate_chunk(
     count: int,
     record_every: int,
     sensor_every: int,
-    sensor_config: tuple,
+    sensor_config: SensorConfig,
     clean: np.ndarray,
     reading: np.ndarray,
     seed: int,
@@ -163,7 +172,6 @@ class CoupledRK4Propagator:
             raise ValueError("tf must be finite and nonnegative seconds")
         if progress and (
             isinstance(progress_chunk_steps, bool)
-            or not isinstance(progress_chunk_steps, int)
             or progress_chunk_steps <= 0
         ):
             raise ValueError("progress_chunk_steps must be a positive integer")
@@ -178,7 +186,6 @@ class CoupledRK4Propagator:
         step_count = full_steps + int(remainder > 0.0)
         if (
             isinstance(record_every, bool)
-            or not isinstance(record_every, int)
             or record_every < 1
         ):
             raise ValueError("record_every must be a positive integer")
@@ -335,8 +342,11 @@ class CoupledRK4Propagator:
         if self._configuration != (id(satellite), id(environment), id(dynamics)):
             self._runtime = _prepare(satellite, environment, dynamics)
             self._configuration = (id(satellite), id(environment), id(dynamics))
-        y = pack_state(state, self._runtime.wheel_commands.size)
-        if self._runtime.wheel_commands.size:
-            _project_wheel_momentum(y, self._runtime)
-        result = _rk4_step(y, state.orbit.julian_date, self.dt, self._runtime)
+        runtime = self._runtime
+        if runtime is None:
+            raise RuntimeError("coupled runtime was not prepared")
+        y = pack_state(state, runtime.wheel_commands.size)
+        if runtime.wheel_commands.size:
+            _project_wheel_momentum(y, runtime)
+        result = _rk4_step(y, state.orbit.julian_date, self.dt, runtime)
         return unpack_state(result, state, self.dt)

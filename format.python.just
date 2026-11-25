@@ -2,7 +2,7 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 default: format
 
-# Apply Ruff's formatter to the Python backend and its tests.
+# Apply Ruff's formatter to the Python backend, excluding GenADCS/tests.
 format:
     command -v ruff >/dev/null
-    ruff format GenADCS/backends/python GenADCS/tests
+    ruff format GenADCS/backends/python

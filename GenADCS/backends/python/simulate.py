@@ -43,26 +43,21 @@ def simulate(
     if backend != "Python":
         raise NotImplementedError(f"backend {backend!r} is not implemented for GenADCS")
     if isinstance(solver, Solver):
+        if solver.coupled is None:
+            raise TypeError("solver must be a CoupledSolver or a Solver containing one")
         solver = solver.coupled
-    if not isinstance(solver, CoupledSolver):
-        raise TypeError("solver must be a CoupledSolver or a Solver containing one")
-    if not isinstance(state, State):
-        raise TypeError("state must be an GenADCS.backends.python.state.State")
     if resultsformat is None:
         resultsformat = ResultsFormat()
-    if not isinstance(resultsformat, ResultsFormat):
-        raise TypeError("resultsformat must be a Python ResultsFormat")
     if satellite.adcs.estimator is not None and satellite.adcs.estimator.record:
         resultsformat = replace(
             resultsformat, **{name: True for name in satellite.adcs.estimator.record}
         )
     if (
         isinstance(satellite.adcs.N, bool)
-        or not isinstance(satellite.adcs.N, int)
         or satellite.adcs.N < 1
     ):
         raise ValueError("ADCSSubsystem.N must be a positive integer")
-    seed = validate_seed(seed)
+    seed = int(validate_seed(seed))
 
     sensor_every = (
         satellite.adcs.N
@@ -104,7 +99,7 @@ def simulate(
         progress_chunk_steps=solver.progress_chunk_steps,
         record_every=record_every,
         sensor_every=sensor_every,
-        seed=seed,
+        seed=int(seed),
         estimator_flags=estimator_flags,
     )
     times_s, state_vectors = integration[:2]
@@ -115,7 +110,7 @@ def simulate(
 
     config = prepare_sensors(satellite.adcs.sensors, environment)
     counts, starts = config[-2:]
-    sensor_rows = {}
+    sensor_rows: dict[str, np.ndarray] = {}
     for kind, name in enumerate(SENSOR_NAMES):
         width = counts[kind]
         for suffix, source in (

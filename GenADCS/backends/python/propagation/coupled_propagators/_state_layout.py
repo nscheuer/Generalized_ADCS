@@ -1,6 +1,7 @@
 """The numeric state layout shared by both compiled integrators."""
 
 import numpy as np
+from numpy.typing import NDArray
 
 from GenADCS.backends.python.state import (
     AttitudeState,
@@ -17,7 +18,7 @@ WHEEL_MOMENTUM = slice(13, None)
 BASE_SIZE = 13
 
 
-def pack_state(state: State, wheel_count: int) -> np.ndarray:
+def pack_state(state: State, wheel_count: int) -> NDArray[np.float64]:
     momentum = state.internal.wheel_momentum
     if momentum.size != wheel_count:
         raise ValueError(f"expected {wheel_count} wheel momenta, got {momentum.size}")

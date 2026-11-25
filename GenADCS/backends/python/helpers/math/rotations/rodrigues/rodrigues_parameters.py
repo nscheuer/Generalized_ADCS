@@ -1,10 +1,10 @@
 import numpy as np
 
-from .._parameter_base import _RotationParameter
+from .._parameter_base import RotationParameter
 from .kernels import quaternion_to_rodrigues, rodrigues_to_quaternion
 
 
-class Rodriguez_Parameters(_RotationParameter):
+class Rodriguez_Parameters(RotationParameter):
     """Rodrigues input/output representation of the active q_B<-I rotation."""
 
     @classmethod

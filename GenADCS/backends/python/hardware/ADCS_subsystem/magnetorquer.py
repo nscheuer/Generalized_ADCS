@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
+from typing import cast
 
 import numpy as np
+from numpy.random import Generator
 
-from GenADCS.backends.python.bias import Bias
-from GenADCS.backends.python.noise import Noise
+from GenADCS.backends.python.bias.bias import Bias
+from GenADCS.backends.python.noise.noise import Noise
 
 from .effects import apply_effects
 
@@ -14,7 +16,9 @@ class Magnetorquer:
     orientation: tuple[float, float, float]
     max_dipole: float
     misalignment: tuple[float, float, float] = (0.0, 0.0, 0.0)
-    effects: list[Noise | Bias] = field(default_factory=list)
+    effects: list[Noise | Bias] = field(
+        default_factory=lambda: cast(list[Noise | Bias], [])
+    )
 
     @property
     def noises(self) -> list[Noise]:
@@ -28,6 +32,6 @@ class Magnetorquer:
         self,
         value: np.ndarray,
         dt: float,
-        rng: object | None = None,
+        rng: Generator | None = None,
     ) -> np.ndarray:
         return apply_effects(value, self.effects, dt, rng)

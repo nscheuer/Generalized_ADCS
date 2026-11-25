@@ -8,7 +8,7 @@ from numpy.typing import ArrayLike
 if TYPE_CHECKING:
     from ..quaternion.quaternion import Quaternion
 
-from ..quaternion.conversions import _dcm_to_quaternion, _quaternion_to_dcm
+from ..quaternion.conversions import dcm_to_quaternion, quaternion_to_dcm
 from ..quaternion.interpolation import rotation_vector_to_quaternion
 from .kernels import (
     axis_angle_to_dcm,
@@ -60,7 +60,7 @@ class DCM:
         vector = np.asarray(rotation_vector, dtype=np.float64)
         if vector.shape != (3,) or not np.all(np.isfinite(vector)):
             raise ValueError("rotation_vector must be a finite 3-vector")
-        return cls(_quaternion_to_dcm(rotation_vector_to_quaternion(vector)))
+        return cls(quaternion_to_dcm(rotation_vector_to_quaternion(vector)))
 
     @classmethod
     def from_quaternion(cls, quaternion: ArrayLike | Quaternion) -> DCM:
@@ -68,7 +68,7 @@ class DCM:
 
         if not isinstance(quaternion, Quaternion):
             quaternion = Quaternion(quaternion)
-        return cls(_quaternion_to_dcm(quaternion.hamilton_components))
+        return cls(quaternion_to_dcm(quaternion.hamilton_components))
 
     @classmethod
     def from_dcm(cls, matrix: ArrayLike) -> DCM:
@@ -80,7 +80,7 @@ class DCM:
 
     @property
     def hamilton_components(self) -> np.ndarray:
-        return _dcm_to_quaternion(self._matrix)
+        return dcm_to_quaternion(self._matrix)
 
     @property
     def norm(self) -> float:
@@ -99,7 +99,7 @@ class DCM:
     def to_quaternion(self) -> Quaternion:
         from ..quaternion.quaternion import Quaternion
 
-        return Quaternion(_dcm_to_quaternion(self._matrix))
+        return Quaternion(dcm_to_quaternion(self._matrix))
 
     def normalized(self) -> DCM:
         return DCM(normalize_dcm(self._matrix))

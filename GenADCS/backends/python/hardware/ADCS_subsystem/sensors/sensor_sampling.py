@@ -1,5 +1,8 @@
 """Prepared sensor configuration and compiled sampling at subsystem ticks."""
 
+from collections.abc import Sequence
+from typing import Any, cast
+
 import numpy as np
 from numba import njit
 
@@ -22,7 +25,8 @@ from GenADCS.backends.python.environment.magnetic_field_model.igrf14.igrf14 impo
 from GenADCS.backends.python.helpers.math.time.conversions import utc_jd_to_tdb_jd
 from GenADCS.backends.python.helpers.random.philox import standard_normals
 from GenADCS.backends.python.propagation.coupled_propagators._coupled_dynamics import (
-    _derivative,
+    _derivative,  # pyright: ignore[reportPrivateUsage] -- sensor sampling shares the compiled dynamics kernel.
+    _Runtime,  # pyright: ignore[reportPrivateUsage] -- sensor sampling consumes this internal compiled runtime record.
 )
 
 from .kernels import (
@@ -35,7 +39,6 @@ from .kernels import (
     star_tracker_measurement,
     vector_measurement,
 )
-from .sensor import Sensor
 
 DEFAULT_SEED = np.uint64(0)
 
@@ -61,10 +64,25 @@ SENSOR_CLASSES = (
 )
 WIDTHS = (3, 3, 4, 1, 2, 2, 6, 3)
 
+SensorConfig = tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]
+
 
 def prepare_sensors(
-    sensors: list[Sensor], environment: Environment
-) -> tuple[np.ndarray, ...]:
+    sensors: Sequence[object], environment: Environment
+) -> SensorConfig:
     """Convert heterogeneous Python sensor objects to fixed numeric arrays once."""
     n = len(sensors)
     code = np.empty(n, np.int64)
@@ -85,6 +103,9 @@ def prepare_sensors(
             raise TypeError(
                 f"unsupported sensor type: {type(sensor).__name__}"
             ) from exc
+        # Sensor variants are intentionally selected by their exact class names
+        # above, then packed into homogeneous numeric arrays for the JIT kernel.
+        sensor = cast(Any, sensor)
         code[i] = kind
         offsets[i] = counts[kind]
         counts[kind] += WIDTHS[kind]
@@ -141,11 +162,11 @@ def prepare_sensors(
 def sample_sensors(
     y: np.ndarray,
     jd: float,
-    p: object,
-    config: tuple,
+    p: _Runtime,
+    config: SensorConfig,
     clean: np.ndarray,
     reading: np.ndarray,
-    seed: int = DEFAULT_SEED,
+    seed: int | np.uint64 = DEFAULT_SEED,
     tick: int = 0,
 ) -> None:
     """Write every sensor's clean and noisy values into preallocated rows."""
@@ -207,14 +228,14 @@ def sample_sensors(
         b = bias[i]
         c = chol[i]
         s = scalars[i]
-        draw = standard_normals(
-            seed,
-            tick,
-            i,
-            3
-            if kind == 2
-            else (1 if kind == 3 else (2 if kind == 4 or kind == 5 else WIDTHS[kind])),
-        )
+        draw_count = 3
+        if kind == 3:
+            draw_count = 1
+        elif kind == 4 or kind == 5:
+            draw_count = 2
+        elif kind == 6:
+            draw_count = 6
+        draw = standard_normals(seed, tick, i, draw_count)
         if kind == 0:
             a = rate_measurement(w, ori, mis, b[:3], c[:3, :3], s[0], False, False)
             v = rate_measurement(w, ori, mis, b[:3], c[:3, :3], s[0], True, True, draw)

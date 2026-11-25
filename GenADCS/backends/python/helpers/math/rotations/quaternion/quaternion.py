@@ -4,20 +4,20 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from .algebra import (
-    _conjugate,
-    _hamilton_to_jpl,
-    _inverse,
-    _jpl_to_hamilton,
-    _multiply,
-    _normalize_quaternion,
-    _quaternion_norm,
-    _relative_quaternion,
+    conjugate,
+    hamilton_to_jpl,
+    inverse,
+    jpl_to_hamilton,
+    multiply,
+    normalize_quaternion,
+    quaternion_norm,
+    relative_quaternion,
 )
 from .conversions import (
-    _axis_angle_to_quaternion,
-    _dcm_to_quaternion,
-    _quaternion_to_dcm,
-    _rotate_vector,
+    axis_angle_to_quaternion,
+    dcm_to_quaternion,
+    quaternion_to_dcm,
+    rotate_vector,
 )
 from .interpolation import rotation_vector_to_quaternion
 
@@ -46,11 +46,11 @@ class Quaternion:
             hamilton = raw.copy()
             self._convention = "Hamilton"
         elif convention_key in ("jpl", "j"):
-            hamilton = _jpl_to_hamilton(raw)
+            hamilton = jpl_to_hamilton(raw)
             self._convention = "JPL"
         else:
             raise ValueError("convention must be 'Hamilton' or 'JPL'")
-        self._hamilton = _normalize_quaternion(hamilton)
+        self._hamilton = normalize_quaternion(hamilton)
 
     @classmethod
     def identity(cls) -> Quaternion:
@@ -65,7 +65,7 @@ class Quaternion:
             or not np.isfinite(angle)
         ):
             raise ValueError("axis must be a finite 3-vector and angle finite")
-        return cls(_axis_angle_to_quaternion(axis, float(angle)))
+        return cls(axis_angle_to_quaternion(axis, float(angle)))
 
     @classmethod
     def from_rotation_vector(cls, rotation_vector: ArrayLike) -> Quaternion:
@@ -83,7 +83,7 @@ class Quaternion:
             np.linalg.det(matrix), 1.0, atol=1e-8
         ):
             raise ValueError("matrix must be a proper rotation matrix")
-        return cls(_dcm_to_quaternion(matrix))
+        return cls(dcm_to_quaternion(matrix))
 
     @property
     def components(self) -> np.ndarray:
@@ -99,38 +99,38 @@ class Quaternion:
 
     @property
     def norm(self) -> float:
-        return float(_quaternion_norm(self._hamilton))
+        return float(quaternion_norm(self._hamilton))
 
     def as_convention(self, convention: str = "Hamilton") -> np.ndarray:
         convention_key = str(convention).strip().lower()
         if convention_key in ("hamilton", "h"):
             return self._hamilton.copy()
         if convention_key in ("jpl", "j"):
-            return _hamilton_to_jpl(self._hamilton)
+            return hamilton_to_jpl(self._hamilton)
         raise ValueError("convention must be 'Hamilton' or 'JPL'")
 
     def to_convention(self, convention: str = "Hamilton") -> Quaternion:
         return Quaternion(self.as_convention(convention), convention=convention)
 
     def normalized(self) -> Quaternion:
-        return Quaternion(_normalize_quaternion(self._hamilton))
+        return Quaternion(normalize_quaternion(self._hamilton))
 
     def conjugate(self) -> Quaternion:
-        return Quaternion(_conjugate(self._hamilton))
+        return Quaternion(conjugate(self._hamilton))
 
     def inverse(self) -> Quaternion:
-        return Quaternion(_inverse(self._hamilton))
+        return Quaternion(inverse(self._hamilton))
 
     def multiply(self, other: ArrayLike | Quaternion) -> Quaternion:
         if not isinstance(other, Quaternion):
             other = Quaternion(other)
-        return Quaternion(_multiply(self._hamilton, other._hamilton))
+        return Quaternion(multiply(self._hamilton, other._hamilton))
 
     def rotate(self, vector_i: ArrayLike) -> np.ndarray:
         vector_i = np.asarray(vector_i, dtype=np.float64)
         if vector_i.shape != (3,) or not np.all(np.isfinite(vector_i)):
             raise ValueError("vector must be a finite 3-vector")
-        return _rotate_vector(self._hamilton, vector_i)
+        return rotate_vector(self._hamilton, vector_i)
 
     def inertial_to_body(self, vector_i: ArrayLike) -> np.ndarray:
         return self.rotate(vector_i)
@@ -139,15 +139,15 @@ class Quaternion:
         vector_b = np.asarray(vector_b, dtype=np.float64)
         if vector_b.shape != (3,) or not np.all(np.isfinite(vector_b)):
             raise ValueError("vector must be a finite 3-vector")
-        return _rotate_vector(_conjugate(self._hamilton), vector_b)
+        return rotate_vector(conjugate(self._hamilton), vector_b)
 
     def to_dcm(self) -> np.ndarray:
-        return _quaternion_to_dcm(self._hamilton)
+        return quaternion_to_dcm(self._hamilton)
 
     def relative_to(self, reference: ArrayLike | Quaternion) -> Quaternion:
         if not isinstance(reference, Quaternion):
             reference = Quaternion(reference)
-        return Quaternion(_relative_quaternion(reference._hamilton, self._hamilton))
+        return Quaternion(relative_quaternion(reference._hamilton, self._hamilton))
 
     def __mul__(self, other: ArrayLike | Quaternion) -> Quaternion:
         return self.multiply(other)

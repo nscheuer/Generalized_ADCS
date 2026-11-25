@@ -13,7 +13,7 @@ RE = 6371.2  # Magnetic harmonic reference radius [km].
 
 
 @njit(cache=True, nogil=True)
-def _schmidt_table(nmax: int) -> np.ndarray:
+def schmidt_table(nmax: int) -> np.ndarray:
     r"""
     Schmidt semi-normalisation factors :math:`S_{n,m}`.
 
@@ -39,19 +39,19 @@ def _schmidt_table(nmax: int) -> np.ndarray:
 
 
 @njit(cache=True, fastmath=True, nogil=True, inline="always")
-def _eval_one(
+def eval_one(
     ri: float,
     th_deg: float,
     ph_deg: float,
     g: np.ndarray,
     h: np.ndarray,
     nmax: int,
-    Pc: np.ndarray,
-    P1: np.ndarray,
-    P2: np.ndarray,
-    Dc: np.ndarray,
-    D1: np.ndarray,
-    D2: np.ndarray,
+    pc: np.ndarray,
+    p1: np.ndarray,
+    p2: np.ndarray,
+    dc: np.ndarray,
+    d1: np.ndarray,
+    d2: np.ndarray,
     cosmp: np.ndarray,
     sinmp: np.ndarray,
 ) -> tuple[float, float, float]:
@@ -74,18 +74,18 @@ def _eval_one(
     :type h: numpy.ndarray
     :param nmax: Maximum harmonic degree.
     :type nmax: int
-    :param Pc: Scratch for current Legendre degree.
-    :type Pc: numpy.ndarray
-    :param P1: Scratch for previous Legendre degree.
-    :type P1: numpy.ndarray
-    :param P2: Scratch for second previous Legendre degree.
-    :type P2: numpy.ndarray
-    :param Dc: Scratch for current colatitude derivative.
-    :type Dc: numpy.ndarray
-    :param D1: Scratch for previous derivative.
-    :type D1: numpy.ndarray
-    :param D2: Scratch for second previous derivative.
-    :type D2: numpy.ndarray
+    :param pc: Scratch for current Legendre degree.
+    :type pc: numpy.ndarray
+    :param p1: Scratch for previous Legendre degree.
+    :type p1: numpy.ndarray
+    :param p2: Scratch for second previous Legendre degree.
+    :type p2: numpy.ndarray
+    :param dc: Scratch for current colatitude derivative.
+    :type dc: numpy.ndarray
+    :param d1: Scratch for previous derivative.
+    :type d1: numpy.ndarray
+    :param d2: Scratch for second previous derivative.
+    :type d2: numpy.ndarray
     :param cosmp: Scratch for longitude cosine multiples.
     :type cosmp: numpy.ndarray
     :param sinmp: Scratch for longitude sine multiples.
@@ -128,11 +128,11 @@ def _eval_one(
         sinmp[m] = sinmp[m - 1] * cp + cosmp[m - 1] * sp
 
     for q in range(nmax + 2):
-        P1[q] = 0.0
-        D1[q] = 0.0
-        P2[q] = 0.0
-        D2[q] = 0.0
-    P1[0] = 1.0  # P[0,0]; acts as degree n-1 on the first pass
+        p1[q] = 0.0
+        d1[q] = 0.0
+        p2[q] = 0.0
+        d2[q] = 0.0
+    p1[0] = 1.0  # P[0,0]; acts as degree n-1 on the first pass
 
     a_r = RE / ri
     arn = a_r * a_r  # (RE/r)^(n+2) at n = 0
@@ -144,31 +144,31 @@ def _eval_one(
         arn *= a_r
         for m in range(n + 1):
             if n == m:
-                Pc[n] = sinth * P1[m - 1]
-                Dc[n] = sinth * D1[m - 1] + costh * P1[n - 1]
+                pc[n] = sinth * p1[m - 1]
+                dc[n] = sinth * d1[m - 1] + costh * p1[n - 1]
             elif n == 1:
-                Pc[m] = costh * P1[m]
-                Dc[m] = costh * D1[m] - sinth * P1[m]
+                pc[m] = costh * p1[m]
+                dc[m] = costh * d1[m] - sinth * p1[m]
             else:
                 K = ((n - 1.0) * (n - 1.0) - m * m) / (
                     (2.0 * n - 1.0) * (2.0 * n - 3.0)
                 )
-                Pc[m] = costh * P1[m] - K * P2[m]
-                Dc[m] = costh * D1[m] - sinth * P1[m] - K * D2[m]
+                pc[m] = costh * p1[m] - K * p2[m]
+                dc[m] = costh * d1[m] - sinth * p1[m] - K * d2[m]
         # One slot past the diagonal is held at zero so that reading degree
         # n-2 at order m = n-1 stays in range.
-        Pc[n + 1] = 0.0
-        Dc[n + 1] = 0.0
+        pc[n + 1] = 0.0
+        dc[n + 1] = 0.0
 
         for m in range(n + 1):
             gnm = g[n, m]
             hnm = h[n, m]
             cc = gnm * cosmp[m] + hnm * sinmp[m]
-            sr += arn * (n + 1.0) * cc * Pc[m]
-            st -= arn * cc * Dc[m]
-            sq -= arn * m * (hnm * cosmp[m] - gnm * sinmp[m]) * Pc[m]
+            sr += arn * (n + 1.0) * cc * pc[m]
+            st -= arn * cc * dc[m]
+            sq -= arn * m * (hnm * cosmp[m] - gnm * sinmp[m]) * pc[m]
 
-        P2, P1, Pc = P1, Pc, P2
-        D2, D1, Dc = D1, Dc, D2
+        p2, p1, pc = p1, pc, p2
+        d2, d1, dc = d1, dc, d2
 
     return sr, st, sq / sinth

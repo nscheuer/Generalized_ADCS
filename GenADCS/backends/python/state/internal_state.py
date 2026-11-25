@@ -1,11 +1,25 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Protocol
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+
+class _WheelWithMomentum(Protocol):
+    h: float
+
+
+class _SubsystemWithWheels(Protocol):
+    reaction_wheels: Sequence[_WheelWithMomentum]
 
 
 @dataclass(slots=True)
 class InternalState:
-    wheel_momentum: object = field(default_factory=list)
+    wheel_momentum: np.ndarray = field(default_factory=lambda: np.empty(0))
 
     def __post_init__(self) -> None:
         momentum = np.asarray(self.wheel_momentum, dtype=np.float64)
@@ -23,7 +37,7 @@ class WheelMomentumState(InternalState):
 
     def __init__(
         self,
-        subsystem: object | None = None,
+        subsystem: _SubsystemWithWheels | None = None,
         *,
         wheel_momentum: object | None = None,
     ) -> None:
@@ -31,4 +45,4 @@ class WheelMomentumState(InternalState):
             raise ValueError("provide subsystem or wheel_momentum, not both")
         if subsystem is not None:
             wheel_momentum = [wheel.h for wheel in subsystem.reaction_wheels]
-        super().__init__([] if wheel_momentum is None else wheel_momentum)
+        super().__init__(np.asarray([] if wheel_momentum is None else wheel_momentum))

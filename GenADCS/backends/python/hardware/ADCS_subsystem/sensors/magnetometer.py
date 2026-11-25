@@ -109,7 +109,7 @@ class Magnetometer:
     def jacobian_bias(self) -> np.ndarray:
         return np.eye(3)
 
-    def jacobian_relative_quaternion(
+    def jacobianrelative_quaternion(
         self,
         field_inertial: np.ndarray,
         attitude: np.ndarray,

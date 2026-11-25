@@ -12,6 +12,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import (
     update_estimator,
 )
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
+    SensorConfig,
     prepare_sensors,
     sample_sensors,
 )
@@ -19,15 +20,23 @@ from GenADCS.backends.python.state import State
 
 from ._coupled_dynamics import (
     SECONDS_PER_DAY,
-    _derivative,
-    _prepare,
-    _project_wheel_momentum,
-    _Runtime,
+)
+from ._coupled_dynamics import (
+    RuntimeParameters as _Runtime,
+)
+from ._coupled_dynamics import (
+    derivative as _derivative,
+)
+from ._coupled_dynamics import (
+    prepare_runtime as _prepare,
+)
+from ._coupled_dynamics import (
+    project_wheel_momentum as _project_wheel_momentum,
 )
 from ._dop853_coefficients import E3, E5, A, B, C
 from ._state_layout import pack_state, unpack_state
 
-DEFAULT_SEED = np.uint64(0)
+DEFAULT_SEED = 0
 
 
 @njit(cache=True)
@@ -106,7 +115,7 @@ def _integrate_adaptive_chunk(
     max_accepted_steps: int,
     sample_interval: float = 0.0,
     sensor_interval: float = 0.0,
-    sensor_config: tuple[np.ndarray, ...] | None = None,
+    sensor_config: SensorConfig | None = None,
     clean: np.ndarray | None = None,
     reading: np.ndarray | None = None,
     seed: int = DEFAULT_SEED,
@@ -175,6 +184,8 @@ def _integrate_adaptive_chunk(
                 capacity = new_capacity
             if save:
                 if sensor_interval > 0.0:
+                    assert clean is not None and reading is not None
+                    assert sensor_config is not None
                     sensor_index = int(np.round(t / sensor_interval))
                     if sensor_index < clean.shape[0] and abs(
                         t - sensor_index * sensor_interval
@@ -190,6 +201,9 @@ def _integrate_adaptive_chunk(
                             sensor_index,
                         )
                         if estimator_kind:
+                            assert estimate_q is not None and estimate_w is not None
+                            assert estimate_p is not None and acceleration_psd is not None
+                            assert estimates is not None
                             update_estimator(
                                 estimator_kind,
                                 estimate_q,
@@ -292,7 +306,6 @@ class CoupledDOP853Propagator:
             raise ValueError("tf must be finite and nonnegative seconds")
         if progress and (
             isinstance(progress_chunk_steps, bool)
-            or not isinstance(progress_chunk_steps, int)
             or progress_chunk_steps <= 0
         ):
             raise ValueError("progress_chunk_steps must be a positive integer")
@@ -362,7 +375,6 @@ class CoupledDOP853Propagator:
 
         if record_every is not None and (
             isinstance(record_every, bool)
-            or not isinstance(record_every, int)
             or record_every < 1
         ):
             raise ValueError("record_every must be a positive integer")

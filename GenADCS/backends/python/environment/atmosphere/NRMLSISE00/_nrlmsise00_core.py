@@ -10,8 +10,8 @@ from typing import NamedTuple
 
 import numpy as np
 from numba import float64, int64, njit
-from numba.experimental import jitclass
-from numpy.typing import ArrayLike, NDArray
+from numba.experimental.jitclass.decorators import jitclass
+from numpy.typing import NDArray
 
 from ._nrlmsise00_data import PAVGM, PD, PDL, PDM, PMA, PS, PT, PTL, PTM
 
@@ -41,7 +41,7 @@ class NRLMSISEOutput(NamedTuple):
 class _Flags:
     """The 24 model switches and their derived sw/swc forms (tselec)."""
 
-    def __init__(self, switches: Sequence[float]) -> None:
+    def __init__(self, switches: NDArray[np.float64]) -> None:
         self.switches = np.asarray(switches)
         self.sw = np.zeros(24)
         self.swc = np.zeros(24)
@@ -82,7 +82,7 @@ class _Input:
         f107a: float,
         f107: float,
         ap: float,
-        ap_a: Sequence[float] | None = None,
+        ap_a: NDArray[np.float64] | None = None,
     ) -> None:
         self.doy = doy
         self.sec = sec
@@ -183,11 +183,11 @@ class _Model:
         xm: float,
         tz: float,
         zn3: Sequence[float],
-        tn3: Sequence[float],
-        tgn3: Sequence[float],
+        tn3: NDArray[np.float64],
+        tgn3: NDArray[np.float64],
         zn2: Sequence[float],
-        tn2: Sequence[float],
-        tgn2: Sequence[float],
+        tn2: NDArray[np.float64],
+        tgn2: NDArray[np.float64],
     ) -> tuple[float, float]:
         """Temperature/density profiles for the lower atmosphere.
 
@@ -1280,7 +1280,7 @@ class _Model:
             d[5] = d[5] / 1000.0
         return NRLMSISEOutput(np.array(d), np.array(t))
 
-    def _gtd7(self, inp: _Input, flags: _Flags) -> NRLMSISEOutput:
+    def gtd7(self, inp: _Input, flags: _Flags) -> NRLMSISEOutput:
         """The full model: thermosphere plus lower atmosphere."""
         zn3 = [32.5, 20.0, 15.0, 10.0, 0.0]
         zn2 = [72.5, 55.0, 45.0, 32.5]
@@ -1447,9 +1447,9 @@ class _Model:
         t[1] = tz
         return NRLMSISEOutput(np.array(d), np.array(t))
 
-    def _gtd7d(self, inp: _Input, flags: _Flags) -> NRLMSISEOutput:
+    def gtd7d(self, inp: _Input, flags: _Flags) -> NRLMSISEOutput:
         """The full model with anomalous O in the effective density."""
-        out = self._gtd7(inp, flags)
+        out = self.gtd7(inp, flags)
         out.d[5] = 1.66e-24 * (
             4.0 * out.d[0]
             + 16.0 * out.d[1]
@@ -1514,7 +1514,7 @@ def _dnet(dde: float, dm: float, zhm: float, xmm: float, xm: float) -> float:
 
 @njit(cache=True)
 def _splini(
-    xa: ArrayLike, ya: ArrayLike, y2a: ArrayLike, x: float
+    xa: Sequence[float], ya: Sequence[float], y2a: Sequence[float], x: float
 ) -> float:
     """Integrate the cubic spline from xa[0] to x."""
     n = len(xa)
@@ -1548,7 +1548,7 @@ def _splini(
 
 @njit(cache=True)
 def _splint(
-    xa: ArrayLike, ya: ArrayLike, y2a: ArrayLike, x: float
+    xa: Sequence[float], ya: Sequence[float], y2a: Sequence[float], x: float
 ) -> float:
     """Cubic spline interpolation (Numerical Recipes form)."""
     n = len(xa)
@@ -1574,7 +1574,7 @@ def _splint(
 
 @njit(cache=True)
 def _spline(
-    x: ArrayLike, y: ArrayLike, yp1: float, ypn: float
+    x: Sequence[float], y: Sequence[float], yp1: float, ypn: float
 ) -> list[float]:
     """Second derivatives of the cubic spline (Numerical Recipes)."""
     n = len(x)
@@ -1674,5 +1674,5 @@ def msis_gtd7(
     inp = _Input(doy, sec, alt_km, lat_deg, lon_deg, lst, f107a, f107, ap, ap_array)
     model = _Model()
     if effective_density:
-        return model._gtd7d(inp, flags)
-    return model._gtd7(inp, flags)
+        return model.gtd7d(inp, flags)
+    return model.gtd7(inp, flags)

@@ -1,23 +1,24 @@
 from dataclasses import dataclass, field
+from typing import cast
 
-from .estimator import AttitudeEstimator
+from .estimator.attitude_estimator.base import AttitudeEstimator
 from .magnetorquer import Magnetorquer
 from .reaction_wheel import ReactionWheel
-from .sensors import Sensor
+from .sensors.sensor import Sensor
 
 
 @dataclass(slots=True)
 class ADCSSubsystem:
-    reaction_wheels: list[ReactionWheel] = field(default_factory=list)
-    magnetorquers: list[Magnetorquer] = field(default_factory=list)
-    sensors: list[Sensor] = field(default_factory=list)
+    reaction_wheels: list[ReactionWheel] = field(
+        default_factory=lambda: cast(list[ReactionWheel], [])
+    )
+    magnetorquers: list[Magnetorquer] = field(
+        default_factory=lambda: cast(list[Magnetorquer], [])
+    )
+    sensors: list[Sensor] = field(default_factory=lambda: cast(list[Sensor], []))
     N: int = 1
     estimator: AttitudeEstimator | None = None
 
     def __post_init__(self) -> None:
-        if isinstance(self.N, bool) or not isinstance(self.N, int) or self.N < 1:
+        if isinstance(self.N, bool) or self.N < 1:
             raise ValueError("N must be a positive integer")
-        if self.estimator is not None and not isinstance(
-            self.estimator, AttitudeEstimator
-        ):
-            raise TypeError("estimator must be an AttitudeEstimator")

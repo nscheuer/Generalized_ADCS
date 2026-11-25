@@ -83,9 +83,9 @@ class LunisolarForceModel:
         self.mass = float(geometry.mass)
         if not np.isfinite(self.mass) or self.mass <= 0.0:
             raise ValueError("geometry.mass must be finite and positive")
-        self.segments = ephemeris._segments
-        self.times = ephemeris._times
-        self.data = ephemeris._data
+        self.segments = ephemeris.segments
+        self.times = ephemeris.times
+        self.data = ephemeris.data
 
     def evaluate(self, position_i: np.ndarray, epoch_utc_jd: float) -> np.ndarray:
         position_i = np.ascontiguousarray(position_i, dtype=np.float64)

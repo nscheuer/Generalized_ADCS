@@ -1,12 +1,23 @@
 """Evaluate requested diagnostics only at recorded trajectory samples."""
 
 import numpy as np
+from typing import Any
 
 from .satellite_configuration import from_satellite
 from .simulationresult import SatelliteResult, SimulationResult, RESULT_FIELDS, SENSOR_FIELDS
 
 
-def record_samples(times, vectors, format, satellite, environment, dynamics, epoch_jd, backend, sensor_samples=None):
+def record_samples(
+    times: Any,
+    vectors: Any,
+    format: Any,
+    satellite: Any,
+    environment: Any,
+    dynamics: Any,
+    epoch_jd: float,
+    backend: str,
+    sensor_samples: dict[str, Any] | None = None,
+) -> SimulationResult:
     times = np.asarray(times, dtype=np.float64)
     vectors = np.asarray(vectors, dtype=np.float64)
     requested = {name for name in RESULT_FIELDS if getattr(format, name, False)}

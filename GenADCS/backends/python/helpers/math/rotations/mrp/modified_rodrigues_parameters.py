@@ -1,10 +1,10 @@
 import numpy as np
 
-from .._parameter_base import _RotationParameter
+from .._parameter_base import RotationParameter
 from .kernels import mrp_shadow_set, mrp_to_quaternion, quaternion_to_mrp
 
 
-class Modified_Rodriguez_Parameters(_RotationParameter):
+class Modified_Rodriguez_Parameters(RotationParameter):
     """MRP input/output representation with automatic primary-set switching."""
 
     @classmethod

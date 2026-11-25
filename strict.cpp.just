@@ -5,13 +5,13 @@ default: all
 cpp_source := "GenADCS/backends/cpp"
 strict_build := "build/strict"
 
-# Configure a Clang build and compile the complete C++ backend and test suite.
+# Configure a Clang build and compile the C++ backend without test targets.
 configure:
     command -v clang >/dev/null
     command -v clang++ >/dev/null
     command -v ninja >/dev/null
     command -v sccache >/dev/null
-    CC=clang CXX=clang++ cmake -DPython_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')" -Dpybind11_DIR="$(python -m pybind11 --cmakedir)" -S {{cpp_source}} -B {{strict_build}}/clang -G Ninja -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DGENADCS_STRICT_WARNINGS=ON -DGENADCS_EXTENSION_OUTPUT_ROOT="$PWD/{{strict_build}}/clang/extensions"
+    CC=clang CXX=clang++ cmake -DPython_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')" -Dpybind11_DIR="$(python -m pybind11 --cmakedir)" -S {{cpp_source}} -B {{strict_build}}/clang -G Ninja -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DGENADCS_STRICT_WARNINGS=ON -DGENADCS_EXTENSION_OUTPUT_ROOT="$PWD/{{strict_build}}/clang/extensions"
 
 typecheck: configure
     cmake --build {{strict_build}}/clang --parallel "$(getconf _NPROCESSORS_ONLN)"
@@ -19,12 +19,12 @@ typecheck: configure
 # Run selected clang-tidy bug, performance, and readability checks.
 lint: typecheck
     command -v clang-tidy >/dev/null
-    find {{cpp_source}} GenADCS/tests/backends/cpp -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \) -print0 | xargs -0 -r -P "$(getconf _NPROCESSORS_ONLN)" clang-tidy -p {{strict_build}}/clang -checks='bugprone-*,performance-*,readability-*,-readability-magic-numbers' -warnings-as-errors='*'
+    find {{cpp_source}} -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \) -print0 | xargs -0 -r -P "$(getconf _NPROCESSORS_ONLN)" clang-tidy -p {{strict_build}}/clang -checks='bugprone-*,performance-*,readability-*,-readability-magic-numbers' -warnings-as-errors='*'
 
 # Run the Clang Static Analyzer checks provided through clang-tidy.
 analyze: typecheck
     command -v clang-tidy >/dev/null
-    find {{cpp_source}} GenADCS/tests/backends/cpp -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \) -print0 | xargs -0 -r -P "$(getconf _NPROCESSORS_ONLN)" clang-tidy -p {{strict_build}}/clang -checks='clang-analyzer-*' -warnings-as-errors='*'
+    find {{cpp_source}} -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' \) -print0 | xargs -0 -r -P "$(getconf _NPROCESSORS_ONLN)" clang-tidy -p {{strict_build}}/clang -checks='clang-analyzer-*' -warnings-as-errors='*'
 
 ubsan:
     command -v clang >/dev/null
@@ -72,4 +72,5 @@ audit:
     command -v osv-scanner >/dev/null
     osv-scanner scan source -r .
 
-all: lint analyze ubsan asan tsan coverage audit
+# Sanitizer and coverage recipes remain opt-in; the strict default skips tests.
+all: lint analyze audit

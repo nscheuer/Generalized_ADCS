@@ -33,7 +33,7 @@ def update_estimator(
     acceleration_psd: np.ndarray,
     dt: float,
     readings: np.ndarray,
-    sensor_config: tuple,
+    sensor_config: tuple[np.ndarray, ...],
     flags: int = 0,
     truth_q: np.ndarray | None = None,
     truth_w: np.ndarray | None = None,
@@ -41,6 +41,8 @@ def update_estimator(
 ) -> None:
     if kind == 1:
         if flags & 1020:
+            if truth_q is None or truth_w is None or diagnostics is None:
+                raise ValueError("diagnostic updates require truth state and storage")
             q_new, w_new, p_new = step_with_diagnostics(
                 q,
                 w,

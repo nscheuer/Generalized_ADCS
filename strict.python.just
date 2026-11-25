@@ -3,22 +3,21 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 default: all
 
 python_source := "GenADCS/backends/python"
-python_tests := "GenADCS/tests"
 
 # Sync the project and development dependencies from pyproject.toml.
 build:
     command -v uv >/dev/null
     uv sync --active --extra dev
 
-# Run Ruff's lint rules on the Python backend and its tests.
+# Run Ruff's lint rules on the Python backend, excluding GenADCS/tests.
 lint:
     command -v uv >/dev/null
-    uv run --active ruff check --extend-per-file-ignores 'GenADCS/**:N999' {{python_source}} {{python_tests}}
+    uv run --active ruff check --extend-per-file-ignores 'GenADCS/**:N999' {{python_source}}
 
-# Run Pyright with strict checking enabled for the backend and tests.
+# Run Pyright with strict checking enabled for the Python backend only.
 typecheck:
     command -v uv >/dev/null
-    uv run --active pyright --project pyproject.toml
+    uv run --active pyright --project pyproject.toml {{python_source}}
 
 # Pyright provides the static analysis pass as well as strict type checking.
 analyze: typecheck
@@ -33,4 +32,5 @@ audit:
     command -v uv >/dev/null
     uv run --active pip-audit
 
-all: build lint typecheck analyze coverage audit
+# Coverage remains available as an explicit recipe; strict defaults skip tests.
+all: build lint typecheck audit

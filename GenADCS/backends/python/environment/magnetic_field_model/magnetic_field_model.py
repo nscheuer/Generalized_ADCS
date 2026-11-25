@@ -8,7 +8,7 @@ from numba import njit
 
 from ...helpers.math.frames.conversions import gcrf_to_ecef_matrix
 from ...helpers.math.time.conversions import utc_jd_to_tt_jd
-from ._spherical_harmonics import _eval_one, _schmidt_table
+from ._spherical_harmonics import eval_one, schmidt_table
 
 
 @lru_cache(maxsize=4)
@@ -30,7 +30,7 @@ def read_shc(
             raise ValueError(f"Invalid SHC epochs in {path}")
         g = np.zeros((count, nmax + 1, nmax + 1))
         h = np.zeros_like(g)
-        seen = set()
+        seen: set[tuple[int, int]] = set()
         for line in lines:
             values = np.fromstring(line, sep=" ")
             if len(values) != count + 2:
@@ -45,7 +45,7 @@ def read_shc(
                 h[:, n, -signed_m] = values[2:]
         if len(seen) != (nmax + 1) ** 2 - nmin**2:
             raise ValueError(f"Incomplete SHC file: {path}")
-    scale = _schmidt_table(nmax)
+    scale = schmidt_table(nmax)
     return times, np.ascontiguousarray(g * scale), np.ascontiguousarray(h * scale)
 
 
@@ -74,7 +74,7 @@ def magnetic_field_inertial_tesla(
     d2 = np.zeros(nmax + 2)
     cosmp = np.zeros(nmax + 1)
     sinmp = np.zeros(nmax + 1)
-    br, bt, bp = _eval_one(
+    br, bt, bp = eval_one(
         radius / 1000.0,
         theta * 180.0 / np.pi,
         phi * 180.0 / np.pi,

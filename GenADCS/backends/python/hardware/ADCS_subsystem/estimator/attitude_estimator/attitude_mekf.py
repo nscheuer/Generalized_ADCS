@@ -4,12 +4,12 @@ import numpy as np
 from numba import njit
 
 from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import (
-    _conjugate,
-    _multiply,
-    _normalize_quaternion,
+    conjugate,
+    multiply,
+    normalize_quaternion,
 )
 from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import (
-    _quaternion_to_dcm,
+    quaternion_to_dcm,
 )
 from GenADCS.backends.python.helpers.math.rotations.quaternion.interpolation import (
     quaternion_to_rotation_vector,
@@ -41,9 +41,9 @@ def predict(
         raise ValueError("dt must be nonnegative")
     rotation = -w * dt
     increment = rotation_vector_to_quaternion(rotation)
-    q_next = _normalize_quaternion(_multiply(increment, q))
+    q_next = normalize_quaternion(multiply(increment, q))
     phi = np.eye(6)
-    phi[:3, :3] = _quaternion_to_dcm(increment)
+    phi[:3, :3] = quaternion_to_dcm(increment)
     phi[:3, 3:6] = -so3_left_jacobian(rotation) * dt
     noise = np.zeros((6, 6))
     noise[:3, :3] = acceleration_psd * (dt**3 / 3.0)
@@ -67,8 +67,8 @@ def correct(
     innovation = h @ p @ h.T + covariance
     gain = np.linalg.solve(innovation, h @ p).T
     delta = gain @ residual
-    q_next = _normalize_quaternion(
-        _multiply(rotation_vector_to_quaternion(delta[:3]), q)
+    q_next = normalize_quaternion(
+        multiply(rotation_vector_to_quaternion(delta[:3]), q)
     )
     w_next = w + delta[3:6]
     identity = np.eye(6)
@@ -105,11 +105,11 @@ def correct_star_tracker(
     covariance: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Update attitude from a scalar-first body-to-sensor mounted tracker."""
-    predicted = _multiply(mounting_quaternion, q)
-    relative = _multiply(measured_quaternion, _conjugate(predicted))
+    predicted = multiply(mounting_quaternion, q)
+    relative = multiply(measured_quaternion, conjugate(predicted))
     residual = quaternion_to_rotation_vector(relative)
     h = np.zeros((3, 6))
-    h[:, :3] = _quaternion_to_dcm(mounting_quaternion)
+    h[:, :3] = quaternion_to_dcm(mounting_quaternion)
     return correct(q, w, p, residual, h, covariance)
 
 
@@ -154,7 +154,7 @@ def step(
         value = readings[offset : offset + width]
         if not np.all(np.isfinite(value)):
             continue
-        mounting_q = _normalize_quaternion(_multiply(misalignment[i], orientation[i]))
+        mounting_q = normalize_quaternion(multiply(misalignment[i], orientation[i]))
         noise = np.empty((3, 3))
         for row in range(3):
             for column in range(3):
@@ -163,7 +163,7 @@ def step(
                     noise[row, column] += chol[i, row, k] * chol[i, column, k]
         if kind == 0:
             q, w, p = correct_gyro(
-                q, w, p, value - bias[i, :3], _quaternion_to_dcm(mounting_q), noise
+                q, w, p, value - bias[i, :3], quaternion_to_dcm(mounting_q), noise
             )
         else:
             q, w, p = correct_star_tracker(q, w, p, value, mounting_q, noise)
@@ -210,8 +210,8 @@ def step_with_diagnostics(
         value = readings[offsets[i] : offsets[i] + (3 if kind == 0 else 4)]
         if not np.all(np.isfinite(value)):
             continue
-        mount_q = _normalize_quaternion(_multiply(misalignment[i], orientation[i]))
-        mount = _quaternion_to_dcm(mount_q)
+        mount_q = normalize_quaternion(multiply(misalignment[i], orientation[i]))
+        mount = quaternion_to_dcm(mount_q)
         r = np.zeros((3, 3))
         for a in range(3):
             for b in range(3):
@@ -223,9 +223,9 @@ def step_with_diagnostics(
             residual = value - bias[i, :3] - mount @ w
         else:
             h[:, :3] = mount
-            predicted = _multiply(mount_q, q)
+            predicted = multiply(mount_q, q)
             residual = quaternion_to_rotation_vector(
-                _multiply(value, _conjugate(predicted))
+                multiply(value, conjugate(predicted))
             )
         s = h @ p @ h.T + r
         gain = np.linalg.solve(s, h @ p).T
@@ -246,7 +246,7 @@ def step_with_diagnostics(
     if flags & 8:
         diagnostics[44:53] = p[3:, 3:].ravel()
     if flags & 128:
-        error_q = _multiply(truth_q, _conjugate(q))
+        error_q = multiply(truth_q, conjugate(q))
         error = np.empty(6)
         error[:3] = quaternion_to_rotation_vector(error_q)
         error[3:] = truth_w - w

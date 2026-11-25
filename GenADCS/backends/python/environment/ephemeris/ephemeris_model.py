@@ -265,6 +265,21 @@ class EphemerisModel:
         self._times = np.ascontiguousarray(times, dtype=np.float64)
         self._data = np.ascontiguousarray(data, dtype=np.float64)
 
+    @property
+    def segments(self) -> np.ndarray:
+        """Parsed SPK segment metadata for numerical consumers."""
+        return self._segments
+
+    @property
+    def times(self) -> np.ndarray:
+        """Parsed SPK time bounds for numerical consumers."""
+        return self._times
+
+    @property
+    def data(self) -> np.ndarray:
+        """Parsed SPK coefficients for numerical consumers."""
+        return self._data
+
     def position(self, body_id: int, epoch_jd: float) -> np.ndarray:
         return ephemeris_position(
             int(body_id), float(epoch_jd), self._segments, self._times, self._data

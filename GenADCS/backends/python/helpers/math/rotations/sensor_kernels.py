@@ -7,8 +7,8 @@ from GenADCS.backends.python.helpers.random.philox import standard_normals
 
 from ..vector import skew
 from .mrp.kernels import mrp_to_quaternion
-from .quaternion.algebra import _multiply, _normalize_quaternion
-from .quaternion.conversions import _quaternion_to_dcm
+from .quaternion.algebra import multiply, normalize_quaternion
+from .quaternion.conversions import quaternion_to_dcm
 from .quaternion.interpolation import rotation_vector_to_quaternion
 
 DEFAULT_SEED = np.uint64(0)
@@ -16,14 +16,14 @@ DEFAULT_SEED = np.uint64(0)
 
 @njit(cache=True)
 def mounting_dcm(orientation: np.ndarray, misalignment: np.ndarray) -> np.ndarray:
-    return _quaternion_to_dcm(_multiply(misalignment, orientation))
+    return quaternion_to_dcm(multiply(misalignment, orientation))
 
 
 @njit(cache=True)
 def rotate_inertial_to_sensor(vector_inertial: np.ndarray, attitude: np.ndarray, orientation: np.ndarray, misalignment: np.ndarray) -> np.ndarray:
     q = attitude / np.sqrt(np.dot(attitude, attitude))
     return mounting_dcm(orientation, misalignment) @ (
-        _quaternion_to_dcm(q) @ vector_inertial
+        quaternion_to_dcm(q) @ vector_inertial
     )
 
 
@@ -35,7 +35,7 @@ def rotate_body_to_sensor(vector_body: np.ndarray, orientation: np.ndarray, misa
 @njit(cache=True)
 def attitude_vector_jacobian_quaternion(vector: np.ndarray, delta_q: np.ndarray) -> np.ndarray:
     q = delta_q / np.sqrt(np.dot(delta_q, delta_q))
-    rotated = _quaternion_to_dcm(q) @ vector
+    rotated = quaternion_to_dcm(q) @ vector
     v = q[1:4]
     return -2.0 * skew(rotated) @ (q[0] * np.eye(3) + skew(v) + np.outer(v, v) / q[0])
 
@@ -43,7 +43,7 @@ def attitude_vector_jacobian_quaternion(vector: np.ndarray, delta_q: np.ndarray)
 @njit(cache=True)
 def attitude_vector_jacobian_mrp(vector: np.ndarray, delta_mrp: np.ndarray) -> np.ndarray:
     square = np.dot(delta_mrp, delta_mrp)
-    rotated = _quaternion_to_dcm(mrp_to_quaternion(delta_mrp)) @ vector
+    rotated = quaternion_to_dcm(mrp_to_quaternion(delta_mrp)) @ vector
     matrix = (
         (1.0 - square) * np.eye(3)
         + 2.0 * skew(delta_mrp)
@@ -67,7 +67,7 @@ def so3_left_jacobian(vector: np.ndarray) -> np.ndarray:
 
 @njit(cache=True)
 def attitude_vector_jacobian_angle(vector: np.ndarray, delta_angle: np.ndarray) -> np.ndarray:
-    rotated = _quaternion_to_dcm(rotation_vector_to_quaternion(delta_angle)) @ vector
+    rotated = quaternion_to_dcm(rotation_vector_to_quaternion(delta_angle)) @ vector
     return -skew(rotated) @ so3_left_jacobian(delta_angle)
 
 
@@ -84,10 +84,10 @@ def star_tracker_angle_jacobian(delta_angle: np.ndarray) -> np.ndarray:
 
 
 @njit(cache=True)
-def small_rotation_noise_quaternion(covariance: np.ndarray, seed: int = DEFAULT_SEED, tick: int = 0) -> np.ndarray:
+def small_rotation_noise_quaternion(covariance: np.ndarray, seed: int = 0, tick: int = 0) -> np.ndarray:
     """Sample a small rotation vector from covariance and return its quaternion."""
     eta = np.linalg.cholesky(covariance) @ standard_normals(seed, tick, 0, 3)
-    return _normalize_quaternion(np.concatenate((np.ones(1), 0.5 * eta)))
+    return normalize_quaternion(np.concatenate((np.ones(1), 0.5 * eta)))
 
 
 @njit(cache=True)
@@ -103,7 +103,7 @@ def coarse_sun_measurement(
 def sun_in_body(sun_inertial: np.ndarray, attitude: np.ndarray) -> np.ndarray:
     """Rotate an inertial Sun vector into body coordinates."""
     q = attitude / np.sqrt(np.dot(attitude, attitude))
-    return _quaternion_to_dcm(q) @ sun_inertial
+    return quaternion_to_dcm(q) @ sun_inertial
 
 
 @njit(cache=True)
@@ -137,14 +137,14 @@ def coarse_sun_attitude_jacobian(
     normal_body = mounting_dcm(orientation, misalignment).T @ normal
     if kind == 0:
         qd = parameter / np.sqrt(np.dot(parameter, parameter))
-        sun = _quaternion_to_dcm(qd) @ sun_body
+        sun = quaternion_to_dcm(qd) @ sun_body
         v = qd[1:4]
         right = (
             -2.0 * skew(sun) @ (qd[0] * np.eye(3) + skew(v) + np.outer(v, v) / qd[0])
         )
     elif kind == 1:
         square = np.dot(parameter, parameter)
-        sun = _quaternion_to_dcm(mrp_to_quaternion(parameter)) @ sun_body
+        sun = quaternion_to_dcm(mrp_to_quaternion(parameter)) @ sun_body
         matrix = (
             (1.0 - square) * np.eye(3)
             + 2.0 * skew(parameter)
@@ -152,7 +152,7 @@ def coarse_sun_attitude_jacobian(
         )
         right = -4.0 / (1.0 + square) ** 2 * skew(sun) @ matrix
     else:
-        sun = _quaternion_to_dcm(rotation_vector_to_quaternion(parameter)) @ sun_body
+        sun = quaternion_to_dcm(rotation_vector_to_quaternion(parameter)) @ sun_body
         right = -skew(sun) @ so3_left_jacobian(parameter)
     return sensitivity * normal_body @ right
 
@@ -182,14 +182,14 @@ def fine_sun_attitude_jacobian(
     mounting = mounting_dcm(orientation, misalignment)
     if kind == 0:
         q = parameter / np.sqrt(np.dot(parameter, parameter))
-        perturbed_body = _quaternion_to_dcm(q) @ sun_body
+        perturbed_body = quaternion_to_dcm(q) @ sun_body
         direction_jac = attitude_vector_jacobian_quaternion(sun_body, parameter)
     elif kind == 1:
-        perturbed_body = _quaternion_to_dcm(mrp_to_quaternion(parameter)) @ sun_body
+        perturbed_body = quaternion_to_dcm(mrp_to_quaternion(parameter)) @ sun_body
         direction_jac = attitude_vector_jacobian_mrp(sun_body, parameter)
     else:
         perturbed_body = (
-            _quaternion_to_dcm(rotation_vector_to_quaternion(parameter)) @ sun_body
+            quaternion_to_dcm(rotation_vector_to_quaternion(parameter)) @ sun_body
         )
         direction_jac = attitude_vector_jacobian_angle(sun_body, parameter)
     return (

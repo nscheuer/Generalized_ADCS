@@ -1,6 +1,6 @@
 """Prepared numerical model and compiled coupled equations of motion."""
 
-from typing import NamedTuple
+from typing import NamedTuple, cast
 
 import numpy as np
 from numba import njit
@@ -52,11 +52,17 @@ from GenADCS.backends.python.environment.magnetic_field_model.igrf14.igrf14 impo
     IGRF14,
     igrf14_field_inertial_tesla,
 )
+from GenADCS.backends.python.hardware.ADCS_subsystem import ReactionWheel
 from GenADCS.backends.python.hardware.satellite import Satellite
 from GenADCS.backends.python.helpers.math.derivatives import quaternion_derivative
 from GenADCS.backends.python.helpers.math.time.conversions import utc_jd_to_tdb_jd
 
 SECONDS_PER_DAY = 86400.0
+
+
+def _prepared_array(model: object, attribute: str) -> np.ndarray:
+    """Read a prepared numerical array from a model with a dynamic interface."""
+    return cast(np.ndarray, getattr(model, attribute))
 
 
 class _Runtime(NamedTuple):
@@ -308,7 +314,7 @@ def _derivative(y: np.ndarray, epoch_jd: float, p: _Runtime) -> np.ndarray:
     return dy
 
 
-def _prepare(
+def _prepare(  # pyright: ignore[reportUnusedFunction] -- imported by the coupled propagators.
     satellite: Satellite, environment: Environment, dynamics: DynamicsConfig
 ) -> _Runtime:
     from GenADCS.backends.python.dynamics import (
@@ -375,28 +381,26 @@ def _prepare(
         raise ValueError("geometry.inertia must be symmetric positive definite")
     # ADCS wheel axes, rotor inertias, momentum and torque sign conventions.
     wheels = satellite.adcs.reaction_wheels
-    if wheels:
-        from ADCS.satellite_hardware.actuators.reaction_wheel import RW
-
-        if any(not isinstance(wheel, RW) for wheel in wheels):
-            raise TypeError(
-                "reaction wheels must be ADCS.satellite_hardware.actuators.RW instances"
-            )
-        if any(bool(wheel.bias) or bool(wheel.noise) for wheel in wheels):
-            raise NotImplementedError(
-                "compiled wheel torque bias and noise are not yet supported"
-            )
+    if any(
+        not isinstance(wheel, ReactionWheel)
+        for wheel in cast(list[object], wheels)
+    ):
+        raise TypeError("reaction wheels must be ReactionWheel instances")
+    if any(wheel.biases or wheel.noises for wheel in wheels):
+        raise NotImplementedError(
+            "compiled wheel torque bias and noise are not yet supported"
+        )
     wheel_axes = np.ascontiguousarray(
-        np.array([wheel.axis for wheel in wheels], dtype=np.float64).reshape((-1, 3))
+        np.array([wheel.orientation for wheel in wheels], dtype=np.float64).reshape((-1, 3))
     )
     wheel_inertias = np.ascontiguousarray(
-        np.array([wheel.J for wheel in wheels], dtype=np.float64)
+        np.array([wheel.rotational_inertia for wheel in wheels], dtype=np.float64)
     )
     wheel_torque_limits = np.asarray(
-        [wheel.u_max for wheel in wheels], dtype=np.float64
+        [wheel.max_torque for wheel in wheels], dtype=np.float64
     )
     wheel_max_momentum = np.asarray(
-        [np.max(np.abs(wheel.h_max)) for wheel in wheels], dtype=np.float64
+        [wheel.max_momentum for wheel in wheels], dtype=np.float64
     )
     if (
         not np.all(np.isfinite(wheel_axes))
@@ -484,40 +488,70 @@ def _prepare(
                 coefficients[:, 0] if flag.startswith("drag") else coefficients[:, 1:4]
             )
             actual = (
-                model.drag_coefficients
+                _prepared_array(model, "drag_coefficients")
                 if flag.startswith("drag")
-                else model.optical_coefficients
+                else _prepared_array(model, "optical_coefficients")
             )
             if (
-                not np.array_equal(model.normals_b, normals)
-                or not np.array_equal(model.arms_b, arms)
-                or not np.array_equal(model.areas, areas)
+                not np.array_equal(_prepared_array(model, "normals_b"), normals)
+                or not np.array_equal(_prepared_array(model, "arms_b"), arms)
+                or not np.array_equal(_prepared_array(model, "areas"), areas)
                 or not np.array_equal(actual, expected)
             ):
                 raise ValueError(
                     f"{flag}_model geometry differs from satellite.geometry"
                 )
     if gravity_gradient and not np.array_equal(
-        gravity_gradient_model.inertia_b, inertia
+        _prepared_array(gravity_gradient_model, "inertia_b"), inertia
     ):
         raise ValueError(
             "gravity_gradient_model inertia differs from satellite.geometry"
         )
-    if third_body:
+    ephemeris = environment.ephemeris
+    if third_body_model is not None and isinstance(ephemeris, DE421):
         model = third_body_model
-        if model.mass != mass or model.segments is not environment.ephemeris._segments:
+        if model.mass != mass or model.segments is not _prepared_array(ephemeris, "_segments"):
             raise ValueError(
                 "third_body_model mass or ephemeris differs from the simulation configuration"
             )
     zonals = np.zeros(5)
     if zonal_model is not None:
         zonals[:] = zonal_model.zonal_coefficients
-    ephemeris = environment.ephemeris
     magnetic = environment.magnetic_field
     magnetic_kind = (
         1 if isinstance(magnetic, IGRF14) else 2 if isinstance(magnetic, CHAOS8) else 0
     )
     dipole = residual_dipole_model.dipole_b if residual_dipole else np.zeros(3)
+    ephemeris_segments = (
+        _prepared_array(ephemeris, "_segments")
+        if ephemeris is not None
+        else np.empty((0, 5), dtype=np.int64)
+    )
+    ephemeris_times = (
+        _prepared_array(ephemeris, "_times")
+        if ephemeris is not None
+        else np.empty((0, 2))
+    )
+    ephemeris_data = (
+        _prepared_array(ephemeris, "_data") if ephemeris is not None else np.empty(0)
+    )
+    magnetic_times = np.empty(0)
+    magnetic_g = np.empty((0, 0, 0))
+    magnetic_h = np.empty((0, 0, 0))
+    magnetic_static_g = np.empty((0, 0))
+    magnetic_static_h = np.empty((0, 0))
+    magnetic_include_static = False
+    if isinstance(magnetic, IGRF14):
+        magnetic_times = _prepared_array(magnetic, "_epochs")
+        magnetic_g = _prepared_array(magnetic, "_g")
+        magnetic_h = _prepared_array(magnetic, "_h")
+    elif isinstance(magnetic, CHAOS8):
+        magnetic_times = _prepared_array(magnetic, "_times")
+        magnetic_g = _prepared_array(magnetic, "_g")
+        magnetic_h = _prepared_array(magnetic, "_h")
+        magnetic_static_g = _prepared_array(magnetic, "_static_g")
+        magnetic_static_h = _prepared_array(magnetic, "_static_h")
+        magnetic_include_static = magnetic.include_static
     return _Runtime(
         mu,
         radius,
@@ -538,25 +572,26 @@ def _prepare(
         np.ascontiguousarray(coefficients[:, 0]),
         np.ascontiguousarray(coefficients[:, 1:4]),
         np.ascontiguousarray(dipole),
-        ephemeris._segments
-        if ephemeris is not None
-        else np.empty((0, 5), dtype=np.int64),
-        ephemeris._times if ephemeris is not None else np.empty((0, 2)),
-        ephemeris._data if ephemeris is not None else np.empty(0),
+        ephemeris_segments,
+        ephemeris_times,
+        ephemeris_data,
         magnetic_kind,
-        magnetic._epochs
-        if magnetic_kind == 1
-        else magnetic._times
-        if magnetic_kind == 2
-        else np.empty(0),
-        magnetic._g if magnetic_kind else np.empty((0, 0, 0)),
-        magnetic._h if magnetic_kind else np.empty((0, 0, 0)),
-        magnetic._static_g if magnetic_kind == 2 else np.empty((0, 0)),
-        magnetic._static_h if magnetic_kind == 2 else np.empty((0, 0)),
-        magnetic.include_static if magnetic_kind == 2 else False,
+        magnetic_times,
+        magnetic_g,
+        magnetic_h,
+        magnetic_static_g,
+        magnetic_static_h,
+        magnetic_include_static,
         wheel_axes,
         wheel_inertias,
         np.ascontiguousarray(np.linalg.inv(bus_inertia)),
         commands,
         np.ascontiguousarray(wheel_max_momentum),
     )
+
+
+# Public exports used by the coupled propagators.
+RuntimeParameters = _Runtime
+derivative = _derivative
+prepare_runtime = _prepare
+project_wheel_momentum = _project_wheel_momentum

@@ -102,7 +102,7 @@ class FineEarthSensor:
     def jacobian_bias(self) -> np.ndarray:
         return np.eye(2)
 
-    def jacobian_relative_quaternion(
+    def jacobianrelative_quaternion(
         self, earth_inertial: np.ndarray, attitude: np.ndarray, delta_quaternion: np.ndarray
     ) -> np.ndarray:
         return fine_sun_attitude_jacobian(

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import cast
 
 import numpy as np
 
@@ -12,12 +13,16 @@ from GenADCS.backends.python.environment.ephemeris import (
 
 @dataclass(slots=True)
 class OrbitalState:
-    _position: object | None
-    _velocity: object | None
+    _position: np.ndarray | None
+    _velocity: np.ndarray | None
     julian_date: float
     ephemeris: EphemerisModel | None = None
-    _keplerian_elements: tuple | None = None
-    _body_positions: dict = field(default_factory=dict, init=False, repr=False)
+    _keplerian_elements: tuple[float, float, float, float, float, float] | None = None
+    _body_positions: dict[str | int, np.ndarray] = field(
+        default_factory=lambda: cast(dict[str | int, np.ndarray], {}),
+        init=False,
+        repr=False,
+    )
 
     def __post_init__(self) -> None:
         self.julian_date = float(self.julian_date)
@@ -43,7 +48,7 @@ class OrbitalState:
         julian_date: float,
         ephemeris: EphemerisModel | None = None,
     ) -> "OrbitalState":
-        return cls(position, velocity, julian_date, ephemeris)
+        return cls(cast(np.ndarray, position), cast(np.ndarray, velocity), julian_date, ephemeris)
 
     @classmethod
     def from_keplerian(
@@ -76,11 +81,13 @@ class OrbitalState:
     @property
     def position(self) -> np.ndarray:
         self._load_cartesian()
+        assert self._position is not None
         return self._position
 
     @property
     def velocity(self) -> np.ndarray:
         self._load_cartesian()
+        assert self._velocity is not None
         return self._velocity
 
     def body_position(self, body: str | int) -> np.ndarray:

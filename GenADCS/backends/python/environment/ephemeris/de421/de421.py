@@ -41,9 +41,9 @@ def _load_spk(
         raise ValueError(f"unsupported DAF summary layout ND={nd}, NI={ni}")
     forward_record = struct.unpack_from(endian + "i", raw, 76)[0]
     summary_size = nd * 8 + ni * 4
-    segments = []
-    times = []
-    arrays = []
+    segments: list[tuple[int, int, int, int, int]] = []
+    times: list[tuple[float, float]] = []
+    arrays: list[np.ndarray] = []
     record_number = forward_record
     while record_number:
         record_offset = (record_number - 1) * 1024

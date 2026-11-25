@@ -6,7 +6,7 @@ sampling order and of adaptive integrator trial steps.
 """
 
 import math
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from numba import njit
@@ -34,7 +34,7 @@ def _philox4x32(
         )
         k0 = (k0 + np.uint64(0x9E3779B9)) & mask
         k1 = (k1 + np.uint64(0xBB67AE85)) & mask
-    return c0, c1, c2, c3
+    return int(c0), int(c1), int(c2), int(c3)
 
 
 @njit(cache=True)
@@ -59,14 +59,14 @@ def standard_normals(
     return out
 
 
-def validate_seed(seed: int | np.integer) -> np.uint64:
+def validate_seed(seed: object) -> np.uint64:
     if (
         isinstance(seed, (bool, np.bool_))
         or not isinstance(seed, (int, np.integer))
-        or not 0 <= int(seed) < 2**64
+        or not 0 <= int(cast(Any, seed)) < 2**64
     ):
         raise ValueError("seed must be an integer in [0, 2**64)")
-    return np.uint64(seed)
+    return np.uint64(int(cast(Any, seed)))
 
 
 def next_draw(owner: Any, count: int) -> np.ndarray:

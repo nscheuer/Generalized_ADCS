@@ -10,13 +10,25 @@ LVLH axes are +x radial, +y along-track, +z orbit-normal. Body attitude uses
 the scalar-first Hamilton quaternion q_body_from_gcrf.
 """
 
+from typing import TypedDict, cast
+
 import numpy as np
 from numba import njit
 
-from ..rotations.quaternion.conversions import _quaternion_to_dcm
+from ..rotations.quaternion.conversions import quaternion_to_dcm
 
 _FRAME_NAMES = {"GCRF", "ECEF", "BODY", "LVLH", "TEME"}
 _ARCSEC_TO_RAD = np.pi / (180.0 * 3600.0)
+
+
+class FrameContext(TypedDict, total=False):
+    jd_ut1: float | None
+    jd_tt: float | None
+    xp: float
+    yp: float
+    position_gcrf: np.ndarray | None
+    velocity_gcrf: np.ndarray | None
+    q_body_from_gcrf: np.ndarray | None
 
 
 @njit(cache=True)
@@ -146,8 +158,10 @@ def _gcrf_to_frame_matrix(
     if frame in ("ECEF", "TEME") and jd_tt is None:
         raise ValueError(f"jd_tt is required for {frame} conversions")
     if frame == "ECEF":
+        assert jd_ut1 is not None and jd_tt is not None
         return _gcrf_to_ecef(float(jd_ut1), float(jd_tt), float(xp), float(yp))
     if frame == "TEME":
+        assert jd_tt is not None
         return _gcrf_to_teme(float(jd_tt))
     if frame == "LVLH":
         if position_gcrf is None or velocity_gcrf is None:
@@ -159,7 +173,7 @@ def _gcrf_to_frame_matrix(
         if q_body_from_gcrf is None:
             raise ValueError("q_body_from_gcrf is required for body-frame conversions")
         return np.asarray(
-            _quaternion_to_dcm(np.asarray(q_body_from_gcrf, dtype=np.float64))
+            quaternion_to_dcm(np.asarray(q_body_from_gcrf, dtype=np.float64))
         )
     raise ValueError(
         f"unsupported frame {frame!r}; expected one of {sorted(_FRAME_NAMES)}"
@@ -216,13 +230,23 @@ def frame_rotation(
 
 
 def convert_vector(
-    vector: np.ndarray, source: str, target: str, **frame_context: object
+    vector: np.ndarray, source: str, target: str, **frame_context: FrameContext
 ) -> np.ndarray:
     """Rotate a finite 3-vector between frames."""
     value = np.asarray(vector, dtype=np.float64)
     if value.shape != (3,) or not np.all(np.isfinite(value)):
         raise ValueError("vector must be a finite 3-vector")
-    return frame_rotation(source, target, **frame_context) @ value
+    return frame_rotation(
+        source,
+        target,
+        jd_ut1=cast(float | None, frame_context.get("jd_ut1")),
+        jd_tt=cast(float | None, frame_context.get("jd_tt")),
+        xp=cast(float, frame_context.get("xp", 0.0)),
+        yp=cast(float, frame_context.get("yp", 0.0)),
+        position_gcrf=cast(np.ndarray | None, frame_context.get("position_gcrf")),
+        velocity_gcrf=cast(np.ndarray | None, frame_context.get("velocity_gcrf")),
+        q_body_from_gcrf=cast(np.ndarray | None, frame_context.get("q_body_from_gcrf")),
+    ) @ value
 
 
 @njit(cache=True)

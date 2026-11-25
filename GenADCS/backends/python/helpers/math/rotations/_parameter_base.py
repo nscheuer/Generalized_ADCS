@@ -4,7 +4,7 @@ from ..vector import norm as _vector_norm
 from .quaternion import Quaternion
 
 
-class _RotationParameter:
+class RotationParameter:
     __slots__ = ("_parameters",)
 
     def __init__(self, values: np.ndarray) -> None:
@@ -14,29 +14,29 @@ class _RotationParameter:
         self._parameters = self._canonicalize(parameters)
 
     @classmethod
-    def from_quaternion(cls, quaternion: Quaternion | np.ndarray) -> "_RotationParameter":
+    def from_quaternion(cls, quaternion: Quaternion | np.ndarray) -> "RotationParameter":
         if not isinstance(quaternion, Quaternion):
             quaternion = Quaternion(quaternion)
         return cls(cls._from_hamilton(quaternion.hamilton_components))
 
     @classmethod
-    def from_quaternion_array(cls, quaternion: np.ndarray) -> "_RotationParameter":
+    def from_quaternion_array(cls, quaternion: np.ndarray) -> "RotationParameter":
         return cls(cls._from_hamilton(np.asarray(quaternion, dtype=np.float64)))
 
     @classmethod
-    def from_axis_angle(cls, axis: np.ndarray, angle: float) -> "_RotationParameter":
+    def from_axis_angle(cls, axis: np.ndarray, angle: float) -> "RotationParameter":
         return cls.from_quaternion(Quaternion.from_axis_angle(axis, angle))
 
     @classmethod
-    def from_rotation_vector(cls, rotation_vector: np.ndarray) -> "_RotationParameter":
+    def from_rotation_vector(cls, rotation_vector: np.ndarray) -> "RotationParameter":
         return cls.from_quaternion(Quaternion.from_rotation_vector(rotation_vector))
 
     @classmethod
-    def from_dcm(cls, matrix: np.ndarray) -> "_RotationParameter":
+    def from_dcm(cls, matrix: np.ndarray) -> "RotationParameter":
         return cls.from_quaternion(Quaternion.from_dcm(matrix))
 
     @classmethod
-    def identity(cls) -> "_RotationParameter":
+    def identity(cls) -> "RotationParameter":
         return cls(np.zeros(3))
 
     @property
@@ -69,28 +69,24 @@ class _RotationParameter:
     def body_to_inertial(self, vector_b: np.ndarray) -> np.ndarray:
         return self.to_quaternion().body_to_inertial(vector_b)
 
-    def normalized(self) -> "_RotationParameter":
+    def normalized(self) -> "RotationParameter":
         return type(self)(self._parameters)
 
-    def conjugate(self) -> "_RotationParameter":
+    def conjugate(self) -> "RotationParameter":
         return type(self).from_quaternion(self.to_quaternion().conjugate())
 
-    def inverse(self) -> "_RotationParameter":
+    def inverse(self) -> "RotationParameter":
         return self.conjugate()
 
-    def multiply(self, other: "_RotationParameter") -> "_RotationParameter":
-        if not isinstance(other, _RotationParameter):
-            raise TypeError("other must be a rotation-parameter object")
+    def multiply(self, other: "RotationParameter") -> "RotationParameter":
         return type(self).from_quaternion(self.to_quaternion() * other.to_quaternion())
 
-    def relative_to(self, reference: "_RotationParameter") -> "_RotationParameter":
-        if not isinstance(reference, _RotationParameter):
-            raise TypeError("reference must be a rotation-parameter object")
+    def relative_to(self, reference: "RotationParameter") -> "RotationParameter":
         return type(self).from_quaternion(
             self.to_quaternion().relative_to(reference.to_quaternion())
         )
 
-    def __mul__(self, other: "_RotationParameter") -> "_RotationParameter":
+    def __mul__(self, other: "RotationParameter") -> "RotationParameter":
         return self.multiply(other)
 
     def __array__(self, dtype: np.dtype | None = None) -> np.ndarray:

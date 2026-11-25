@@ -5,12 +5,12 @@ from numba import njit
 
 from GenADCS.backends.python.bias.bias import add_bias
 from GenADCS.backends.python.helpers.math.rotations.quaternion.algebra import (
-    _conjugate,
-    _multiply,
-    _normalize_quaternion,
+    conjugate,
+    multiply,
+    normalize_quaternion,
 )
 from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions import (
-    _quaternion_to_dcm,
+    quaternion_to_dcm,
 )
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
     coarse_sun_measurement,
@@ -159,14 +159,14 @@ def star_tracker_measurement(
     with_noise: bool,
     noise_draw: np.ndarray | None = None,
 ) -> np.ndarray:
-    result = _normalize_quaternion(
-        _multiply(misalignment, _multiply(orientation, attitude))
+    result = normalize_quaternion(
+        multiply(misalignment, multiply(orientation, attitude))
     )
     if with_noise:
         noise_quaternion = small_rotation_noise_quaternion_from_cholesky(
             noise_cholesky, noise_draw
         )
-        result = _normalize_quaternion(_multiply(noise_quaternion, result))
+        result = normalize_quaternion(multiply(noise_quaternion, result))
     return result
 
 
@@ -180,15 +180,15 @@ def small_rotation_noise_quaternion_from_cholesky(
     q = np.empty(4)
     q[0] = 1.0
     q[1:4] = 0.5 * eta
-    return _normalize_quaternion(q)
+    return normalize_quaternion(q)
 
 
 @njit(cache=True)
 def star_tracker_residual(
     measured_attitude: np.ndarray, estimated_attitude: np.ndarray
 ) -> np.ndarray:
-    relative = _normalize_quaternion(
-        _multiply(measured_attitude, _conjugate(estimated_attitude))
+    relative = normalize_quaternion(
+        multiply(measured_attitude, conjugate(estimated_attitude))
     )
     if relative[0] < 0.0:
         relative = -relative
@@ -224,7 +224,7 @@ def magnetometer_information(
 ) -> np.ndarray:
     mounting = mounting_dcm(orientation, misalignment)
     q = attitude / np.sqrt(np.dot(attitude, attitude))
-    body_rotation = _quaternion_to_dcm(q)
+    body_rotation = quaternion_to_dcm(q)
     field = mounting @ (body_rotation @ field_inertial)
     covariance = (
         noise_covariance
