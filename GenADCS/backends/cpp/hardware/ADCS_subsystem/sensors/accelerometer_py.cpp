@@ -24,7 +24,7 @@ py::array_t<double> vector_array(const Values &values) {
   auto out = result.mutable_unchecked<1>();
   for (py::ssize_t i = 0; i < static_cast<py::ssize_t>(values.size()); ++i) {
     out(i) = values[static_cast<std::size_t>(i)];
-}
+  }
   return result;
 }
 
@@ -36,8 +36,8 @@ py::array_t<double> matrix_array(const Matrix &values) {
     for (py::ssize_t j = 0; j < 3; ++j) {
       out(i, j) =
           values[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)];
-}
-}
+    }
+  }
   return result;
 }
 } // namespace
@@ -168,7 +168,7 @@ void bind_sensors_accelerometer(py::module_ &module) {
           [](py::tuple state) {
             if (state.size() != 8) {
               throw py::value_error("invalid accelerometer state");
-}
+            }
             native_sensors::Accelerometer sensor(
                 state[0].cast<native_sensors::Accelerometer::V>(),
                 state[1].cast<native_sensors::Accelerometer::Q>(),

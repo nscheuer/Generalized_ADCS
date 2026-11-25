@@ -17,15 +17,15 @@ CoarseSunSensor::CoarseSunSensor(V p, Q q, Q m, V n, double sens, double sat,
   if (norm == 0 || sensitivity <= 0 || saturation_value <= 0) {
     throw std::invalid_argument(
         "normal must be nonzero; sensitivity and saturation positive");
-}
+  }
   if (noise_variance <= 0 || fov_half_angle <= 0 ||
       fov_half_angle > std::acos(-1.0) / 2) {
     throw std::invalid_argument(
         "noise variance and FOV must be positive; FOV <= pi/2");
-}
+  }
   for (double &x : normal) {
     x /= norm;
-}
+  }
 }
 
 double CoarseSunSensor::measure(const V &sun, const Q &attitude, bool with_bias,
@@ -85,7 +85,7 @@ CoarseSunSensor::fisher_information_matrix(const V &s, const Q &q,
   if (availability(s, q, visible)) {
     return kernels::coarse_sun_information(s, q, orientation, misalignment,
                                            normal, sensitivity, noise_variance);
-}
+  }
   return {};
 }
 } // namespace omni::hardware::sensors

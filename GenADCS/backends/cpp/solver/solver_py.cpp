@@ -11,7 +11,7 @@ using PythonSolver =
 std::optional<py::object> optional_object(const py::object &value) {
   if (value.is_none()) {
     return std::nullopt;
-}
+  }
   return value;
 }
 

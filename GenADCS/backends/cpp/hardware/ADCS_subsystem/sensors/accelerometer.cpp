@@ -13,7 +13,7 @@ Accelerometer::Accelerometer(V p, Q q, Q m, double saturation, M covariance,
       noise(covariance), noise_cholesky(kernels::cholesky(noise)), bias(b) {
   if (!(saturation_value > 0.0)) {
     throw std::invalid_argument("saturation_value must be positive");
-}
+  }
 }
 
 Accelerometer::V Accelerometer::specific_force(const V &acceleration,
@@ -21,7 +21,7 @@ Accelerometer::V Accelerometer::specific_force(const V &acceleration,
   V force{};
   for (std::size_t i = 0; i < force.size(); ++i) {
     force[i] = acceleration[i] - gravity[i];
-}
+  }
   return force;
 }
 
@@ -34,7 +34,7 @@ Accelerometer::V Accelerometer::measure(const V &acceleration, const V &gravity,
         seed, random_tick++, 0x40000000U, 3);
     for (std::size_t i = 0; i < draw.size(); ++i) {
       draw[i] = values[i];
-}
+    }
   }
   return kernels::accelerometer_measurement(
       acceleration, gravity, attitude, orientation, misalignment, bias,

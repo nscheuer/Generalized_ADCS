@@ -37,8 +37,8 @@ int main() {
             .isApprox(v(0, 0, pi / 2), 1e-12));
   for (double t : {-0.5, 0.0, 0.25, 0.5, 0.75, 1.0, 1.5}) {
     auto s = r::slerp(id.components(), a.components(), t);
-    CHECK(same_rotation(s,
-                        r::axis_angle_to_quaternion(v(0, 0, 1), t * pi / 2)));
+    CHECK(
+        same_rotation(s, r::axis_angle_to_quaternion(v(0, 0, 1), t * pi / 2)));
     CHECK(std::abs(s.norm() - 1) < 1e-12);
   }
   CHECK(same_rotation(r::slerp(id.components(), -id.components(), 0.5),

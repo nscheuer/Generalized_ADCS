@@ -14,7 +14,7 @@ V drag(const V &velocity, const Q &q, double density,
         out += torque ? V(V(arms.row(i).transpose()).cross(force)) : force;
       }
     }
-}
+  }
   return torque ? out : V(rotation(q).transpose() * out);
 }
 } // namespace omni::dynamics

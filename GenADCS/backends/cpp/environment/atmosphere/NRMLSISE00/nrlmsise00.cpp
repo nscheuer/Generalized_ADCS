@@ -23,13 +23,13 @@ double nrlmsise_density_geodetic(int doy, double sec, double alt, double lat,
   ap_array history{};
   for (std::size_t i = 0; i < 7U; ++i) {
     history.a[i] = ap_hist[i];
-}
+  }
   input.ap_a = &history;
   nrlmsise_flags flags{};
   flags.switches[0] = 0;
   for (int i = 1; i < 24; ++i) {
     flags.switches[i] = 1;
-}
+  }
   nrlmsise_output output{};
   run_nrlmsise00(input, flags, output, effective);
   return output.d[5] * 1000.0; // g/cm^3 to kg/m^3

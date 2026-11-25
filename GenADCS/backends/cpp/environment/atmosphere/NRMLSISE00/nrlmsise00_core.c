@@ -1073,9 +1073,8 @@ void gtd7(struct nrlmsise_input *input, struct nrlmsise_flags *flags,
     output->d[5] = output->d[5] / 1000;
 
   /**** temperature at altitude ****/
-  lower_atmosphere_density =
-      densm(input->alt, 1.0, 0, &tz, mn3, zn3, meso_tn3, meso_tgn3, mn2,
-            zn2, meso_tn2, meso_tgn2);
+  lower_atmosphere_density = densm(input->alt, 1.0, 0, &tz, mn3, zn3, meso_tn3,
+                                   meso_tgn3, mn2, zn2, meso_tn2, meso_tgn2);
   output->t[1] = tz;
 }
 

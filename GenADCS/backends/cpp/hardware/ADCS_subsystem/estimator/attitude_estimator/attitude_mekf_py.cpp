@@ -24,7 +24,7 @@ void bind_estimator_mekf(py::module_ &m) {
                psd = Eigen::Matrix3d::Identity() * a.cast<double>();
              } else {
                psd = a.cast<Eigen::Matrix3d>();
-}
+             }
              return AttitudeMEKF(q, w, p, psd, record);
            }),
            py::arg("quaternion"), py::arg("rate"), py::arg("covariance"),

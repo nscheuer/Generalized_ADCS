@@ -9,7 +9,7 @@ namespace {
 void require_finite(const Vector3 &value, const char *description) {
   if (!value.allFinite()) {
     throw std::invalid_argument(std::string(description) + " must be finite");
-}
+  }
 }
 } // namespace
 Matrix3 quaternion_to_dcm(const QuaternionVector &q) {
@@ -61,11 +61,11 @@ QuaternionVector axis_angle_to_quaternion(const Vector3 &axis, double angle) {
   require_finite(axis, "axis");
   if (!std::isfinite(angle)) {
     throw std::invalid_argument("angle must be finite");
-}
+  }
   const double axis_norm = axis.norm();
   if (axis_norm == 0.0) {
     throw std::invalid_argument("axis must be nonzero");
-}
+  }
   const double half_angle = 0.5 * angle;
   QuaternionVector result;
   result[0] = std::cos(half_angle);
@@ -78,7 +78,7 @@ QuaternionVector rotation_vector_to_quaternion(const Vector3 &rotation_vector) {
   const double angle = rotation_vector.norm();
   if (angle == 0.0) {
     return QuaternionVector(1.0, 0.0, 0.0, 0.0);
-}
+  }
   const double half_angle = 0.5 * angle;
   QuaternionVector result;
   result[0] = std::cos(half_angle);

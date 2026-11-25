@@ -8,13 +8,13 @@ Q normalize(Q q) {
   double norm2 = 0.0;
   for (double x : q) {
     norm2 += x * x;
-}
+  }
   if (!(norm2 > 0.0) || !std::isfinite(norm2)) {
     throw std::invalid_argument("quaternion must have nonzero finite norm");
-}
+  }
   for (double &x : q) {
     x /= std::sqrt(norm2);
-}
+  }
   return q;
 }
 Q multiply(const Q &a, const Q &b) {
@@ -59,7 +59,7 @@ M cholesky(const M &a) {
   Eigen::LLT<EM> factor(em(a));
   if (factor.info() != Eigen::Success) {
     throw std::invalid_argument("noise covariance must be positive definite");
-}
+  }
   return matrix(EM(factor.matrixL()));
 }
 M inverse_from_cholesky(const M &l) {
@@ -71,7 +71,7 @@ Q rotation_vector_quaternion(const V &v) {
   const double angle = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   if (angle == 0.0) {
     return {{1, 0, 0, 0}};
-}
+  }
   const double factor = std::sin(0.5 * angle) / angle;
   return {{std::cos(0.5 * angle), factor * v[0], factor * v[1], factor * v[2]}};
 }

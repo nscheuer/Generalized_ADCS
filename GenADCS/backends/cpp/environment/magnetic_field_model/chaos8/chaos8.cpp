@@ -28,7 +28,7 @@ Eigen::Vector3d CHAOS8::field_inertial_tesla(const Eigen::Vector3d &p,
   const double year = 2000.0 + (jd - 2451544.5) / 365.25;
   if (year < times_.front() || year > times_.back()) {
     throw std::out_of_range("Epoch outside CHAOS-8.7 core coefficient range");
-}
+  }
   const auto up = std::upper_bound(times_.begin(), times_.end(), year);
   std::size_t start = (up == times_.begin()
                            ? 0U
@@ -47,8 +47,8 @@ Eigen::Vector3d CHAOS8::field_inertial_tesla(const Eigen::Vector3d &p,
       if (j != k) {
         w *= (year - times_[start + k]) /
              (times_[start + j] - times_[start + k]);
-}
-}
+      }
+    }
     g.block(1, 0, 20, 21) += w * g_[start + j].block(1, 0, 20, 21);
     h.block(1, 0, 20, 21) += w * h_[start + j].block(1, 0, 20, 21);
   }

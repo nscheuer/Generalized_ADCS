@@ -21,7 +21,7 @@ Vector to_vector(py::handle value) {
           value);
   if (!array) {
     throw py::type_error("value must be convertible to a numeric array");
-}
+  }
   auto info = array.request();
   Vector result(static_cast<std::size_t>(info.size));
   const auto *data = static_cast<const double *>(info.ptr);
@@ -31,7 +31,7 @@ Vector to_vector(py::handle value) {
 py::object to_python(const Vector &value) {
   if (value.size() == 1) {
     return py::float_(value[0]);
-}
+  }
   py::array_t<double> result(value.size());
   std::copy(value.begin(), value.end(), result.mutable_data());
   return result;
@@ -44,8 +44,8 @@ py::object matrix_object(const Matrix &matrix, const char *form,
     for (py::ssize_t j = 0; j < output.shape(1); ++j) {
       output(i, j) =
           matrix[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)];
-}
-}
+    }
+  }
   auto covariance = py::module_::import("ADCS.covariance").attr("Covariance");
   return covariance(array, py::arg("form") = form,
                     py::arg("coordinates") = coordinates);
@@ -127,7 +127,7 @@ PYBIND11_MODULE(_bias, module) {
               std::normal_distribution<double> normal;
               for (auto &x : draw) {
                 x = normal(engine);
-}
+              }
             }
             self.update(j2000, elapsed, draw);
           },

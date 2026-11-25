@@ -19,7 +19,7 @@ Eigen::Vector3d gravity_acceleration_inertial_m_s2(
   const double radius = std::sqrt(r2);
   if (radius == 0.0) {
     throw std::invalid_argument("Gravity is undefined at the body's centre");
-}
+  }
   const double inv_r = 1.0 / radius;
   const double s = z * inv_r;
   const double ratio = reference_radius * inv_r;
@@ -55,12 +55,12 @@ JGravityModel::JGravityModel(std::vector<int> degrees,
     if (d < 2 || d > 6) {
       throw std::invalid_argument(
           "J-gravity degrees must be selected from 2 through 6");
-}
-}
+    }
+  }
   if (coefficients.size() != 0 && coefficients.size() < 5) {
     throw std::invalid_argument(
         "Provide five coefficients ordered as J2, J3, J4, J5, J6");
-}
+  }
   for (int d : degrees_) {
     int i = d - 2;
     coefficients_[i] = coefficients.size() == 0

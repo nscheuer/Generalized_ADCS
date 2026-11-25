@@ -41,8 +41,8 @@ void bind_native_models(py::module_ &module) {
               gp[index] = g[static_cast<std::size_t>(t)](n, m);
               hp[index] = h[static_cast<std::size_t>(t)](n, m);
             }
-}
-}
+          }
+        }
         return py::make_tuple(epochs, ga, ha);
       },
       py::arg("path"), py::arg("nmin"), py::arg("nmax"));

@@ -11,7 +11,7 @@ V lunisolar(const V &p, const V &sun, const V &moon, double sun_mu,
     const double d = pair.first.norm(), r = rel.norm();
     if (d == 0 || r == 0) {
       throw std::invalid_argument("third-body distance must be nonzero");
-}
+    }
     result +=
         pair.second * (rel / std::pow(r, 3) - pair.first / std::pow(d, 3));
   }

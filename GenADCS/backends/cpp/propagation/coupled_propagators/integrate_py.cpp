@@ -18,7 +18,7 @@ py::tuple output(const Trajectory &result) {
     t(i) = result.times[i];
     for (Eigen::Index j = 0; j < result.states[i].size(); ++j) {
       s(i, j) = result.states[i][j];
-}
+    }
   }
   return py::make_tuple(times, states);
 }
@@ -29,12 +29,12 @@ struct ProgressBar {
       bar = py::module_::import("tqdm").attr("tqdm")(
           py::arg("total") = total, py::arg("desc") = description,
           py::arg("unit") = "step");
-}
+    }
   }
   Progress callback() {
     if (bar.is_none()) {
       return {};
-}
+    }
     return [this](std::size_t n) { bar.attr("update")(n); };
   }
   ~ProgressBar() {
@@ -58,7 +58,7 @@ void bind_integrate(py::module_ &m) {
           Eigen::VectorXd native_times(input.shape(0));
           for (py::ssize_t i = 0; i < input.shape(0); ++i) {
             native_times[i] = input(i);
-}
+          }
           std::vector<omni::hardware::Sensor> sensors;
           for (py::handle item : adcs.attr("sensors")) {
             namespace hw = omni::hardware;
@@ -81,7 +81,7 @@ void bind_integrate(py::module_ &m) {
               sensors.emplace_back(item.cast<sen::AutonomousStarTracker>());
             } else {
               throw py::type_error("unsupported C++ sensor");
-}
+            }
           }
           return sample_sensors(native_times, states, jd, interval, r,
                                 std::move(sensors), seed);

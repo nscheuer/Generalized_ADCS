@@ -16,7 +16,7 @@ namespace {
 void require_proper_dcm(const Matrix3 &matrix) {
   if (!matrix.allFinite()) {
     throw std::invalid_argument("DCM must be finite");
-}
+  }
   const Matrix3 residual = matrix.transpose() * matrix - Matrix3::Identity();
   if ((residual.norm() > 1e-8) ||
       (std::abs(matrix.determinant() - 1.0) > 1e-8)) {
@@ -68,10 +68,10 @@ Quaternion::as_convention(const std::string &convention) const {
   const std::string key = convention_key(convention);
   if ((key == "hamilton") || (key == "h")) {
     return hamilton_;
-}
+  }
   if ((key == "jpl") || (key == "j")) {
     return hamilton_to_jpl(hamilton_);
-}
+  }
   throw std::invalid_argument("convention must be 'Hamilton' or 'JPL'");
 }
 Quaternion Quaternion::to_convention(const std::string &convention) const {

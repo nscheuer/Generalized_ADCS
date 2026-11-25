@@ -15,7 +15,7 @@ Eigen::Vector3d solve_inertia(const Eigen::Matrix3d &inertia,
   Eigen::FullPivLU<Eigen::Matrix3d> decomposition(inertia);
   if (!decomposition.isInvertible()) {
     throw std::invalid_argument("inertia matrix must be invertible");
-}
+  }
   return decomposition.solve(right_hand_side);
 }
 } // namespace

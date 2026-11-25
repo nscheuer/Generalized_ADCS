@@ -24,7 +24,7 @@ py::array_t<double> vector_array(const Values &values) {
   auto out = result.mutable_unchecked<1>();
   for (py::ssize_t i = 0; i < static_cast<py::ssize_t>(values.size()); ++i) {
     out(i) = values[static_cast<std::size_t>(i)];
-}
+  }
   return result;
 }
 
@@ -36,8 +36,8 @@ py::array_t<double> matrix_array(const Matrix &values) {
     for (py::ssize_t j = 0; j < 3; ++j) {
       out(i, j) =
           values[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)];
-}
-}
+    }
+  }
   return result;
 }
 
@@ -48,8 +48,8 @@ py::array_t<double> matrix_array_2x2(const Matrix &values) {
   for (py::ssize_t i = 0; i < 2; ++i) {
     for (py::ssize_t j = 0; j < 2; ++j) {
       out(i, j) = values[i][j];
-}
-}
+    }
+  }
   return result;
 }
 
@@ -60,8 +60,8 @@ py::array_t<double> matrix_array_2x3(const Matrix &values) {
   for (py::ssize_t i = 0; i < 2; ++i) {
     for (py::ssize_t j = 0; j < 3; ++j) {
       out(i, j) = values[i][j];
-}
-}
+    }
+  }
   return result;
 }
 
@@ -73,12 +73,12 @@ std::array<double, N> read_fixed(py::handle value, const char *name) {
   if (!array || array.ndim() != 1 ||
       array.shape(0) != static_cast<py::ssize_t>(N)) {
     throw py::value_error(std::string(name) + " has an invalid shape");
-}
+  }
   std::array<double, N> result{};
   auto input = array.unchecked<1>();
   for (std::size_t i = 0; i < N; ++i) {
     result[i] = input(static_cast<py::ssize_t>(i));
-}
+  }
   return result;
 }
 
@@ -98,13 +98,13 @@ void bind_sensors_fine_sun_sensor(py::module_ &module) {
                                              py::array::forcecast>::ensure(n);
             if (!a || a.ndim() != 2 || a.shape(0) != 2 || a.shape(1) != 2) {
               throw py::value_error("noise must be 2x2");
-}
+            }
             auto values = a.unchecked<2>();
             for (int i = 0; i < 2; ++i) {
               for (int j = 0; j < 2; ++j) {
                 covariance[i][j] = values(i, j);
-}
-}
+              }
+            }
             const auto bias = read_fixed<2>(b, "bias");
             const auto fov = read_fixed<2>(f, "fov_half_angles");
             return native_sensors::FineSunSensor(

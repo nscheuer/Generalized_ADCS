@@ -12,7 +12,7 @@ namespace {
 void require_proper_dcm(const Matrix3 &matrix) {
   if (!matrix.allFinite()) {
     throw std::invalid_argument("DCM must be finite");
-}
+  }
   const Matrix3 residual = matrix.transpose() * matrix - Matrix3::Identity();
   if ((residual.norm() > 1e-8) ||
       (std::abs(matrix.determinant() - 1.0) > 1e-8)) {

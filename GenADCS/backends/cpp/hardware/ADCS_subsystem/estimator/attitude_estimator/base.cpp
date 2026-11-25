@@ -13,7 +13,7 @@ void validate_psd(const Matrix &value, const char *name) {
     throw std::invalid_argument(
         std::string(name) +
         " must be finite, symmetric and positive semidefinite");
-}
+  }
 }
 std::set<std::string> validate_record(std::set<std::string> record) {
   static const std::set<std::string> allowed = {
@@ -31,20 +31,20 @@ std::set<std::string> validate_record(std::set<std::string> record) {
     if (!allowed.count(field)) {
       throw std::invalid_argument("unknown estimator diagnostic field: " +
                                   field);
-}
-}
+    }
+  }
   return record;
 }
 Eigen::Vector4d normalize(Eigen::Vector4d q) {
   if (!q.allFinite() || q.norm() == 0.0) {
     throw std::invalid_argument("quaternion must be finite and nonzero");
-}
+  }
   return q.normalized();
 }
 Eigen::Vector3d validate_rate(Eigen::Vector3d w) {
   if (!w.allFinite()) {
     throw std::invalid_argument("rate must be finite");
-}
+  }
   return w;
 }
 Matrix6 validate_covariance(Matrix6 p) {

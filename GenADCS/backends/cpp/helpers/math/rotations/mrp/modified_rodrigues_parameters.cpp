@@ -7,7 +7,7 @@ ModifiedRodriguesParameters::ModifiedRodriguesParameters(const Vector3 &values)
     : RotationParameter(values) {
   if (parameters_.squaredNorm() > 1.0) {
     parameters_ = mrp_shadow_set(parameters_);
-}
+  }
 }
 ModifiedRodriguesParameters ModifiedRodriguesParameters::identity() {
   return ModifiedRodriguesParameters();

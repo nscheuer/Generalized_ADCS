@@ -12,7 +12,7 @@ template <std::size_t N> std::array<double, N> values(py::handle object) {
           object);
   if (!array || array.size() != N) {
     throw py::value_error("incorrect geometry array size");
-}
+  }
   std::array<double, N> result{};
   auto data = array.data();
   std::copy(data, data + N, result.begin());

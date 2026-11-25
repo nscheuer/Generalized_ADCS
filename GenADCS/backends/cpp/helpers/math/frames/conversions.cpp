@@ -286,19 +286,19 @@ Frame parse_frame(const std::string &name) {
                  });
   if (normalized_name == "GCRF") {
     return Frame::Gcrf;
-}
+  }
   if (normalized_name == "ECEF") {
     return Frame::Ecef;
-}
+  }
   if (normalized_name == "BODY") {
     return Frame::Body;
-}
+  }
   if (normalized_name == "LVLH") {
     return Frame::Lvlh;
-}
+  }
   if (normalized_name == "TEME") {
     return Frame::Teme;
-}
+  }
   throw std::invalid_argument("unsupported frame " + name +
                               "; expected GCRF, ECEF, BODY, LVLH, or TEME");
 }

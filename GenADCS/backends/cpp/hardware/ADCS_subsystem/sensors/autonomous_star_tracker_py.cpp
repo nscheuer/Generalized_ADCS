@@ -15,7 +15,7 @@ py::array_t<double> vector_array(const std::array<double, N> &values) {
   auto out = result.mutable_unchecked<1>();
   for (std::size_t i = 0; i < N; ++i) {
     out(static_cast<py::ssize_t>(i)) = values[i];
-}
+  }
   return result;
 }
 } // namespace
@@ -117,13 +117,13 @@ void bind_sensors_autonomous_star_tracker(py::module_ &module) {
             std::optional<sensors::AutonomousStarTracker::V> e, so;
             if (!q.is_none()) {
               attitude = sensors::kernels::read_quaternion(q, "attitude");
-}
+            }
             if (!earth.is_none()) {
               e = sensors::kernels::read_vector3(earth, "earth_inertial");
-}
+            }
             if (!sun.is_none()) {
               so = sensors::kernels::read_vector3(sun, "sun_inertial");
-}
+            }
             return s.availability(attitude, e, so);
           },
           py::arg("attitude") = py::none(),

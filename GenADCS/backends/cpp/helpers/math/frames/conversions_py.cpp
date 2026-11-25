@@ -10,11 +10,11 @@ namespace {
 std::optional<double> optional_double(py::object value) {
   if (value.is_none()) {
     return std::nullopt;
-}
+  }
   const double result = value.cast<double>();
   if (!std::isfinite(result)) {
     throw py::value_error("frame context values must be finite");
-}
+  }
   return result;
 }
 
@@ -33,14 +33,14 @@ omni_frames::FrameContext make_context(py::object jd_ut1, py::object jd_tt,
   }
   if (!position_gcrf.is_none()) {
     context.position_gcrf = to_fixed_vector<3>(position_gcrf, "position_gcrf");
-}
+  }
   if (!velocity_gcrf.is_none()) {
     context.velocity_gcrf = to_fixed_vector<3>(velocity_gcrf, "velocity_gcrf");
-}
+  }
   if (!quaternion.is_none()) {
     context.quaternion_body_from_gcrf =
         to_fixed_vector<4>(quaternion, "q_body_from_gcrf");
-}
+  }
   return context;
 }
 

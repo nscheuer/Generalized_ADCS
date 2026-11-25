@@ -15,12 +15,12 @@ ADCSSubsystem::ADCSSubsystem(
       magnetorquers(std::move(magnetorquers_value)) {
   if (N < 1) {
     throw std::invalid_argument("N must be a positive integer");
-}
+  }
 }
 bool ADCSSubsystem::every_step(std::uint64_t tick) const {
   if (N < 1) {
     throw std::invalid_argument("N must be a positive integer");
-}
+  }
   return tick % static_cast<std::uint64_t>(N) == 0;
 }
 } // namespace omni::hardware

@@ -28,7 +28,7 @@ py::object numpy_array(py::object value, py::object dtype) {
   py::object numpy = py::module_::import("numpy");
   if (dtype.is_none()) {
     return numpy.attr("asarray")(value).attr("copy")();
-}
+  }
   return numpy.attr("asarray")(value, py::arg("dtype") = dtype).attr("copy")();
 }
 rotations::ModifiedRodriguesParameters

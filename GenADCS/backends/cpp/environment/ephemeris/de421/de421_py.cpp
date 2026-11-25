@@ -21,17 +21,17 @@ namespace {
 std::string body_name(const py::object &body) {
   if (py::isinstance<py::str>(body)) {
     return py::cast<std::string>(body);
-}
+  }
   const int id = py::cast<int>(body);
   if (id == 0) {
     return "sun";
-}
+  }
   if (id == 1) {
     return "earth";
-}
+  }
   if (id == 2) {
     return "moon";
-}
+  }
   switch (id) {
   case 199:
     return "mercury";
@@ -67,7 +67,7 @@ py::object vectorized_epoch(const py::object &epoch, Function function) {
   const auto info = values.request();
   if (info.ndim == 0) {
     return py::cast(function(*static_cast<const double *>(info.ptr)));
-}
+  }
   std::vector<py::ssize_t> shape(info.shape.begin(), info.shape.end());
   shape.push_back(3);
   py::array_t<double> output(shape);
@@ -78,7 +78,7 @@ py::object vectorized_epoch(const py::object &epoch, Function function) {
     const Eigen::Vector3d value = function(input[i]);
     for (int axis = 0; axis < 3; ++axis) {
       result[3U * i + static_cast<std::size_t>(axis)] = value[axis];
-}
+    }
   }
   return output;
 }

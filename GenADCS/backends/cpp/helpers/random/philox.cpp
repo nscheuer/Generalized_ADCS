@@ -49,7 +49,7 @@ std::vector<double> standard_normals(std::uint64_t seed, std::uint64_t tick,
       const std::uint32_t offset = block * 4U + pair * 2U;
       if (offset >= count) {
         break;
-}
+      }
       const double u1 =
           (static_cast<double>(words[2U * pair]) + 0.5) * inverse_uint32_range;
       const double u2 = (static_cast<double>(words[2U * pair + 1U]) + 0.5) *
@@ -59,7 +59,7 @@ std::vector<double> standard_normals(std::uint64_t seed, std::uint64_t tick,
       result[offset] = radius * std::cos(angle);
       if (offset + 1U < count) {
         result[offset + 1U] = radius * std::sin(angle);
-}
+      }
     }
   }
   return result;

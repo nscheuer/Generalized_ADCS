@@ -6,6 +6,6 @@ void run_nrlmsise00(nrlmsise_input &input, nrlmsise_flags &flags,
     gtd7d(&input, &flags, &output);
   } else {
     gtd7(&input, &flags, &output);
-}
+  }
 }
 } // namespace omni::environment

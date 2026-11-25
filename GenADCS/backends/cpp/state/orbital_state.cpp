@@ -46,10 +46,10 @@ Vector3 OrbitalState::body_position(const std::string &cache_key, int body_id) {
   const auto cached = body_positions.find(cache_key);
   if (cached != body_positions.end()) {
     return cached->second;
-}
+  }
   if (!ephemeris) {
     throw std::logic_error("an ephemeris must be configured");
-}
+  }
   Vector3 result = ephemeris->position(body_id, julian_date);
   detail::require_finite(result, "body position");
   body_positions.emplace(cache_key, result);

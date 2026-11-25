@@ -27,13 +27,13 @@ Matrix3 normalize_dcm(const Matrix3 &matrix) {
   const double first_norm = first.norm();
   if (first_norm == 0.0) {
     throw std::invalid_argument("DCM has a degenerate first column");
-}
+  }
   first /= first_norm;
   Vector3 second = matrix.col(1) - first.dot(matrix.col(1)) * first;
   const double second_norm = second.norm();
   if (second_norm == 0.0) {
     throw std::invalid_argument("DCM has degenerate first and second columns");
-}
+  }
   second /= second_norm;
   const Vector3 third = first.cross(second);
   Matrix3 result;
