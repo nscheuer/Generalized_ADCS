@@ -122,4 +122,4 @@ def test_geometry_equality_behavior_is_explicit_for_each_backend(
     else:
         # These PyO3 classes currently use Python's default identity equality.
         assert geometry_a != geometry_b
-    assert geometry_a == geometry_a
+    assert geometry_a.__eq__(geometry_a) is True

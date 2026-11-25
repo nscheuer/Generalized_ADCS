@@ -13,7 +13,8 @@ def test_quaternion_normalization_and_rate_values(state_backend):
 
 def test_hamilton_orientation_and_valid_reassignment(state_backend):
     class Orientation:
-        hamilton_components = [0, 0, 0, -4]
+        def __init__(self):
+            self.hamilton_components = [0, 0, 0, -4]
 
     state = state_backend.AttitudeState(Orientation(), [0, 0, 0])
     np.testing.assert_array_equal(state.quaternion_array, [0, 0, 0, -1])

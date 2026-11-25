@@ -72,7 +72,7 @@ def test_body_positions_are_cached_per_input_and_ephemeris_is_called_once_per_ke
 def test_missing_ephemeris_and_unknown_body():
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD)
     with pytest.raises(ValueError, match="ephemeris must be configured"):
-        orbit.sun_position
+        _ = orbit.sun_position
     orbit.ephemeris = CountingEphemeris()
     with pytest.raises(KeyError):
         orbit.body_position("pluto")

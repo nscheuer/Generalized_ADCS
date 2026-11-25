@@ -61,7 +61,7 @@ def test_ephemeris_body_properties_and_cache(state_backend):
 def test_missing_ephemeris_and_unknown_body(state_backend):
     orbit = state_backend.OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD)
     with pytest.raises(ValueError):
-        orbit.sun_position
+        _ = orbit.sun_position
     orbit.ephemeris = Ephemeris()
     with pytest.raises(KeyError):
         orbit.body_position("pluto")

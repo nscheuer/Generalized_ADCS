@@ -24,7 +24,7 @@ def test_mrp_aliases_numpy_conversion_and_ownership(rotations):
 
 def test_mrp_shadow_and_quaternion_binding(rotations):
     p = cls(rotations)([0.2, 0.3, 0.4])
-    q = p.to_quaternion()
+    p.to_quaternion()
     shadow = p.switch_shadow_set()
     np.testing.assert_allclose(shadow.to_dcm(), p.to_dcm(), atol=1e-12)
     np.testing.assert_allclose(

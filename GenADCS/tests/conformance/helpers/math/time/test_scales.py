@@ -1,3 +1,5 @@
+import itertools
+
 import pytest
 
 SEC = 86400.0
@@ -81,4 +83,4 @@ def test_tdb_correction_stays_small_and_varies_smoothly(time_api):
     ]
     assert max(map(abs, vals)) < 0.002
     assert max(vals) - min(vals) > 0.002
-    assert max(abs(a - b) for a, b in zip(vals, vals[1:])) < 0.001
+    assert max(abs(a - b) for a, b in itertools.pairwise(vals)) < 0.001

@@ -19,7 +19,7 @@ def test_numpy_eigen_or_nalgebra_conversion_and_output_ownership(rotations):
 def test_slerp_binding_accepts_lists_numpy_views_and_extrapolation(rotations):
     q0 = np.array([1.0, 0.0, 0.0, 0.0])
     backing = np.array([9.0, 0.0, 0.0, 1.0, 8.0])
-    q1 = backing[1:4:2]
+    backing[1:4:2]
     # Use a contiguous quaternion for conversion and also ensure caller buffers remain untouched.
     end = np.array([np.sqrt(0.5), 0.0, 0.0, np.sqrt(0.5)])
     got = rotations.slerp(q0, end, 0.5)

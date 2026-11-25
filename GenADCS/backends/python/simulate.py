@@ -5,6 +5,7 @@ from dataclasses import replace
 
 import numpy as np
 
+from GenADCS.backends.shared.simulationresult import SimulationResult
 from GenADCS.backends.shared.simulationresult.record import record_samples
 
 from .hardware.ADCS_subsystem.sensors.sensor_sampling import (
@@ -16,6 +17,8 @@ from .helpers.random.philox import validate_seed
 from .propagation.coupled_propagators.coupled_rk4_propagator import CoupledRK4Propagator
 from .solver import CoupledSolver, Solver
 from .state import State
+
+__all__ = ["SimulationResult", "simulate"]
 
 
 def simulate(
@@ -111,7 +114,7 @@ def simulate(
     counts, starts = config[-2:]
     sensor_rows = {}
     for kind, name in enumerate(SENSOR_NAMES):
-        width = int(counts[kind])
+        width = counts[kind]
         for suffix, source in (
             ("_clean", integration[2] if sensor_every else None),
             ("_reading", integration[3] if sensor_every else None),
@@ -119,7 +122,7 @@ def simulate(
             values = np.full((len(times_s), width), np.nan)
             if source is not None:
                 for row, time in enumerate(times_s):
-                    tick = int(round(time / (solver.propagator.dt * sensor_every)))
+                    tick = round(time / (solver.propagator.dt * sensor_every))
                     if (
                         tick < source.shape[0]
                         and abs(time - tick * solver.propagator.dt * sensor_every)
@@ -146,7 +149,7 @@ def simulate(
                 continue
             values = np.full((len(times_s), stop - start), np.nan)
             for row, time in enumerate(times_s):
-                tick = int(round(time / (solver.propagator.dt * sensor_every)))
+                tick = round(time / (solver.propagator.dt * sensor_every))
                 if (
                     tick < estimates.shape[0]
                     and abs(time - tick * solver.propagator.dt * sensor_every) < 1e-9

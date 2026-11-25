@@ -652,7 +652,6 @@ class _Model:
         pset = 2.0
         t = [0.0] * 14
         dr = 1.72142e-2
-        dgtr = 1.74533e-2
         if p[99] != 0 and p[99] != pset:
             raise ValueError("Wrong parameter set for glob7s")
         cd32 = np.cos(dr * (inp.doy - p[31]))

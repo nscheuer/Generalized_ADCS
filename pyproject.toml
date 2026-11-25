@@ -123,6 +123,8 @@ dev = [
     "numdifftools",
     "black",
     "ruff",
+    "pyright",
+    "pip-audit",
     # Reference implementation for testing/test_igrf.py. ADCS.environment.igrf
     # replaced it at runtime, but it stays the oracle the new kernel is checked
     # against, so a drift in the field model fails a test rather than quietly
@@ -383,3 +385,7 @@ addopts = [
     "--junitxml=testing/artifacts/pytest.xml",
 ]
 junit_family = "xunit2"
+
+[tool.pyright]
+include = ["GenADCS/backends/python", "GenADCS/tests"]
+typeCheckingMode = "strict"

@@ -28,7 +28,8 @@ def test_quaternion_is_normalized_without_changing_orientation():
 
 def test_orientation_object_and_late_validation():
     class Orientation:
-        hamilton_components = [0, 0, 0, 5]
+        def __init__(self):
+            self.hamilton_components = [0, 0, 0, 5]
 
     state = AttitudeState(Orientation(), [0, 0, 0])
     np.testing.assert_array_equal(state.quaternion_array, [0, 0, 0, 1])
