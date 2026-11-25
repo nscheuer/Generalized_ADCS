@@ -7,7 +7,7 @@ from GenADCS.backends.python.environment.magnetic_field_model.magnetic_field_mod
 )
 
 
-def test_shc_coefficients_are_cached():
+def test_shc_coefficients_are_cached() -> None:
     read_shc.cache_clear()
     path = str(
         Path(__file__).resolve().parents[5]
@@ -28,7 +28,9 @@ def test_shc_coefficients_are_cached():
         ("1 1 1 0 0\n2020\n1 0\n", "Malformed SHC row"),
     ),
 )
-def test_shc_reader_rejects_malformed_coefficient_files(tmp_path, contents, match):
+def test_shc_reader_rejects_malformed_coefficient_files(
+    tmp_path: Path, contents: str, match: str
+) -> None:
     path = tmp_path / "bad.shc"
     path.write_text(contents, encoding="ascii")
     read_shc.cache_clear()

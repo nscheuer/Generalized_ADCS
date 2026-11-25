@@ -9,7 +9,7 @@ from GenADCS.backends.python.dynamics.residual_dipole_model import (
 )
 
 
-def test_dipole_torque_is_cross_product_and_model_uses_field():
+def test_dipole_torque_is_cross_product_and_model_uses_field() -> None:
     dipole = np.array([1.0, 0.0, 0.0])
     field = np.array([0.0, 0.0, 2e-5])
     q = np.array([1.0, 0.0, 0.0, 0.0])
@@ -28,6 +28,6 @@ def test_dipole_torque_is_cross_product_and_model_uses_field():
 
 
 @pytest.mark.parametrize("dipole", [np.ones(2), np.array([1.0, np.nan, 0.0])])
-def test_dipole_model_rejects_malformed_vector(dipole):
+def test_dipole_model_rejects_malformed_vector(dipole: np.ndarray) -> None:
     with pytest.raises(ValueError):
         StaticResidualDipoleModel(dipole)

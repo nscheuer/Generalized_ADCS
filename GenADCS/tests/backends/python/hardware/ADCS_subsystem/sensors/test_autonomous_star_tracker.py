@@ -1,5 +1,7 @@
 """Detailed tests for the Numba autonomous star-tracker model."""
 
+from typing import Any
+
 import numpy as np
 
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import (
@@ -11,7 +13,9 @@ from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions impor
 )
 
 
-def make_tracker(noise=None, orientation=None, misalignment=None):
+def make_tracker(
+    noise: Any = None, orientation: Any = None, misalignment: Any = None
+) -> AutonomousStarTracker:
     identity = np.array([1.0, 0.0, 0.0, 0.0])
     return AutonomousStarTracker(
         np.zeros(3),
@@ -23,7 +27,7 @@ def make_tracker(noise=None, orientation=None, misalignment=None):
     )
 
 
-def test_fov_limits_tracker_availability():
+def test_fov_limits_tracker_availability() -> None:
     tracker = make_tracker()
     tracker.fov_half_angle = 0.2
     attitude = np.array([1.0, 0.0, 0.0, 0.0])
@@ -31,7 +35,7 @@ def test_fov_limits_tracker_availability():
     assert not tracker.availability(attitude, earth_inertial=np.array([0.0, 0.0, 1.0]))
 
 
-def test_noiseless_quaternion_measurement_applies_mounting_in_declared_order():
+def test_noiseless_quaternion_measurement_applies_mounting_in_declared_order() -> None:
     q_mount = _axis_angle_to_quaternion(np.array([0.0, 0.0, 1.0]), 0.3)
     q_misalign = _axis_angle_to_quaternion(np.array([1.0, 0.0, 0.0]), -0.2)
     q_att = _axis_angle_to_quaternion(np.array([0.0, 1.0, 0.0]), 0.5)
@@ -43,7 +47,7 @@ def test_noiseless_quaternion_measurement_applies_mounting_in_declared_order():
     np.testing.assert_allclose(tracker.noiseless_biased_measurement(q_att), expected)
 
 
-def test_noisy_measurement_is_normalized_and_close_at_small_covariance():
+def test_noisy_measurement_is_normalized_and_close_at_small_covariance() -> None:
     tracker = make_tracker(noise=np.eye(3) * 1e-12)
     q = _axis_angle_to_quaternion(np.array([1.0, 2.0, -1.0]), 0.7)
     measured = tracker.noisy_biasfree_measurement(q)
@@ -53,7 +57,7 @@ def test_noisy_measurement_is_normalized_and_close_at_small_covariance():
     assert min(np.linalg.norm(measured - q), np.linalg.norm(measured + q)) < 1e-5
 
 
-def test_noisy_biased_and_biased_measurement_follow_attitude_only_model():
+def test_noisy_biased_and_biased_measurement_follow_attitude_only_model() -> None:
     tracker = make_tracker()
     q = np.array([1.0, 0.0, 0.0, 0.0])
     np.testing.assert_allclose(tracker.noiseless_biased_measurement(q), q)
@@ -63,14 +67,14 @@ def test_noisy_biased_and_biased_measurement_follow_attitude_only_model():
     np.testing.assert_allclose(np.linalg.norm(result), 1.0, atol=1e-14)
 
 
-def test_residual_is_zero_for_equal_quaternions_and_sign_invariant():
+def test_residual_is_zero_for_equal_quaternions_and_sign_invariant() -> None:
     tracker = make_tracker()
     q = _axis_angle_to_quaternion(np.array([1.0, -2.0, 3.0]), 0.4)
     np.testing.assert_allclose(tracker.residual(q, q), np.zeros(3), atol=1e-14)
     np.testing.assert_allclose(tracker.residual(-q, q), np.zeros(3), atol=1e-14)
 
 
-def test_residual_recovers_small_rotation_vector_to_first_order():
+def test_residual_recovers_small_rotation_vector_to_first_order() -> None:
     tracker = make_tracker()
     estimate = np.array([1.0, 0.0, 0.0, 0.0])
     delta = np.array([2e-4, -3e-4, 1e-4])
@@ -80,7 +84,7 @@ def test_residual_recovers_small_rotation_vector_to_first_order():
     np.testing.assert_allclose(tracker.residual(measured, estimate), delta, atol=1e-11)
 
 
-def test_quaternion_and_mrp_jacobians_match_spec_at_zero():
+def test_quaternion_and_mrp_jacobians_match_spec_at_zero() -> None:
     tracker = make_tracker()
     np.testing.assert_array_equal(
         tracker.jacobian_relative_quaternion(), 2.0 * np.eye(3)
@@ -90,7 +94,7 @@ def test_quaternion_and_mrp_jacobians_match_spec_at_zero():
     )
 
 
-def test_angle_jacobian_is_identity_at_zero_and_finite_away_from_zero():
+def test_angle_jacobian_is_identity_at_zero_and_finite_away_from_zero() -> None:
     tracker = make_tracker()
     np.testing.assert_allclose(
         tracker.jacobian_relative_angle_vector(np.zeros(3)), np.eye(3)
@@ -100,7 +104,7 @@ def test_angle_jacobian_is_identity_at_zero_and_finite_away_from_zero():
     assert np.all(np.isfinite(result))
 
 
-def test_mrp_jacobian_matches_residual_finite_difference_away_from_zero():
+def test_mrp_jacobian_matches_residual_finite_difference_away_from_zero() -> None:
     tracker = make_tracker()
     parameters = np.array([0.12, -0.08, 0.04])
     step = 1e-6
@@ -127,7 +131,7 @@ def test_mrp_jacobian_matches_residual_finite_difference_away_from_zero():
     )
 
 
-def test_availability_and_mounting_adjusted_fisher_information():
+def test_availability_and_mounting_adjusted_fisher_information() -> None:
     covariance = np.diag([0.2, 0.3, 0.5])
     orientation = _axis_angle_to_quaternion(np.array([0.0, 0.0, 1.0]), 0.4)
     misalignment = _axis_angle_to_quaternion(np.array([1.0, 0.0, 0.0]), -0.2)

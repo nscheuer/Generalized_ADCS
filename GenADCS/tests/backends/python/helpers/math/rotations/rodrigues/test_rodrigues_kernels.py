@@ -10,7 +10,7 @@ from GenADCS.backends.python.helpers.math.rotations.rodrigues.kernels import (
 @pytest.mark.parametrize(
     "parameters", [np.zeros(3), np.array([0.2, -0.1, 0.3]), np.array([0.0, 0, 10.0])]
 )
-def test_rodrigues_quaternion_roundtrip(parameters):
+def test_rodrigues_quaternion_roundtrip(parameters: np.ndarray) -> None:
     np.testing.assert_allclose(
         quaternion_to_rodrigues(rodrigues_to_quaternion(parameters)),
         parameters,
@@ -18,11 +18,11 @@ def test_rodrigues_quaternion_roundtrip(parameters):
     )
 
 
-def test_antipodal_quaternion_represents_same_parameters():
+def test_antipodal_quaternion_represents_same_parameters() -> None:
     q = rodrigues_to_quaternion(np.array([0.2, 0.1, -0.3]))
     np.testing.assert_allclose(quaternion_to_rodrigues(q), quaternion_to_rodrigues(-q))
 
 
-def test_half_turn_is_singular():
+def test_half_turn_is_singular() -> None:
     with pytest.raises(ValueError, match="singular"):
         quaternion_to_rodrigues(np.array([0.0, 1.0, 0.0, 0.0]))

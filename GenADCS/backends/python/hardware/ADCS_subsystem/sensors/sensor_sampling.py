@@ -35,6 +35,7 @@ from .kernels import (
     star_tracker_measurement,
     vector_measurement,
 )
+from .sensor import Sensor
 
 DEFAULT_SEED = np.uint64(0)
 
@@ -62,7 +63,7 @@ WIDTHS = (3, 3, 4, 1, 2, 2, 6, 3)
 
 
 def prepare_sensors(
-    sensors: list, environment: Environment
+    sensors: list[Sensor], environment: Environment
 ) -> tuple[np.ndarray, ...]:
     """Convert heterogeneous Python sensor objects to fixed numeric arrays once."""
     n = len(sensors)

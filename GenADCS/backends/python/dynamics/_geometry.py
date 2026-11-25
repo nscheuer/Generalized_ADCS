@@ -56,6 +56,9 @@ def prepare_panels(
         arms[i] = position - center
         areas[i] = dimensions[0] * dimensions[1]
         coefficients[i] = (panel.cd, *optical)
-    return tuple(
-        np.ascontiguousarray(array) for array in (normals, arms, areas, coefficients)
+    return (
+        np.ascontiguousarray(normals),
+        np.ascontiguousarray(arms),
+        np.ascontiguousarray(areas),
+        np.ascontiguousarray(coefficients),
     )

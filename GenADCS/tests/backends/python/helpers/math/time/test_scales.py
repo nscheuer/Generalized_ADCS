@@ -6,14 +6,14 @@ from GenADCS.backends.python.helpers.math import time as ts
 SECONDS_PER_DAY = 86400.0
 
 
-def test_fixed_tai_tt_offset_is_32_184_seconds():
+def test_fixed_tai_tt_offset_is_32_184_seconds() -> None:
     tai = 2459000.123456
     tt = ts.tai_jd_to_tt_jd(tai)
     assert (tt - tai) * SECONDS_PER_DAY == pytest.approx(32.184, abs=2e-5)
     assert ts.tt_jd_to_tai_jd(tt) == pytest.approx(tai, abs=2e-10)
 
 
-def test_utc_tai_leap_table_boundaries_and_roundtrip():
+def test_utc_tai_leap_table_boundaries_and_roundtrip() -> None:
     # Each effective date advances TAI-UTC by one second.
     effective = [
         2441317.5,
@@ -57,14 +57,14 @@ def test_utc_tai_leap_table_boundaries_and_roundtrip():
     )
 
 
-def test_utc_before_supported_epoch_is_rejected():
+def test_utc_before_supported_epoch_is_rejected() -> None:
     with pytest.raises(ValueError):
         ts.utc_jd_to_tai_jd(2441317.5 - 1e-5)
     with pytest.raises(ValueError):
         ts.utc_jd_to_tt_jd(2440000.0)
 
 
-def test_ut1_utc_dut1_sign_and_inverse():
+def test_ut1_utc_dut1_sign_and_inverse() -> None:
     utc = 2459000.25
     for dut1 in (-0.8, 0.0, 0.45, 1.2):
         ut1 = ts.utc_jd_to_ut1_jd(utc, dut1)
@@ -72,7 +72,7 @@ def test_ut1_utc_dut1_sign_and_inverse():
         assert ts.ut1_jd_to_utc_jd(ut1, dut1) == pytest.approx(utc, abs=2e-10)
 
 
-def test_all_named_scale_paths_are_mutual_inverses():
+def test_all_named_scale_paths_are_mutual_inverses() -> None:
     dut1 = -0.137
     tai = ts.utc_jd_to_tai_jd(ts.calendar_to_jd(2022, 9, 17, 3, 4, 5.0))
     tt = ts.tai_jd_to_tt_jd(tai)
@@ -89,7 +89,7 @@ def test_all_named_scale_paths_are_mutual_inverses():
     assert ts.tdb_jd_to_ut1_jd(tdb, dut1) == pytest.approx(ut1, abs=4e-10)
 
 
-def test_tdb_periodic_correction_is_millisecond_scale_and_smooth():
+def test_tdb_periodic_correction_is_millisecond_scale_and_smooth() -> None:
     values = np.linspace(2451545.0, 2451545.0 + 365.25, 100)
     corrections = np.array(
         [(ts.tt_jd_to_tdb_jd(float(x)) - x) * SECONDS_PER_DAY for x in values]

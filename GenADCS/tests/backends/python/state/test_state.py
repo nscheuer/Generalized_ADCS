@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from numpy.typing import ArrayLike
 
 from GenADCS.backends.python.state import (
     AttitudeState,
@@ -9,7 +10,7 @@ from GenADCS.backends.python.state import (
 )
 
 
-def make_state(momentum=(0.1, -0.2)):
+def make_state(momentum: ArrayLike = (0.1, -0.2)) -> State:
     return State(
         AttitudeState([2, 0, 0, 0], [0.01, 0.02, 0.03]),
         OrbitalState.from_cartesian([7e6, 0, 0], [0, 7.5e3, 0], 2451545.0),
@@ -17,7 +18,7 @@ def make_state(momentum=(0.1, -0.2)):
     )
 
 
-def test_state_default_internal_is_independent():
+def test_state_default_internal_is_independent() -> None:
     base = State(
         AttitudeState([1, 0, 0, 0], [0, 0, 0]), OrbitalState([0, 0, 0], [0, 0, 0], 1)
     )
@@ -28,7 +29,7 @@ def test_state_default_internal_is_independent():
     assert other.internal.wheel_momentum.size == 0
 
 
-def test_to_record_schema_and_values():
+def test_to_record_schema_and_values() -> None:
     record = make_state().to_record()
     assert record.shape == (1,)
     assert record.dtype.names == (
@@ -47,12 +48,12 @@ def test_to_record_schema_and_values():
 
 
 @pytest.mark.parametrize("count", [0, 1, 3, -1])
-def test_to_record_rejects_wheel_count_mismatch(count):
+def test_to_record_rejects_wheel_count_mismatch(count: int) -> None:
     with pytest.raises(ValueError, match="expected .* reaction wheel momenta"):
         make_state().to_record(count)
 
 
-def test_to_record_requires_cartesian_orbit():
+def test_to_record_requires_cartesian_orbit() -> None:
     state = State(
         AttitudeState([1, 0, 0, 0], [0, 0, 0]),
         OrbitalState.from_keplerian(7000, 0, 0, 0, 0, 0, 2451545),
@@ -61,7 +62,7 @@ def test_to_record_requires_cartesian_orbit():
         state.to_record()
 
 
-def test_from_record_roundtrip_and_owns_data():
+def test_from_record_roundtrip_and_owns_data() -> None:
     original = make_state()
     record = original.to_record()
     rebuilt = State.from_record(record, original.orbit.julian_date)
@@ -78,7 +79,7 @@ def test_from_record_roundtrip_and_owns_data():
     assert rebuilt.internal.wheel_momentum[0] == 0.1
 
 
-def test_from_record_accepts_numpy_record_scalar_and_propagates_ephemeris():
+def test_from_record_accepts_numpy_record_scalar_and_propagates_ephemeris() -> None:
     record = make_state().to_record()[0]
     marker = object()
     rebuilt = State.from_record(record, 123.0, marker)
@@ -86,7 +87,7 @@ def test_from_record_accepts_numpy_record_scalar_and_propagates_ephemeris():
     assert rebuilt.orbit.ephemeris is marker
 
 
-def test_state_slots_and_component_assignment_are_direct():
+def test_state_slots_and_component_assignment_are_direct() -> None:
     state = make_state()
     replacement = InternalState([8])
     state.internal = replacement

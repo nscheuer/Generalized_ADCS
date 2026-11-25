@@ -11,8 +11,12 @@ from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions impor
 
 
 def make_sensor(
-    noise=None, bias=None, limit=100.0, orientation=None, misalignment=None
-):
+    noise: np.ndarray | None = None,
+    bias: np.ndarray | None = None,
+    limit: float = 100.0,
+    orientation: np.ndarray | None = None,
+    misalignment: np.ndarray | None = None,
+) -> Accelerometer:
     identity = np.array([1.0, 0.0, 0.0, 0.0])
     return Accelerometer(
         np.zeros(3),
@@ -24,7 +28,7 @@ def make_sensor(
     )
 
 
-def test_specific_force_is_acceleration_minus_gravity_and_rotated_to_sensor():
+def test_specific_force_is_acceleration_minus_gravity_and_rotated_to_sensor() -> None:
     orientation = _axis_angle_to_quaternion(np.array([0.0, 0.0, 1.0]), 0.5)
     misalignment = _axis_angle_to_quaternion(np.array([1.0, 0.0, 0.0]), -0.2)
     attitude = _axis_angle_to_quaternion(np.array([0.0, 1.0, 0.0]), 0.3)
@@ -37,7 +41,7 @@ def test_specific_force_is_acceleration_minus_gravity_and_rotated_to_sensor():
     )
 
 
-def test_bias_and_noise_measurement_variants():
+def test_bias_and_noise_measurement_variants() -> None:
     bias = np.array([0.1, -0.2, 0.3])
     sensor = make_sensor(bias=bias)
     a, g, q = (
@@ -55,7 +59,7 @@ def test_bias_and_noise_measurement_variants():
         assert sample.shape == (3,) and np.all(np.isfinite(sample))
 
 
-def test_attitude_jacobians_have_correct_zero_error_scaling():
+def test_attitude_jacobians_have_correct_zero_error_scaling() -> None:
     sensor = make_sensor()
     a, g, q = (
         np.array([2.0, 3.0, 4.0]),
@@ -71,7 +75,7 @@ def test_attitude_jacobians_have_correct_zero_error_scaling():
     )
 
 
-def test_nonzero_attitude_jacobians_are_finite():
+def test_nonzero_attitude_jacobians_are_finite() -> None:
     sensor = make_sensor()
     a, g, q = np.ones(3), np.array([0.1, 0.2, 0.3]), np.array([1.0, 0.0, 0.0, 0.0])
     dq = _axis_angle_to_quaternion(np.array([1.0, 2.0, 0.0]), 0.1)
@@ -83,7 +87,7 @@ def test_nonzero_attitude_jacobians_are_finite():
     assert all(x.shape == (3, 3) and np.all(np.isfinite(x)) for x in values)
 
 
-def test_sensor_saturation_and_availability():
+def test_sensor_saturation_and_availability() -> None:
     sensor = make_sensor(limit=0.5)
     q = np.array([1.0, 0.0, 0.0, 0.0])
     np.testing.assert_allclose(

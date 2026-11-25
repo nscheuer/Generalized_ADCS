@@ -5,7 +5,7 @@ from GenADCS.backends.python.environment.atmosphere.NRMLSISE00 import NRLMSISE00
 from GenADCS.backends.python.helpers.math.time import calendar_to_jd
 
 
-def test_nrlmsise00_density_is_realistic_at_low_earth_orbit():
+def test_nrlmsise00_density_is_realistic_at_low_earth_orbit() -> None:
     model = NRLMSISE00()
     position_m = np.array((6_778_137.0, 0.0, 0.0))
     density = model.density(position_m, calendar_to_jd(2020, 1, 1))
@@ -14,7 +14,7 @@ def test_nrlmsise00_density_is_realistic_at_low_earth_orbit():
     assert 1e-13 < density < 1e-9
 
 
-def test_nrlmsise00_density_changes_with_altitude():
+def test_nrlmsise00_density_changes_with_altitude() -> None:
     model = NRLMSISE00()
     epoch = calendar_to_jd(2020, 1, 1)
     low = model.density(np.array((6_778_137.0, 0.0, 0.0)), epoch)
@@ -23,7 +23,7 @@ def test_nrlmsise00_density_changes_with_altitude():
     assert low > high > 0.0
 
 
-def test_nrlmsise00_rejects_ap_history_with_wrong_length():
+def test_nrlmsise00_rejects_ap_history_with_wrong_length() -> None:
     with pytest.raises(ValueError, match="seven Ap values"):
         NRLMSISE00.density(
             np.array((6_778_137.0, 0.0, 0.0)),

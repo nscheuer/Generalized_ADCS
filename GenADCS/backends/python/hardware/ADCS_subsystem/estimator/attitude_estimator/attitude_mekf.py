@@ -121,7 +121,7 @@ def step(
     acceleration_psd: np.ndarray,
     dt: float,
     readings: np.ndarray,
-    sensor_config: tuple,
+    sensor_config: tuple[np.ndarray, ...],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Predict and consume all valid gyro/tracker readings at one sensor tick.
 
@@ -178,7 +178,7 @@ def step_with_diagnostics(
     acceleration_psd: np.ndarray,
     dt: float,
     readings: np.ndarray,
-    sensor_config: tuple,
+    sensor_config: tuple[np.ndarray, ...],
     flags: int,
     truth_q: np.ndarray,
     truth_w: np.ndarray,

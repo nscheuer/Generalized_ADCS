@@ -3,7 +3,7 @@ import numpy as np
 from GenADCS.backends.python.environment.gravity import J2
 
 
-def test_j2_gravity_is_realistic_and_central():
+def test_j2_gravity_is_realistic_and_central() -> None:
     model = J2()
     position = np.array((7_000_000.0, 0.0, 0.0))
     acceleration = model.evaluate(position)
@@ -13,7 +13,7 @@ def test_j2_gravity_is_realistic_and_central():
     np.testing.assert_allclose(acceleration[1], 0.0, atol=1e-14)
 
 
-def test_j2_gravity_perturbation_is_small_and_symmetric():
+def test_j2_gravity_perturbation_is_small_and_symmetric() -> None:
     point_mass = J2(degrees=())
     j2 = J2()
     p = np.array((7_000_000.0, 0.0, 1_000_000.0))

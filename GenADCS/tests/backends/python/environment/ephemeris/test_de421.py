@@ -1,10 +1,12 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 from GenADCS.backends.python.environment.ephemeris.de421.de421 import DE421, _load_spk
 
 
-def test_de421_packaged_kernel_loads_and_is_cached():
+def test_de421_packaged_kernel_loads_and_is_cached() -> None:
     _load_spk.cache_clear()
     model = DE421()
     second = DE421()
@@ -19,7 +21,7 @@ def test_de421_packaged_kernel_loads_and_is_cached():
     assert "sun" in model.available_bodies
 
 
-def test_de421_sun_state_is_plausible_and_consistent():
+def test_de421_sun_state_is_plausible_and_consistent() -> None:
     model = DE421()
     epoch = 2_458_849.5
     position = model.position_eci("sun", epoch)
@@ -33,7 +35,7 @@ def test_de421_sun_state_is_plausible_and_consistent():
     np.testing.assert_allclose(velocity, state_velocity, rtol=1e-12, atol=1e-12)
 
 
-def test_de421_vectorizes_epochs():
+def test_de421_vectorizes_epochs() -> None:
     model = DE421()
     positions = model.position_eci("moon", np.array((2_458_849.5, 2_458_850.5)))
 
@@ -43,17 +45,17 @@ def test_de421_vectorizes_epochs():
 
 
 @pytest.mark.parametrize("target", ("not-a-body", 123456))
-def test_de421_rejects_unknown_body(target):
+def test_de421_rejects_unknown_body(target: str | int) -> None:
     with pytest.raises(ValueError, match="unsupported DE421"):
         DE421().position_eci(target, 2_458_849.5)
 
 
-def test_de421_rejects_epoch_outside_kernel_coverage():
+def test_de421_rejects_epoch_outside_kernel_coverage() -> None:
     with pytest.raises(ValueError, match="no SPK segment covers"):
         DE421().position_eci("sun", 1_000_000.0)
 
 
-def test_de421_rejects_malformed_kernel(tmp_path):
+def test_de421_rejects_malformed_kernel(tmp_path: Path) -> None:
     bad_kernel = tmp_path / "not-an-spk.bsp"
     bad_kernel.write_bytes(b"not an SPK")
     _load_spk.cache_clear()

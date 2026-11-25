@@ -11,7 +11,7 @@ DEFAULT_SEED = np.uint64(0)
 
 @njit(cache=True)
 def gaussian_sample(
-    cholesky_factor: np.ndarray, seed: int = DEFAULT_SEED, tick: int = 0
+    cholesky_factor: np.ndarray, seed: int | np.integer = DEFAULT_SEED, tick: int = 0
 ) -> np.ndarray:
     """Draw correlated zero-mean Gaussian noise using a prepared Cholesky factor."""
     return cholesky_factor @ standard_normals(seed, tick, 0, cholesky_factor.shape[0])
@@ -21,7 +21,7 @@ def gaussian_sample(
 def add_gaussian_noise(
     value: np.ndarray,
     cholesky_factor: np.ndarray,
-    seed: int = DEFAULT_SEED,
+    seed: int | np.integer = DEFAULT_SEED,
     tick: int = 0,
 ) -> np.ndarray:
     return value + gaussian_sample(cholesky_factor, seed, tick)

@@ -11,13 +11,13 @@ from GenADCS.backends.python.helpers.math.frames import (
 )
 
 
-def test_identity_quaternion_gives_identity_matrices():
+def test_identity_quaternion_gives_identity_matrices() -> None:
     q = np.array([1.0, 0, 0, 0])
     np.testing.assert_allclose(inertial_to_body_matrix(q), np.eye(3), atol=1e-15)
     np.testing.assert_allclose(body_to_inertial_matrix(q), np.eye(3), atol=1e-15)
 
 
-def test_quarter_turn_and_inverse_vector_transforms():
+def test_quarter_turn_and_inverse_vector_transforms() -> None:
     # Scalar-first Hamilton quaternion for +90 degrees about z.
     q = np.array([np.sqrt(0.5), 0, 0, np.sqrt(0.5)])
     vector_i = np.array([1.0, 0, 0])
@@ -29,7 +29,7 @@ def test_quarter_turn_and_inverse_vector_transforms():
     )
 
 
-def test_rotation_matrix_is_orthogonal_and_proper():
+def test_rotation_matrix_is_orthogonal_and_proper() -> None:
     q = np.array([0.3, -0.4, 0.1, 0.5], dtype=np.float64)
     q /= np.linalg.norm(q)
     matrix = inertial_to_body_matrix(q)
@@ -37,13 +37,13 @@ def test_rotation_matrix_is_orthogonal_and_proper():
     assert np.linalg.det(matrix) == pytest.approx(1.0, abs=1e-14)
 
 
-def test_vector_transform_matches_matrix_multiplication():
+def test_vector_transform_matches_matrix_multiplication() -> None:
     matrix = np.array([[0.0, -1, 0], [1, 0, 0], [0, 0, 1]])
     vector = np.array([2.0, 3, 4])
     np.testing.assert_array_equal(transform_vector(vector, matrix), matrix @ vector)
 
 
-def test_covariance_transform_preserves_symmetry_and_psd():
+def test_covariance_transform_preserves_symmetry_and_psd() -> None:
     matrix = np.array([[0.0, -1, 0], [1, 0, 0], [0, 0, 1]])
     covariance = np.array([[4.0, 1, 0], [1, 2, 0], [0, 0, 3]])
     transformed = transform_covariance(covariance, matrix)
@@ -52,7 +52,7 @@ def test_covariance_transform_preserves_symmetry_and_psd():
     assert np.linalg.eigvalsh(transformed).min() >= -1e-14
 
 
-def test_low_level_quaternion_kernel_requires_normalized_input_for_rotation():
+def test_low_level_quaternion_kernel_requires_normalized_input_for_rotation() -> None:
     # This kernel applies the quaternion polynomial directly and deliberately
     # does not normalize or validate; callers own that precondition.
     zero_result = inertial_to_body_matrix(np.zeros(4, dtype=np.float64))
@@ -65,7 +65,7 @@ def test_low_level_quaternion_kernel_requires_normalized_input_for_rotation():
         inertial_to_body_matrix(np.array([1.0, 0.0, 0.0]))
 
 
-def test_kernels_accept_noncontiguous_inputs_and_return_finite_values():
+def test_kernels_accept_noncontiguous_inputs_and_return_finite_values() -> None:
     q = np.array([1.0, 8, 0, 8, 0, 8, 0, 8])[::2]
     v = np.array([2.0, 8, 3, 8, 4, 8])[::2]
     result = inertial_to_body(v, q)
@@ -73,7 +73,7 @@ def test_kernels_accept_noncontiguous_inputs_and_return_finite_values():
     assert np.all(np.isfinite(result))
 
 
-def test_covariance_transform_handles_diagonal_and_dense_inputs():
+def test_covariance_transform_handles_diagonal_and_dense_inputs() -> None:
     dcm = np.eye(3)
     diagonal = np.diag([1.0, 2, 3])
     np.testing.assert_array_equal(transform_covariance(diagonal, dcm), diagonal)

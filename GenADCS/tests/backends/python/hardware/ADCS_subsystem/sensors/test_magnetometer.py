@@ -1,5 +1,7 @@
 """Behavior and Jacobian tests for the compiled three-axis magnetometer."""
 
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -12,8 +14,13 @@ from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions impor
 
 
 def make_sensor(
-    *, limit=1.0, noise=None, bias=None, orientation=None, misalignment=None
-):
+    *,
+    limit: float = 1.0,
+    noise: Any = None,
+    bias: Any = None,
+    orientation: Any = None,
+    misalignment: Any = None,
+) -> Magnetometer:
     return Magnetometer(
         np.zeros(3),
         np.array([1.0, 0.0, 0.0, 0.0]) if orientation is None else orientation,
@@ -24,7 +31,7 @@ def make_sensor(
     )
 
 
-def test_noiseless_measurements_rotate_inertial_field_to_sensor_frame():
+def test_noiseless_measurements_rotate_inertial_field_to_sensor_frame() -> None:
     q_att = _axis_angle_to_quaternion(np.array([0.0, 0.0, 1.0]), np.pi / 2)
     q_mount = _axis_angle_to_quaternion(np.array([1.0, 0.0, 0.0]), np.pi / 2)
     q_misalign = _axis_angle_to_quaternion(np.array([0.0, 1.0, 0.0]), np.pi / 2)
@@ -41,7 +48,7 @@ def test_noiseless_measurements_rotate_inertial_field_to_sensor_frame():
     )
 
 
-def test_bias_is_additive_before_componentwise_saturation():
+def test_bias_is_additive_before_componentwise_saturation() -> None:
     sensor = make_sensor(limit=4e-5, bias=np.array([1e-5, -2e-5, 0.0]))
     field = np.array([4e-5, -4e-5, 2e-5])
     np.testing.assert_allclose(
@@ -55,7 +62,7 @@ def test_bias_is_additive_before_componentwise_saturation():
     np.testing.assert_allclose(sensor.jacobian_bias(), np.eye(3))
 
 
-def test_measurement_saturates_each_axis():
+def test_measurement_saturates_each_axis() -> None:
     sensor = make_sensor(limit=3e-5)
     out = sensor.noiseless_biasfree_measurement(
         np.array([5e-5, -4e-5, 1e-5]), np.array([1.0, 0.0, 0.0, 0.0])
@@ -66,7 +73,7 @@ def test_measurement_saturates_each_axis():
 @pytest.mark.parametrize(
     "method", ["noisy_biasfree_measurement", "noisy_biased_measurement"]
 )
-def test_noise_is_finite_and_measurement_shaped(method):
+def test_noise_is_finite_and_measurement_shaped(method: str) -> None:
     sensor = make_sensor(
         noise=np.diag([1e-10, 4e-10, 9e-10]), bias=np.array([1e-6, 2e-6, 3e-6])
     )
@@ -75,7 +82,7 @@ def test_noise_is_finite_and_measurement_shaped(method):
     assert np.all(np.isfinite(result))
 
 
-def test_attitude_jacobians_match_small_angle_finite_difference():
+def test_attitude_jacobians_match_small_angle_finite_difference() -> None:
     sensor = make_sensor()
     q = np.array([1.0, 0.0, 0.0, 0.0])
     field = np.array([2e-5, -3e-5, 4e-5])
@@ -95,7 +102,7 @@ def test_attitude_jacobians_match_small_angle_finite_difference():
     )
 
 
-def test_nonzero_relative_parameter_jacobians_are_finite():
+def test_nonzero_relative_parameter_jacobians_are_finite() -> None:
     sensor = make_sensor()
     field, q = np.array([2e-5, 1e-5, -3e-5]), np.array([1.0, 0.0, 0.0, 0.0])
     delta_q = _axis_angle_to_quaternion(np.array([1.0, 2.0, -1.0]), 0.2)
@@ -108,7 +115,7 @@ def test_nonzero_relative_parameter_jacobians_are_finite():
         assert np.all(np.isfinite(jac))
 
 
-def test_availability_and_fisher_information():
+def test_availability_and_fisher_information() -> None:
     sensor = make_sensor(noise=np.diag([2.0, 3.0, 4.0]))
     field, q = np.array([1.0, 2.0, 3.0]), np.array([1.0, 0.0, 0.0, 0.0])
     assert sensor.availability()

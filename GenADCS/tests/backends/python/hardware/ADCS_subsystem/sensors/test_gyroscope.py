@@ -12,8 +12,13 @@ from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions impor
 
 
 def make_sensor(
-    *, limit=100.0, noise=None, bias=None, orientation=None, misalignment=None
-):
+    *,
+    limit: float = 100.0,
+    noise: np.ndarray | None = None,
+    bias: np.ndarray | None = None,
+    orientation: np.ndarray | None = None,
+    misalignment: np.ndarray | None = None,
+) -> Gyroscope:
     return Gyroscope(
         np.zeros(3),
         np.array([1.0, 0.0, 0.0, 0.0]) if orientation is None else orientation,
@@ -24,7 +29,7 @@ def make_sensor(
     )
 
 
-def test_noiseless_measurements_apply_mounting_and_misalignment_rotations():
+def test_noiseless_measurements_apply_mounting_and_misalignment_rotations() -> None:
     orientation = _axis_angle_to_quaternion(np.array([0.0, 0.0, 1.0]), np.pi / 2)
     misalignment = _axis_angle_to_quaternion(np.array([1.0, 0.0, 0.0]), np.pi / 2)
     omega = np.array([0.1, -0.2, 0.3])
@@ -34,7 +39,7 @@ def test_noiseless_measurements_apply_mounting_and_misalignment_rotations():
     np.testing.assert_allclose(sensor.noiseless_biased_measurement(omega), expected)
 
 
-def test_bias_is_additive_and_bias_jacobian_is_identity():
+def test_bias_is_additive_and_bias_jacobian_is_identity() -> None:
     bias = np.array([0.01, -0.02, 0.03])
     sensor = make_sensor(bias=bias)
     omega = np.array([0.1, 0.2, -0.3])
@@ -42,7 +47,7 @@ def test_bias_is_additive_and_bias_jacobian_is_identity():
     np.testing.assert_allclose(sensor.jacobian_bias(), np.eye(3))
 
 
-def test_measurement_saturates_each_axis():
+def test_measurement_saturates_each_axis() -> None:
     sensor = make_sensor(limit=0.25)
     np.testing.assert_allclose(
         sensor.noiseless_biasfree_measurement(np.array([0.5, -0.4, 0.1])),
@@ -53,7 +58,7 @@ def test_measurement_saturates_each_axis():
 @pytest.mark.parametrize(
     "method", ["noisy_biasfree_measurement", "noisy_biased_measurement"]
 )
-def test_noise_measurements_are_finite_and_shaped(method):
+def test_noise_measurements_are_finite_and_shaped(method: str) -> None:
     sensor = make_sensor(
         noise=np.diag([1e-6, 4e-6, 9e-6]), bias=np.array([0.01, 0.0, -0.01])
     )
@@ -62,7 +67,7 @@ def test_noise_measurements_are_finite_and_shaped(method):
     assert np.all(np.isfinite(result))
 
 
-def test_rate_jacobian_and_availability_contract():
+def test_rate_jacobian_and_availability_contract() -> None:
     sensor = make_sensor()
     np.testing.assert_array_equal(sensor.jacobian_angular_velocity(), np.eye(3))
     assert sensor.availability()

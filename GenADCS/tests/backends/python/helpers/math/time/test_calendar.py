@@ -19,7 +19,7 @@ from GenADCS.backends.python.helpers.math.time import (
         ((2000, 3, 1, 0, 0, 0.0), 2451604.5),
     ],
 )
-def test_calendar_to_known_julian_dates(date, expected):
+def test_calendar_to_known_julian_dates(date: tuple[int, int, int, int, int, float], expected: float) -> None:
     assert calendar_to_jd(*date) == pytest.approx(expected, abs=2e-9)
 
 
@@ -32,13 +32,13 @@ def test_calendar_to_known_julian_dates(date, expected):
         (1582, 10, 15, 0, 0, 0.0),
     ],
 )
-def test_calendar_jd_roundtrip_calendar_fields(date):
+def test_calendar_jd_roundtrip_calendar_fields(date: tuple[int, int, int, int, int, float]) -> None:
     result = jd_to_calendar(calendar_to_jd(*date))
     assert result[:5] == date[:5]
     assert result[5] == pytest.approx(date[5], abs=4e-5)
 
 
-def test_midnight_noon_and_day_boundaries():
+def test_midnight_noon_and_day_boundaries() -> None:
     midnight = calendar_to_jd(2025, 6, 1)
     assert midnight % 1 == pytest.approx(0.5)
     assert jd_to_calendar(midnight)[:6] == (2025, 6, 1, 0, 0, 0.0)
@@ -46,7 +46,7 @@ def test_midnight_noon_and_day_boundaries():
     assert jd_to_calendar(midnight + 1)[:3] == (2025, 6, 2)
 
 
-def test_subday_arguments_carry_naturally():
+def test_subday_arguments_carry_naturally() -> None:
     assert calendar_to_jd(2020, 1, 1, 24) == pytest.approx(calendar_to_jd(2020, 1, 2))
     assert calendar_to_jd(2020, 1, 1, 0, 60) == pytest.approx(
         calendar_to_jd(2020, 1, 1, 1)
@@ -56,7 +56,7 @@ def test_subday_arguments_carry_naturally():
     )
 
 
-def test_utc_calendar_fields_are_seconds_from_midnight():
+def test_utc_calendar_fields_are_seconds_from_midnight() -> None:
     jd = calendar_to_jd(2024, 3, 4, 12, 34, 56.25)
     year, month, day, seconds = jd_to_utc_calendar_fields(jd)
     assert (year, month, day) == (2024, 3, 4)
@@ -74,5 +74,5 @@ def test_utc_calendar_fields_are_seconds_from_midnight():
         (1900, 3, 1, 60),
     ],
 )
-def test_day_of_year_gregorian_leap_rules(year, month, day, expected):
+def test_day_of_year_gregorian_leap_rules(year: int, month: int, day: int, expected: int) -> None:
     assert day_of_year(year, month, day) == expected

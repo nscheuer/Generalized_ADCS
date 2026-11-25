@@ -14,7 +14,7 @@ from GenADCS.backends.python.noise import (
 from GenADCS.backends.python.noise.noise import gaussian_sample
 
 
-def test_covariance_noise_cholesky_and_reproducible_sample():
+def test_covariance_noise_cholesky_and_reproducible_sample() -> None:
     noise = Noise([[4.0, 2.0], [2.0, 3.0]])
     np.testing.assert_allclose(noise.cholesky_factor, [[2.0, 0.0], [1.0, np.sqrt(2.0)]])
 
@@ -30,7 +30,7 @@ def test_covariance_noise_cholesky_and_reproducible_sample():
     draw = np.array([0.5, -0.25])
 
     class FixedRng:
-        def standard_normal(self, size):
+        def standard_normal(self, size: int) -> np.ndarray:
             assert size == 2
             return draw
 
@@ -39,7 +39,7 @@ def test_covariance_noise_cholesky_and_reproducible_sample():
     )
 
 
-def test_covariance_noise_rejects_invalid_inputs():
+def test_covariance_noise_rejects_invalid_inputs() -> None:
     with pytest.raises(NotImplementedError):
         Noise().apply([1.0], 0.1)
     with pytest.raises(ValueError):
@@ -50,7 +50,7 @@ def test_covariance_noise_rejects_invalid_inputs():
         Noise(np.eye(2)).apply([1.0], 0.1)
 
 
-def test_concrete_noise_models_store_parameters():
+def test_concrete_noise_models_store_parameters() -> None:
     assert FlickerNoise(0.25).amplitude == 0.25
     assert GaussMarkovNoise(0.5, 12.0).correlation_time == 12.0
     assert GaussianWhiteNoise(0.1).standard_deviation == 0.1

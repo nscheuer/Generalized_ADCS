@@ -1,5 +1,7 @@
 """Constructor, effects, and field tests for Magnetorquer."""
 
+from typing import Any
+
 import pytest
 
 from GenADCS.backends.python.bias import Bias
@@ -8,17 +10,17 @@ from GenADCS.backends.python.noise import Noise
 
 
 class AddEffect:
-    def __init__(self, amount, calls=None):
+    def __init__(self, amount: float, calls: list[tuple[Any, ...]] | None = None) -> None:
         self.amount = amount
         self.calls = calls
 
-    def apply(self, value, dt, rng=None):
+    def apply(self, value: Any, dt: float, rng: Any = None) -> Any:
         if self.calls is not None:
             self.calls.append((value, dt, rng))
         return value + self.amount
 
 
-def test_required_fields_and_defaults():
+def test_required_fields_and_defaults() -> None:
     mtq = Magnetorquer((1.0, 2.0, 3.0), (0.0, 0.0, 1.0), 0.25)
     assert mtq.position == (1.0, 2.0, 3.0)
     assert mtq.orientation == (0.0, 0.0, 1.0)
@@ -29,7 +31,7 @@ def test_required_fields_and_defaults():
     assert mtq.biases == []
 
 
-def test_effect_default_lists_are_independent():
+def test_effect_default_lists_are_independent() -> None:
     first = Magnetorquer((0, 0, 0), (1, 0, 0), 0.1)
     second = Magnetorquer((0, 0, 0), (1, 0, 0), 0.1)
     assert first.effects is not second.effects
@@ -37,7 +39,7 @@ def test_effect_default_lists_are_independent():
     assert second.effects == []
 
 
-def test_effects_reference_is_preserved_and_noise_bias_views_filter_in_order():
+def test_effects_reference_is_preserved_and_noise_bias_views_filter_in_order() -> None:
     noise_a, bias_a = Noise(), Bias()
     plain, noise_b, bias_b = object(), Noise(), Bias()
     effects = [noise_a, bias_a, plain, noise_b, bias_b]
@@ -49,7 +51,7 @@ def test_effects_reference_is_preserved_and_noise_bias_views_filter_in_order():
     assert mtq.noises == [noise_a, noise_b, noise_a]
 
 
-def test_apply_errors_runs_effects_sequentially_and_passes_rng_and_dt():
+def test_apply_errors_runs_effects_sequentially_and_passes_rng_and_dt() -> None:
     calls = []
     rng = object()
     mtq = Magnetorquer(
@@ -59,13 +61,13 @@ def test_apply_errors_runs_effects_sequentially_and_passes_rng_and_dt():
     assert calls == [(1.0, 0.125, rng), (3.0, 0.125, rng)]
 
 
-def test_apply_errors_without_effects_returns_input_unchanged():
+def test_apply_errors_without_effects_returns_input_unchanged() -> None:
     value = [0.1, -0.2, 0.3]
     mtq = Magnetorquer((0, 0, 0), (0, 0, 1), 0.4)
     assert mtq.apply_errors(value, 1.0) is value
 
 
-def test_fields_are_mutable_instance_is_slotted_and_missing_arguments_fail():
+def test_fields_are_mutable_instance_is_slotted_and_missing_arguments_fail() -> None:
     mtq = Magnetorquer((0, 0, 0), (1, 0, 0), 0.2)
     mtq.position = (1, 0, 0)
     mtq.max_dipole = 0.35
@@ -79,7 +81,7 @@ def test_fields_are_mutable_instance_is_slotted_and_missing_arguments_fail():
         Magnetorquer((0, 0, 0), (1, 0, 0))
 
 
-def test_constructor_preserves_supplied_mutable_values_without_coercion():
+def test_constructor_preserves_supplied_mutable_values_without_coercion() -> None:
     position = [1, 2, 3]
     effects = []
     mtq = Magnetorquer(position, [0, 0, 1], 0.2, effects=effects)

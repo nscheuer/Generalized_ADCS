@@ -7,7 +7,7 @@ from GenADCS.backends.python.dynamics.srp_model import (
 )
 
 
-def test_srp_force_is_finite_and_scales_with_illumination():
+def test_srp_force_is_finite_and_scales_with_illumination() -> None:
     args = (
         np.zeros(3),
         np.array([149597870700.0, 0.0, 0.0]),
@@ -23,7 +23,7 @@ def test_srp_force_is_finite_and_scales_with_illumination():
     assert projected_area_srp_force(*args, 0.0).tolist() == [0.0, 0.0, 0.0]
 
 
-def test_srp_torque_and_coincident_sun_rejection():
+def test_srp_torque_and_coincident_sun_rejection() -> None:
     args = (
         np.zeros(3),
         np.array([1.5e11, 0.0, 0.0]),

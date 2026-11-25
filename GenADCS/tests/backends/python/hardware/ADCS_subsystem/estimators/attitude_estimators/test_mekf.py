@@ -1,9 +1,12 @@
+from typing import cast
+
 import numpy as np
 import pytest
 from numba import njit
 
 from GenADCS.backends.python.config import DynamicsConfig
 from GenADCS.backends.python.environment import Earth, Environment
+from GenADCS.backends.python.environment.ephemeris import EphemerisModel
 from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
 from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem
 from GenADCS.backends.python.hardware.ADCS_subsystem.estimator import AttitudeMEKF
@@ -15,6 +18,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.attitude_estimato
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import (
     AutonomousStarTracker,
     Gyroscope,
+    Sensor,
 )
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
     prepare_sensors,
@@ -29,11 +33,12 @@ from GenADCS.backends.python.propagation import (
 from GenADCS.backends.python.simulate import ResultsFormat, simulate
 from GenADCS.backends.python.solver import CoupledSolver
 from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
+from GenADCS.backends.shared.simulationresult import SimulationResult
 
 IDENTITY = np.array([1.0, 0.0, 0.0, 0.0])
 
 
-def test_tracker_correction_reduces_attitude_error_and_covariance():
+def test_tracker_correction_reduces_attitude_error_and_covariance() -> None:
     initial = rotation_vector_to_quaternion(np.array([0.1, -0.05, 0.02]))
     covariance = np.eye(6) * 0.1
     updated, _, posterior = correct_star_tracker(
@@ -44,7 +49,7 @@ def test_tracker_correction_reduces_attitude_error_and_covariance():
     np.testing.assert_allclose(posterior, posterior.T, atol=1e-14)
 
 
-def test_prediction_noise_and_compiled_sensor_step():
+def test_prediction_noise_and_compiled_sensor_step() -> None:
     covariance = np.zeros((6, 6))
     psd = np.eye(3) * 2e-5
     _, _, propagated = predict(IDENTITY, np.zeros(3), covariance, psd, 2.0)
@@ -59,11 +64,18 @@ def test_prediction_noise_and_compiled_sensor_step():
     gyro = Gyroscope(
         np.zeros(3), IDENTITY, IDENTITY, 10.0, np.eye(3) * 1e-6, np.zeros(3)
     )
-    config = prepare_sensors([gyro], None)
+    config = prepare_sensors(cast(list[Sensor], [gyro]), Environment())
     estimator = AttitudeMEKF(IDENTITY, np.ones(3), np.eye(6), psd)
 
     @njit
-    def run(q, w, p, process_noise, readings, sensors):
+    def run(
+        q: np.ndarray,
+        w: np.ndarray,
+        p: np.ndarray,
+        process_noise: np.ndarray,
+        readings: np.ndarray,
+        sensors: tuple[np.ndarray, ...],
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         for _ in range(3):
             q, w, p = step(q, w, p, process_noise, 0.1, readings, sensors)
         return q, w, p
@@ -74,19 +86,19 @@ def test_prediction_noise_and_compiled_sensor_step():
     assert np.linalg.eigvalsh(p).min() >= -1e-12
 
 
-def test_plotting_example_converges():
+def test_plotting_example_converges() -> None:
     from GenADCS.examples.plotting.estimators._setup import run_example
 
-    rows = run_example(progress=False).satellites["sat_000"]
-    dot = np.sum(rows.satellite_attitude * rows.estimated_attitude, axis=1)
+    rows = cast(SimulationResult, run_example(progress=False)).satellites["sat_000"]
+    dot = np.sum(rows.fields["satellite_attitude"] * rows.fields["estimated_attitude"], axis=1)
     attitude_error = 2 * np.arccos(np.clip(np.abs(dot), 0.0, 1.0))
-    rate_error = np.linalg.norm(rows.satellite_rate - rows.estimated_rate, axis=1)
+    rate_error = np.linalg.norm(rows.fields["satellite_rate"] - rows.fields["estimated_rate"], axis=1)
     assert attitude_error[-1] < 0.001
     assert attitude_error[-1] < attitude_error[0] / 3
     assert rate_error[-1] < rate_error[0]
 
 
-def test_missing_tracker_and_mixed_sensor_order():
+def test_missing_tracker_and_mixed_sensor_order() -> None:
     gyro = Gyroscope(
         np.zeros(3), IDENTITY, IDENTITY, 10.0, np.eye(3) * 1e-6, np.zeros(3)
     )
@@ -94,7 +106,10 @@ def test_missing_tracker_and_mixed_sensor_order():
         np.zeros(3), IDENTITY, IDENTITY, 10.0, np.eye(3) * 1e-6, np.zeros(3)
     )
     for sensors in ([tracker, gyro], [gyro, tracker]):
-        config = prepare_sensors(sensors, type("Env", (), {"ephemeris": object()})())
+        config = prepare_sensors(
+            cast(list[Sensor], sensors),
+            Environment(ephemeris=cast(EphemerisModel, object())),
+        )
         readings = np.full(7, np.nan)
         readings[:3] = 0.0
         _q, w, p = step(
@@ -105,14 +120,16 @@ def test_missing_tracker_and_mixed_sensor_order():
 
 
 @pytest.mark.parametrize("propagator", [CoupledRK4Propagator, CoupledDOP853Propagator])
-def test_estimator_stays_in_simulation_loop(propagator):
+def test_estimator_stays_in_simulation_loop(
+    propagator: type[CoupledRK4Propagator] | type[CoupledDOP853Propagator],
+) -> None:
     gyro = Gyroscope(
         np.zeros(3), IDENTITY, IDENTITY, 10.0, np.eye(3) * 1e-8, np.zeros(3)
     )
     estimator = AttitudeMEKF(IDENTITY, np.array([0.1, 0.1, 0.1]), np.eye(6) * 0.1, 1e-8)
     satellite = Satellite(
         SatelliteGeometry(12.0, np.diag([0.13, 0.1, 0.05]), []),
-        ADCSSubsystem(sensors=[gyro], estimator=estimator),
+        ADCSSubsystem(sensors=cast(list[Sensor], [gyro]), estimator=estimator),
     )
     state = State(
         AttitudeState(IDENTITY, (0.01, -0.015, 0.02)),
@@ -141,8 +158,8 @@ def test_estimator_stays_in_simulation_loop(propagator):
         ),
     )
     rows = result.satellites["sat_000"]
-    assert rows.estimated_attitude.shape == (3, 4)
-    assert rows.estimated_covariance.shape == (3, 36)
+    assert rows.fields["estimated_attitude"].shape == (3, 4)
+    assert rows.fields["estimated_covariance"].shape == (3, 36)
     for name, width in (
         ("estimated_attitude_covariance", 9),
         ("estimated_rate_covariance", 9),
@@ -153,18 +170,18 @@ def test_estimator_stays_in_simulation_loop(propagator):
         ("measurement_residual", 3),
         ("kalman_gain", 18),
     ):
-        value = getattr(rows, name)
+        value = rows.fields[name]
         assert value.shape == (3, width)
         assert np.all(np.isfinite(value))
     np.testing.assert_allclose(
-        rows.estimated_rate[-1], state.attitude.rates, atol=0.002
+        rows.fields["estimated_rate"][-1], np.asarray(state.attitude.rates), atol=0.002
     )
     np.testing.assert_allclose(
-        np.linalg.norm(rows.estimated_attitude, axis=1), 1.0, atol=1e-12
+        np.linalg.norm(rows.fields["estimated_attitude"], axis=1), 1.0, atol=1e-12
     )
 
 
-def test_estimator_record_selection_and_unrequested_fields():
+def test_estimator_record_selection_and_unrequested_fields() -> None:
     gyro = Gyroscope(
         np.zeros(3), IDENTITY, IDENTITY, 10.0, np.eye(3) * 1e-6, np.zeros(3)
     )
@@ -177,7 +194,7 @@ def test_estimator_record_selection_and_unrequested_fields():
     )
     satellite = Satellite(
         SatelliteGeometry(12.0, np.eye(3), []),
-        ADCSSubsystem(sensors=[gyro], estimator=estimator),
+        ADCSSubsystem(sensors=cast(list[Sensor], [gyro]), estimator=estimator),
     )
     state = State(
         AttitudeState(IDENTITY, (0.0, 0.0, 0.0)),
@@ -192,7 +209,7 @@ def test_estimator_record_selection_and_unrequested_fields():
         state,
         CoupledSolver(CoupledRK4Propagator(0.25), tf=0.0),
     ).satellites["sat_000"]
-    assert rows.normalized_innovation_squared.shape == (1, 1)
-    assert np.isfinite(rows.normalized_innovation_squared[0, 0])
-    assert rows.measurement_innovation is None
-    assert rows.estimated_attitude is None
+    assert rows.fields["normalized_innovation_squared"].shape == (1, 1)
+    assert np.isfinite(rows.fields["normalized_innovation_squared"][0, 0])
+    assert rows.fields.get("measurement_innovation") is None
+    assert rows.fields.get("estimated_attitude") is None

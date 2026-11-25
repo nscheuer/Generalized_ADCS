@@ -9,7 +9,7 @@ from GenADCS.backends.python.dynamics.third_body_model import (
 )
 
 
-def test_lunisolar_differential_acceleration_is_finite_and_small():
+def test_lunisolar_differential_acceleration_is_finite_and_small() -> None:
     a = lunisolar_acceleration(
         np.array([7e6, 0.0, 0.0]),
         np.array([1.5e11, 0.0, 0.0]),
@@ -23,13 +23,13 @@ def test_lunisolar_differential_acceleration_is_finite_and_small():
 @pytest.mark.parametrize(
     "sun,moon", [(np.zeros(3), np.ones(3)), (np.ones(3), np.zeros(3))]
 )
-def test_lunisolar_rejects_zero_separation(sun, moon):
+def test_lunisolar_rejects_zero_separation(sun: np.ndarray, moon: np.ndarray) -> None:
     with pytest.raises(ValueError, match="distance must be nonzero"):
         lunisolar_acceleration(np.zeros(3), sun, moon, 1.0, 1.0)
 
 
 @pytest.mark.parametrize("mass", [0.0, -1.0, np.nan])
-def test_lunisolar_model_rejects_invalid_mass(mass):
+def test_lunisolar_model_rejects_invalid_mass(mass: float) -> None:
     with pytest.raises(ValueError, match="mass must be finite and positive"):
         LunisolarForceModel(
             SimpleNamespace(mass=mass),

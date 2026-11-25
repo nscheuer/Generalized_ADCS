@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from numpy.typing import ArrayLike
 
 from GenADCS.backends.python.helpers.math.rotations.quaternion.interpolation import (
     quaternion_to_rotation_vector,
@@ -11,7 +12,7 @@ from GenADCS.backends.python.helpers.math.rotations.quaternion.quaternion import
 )
 
 
-def test_identity_normalization_and_copy_semantics():
+def test_identity_normalization_and_copy_semantics() -> None:
     q = Quaternion([2, 0, 0, 0])
     np.testing.assert_array_equal(q.hamilton_components, [1, 0, 0, 0])
     assert q.norm == pytest.approx(1)
@@ -21,7 +22,7 @@ def test_identity_normalization_and_copy_semantics():
     np.testing.assert_array_equal(np.asarray(Quaternion.identity()), [1, 0, 0, 0])
 
 
-def test_jpl_hamilton_convention_roundtrip():
+def test_jpl_hamilton_convention_roundtrip() -> None:
     q = Quaternion([0, 0, -np.sqrt(0.5), np.sqrt(0.5)], convention="JPL")
     np.testing.assert_allclose(
         q.hamilton_components, [np.sqrt(0.5), 0, 0, np.sqrt(0.5)]
@@ -32,7 +33,7 @@ def test_jpl_hamilton_convention_roundtrip():
     assert q.to_convention("Hamilton").convention == "Hamilton"
 
 
-def test_rotation_inverse_multiply_and_dcm():
+def test_rotation_inverse_multiply_and_dcm() -> None:
     q = Quaternion.from_axis_angle([0, 0, 1], np.pi / 2)
     np.testing.assert_allclose(q.rotate([1, 0, 0]), [0, 1, 0], atol=1e-14)
     np.testing.assert_allclose(q.body_to_inertial([0, 1, 0]), [1, 0, 0], atol=1e-14)
@@ -46,12 +47,12 @@ def test_rotation_inverse_multiply_and_dcm():
 
 
 @pytest.mark.parametrize("bad", [[0, 0, 0, 0], [1, 2, 3], [np.nan, 0, 0, 0]])
-def test_rejects_bad_quaternions(bad):
+def test_rejects_bad_quaternions(bad: ArrayLike) -> None:
     with pytest.raises(ValueError):
         Quaternion(bad)
 
 
-def test_rejects_bad_convention_axis_and_vectors():
+def test_rejects_bad_convention_axis_and_vectors() -> None:
     with pytest.raises(ValueError):
         Quaternion(convention="bad")
     with pytest.raises(ValueError):
@@ -60,7 +61,7 @@ def test_rejects_bad_convention_axis_and_vectors():
         Quaternion.identity().rotate([np.inf, 0, 0])
 
 
-def test_slerp_endpoints_midpoint_and_antipodal_sign():
+def test_slerp_endpoints_midpoint_and_antipodal_sign() -> None:
     q0 = Quaternion.identity().hamilton_components
     q1 = Quaternion.from_axis_angle([0, 0, 1], np.pi / 2).hamilton_components
     np.testing.assert_allclose(slerp(q0, q1, 0), q0)
@@ -74,13 +75,13 @@ def test_slerp_endpoints_midpoint_and_antipodal_sign():
     )
 
 
-def test_rotation_vector_conversion_roundtrip():
+def test_rotation_vector_conversion_roundtrip() -> None:
     vector = np.array([0.2, -0.1, 0.3])
     recovered = quaternion_to_rotation_vector(rotation_vector_to_quaternion(vector))
     np.testing.assert_allclose(recovered, vector, atol=1e-14)
 
 
-def test_conjugate_and_normalized_preserve_rotation():
+def test_conjugate_and_normalized_preserve_rotation() -> None:
     q = Quaternion.from_axis_angle([1, 0, 0], 0.7)
     np.testing.assert_allclose(q.conjugate().to_dcm(), q.inverse().to_dcm(), atol=1e-14)
     np.testing.assert_allclose(q.normalized().to_dcm(), q.to_dcm(), atol=1e-14)
@@ -89,6 +90,6 @@ def test_conjugate_and_normalized_preserve_rotation():
 @pytest.mark.parametrize(
     "bad", [np.zeros((2, 2)), np.diag([1, 1, -1]), np.full((3, 3), np.inf)]
 )
-def test_from_dcm_rejects_invalid_matrix(bad):
+def test_from_dcm_rejects_invalid_matrix(bad: ArrayLike) -> None:
     with pytest.raises(ValueError):
         Quaternion.from_dcm(bad)

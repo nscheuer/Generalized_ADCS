@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from numpy.typing import ArrayLike
 
 from GenADCS.backends.python.helpers.math.rotations.dcm.kernels import (
     axis_angle_to_dcm,
@@ -12,7 +13,7 @@ from GenADCS.backends.python.helpers.math.rotations.dcm.kernels import (
 )
 
 
-def test_axis_angle_and_kernel_composition():
+def test_axis_angle_and_kernel_composition() -> None:
     x = axis_angle_to_dcm(np.array([1.0, 0, 0]), 0.3)
     y = axis_angle_to_dcm(np.array([0.0, 1, 0]), -0.2)
     np.testing.assert_allclose(compose_dcm(x, y), x @ y)
@@ -21,7 +22,7 @@ def test_axis_angle_and_kernel_composition():
     np.testing.assert_allclose(rotate_vector(x, np.array([1.0, 2, 3])), x @ [1.0, 2, 3])
 
 
-def test_normalize_dcm_repairs_small_drift_and_preserves_handedness():
+def test_normalize_dcm_repairs_small_drift_and_preserves_handedness() -> None:
     matrix = axis_angle_to_dcm(np.array([0.0, 0, 1]), 0.4)
     matrix[0, 0] += 1e-4
     repaired = normalize_dcm(matrix)
@@ -32,11 +33,11 @@ def test_normalize_dcm_repairs_small_drift_and_preserves_handedness():
 @pytest.mark.parametrize(
     "matrix", [np.zeros((3, 3)), np.array([[1.0, 2, 0], [0, 0, 0], [0, 0, 1]])]
 )
-def test_normalize_dcm_rejects_degenerate_columns(matrix):
+def test_normalize_dcm_rejects_degenerate_columns(matrix: ArrayLike) -> None:
     with pytest.raises(ValueError):
         normalize_dcm(matrix)
 
 
-def test_zero_axis_is_rejected_by_kernel():
+def test_zero_axis_is_rejected_by_kernel() -> None:
     with pytest.raises(ValueError):
         axis_angle_to_dcm(np.zeros(3), 0.5)

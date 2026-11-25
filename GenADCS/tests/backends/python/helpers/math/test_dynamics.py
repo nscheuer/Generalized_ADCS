@@ -8,7 +8,7 @@ from GenADCS.backends.python.helpers.math.dynamics import (
 )
 
 
-def test_rigid_body_angular_acceleration_matches_eulers_equation():
+def test_rigid_body_angular_acceleration_matches_eulers_equation() -> None:
     omega = np.array([0.2, -0.4, 0.7])
     torque = np.array([0.03, -0.01, 0.02])
     inertia = np.array([[4.0, 0.2, -0.1], [0.2, 5.0, 0.3], [-0.1, 0.3, 6.0]])
@@ -22,7 +22,7 @@ def test_rigid_body_angular_acceleration_matches_eulers_equation():
 @pytest.mark.parametrize(
     "omega", [np.array([0.0, 0.0, 0.0]), np.array([0.1, -0.3, 0.8])]
 )
-def test_rigid_body_acceleration_for_spherical_inertia(omega):
+def test_rigid_body_acceleration_for_spherical_inertia(omega: np.ndarray) -> None:
     inertia = 3.0 * np.eye(3)
     torque = np.array([0.3, -0.6, 0.9])
     # For spherical inertia, angular momentum is parallel to omega, so gyroscopic
@@ -32,7 +32,7 @@ def test_rigid_body_acceleration_for_spherical_inertia(omega):
     )
 
 
-def test_rigid_body_acceleration_is_zero_without_torque_at_principal_axis_spin():
+def test_rigid_body_acceleration_is_zero_without_torque_at_principal_axis_spin() -> None:
     inertia = np.diag([2.0, 3.0, 5.0])
     omega = np.array([0.0, 0.0, 0.7])
     np.testing.assert_allclose(
@@ -40,7 +40,7 @@ def test_rigid_body_acceleration_is_zero_without_torque_at_principal_axis_spin()
     )
 
 
-def test_wheel_coupled_acceleration_includes_wheel_momentum_gyroscopic_term():
+def test_wheel_coupled_acceleration_includes_wheel_momentum_gyroscopic_term() -> None:
     omega = np.array([0.3, -0.2, 0.5])
     wheel_momentum = np.array([0.04, -0.03])
     wheel_axes = np.array([[1.0, 0.0, 0.0], [0.0, 0.6, 0.8]])
@@ -58,7 +58,7 @@ def test_wheel_coupled_acceleration_includes_wheel_momentum_gyroscopic_term():
     assert not np.allclose(actual, without_wheel_momentum)
 
 
-def test_wheel_coupled_acceleration_reduces_to_rigid_body_without_wheels():
+def test_wheel_coupled_acceleration_reduces_to_rigid_body_without_wheels() -> None:
     omega = np.array([-0.2, 0.4, 0.1])
     inertia = np.diag([2.0, 4.0, 7.0])
     torque = np.array([0.03, -0.02, 0.01])
@@ -70,7 +70,7 @@ def test_wheel_coupled_acceleration_reduces_to_rigid_body_without_wheels():
     )
 
 
-def test_wheel_momentum_derivative_applies_axis_projection_of_bus_acceleration():
+def test_wheel_momentum_derivative_applies_axis_projection_of_bus_acceleration() -> None:
     wheel_torque = np.array([0.2, -0.1, 0.05])
     angular_acceleration = np.array([0.3, -0.4, 0.2])
     axes = np.array(
@@ -82,7 +82,7 @@ def test_wheel_momentum_derivative_applies_axis_projection_of_bus_acceleration()
     )
 
 
-def test_wheel_momentum_derivative_supports_zero_wheels():
+def test_wheel_momentum_derivative_supports_zero_wheels() -> None:
     result = wheel_momentum_derivative(
         np.zeros(0), np.array([1.0, 2.0, 3.0]), np.zeros((0, 3))
     )

@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import numpy as np
 import pytest
 
@@ -14,7 +16,9 @@ from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions impor
 )
 
 
-def _finite_difference_jacobian(function, x, step=1e-7):
+def _finite_difference_jacobian(
+    function: Callable[[np.ndarray], np.ndarray], x: np.ndarray, step: float = 1e-7
+) -> np.ndarray:
     x = np.asarray(x, dtype=float)
     baseline = np.asarray(function(x))
     jacobian = np.empty((baseline.size, x.size))
@@ -25,7 +29,7 @@ def _finite_difference_jacobian(function, x, step=1e-7):
     return jacobian
 
 
-def test_quaternion_derivative_matches_rate_matrix_and_inverse_recovers_angular_velocity():
+def test_quaternion_derivative_matches_rate_matrix_and_inverse_recovers_angular_velocity() -> None:
     q = np.array([0.72, -0.2, 0.31, 0.57])
     q /= np.linalg.norm(q)
     omega = np.array([0.4, -0.7, 0.2])
@@ -36,7 +40,7 @@ def test_quaternion_derivative_matches_rate_matrix_and_inverse_recovers_angular_
     )
 
 
-def test_quaternion_rate_matrix_is_linear_and_has_expected_shape():
+def test_quaternion_rate_matrix_is_linear_and_has_expected_shape() -> None:
     q = np.array([1.0, 0.0, 0.0, 0.0])
     matrix = quaternion_rate_matrix(q)
     assert matrix.shape == (4, 3)
@@ -49,14 +53,14 @@ def test_quaternion_rate_matrix_is_linear_and_has_expected_shape():
     )
 
 
-def test_quaternion_derivative_preserves_unit_norm_to_first_order():
+def test_quaternion_derivative_preserves_unit_norm_to_first_order() -> None:
     q = np.array([0.8, 0.2, -0.3, 0.45])
     q /= np.linalg.norm(q)
     qdot = quaternion_derivative(q, np.array([0.5, -0.1, 0.9]))
     assert np.dot(q, qdot) == pytest.approx(0.0, abs=1e-14)
 
 
-def test_quaternion_normalization_jacobian_matches_finite_difference():
+def test_quaternion_normalization_jacobian_matches_finite_difference() -> None:
     q = np.array([0.4, -1.2, 0.7, 2.0])
     normalize = lambda value: value / np.linalg.norm(value)
     actual = quaternion_normalization_jacobian(q)
@@ -67,7 +71,7 @@ def test_quaternion_normalization_jacobian_matches_finite_difference():
     np.testing.assert_allclose(actual, actual.T, atol=1e-14)
 
 
-def test_quaternion_normalization_jacobian_is_scale_invariant_with_inverse_scaling():
+def test_quaternion_normalization_jacobian_is_scale_invariant_with_inverse_scaling() -> None:
     q = np.array([0.2, 0.3, -0.4, 0.5])
     np.testing.assert_allclose(
         quaternion_normalization_jacobian(3.0 * q),
@@ -75,7 +79,7 @@ def test_quaternion_normalization_jacobian_is_scale_invariant_with_inverse_scali
     )
 
 
-def test_quaternion_normalization_jacobian_rejects_zero_norm():
+def test_quaternion_normalization_jacobian_rejects_zero_norm() -> None:
     with pytest.raises(ValueError, match="nonzero norm"):
         quaternion_normalization_jacobian(np.zeros(4))
 
@@ -84,8 +88,8 @@ def test_quaternion_normalization_jacobian_rejects_zero_norm():
     "q", [np.array([0.8, -0.1, 0.3, 0.5]), np.array([1.0, 0.0, 0.0, 0.0])]
 )
 def test_rotated_vector_quaternion_jacobian_matches_vector_rotation_finite_difference(
-    q,
-):
+    q: np.ndarray,
+) -> None:
     vector = np.array([1.3, -0.7, 2.1])
     # The rotation function expects a unit quaternion; choose a unit point for
     # the derivative check so the finite difference matches the helper's model.
@@ -105,13 +109,15 @@ def test_rotated_vector_quaternion_jacobian_matches_vector_rotation_finite_diffe
         ([np.sqrt(0.5), np.sqrt(0.5), 0.0, 0.0], [np.pi / 2, 0.0, 0.0]),
     ],
 )
-def test_quaternion_to_euler321_identity_and_principal_axis_rotations(q, expected):
+def test_quaternion_to_euler321_identity_and_principal_axis_rotations(
+    q: object, expected: object
+) -> None:
     np.testing.assert_allclose(
         quaternion_to_euler321(np.asarray(q)), expected, atol=1e-14
     )
 
 
-def test_quaternion_to_euler321_clamps_roundoff_at_pitch_singularity():
+def test_quaternion_to_euler321_clamps_roundoff_at_pitch_singularity() -> None:
     q = np.array([np.sqrt(0.5), 0.0, np.sqrt(0.5) + 1e-15, 0.0])
     result = quaternion_to_euler321(q)
     assert np.all(np.isfinite(result))

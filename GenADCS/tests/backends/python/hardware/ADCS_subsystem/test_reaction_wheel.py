@@ -1,5 +1,7 @@
 """Constructor, effects, and field tests for ReactionWheel."""
 
+from typing import Any
+
 import pytest
 
 from GenADCS.backends.python.bias import Bias
@@ -8,17 +10,17 @@ from GenADCS.backends.python.noise import Noise
 
 
 class AddEffect:
-    def __init__(self, amount, calls=None):
+    def __init__(self, amount: float, calls: list[tuple[Any, ...]] | None = None) -> None:
         self.amount = amount
         self.calls = calls
 
-    def apply(self, value, dt, rng=None):
+    def apply(self, value: Any, dt: float, rng: Any = None) -> Any:
         if self.calls is not None:
             self.calls.append((value, dt, rng))
         return value + self.amount
 
 
-def test_required_fields_and_defaults():
+def test_required_fields_and_defaults() -> None:
     wheel = ReactionWheel((1.0, 2.0, 3.0), (0.0, 0.0, 1.0), 0.04, 0.2, 5.0)
     assert wheel.position == (1.0, 2.0, 3.0)
     assert wheel.orientation == (0.0, 0.0, 1.0)
@@ -31,7 +33,7 @@ def test_required_fields_and_defaults():
     assert wheel.biases == []
 
 
-def test_effect_default_lists_are_independent():
+def test_effect_default_lists_are_independent() -> None:
     first = ReactionWheel((0, 0, 0), (1, 0, 0), 0.03, 0.1, 2.0)
     second = ReactionWheel((0, 0, 0), (1, 0, 0), 0.03, 0.1, 2.0)
     assert first.effects is not second.effects
@@ -39,7 +41,7 @@ def test_effect_default_lists_are_independent():
     assert second.effects == []
 
 
-def test_effects_reference_is_preserved_and_noise_bias_views_filter_in_order():
+def test_effects_reference_is_preserved_and_noise_bias_views_filter_in_order() -> None:
     noise_a, bias_a = Noise(), Bias()
     plain, noise_b, bias_b = object(), Noise(), Bias()
     effects = [noise_a, bias_a, plain, noise_b, bias_b]
@@ -51,7 +53,7 @@ def test_effects_reference_is_preserved_and_noise_bias_views_filter_in_order():
     assert wheel.biases == [bias_a, bias_b, bias_a]
 
 
-def test_apply_errors_runs_effects_sequentially_and_passes_rng_and_dt():
+def test_apply_errors_runs_effects_sequentially_and_passes_rng_and_dt() -> None:
     calls = []
     rng = object()
     wheel = ReactionWheel(
@@ -66,13 +68,13 @@ def test_apply_errors_runs_effects_sequentially_and_passes_rng_and_dt():
     assert calls == [(2.0, 0.5, rng), (1.0, 0.5, rng)]
 
 
-def test_apply_errors_without_effects_returns_input_unchanged():
+def test_apply_errors_without_effects_returns_input_unchanged() -> None:
     value = [0.1, -0.2, 0.3]
     wheel = ReactionWheel((0, 0, 0), (0, 0, 1), 0.04, 0.2, 5.0)
     assert wheel.apply_errors(value, 1.0) is value
 
 
-def test_fields_are_mutable_instance_is_slotted_and_missing_arguments_fail():
+def test_fields_are_mutable_instance_is_slotted_and_missing_arguments_fail() -> None:
     wheel = ReactionWheel((0, 0, 0), (1, 0, 0), 0.03, 0.1, 2.0)
     wheel.position = (1, 0, 0)
     wheel.rotational_inertia = 0.05
@@ -92,7 +94,7 @@ def test_fields_are_mutable_instance_is_slotted_and_missing_arguments_fail():
         ReactionWheel((0, 0, 0), (1, 0, 0), 0.04, 0.2)
 
 
-def test_constructor_preserves_supplied_mutable_values_without_coercion():
+def test_constructor_preserves_supplied_mutable_values_without_coercion() -> None:
     position = [1, 2, 3]
     effects = []
     wheel = ReactionWheel(position, [0, 0, 1], 0.04, 0.2, 5.0, effects=effects)

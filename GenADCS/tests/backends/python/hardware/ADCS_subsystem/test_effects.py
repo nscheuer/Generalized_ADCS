@@ -1,29 +1,34 @@
 """Tests for ordered effect application and call forwarding."""
 
+from collections.abc import Callable
+from typing import Any
+
 import pytest
 
 from GenADCS.backends.python.hardware.ADCS_subsystem.effects import apply_effects
 
 
 class RecordingEffect:
-    def __init__(self, name, transform, calls):
+    def __init__(
+        self, name: str, transform: Callable[[Any], Any], calls: list[tuple[Any, ...]]
+    ) -> None:
         self.name = name
         self.transform = transform
         self.calls = calls
 
-    def apply(self, value, dt, rng=None):
+    def apply(self, value: Any, dt: float, rng: Any = None) -> Any:
         self.calls.append((self.name, value, dt, rng))
         return self.transform(value)
 
 
-def test_empty_effect_sequence_returns_original_object_unchanged():
+def test_empty_effect_sequence_returns_original_object_unchanged() -> None:
     value = [1.0, 2.0]
     result = apply_effects(value, [], 0.5)
     assert result is value
     assert value == [1.0, 2.0]
 
 
-def test_effects_apply_in_order_and_forward_each_intermediate_value():
+def test_effects_apply_in_order_and_forward_each_intermediate_value() -> None:
     calls = []
     rng = object()
     effects = [
@@ -37,11 +42,11 @@ def test_effects_apply_in_order_and_forward_each_intermediate_value():
     assert all(call[2] == 0.25 and call[3] is rng for call in calls)
 
 
-def test_effects_can_transform_arrays_without_mutating_original_when_returning_new_arrays():
+def test_effects_can_transform_arrays_without_mutating_original_when_returning_new_arrays() -> None:
     import numpy as np
 
     class AddVector:
-        def apply(self, value, dt, rng=None):
+        def apply(self, value: Any, dt: float, rng: Any = None) -> Any:
             return np.asarray(value) + np.array([dt, -dt])
 
     original = np.array([1.0, 2.0])
@@ -51,7 +56,7 @@ def test_effects_can_transform_arrays_without_mutating_original_when_returning_n
     assert result is not original
 
 
-def test_effects_accept_any_iterable_and_propagate_exceptions_without_running_later_effects():
+def test_effects_accept_any_iterable_and_propagate_exceptions_without_running_later_effects() -> None:
     calls = []
     effects = (
         effect

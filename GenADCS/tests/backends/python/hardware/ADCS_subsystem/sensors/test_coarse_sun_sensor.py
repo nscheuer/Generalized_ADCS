@@ -1,5 +1,7 @@
 """Detailed tests for the Numba coarse photodiode Sun sensor."""
 
+from typing import Any
+
 import numpy as np
 
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import CoarseSunSensor
@@ -11,15 +13,15 @@ from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import mounti
 
 def make_sensor(
     *,
-    normal=None,
-    sensitivity=2.0,
-    limit=10.0,
-    variance=0.01,
-    bias=0.0,
-    fov=np.pi / 3.0,
-    orientation=None,
-    misalignment=None,
-):
+    normal: Any = None,
+    sensitivity: float = 2.0,
+    limit: float = 10.0,
+    variance: float = 0.01,
+    bias: Any = 0.0,
+    fov: Any = np.pi / 3.0,
+    orientation: Any = None,
+    misalignment: Any = None,
+) -> CoarseSunSensor:
     identity = np.array([1.0, 0.0, 0.0, 0.0])
     return CoarseSunSensor(
         np.zeros(3),
@@ -34,7 +36,7 @@ def make_sensor(
     )
 
 
-def test_measurement_is_cosine_projection_in_sensor_frame():
+def test_measurement_is_cosine_projection_in_sensor_frame() -> None:
     orientation = _axis_angle_to_quaternion(np.array([0.0, 0.0, 1.0]), np.pi / 2.0)
     misalignment = _axis_angle_to_quaternion(np.array([1.0, 0.0, 0.0]), 0.2)
     sensor = make_sensor(orientation=orientation, misalignment=misalignment)
@@ -48,7 +50,7 @@ def test_measurement_is_cosine_projection_in_sensor_frame():
     )
 
 
-def test_backside_illumination_reads_zero_and_bias_clamps_nonnegative():
+def test_backside_illumination_reads_zero_and_bias_clamps_nonnegative() -> None:
     sensor = make_sensor(bias=-0.5)
     sun = np.array([-1.0, 0.0, 0.0])
     q = np.array([1.0, 0.0, 0.0, 0.0])
@@ -56,7 +58,7 @@ def test_backside_illumination_reads_zero_and_bias_clamps_nonnegative():
     assert sensor.noiseless_biased_measurement(sun, q) == 0.0
 
 
-def test_sensitivity_bias_and_saturation_are_applied():
+def test_sensitivity_bias_and_saturation_are_applied() -> None:
     q = np.array([1.0, 0.0, 0.0, 0.0])
     sun = np.array([1.0, 0.0, 0.0])
     sensor = make_sensor(sensitivity=3.0, limit=2.0, bias=0.25)
@@ -65,7 +67,7 @@ def test_sensitivity_bias_and_saturation_are_applied():
     assert sensor.jacobian_bias() == 1.0
 
 
-def test_noise_variants_return_finite_scalar_measurements_in_range():
+def test_noise_variants_return_finite_scalar_measurements_in_range() -> None:
     sensor = make_sensor(variance=1e-8, limit=3.0)
     q = np.array([1.0, 0.0, 0.0, 0.0])
     sun = np.array([0.5, 0.0, np.sqrt(0.75)])
@@ -75,7 +77,7 @@ def test_noise_variants_return_finite_scalar_measurements_in_range():
         assert 0.0 <= result <= sensor.saturation_value
 
 
-def test_quaternion_mrp_and_angle_jacobians_have_expected_zero_limits():
+def test_quaternion_mrp_and_angle_jacobians_have_expected_zero_limits() -> None:
     sensor = make_sensor(normal=np.array([0.0, 1.0, 0.0]))
     sun = np.array([0.0, 0.0, 1.0])
     q = np.array([1.0, 0.0, 0.0, 0.0])
@@ -87,7 +89,7 @@ def test_quaternion_mrp_and_angle_jacobians_have_expected_zero_limits():
     np.testing.assert_allclose(jac_angle, 0.5 * jac_q)
 
 
-def test_nonzero_attitude_jacobians_are_finite():
+def test_nonzero_attitude_jacobians_are_finite() -> None:
     sensor = make_sensor()
     sun = np.array([0.2, -0.1, 0.97])
     q = np.array([1.0, 0.0, 0.0, 0.0])
@@ -101,7 +103,7 @@ def test_nonzero_attitude_jacobians_are_finite():
     assert all(value.shape == (3,) and np.all(np.isfinite(value)) for value in values)
 
 
-def test_availability_respects_visibility_frontside_and_fov():
+def test_availability_respects_visibility_frontside_and_fov() -> None:
     sensor = make_sensor(normal=np.array([0.0, 0.0, 1.0]), fov=0.3)
     q = np.array([1.0, 0.0, 0.0, 0.0])
     assert sensor.availability(np.array([0.0, 0.0, 1.0]), q)
@@ -111,7 +113,7 @@ def test_availability_respects_visibility_frontside_and_fov():
     assert not sensor.availability(outside, q)
 
 
-def test_fisher_information_is_rank_one_and_zero_when_unavailable():
+def test_fisher_information_is_rank_one_and_zero_when_unavailable() -> None:
     sensor = make_sensor(
         normal=np.array([0.0, 0.0, 1.0]), sensitivity=2.0, variance=0.5
     )

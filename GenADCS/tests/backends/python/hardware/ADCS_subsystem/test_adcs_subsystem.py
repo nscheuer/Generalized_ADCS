@@ -9,7 +9,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem import (
 )
 
 
-def test_default_actuator_collections_are_empty_and_independent():
+def test_default_actuator_collections_are_empty_and_independent() -> None:
     first, second = ADCSSubsystem(), ADCSSubsystem()
     assert first.reaction_wheels == []
     assert first.magnetorquers == []
@@ -22,7 +22,7 @@ def test_default_actuator_collections_are_empty_and_independent():
     assert second.reaction_wheels == second.magnetorquers == []
 
 
-def test_positional_and_keyword_construction_preserve_actuator_references():
+def test_positional_and_keyword_construction_preserve_actuator_references() -> None:
     wheel = ReactionWheel((1, 2, 3), (0, 0, 1), 0.05, 0.15, 3.0)
     mtq = Magnetorquer((0, 1, 0), (1, 0, 0), 0.25)
     wheels, magnetorquers = [wheel], [mtq]
@@ -34,7 +34,7 @@ def test_positional_and_keyword_construction_preserve_actuator_references():
     assert keyword.magnetorquers[0] is mtq
 
 
-def test_actuator_lists_are_live_mutable_fields():
+def test_actuator_lists_are_live_mutable_fields() -> None:
     subsystem = ADCSSubsystem()
     wheel = ReactionWheel((0, 0, 0), (0, 1, 0), 0.03, 0.1, 2.0)
     mtq = Magnetorquer((0, 0, 1), (1, 0, 0), 0.2)
@@ -46,7 +46,7 @@ def test_actuator_lists_are_live_mutable_fields():
     assert subsystem.magnetorquers[0] is mtq
 
 
-def test_value_equality_repr_and_slotted_instance_contract():
+def test_value_equality_repr_and_slotted_instance_contract() -> None:
     wheel_a = ReactionWheel((0, 0, 0), (0, 0, 1), 0.04, 0.2, 5.0)
     wheel_b = ReactionWheel((0, 0, 0), (0, 0, 1), 0.04, 0.2, 5.0)
     first = ADCSSubsystem([wheel_a], [])
@@ -57,7 +57,7 @@ def test_value_equality_repr_and_slotted_instance_contract():
         first.description = "extra field"
 
 
-def test_constructor_does_not_validate_or_copy_user_supplied_lists():
+def test_constructor_does_not_validate_or_copy_user_supplied_lists() -> None:
     wheels = [object()]
     magnetorquers = []
     subsystem = ADCSSubsystem(wheels, magnetorquers)

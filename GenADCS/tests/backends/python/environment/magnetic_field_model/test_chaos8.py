@@ -5,7 +5,7 @@ from GenADCS.backends.python.environment.magnetic_field_model.chaos8 import CHAO
 from GenADCS.backends.python.helpers.math.time import calendar_to_jd
 
 
-def test_chaos8_core_only_field_is_realistic():
+def test_chaos8_core_only_field_is_realistic() -> None:
     model = CHAOS8(include_static=False)
     field = model.field((6_778_137.0, 0.0, 0.0), calendar_to_jd(2020, 1, 1))
 
@@ -14,7 +14,7 @@ def test_chaos8_core_only_field_is_realistic():
     assert 1e-5 < np.linalg.norm(field) < 7e-5
 
 
-def test_chaos8_static_field_loads_and_changes_the_result():
+def test_chaos8_static_field_loads_and_changes_the_result() -> None:
     position = (6_778_137.0, 0.0, 0.0)
     epoch = calendar_to_jd(2020, 1, 1)
     core = CHAOS8(include_static=False).field(position, epoch)
@@ -24,7 +24,7 @@ def test_chaos8_static_field_loads_and_changes_the_result():
     assert np.linalg.norm(full - core) > 0.0
 
 
-def test_chaos8_rejects_epoch_outside_core_coefficients():
+def test_chaos8_rejects_epoch_outside_core_coefficients() -> None:
     with pytest.raises(ValueError, match="outside CHAOS-8.7"):
         CHAOS8(include_static=False).field(
             (6_778_137.0, 0.0, 0.0), calendar_to_jd(1800, 1, 1)

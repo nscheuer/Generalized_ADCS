@@ -2,6 +2,7 @@ from collections import Counter
 
 import numpy as np
 import pytest
+from numpy.typing import ArrayLike
 
 from GenADCS.backends.python.state.orbital_state import OrbitalState
 
@@ -9,15 +10,15 @@ JD = 2451545.0
 
 
 class CountingEphemeris:
-    def __init__(self):
+    def __init__(self) -> None:
         self.calls = Counter()
 
-    def position(self, body, julian_date):
+    def position(self, body: str | int, julian_date: float) -> np.ndarray:
         self.calls[(body, julian_date)] += 1
         return np.array([float(body), julian_date, 0.0])
 
 
-def test_cartesian_values_are_validated_converted_and_detached():
+def test_cartesian_values_are_validated_converted_and_detached() -> None:
     source = np.array([1, 2, 3], dtype=np.float32)
     orbit = OrbitalState.from_cartesian(source, [4, 5, 6], JD)
     assert orbit.julian_date == JD
@@ -29,13 +30,13 @@ def test_cartesian_values_are_validated_converted_and_detached():
 
 
 @pytest.mark.parametrize("date", [np.nan, np.inf, -np.inf])
-def test_rejects_nonfinite_date(date):
+def test_rejects_nonfinite_date(date: float) -> None:
     with pytest.raises(ValueError, match="julian_date must be finite"):
         OrbitalState([0, 0, 0], [0, 0, 0], date)
 
 
 @pytest.mark.parametrize("bad", [[1, 2], [[1, 2, 3]], [1, np.nan, 3]])
-def test_rejects_invalid_position_and_velocity(bad):
+def test_rejects_invalid_position_and_velocity(bad: ArrayLike) -> None:
     for position, velocity, name in (
         (bad, [0, 0, 0], "position"),
         ([0, 0, 0], bad, "velocity"),
@@ -44,7 +45,7 @@ def test_rejects_invalid_position_and_velocity(bad):
             OrbitalState(position, velocity, JD)
 
 
-def test_keplerian_fields_and_unimplemented_cartesian_conversion():
+def test_keplerian_fields_and_unimplemented_cartesian_conversion() -> None:
     orbit = OrbitalState.from_keplerian(7000, 0.01, 0.2, 0.3, 0.4, 0.5, JD)
     assert orbit._keplerian_elements == (7000, 0.01, 0.2, 0.3, 0.4, 0.5)
     assert orbit._position is None and orbit._velocity is None
@@ -55,7 +56,7 @@ def test_keplerian_fields_and_unimplemented_cartesian_conversion():
             getattr(orbit, name)
 
 
-def test_body_positions_are_cached_per_input_and_ephemeris_is_called_once_per_key():
+def test_body_positions_are_cached_per_input_and_ephemeris_is_called_once_per_key() -> None:
     ephemeris = CountingEphemeris()
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD, ephemeris)
     first = orbit.sun_position
@@ -69,7 +70,7 @@ def test_body_positions_are_cached_per_input_and_ephemeris_is_called_once_per_ke
     assert len(orbit._body_positions) == 5
 
 
-def test_missing_ephemeris_and_unknown_body():
+def test_missing_ephemeris_and_unknown_body() -> None:
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD)
     with pytest.raises(ValueError, match="ephemeris must be configured"):
         _ = orbit.sun_position
@@ -82,13 +83,13 @@ def test_missing_ephemeris_and_unknown_body():
     "body,body_id",
     [("sun", 0), ("SUN", 0), ("earth", 1), ("moon", 2), (0, 0), (1, 1), (2, 2)],
 )
-def test_body_identifier_forms(body, body_id):
+def test_body_identifier_forms(body: str | int, body_id: int) -> None:
     ephemeris = CountingEphemeris()
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD, ephemeris)
     np.testing.assert_array_equal(orbit.body_position(body)[0], body_id)
 
 
-def test_cache_key_tracks_original_input_and_reuses_same_key():
+def test_cache_key_tracks_original_input_and_reuses_same_key() -> None:
     ephemeris = CountingEphemeris()
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD, ephemeris)
     a = orbit.body_position("earth")
@@ -98,7 +99,7 @@ def test_cache_key_tracks_original_input_and_reuses_same_key():
     assert sum(ephemeris.calls.values()) == 2
 
 
-def test_cache_is_not_invalidated_when_time_or_ephemeris_changes():
+def test_cache_is_not_invalidated_when_time_or_ephemeris_changes() -> None:
     first, second = CountingEphemeris(), CountingEphemeris()
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD, first)
     cached = orbit.sun_position
@@ -108,7 +109,7 @@ def test_cache_is_not_invalidated_when_time_or_ephemeris_changes():
     assert sum(first.calls.values()) == 1 and not second.calls
 
 
-def test_position_and_velocity_assignments_are_not_revalidated():
+def test_position_and_velocity_assignments_are_not_revalidated() -> None:
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD)
     orbit._position = [1, 2]
     orbit._velocity = [np.nan]
@@ -116,7 +117,7 @@ def test_position_and_velocity_assignments_are_not_revalidated():
     assert np.isnan(orbit._velocity[0])
 
 
-def test_body_ids_accept_int_coercible_values_and_key_errors_are_preserved():
+def test_body_ids_accept_int_coercible_values_and_key_errors_are_preserved() -> None:
     ephemeris = CountingEphemeris()
     orbit = OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], JD, ephemeris)
     assert orbit.body_position(1.9)[0] == 1
@@ -124,7 +125,7 @@ def test_body_ids_accept_int_coercible_values_and_key_errors_are_preserved():
         orbit.body_position("pluto")
 
 
-def test_slots_and_constructor_defaults():
+def test_slots_and_constructor_defaults() -> None:
     orbit = OrbitalState(None, None, JD)
     assert orbit.ephemeris is None and orbit._keplerian_elements is None
     with pytest.raises(AttributeError):

@@ -1,6 +1,7 @@
 """Contract tests for SimulationConfig initialization and state snapshots."""
 
 from types import SimpleNamespace
+from typing import Any
 
 import numpy as np
 import pytest
@@ -11,7 +12,9 @@ from GenADCS.backends.python.config import SimulationConfig
 class StateRecordSource:
     """Small state double exposing exactly what SimulationConfig consumes."""
 
-    def __init__(self, julian_date=2451545.0, record=None):
+    def __init__(
+        self, julian_date: float = 2451545.0, record: np.ndarray | None = None
+    ) -> None:
         self.orbit = SimpleNamespace(julian_date=julian_date)
         self.record = (
             np.array([(1.0,)], dtype=[("sentinel", np.float64)])
@@ -20,12 +23,17 @@ class StateRecordSource:
         )
         self.wheel_counts = []
 
-    def to_record(self, wheel_count):
+    def to_record(self, wheel_count: int) -> np.ndarray:
         self.wheel_counts.append(wheel_count)
         return self.record
 
 
-def make_dependencies(*, wheel_count=0, julian_date=2451545.0, record=None):
+def make_dependencies(
+    *,
+    wheel_count: int = 0,
+    julian_date: float = 2451545.0,
+    record: np.ndarray | None = None,
+) -> tuple[SimpleNamespace, SimpleNamespace, StateRecordSource, SimpleNamespace, SimpleNamespace]:
     satellite = SimpleNamespace(
         adcs=SimpleNamespace(reaction_wheels=[object() for _ in range(wheel_count)])
     )
@@ -33,7 +41,7 @@ def make_dependencies(*, wheel_count=0, julian_date=2451545.0, record=None):
     return satellite, SimpleNamespace(), state, SimpleNamespace(), SimpleNamespace()
 
 
-def test_default_backend_and_required_dependencies_are_preserved():
+def test_default_backend_and_required_dependencies_are_preserved() -> None:
     dependencies = make_dependencies(wheel_count=2)
     config = SimulationConfig(*dependencies)
 
@@ -47,14 +55,14 @@ def test_default_backend_and_required_dependencies_are_preserved():
 
 
 @pytest.mark.parametrize("backend", ["Python", "C", "Rust", "JAX"])
-def test_each_supported_backend_is_accepted(backend):
+def test_each_supported_backend_is_accepted(backend: str) -> None:
     dependencies = make_dependencies()
     config = SimulationConfig(*dependencies, backend=backend)
     assert config.backend == backend
 
 
 @pytest.mark.parametrize("backend", ["", "python", "c", "CUDA", None, 1])
-def test_unsupported_backend_is_rejected_with_clear_error(backend):
+def test_unsupported_backend_is_rejected_with_clear_error(backend: Any) -> None:
     dependencies = make_dependencies()
     with pytest.raises(ValueError, match="backend must be Python, C, Rust, or JAX"):
         SimulationConfig(*dependencies, backend=backend)
@@ -62,7 +70,7 @@ def test_unsupported_backend_is_rejected_with_clear_error(backend):
     assert dependencies[2].wheel_counts == []
 
 
-def test_state_record_and_julian_date_are_initialized_from_dependencies():
+def test_state_record_and_julian_date_are_initialized_from_dependencies() -> None:
     record = np.zeros(
         1, dtype=[("position", np.float64, (3,)), ("momentum", np.float64, (2,))]
     )
@@ -81,7 +89,7 @@ def test_state_record_and_julian_date_are_initialized_from_dependencies():
     assert dependencies[2].wheel_counts == [2]
 
 
-def test_snapshot_fields_are_not_constructor_arguments_but_remain_mutable():
+def test_snapshot_fields_are_not_constructor_arguments_but_remain_mutable() -> None:
     dependencies = make_dependencies()
     with pytest.raises(TypeError):
         SimulationConfig(*dependencies, state_record=np.empty(1), julian_date=2451545.0)
@@ -94,7 +102,7 @@ def test_snapshot_fields_are_not_constructor_arguments_but_remain_mutable():
     assert config.julian_date == 2452000.0
 
 
-def test_config_uses_the_wheel_count_when_building_the_state_record():
+def test_config_uses_the_wheel_count_when_building_the_state_record() -> None:
     dependencies = make_dependencies(wheel_count=3)
     config = SimulationConfig(*dependencies)
 
@@ -102,7 +110,7 @@ def test_config_uses_the_wheel_count_when_building_the_state_record():
     assert config.state_record is dependencies[2].record
 
 
-def test_slots_and_repr_hide_internal_state_record():
+def test_slots_and_repr_hide_internal_state_record() -> None:
     config = SimulationConfig(*make_dependencies())
     representation = repr(config)
 
@@ -113,7 +121,7 @@ def test_slots_and_repr_hide_internal_state_record():
         config.extra = "not a declared field"
 
 
-def test_julian_date_is_copied_as_a_value_at_initialization():
+def test_julian_date_is_copied_as_a_value_at_initialization() -> None:
     dependencies = make_dependencies(julian_date=2451545.0)
     config = SimulationConfig(*dependencies)
 

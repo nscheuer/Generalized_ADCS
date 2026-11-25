@@ -1,5 +1,7 @@
 """Tests for the two-axis fine Earth sensor measurement model."""
 
+from typing import Any
+
 import numpy as np
 
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import FineEarthSensor
@@ -10,7 +12,13 @@ from GenADCS.backends.python.helpers.math.rotations.quaternion.conversions impor
 from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import mounting_dcm
 
 
-def make_sensor(noise=None, bias=None, fov=None, orientation=None, misalignment=None):
+def make_sensor(
+    noise: Any = None,
+    bias: Any = None,
+    fov: Any = None,
+    orientation: Any = None,
+    misalignment: Any = None,
+) -> FineEarthSensor:
     identity = np.array([1.0, 0.0, 0.0, 0.0])
     return FineEarthSensor(
         np.zeros(3),
@@ -22,7 +30,7 @@ def make_sensor(noise=None, bias=None, fov=None, orientation=None, misalignment=
     )
 
 
-def test_angles_use_mounted_sensor_frame_vector():
+def test_angles_use_mounted_sensor_frame_vector() -> None:
     om = _axis_angle_to_quaternion(np.array([0.0, 1.0, 0.0]), 0.2)
     mm = _axis_angle_to_quaternion(np.array([1.0, 0.0, 0.0]), -0.1)
     att = _axis_angle_to_quaternion(np.array([0.0, 0.0, 1.0]), 0.3)
@@ -36,7 +44,7 @@ def test_angles_use_mounted_sensor_frame_vector():
     )
 
 
-def test_bias_noise_and_bias_jacobian():
+def test_bias_noise_and_bias_jacobian() -> None:
     sensor = make_sensor(noise=np.diag([1e-8, 2e-8]), bias=np.array([-0.01, 0.02]))
     earth, q = np.array([0.1, 0.2, 0.97]), np.array([1.0, 0.0, 0.0, 0.0])
     base = sensor.noiseless_biasfree_measurement(earth, q)
@@ -49,7 +57,7 @@ def test_bias_noise_and_bias_jacobian():
         assert sample.shape == (2,) and np.all(np.isfinite(sample))
 
 
-def test_attitude_jacobians_zero_limits_and_nonzero_shapes():
+def test_attitude_jacobians_zero_limits_and_nonzero_shapes() -> None:
     sensor = make_sensor()
     earth, q = np.array([0.1, 0.2, 0.97]), np.array([1.0, 0.0, 0.0, 0.0])
     jq = sensor.jacobian_relative_quaternion(earth, q, q)
@@ -68,7 +76,7 @@ def test_attitude_jacobians_zero_limits_and_nonzero_shapes():
         assert result.shape == (2, 3) and np.all(np.isfinite(result))
 
 
-def test_availability_respects_earth_visibility_and_fov():
+def test_availability_respects_earth_visibility_and_fov() -> None:
     sensor = make_sensor(fov=np.array([0.2, 0.3]))
     q = np.array([1.0, 0.0, 0.0, 0.0])
     assert sensor.availability(np.array([0.0, 0.0, 1.0]), q)
@@ -77,7 +85,7 @@ def test_availability_respects_earth_visibility_and_fov():
     assert not sensor.availability(np.array([0.0, np.sin(0.4), np.cos(0.4)]), q)
 
 
-def test_fisher_information_uses_k_matrix_and_mounting():
+def test_fisher_information_uses_k_matrix_and_mounting() -> None:
     covariance = np.diag([0.01, 0.02])
     mm = _axis_angle_to_quaternion(np.array([1.0, 0.0, 0.0]), 0.1)
     sensor = make_sensor(noise=covariance, misalignment=mm)

@@ -8,6 +8,9 @@ import numpy as np
 from GenADCS.backends.shared.simulationresult import SimulationResult
 from GenADCS.backends.shared.simulationresult.record import record_samples
 
+from .config import DynamicsConfig
+from .environment import Environment
+from .hardware import Satellite
 from .hardware.ADCS_subsystem.sensors.sensor_sampling import (
     SENSOR_NAMES,
     prepare_sensors,
@@ -22,15 +25,15 @@ __all__ = ["SimulationResult", "simulate"]
 
 
 def simulate(
-    satellite,
-    environment,
-    dynamics,
-    state,
-    solver,
-    backend="Python",
-    resultsformat=None,
-    seed=0,
-):
+    satellite: Satellite,
+    environment: Environment,
+    dynamics: DynamicsConfig,
+    state: State,
+    solver: CoupledSolver | Solver,
+    backend: str = "Python",
+    resultsformat: ResultsFormat | None = None,
+    seed: int | np.integer = 0,
+) -> SimulationResult:
     """Integrate the coupled orbit and attitude, sampling sensors in Numba.
 
     ``seed`` is a 64-bit Philox key.  A sensor's draw is identified by its

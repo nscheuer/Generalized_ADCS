@@ -3,7 +3,7 @@ import numpy as np
 from GenADCS.backends.python.environment.gravity import J4
 
 
-def test_j4_gravity_is_finite_and_perturbative():
+def test_j4_gravity_is_finite_and_perturbative() -> None:
     point_mass = J4(degrees=())
     model = J4()
     position = np.array((7_000_000.0, 0.0, 1_000_000.0))

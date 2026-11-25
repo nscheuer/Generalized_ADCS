@@ -9,7 +9,7 @@ from GenADCS.backends.python.dynamics.gravity_gradient_model import (
 )
 
 
-def test_gravity_gradient_torque_known_orientation_and_zero_sphere():
+def test_gravity_gradient_torque_known_orientation_and_zero_sphere() -> None:
     inertia = np.diag([2.0, 3.0, 4.0])
     q = np.array([1.0, 0.0, 0.0, 0.0])
     pos = np.array([1.0, 1.0, 0.0]) * 7e6
@@ -31,6 +31,6 @@ def test_gravity_gradient_torque_known_orientation_and_zero_sphere():
         np.array([[1, 1, 0], [0, 1, 0], [0, 0, 1]]),
     ],
 )
-def test_model_rejects_bad_inertia(inertia):
+def test_model_rejects_bad_inertia(inertia: np.ndarray) -> None:
     with pytest.raises(ValueError):
         StaticGravityGradientModel(SimpleNamespace(inertia=inertia))

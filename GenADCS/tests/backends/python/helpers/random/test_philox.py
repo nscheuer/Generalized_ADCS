@@ -10,7 +10,7 @@ from GenADCS.backends.python.helpers.random.philox import (
 )
 
 
-def test_philox4x32_10_reference_vector():
+def test_philox4x32_10_reference_vector() -> None:
     # Random123 Philox4x32-10, zero counter and zero key.
     assert tuple(int(word) for word in _philox4x32(np.uint64(0), 0, 0, 0)) == (
         0x6627E8D5,
@@ -20,7 +20,7 @@ def test_philox4x32_10_reference_vector():
     )
 
 
-def test_normals_are_repeatable_and_counter_separated():
+def test_normals_are_repeatable_and_counter_separated() -> None:
     seed = validate_seed(123456789)
     a = standard_normals(seed, 7, 2, 6)
     np.testing.assert_array_equal(a, standard_normals(seed, 7, 2, 6))
@@ -30,6 +30,6 @@ def test_normals_are_repeatable_and_counter_separated():
 
 
 @pytest.mark.parametrize("bad_seed", [-1, 2**64, 1.5, True])
-def test_invalid_seed_is_rejected(bad_seed):
+def test_invalid_seed_is_rejected(bad_seed: float | bool) -> None:
     with pytest.raises(ValueError):
         validate_seed(bad_seed)

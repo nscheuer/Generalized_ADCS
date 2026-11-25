@@ -6,7 +6,7 @@ from GenADCS.backends.python.helpers.math.rotations.rodrigues.rodrigues_paramete
 )
 
 
-def test_identity_quaternion_and_inverse():
+def test_identity_quaternion_and_inverse() -> None:
     np.testing.assert_array_equal(RP.identity().components, [0, 0, 0])
     r = RP.from_axis_angle([0, 0, 1], np.pi / 3)
     np.testing.assert_allclose(
@@ -15,7 +15,7 @@ def test_identity_quaternion_and_inverse():
     np.testing.assert_allclose((r * r.inverse()).to_dcm(), np.eye(3), atol=1e-14)
 
 
-def test_vector_rotation_and_relative_rotation():
+def test_vector_rotation_and_relative_rotation() -> None:
     r = RP.from_rotation_vector([0, 0, np.pi / 4])
     v = np.array([1.0, 2.0, 3.0])
     np.testing.assert_allclose(r.body_to_inertial(r.rotate(v)), v, atol=1e-14)
@@ -24,7 +24,7 @@ def test_vector_rotation_and_relative_rotation():
     )
 
 
-def test_singularity_and_invalid_parameters():
+def test_singularity_and_invalid_parameters() -> None:
     with pytest.raises(ValueError, match="singular"):
         RP.from_axis_angle([1, 0, 0], np.pi)
     with pytest.raises(ValueError):
@@ -33,7 +33,7 @@ def test_singularity_and_invalid_parameters():
         RP([np.nan, 0, 0])
 
 
-def test_components_are_copies_and_bad_relative_input_is_rejected():
+def test_components_are_copies_and_bad_relative_input_is_rejected() -> None:
     rotation = RP([0.1, 0.2, 0.3])
     values = rotation.components
     values[0] = 99
@@ -42,7 +42,7 @@ def test_components_are_copies_and_bad_relative_input_is_rejected():
         rotation.relative_to([0, 0, 0])
 
 
-def test_dcm_and_quaternion_constructors_agree():
+def test_dcm_and_quaternion_constructors_agree() -> None:
     original = RP([0.2, -0.1, 0.3])
     np.testing.assert_allclose(
         RP.from_dcm(original.to_dcm()).to_dcm(), original.to_dcm(), atol=1e-14

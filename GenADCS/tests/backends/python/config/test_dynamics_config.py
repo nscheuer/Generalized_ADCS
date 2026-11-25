@@ -5,7 +5,7 @@ import pytest
 from GenADCS.backends.python.config import DynamicsConfig
 
 
-def test_defaults_create_independent_empty_collections():
+def test_defaults_create_independent_empty_collections() -> None:
     first = DynamicsConfig()
     second = DynamicsConfig()
 
@@ -20,7 +20,7 @@ def test_defaults_create_independent_empty_collections():
     assert second.torques == []
 
 
-def test_positional_and_keyword_construction_preserve_collection_references():
+def test_positional_and_keyword_construction_preserve_collection_references() -> None:
     forces = [object(), object()]
     torques = [object()]
 
@@ -34,7 +34,7 @@ def test_positional_and_keyword_construction_preserve_collection_references():
     assert positional == keyword
 
 
-def test_collections_and_fields_are_mutable():
+def test_collections_and_fields_are_mutable() -> None:
     force = object()
     torque = object()
     config = DynamicsConfig()
@@ -52,7 +52,7 @@ def test_collections_and_fields_are_mutable():
     assert config.torques is replacement_torques
 
 
-def test_repr_equality_and_slots_follow_dataclass_contract():
+def test_repr_equality_and_slots_follow_dataclass_contract() -> None:
     first = DynamicsConfig(forces=["drag"], torques=["gravity-gradient"])
     equal = DynamicsConfig(forces=["drag"], torques=["gravity-gradient"])
     different = DynamicsConfig(forces=["drag"], torques=[])
@@ -66,7 +66,9 @@ def test_repr_equality_and_slots_follow_dataclass_contract():
 
 
 @pytest.mark.parametrize("forces, torques", [(None, []), ([], None), (None, None)])
-def test_config_does_not_impose_collection_type_validation(forces, torques):
+def test_config_does_not_impose_collection_type_validation(
+    forces: object, torques: object
+) -> None:
     """The dataclass stores supplied values without coercing or validating them."""
     config = DynamicsConfig(forces=forces, torques=torques)
     assert config.forces is forces
