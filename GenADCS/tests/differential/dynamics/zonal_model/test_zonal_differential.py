@@ -1,7 +1,9 @@
+from typing import Any
+
 import numpy as np
 
 
-def test_zonal_force_matches_across_backends(dynamics_backends):
+def test_zonal_force_matches_across_backends(dynamics_backends: Any) -> None:
     coefficients = np.array(
         [
             1.08262668e-3,

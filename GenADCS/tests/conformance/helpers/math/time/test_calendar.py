@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 
@@ -11,7 +13,7 @@ import pytest
         ((2000, 3, 1, 0, 0, 0.0), 2451604.5),
     ],
 )
-def test_known_gregorian_dates(time_api, date, jd):
+def test_known_gregorian_dates(time_api: Any, date: Any, jd: Any) -> None:
     assert time_api.calendar_to_jd(*date) == pytest.approx(jd, abs=2e-9)
 
 
@@ -23,13 +25,13 @@ def test_known_gregorian_dates(time_api, date, jd):
         (1582, 10, 15, 0, 0, 0.0),
     ],
 )
-def test_julian_date_calendar_roundtrip(time_api, date):
+def test_julian_date_calendar_roundtrip(time_api: Any, date: Any) -> None:
     got = time_api.jd_to_calendar(time_api.calendar_to_jd(*date))
     assert got[:5] == date[:5]
     assert got[5] == pytest.approx(date[5], abs=4e-5)
 
 
-def test_midday_midnight_rollover_and_seconds_of_day(time_api):
+def test_midday_midnight_rollover_and_seconds_of_day(time_api: Any) -> None:
     midnight = time_api.calendar_to_jd(2025, 6, 1)
     assert time_api.jd_to_calendar(midnight)[:5] == (2025, 6, 1, 0, 0)
     assert time_api.jd_to_calendar(midnight + 0.5)[:5] == (2025, 6, 1, 12, 0)
@@ -44,7 +46,7 @@ def test_midday_midnight_rollover_and_seconds_of_day(time_api):
     assert fields[3] == pytest.approx(45296.25, abs=4e-5)
 
 
-def test_gregorian_day_number_and_leap_centuries(time_api):
+def test_gregorian_day_number_and_leap_centuries(time_api: Any) -> None:
     for y, m, d, expected in [
         (2024, 2, 29, 60),
         (2023, 12, 31, 365),

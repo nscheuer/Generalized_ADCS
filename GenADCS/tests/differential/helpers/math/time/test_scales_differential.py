@@ -1,9 +1,11 @@
+from typing import Any
+
 import pytest
 
 SEC = 86400.0
 
 
-def test_time_scale_conversion_graph_matches(time_backends):
+def test_time_scale_conversion_graph_matches(time_backends: Any) -> None:
     utc_by_backend = []
     for api in time_backends.values():
         utc = api.calendar_to_jd(2022, 9, 17, 3, 4, 5.0)
@@ -29,7 +31,7 @@ def test_time_scale_conversion_graph_matches(time_backends):
             assert actual == pytest.approx(expected, abs=4e-10)
 
 
-def test_leap_table_offsets_match_at_every_transition(time_backends):
+def test_leap_table_offsets_match_at_every_transition(time_backends: Any) -> None:
     effective = [
         2441317.5,
         2441499.5,

@@ -1,10 +1,11 @@
 from importlib import import_module
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture(scope="module")
-def adcs_backends():
+def adcs_backends() -> Any:
     result = {}
     for name in ("python", "cpp", "rust"):
         try:

@@ -1,12 +1,13 @@
 """Load every math backend for pairwise numerical comparisons."""
 
 from importlib import import_module
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture(scope="module")
-def math_backends():
+def math_backends() -> Any:
     modules = {}
     for name in ("python", "cpp", "rust"):
         try:

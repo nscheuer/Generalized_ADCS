@@ -1,10 +1,11 @@
 from importlib import import_module
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture(scope="module")
-def config_backends():
+def config_backends() -> Any:
     try:
         return {
             name: import_module(f"GenADCS.backends.{name}.config")

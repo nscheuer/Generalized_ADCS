@@ -1,4 +1,7 @@
-def test_default_lists_are_independent(adcs_api):
+from typing import Any
+
+
+def test_default_lists_are_independent(adcs_api: Any) -> None:
     first, second = adcs_api.ADCSSubsystem(), adcs_api.ADCSSubsystem()
     assert first.reaction_wheels == second.reaction_wheels == []
     assert first.magnetorquers == second.magnetorquers == []
@@ -6,7 +9,7 @@ def test_default_lists_are_independent(adcs_api):
     assert second.reaction_wheels == []
 
 
-def test_constructor_and_assignment_keep_device_items(adcs_api):
+def test_constructor_and_assignment_keep_device_items(adcs_api: Any) -> None:
     wheel = adcs_api.ReactionWheel((0, 0, 0), (0, 0, 1), 0.1, 0.2, 1.0)
     torquer = adcs_api.Magnetorquer((0, 0, 0), (0, 0, 1), 0.3)
     system = adcs_api.ADCSSubsystem([wheel], [torquer])

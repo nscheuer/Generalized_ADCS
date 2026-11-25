@@ -1,4 +1,7 @@
-def test_device_scalar_fields_match(adcs_backends):
+from typing import Any
+
+
+def test_device_scalar_fields_match(adcs_backends: Any) -> None:
     wheels = {
         name: api.ReactionWheel(
             (1, 2, 3), (0, 0, 1), 0.02, 0.1, 2.0, misalignment=(0.1, 0.2, 0.3)
@@ -22,9 +25,9 @@ def test_device_scalar_fields_match(adcs_backends):
         )
 
 
-def test_device_effect_application_matches(adcs_backends):
+def test_device_effect_application_matches(adcs_backends: Any) -> None:
     class Effect:
-        def apply(self, value, dt, rng):
+        def apply(self, value: Any, dt: Any, rng: Any) -> Any:
             return value + dt
 
     for name, api in adcs_backends.items():

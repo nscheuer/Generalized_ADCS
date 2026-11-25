@@ -1,8 +1,10 @@
+from typing import Any
+
 import numpy as np
 import pytest
 
 
-def test_body_transform_and_covariance_contract(frames):
+def test_body_transform_and_covariance_contract(frames: Any) -> None:
     q = np.array([np.sqrt(0.5), 0.0, 0.0, np.sqrt(0.5)])
     v = np.array([1.0, 0.0, 0.0])
     result = frames.inertial_to_body(v, q)
@@ -20,12 +22,12 @@ def test_body_transform_and_covariance_contract(frames):
     "bad",
     [np.array([1.0, 2.0]), np.array([np.nan, 0.0, 0.0]), np.array([np.inf, 0.0, 0.0])],
 )
-def test_vector_argument_validation(frames, bad):
+def test_vector_argument_validation(frames: Any, bad: Any) -> None:
     with pytest.raises(ValueError):
         frames.convert_vector(bad, "GCRF", "GCRF")
 
 
-def test_frame_rotation_context_and_inverse_contract(frames):
+def test_frame_rotation_context_and_inverse_contract(frames: Any) -> None:
     context = {"jd_ut1": 2451545.0, "jd_tt": 2451545.0, "xp": 1e-6, "yp": -2e-6}
     matrix = frames.frame_rotation("GCRF", "ECEF", **context)
     np.testing.assert_allclose(matrix @ matrix.T, np.eye(3), atol=2e-12)
@@ -39,7 +41,7 @@ def test_frame_rotation_context_and_inverse_contract(frames):
         frames.frame_rotation("unsupported", "GCRF")
 
 
-def test_lvlh_and_geodetic_public_contract(frames):
+def test_lvlh_and_geodetic_public_contract(frames: Any) -> None:
     np.testing.assert_allclose(
         frames.gcrf_to_lvlh_matrix(
             np.array([7e6, 0.0, 0.0]), np.array([0.0, 7500.0, 0.0])

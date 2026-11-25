@@ -1,7 +1,9 @@
+from typing import Any
+
 import pytest
 
 
-def test_calendar_jd_and_decomposition_agree(time_backends):
+def test_calendar_jd_and_decomposition_agree(time_backends: Any) -> None:
     cases = [
         (2000, 1, 1, 12, 0, 0.0),
         (2024, 2, 29, 23, 59, 59.25),
@@ -29,7 +31,7 @@ def test_calendar_jd_and_decomposition_agree(time_backends):
             assert actual[2][3] == pytest.approx(ref[2][3], abs=4e-5)
 
 
-def test_day_of_year_results_agree(time_backends):
+def test_day_of_year_results_agree(time_backends: Any) -> None:
     for y, m, d, expected in [
         (2024, 2, 29, 60),
         (1900, 3, 1, 60),

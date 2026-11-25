@@ -1,12 +1,13 @@
 """Vector binding conversion, ownership, and validation checks."""
 
 import gc
+from typing import Any
 
 import numpy as np
 import pytest
 
 
-def test_vector_bindings_accept_sequences_and_numpy_dtypes(math_backend):
+def test_vector_bindings_accept_sequences_and_numpy_dtypes(math_backend: Any) -> None:
     expected = np.array([-11.0, -14.0, 13.0])
     for left, right in (
         ([1.0, 2.0, 3.0], (-4.0, 5.0, 2.0)),
@@ -19,7 +20,7 @@ def test_vector_bindings_accept_sequences_and_numpy_dtypes(math_backend):
         np.testing.assert_allclose(result, expected)
 
 
-def test_noncontiguous_numpy_input_is_converted_without_mutation(math_backend):
+def test_noncontiguous_numpy_input_is_converted_without_mutation(math_backend: Any) -> None:
     left_storage = np.array([1.0, 80.0, -2.0, 90.0, 3.0, 100.0])
     right_storage = np.array([4.0, 70.0, 5.0, 60.0, -6.0, 50.0])
     left, right = left_storage[::2], right_storage[::2]
@@ -31,7 +32,7 @@ def test_noncontiguous_numpy_input_is_converted_without_mutation(math_backend):
     np.testing.assert_array_equal(right, original_right)
 
 
-def test_returned_arrays_are_independent_owned_results(math_backend):
+def test_returned_arrays_are_independent_owned_results(math_backend: Any) -> None:
     source = np.array([3.0, 4.0, 0.0], dtype=np.float32)
     normalized = math_backend.normalize(source)
     assert normalized.dtype == np.float64
@@ -45,7 +46,7 @@ def test_returned_arrays_are_independent_owned_results(math_backend):
     assert math_backend.skew([1.5, -2.0, 4.0])[0, 0] == 0.0
 
 
-def test_norm_normalize_and_unit_zero_vector_contracts_cross_binding(math_backend):
+def test_norm_normalize_and_unit_zero_vector_contracts_cross_binding(math_backend: Any) -> None:
     zero = np.zeros(3)
     assert math_backend.norm(zero) == 0.0
     np.testing.assert_array_equal(math_backend.normalize(zero), zero)
@@ -54,13 +55,13 @@ def test_norm_normalize_and_unit_zero_vector_contracts_cross_binding(math_backen
 
 
 @pytest.mark.parametrize("bad", ([1.0, 2.0], [1.0, 2.0, 3.0, 4.0]))
-def test_wrong_vector_shapes_raise_python_exception(math_backend, backend_name, bad):
+def test_wrong_vector_shapes_raise_python_exception(math_backend: Any, backend_name: str, bad: Any) -> None:
     expected_exception = TypeError if backend_name == "cpp" else ValueError
     with pytest.raises(expected_exception):
         math_backend.cross(bad, [1.0, 0.0, 0.0])
 
 
-def test_nonfinite_vector_boundary_behavior_is_explicit(math_backend, backend_name):
+def test_nonfinite_vector_boundary_behavior_is_explicit(math_backend: Any, backend_name: str) -> None:
     bad = [1.0, np.nan, 3.0]
     if backend_name == "rust":
         with pytest.raises(ValueError, match="finite"):
@@ -69,7 +70,7 @@ def test_nonfinite_vector_boundary_behavior_is_explicit(math_backend, backend_na
         assert np.isnan(math_backend.cross(bad, [0.0, 1.0, 0.0])).any()
 
 
-def test_native_quaternion_constructor_owns_values_and_survives_gc(math_backend):
+def test_native_quaternion_constructor_owns_values_and_survives_gc(math_backend: Any) -> None:
     components = np.array([2.0, 0.0, 0.0, 0.0], dtype=np.float32)
     quaternion = math_backend.Quaternion(components)
     components[0] = 99.0

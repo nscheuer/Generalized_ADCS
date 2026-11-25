@@ -1,8 +1,10 @@
+from typing import Any
+
 import numpy as np
 import pytest
 
 
-def test_quaternion_normalization_and_rate_values(state_backend):
+def test_quaternion_normalization_and_rate_values(state_backend: Any) -> None:
     state = state_backend.AttitudeState(
         [2, 0, 0, 0], np.array([1, 2, 3], dtype=np.float32)
     )
@@ -11,9 +13,9 @@ def test_quaternion_normalization_and_rate_values(state_backend):
     assert np.asarray(state.quaternion_array).dtype == np.float64
 
 
-def test_hamilton_orientation_and_valid_reassignment(state_backend):
+def test_hamilton_orientation_and_valid_reassignment(state_backend: Any) -> None:
     class Orientation:
-        def __init__(self):
+        def __init__(self) -> None:
             self.hamilton_components = [0, 0, 0, -4]
 
     state = state_backend.AttitudeState(Orientation(), [0, 0, 0])
@@ -25,12 +27,12 @@ def test_hamilton_orientation_and_valid_reassignment(state_backend):
 
 
 @pytest.mark.parametrize("rates", ([1, 2], [0, np.inf, 0], [np.nan, 0, 0]))
-def test_bad_rates_rejected(state_backend, rates):
+def test_bad_rates_rejected(state_backend: Any, rates: Any) -> None:
     with pytest.raises(ValueError):
         state_backend.AttitudeState([1, 0, 0, 0], rates)
 
 
 @pytest.mark.parametrize("orientation", ([0, 0, 0, 0], [1, 2, 3], [np.inf, 0, 0, 0]))
-def test_bad_orientation_rejected_by_public_use(state_backend, orientation):
+def test_bad_orientation_rejected_by_public_use(state_backend: Any, orientation: Any) -> None:
     with pytest.raises(ValueError):
         _ = state_backend.AttitudeState(orientation, [0, 0, 0]).quaternion_array

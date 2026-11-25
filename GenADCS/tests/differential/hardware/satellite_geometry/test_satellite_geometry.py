@@ -1,9 +1,11 @@
 """Field parity for SatelliteGeometry across backends."""
 
+from typing import Any
+
 import numpy as np
 
 
-def test_geometry_defaults_and_explicit_fields_match_pairwise(geometry_backends):
+def test_geometry_defaults_and_explicit_fields_match_pairwise(geometry_backends: Any) -> None:
     defaults = {
         name: api.SatelliteGeometry(2.0, np.eye(3))
         for name, api in geometry_backends.items()
@@ -36,7 +38,7 @@ def test_geometry_defaults_and_explicit_fields_match_pairwise(geometry_backends)
         assert geometry.panels[0].cd == reference.panels[0].cd, backend
 
 
-def test_geometry_mutable_fields_match_pairwise(geometry_backends):
+def test_geometry_mutable_fields_match_pairwise(geometry_backends: Any) -> None:
     results = {}
     for name, api in geometry_backends.items():
         geometry = api.SatelliteGeometry(1.0, np.eye(3))

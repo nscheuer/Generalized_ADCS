@@ -1,9 +1,11 @@
 """Pairwise comparisons for derivative helper results."""
 
+from typing import Any
+
 import numpy as np
 
 
-def test_quaternion_derivative_family_matches_pairwise(math_backends):
+def test_quaternion_derivative_family_matches_pairwise(math_backends: Any) -> None:
     q = np.array([0.7, -0.2, 0.3, 0.6])
     q /= np.linalg.norm(q)
     omega = np.array([0.4, -0.7, 0.2])

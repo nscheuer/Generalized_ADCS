@@ -1,9 +1,11 @@
 """Pairwise comparisons for vector helper results."""
 
+from typing import Any
+
 import numpy as np
 
 
-def test_vector_operations_match_pairwise(math_backends):
+def test_vector_operations_match_pairwise(math_backends: Any) -> None:
     left = np.array([1.0, -2.0, 3.0])
     right = np.array([-4.0, 0.5, 2.0])
     results = {

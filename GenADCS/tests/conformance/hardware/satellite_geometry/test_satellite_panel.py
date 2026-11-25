@@ -1,3 +1,5 @@
+from typing import Any
+
 """Common constructor, defaults, and mutation contract for geometry panels."""
 
 import gc
@@ -6,7 +8,7 @@ import weakref
 import pytest
 
 
-def test_required_fields_defaults_and_keyword_construction(geometry_api):
+def test_required_fields_defaults_and_keyword_construction(geometry_api: Any) -> None:
     panel = geometry_api.SatellitePanel(
         position=(1.0, -2.0, 3.5), orientation=(0.0, 0.6, 0.8), dimensions=(2.5, 1.25)
     )
@@ -26,7 +28,7 @@ def test_required_fields_defaults_and_keyword_construction(geometry_api):
     )
 
 
-def test_panel_fields_are_readable_and_mutable(geometry_api):
+def test_panel_fields_are_readable_and_mutable(geometry_api: Any) -> None:
     panel = geometry_api.SatellitePanel((0, 0, 0), (1, 0, 0), (1, 2))
     panel.position = (1, 2, 3)
     panel.orientation = (0, 1, 0)
@@ -38,7 +40,7 @@ def test_panel_fields_are_readable_and_mutable(geometry_api):
     assert (panel.eta_s, panel.eta_d, panel.eta_a, panel.cd) == (0.2, 0.3, 0.5, 2.0)
 
 
-def test_panel_keeps_python_objects_alive_and_releases_them(geometry_api):
+def test_panel_keeps_python_objects_alive_and_releases_them(geometry_api: Any) -> None:
     class Retained:
         pass
 
@@ -54,6 +56,6 @@ def test_panel_keeps_python_objects_alive_and_releases_them(geometry_api):
     assert reference() is None
 
 
-def test_missing_required_panel_arguments_raise_type_error(geometry_api):
+def test_missing_required_panel_arguments_raise_type_error(geometry_api: Any) -> None:
     with pytest.raises(TypeError):
         geometry_api.SatellitePanel((0, 0, 0), (1, 0, 0))

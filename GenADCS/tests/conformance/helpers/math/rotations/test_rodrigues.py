@@ -1,8 +1,10 @@
+from typing import Any
+
 import numpy as np
 import pytest
 
 
-def test_rodrigues_roundtrip_conversion_and_rotation(rotations):
+def test_rodrigues_roundtrip_conversion_and_rotation(rotations: Any) -> None:
     C = rotations.Rodriguez_Parameters
     p = C.from_axis_angle([0.0, 0.0, 1.0], 0.5)
     np.testing.assert_allclose(
@@ -18,6 +20,6 @@ def test_rodrigues_roundtrip_conversion_and_rotation(rotations):
     )
 
 
-def test_rodrigues_half_turn_singularity(rotations):
+def test_rodrigues_half_turn_singularity(rotations: Any) -> None:
     with pytest.raises((ValueError, TypeError)):
         rotations.Rodriguez_Parameters.from_axis_angle([1.0, 0, 0], np.pi)

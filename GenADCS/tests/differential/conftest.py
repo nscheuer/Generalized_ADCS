@@ -1,12 +1,13 @@
 """Load all backends so differential checks fail clearly when one is missing."""
 
 from importlib import import_module
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture(scope="module")
-def state_backends():
+def state_backends() -> Any:
     modules = {}
     for name in ("python", "cpp", "rust"):
         try:

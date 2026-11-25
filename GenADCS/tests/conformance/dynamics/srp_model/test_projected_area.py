@@ -1,8 +1,10 @@
+from typing import Any
+
 import numpy as np
 import pytest
 
 
-def test_srp_force_and_torque_match_absorbing_panel_formula(dynamics_api):
+def test_srp_force_and_torque_match_absorbing_panel_formula(dynamics_api: Any) -> None:
     position = np.zeros(3)
     sun = np.array([149_597_870_700.0, 0.0, 0.0])
     quaternion = np.array([1.0, 0.0, 0.0, 0.0])
@@ -24,7 +26,7 @@ def test_srp_force_and_torque_match_absorbing_panel_formula(dynamics_api):
     np.testing.assert_allclose(torque, np.cross(arms[0], expected_force), atol=1e-18)
 
 
-def test_srp_force_scales_with_illumination_and_zero_illumination(dynamics_api):
+def test_srp_force_scales_with_illumination_and_zero_illumination(dynamics_api: Any) -> None:
     args = (
         np.zeros(3),
         np.array([149_597_870_700.0, 0.0, 0.0]),
@@ -40,7 +42,7 @@ def test_srp_force_scales_with_illumination_and_zero_illumination(dynamics_api):
     np.testing.assert_array_equal(dark, np.zeros(3))
 
 
-def test_srp_rejects_coincident_spacecraft_and_sun_positions(dynamics_api):
+def test_srp_rejects_coincident_spacecraft_and_sun_positions(dynamics_api: Any) -> None:
     with pytest.raises(ValueError, match="positions coincide"):
         dynamics_api.projected_area_srp_force(
             np.zeros(3),

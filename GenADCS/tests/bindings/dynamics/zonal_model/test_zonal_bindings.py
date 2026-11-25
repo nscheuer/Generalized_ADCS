@@ -1,10 +1,11 @@
 from types import SimpleNamespace
+from typing import Any
 
 import numpy as np
 import pytest
 
 
-def test_native_zonal_binding_accepts_numpy_inputs(dynamics_backend):
+def test_native_zonal_binding_accepts_numpy_inputs(dynamics_backend: Any) -> None:
     position = np.array([7e6, 0.0, 0.0], dtype=np.float32)
     mass = 10.0
     mu = 3.986004418e14
@@ -23,7 +24,7 @@ def test_native_zonal_binding_accepts_numpy_inputs(dynamics_backend):
     np.testing.assert_allclose(force, expected, rtol=1e-12)
 
 
-def test_zonal_force_model_binding_uses_body_parameters(dynamics_backend):
+def test_zonal_force_model_binding_uses_body_parameters(dynamics_backend: Any) -> None:
     body = SimpleNamespace(
         gravitational_parameter=3.986004418e14,
         reference_radius=6_378_137.0,
@@ -41,7 +42,7 @@ def test_zonal_force_model_binding_uses_body_parameters(dynamics_backend):
 
 
 @pytest.mark.parametrize("backend", ("cpp", "rust"))
-def test_zonal_model_binding_rejects_malformed_position(backend):
+def test_zonal_model_binding_rejects_malformed_position(backend: Any) -> None:
     module = __import__(
         f"GenADCS.backends.{backend}.dynamics.zonal_model",
         fromlist=["ZonalForceModel"],

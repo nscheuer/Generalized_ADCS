@@ -1,7 +1,9 @@
+from typing import Any
+
 import numpy as np
 
 
-def test_srp_force_and_torque_match_across_backends(dynamics_backends):
+def test_srp_force_and_torque_match_across_backends(dynamics_backends: Any) -> None:
     cases = (
         (
             np.zeros(3),

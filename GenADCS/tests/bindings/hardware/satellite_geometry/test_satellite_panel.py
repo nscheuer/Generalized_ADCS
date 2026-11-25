@@ -2,11 +2,12 @@
 
 import gc
 import weakref
+from typing import Any
 
 import pytest
 
 
-def test_panel_constructor_defaults_and_explicit_fields(geometry_backend):
+def test_panel_constructor_defaults_and_explicit_fields(geometry_backend: Any) -> None:
     panel = geometry_backend.SatellitePanel(
         (1.0, 2.0, 3.0), (0.0, 0.0, 1.0), (2.0, 1.0)
     )
@@ -29,7 +30,7 @@ def test_panel_constructor_defaults_and_explicit_fields(geometry_backend):
     )
 
 
-def test_panel_fields_can_be_read_and_mutated(geometry_backend):
+def test_panel_fields_can_be_read_and_mutated(geometry_backend: Any) -> None:
     panel = geometry_backend.SatellitePanel(
         (1.0, 2.0, 3.0), (0.0, 0.0, 1.0), (2.0, 1.0)
     )
@@ -43,7 +44,7 @@ def test_panel_fields_can_be_read_and_mutated(geometry_backend):
     assert (panel.eta_s, panel.eta_d, panel.eta_a, panel.cd) == (0.1, 0.2, 0.7, 2.4)
 
 
-def test_panel_retains_python_objects_until_replaced_or_destroyed(geometry_backend):
+def test_panel_retains_python_objects_until_replaced_or_destroyed(geometry_backend: Any) -> None:
     class CoordinateData:
         pass
 
@@ -66,14 +67,14 @@ def test_panel_retains_python_objects_until_replaced_or_destroyed(geometry_backe
     assert coordinates_ref() is None
 
 
-def test_panel_constructor_arguments_are_checked_by_binding(geometry_backend):
+def test_panel_constructor_arguments_are_checked_by_binding(geometry_backend: Any) -> None:
     with pytest.raises(TypeError):
         geometry_backend.SatellitePanel((0, 0, 0), (1, 0, 0))
 
 
 def test_panel_equality_behavior_is_explicit_for_each_backend(
-    geometry_backend, geometry_backend_name
-):
+    geometry_backend: Any, geometry_backend_name: str
+) -> None:
     panel_a = geometry_backend.SatellitePanel((1, 2, 3), (0, 0, 1), (4, 5))
     panel_b = geometry_backend.SatellitePanel((1, 2, 3), (0, 0, 1), (4, 5))
     if geometry_backend_name == "cpp":

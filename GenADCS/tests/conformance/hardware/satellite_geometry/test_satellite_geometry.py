@@ -1,3 +1,5 @@
+from typing import Any
+
 """Common constructor, defaults, and nested ownership contract for geometry."""
 
 import gc
@@ -7,7 +9,7 @@ import numpy as np
 import pytest
 
 
-def test_geometry_required_fields_defaults_and_assignment(geometry_api):
+def test_geometry_required_fields_defaults_and_assignment(geometry_api: Any) -> None:
     inertia = np.diag([2.0, 3.0, 4.0])
     geometry = geometry_api.SatelliteGeometry(mass=12.5, inertia=inertia)
     assert geometry.mass == 12.5
@@ -25,7 +27,7 @@ def test_geometry_required_fields_defaults_and_assignment(geometry_api):
     assert geometry.panels[0] is panel
 
 
-def test_each_geometry_gets_an_empty_panel_collection(geometry_api):
+def test_each_geometry_gets_an_empty_panel_collection(geometry_api: Any) -> None:
     first = geometry_api.SatelliteGeometry(1.0, np.eye(3))
     second = geometry_api.SatelliteGeometry(2.0, np.eye(3))
     first.panels = [geometry_api.SatellitePanel((0, 0, 0), (1, 0, 0), (1, 1))]
@@ -33,7 +35,7 @@ def test_each_geometry_gets_an_empty_panel_collection(geometry_api):
     assert second.panels == []
 
 
-def test_geometry_keeps_constructor_python_objects_alive(geometry_api):
+def test_geometry_keeps_constructor_python_objects_alive(geometry_api: Any) -> None:
     class Retained:
         pass
 
@@ -47,6 +49,6 @@ def test_geometry_keeps_constructor_python_objects_alive(geometry_api):
     assert center_ref() is geometry.center_of_mass
 
 
-def test_missing_required_geometry_arguments_raise_type_error(geometry_api):
+def test_missing_required_geometry_arguments_raise_type_error(geometry_api: Any) -> None:
     with pytest.raises(TypeError):
         geometry_api.SatelliteGeometry(inertia=np.eye(3))

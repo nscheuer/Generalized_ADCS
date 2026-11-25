@@ -1,14 +1,15 @@
 import gc
+from typing import Any
 
 import numpy as np
 import pytest
 
 
-def cls(r):
+def cls(r: Any) -> None:
     return r.Modified_Rodriguez_Parameters
 
 
-def test_mrp_aliases_numpy_conversion_and_ownership(rotations):
+def test_mrp_aliases_numpy_conversion_and_ownership(rotations: Any) -> None:
     C = cls(rotations)
     assert C is rotations.ModifiedRodriguesParameters
     source = np.array([2.0, 0.0, 0.0], dtype=np.float32)
@@ -22,7 +23,7 @@ def test_mrp_aliases_numpy_conversion_and_ownership(rotations):
     np.testing.assert_allclose(arr, [-0.5, 0, 0])
 
 
-def test_mrp_shadow_and_quaternion_binding(rotations):
+def test_mrp_shadow_and_quaternion_binding(rotations: Any) -> None:
     p = cls(rotations)([0.2, 0.3, 0.4])
     p.to_quaternion()
     shadow = p.switch_shadow_set()
@@ -33,7 +34,7 @@ def test_mrp_shadow_and_quaternion_binding(rotations):
     )
 
 
-def test_mrp_illegal_inputs_and_identity_shadow_error(rotations):
+def test_mrp_illegal_inputs_and_identity_shadow_error(rotations: Any) -> None:
     with pytest.raises(ValueError):
         rotations.mrp_shadow_set([0.0, 0.0, 0.0])
     with pytest.raises(ValueError):

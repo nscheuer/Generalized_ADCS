@@ -1,18 +1,19 @@
 from types import SimpleNamespace
+from typing import Any
 
 
 class State:
-    def __init__(self, date):
+    def __init__(self, date: Any) -> None:
         self.orbit = SimpleNamespace(julian_date=date)
         self.record = object()
         self.calls = []
 
-    def to_record(self, wheel_count):
+    def to_record(self, wheel_count: Any) -> Any:
         self.calls.append(wheel_count)
         return self.record
 
 
-def test_dynamics_values_match_across_backends(config_backends):
+def test_dynamics_values_match_across_backends(config_backends: Any) -> None:
     configs = {
         name: api.DynamicsConfig(["drag"], ["magnetic"])
         for name, api in config_backends.items()
@@ -21,7 +22,7 @@ def test_dynamics_values_match_across_backends(config_backends):
         assert (config.forces, config.torques) == (["drag"], ["magnetic"]), name
 
 
-def test_simulation_derived_values_and_dependencies_match(config_backends):
+def test_simulation_derived_values_and_dependencies_match(config_backends: Any) -> None:
     configs = {}
     for name, api in config_backends.items():
         sat = SimpleNamespace(adcs=SimpleNamespace(reaction_wheels=[None, None, None]))

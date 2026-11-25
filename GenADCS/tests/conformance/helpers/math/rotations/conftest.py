@@ -1,10 +1,12 @@
 from importlib import import_module
+from types import ModuleType
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture(params=("python", "cpp", "rust"), ids=("python", "cpp", "rust"))
-def rotations(request):
+def rotations(request: Any) -> ModuleType:
     try:
         root = f"GenADCS.backends.{request.param}.helpers.math.rotations"
         module = import_module(root)

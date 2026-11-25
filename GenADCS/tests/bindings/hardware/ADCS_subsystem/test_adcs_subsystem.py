@@ -2,19 +2,20 @@
 
 import gc
 import weakref
+from typing import Any
 
 
-def make_wheel(api):
+def make_wheel(api: Any) -> Any:
     return api.ReactionWheel((1, 0, 0), (0, 0, 1), 0.02, 0.1, 2.0)
 
 
-def make_magnetorquer(api):
+def make_magnetorquer(api: Any) -> Any:
     return api.Magnetorquer((0, 1, 0), (1, 0, 0), 0.25)
 
 
 def test_subsystem_defaults_and_list_ownership_quirks(
-    subsystem_backend, subsystem_backend_name
-):
+    subsystem_backend: Any, subsystem_backend_name: str
+) -> None:
     first, second = subsystem_backend.ADCSSubsystem(), subsystem_backend.ADCSSubsystem()
     assert first.reaction_wheels == first.magnetorquers == []
     first.reaction_wheels = [make_wheel(subsystem_backend)]
@@ -40,8 +41,8 @@ def test_subsystem_defaults_and_list_ownership_quirks(
 
 
 def test_device_and_subsystem_keep_references_and_release_on_replacement(
-    subsystem_backend,
-):
+    subsystem_backend: Any,
+) -> None:
     class Retained:
         pass
 

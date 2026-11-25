@@ -1,12 +1,13 @@
 """Dynamics binding conversion, dynamic shapes, errors, and ownership."""
 
 import gc
+from typing import Any
 
 import numpy as np
 import pytest
 
 
-def test_rigid_body_dynamics_accept_lists_and_numpy_inputs(math_backend):
+def test_rigid_body_dynamics_accept_lists_and_numpy_inputs(math_backend: Any) -> None:
     omega = np.zeros(3, dtype=np.float32)
     torque = np.array([0.03, -0.01, 0.02], dtype=np.float32)
     inertia = np.diag([2.0, 3.0, 5.0]).astype(np.float32)
@@ -22,7 +23,7 @@ def test_rigid_body_dynamics_accept_lists_and_numpy_inputs(math_backend):
     )
 
 
-def test_wheel_coupled_dynamic_inputs_and_zero_wheel_shape(math_backend):
+def test_wheel_coupled_dynamic_inputs_and_zero_wheel_shape(math_backend: Any) -> None:
     omega = np.array([0.3, -0.2, 0.5])
     bus_inertia = np.diag([3.0, 4.0, 5.0])
     torque = np.array([0.01, 0.02, -0.04])
@@ -48,7 +49,7 @@ def test_wheel_coupled_dynamic_inputs_and_zero_wheel_shape(math_backend):
     )
 
 
-def test_wheel_momentum_derivative_dynamic_result_ownership(math_backend):
+def test_wheel_momentum_derivative_dynamic_result_ownership(math_backend: Any) -> None:
     wheel_torque = np.array([0.2, -0.1, 0.05], dtype=np.float32)
     acceleration = np.array([0.3, -0.4, 0.2])
     axes = np.array(
@@ -64,7 +65,7 @@ def test_wheel_momentum_derivative_dynamic_result_ownership(math_backend):
     assert result[0] == 9.0
 
 
-def test_mismatched_wheel_axis_shapes_raise_value_error(math_backend):
+def test_mismatched_wheel_axis_shapes_raise_value_error(math_backend: Any) -> None:
     with pytest.raises(ValueError):
         math_backend.wheel_momentum_derivative([0.1], [0.0, 0.0, 0.0], np.zeros((2, 3)))
     with pytest.raises(ValueError):
@@ -73,14 +74,14 @@ def test_mismatched_wheel_axis_shapes_raise_value_error(math_backend):
         )
 
 
-def test_singular_inertia_maps_to_python_value_error(math_backend):
+def test_singular_inertia_maps_to_python_value_error(math_backend: Any) -> None:
     with pytest.raises(ValueError):
         math_backend.rigid_body_angular_acceleration(
             [0.1, 0.2, 0.3], [0.0, 0.0, 0.0], np.zeros((3, 3))
         )
 
 
-def test_dynamics_results_survive_temporary_inputs(math_backend):
+def test_dynamics_results_survive_temporary_inputs(math_backend: Any) -> None:
     result = math_backend.rigid_body_angular_acceleration(
         np.array([0.0, 0.0, 0.5]), np.array([0.2, -0.4, 0.6]), np.diag([2.0, 4.0, 6.0])
     )

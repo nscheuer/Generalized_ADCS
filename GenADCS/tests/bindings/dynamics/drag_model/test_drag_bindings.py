@@ -1,10 +1,11 @@
 from types import SimpleNamespace
+from typing import Any
 
 import numpy as np
 import pytest
 
 
-def test_native_drag_functions_accept_numpy_inputs_and_return_vectors(dynamics_backend):
+def test_native_drag_functions_accept_numpy_inputs_and_return_vectors(dynamics_backend: Any) -> None:
     velocity = np.array([0.0, 0.0, 7500.0], dtype=np.float32)
     quaternion = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
     normals = np.array([[0.0, 0.0, 1.0]], dtype=np.float32)
@@ -56,13 +57,13 @@ def test_native_drag_functions_accept_numpy_inputs_and_return_vectors(dynamics_b
     ],
 )
 def test_native_drag_bindings_reject_mismatched_panel_counts(
-    dynamics_backend, function, args
-):
+    dynamics_backend: Any, function: Any, args: Any
+) -> None:
     with pytest.raises(ValueError, match="panel arrays must have matching row counts"):
         getattr(dynamics_backend, function)(*args)
 
 
-def test_drag_model_binding_uses_environment_and_panel_data(dynamics_backend):
+def test_drag_model_binding_uses_environment_and_panel_data(dynamics_backend: Any) -> None:
     panel = SimpleNamespace(
         orientation=np.zeros(3),
         position=np.array([1.0, 0.0, 0.0]),

@@ -1,16 +1,18 @@
 """Python binding behavior for the native magnetorquer type."""
 
+from typing import Any
+
 from GenADCS.backends.python.bias import Bias
 from GenADCS.backends.python.noise import Noise
 
 
-def test_magnetorquer_effects_are_handled_at_the_binding_boundary(subsystem_backend):
+def test_magnetorquer_effects_are_handled_at_the_binding_boundary(subsystem_backend: Any) -> None:
     class AddEffect:
-        def __init__(self, amount, calls):
+        def __init__(self, amount: float, calls: list[tuple[Any, float, Any]]) -> None:
             self.amount = amount
             self.calls = calls
 
-        def apply(self, value, dt, rng=None):
+        def apply(self, value: float, dt: float, rng: Any = None) -> float:
             self.calls.append((value, dt, rng))
             return value + self.amount
 

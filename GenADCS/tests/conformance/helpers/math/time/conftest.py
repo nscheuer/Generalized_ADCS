@@ -1,10 +1,12 @@
 from importlib import import_module
+from types import ModuleType
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture(params=("python", "cpp", "rust"), ids=("python", "cpp", "rust"))
-def time_api(request):
+def time_api(request: Any) -> ModuleType:
     try:
         return import_module(f"GenADCS.backends.{request.param}.helpers.math.time")
     except ImportError as exc:

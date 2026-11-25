@@ -1,7 +1,9 @@
+from typing import Any
+
 import numpy as np
 
 
-def test_residual_dipole_torque_matches_across_backends(dynamics_backends):
+def test_residual_dipole_torque_matches_across_backends(dynamics_backends: Any) -> None:
     cases = (
         (
             np.array([1.0, -0.4, 0.2]),

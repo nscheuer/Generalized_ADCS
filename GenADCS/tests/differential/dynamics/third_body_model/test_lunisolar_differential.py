@@ -1,7 +1,9 @@
+from typing import Any
+
 import numpy as np
 
 
-def test_lunisolar_acceleration_matches_across_backends(dynamics_backends):
+def test_lunisolar_acceleration_matches_across_backends(dynamics_backends: Any) -> None:
     cases = (
         (
             np.array([7e6, 0.0, 0.0]),

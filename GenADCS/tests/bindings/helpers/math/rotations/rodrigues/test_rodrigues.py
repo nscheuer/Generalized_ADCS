@@ -1,14 +1,15 @@
 from importlib import import_module
+from typing import Any
 
 import numpy as np
 import pytest
 
 
-def cls(r):
+def cls(r: Any) -> None:
     return r.Rodriguez_Parameters
 
 
-def test_rodrigues_aliases_numpy_roundtrip_and_ownership(rotations):
+def test_rodrigues_aliases_numpy_roundtrip_and_ownership(rotations: Any) -> None:
     C = cls(rotations)
     assert C is rotations.RodriguesParameters
     source = np.array([0.1, -0.2, 0.3], dtype=np.float32)
@@ -24,7 +25,7 @@ def test_rodrigues_aliases_numpy_roundtrip_and_ownership(rotations):
     )
 
 
-def test_rodrigues_singular_and_invalid_binding_inputs(rotations):
+def test_rodrigues_singular_and_invalid_binding_inputs(rotations: Any) -> None:
     with pytest.raises(ValueError):
         cls(rotations).from_axis_angle([1.0, 0, 0], np.pi)
     with pytest.raises(ValueError):

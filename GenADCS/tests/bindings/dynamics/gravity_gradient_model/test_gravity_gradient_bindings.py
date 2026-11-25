@@ -1,10 +1,11 @@
 from types import SimpleNamespace
+from typing import Any
 
 import numpy as np
 import pytest
 
 
-def test_native_gravity_gradient_accepts_numpy_inputs(dynamics_backend):
+def test_native_gravity_gradient_accepts_numpy_inputs(dynamics_backend: Any) -> None:
     position = np.array([1.0, 1.0, 0.0], dtype=np.float32) * 7e6
     quaternion = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
     inertia = np.diag(np.array([2.0, 3.0, 4.0], dtype=np.float32))
@@ -21,8 +22,8 @@ def test_native_gravity_gradient_accepts_numpy_inputs(dynamics_backend):
 
 
 def test_gravity_gradient_model_binding_reads_geometry_and_environment(
-    dynamics_backend,
-):
+    dynamics_backend: Any,
+) -> None:
     geometry = SimpleNamespace(inertia=np.diag([2.0, 3.0, 4.0]))
     environment = SimpleNamespace(
         planetary_body=SimpleNamespace(gravitational_parameter=3.986e14)
@@ -35,7 +36,7 @@ def test_gravity_gradient_model_binding_reads_geometry_and_environment(
 
 
 @pytest.mark.parametrize("backend", ("cpp", "rust"))
-def test_gravity_gradient_binding_maps_centre_singularity_to_value_error(backend):
+def test_gravity_gradient_binding_maps_centre_singularity_to_value_error(backend: Any) -> None:
     module = __import__(
         f"GenADCS.backends.{backend}.dynamics.gravity_gradient_model",
         fromlist=["static_gravity_gradient_torque"],

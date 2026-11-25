@@ -1,10 +1,11 @@
 import gc
+from typing import Any
 
 import numpy as np
 import pytest
 
 
-def test_numpy_eigen_or_nalgebra_conversion_and_output_ownership(rotations):
+def test_numpy_eigen_or_nalgebra_conversion_and_output_ownership(rotations: Any) -> None:
     values = np.array([2.0, 0.0, 0.0, 0.0], dtype=np.float32)
     original = values.copy()
     q = rotations.Quaternion(values)
@@ -16,7 +17,7 @@ def test_numpy_eigen_or_nalgebra_conversion_and_output_ownership(rotations):
     assert np.asarray(q)[0] == pytest.approx(1.0)
 
 
-def test_slerp_binding_accepts_lists_numpy_views_and_extrapolation(rotations):
+def test_slerp_binding_accepts_lists_numpy_views_and_extrapolation(rotations: Any) -> None:
     q0 = np.array([1.0, 0.0, 0.0, 0.0])
     backing = np.array([9.0, 0.0, 0.0, 1.0, 8.0])
     backing[1:4:2]
@@ -30,7 +31,7 @@ def test_slerp_binding_accepts_lists_numpy_views_and_extrapolation(rotations):
     np.testing.assert_array_equal(backing, [9.0, 0.0, 0.0, 1.0, 8.0])
 
 
-def test_quaternion_objects_are_safe_after_temporaries_are_destroyed(rotations):
+def test_quaternion_objects_are_safe_after_temporaries_are_destroyed(rotations: Any) -> None:
     q = rotations.Quaternion.from_axis_angle(np.array([0.0, 0.0, 1.0]), np.pi / 2)
     expected = q.to_dcm().copy()
     gc.collect()
@@ -41,7 +42,7 @@ def test_quaternion_objects_are_safe_after_temporaries_are_destroyed(rotations):
     np.testing.assert_allclose(arr, [np.sqrt(0.5), 0.0, 0.0, np.sqrt(0.5)], atol=1e-12)
 
 
-def test_quaternion_binding_errors_map_to_value_error(rotations):
+def test_quaternion_binding_errors_map_to_value_error(rotations: Any) -> None:
     for value in ([0.0, 0.0, 0.0, 0.0], [1.0, 2.0], [1.0, np.nan, 0.0, 0.0]):
         with pytest.raises((ValueError, TypeError)):
             rotations.Quaternion(value)

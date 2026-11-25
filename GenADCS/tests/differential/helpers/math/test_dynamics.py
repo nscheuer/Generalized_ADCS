@@ -1,9 +1,11 @@
 """Pairwise comparisons for rigid body and wheel dynamics."""
 
+from typing import Any
+
 import numpy as np
 
 
-def test_rigid_body_and_wheel_dynamics_match_pairwise(math_backends):
+def test_rigid_body_and_wheel_dynamics_match_pairwise(math_backends: Any) -> None:
     omega = np.array([0.2, -0.4, 0.7])
     torque = np.array([0.03, -0.01, 0.02])
     inertia = np.array([[4.0, 0.2, -0.1], [0.2, 5.0, 0.3], [-0.1, 0.3, 6.0]])
@@ -30,7 +32,7 @@ def test_rigid_body_and_wheel_dynamics_match_pairwise(math_backends):
             )
 
 
-def test_empty_wheel_results_match_across_backends(math_backends):
+def test_empty_wheel_results_match_across_backends(math_backends: Any) -> None:
     omega = np.array([0.1, -0.2, 0.3])
     torque = np.array([0.01, 0.02, -0.03])
     inertia = np.diag([2.0, 3.0, 4.0])

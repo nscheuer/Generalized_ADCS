@@ -1,7 +1,9 @@
+from typing import Any
+
 import numpy as np
 
 
-def test_mrp_and_rodrigues_represent_same_rotations_across_backends(rotation_backends):
+def test_mrp_and_rodrigues_represent_same_rotations_across_backends(rotation_backends: Any) -> None:
     results = []
     for m in rotation_backends.values():
         mrp = m.Modified_Rodriguez_Parameters.from_axis_angle([1.0, -2.0, 3.0], 1.1)

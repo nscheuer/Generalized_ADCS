@@ -1,8 +1,10 @@
+from typing import Any
+
 import numpy as np
 import pytest
 
 
-def test_drag_force_and_torque_match_panel_physics(dynamics_api):
+def test_drag_force_and_torque_match_panel_physics(dynamics_api: Any) -> None:
     velocity = np.array([0.0, 0.0, 10.0])
     quaternion = np.array([1.0, 0.0, 0.0, 0.0])
     normals = np.array([[0.0, 0.0, 1.0]])
@@ -22,7 +24,7 @@ def test_drag_force_and_torque_match_panel_physics(dynamics_api):
     np.testing.assert_allclose(torque, np.cross(arms[0], expected_force), atol=1e-12)
 
 
-def test_drag_force_scales_with_density_and_vanishes_without_incidence(dynamics_api):
+def test_drag_force_scales_with_density_and_vanishes_without_incidence(dynamics_api: Any) -> None:
     args = (
         np.array([0.0, 0.0, 10.0]),
         np.array([1.0, 0.0, 0.0, 0.0]),
@@ -43,7 +45,7 @@ def test_drag_force_scales_with_density_and_vanishes_without_incidence(dynamics_
 
 
 @pytest.mark.parametrize("kind", ("force", "torque"))
-def test_drag_rejects_mismatched_panel_arrays(dynamics_api, kind):
+def test_drag_rejects_mismatched_panel_arrays(dynamics_api: Any, kind: Any) -> None:
     common = (np.array([0.0, 0.0, 10.0]), np.array([1.0, 0.0, 0.0, 0.0]), 1.0)
     if kind == "force":
         call = lambda: dynamics_api.projected_area_drag_force(

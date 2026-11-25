@@ -1,9 +1,11 @@
 """Rigid body and wheel dynamics contract across backends."""
 
+from typing import Any
+
 import numpy as np
 
 
-def test_rigid_body_acceleration_satisfies_eulers_equation(math_api):
+def test_rigid_body_acceleration_satisfies_eulers_equation(math_api: Any) -> None:
     omega = np.array([0.2, -0.4, 0.7])
     torque = np.array([0.03, -0.01, 0.02])
     inertia = np.array([[4.0, 0.2, -0.1], [0.2, 5.0, 0.3], [-0.1, 0.3, 6.0]])
@@ -13,7 +15,7 @@ def test_rigid_body_acceleration_satisfies_eulers_equation(math_api):
     np.testing.assert_allclose(actual, expected, rtol=2e-13, atol=2e-14)
 
 
-def test_spherical_inertia_has_no_gyroscopic_coupling(math_api):
+def test_spherical_inertia_has_no_gyroscopic_coupling(math_api: Any) -> None:
     omega = np.array([0.2, -0.4, 0.7])
     torque = np.array([0.3, -0.6, 0.9])
     np.testing.assert_allclose(
@@ -23,7 +25,7 @@ def test_spherical_inertia_has_no_gyroscopic_coupling(math_api):
     )
 
 
-def test_wheel_coupled_acceleration_uses_total_momentum(math_api):
+def test_wheel_coupled_acceleration_uses_total_momentum(math_api: Any) -> None:
     omega = np.array([0.3, -0.2, 0.5])
     momentum = np.array([0.04, -0.03])
     axes = np.array([[1.0, 0.0, 0.0], [0.0, 0.6, 0.8]])
@@ -41,7 +43,7 @@ def test_wheel_coupled_acceleration_uses_total_momentum(math_api):
     )
 
 
-def test_wheel_momentum_derivative_and_empty_wheel_contract(math_api):
+def test_wheel_momentum_derivative_and_empty_wheel_contract(math_api: Any) -> None:
     wheel_torque = np.array([0.2, -0.1, 0.05])
     acceleration = np.array([0.3, -0.4, 0.2])
     axes = np.array(

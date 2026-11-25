@@ -1,12 +1,13 @@
 """Derivative binding input conversion, results, errors, and ownership."""
 
 import gc
+from typing import Any
 
 import numpy as np
 import pytest
 
 
-def test_quaternion_derivative_sequence_array_and_dtype_parity(math_backend):
+def test_quaternion_derivative_sequence_array_and_dtype_parity(math_backend: Any) -> None:
     q = np.array([2.0, 0.0, 0.0, 0.0], dtype=np.float32)
     omega = np.array([0.4, -0.7, 0.2], dtype=np.float32)
     q_before, omega_before = q.copy(), omega.copy()
@@ -21,8 +22,8 @@ def test_quaternion_derivative_sequence_array_and_dtype_parity(math_backend):
 
 
 def test_derivative_outputs_own_their_memory_and_survive_argument_destruction(
-    math_backend,
-):
+    math_backend: Any,
+) -> None:
     q = np.array([1.0, 0.0, 0.0, 0.0])
     omega = np.array([1.0, 2.0, 3.0])
     result = math_backend.quaternion_derivative(q, omega)
@@ -33,7 +34,7 @@ def test_derivative_outputs_own_their_memory_and_survive_argument_destruction(
     assert result[0] == 7.0
 
 
-def test_jacobian_results_are_owned_and_have_expected_shapes(math_backend):
+def test_jacobian_results_are_owned_and_have_expected_shapes(math_backend: Any) -> None:
     q = np.array([0.4, -1.2, 0.7, 2.0])
     norm_jacobian = math_backend.quaternion_normalization_jacobian(q)
     rotation_jacobian = math_backend.rotated_vector_quaternion_jacobian(
@@ -46,7 +47,7 @@ def test_jacobian_results_are_owned_and_have_expected_shapes(math_backend):
     assert math_backend.quaternion_normalization_jacobian(q)[0, 0] != 100.0
 
 
-def test_normalization_jacobian_zero_quaternion_maps_to_value_error(math_backend):
+def test_normalization_jacobian_zero_quaternion_maps_to_value_error(math_backend: Any) -> None:
     with pytest.raises(ValueError, match="nonzero norm"):
         math_backend.quaternion_normalization_jacobian(np.zeros(4))
 
@@ -55,16 +56,16 @@ def test_normalization_jacobian_zero_quaternion_maps_to_value_error(math_backend
     "bad_q,bad_w", [([1.0, 0.0], [0.0, 0.0, 0.0]), ([1.0, 0.0, 0.0, 0.0], [1.0, 2.0])]
 )
 def test_wrong_derivative_argument_shapes_raise_python_exception(
-    math_backend, backend_name, bad_q, bad_w
-):
+    math_backend: Any, backend_name: str, bad_q: Any, bad_w: Any
+) -> None:
     expected_exception = TypeError if backend_name == "cpp" else ValueError
     with pytest.raises(expected_exception):
         math_backend.quaternion_derivative(bad_q, bad_w)
 
 
 def test_quaternion_object_constructor_and_destructor_keep_native_data_valid(
-    math_backend,
-):
+    math_backend: Any,
+) -> None:
     source = np.array([2.0, 0.0, 0.0, 0.0], dtype=np.float32)
     quaternion = math_backend.Quaternion(source)
     source[:] = 0.0

@@ -1,11 +1,12 @@
 from types import SimpleNamespace
+from typing import Any
 
 import numpy as np
 
 
 def test_native_residual_dipole_accepts_numpy_inputs_and_returns_torque(
-    dynamics_backend,
-):
+    dynamics_backend: Any,
+) -> None:
     dipole = np.array([1.0, 0.0, 0.0], dtype=np.float32)
     field = np.array([0.0, 0.0, 2e-5], dtype=np.float32)
     quaternion = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
@@ -18,7 +19,7 @@ def test_native_residual_dipole_accepts_numpy_inputs_and_returns_torque(
     np.testing.assert_allclose(torque, np.cross(dipole, field))
 
 
-def test_residual_dipole_model_binding_uses_environment_field(dynamics_backend):
+def test_residual_dipole_model_binding_uses_environment_field(dynamics_backend: Any) -> None:
     dipole = np.array([1.0, 0.0, 0.0])
     field = np.array([0.0, 0.0, 2e-5])
     environment = SimpleNamespace(

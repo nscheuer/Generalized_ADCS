@@ -1,8 +1,10 @@
+from typing import Any
+
 import numpy as np
 import pytest
 
 
-def make_state(backend):
+def make_state(backend: Any) -> Any:
     return backend.State(
         backend.AttitudeState([2, 0, 0, 0], [0.1, 0.2, 0.3]),
         backend.OrbitalState.from_cartesian([7e6, 0, 0], [0, 7500, 0], 2451545.0),
@@ -10,7 +12,7 @@ def make_state(backend):
     )
 
 
-def test_record_layout_and_values(state_backend):
+def test_record_layout_and_values(state_backend: Any) -> None:
     record = make_state(state_backend).to_record()
     assert record.shape == (1,)
     assert record.dtype.names == (
@@ -31,7 +33,7 @@ def test_record_layout_and_values(state_backend):
         np.testing.assert_allclose(record[field][0], expected)
 
 
-def test_record_roundtrip_and_wheel_count(state_backend):
+def test_record_roundtrip_and_wheel_count(state_backend: Any) -> None:
     state = make_state(state_backend)
     record = state.to_record(wheel_count=2)
     rebuilt = state_backend.State.from_record(record, 2451545.0)
@@ -42,7 +44,7 @@ def test_record_roundtrip_and_wheel_count(state_backend):
         state.to_record(wheel_count=-1)
 
 
-def test_default_internal_and_keplerian_record_failure(state_backend):
+def test_default_internal_and_keplerian_record_failure(state_backend: Any) -> None:
     attitude = state_backend.AttitudeState([1, 0, 0, 0], [0, 0, 0])
     cartesian = state_backend.OrbitalState.from_cartesian([0, 0, 0], [0, 0, 0], 1.0)
     assert (

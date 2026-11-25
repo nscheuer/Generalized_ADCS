@@ -1,7 +1,10 @@
 """Numerical and field parity for SatellitePanel across backends."""
 
 
-def test_panel_fields_match_pairwise(geometry_backends):
+from typing import Any
+
+
+def test_panel_fields_match_pairwise(geometry_backends: Any) -> None:
     results = {
         name: api.SatellitePanel(
             position=(1.0, -2.0, 3.5),
@@ -23,7 +26,7 @@ def test_panel_fields_match_pairwise(geometry_backends):
             )
 
 
-def test_panel_field_updates_match_pairwise(geometry_backends):
+def test_panel_field_updates_match_pairwise(geometry_backends: Any) -> None:
     results = {}
     for name, api in geometry_backends.items():
         panel = api.SatellitePanel((0, 0, 0), (1, 0, 0), (1, 1))

@@ -1,7 +1,9 @@
+from typing import Any
+
 import numpy as np
 
 
-def test_gravity_gradient_torque_matches_across_backends(dynamics_backends):
+def test_gravity_gradient_torque_matches_across_backends(dynamics_backends: Any) -> None:
     cases = (
         (
             np.array([7e6, 7e6, 0.0]),

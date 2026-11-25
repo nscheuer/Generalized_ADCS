@@ -1,8 +1,10 @@
+from typing import Any
+
 import numpy as np
 import pytest
 
 
-def test_quaternion_construction_conventions_and_rotation(rotations):
+def test_quaternion_construction_conventions_and_rotation(rotations: Any) -> None:
     q = rotations.Quaternion.from_axis_angle([0.0, 0.0, 2.0], np.pi / 2)
     np.testing.assert_allclose(q.rotate([1.0, 0.0, 0.0]), [0.0, 1.0, 0.0], atol=2e-12)
     np.testing.assert_allclose(
@@ -17,7 +19,7 @@ def test_quaternion_construction_conventions_and_rotation(rotations):
     assert q.norm == pytest.approx(1.0, abs=2e-12)
 
 
-def test_quaternion_algebra_conversion_and_slerp(rotations):
+def test_quaternion_algebra_conversion_and_slerp(rotations: Any) -> None:
     q = rotations.Quaternion.from_rotation_vector([0.0, 0.0, 0.7])
     inv = q.inverse()
     np.testing.assert_allclose((q * inv).to_dcm(), np.eye(3), atol=2e-12)
@@ -42,6 +44,6 @@ def test_quaternion_algebra_conversion_and_slerp(rotations):
 @pytest.mark.parametrize(
     "bad", [[0.0, 0.0, 0.0, 0.0], [1.0, 2.0], [np.nan, 0.0, 0.0, 0.0]]
 )
-def test_quaternion_invalid_inputs_rejected(rotations, bad):
+def test_quaternion_invalid_inputs_rejected(rotations: Any, bad: Any) -> None:
     with pytest.raises((ValueError, TypeError)):
         rotations.Quaternion(bad)

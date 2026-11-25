@@ -2,12 +2,13 @@
 
 import gc
 import weakref
+from typing import Any
 
 import numpy as np
 import pytest
 
 
-def make_panel(api, **overrides):
+def make_panel(api: Any, **overrides: Any) -> Any:
     values = {
         "position": (1.0, 2.0, 3.0),
         "orientation": (0.0, 0.0, 1.0),
@@ -17,7 +18,7 @@ def make_panel(api, **overrides):
     return api.SatellitePanel(**values)
 
 
-def test_geometry_constructor_defaults_and_mutable_fields(geometry_backend):
+def test_geometry_constructor_defaults_and_mutable_fields(geometry_backend: Any) -> None:
     inertia = np.diag([1.0, 2.0, 3.0])
     geometry = geometry_backend.SatelliteGeometry(5.0, inertia)
     assert geometry.mass == 5.0
@@ -34,8 +35,8 @@ def test_geometry_constructor_defaults_and_mutable_fields(geometry_backend):
 
 
 def test_geometry_constructor_retains_panel_objects_and_panel_mutability(
-    geometry_backend,
-):
+    geometry_backend: Any,
+) -> None:
     panel = make_panel(geometry_backend)
     geometry = geometry_backend.SatelliteGeometry(3.0, np.eye(3), [panel])
     assert geometry.panels[0] is panel
@@ -44,7 +45,7 @@ def test_geometry_constructor_retains_panel_objects_and_panel_mutability(
     assert panel.cd == 2.6
 
 
-def test_geometry_center_and_inertia_references_survive_gc(geometry_backend):
+def test_geometry_center_and_inertia_references_survive_gc(geometry_backend: Any) -> None:
     class RetainedValue:
         pass
 
@@ -58,7 +59,7 @@ def test_geometry_center_and_inertia_references_survive_gc(geometry_backend):
     assert center_ref() is geometry.center_of_mass
 
 
-def test_default_panel_lists_are_independent_and_can_be_reassigned(geometry_backend):
+def test_default_panel_lists_are_independent_and_can_be_reassigned(geometry_backend: Any) -> None:
     first = geometry_backend.SatelliteGeometry(1.0, np.eye(3))
     second = geometry_backend.SatelliteGeometry(2.0, np.eye(3))
     first.panels = [make_panel(geometry_backend)]
@@ -67,8 +68,8 @@ def test_default_panel_lists_are_independent_and_can_be_reassigned(geometry_back
 
 
 def test_panel_list_constructor_and_getter_ownership_quirks(
-    geometry_backend, geometry_backend_name
-):
+    geometry_backend: Any, geometry_backend_name: str
+) -> None:
     panel = make_panel(geometry_backend)
     source = [panel]
     geometry = geometry_backend.SatelliteGeometry(2.0, np.eye(3), source)
@@ -91,8 +92,8 @@ def test_panel_list_constructor_and_getter_ownership_quirks(
 
 
 def test_geometry_panel_property_assignment_sequence_support(
-    geometry_backend, geometry_backend_name
-):
+    geometry_backend: Any, geometry_backend_name: str
+) -> None:
     geometry = geometry_backend.SatelliteGeometry(2.0, np.eye(3))
     panel = make_panel(geometry_backend)
     geometry.panels = [panel]
@@ -106,7 +107,7 @@ def test_geometry_panel_property_assignment_sequence_support(
         assert len(geometry.panels) == 1
 
 
-def test_geometry_constructor_arguments_are_checked_by_binding(geometry_backend):
+def test_geometry_constructor_arguments_are_checked_by_binding(geometry_backend: Any) -> None:
     with pytest.raises(TypeError):
         geometry_backend.SatelliteGeometry(inertia=np.eye(3))
     with pytest.raises(TypeError):
@@ -114,8 +115,8 @@ def test_geometry_constructor_arguments_are_checked_by_binding(geometry_backend)
 
 
 def test_geometry_equality_behavior_is_explicit_for_each_backend(
-    geometry_backend, geometry_backend_name
-):
+    geometry_backend: Any, geometry_backend_name: str
+) -> None:
     geometry_a = geometry_backend.SatelliteGeometry(1.0, np.eye(3))
     geometry_b = geometry_backend.SatelliteGeometry(1.0, np.eye(3))
 

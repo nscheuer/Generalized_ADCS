@@ -2,11 +2,12 @@
 
 import gc
 import weakref
+from typing import Any
 
 import pytest
 
 
-def test_default_lists_are_empty_and_instance_independent(config_backend):
+def test_default_lists_are_empty_and_instance_independent(config_backend: Any) -> None:
     first = config_backend.DynamicsConfig()
     second = config_backend.DynamicsConfig()
     assert first.forces == []
@@ -15,14 +16,14 @@ def test_default_lists_are_empty_and_instance_independent(config_backend):
     assert first.torques is not second.torques
 
 
-def test_constructor_accepts_positional_and_keyword_lists(config_backend):
+def test_constructor_accepts_positional_and_keyword_lists(config_backend: Any) -> None:
     positional = config_backend.DynamicsConfig(["force"], ["torque"])
     keyword = config_backend.DynamicsConfig(torques=["torque"], forces=["force"])
     assert positional.forces == keyword.forces == ["force"]
     assert positional.torques == keyword.torques == ["torque"]
 
 
-def test_list_getter_ownership_and_mutation_quirks(config_backend, config_backend_name):
+def test_list_getter_ownership_and_mutation_quirks(config_backend: Any, config_backend_name: str) -> None:
     force = object()
     source = [force]
     config = config_backend.DynamicsConfig(forces=source)
@@ -48,7 +49,7 @@ def test_list_getter_ownership_and_mutation_quirks(config_backend, config_backen
         assert config.forces is not replacement
 
 
-def test_collection_setter_sequence_conversion(config_backend, config_backend_name):
+def test_collection_setter_sequence_conversion(config_backend: Any, config_backend_name: str) -> None:
     config = config_backend.DynamicsConfig()
     config.forces = ("a", "b")
     assert (
@@ -59,8 +60,8 @@ def test_collection_setter_sequence_conversion(config_backend, config_backend_na
 
 
 def test_none_constructor_argument_is_backend_specific(
-    config_backend, config_backend_name
-):
+    config_backend: Any, config_backend_name: str
+) -> None:
     if config_backend_name == "cpp":
         with pytest.raises(TypeError):
             config_backend.DynamicsConfig(forces=None)
@@ -71,8 +72,8 @@ def test_none_constructor_argument_is_backend_specific(
 
 
 def test_item_references_survive_collection_and_are_released_on_destruction(
-    config_backend,
-):
+    config_backend: Any,
+) -> None:
     class RetainedItem:
         pass
 
@@ -95,7 +96,7 @@ def test_item_references_survive_collection_and_are_released_on_destruction(
     assert item_ref() is None
 
 
-def test_replacing_items_releases_old_reference_but_keeps_new_reference(config_backend):
+def test_replacing_items_releases_old_reference_but_keeps_new_reference(config_backend: Any) -> None:
     class RetainedItem:
         pass
 

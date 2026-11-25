@@ -1,10 +1,11 @@
 from importlib import import_module
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture(scope="module")
-def rotation_backends():
+def rotation_backends() -> Any:
     result = {}
     for name in ("python", "cpp", "rust"):
         try:

@@ -1,10 +1,11 @@
 from importlib import import_module
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture(scope="module")
-def geometry_backends():
+def geometry_backends() -> Any:
     backends = {}
     for name in ("python", "cpp", "rust"):
         try:

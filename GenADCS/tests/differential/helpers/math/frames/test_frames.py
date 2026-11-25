@@ -1,7 +1,9 @@
+from typing import Any
+
 import numpy as np
 
 
-def test_rotation_and_covariance_outputs_agree(frame_backends):
+def test_rotation_and_covariance_outputs_agree(frame_backends: Any) -> None:
     q = np.array([0.5, 0.5, 0.5, 0.5])
     vector = np.array([1.25, -3.0, 0.75])
     covariance = np.array([[4.0, 1.0, 0.0], [1.0, 2.0, 0.5], [0.0, 0.5, 3.0]])
@@ -19,7 +21,7 @@ def test_rotation_and_covariance_outputs_agree(frame_backends):
             np.testing.assert_allclose(actual, expected, rtol=2e-13, atol=2e-14)
 
 
-def test_frame_conversion_named_helpers_agree(frame_backends):
+def test_frame_conversion_named_helpers_agree(frame_backends: Any) -> None:
     jd = 2459123.25
     context = {"jd_ut1": jd, "jd_tt": jd + 0.0008, "xp": 1.2e-6, "yp": -2.3e-6}
     names = (
@@ -52,7 +54,7 @@ def test_frame_conversion_named_helpers_agree(frame_backends):
             np.testing.assert_allclose(result, results[0], rtol=2e-13, atol=2e-14)
 
 
-def test_lvlh_geodetic_and_vector_conversion_agree(frame_backends):
+def test_lvlh_geodetic_and_vector_conversion_agree(frame_backends: Any) -> None:
     p, v = np.array([7e6, -2e6, 3e6]), np.array([1e3, 6.8e3, -2e3])
     vector = np.array([-3.0, 5.0, 8.0])
     results = []

@@ -1,8 +1,10 @@
+from typing import Any
+
 import numpy as np
 import pytest
 
 
-def test_mrp_roundtrip_shadow_and_rotation(rotations):
+def test_mrp_roundtrip_shadow_and_rotation(rotations: Any) -> None:
     C = rotations.Modified_Rodriguez_Parameters
     p = C.from_axis_angle([0.0, 0.0, 1.0], 0.6)
     np.testing.assert_allclose(
@@ -18,7 +20,7 @@ def test_mrp_roundtrip_shadow_and_rotation(rotations):
     )
 
 
-def test_mrp_invalid_and_identity_shadow(rotations):
+def test_mrp_invalid_and_identity_shadow(rotations: Any) -> None:
     with pytest.raises((ValueError, TypeError)):
         rotations.Modified_Rodriguez_Parameters([np.nan, 0, 0])
     with pytest.raises((ValueError, TypeError)):

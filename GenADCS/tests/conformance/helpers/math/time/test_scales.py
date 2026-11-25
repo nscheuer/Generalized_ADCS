@@ -1,18 +1,19 @@
 import itertools
+from typing import Any
 
 import pytest
 
 SEC = 86400.0
 
 
-def test_tai_tt_fixed_offset(time_api):
+def test_tai_tt_fixed_offset(time_api: Any) -> None:
     tai = 2459000.123456
     tt = time_api.tai_jd_to_tt_jd(tai)
     assert (tt - tai) * SEC == pytest.approx(32.184, abs=2e-5)
     assert time_api.tt_jd_to_tai_jd(tt) == pytest.approx(tai, abs=2e-10)
 
 
-def test_utc_tai_leap_step_contract(time_api):
+def test_utc_tai_leap_step_contract(time_api: Any) -> None:
     epochs = [
         2441317.5,
         2441499.5,
@@ -54,7 +55,7 @@ def test_utc_tai_leap_step_contract(time_api):
         time_api.utc_jd_to_tai_jd(2441317.5 - 1e-5)
 
 
-def test_ut1_dut1_forward_inverse_and_all_scale_paths(time_api):
+def test_ut1_dut1_forward_inverse_and_all_scale_paths(time_api: Any) -> None:
     utc = time_api.calendar_to_jd(2022, 9, 17, 3, 4, 5.0)
     dut1 = -0.137
     ut1 = time_api.utc_jd_to_ut1_jd(utc, dut1)
@@ -72,7 +73,7 @@ def test_ut1_dut1_forward_inverse_and_all_scale_paths(time_api):
     assert time_api.tdb_jd_to_ut1_jd(tdb, dut1) == pytest.approx(ut1, abs=4e-10)
 
 
-def test_tdb_correction_stays_small_and_varies_smoothly(time_api):
+def test_tdb_correction_stays_small_and_varies_smoothly(time_api: Any) -> None:
     vals = [
         (
             time_api.tt_jd_to_tdb_jd(2451545.0 + i * 365.25 / 99)

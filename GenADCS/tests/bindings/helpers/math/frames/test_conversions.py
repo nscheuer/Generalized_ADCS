@@ -1,17 +1,17 @@
 """Python calls, NumPy conversions, and exception mapping for frame bindings."""
-
 from importlib import import_module
+from typing import Any
 
 import numpy as np
 import pytest
 
 
 @pytest.fixture(params=("cpp", "rust"), ids=("cpp", "rust"))
-def frames(request):
+def frames(request: Any) -> Any:
     return import_module(f"GenADCS.backends.{request.param}.helpers.math.frames")
 
 
-def context():
+def context() -> Any:
     return {
         "jd_ut1": 2451545.0,
         "jd_tt": 2451545.0,
@@ -20,14 +20,14 @@ def context():
     }
 
 
-def test_frame_rotation_accepts_numpy_context_and_returns_matrix(frames):
+def test_frame_rotation_accepts_numpy_context_and_returns_matrix(frames: Any) -> Any:
     result = frames.frame_rotation("GCRF", "ECEF", **context())
     assert isinstance(result, np.ndarray)
     assert result.shape == (3, 3) and result.dtype == np.float64
     np.testing.assert_allclose(result @ result.T, np.eye(3), atol=2e-12)
 
 
-def test_convert_vector_numpy_input_and_inverse_roundtrip(frames):
+def test_convert_vector_numpy_input_and_inverse_roundtrip(frames: Any) -> Any:
     vector = np.array([1.0, -2.0, 3.0], dtype=np.float32)
     converted = frames.convert_vector(vector, "GCRF", "ECEF", **context())
     assert converted.shape == (3,) and converted.dtype == np.float64
@@ -35,7 +35,7 @@ def test_convert_vector_numpy_input_and_inverse_roundtrip(frames):
     np.testing.assert_allclose(restored, vector, atol=2e-6)
 
 
-def test_optional_numpy_body_context_converts_through_native_api(frames):
+def test_optional_numpy_body_context_converts_through_native_api(frames: Any) -> Any:
     position = np.array([7e6, 0.0, 0.0], dtype=np.float32)
     velocity = np.array([0.0, 7500.0, 0.0], dtype=np.float32)
     q = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
@@ -47,7 +47,7 @@ def test_optional_numpy_body_context_converts_through_native_api(frames):
     np.testing.assert_allclose(body, np.eye(3), atol=1e-14)
 
 
-def test_bad_context_and_names_map_to_python_value_error(frames):
+def test_bad_context_and_names_map_to_python_value_error(frames: Any) -> Any:
     with pytest.raises(ValueError):
         frames.frame_rotation("GCRF", "ECEF")
     with pytest.raises(ValueError):
@@ -61,7 +61,7 @@ def test_bad_context_and_names_map_to_python_value_error(frames):
 @pytest.mark.parametrize(
     "bad_vector", [np.array([1.0, 2.0]), np.array([np.inf, 0.0, 0.0])]
 )
-def test_bad_vector_maps_to_value_error(frames, bad_vector):
+def test_bad_vector_maps_to_value_error(frames: Any, bad_vector: Any) -> Any:
     with pytest.raises(ValueError):
         frames.convert_vector(bad_vector, "GCRF", "GCRF")
 
@@ -74,7 +74,7 @@ def test_bad_vector_maps_to_value_error(frames, bad_vector):
         (np.array([0.0, 0.0, -6356752.314245]), [-90.0, 0.0, 0.0]),
     ],
 )
-def test_geodetic_numpy_conversion_and_output_shape(frames, position, expected):
+def test_geodetic_numpy_conversion_and_output_shape(frames: Any, position: Any, expected: Any) -> Any:
     result = frames.ecef_to_geodetic(position)
     assert isinstance(result, np.ndarray)
     assert result.shape == (3,) and result.dtype == np.float64

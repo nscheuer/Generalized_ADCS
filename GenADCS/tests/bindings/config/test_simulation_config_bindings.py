@@ -3,22 +3,23 @@
 import gc
 import weakref
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
 
 class StateDouble:
-    def __init__(self, date=2451545.0):
+    def __init__(self, date: float = 2451545.0) -> None:
         self.orbit = SimpleNamespace(julian_date=date)
         self.record = object()
         self.wheel_counts = []
 
-    def to_record(self, wheel_count):
+    def to_record(self, wheel_count: int) -> object:
         self.wheel_counts.append(wheel_count)
         return self.record
 
 
-def make_dependencies(wheels=2, date=2451545.0):
+def make_dependencies(wheels: int = 2, date: float = 2451545.0) -> tuple[Any, ...]:
     satellite = SimpleNamespace(
         adcs=SimpleNamespace(reaction_wheels=[object() for _ in range(wheels)])
     )
@@ -26,7 +27,7 @@ def make_dependencies(wheels=2, date=2451545.0):
     return satellite, SimpleNamespace(), state, SimpleNamespace(), SimpleNamespace()
 
 
-def test_constructor_defaults_backend_and_initializes_state_snapshots(config_backend):
+def test_constructor_defaults_backend_and_initializes_state_snapshots(config_backend: Any) -> None:
     values = make_dependencies(wheels=2, date=2460000.25)
     config = config_backend.SimulationConfig(*values)
 
@@ -41,7 +42,7 @@ def test_constructor_defaults_backend_and_initializes_state_snapshots(config_bac
 
 
 @pytest.mark.parametrize("backend", ["Python", "C", "Rust", "JAX"])
-def test_supported_backend_names_are_accepted(config_backend, backend):
+def test_supported_backend_names_are_accepted(config_backend: Any, backend: str) -> None:
     assert (
         config_backend.SimulationConfig(*make_dependencies(), backend=backend).backend
         == backend
@@ -49,7 +50,7 @@ def test_supported_backend_names_are_accepted(config_backend, backend):
 
 
 @pytest.mark.parametrize("backend", ["", "python", "CUDA", None])
-def test_unsupported_backend_names_are_rejected(config_backend, backend):
+def test_unsupported_backend_names_are_rejected(config_backend: Any, backend: Any) -> None:
     values = make_dependencies()
     expected_error = (
         TypeError
@@ -61,14 +62,14 @@ def test_unsupported_backend_names_are_rejected(config_backend, backend):
     assert values[2].wheel_counts == []
 
 
-def test_missing_required_constructor_arguments_are_rejected(config_backend):
+def test_missing_required_constructor_arguments_are_rejected(config_backend: Any) -> None:
     with pytest.raises(TypeError):
         config_backend.SimulationConfig()
 
 
 def test_snapshot_property_mutability_is_backend_specific(
-    config_backend, config_backend_name
-):
+    config_backend: Any, config_backend_name: str
+) -> None:
     config = config_backend.SimulationConfig(*make_dependencies())
     replacement = object()
     if config_backend_name == "python":
@@ -85,8 +86,8 @@ def test_snapshot_property_mutability_is_backend_specific(
 
 
 def test_dependency_and_backend_properties_remain_mutable_after_construction(
-    config_backend,
-):
+    config_backend: Any,
+) -> None:
     config = config_backend.SimulationConfig(*make_dependencies())
     new_solver = object()
     config.solver = new_solver
@@ -96,8 +97,8 @@ def test_dependency_and_backend_properties_remain_mutable_after_construction(
 
 
 def test_native_backend_requires_string_backend_value(
-    config_backend, config_backend_name
-):
+    config_backend: Any, config_backend_name: str
+) -> None:
     if config_backend_name == "python":
         with pytest.raises(ValueError):
             config_backend.SimulationConfig(*make_dependencies(), backend=1)
@@ -111,8 +112,8 @@ def test_native_backend_requires_string_backend_value(
 
 
 def test_constructor_retains_python_dependencies_until_config_is_destroyed(
-    config_backend,
-):
+    config_backend: Any,
+) -> None:
     class Dependency:
         pass
 
@@ -147,7 +148,7 @@ def test_constructor_retains_python_dependencies_until_config_is_destroyed(
     assert record_ref() is None
 
 
-def test_constructor_errors_from_dependency_access_are_not_silenced(config_backend):
+def test_constructor_errors_from_dependency_access_are_not_silenced(config_backend: Any) -> None:
     values = make_dependencies()
     del values[2].orbit
     with pytest.raises(AttributeError, match="orbit"):

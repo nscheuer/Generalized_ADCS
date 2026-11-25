@@ -1,7 +1,9 @@
+from typing import Any
+
 import numpy as np
 
 
-def test_quaternion_outputs_match_pairwise(rotation_backends):
+def test_quaternion_outputs_match_pairwise(rotation_backends: Any) -> None:
     results = {}
     for name, m in rotation_backends.items():
         q = m.Quaternion.from_axis_angle([1.0, -2.0, 3.0], 1.2)
