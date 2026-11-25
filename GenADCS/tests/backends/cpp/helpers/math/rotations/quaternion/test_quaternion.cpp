@@ -3,8 +3,8 @@ int main() {
   const auto id = r::Quaternion::identity();
   CHECK(id.components().isApprox(q(1, 0, 0, 0)));
   CHECK(std::abs(id.norm() - 1) < 1e-14);
-  auto a = r::Quaternion::from_axis_angle(v(0, 0, 2), M_PI / 2);
-  auto b = r::Quaternion::from_rotation_vector(v(0, 0, M_PI / 2));
+  auto a = r::Quaternion::from_axis_angle(v(0, 0, 2), pi / 2);
+  auto b = r::Quaternion::from_rotation_vector(v(0, 0, pi / 2));
   CHECK(same_rotation(a.components(), b.components()));
   auto j = a.to_convention("JPL");
   CHECK(j.convention() == "JPL");
@@ -34,11 +34,11 @@ int main() {
             r::rotation_vector_to_quaternion(v(1e-14, 0, 0)))
             .isApprox(v(1e-14, 0, 0), 1e-12));
   CHECK(r::quaternion_to_rotation_vector(a.components())
-            .isApprox(v(0, 0, M_PI / 2), 1e-12));
+            .isApprox(v(0, 0, pi / 2), 1e-12));
   for (double t : {-0.5, 0.0, 0.25, 0.5, 0.75, 1.0, 1.5}) {
     auto s = r::slerp(id.components(), a.components(), t);
     CHECK(same_rotation(s,
-                        r::axis_angle_to_quaternion(v(0, 0, 1), t * M_PI / 2)));
+                        r::axis_angle_to_quaternion(v(0, 0, 1), t * pi / 2)));
     CHECK(std::abs(s.norm() - 1) < 1e-12);
   }
   CHECK(same_rotation(r::slerp(id.components(), -id.components(), 0.5),

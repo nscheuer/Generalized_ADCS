@@ -19,6 +19,7 @@
   CHECK(std::abs((actual) - (expected)) <= (tolerance))
 namespace math = omni::math;
 namespace rotations = omni::rotations;
+constexpr double pi = 3.14159265358979323846;
 template <typename Function, typename Input, typename Output>
 Eigen::MatrixXd finite_difference_jacobian(Function function,
                                            const Input &input,
@@ -83,8 +84,8 @@ void test_derivatives() {
   CHECK(math::quaternion_to_euler321(Eigen::Vector4d(1, 0, 0, 0)).norm() <
         1e-14);
   CHECK(math::quaternion_to_euler321(Eigen::Vector4d(half, half, 0, 0))
-            .isApprox(Eigen::Vector3d(M_PI / 2, 0, 0), 1e-14));
+            .isApprox(Eigen::Vector3d(pi / 2, 0, 0), 1e-14));
   CHECK(math::quaternion_to_euler321(Eigen::Vector4d(half, 0, 0, half))
-            .isApprox(Eigen::Vector3d(0, 0, M_PI / 2), 1e-14));
+            .isApprox(Eigen::Vector3d(0, 0, pi / 2), 1e-14));
 }
 int main() { test_derivatives(); }

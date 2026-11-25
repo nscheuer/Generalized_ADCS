@@ -22,6 +22,7 @@
     CHECK(caught);                                                             \
   } while (false)
 namespace r = omni::rotations;
+inline constexpr double pi = 3.14159265358979323846;
 inline r::Vector3 v(double x, double y, double z) {
   return r::Vector3(x, y, z);
 }

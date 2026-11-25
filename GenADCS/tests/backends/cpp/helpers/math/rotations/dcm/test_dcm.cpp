@@ -4,11 +4,11 @@ int main() {
   CHECK(identity.components().isApprox(r::Matrix3::Identity()));
   CHECK(identity.norm() < 1e-14);
   CHECK(identity.orthogonality_error() < 1e-14);
-  auto a = r::DCM::from_axis_angle(v(0, 0, 2), M_PI / 2);
-  auto b = r::DCM::from_rotation_vector(v(0, 0, M_PI / 2));
+  auto a = r::DCM::from_axis_angle(v(0, 0, 2), pi / 2);
+  auto b = r::DCM::from_rotation_vector(v(0, 0, pi / 2));
   CHECK(a.as_matrix().isApprox(b.to_dcm(), 1e-12));
   CHECK(r::DCM::from_quaternion(
-            r::Quaternion::from_axis_angle(v(0, 0, 1), M_PI / 2))
+            r::Quaternion::from_axis_angle(v(0, 0, 1), pi / 2))
             .to_dcm()
             .isApprox(a.to_dcm()));
   CHECK(r::DCM::from_dcm(a.to_dcm()).to_dcm().isApprox(a.to_dcm()));
@@ -23,7 +23,7 @@ int main() {
   CHECK(a.multiply(b).to_dcm().isApprox(a.to_dcm() * b.to_dcm(), 1e-12));
   CHECK(same_rotation(a.hamilton_components(),
                       a.to_quaternion().hamilton_components()));
-  CHECK(r::axis_angle_to_dcm(v(0, 0, 1), M_PI / 2).isApprox(a.to_dcm()));
+  CHECK(r::axis_angle_to_dcm(v(0, 0, 1), pi / 2).isApprox(a.to_dcm()));
   CHECK(r::rotate_vector(a.to_dcm(), v(1, 0, 0)).isApprox(v(0, 1, 0), 1e-12));
   CHECK(r::inverse_dcm(a.to_dcm()).isApprox(a.to_dcm().transpose()));
   CHECK(

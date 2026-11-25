@@ -4,7 +4,7 @@ int main() {
   auto id = P::identity();
   CHECK(id.components().isZero());
   CHECK(id.norm() == 0);
-  auto p = P::from_axis_angle(v(0, 0, 1), M_PI / 2);
+  auto p = P::from_axis_angle(v(0, 0, 1), pi / 2);
   CHECK(p.rotate(v(1, 0, 0)).isApprox(v(0, 1, 0), 1e-12));
   CHECK(p.inertial_to_body(v(1, 0, 0)).isApprox(v(0, 1, 0), 1e-12));
   CHECK(p.body_to_inertial(v(0, 1, 0)).isApprox(v(1, 0, 0), 1e-12));
@@ -15,7 +15,7 @@ int main() {
   CHECK(P::from_quaternion_array(p.to_hamilton())
             .components()
             .isApprox(p.components()));
-  CHECK(P::from_rotation_vector(v(0, 0, M_PI / 2))
+  CHECK(P::from_rotation_vector(v(0, 0, pi / 2))
             .components()
             .isApprox(p.components()));
   CHECK(P::from_dcm(p.to_dcm().to_dcm()).components().isApprox(p.components()));
