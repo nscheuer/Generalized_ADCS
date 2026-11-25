@@ -145,8 +145,8 @@ def sample_sensors(y, jd, p, config, clean, reading, seed=np.uint64(0), tick=0):
         scalars,
         enabled,
         offsets,
-        counts,
-        starts,
+        _counts,
+        _starts,
     ) = config
     q, w, pos, vel = y[:4], y[4:7], y[7:10], y[10:13]
     sun = np.zeros(3)

@@ -104,13 +104,13 @@ def step(q, w, p, acceleration_psd, dt, readings, sensor_config):
         misalignment,
         bias,
         chol,
-        normal,
-        fov,
-        scalars,
+        _normal,
+        _fov,
+        _scalars,
         enabled,
         offsets,
-        counts,
-        starts,
+        _counts,
+        _starts,
     ) = sensor_config
     for i in range(code.size):
         if not enabled[i]:
@@ -164,13 +164,13 @@ def step_with_diagnostics(
         misalignment,
         bias,
         chol,
-        normal,
-        fov,
-        scalars,
+        _normal,
+        _fov,
+        _scalars,
         enabled,
         offsets,
-        counts,
-        starts,
+        _counts,
+        _starts,
     ) = sensor_config
     for i in range(code.size):
         kind = code[i]

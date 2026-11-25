@@ -51,7 +51,7 @@ def _load_spk(path_string):
         for i in range(int(count)):
             item_offset = record_offset + 24 + i * summary_size
             start_et, end_et = struct.unpack_from(endian + "dd", raw, item_offset)
-            target, center, frame, segment_type, first_word, last_word = (
+            target, center, _frame, segment_type, first_word, last_word = (
                 struct.unpack_from(endian + "6i", raw, item_offset + nd * 8)
             )
             if segment_type not in (2, 3):

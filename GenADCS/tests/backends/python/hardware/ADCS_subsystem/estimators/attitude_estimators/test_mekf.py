@@ -97,7 +97,7 @@ def test_missing_tracker_and_mixed_sensor_order():
         config = prepare_sensors(sensors, type("Env", (), {"ephemeris": object()})())
         readings = np.full(7, np.nan)
         readings[:3] = 0.0
-        q, w, p = step(
+        _q, w, p = step(
             IDENTITY, np.ones(3), np.eye(6), np.eye(3) * 1e-8, 0.1, readings, config
         )
         assert np.linalg.norm(w) < 0.01

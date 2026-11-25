@@ -5,5 +5,7 @@ from .j5 import J5 as J5
 from .j6 import J6 as J6
 from .j_gravity_model import (
     JGravityModel as JGravityModel,
+)
+from .j_gravity_model import (
     gravity_acceleration_inertial_m_s2 as gravity_acceleration_inertial_m_s2,
 )

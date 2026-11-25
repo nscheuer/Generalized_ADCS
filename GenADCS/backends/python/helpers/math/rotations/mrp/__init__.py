@@ -1,6 +1,10 @@
 from .kernels import (
     mrp_shadow_set as mrp_shadow_set,
+)
+from .kernels import (
     mrp_to_quaternion as mrp_to_quaternion,
+)
+from .kernels import (
     quaternion_to_mrp as quaternion_to_mrp,
 )
 from .modified_rodrigues_parameters import (

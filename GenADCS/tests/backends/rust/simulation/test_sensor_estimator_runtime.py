@@ -41,7 +41,7 @@ def setup():
 
 @pytest.mark.parametrize("propagator", [CoupledRK4Propagator, CoupledDOP853Propagator])
 def test_native_sampling_and_estimator_cadence(setup, propagator):
-    satellite, environment, dynamics, state = setup
+    satellite, _environment, _dynamics, _state = setup
     satellite.adcs.N = 2
     fmt = ResultsFormat(
         N=1,
