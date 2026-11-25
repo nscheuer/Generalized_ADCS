@@ -28,7 +28,12 @@ Eigen::MatrixXd finite_difference_jacobian(Function function,
     Input plus = input, minus = input;
     plus[column] += step;
     minus[column] -= step;
-    jacobian.col(column) = (function(plus) - function(minus)) / (2.0 * step);
+    const Output plus_value = function(plus);
+    const Output minus_value = function(minus);
+    for (Eigen::Index row = 0; row < plus_value.size(); ++row) {
+      jacobian(row, column) =
+          (plus_value[row] - minus_value[row]) / (2.0 * step);
+    }
   }
   return jacobian;
 }
@@ -82,4 +87,4 @@ void test_derivatives() {
   CHECK(math::quaternion_to_euler321(Eigen::Vector4d(half, 0, 0, half))
             .isApprox(Eigen::Vector3d(0, 0, M_PI / 2), 1e-14));
 }
-int main() { void test_derivatives(); }
+int main() { test_derivatives(); }

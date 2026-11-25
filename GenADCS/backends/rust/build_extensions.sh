@@ -8,6 +8,11 @@ if [[ "$profile" != debug && "$profile" != release ]]; then
     exit 2
 fi
 
+if [[ "$(uname -s)" == Darwin ]]; then
+    # Python provides these symbols when it loads the extension module.
+    export RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-Wl,-undefined,dynamic_lookup"
+fi
+
 packages=(
     "bias:_bias"
     "state:_state"
