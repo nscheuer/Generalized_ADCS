@@ -464,12 +464,12 @@ double densu(double alt, double dlb, double tinf, double tlb, double xm,
   /*      Calculate Temperature and Density Profiles for MSIS models
    *      New lower thermo polynomial
    */
-  double yd2, yd1, x, y;
+  double yd2, yd1, x = 0.0, y;
   double rgas = 831.4;
   double densu_temp = 1.0;
   double za, z, zg2, tt, ta;
-  double dta, z1, z2, t1, t2, zg, zgdif;
-  int mn;
+  double dta, z1 = 0.0, z2, t1 = 0.0, t2, zg, zgdif = 0.0;
+  int mn = 0;
   int k;
   double glb;
   double expl;

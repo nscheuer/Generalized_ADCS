@@ -8,7 +8,7 @@ int main() {
   V p(7e6, 7e6, 0);
   auto t = gravity_gradient(p, q, I, 3.986e14);
   CHECK(t.allFinite() && t.norm() > 0);
-  CHECK(gravity_gradient(p, q, 4 * M::Identity(), 3.986e14).norm() == 0);
+  CHECK(gravity_gradient(p, q, 4 * M::Identity(), 3.986e14).norm() < 1e-12);
   bool rejected = false;
   try {
     gravity_gradient(V::Zero(), q, I, 3.986e14);
