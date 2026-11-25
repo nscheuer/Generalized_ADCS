@@ -93,7 +93,7 @@ def _sensor_noise(sigmas):
 
 
 def main():
-    dt, duration_s, record_every = 0.5, 10000., 4
+    dt, duration_s, record_every = 0.5, 100000., 4
     identity = _q_identity()
     panels = [
         SatellitePanel((0.85, 0., 0.), (0., np.pi/2, 0.), (1.8, 0.8), .25, .25, .50),

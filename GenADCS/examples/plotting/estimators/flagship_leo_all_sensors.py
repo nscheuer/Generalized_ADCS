@@ -7,7 +7,7 @@ and navigation sensors. They are displayed and not saved.
 """
 
 # Select the backend for this example: "rust", "cpp", or "python".
-backed = "rust"
+backed = "cpp"
 
 if backed not in ("rust", "cpp", "python"):
     raise ValueError("backed must be rust, cpp, or python")
@@ -98,7 +98,7 @@ def _sensor_noise(sigmas):
 
 
 def main():
-    dt, duration_s, record_every = 0.5, 10000., 4
+    dt, duration_s, record_every = 0.5, 400000., 4
     identity = _q_identity()
     panels = [
         SatellitePanel((0.85, 0., 0.), (0., np.pi/2, 0.), (1.8, 0.8), .25, .25, .50),

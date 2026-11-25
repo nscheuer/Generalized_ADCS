@@ -10,8 +10,8 @@ def test_de421_packaged_kernel_loads_and_is_cached():
     second = DE421()
 
     assert DE421._packaged_ephemeris_path().is_file()
-    assert "GenADCS/kernels/environment/ephemeris/de421" in str(
-        DE421._packaged_ephemeris_path()
+    assert "GenADCS/kernels/environment/ephemeris/de421" in (
+        DE421._packaged_ephemeris_path().as_posix()
     )
     assert model._segments is second._segments
     assert _load_spk.cache_info().hits >= 1
