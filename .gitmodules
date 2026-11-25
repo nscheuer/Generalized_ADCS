@@ -1,6 +1,0 @@
-[submodule "SALTRO"]
-	path = SALTRO
-	url = https://github.com/nscheuer/SALTRO.git
-[submodule "OldPlanner"]
-	path = OldPlanner
-	url = https://github.com/patrickmckeen/OldPlanner.git
