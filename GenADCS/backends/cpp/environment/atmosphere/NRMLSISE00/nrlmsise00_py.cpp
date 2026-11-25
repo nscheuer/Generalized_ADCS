@@ -30,10 +30,12 @@ std::array<double, 7> history_from_python(const py::object &value) {
   result.fill(-1.0);
   if (!value.is_none()) {
     const auto sequence = py::cast<py::sequence>(value);
-    if (sequence.size() != 7)
+    if (sequence.size() != 7) {
       throw py::value_error("ap_array must contain seven Ap values");
-    for (py::ssize_t i = 0; i < 7; ++i)
+}
+    for (py::ssize_t i = 0; i < 7; ++i) {
       result[static_cast<std::size_t>(i)] = py::cast<double>(sequence[i]);
+}
   }
   return result;
 }

@@ -24,10 +24,12 @@ struct BoundADCSSubsystem {
 };
 
 py::list as_list(const py::object &value) {
-  if (value.is_none())
+  if (value.is_none()) {
     return py::list();
-  if (PyList_Check(value.ptr()) != 0)
+}
+  if (PyList_Check(value.ptr()) != 0) {
     return py::reinterpret_borrow<py::list>(value);
+}
   return py::list(value);
 }
 
@@ -36,39 +38,48 @@ py::list as_list(const py::object &value) {
 hardware::Sensor as_sensor(py::handle value) {
   namespace sensors = hardware::sensors;
   // Check the derived sensor before its base to preserve its concrete type.
-  if (py::isinstance<sensors::FineEarthSensor>(value))
+  if (py::isinstance<sensors::FineEarthSensor>(value)) {
     return hardware::Sensor(std::in_place_type<sensors::FineEarthSensor>,
                             value.cast<const sensors::FineEarthSensor &>());
-  if (py::isinstance<sensors::FineSunSensor>(value))
+}
+  if (py::isinstance<sensors::FineSunSensor>(value)) {
     return hardware::Sensor(std::in_place_type<sensors::FineSunSensor>,
                             value.cast<const sensors::FineSunSensor &>());
-  if (py::isinstance<sensors::Gyroscope>(value))
+}
+  if (py::isinstance<sensors::Gyroscope>(value)) {
     return hardware::Sensor(std::in_place_type<sensors::Gyroscope>,
                             value.cast<const sensors::Gyroscope &>());
-  if (py::isinstance<sensors::Magnetometer>(value))
+}
+  if (py::isinstance<sensors::Magnetometer>(value)) {
     return hardware::Sensor(std::in_place_type<sensors::Magnetometer>,
                             value.cast<const sensors::Magnetometer &>());
-  if (py::isinstance<sensors::Accelerometer>(value))
+}
+  if (py::isinstance<sensors::Accelerometer>(value)) {
     return hardware::Sensor(std::in_place_type<sensors::Accelerometer>,
                             value.cast<const sensors::Accelerometer &>());
-  if (py::isinstance<sensors::CoarseSunSensor>(value))
+}
+  if (py::isinstance<sensors::CoarseSunSensor>(value)) {
     return hardware::Sensor(std::in_place_type<sensors::CoarseSunSensor>,
                             value.cast<const sensors::CoarseSunSensor &>());
-  if (py::isinstance<sensors::GNSS>(value))
+}
+  if (py::isinstance<sensors::GNSS>(value)) {
     return hardware::Sensor(std::in_place_type<sensors::GNSS>,
                             value.cast<const sensors::GNSS &>());
-  if (py::isinstance<sensors::AutonomousStarTracker>(value))
+}
+  if (py::isinstance<sensors::AutonomousStarTracker>(value)) {
     return hardware::Sensor(
         std::in_place_type<sensors::AutonomousStarTracker>,
         value.cast<const sensors::AutonomousStarTracker &>());
+}
   throw py::type_error("sensors must contain native C++ sensor objects");
 }
 
 std::vector<hardware::Sensor> as_native_sensors(const py::list &values) {
   std::vector<hardware::Sensor> result;
   result.reserve(values.size());
-  for (py::handle value : values)
+  for (py::handle value : values) {
     result.push_back(as_sensor(value));
+}
   return result;
 }
 
@@ -91,8 +102,9 @@ void bind_adcs_subsystem(py::module_ &module) {
       .def(py::init([](py::object wheels, py::object torquers,
                        py::object sensors, py::object N, py::object estimator) {
              if (py::isinstance<py::bool_>(N) || !py::isinstance<py::int_>(N) ||
-                 N.cast<int>() < 1)
+                 N.cast<int>() < 1) {
                throw py::value_error("N must be a positive integer");
+}
              auto result =
                  make_subsystem(std::move(wheels), std::move(torquers));
              result.native.N = N.cast<int>();
@@ -103,8 +115,9 @@ void bind_adcs_subsystem(py::module_ &module) {
                    py::module_::import("GenADCS.backends.cpp.hardware.ADCS_"
                                        "subsystem.estimator.attitude_estimator")
                        .attr("AttitudeEstimator");
-               if (!py::isinstance(estimator, type))
+               if (!py::isinstance(estimator, type)) {
                  throw py::type_error("estimator must be an AttitudeEstimator");
+}
              }
              result.estimator = estimator;
              return result;
@@ -126,8 +139,9 @@ void bind_adcs_subsystem(py::module_ &module) {
           "N", [](const BoundADCSSubsystem &self) { return self.native.N; },
           [](BoundADCSSubsystem &self, py::object n) {
             if (py::isinstance<py::bool_>(n) || !py::isinstance<py::int_>(n) ||
-                n.cast<int>() < 1)
+                n.cast<int>() < 1) {
               throw py::value_error("N must be a positive integer");
+}
             self.native.N = n.cast<int>();
           })
       .def("every_step",

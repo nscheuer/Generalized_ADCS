@@ -33,14 +33,16 @@ void bind_native_models(py::module_ &module) {
             ha({count, width, width});
         auto *gp = static_cast<double *>(ga.request().ptr);
         auto *hp = static_cast<double *>(ha.request().ptr);
-        for (py::ssize_t t = 0; t < count; ++t)
-          for (py::ssize_t n = 0; n < width; ++n)
+        for (py::ssize_t t = 0; t < count; ++t) {
+          for (py::ssize_t n = 0; n < width; ++n) {
             for (py::ssize_t m = 0; m < width; ++m) {
               const std::size_t index =
                   static_cast<std::size_t>((t * width + n) * width + m);
               gp[index] = g[static_cast<std::size_t>(t)](n, m);
               hp[index] = h[static_cast<std::size_t>(t)](n, m);
             }
+}
+}
         return py::make_tuple(epochs, ga, ha);
       },
       py::arg("path"), py::arg("nmin"), py::arg("nmax"));

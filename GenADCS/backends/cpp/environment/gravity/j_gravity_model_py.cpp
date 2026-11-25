@@ -31,8 +31,9 @@ void bind_gravity_j_gravity_model(py::module_ &module) {
                              [](const env::JGravityModel &self) {
                                py::tuple t(self.degrees().size());
                                for (std::size_t i = 0;
-                                    i < self.degrees().size(); ++i)
+                                    i < self.degrees().size(); ++i) {
                                  t[i] = self.degrees()[i];
+}
                                return t;
                              })
       .def_property_readonly("zonal_coefficients",

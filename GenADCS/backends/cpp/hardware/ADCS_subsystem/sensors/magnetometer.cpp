@@ -11,8 +11,9 @@ Magnetometer::Magnetometer(V p, Q q, Q mis, double saturation, M covariance,
       misalignment(kernels::normalize(mis)), saturation_value(saturation),
       noise(covariance), noise_cholesky(kernels::cholesky(covariance)),
       bias(b) {
-  if (!(saturation_value > 0.0))
+  if (!(saturation_value > 0.0)) {
     throw std::invalid_argument("saturation_value must be positive");
+}
 }
 
 Magnetometer::V Magnetometer::sensor_field(const V &field,
@@ -27,8 +28,9 @@ Magnetometer::V Magnetometer::measure(const V &field, const Q &attitude,
   if (with_noise) {
     const auto values = omni::helpers::random::standard_normals(
         seed, random_tick++, 0x40000000U, 3);
-    for (std::size_t i = 0; i < 3; ++i)
+    for (std::size_t i = 0; i < 3; ++i) {
       draw[i] = values[i];
+}
   }
   return kernels::vector_measurement(
       field, attitude, orientation, misalignment, bias, noise_cholesky,
@@ -76,8 +78,9 @@ bool Magnetometer::availability() const { return enabled; }
 Magnetometer::M
 Magnetometer::fisher_information_matrix(const V &field, const Q &attitude,
                                         const M &field_covariance) const {
-  if (!enabled)
+  if (!enabled) {
     return {};
+}
   return kernels::magnetometer_information(
       field, attitude, orientation, misalignment, noise, field_covariance);
 }

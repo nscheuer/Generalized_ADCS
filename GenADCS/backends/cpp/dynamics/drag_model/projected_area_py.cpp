@@ -10,8 +10,9 @@ void bind_drag_model_projected_area(py::module_ &m) {
   m.def("projected_area_drag_force",
         [](const V &v, const Q &q, double rho, const Eigen::MatrixXd &n,
            const Eigen::VectorXd &a, const Eigen::VectorXd &cd) {
-          if (n.rows() != a.size() || cd.size() != a.size())
+          if (n.rows() != a.size() || cd.size() != a.size()) {
             throw py::value_error("panel arrays must have matching row counts");
+}
           return omni::dynamics::drag(v, q, rho, n, a, cd, Eigen::MatrixXd(),
                                       false);
         });
@@ -20,8 +21,9 @@ void bind_drag_model_projected_area(py::module_ &m) {
            const Eigen::MatrixXd &arms, const Eigen::VectorXd &a,
            const Eigen::VectorXd &cd) {
           if (n.rows() != a.size() || arms.rows() != a.size() ||
-              cd.size() != a.size())
+              cd.size() != a.size()) {
             throw py::value_error("panel arrays must have matching row counts");
+}
           return omni::dynamics::drag(v, q, rho, n, a, cd, arms, true);
         });
 }

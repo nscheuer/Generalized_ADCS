@@ -284,16 +284,21 @@ Frame parse_frame(const std::string &name) {
                  normalized_name.begin(), [](unsigned char character) {
                    return static_cast<char>(std::toupper(character));
                  });
-  if (normalized_name == "GCRF")
+  if (normalized_name == "GCRF") {
     return Frame::Gcrf;
-  if (normalized_name == "ECEF")
+}
+  if (normalized_name == "ECEF") {
     return Frame::Ecef;
-  if (normalized_name == "BODY")
+}
+  if (normalized_name == "BODY") {
     return Frame::Body;
-  if (normalized_name == "LVLH")
+}
+  if (normalized_name == "LVLH") {
     return Frame::Lvlh;
-  if (normalized_name == "TEME")
+}
+  if (normalized_name == "TEME") {
     return Frame::Teme;
+}
   throw std::invalid_argument("unsupported frame " + name +
                               "; expected GCRF, ECEF, BODY, LVLH, or TEME");
 }

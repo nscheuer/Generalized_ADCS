@@ -13,15 +13,17 @@ double norm(const Eigen::VectorXd &vector) { return vector.norm(); }
 
 Eigen::VectorXd normalize(const Eigen::VectorXd &vector) {
   const double magnitude = vector.norm();
-  if (magnitude == 0.0)
+  if (magnitude == 0.0) {
     return Eigen::VectorXd::Zero(vector.size());
+}
   return vector / magnitude;
 }
 
 Eigen::VectorXd unit(const Eigen::VectorXd &vector) {
   const double magnitude = vector.norm();
-  if (magnitude == 0.0)
+  if (magnitude == 0.0) {
     throw std::invalid_argument("cannot normalize a zero vector");
+}
   return vector / magnitude;
 }
 

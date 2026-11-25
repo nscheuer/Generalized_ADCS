@@ -9,8 +9,9 @@ using PythonSolver =
     omni::solver::BasicSolver<py::object, py::object, py::object, py::object>;
 
 std::optional<py::object> optional_object(const py::object &value) {
-  if (value.is_none())
+  if (value.is_none()) {
     return std::nullopt;
+}
   return value;
 }
 

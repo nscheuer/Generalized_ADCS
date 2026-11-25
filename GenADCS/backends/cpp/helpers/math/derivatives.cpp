@@ -38,8 +38,9 @@ angular_velocity_from_quaternion_derivative(const Eigen::Vector4d &q,
 Eigen::Matrix4d
 quaternion_normalization_jacobian(const Eigen::Vector4d &quaternion) {
   const double magnitude = quaternion.norm();
-  if (magnitude == 0.0)
+  if (magnitude == 0.0) {
     throw std::invalid_argument("quaternion must have nonzero norm");
+}
   return Eigen::Matrix4d::Identity() / magnitude -
          (quaternion * quaternion.transpose()) / std::pow(magnitude, 3.0);
 }

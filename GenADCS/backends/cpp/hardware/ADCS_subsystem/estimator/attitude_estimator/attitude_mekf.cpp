@@ -19,24 +19,28 @@ Eigen::Matrix3d skew(const Eigen::Vector3d &v) {
 }
 Q expmap(const Eigen::Vector3d &v) {
   double angle = v.norm();
-  if (angle < 1e-12)
+  if (angle < 1e-12) {
     return Q(1, 0.5 * v.x(), 0.5 * v.y(), 0.5 * v.z()).normalized();
+}
   return Q(Eigen::AngleAxisd(angle, v / angle));
 }
 Eigen::Vector3d logmap(Q q) {
   q.normalize();
-  if (q.w() < 0)
+  if (q.w() < 0) {
     q.coeffs() *= -1;
+}
   const double n = q.vec().norm();
-  if (n < 1e-12)
+  if (n < 1e-12) {
     return 2 * q.vec();
+}
   return 2 * std::atan2(n, q.w()) * q.vec() / n;
 }
 Eigen::Matrix3d left_jacobian(const Eigen::Vector3d &v) {
   const double angle = v.norm();
   const Eigen::Matrix3d k = skew(v);
-  if (angle < 1e-6)
+  if (angle < 1e-6) {
     return Eigen::Matrix3d::Identity() + 0.5 * k + k * k / 6.0;
+}
   return Eigen::Matrix3d::Identity() +
          ((1 - std::cos(angle)) / (angle * angle)) * k +
          ((angle - std::sin(angle)) / (angle * angle * angle)) * k * k;
@@ -44,8 +48,9 @@ Eigen::Matrix3d left_jacobian(const Eigen::Vector3d &v) {
 } // namespace
 State AttitudeMEKF::predict(const State &state, const Eigen::Matrix3d &a,
                             double dt) {
-  if (!std::isfinite(dt) || dt < 0)
+  if (!std::isfinite(dt) || dt < 0) {
     throw std::invalid_argument("dt must be finite and nonnegative");
+}
   const Eigen::Vector3d rotation = -state.rate * dt;
   const Q increment = expmap(rotation);
   Matrix6 phi = Matrix6::Identity(), noise = Matrix6::Zero();
@@ -66,8 +71,9 @@ Correction AttitudeMEKF::correct(const State &state,
   const Eigen::Matrix3d s = h * state.covariance * h.transpose() + r;
   const auto solver = s.ldlt();
   if (solver.info() != Eigen::Success ||
-      (solver.vectorD().array().abs() < 1e-15).any())
+      (solver.vectorD().array().abs() < 1e-15).any()) {
     throw std::invalid_argument("innovation covariance is singular");
+}
   const Eigen::Matrix<double, 6, 3> gain =
       solver.solve((h * state.covariance).eval()).transpose();
   const Vector6 delta = gain * residual;
@@ -107,26 +113,30 @@ State AttitudeMEKF::step(const State &state, const Eigen::Matrix3d &a,
                          const std::vector<Sensor> &sensors) {
   State current = predict(state, a, dt);
   for (const Sensor &sensor : sensors) {
-    if (!sensor.enabled || (sensor.code != 0 && sensor.code != 2))
+    if (!sensor.enabled || (sensor.code != 0 && sensor.code != 2)) {
       continue;
+}
     const Eigen::Index width = sensor.code == 0 ? 3 : 4;
-    if (sensor.offset < 0 || sensor.offset + width > readings.size())
+    if (sensor.offset < 0 || sensor.offset + width > readings.size()) {
       throw std::invalid_argument("sensor reading offset is out of range");
+}
     const Eigen::VectorXd value = readings.segment(sensor.offset, width);
-    if (!value.allFinite())
+    if (!value.allFinite()) {
       continue;
+}
     const Q mount =
         (quat(sensor.misalignment) * quat(sensor.orientation)).normalized();
     const Eigen::Matrix3d noise =
         sensor.noise_cholesky * sensor.noise_cholesky.transpose();
-    if (sensor.code == 0)
+    if (sensor.code == 0) {
       current = correct_gyro(current, value.head<3>() - sensor.bias,
                              mount.toRotationMatrix(), noise)
                     .state;
-    else
+    } else {
       current =
           correct_star_tracker(current, value.head<4>(), vec(mount), noise)
               .state;
+}
   }
   return current;
 }
@@ -141,9 +151,10 @@ AttitudeMEKF::sample(const AttitudeMEKF &estimator,
                      const std::set<std::string> &fields) {
   if (!std::isfinite(interval) || interval <= 0 ||
       truth.rows() != times.size() || truth.cols() < 7 ||
-      readings.rows() != times.size())
+      readings.rows() != times.size()) {
     throw std::invalid_argument(
         "invalid estimator sample trajectory or interval");
+}
   const std::map<std::string, int> widths{
       {"estimated_attitude", 4},
       {"estimated_rate", 3},
@@ -158,9 +169,10 @@ AttitudeMEKF::sample(const AttitudeMEKF &estimator,
       {"kalman_gain", 18}};
   std::map<std::string, Eigen::MatrixXd> output;
   for (const auto &name : fields) {
-    if (!widths.count(name))
+    if (!widths.count(name)) {
       throw std::invalid_argument("unknown estimator diagnostic field: " +
                                   name);
+}
     output[name] =
         Eigen::MatrixXd::Constant(times.size(), widths.at(name),
                                   std::numeric_limits<double>::quiet_NaN());
@@ -169,37 +181,46 @@ AttitudeMEKF::sample(const AttitudeMEKF &estimator,
   double previous = 0;
   for (Eigen::Index row = 0; row < times.size(); ++row) {
     const double time = times[row];
-    if (!std::isfinite(time) || time < 0 || (row && time < times[row - 1]))
+    if (!std::isfinite(time) || time < 0 || (row && time < times[row - 1])) {
       throw std::invalid_argument(
           "estimator times must be finite, nonnegative and ordered");
-    if (std::abs(time / interval - std::round(time / interval)) > 1e-9)
+}
+    if (std::abs(time / interval - std::round(time / interval)) > 1e-9) {
       continue;
+}
     current = predict(current, estimator.acceleration_psd, time - previous);
     previous = time;
     auto store = [&](const std::string &name, const auto &value) {
       auto found = output.find(name);
-      if (found == output.end())
+      if (found == output.end()) {
         return;
+}
       Eigen::Index index = 0;
-      for (Eigen::Index i = 0; i < value.rows(); ++i)
-        for (Eigen::Index j = 0; j < value.cols(); ++j)
+      for (Eigen::Index i = 0; i < value.rows(); ++i) {
+        for (Eigen::Index j = 0; j < value.cols(); ++j) {
           found->second(row, index++) = value(i, j);
+}
+}
     };
     auto scalar = [&](const std::string &name, double value) {
       auto found = output.find(name);
-      if (found != output.end())
+      if (found != output.end()) {
         found->second(row, 0) = value;
+}
     };
     for (const auto &sensor : sensors) {
-      if (!sensor.enabled || (sensor.code != 0 && sensor.code != 2))
+      if (!sensor.enabled || (sensor.code != 0 && sensor.code != 2)) {
         continue;
+}
       const int width = sensor.code == 0 ? 3 : 4;
-      if (sensor.offset < 0 || sensor.offset + width > readings.cols())
+      if (sensor.offset < 0 || sensor.offset + width > readings.cols()) {
         throw std::invalid_argument("sensor reading offset is out of range");
+}
       const Eigen::VectorXd value =
           readings.row(row).segment(sensor.offset, width).transpose();
-      if (!value.allFinite())
+      if (!value.allFinite()) {
         continue;
+}
       const Q mount =
           (quat(sensor.misalignment) * quat(sensor.orientation)).normalized();
       const Eigen::Matrix3d noise =
@@ -215,11 +236,12 @@ AttitudeMEKF::sample(const AttitudeMEKF &estimator,
             correction.innovation_covariance);
       store("measurement_residual", correction.residual);
       store("kalman_gain", correction.gain);
-      if (fields.count("normalized_innovation_squared"))
+      if (fields.count("normalized_innovation_squared")) {
         scalar("normalized_innovation_squared",
                correction.innovation.dot(
                    correction.innovation_covariance.ldlt().solve(
                        correction.innovation)));
+}
       current = correction.state;
     }
     store("estimated_attitude", current.quaternion);
@@ -236,8 +258,9 @@ AttitudeMEKF::sample(const AttitudeMEKF &estimator,
       error.tail<3>() = truth.row(row).segment<3>(4).transpose() - current.rate;
       const auto solver = current.covariance.ldlt();
       if (solver.info() != Eigen::Success ||
-          (solver.vectorD().array() == 0).any())
+          (solver.vectorD().array() == 0).any()) {
         throw std::invalid_argument("estimator covariance is singular");
+}
       scalar("normalized_estimation_error_squared",
              error.dot(solver.solve(error)));
     }

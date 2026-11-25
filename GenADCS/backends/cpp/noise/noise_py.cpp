@@ -15,13 +15,16 @@ PYBIND11_MODULE(_noise, m) {
           "apply",
           [](Noise &self, const Eigen::VectorXd &value, double dt,
              py::object rng) {
-            if (rng.is_none())
+            if (rng.is_none()) {
               return self.apply(value, dt);
-            if (!self.cholesky_factor)
+}
+            if (!self.cholesky_factor) {
               throw std::logic_error("configure a covariance");
-            if (value.size() != self.cholesky_factor->rows())
+}
+            if (value.size() != self.cholesky_factor->rows()) {
               throw std::invalid_argument(
                   "value length must match noise covariance");
+}
             Eigen::VectorXd z = rng.attr("standard_normal")(value.size())
                                     .cast<Eigen::VectorXd>();
             return Eigen::VectorXd(value + *self.cholesky_factor * z);

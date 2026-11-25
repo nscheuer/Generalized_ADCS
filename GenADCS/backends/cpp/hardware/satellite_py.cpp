@@ -10,8 +10,9 @@ template <std::size_t N> std::array<double, N> values(py::handle object) {
   auto array =
       py::array_t<double, py::array::c_style | py::array::forcecast>::ensure(
           object);
-  if (!array || array.size() != N)
+  if (!array || array.size() != N) {
     throw py::value_error("incorrect geometry array size");
+}
   std::array<double, N> result{};
   auto data = array.data();
   std::copy(data, data + N, result.begin());

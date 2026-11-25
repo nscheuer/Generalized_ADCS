@@ -17,15 +17,18 @@ FineSunSensor::FineSunSensor(V p, Q q, Q m, M2 covariance, V2 b, V2 fov)
   if (!(a > 0.0) || !(d > 0.0) ||
       std::abs(noise[0][1] - noise[1][0]) >
           1e-12 * (1.0 + std::abs(off_diagonal)) ||
-      !(remainder > 0.0))
+      !(remainder > 0.0)) {
     throw std::invalid_argument("noise covariance must be positive definite");
+}
   noise_cholesky = {{{{std::sqrt(a), 0.0}},
                      {{off_diagonal / std::sqrt(a), std::sqrt(remainder)}}}};
   const double half_pi = std::acos(-1.0) / 2.0;
-  for (double angle : fov_half_angles)
-    if (!(angle > 0.0) || angle > half_pi)
+  for (double angle : fov_half_angles) {
+    if (!(angle > 0.0) || angle > half_pi) {
       throw std::invalid_argument(
           "FOV half-angles must be positive and <= pi/2");
+}
+}
 }
 
 FineSunSensor::V2 FineSunSensor::measure(const V &sun, const Q &attitude,
@@ -84,8 +87,9 @@ bool FineSunSensor::availability(const V &s, const Q &q, bool visible) const {
 FineSunSensor::M3 FineSunSensor::fisher_information_matrix(const V &s,
                                                            const Q &q,
                                                            bool visible) const {
-  if (!availability(s, q, visible))
+  if (!availability(s, q, visible)) {
     return {};
+}
   const V sensor_sun =
       kernels::rotate_inertial_to_sensor(s, q, orientation, misalignment);
   return kernels::fine_sun_fisher_information(

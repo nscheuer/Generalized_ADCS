@@ -8,8 +8,9 @@ V srp(const V &position, const V &sun, const Q &q,
       double illumination, bool torque) {
   V delta = sun - position;
   const double distance = delta.norm();
-  if (distance == 0)
+  if (distance == 0) {
     throw std::invalid_argument("spacecraft and Sun positions coincide");
+}
   V direction = rotation(q) * (delta / distance);
   const double pressure = (1361.0 / 299792458.0) *
                           std::pow(149597870700.0 / distance, 2) * illumination;

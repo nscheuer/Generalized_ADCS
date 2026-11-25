@@ -7,15 +7,17 @@ namespace {
 V finish(V value, const V &bias, const M &noise_cholesky, double saturation,
          bool with_bias, bool with_noise, const V *noise_draw) {
   Eigen::Map<Eigen::Vector3d> measured(value.data());
-  if (with_bias)
+  if (with_bias) {
     measured += Eigen::Map<const Eigen::Vector3d>(bias.data());
+}
   if (with_noise && noise_draw) {
     using Matrix = Eigen::Matrix<double, 3, 3, Eigen::RowMajor>;
     measured += Eigen::Map<const Matrix>(noise_cholesky[0].data()) *
                 Eigen::Map<const Eigen::Vector3d>(noise_draw->data());
   }
-  for (double &component : value)
+  for (double &component : value) {
     component = std::min(std::max(component, -saturation), saturation);
+}
   return value;
 }
 } // namespace
@@ -75,17 +77,20 @@ double scalar_sun_measurement(const V &sun, const Q &attitude,
       0.0, Eigen::Map<const Eigen::Vector3d>(normal.data())
                .dot(Eigen::Map<const Eigen::Vector3d>(sensor_sun.data())));
   double value = sensitivity * projection;
-  if (with_bias)
+  if (with_bias) {
     value += bias;
-  if (with_noise)
+}
+  if (with_noise) {
     value += noise_std * draw;
+}
   return std::min(std::max(value, 0.0), saturation);
 }
 bool coarse_sun_available(const V &sun, const Q &attitude, const Q &orientation,
                           const Q &misalignment, const V &normal, double fov,
                           bool enabled, bool visible) {
-  if (!enabled || !visible)
+  if (!enabled || !visible) {
     return false;
+}
   const V body = multiply(quaternion_matrix(normalize(attitude)), sun);
   const M mounting = quaternion_matrix(multiply(misalignment, orientation));
   const V normal_body = multiply(transpose(mounting), normal);
@@ -101,10 +106,11 @@ V coarse_jacobian(const V &sun, const Q &attitude, const Q &orientation,
   const M mounting = quaternion_matrix(multiply(misalignment, orientation));
   const V normal_body = multiply(transpose(mounting), normal);
   M jac{};
-  if (kind == 1)
+  if (kind == 1) {
     jac = attitude_vector_jacobian_mrp(body, delta);
-  else
+  } else {
     jac = attitude_vector_jacobian_angle(body, delta);
+}
   const V row = multiply(transpose(jac), normal_body);
   return {{sensitivity * row[0], sensitivity * row[1], sensitivity * row[2]}};
 }
@@ -161,8 +167,9 @@ std::array<double, 2> fine_direction_measurement(
       rotate_inertial_to_sensor(sun, attitude, orientation, misalignment);
   std::array<double, 2> out{{std::atan2(s[0], s[2]), std::atan2(s[1], s[2])}};
   Eigen::Map<Eigen::Vector2d> y(out.data());
-  if (with_bias)
+  if (with_bias) {
     y += Eigen::Map<const Eigen::Vector2d>(bias.data());
+}
   if (with_noise && draw) {
     using Mat = Eigen::Matrix<double, 2, 2, Eigen::RowMajor>;
     y += Eigen::Map<const Mat>(noise_cholesky[0].data()) *
@@ -174,8 +181,9 @@ bool fine_direction_available(const V &sun, const Q &attitude,
                               const Q &orientation, const Q &misalignment,
                               const std::array<double, 2> &fov, bool enabled,
                               bool visible) {
-  if (!enabled || !visible)
+  if (!enabled || !visible) {
     return false;
+}
   auto angles = fine_direction_measurement(
       sun, attitude, orientation, misalignment, {{0, 0}},
       {{{{0, 0}}, {{0, 0}}}}, false, false, nullptr);
@@ -198,8 +206,9 @@ J fine_jacobian(const V &sun, const Q &attitude, const Q &orientation,
   } else if (kind == 2) {
     dq = rotation_vector_quaternion(delta);
     direction = attitude_vector_jacobian_angle(body, delta);
-  } else
+  } else {
     return {};
+}
   V mounted = multiply(mount, multiply(quaternion_matrix(dq), body));
   double x = mounted[0], y = mounted[1], z = mounted[2], xd = x * x + z * z,
          yd = y * y + z * z;

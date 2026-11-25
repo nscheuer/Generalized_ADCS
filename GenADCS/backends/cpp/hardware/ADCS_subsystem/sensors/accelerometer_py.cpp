@@ -22,8 +22,9 @@ template <typename Values>
 py::array_t<double> vector_array(const Values &values) {
   py::array_t<double> result(static_cast<py::ssize_t>(values.size()));
   auto out = result.mutable_unchecked<1>();
-  for (py::ssize_t i = 0; i < static_cast<py::ssize_t>(values.size()); ++i)
+  for (py::ssize_t i = 0; i < static_cast<py::ssize_t>(values.size()); ++i) {
     out(i) = values[static_cast<std::size_t>(i)];
+}
   return result;
 }
 
@@ -31,10 +32,12 @@ template <typename Matrix>
 py::array_t<double> matrix_array(const Matrix &values) {
   py::array_t<double> result({3, 3});
   auto out = result.mutable_unchecked<2>();
-  for (py::ssize_t i = 0; i < 3; ++i)
-    for (py::ssize_t j = 0; j < 3; ++j)
+  for (py::ssize_t i = 0; i < 3; ++i) {
+    for (py::ssize_t j = 0; j < 3; ++j) {
       out(i, j) =
           values[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)];
+}
+}
   return result;
 }
 } // namespace
@@ -163,8 +166,9 @@ void bind_sensors_accelerometer(py::module_ &module) {
                                   s.enabled, s.seed);
           },
           [](py::tuple state) {
-            if (state.size() != 8)
+            if (state.size() != 8) {
               throw py::value_error("invalid accelerometer state");
+}
             native_sensors::Accelerometer sensor(
                 state[0].cast<native_sensors::Accelerometer::V>(),
                 state[1].cast<native_sensors::Accelerometer::Q>(),

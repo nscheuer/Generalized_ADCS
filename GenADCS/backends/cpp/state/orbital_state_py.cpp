@@ -3,12 +3,14 @@ using namespace omni::state_bindings;
 
 namespace {
 py::object cached_body_position(py::object self, py::object body) {
-  if (!py::hasattr(self, "_cached_python_positions"))
+  if (!py::hasattr(self, "_cached_python_positions")) {
     self.attr("_cached_python_positions") = py::dict();
+}
   py::dict cache = self.attr("_cached_python_positions");
   py::str key = py::str(body);
-  if (!cache.contains(key))
+  if (!cache.contains(key)) {
     cache[key] = body_position(self.cast<OrbitalState &>(), body);
+}
   return py::reinterpret_borrow<py::object>(cache[key]);
 }
 } // namespace
@@ -73,8 +75,9 @@ void bind_orbital_state(py::module_ &m) {
           "_body_positions",
           [](const OrbitalState &s) {
             py::dict result;
-            for (const auto &entry : s.body_positions)
+            for (const auto &entry : s.body_positions) {
               result[py::str(entry.first)] = to_array(entry.second);
+}
             return result;
           },
           [](OrbitalState &s, py::dict values) {

@@ -14,8 +14,9 @@ Eigen::Vector3d eval_field(const Eigen::Vector3d &position, double jd,
   const Eigen::Matrix3d rot = omni::frames::gcrf_to_ecef_matrix(jd, jdtt);
   const Eigen::Vector3d fixed = rot * position;
   const double radius = fixed.norm();
-  if (radius <= 0.0)
+  if (radius <= 0.0) {
     throw std::invalid_argument("position must have positive radius");
+}
   const double theta = std::acos(std::clamp(fixed.z() / radius, -1.0, 1.0));
   const double phi = std::atan2(fixed.y(), fixed.x());
   const double st = std::sin(theta), ct = std::cos(theta), sp = std::sin(phi),

@@ -6,7 +6,7 @@ V drag(const V &velocity, const Q &q, double density,
   V v = rotation(q) * velocity;
   const double speed = v.norm();
   V out = V::Zero();
-  if (speed > 0 && density > 0)
+  if (speed > 0 && density > 0) {
     for (int i = 0; i < areas.size(); ++i) {
       const double incidence = normals.row(i).dot(v) / speed;
       if (incidence > 0) {
@@ -14,6 +14,7 @@ V drag(const V &velocity, const Q &q, double density,
         out += torque ? V(V(arms.row(i).transpose()).cross(force)) : force;
       }
     }
+}
   return torque ? out : V(rotation(q).transpose() * out);
 }
 } // namespace omni::dynamics

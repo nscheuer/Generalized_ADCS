@@ -20,10 +20,11 @@ void bind_estimator_mekf(py::module_ &m) {
       .def(py::init([](Eigen::Vector4d q, Eigen::Vector3d w, Matrix6 p,
                        py::object a, std::set<std::string> record) {
              Eigen::Matrix3d psd;
-             if (py::isinstance<py::float_>(a) || py::isinstance<py::int_>(a))
+             if (py::isinstance<py::float_>(a) || py::isinstance<py::int_>(a)) {
                psd = Eigen::Matrix3d::Identity() * a.cast<double>();
-             else
+             } else {
                psd = a.cast<Eigen::Matrix3d>();
+}
              return AttitudeMEKF(q, w, p, psd, record);
            }),
            py::arg("quaternion"), py::arg("rate"), py::arg("covariance"),

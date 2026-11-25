@@ -13,8 +13,9 @@ template <std::size_t N>
 py::array_t<double> vector_array(const std::array<double, N> &values) {
   py::array_t<double> result(static_cast<py::ssize_t>(N));
   auto out = result.mutable_unchecked<1>();
-  for (std::size_t i = 0; i < N; ++i)
+  for (std::size_t i = 0; i < N; ++i) {
     out(static_cast<py::ssize_t>(i)) = values[i];
+}
   return result;
 }
 } // namespace
@@ -114,12 +115,15 @@ void bind_sensors_autonomous_star_tracker(py::module_ &module) {
              py::object earth, py::object sun) {
             std::optional<sensors::AutonomousStarTracker::Q> attitude;
             std::optional<sensors::AutonomousStarTracker::V> e, so;
-            if (!q.is_none())
+            if (!q.is_none()) {
               attitude = sensors::kernels::read_quaternion(q, "attitude");
-            if (!earth.is_none())
+}
+            if (!earth.is_none()) {
               e = sensors::kernels::read_vector3(earth, "earth_inertial");
-            if (!sun.is_none())
+}
+            if (!sun.is_none()) {
               so = sensors::kernels::read_vector3(sun, "sun_inertial");
+}
             return s.availability(attitude, e, so);
           },
           py::arg("attitude") = py::none(),

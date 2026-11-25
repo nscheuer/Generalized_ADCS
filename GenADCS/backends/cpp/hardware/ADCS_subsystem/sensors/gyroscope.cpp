@@ -9,8 +9,9 @@ Gyroscope::Gyroscope(V p, Q q, Q mis, double saturation, M covariance, V b)
     : position(p), orientation(kernels::normalize(q)),
       misalignment(kernels::normalize(mis)), saturation_value(saturation),
       noise(covariance), noise_cholesky(kernels::cholesky(noise)), bias(b) {
-  if (!(saturation_value > 0.0))
+  if (!(saturation_value > 0.0)) {
     throw std::invalid_argument("saturation_value must be positive");
+}
 }
 
 Gyroscope::V Gyroscope::measure(const V &rate, bool with_bias,
@@ -19,8 +20,9 @@ Gyroscope::V Gyroscope::measure(const V &rate, bool with_bias,
   if (with_noise) {
     const auto values = omni::helpers::random::standard_normals(
         seed, random_tick++, 0x40000000U, 3);
-    for (std::size_t i = 0; i < draw.size(); ++i)
+    for (std::size_t i = 0; i < draw.size(); ++i) {
       draw[i] = values[i];
+}
   }
   return kernels::rate_measurement(rate, orientation, misalignment, bias,
                                    noise_cholesky, saturation_value, with_bias,

@@ -19,8 +19,9 @@ Vector to_vector(py::handle value) {
   auto array =
       py::array_t<double, py::array::c_style | py::array::forcecast>::ensure(
           value);
-  if (!array)
+  if (!array) {
     throw py::type_error("value must be convertible to a numeric array");
+}
   auto info = array.request();
   Vector result(static_cast<std::size_t>(info.size));
   const auto *data = static_cast<const double *>(info.ptr);
@@ -28,8 +29,9 @@ Vector to_vector(py::handle value) {
   return result;
 }
 py::object to_python(const Vector &value) {
-  if (value.size() == 1)
+  if (value.size() == 1) {
     return py::float_(value[0]);
+}
   py::array_t<double> result(value.size());
   std::copy(value.begin(), value.end(), result.mutable_data());
   return result;
@@ -38,10 +40,12 @@ py::object matrix_object(const Matrix &matrix, const char *form,
                          const char *coordinates) {
   py::array_t<double> array({matrix.size(), matrix.size()});
   auto output = array.mutable_unchecked<2>();
-  for (py::ssize_t i = 0; i < output.shape(0); ++i)
-    for (py::ssize_t j = 0; j < output.shape(1); ++j)
+  for (py::ssize_t i = 0; i < output.shape(0); ++i) {
+    for (py::ssize_t j = 0; j < output.shape(1); ++j) {
       output(i, j) =
           matrix[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)];
+}
+}
   auto covariance = py::module_::import("ADCS.covariance").attr("Covariance");
   return covariance(array, py::arg("form") = form,
                     py::arg("coordinates") = coordinates);
@@ -115,14 +119,15 @@ PYBIND11_MODULE(_bias, module) {
             const double elapsed =
                 std::max(0.0, (j2000 - previous) * 3155760000.0);
             Vector draw(self.bias().size());
-            if (!rng.is_none())
+            if (!rng.is_none()) {
               draw = to_vector(rng.attr("normal")(0.0, 1.0, draw.size()));
-            else {
+            } else {
               static thread_local std::mt19937_64 engine(
                   std::random_device{}());
               std::normal_distribution<double> normal;
-              for (auto &x : draw)
+              for (auto &x : draw) {
                 x = normal(engine);
+}
             }
             self.update(j2000, elapsed, draw);
           },

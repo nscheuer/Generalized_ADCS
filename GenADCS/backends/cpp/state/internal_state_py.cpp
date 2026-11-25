@@ -22,13 +22,15 @@ void bind_internal_state(py::module_ &m) {
 
   py::class_<WheelMomentumState, InternalState>(m, "WheelMomentumState")
       .def(py::init([](py::object subsystem, py::object momentum) {
-             if (!subsystem.is_none() && !momentum.is_none())
+             if (!subsystem.is_none() && !momentum.is_none()) {
                throw py::value_error(
                    "provide subsystem or wheel_momentum, not both");
+}
              if (!subsystem.is_none()) {
                py::list values;
-               for (py::handle wheel : subsystem.attr("reaction_wheels"))
+               for (py::handle wheel : subsystem.attr("reaction_wheels")) {
                  values.append(wheel.attr("h"));
+}
                momentum = values;
              }
              return WheelMomentumState(variable(

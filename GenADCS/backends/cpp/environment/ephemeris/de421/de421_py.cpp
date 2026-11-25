@@ -19,15 +19,19 @@ namespace env = omni::environment;
 
 namespace {
 std::string body_name(const py::object &body) {
-  if (py::isinstance<py::str>(body))
+  if (py::isinstance<py::str>(body)) {
     return py::cast<std::string>(body);
+}
   const int id = py::cast<int>(body);
-  if (id == 0)
+  if (id == 0) {
     return "sun";
-  if (id == 1)
+}
+  if (id == 1) {
     return "earth";
-  if (id == 2)
+}
+  if (id == 2) {
     return "moon";
+}
   switch (id) {
   case 199:
     return "mercury";
@@ -61,8 +65,9 @@ template <class Function>
 py::object vectorized_epoch(const py::object &epoch, Function function) {
   py::array_t<double, py::array::c_style | py::array::forcecast> values(epoch);
   const auto info = values.request();
-  if (info.ndim == 0)
+  if (info.ndim == 0) {
     return py::cast(function(*static_cast<const double *>(info.ptr)));
+}
   std::vector<py::ssize_t> shape(info.shape.begin(), info.shape.end());
   shape.push_back(3);
   py::array_t<double> output(shape);
@@ -71,8 +76,9 @@ py::object vectorized_epoch(const py::object &epoch, Function function) {
   const std::size_t count = static_cast<std::size_t>(info.size);
   for (std::size_t i = 0; i < count; ++i) {
     const Eigen::Vector3d value = function(input[i]);
-    for (int axis = 0; axis < 3; ++axis)
+    for (int axis = 0; axis < 3; ++axis) {
       result[3U * i + static_cast<std::size_t>(axis)] = value[axis];
+}
   }
   return output;
 }

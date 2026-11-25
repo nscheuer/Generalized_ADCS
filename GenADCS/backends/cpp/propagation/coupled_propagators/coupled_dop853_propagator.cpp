@@ -10,15 +10,19 @@ dop853_attempt(const Vector &y, const Vector &f, double jd, double h,
   k[0] = f;
   for (int stage = 1; stage < 12; ++stage) {
     Vector trial = y;
-    for (int prev = 0; prev < stage; ++prev)
-      if (A[stage][prev] != 0)
+    for (int prev = 0; prev < stage; ++prev) {
+      if (A[stage][prev] != 0) {
         trial += h * A[stage][prev] * k[prev];
+}
+}
     k[stage] = derivative(trial, jd + C[stage] * h / 86400., p);
   }
   Vector next = y;
-  for (int i = 0; i < 12; ++i)
-    if (B[i] != 0)
+  for (int i = 0; i < 12; ++i) {
+    if (B[i] != 0) {
       next += h * B[i] * k[i];
+}
+}
   next.segment<4>(0).normalize();
   project(next, p);
   k[12] = derivative(next, jd + h / 86400., p);

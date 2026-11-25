@@ -10,19 +10,22 @@ std::tuple<double, bool, bool> eclipse_state(const Eigen::Vector3d &r,
                                              double sun_radius) {
   const Eigen::Vector3d s = sun - r, b = -r;
   const double ds = s.norm(), db = b.norm();
-  if (ds <= sun_radius || db <= body_radius)
+  if (ds <= sun_radius || db <= body_radius) {
     return {0.0, true, false};
+}
   const double as = std::asin(std::min(1.0, sun_radius / ds)),
                ab = std::asin(std::min(1.0, body_radius / db));
   const double sep = std::acos(std::clamp(s.dot(b) / (ds * db), -1.0, 1.0));
-  if (sep >= as + ab)
+  if (sep >= as + ab) {
     return {1.0, false, false};
-  if (ab >= as && sep <= ab - as)
+}
+  if (ab >= as && sep <= ab - as) {
     return {0.0, true, false};
+}
   double area = 0.0;
-  if (sep <= std::abs(ab - as))
+  if (sep <= std::abs(ab - as)) {
     area = kPi * std::min(as, ab) * std::min(as, ab);
-  else {
+  } else {
     const double x = (sep * sep + as * as - ab * ab) / (2.0 * sep * as),
                  y = (sep * sep + ab * ab - as * as) / (2.0 * sep * ab);
     const double rad = std::max(0.0, (-sep + as + ab) * (sep + as - ab) *

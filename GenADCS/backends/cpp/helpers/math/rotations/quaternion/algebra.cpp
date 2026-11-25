@@ -7,19 +7,22 @@
 namespace omni::rotations {
 namespace {
 void require_finite(const QuaternionVector &value, const char *description) {
-  if (!value.allFinite())
+  if (!value.allFinite()) {
     throw std::invalid_argument(std::string(description) + " must be finite");
 }
+}
 void require_finite(const Vector3 &value, const char *description) {
-  if (!value.allFinite())
+  if (!value.allFinite()) {
     throw std::invalid_argument(std::string(description) + " must be finite");
+}
 }
 } // namespace
 QuaternionVector normalize_quaternion(const QuaternionVector &value) {
   require_finite(value, "quaternion");
   const double magnitude = value.norm();
-  if (magnitude == 0.0)
+  if (magnitude == 0.0) {
     throw std::invalid_argument("quaternion must have nonzero norm");
+}
   return value / magnitude;
 }
 
@@ -45,8 +48,9 @@ QuaternionVector conjugate(const QuaternionVector &value) {
 
 QuaternionVector inverse(const QuaternionVector &value) {
   const double squared_norm = value.squaredNorm();
-  if (squared_norm == 0.0)
+  if (squared_norm == 0.0) {
     throw std::invalid_argument("zero quaternion has no inverse");
+}
   return conjugate(value) / squared_norm;
 }
 
@@ -64,8 +68,9 @@ QuaternionVector relative_quaternion(const QuaternionVector &reference,
                                      const QuaternionVector &target) {
   QuaternionVector relative =
       normalize_quaternion(multiply(target, inverse(reference)));
-  if (relative[0] < 0.0)
+  if (relative[0] < 0.0) {
     relative = -relative;
+}
   return relative;
 }
 

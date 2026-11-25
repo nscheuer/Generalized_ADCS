@@ -24,8 +24,9 @@ constexpr std::array<int, 12> kMonthLengths{31, 28, 31, 30, 31, 30,
 int floor_divide(int numerator, int denominator) {
   int quotient = numerator / denominator;
   const int remainder = numerator % denominator;
-  if ((remainder != 0) && ((remainder < 0) != (denominator < 0)))
+  if ((remainder != 0) && ((remainder < 0) != (denominator < 0))) {
     --quotient;
+}
   return quotient;
 }
 
@@ -36,8 +37,9 @@ double tai_minus_utc(double utc_jd) {
   }
   double offset = kTaiMinusUtc.front();
   for (std::size_t index = 1U; index < kUtcEffectiveJd.size(); ++index) {
-    if (utc_jd < kUtcEffectiveJd[index])
+    if (utc_jd < kUtcEffectiveJd[index]) {
       break;
+}
     offset = kTaiMinusUtc[index];
   }
   return offset;
@@ -76,8 +78,9 @@ double calendar_to_jd(int year, int month, int day, int hour, int minute,
 }
 
 std::tuple<int, int, int, int, int, double> jd_to_calendar(double jd) {
-  if (!std::isfinite(jd))
+  if (!std::isfinite(jd)) {
     throw std::invalid_argument("jd must be finite");
+}
   const double zf = std::floor(jd + 0.5);
   const double fraction = jd + 0.5 - zf;
   const int z = static_cast<int>(zf);
@@ -109,8 +112,9 @@ double utc_jd_to_tai_jd(double utc_jd) {
 }
 double tai_jd_to_utc_jd(double tai_jd) {
   double utc_jd = tai_jd - 10.0 / kSecondsPerDay;
-  for (int iteration = 0; iteration < 3; ++iteration)
+  for (int iteration = 0; iteration < 3; ++iteration) {
     utc_jd = tai_jd - tai_minus_utc(utc_jd) / kSecondsPerDay;
+}
   return utc_jd;
 }
 double tai_jd_to_tt_jd(double tai_jd) {
@@ -132,8 +136,9 @@ double ut1_jd_to_utc_jd(double ut1_jd, double dut1_seconds) {
 
 double tdb_jd_to_tt_jd(double tdb_jd) {
   double tt_jd = tdb_jd;
-  for (int iteration = 0; iteration < 3; ++iteration)
+  for (int iteration = 0; iteration < 3; ++iteration) {
     tt_jd = tdb_jd - tdb_minus_tt_seconds(tt_jd) / kSecondsPerDay;
+}
   return tt_jd;
 }
 double utc_jd_to_tdb_jd(double utc_jd) {
@@ -186,8 +191,9 @@ int day_of_year(int year, int month, int day) {
   for (int month_index = 1; month_index < month; ++month_index) {
     day_number += kMonthLengths[static_cast<std::size_t>(month_index - 1)];
   }
-  if ((month > 2) && leap_year(year))
+  if ((month > 2) && leap_year(year)) {
     ++day_number;
+}
   return day_number;
 }
 } // namespace omni::time

@@ -26,10 +26,12 @@ struct BoundMagnetorquer {
 };
 
 py::list fresh_list(const py::object &value) {
-  if (value.is_none())
+  if (value.is_none()) {
     return py::list();
-  if (PyList_Check(value.ptr()) != 0)
+}
+  if (PyList_Check(value.ptr()) != 0) {
     return py::reinterpret_borrow<py::list>(value);
+}
   return py::list(value);
 }
 
@@ -45,12 +47,14 @@ std::array<double, N> read_fixed(py::handle value, const char *name) {
       py::array_t<double, py::array::c_style | py::array::forcecast>::ensure(
           value);
   if (!array || array.ndim() != 1 ||
-      array.shape(0) != static_cast<py::ssize_t>(N))
+      array.shape(0) != static_cast<py::ssize_t>(N)) {
     throw py::value_error(std::string(name) + " has an invalid shape");
+}
   std::array<double, N> result{};
   auto input = array.unchecked<1>();
-  for (std::size_t i = 0; i < N; ++i)
+  for (std::size_t i = 0; i < N; ++i) {
     result[i] = input(static_cast<py::ssize_t>(i));
+}
   return result;
 }
 } // namespace
@@ -60,8 +64,9 @@ void bind_magnetorquer(py::module_ &module) {
       .def(py::init([](py::object position, py::object orientation,
                        double max_dipole, py::object misalignment,
                        py::object effects) {
-             if (misalignment.is_none())
+             if (misalignment.is_none()) {
                misalignment = py::make_tuple(0.0, 0.0, 0.0);
+}
              return BoundMagnetorquer(
                  hardware::Magnetorquer(
                      read_fixed<3>(position, "position"),
