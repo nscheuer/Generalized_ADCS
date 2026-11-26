@@ -117,6 +117,27 @@ pub(super) fn build_sampler_and_runtime(
                     .map_err(PyValueError::new_err)?,
                 ))
             }
+            "AttitudeSequentialUKF" => {
+                let p = array::<36>(py, e, "covariance")?;
+                let a = array::<9>(py, e, "acceleration_psd")?;
+                let base = super::base::AttitudeEstimator::new(
+                    array(py, e, "quaternion")?,
+                    array(py, e, "rate")?,
+                    std::array::from_fn(|i| std::array::from_fn(|j| p[6 * i + j])),
+                    std::array::from_fn(|i| std::array::from_fn(|j| a[3 * i + j])),
+                    Vec::new(),
+                )
+                .map_err(PyValueError::new_err)?;
+                Some(EstimateState::Ukf(
+                    super::attitude_sequential_ukf::AttitudeSequentialUKF::new(
+                        base,
+                        e.getattr("alpha")?.extract()?,
+                        e.getattr("beta")?.extract()?,
+                        e.getattr("kappa")?.extract()?,
+                    )
+                    .map_err(PyValueError::new_err)?,
+                ))
+            }
             _ => return Err(PyValueError::new_err("unsupported Rust estimator")),
         },
     };
@@ -367,6 +388,7 @@ pub fn sample_sensors(
     enum EstimateState {
         Mekf(super::base::AttitudeEstimator),
         Ekf(super::attitude_ekf::AttitudeEKF),
+        Ukf(super::attitude_sequential_ukf::AttitudeSequentialUKF),
     }
     let mut estimate = match estimator.filter(|e| !e.is_none()) {
         None => None,
@@ -395,6 +417,27 @@ pub fn sample_sensors(
                         std::array::from_fn(|i| std::array::from_fn(|j| p[7 * i + j])),
                         std::array::from_fn(|i| std::array::from_fn(|j| a[3 * i + j])),
                         Vec::new(),
+                    )
+                    .map_err(PyValueError::new_err)?,
+                ))
+            }
+            "AttitudeSequentialUKF" => {
+                let p = array::<36>(py, e, "covariance")?;
+                let a = array::<9>(py, e, "acceleration_psd")?;
+                let base = super::base::AttitudeEstimator::new(
+                    array(py, e, "quaternion")?,
+                    array(py, e, "rate")?,
+                    std::array::from_fn(|i| std::array::from_fn(|j| p[6 * i + j])),
+                    std::array::from_fn(|i| std::array::from_fn(|j| a[3 * i + j])),
+                    Vec::new(),
+                )
+                .map_err(PyValueError::new_err)?;
+                Some(EstimateState::Ukf(
+                    super::attitude_sequential_ukf::AttitudeSequentialUKF::new(
+                        base,
+                        e.getattr("alpha")?.extract()?,
+                        e.getattr("beta")?.extract()?,
+                        e.getattr("kappa")?.extract()?,
                     )
                     .map_err(PyValueError::new_err)?,
                 ))
@@ -658,6 +701,20 @@ pub fn sample_sensors(
                         EstimateState::Ekf(ekf) => {
                             let values = super::attitude_ekf::step_diagnostics(
                                 ekf,
+                                dt,
+                                &readings,
+                                &estimator_config,
+                                y,
+                                nees,
+                            )
+                            .map_err(str::to_owned)?;
+                            for (j, v) in values.into_iter().enumerate() {
+                                estimates.as_mut().unwrap()[[row, j]] = v;
+                            }
+                        }
+                        EstimateState::Ukf(ukf) => {
+                            let values = super::attitude_sequential_ukf::step_diagnostics(
+                                ukf,
                                 dt,
                                 &readings,
                                 &estimator_config,

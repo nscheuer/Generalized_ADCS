@@ -1,3 +1,3 @@
-from .attitude_estimator import AttitudeEKF, AttitudeEstimator, AttitudeMEKF
+from .attitude_estimator import AttitudeEKF, AttitudeEstimator, AttitudeMEKF, AttitudeSequentialUKF
 
-__all__ = ["AttitudeEstimator", "AttitudeMEKF", "AttitudeEKF"]
+__all__ = ["AttitudeEstimator", "AttitudeMEKF", "AttitudeEKF", "AttitudeSequentialUKF"]

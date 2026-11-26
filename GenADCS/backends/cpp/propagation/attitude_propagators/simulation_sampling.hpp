@@ -1,5 +1,6 @@
 #pragma once
 #include "../../hardware/ADCS_subsystem/estimator/attitude_estimator/attitude_ekf.hpp"
+#include "../../hardware/ADCS_subsystem/estimator/attitude_estimator/attitude_sequential_ukf.hpp"
 #include "../coupled_propagators/sensor_sampling.hpp"
 
 namespace omni::propagation {
@@ -21,6 +22,7 @@ private:
   SensorSampler sensors_;
   const omni::hardware::estimator::AttitudeEstimator *estimator_;
   bool ekf_ = false;
+  const omni::hardware::estimator::AttitudeSequentialUKF *ukf_ = nullptr;
   omni::hardware::estimator::State estimate_;
   double previous_time_ = 0.0;
   std::vector<omni::hardware::estimator::Sensor> devices_;

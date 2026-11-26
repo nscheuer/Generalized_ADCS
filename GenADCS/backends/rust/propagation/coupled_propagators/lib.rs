@@ -34,6 +34,9 @@ mod attitude_mekf;
 #[path = "../../hardware/ADCS_subsystem/estimator/attitude_estimator/attitude_ekf.rs"]
 mod attitude_ekf;
 #[allow(dead_code)]
+#[path = "../../hardware/ADCS_subsystem/estimator/attitude_estimator/attitude_sequential_ukf.rs"]
+mod attitude_sequential_ukf;
+#[allow(dead_code)]
 #[path = "../../hardware/ADCS_subsystem/sensors/kernels.rs"]
 mod sensor_kernels;
 mod sensor_sampling;

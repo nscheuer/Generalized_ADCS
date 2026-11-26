@@ -10,5 +10,5 @@ from .sensors import GNSS
 
 __all__ = ["ADCSSubsystem", "Accelerometer", "CoarseSunSensor", "FineEarthSensor", "FineSunSensor", "GNSS", "Gyroscope", "Magnetometer", "Magnetorquer", "ReactionWheel"]
 
-from .estimator import AttitudeEKF, AttitudeEstimator, AttitudeMEKF
-__all__ += ["AttitudeEstimator", "AttitudeMEKF", "AttitudeEKF"]
+from .estimator import AttitudeEKF, AttitudeEstimator, AttitudeMEKF, AttitudeSequentialUKF
+__all__ += ["AttitudeEstimator", "AttitudeMEKF", "AttitudeEKF", "AttitudeSequentialUKF"]

@@ -16,11 +16,13 @@ SimulationSampler::SimulationSampler(
   if (!estimator_)
     return;
   ekf_ = dynamic_cast<const est::AttitudeEKF *>(estimator_) != nullptr;
-  if (!ekf_ && !dynamic_cast<const est::AttitudeMEKF *>(estimator_))
+  ukf_ = dynamic_cast<const est::AttitudeSequentialUKF *>(estimator_);
+  if (!ekf_ && !ukf_ && !dynamic_cast<const est::AttitudeMEKF *>(estimator_))
     throw std::invalid_argument("unsupported native attitude estimator");
   estimate_ = estimator_->prepare();
   fields.insert(estimator_->record.begin(), estimator_->record.end());
   auto diagnostics = ekf_ ? est::AttitudeEKF::allocate_samples(1, fields)
+                   : ukf_ ? est::AttitudeSequentialUKF::allocate_samples(1, fields)
                           : est::AttitudeMEKF::allocate_samples(1, fields);
   scratch_.insert(diagnostics.begin(), diagnostics.end());
   std::map<std::string, int> offsets;
@@ -149,6 +151,11 @@ void SimulationSampler::sample(const Vector &state, double time,
     est::AttitudeEKF::update_sample(estimate_, estimator_->acceleration_psd,
                                     time - previous_time_, state, readings_,
                                     devices_, scratch_, 0);
+  else if (ukf_)
+    est::AttitudeSequentialUKF::update_sample(
+        estimate_, estimator_->acceleration_psd, time - previous_time_, state,
+        readings_, devices_, scratch_, 0, ukf_->alpha, ukf_->beta,
+        ukf_->kappa);
   else
     est::AttitudeMEKF::update_sample(estimate_, estimator_->acceleration_psd,
                                      time - previous_time_, state, readings_,
