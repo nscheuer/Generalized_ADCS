@@ -27,11 +27,11 @@ from GenADCS.backends.python.simulate import simulate
 from GenADCS.backends.python.solver import AttitudeSolver, OrbitalSolver, Solver
 from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
 
-# Select the backend for this example: "cpp" or "python".
-backed = "cpp"
+# Select the backend for this example: "rust", "cpp", or "python".
+backed = "rust"
 
-if backed not in ("cpp", "python"):
-    raise ValueError("backed must be cpp or python")
+if backed not in ("rust", "cpp", "python"):
+    raise ValueError("backed must be rust, cpp, or python")
 
 _state = import_module(f"GenADCS.backends.{backed}.state")
 AttitudeState = _state.AttitudeState
@@ -87,7 +87,7 @@ def main(steps: int = 4_000_000):
     start = perf_counter()
     result = simulate(
         satellite, environment, dynamics, state, solver,
-        backend={"python": "Python", "cpp": "C"}[backed],
+        backend={"python": "Python", "cpp": "C", "rust": "rust"}[backed],
     )
     elapsed = perf_counter() - start
     print(f"Backend: {backed}; integrator: Keplerian + RK4; elapsed: {elapsed:.2f} s")

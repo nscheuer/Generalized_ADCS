@@ -45,7 +45,9 @@ impl NativeProgress {
             pending: 0,
             started: now,
             last_draw: now,
-            width: 30,
+            // Keep the complete status line within an 80-column terminal;
+            // wrapped carriage-return updates appear as multiple progress lines.
+            width: 8,
             finished: false,
         };
         bar.draw(false);
@@ -55,10 +57,12 @@ impl NativeProgress {
         self.simulation_elapsed += simulated_seconds;
         self.steps = ((self.simulation_elapsed / self.main_dt) + 1e-12).floor() as usize;
         self.pending += 1;
-        if self.pending >= self.chunk || self.last_draw.elapsed().as_millis() >= 100 {
+        if self.pending >= self.chunk {
             self.pending = 0;
-            self.last_draw = std::time::Instant::now();
-            self.draw(false);
+            if self.last_draw.elapsed().as_millis() >= 100 {
+                self.last_draw = std::time::Instant::now();
+                self.draw(false);
+            }
         }
     }
     fn finish(&mut self) {
@@ -82,7 +86,7 @@ impl NativeProgress {
             };
             let filled = (fraction.clamp(0., 1.) * self.width as f64).round() as usize;
             eprint!(
-                "\r{}: [{}{}] {:>3.0}% ({}/{}) [{:.0} step/s]",
+                "\x1b[2K\r{}: [{}{}] {:>3.0}% ({}/{}) [{:.0} step/s]",
                 self.label,
                 "=".repeat(filled),
                 " ".repeat(self.width - filled),
@@ -95,7 +99,7 @@ impl NativeProgress {
             let fraction = (self.simulation_elapsed / total).clamp(0., 1.);
             let filled = (fraction * self.width as f64).round() as usize;
             eprint!(
-                "\r{}: [{}{}] {:>3.0}% ({:.1}/{:.1} sim s, {} steps) [{:.0} step/s]",
+                "\x1b[2K\r{}: [{}{}] {:>3.0}% ({:.1}/{:.1} sim s, {} steps) [{:.0} step/s]",
                 self.label,
                 "=".repeat(filled),
                 " ".repeat(self.width - filled),
@@ -223,14 +227,14 @@ where
             "rtol must be finite and positive".to_owned(),
         ));
     }
-    if !max_step.is_finite()
+    if max_step.is_nan()
         || max_step <= 0.0
         || !min_step.is_finite()
         || min_step <= 0.0
         || min_step > max_step
     {
         return Err(IntegrationError::Native(
-            "step limits must be finite, positive, and ordered".to_owned(),
+            "step limits must be positive and ordered; min_step must be finite".to_owned(),
         ));
     }
     if y.len() != 13 {

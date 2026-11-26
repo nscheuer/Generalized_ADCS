@@ -1,4 +1,4 @@
-use numpy::ToPyArray;
+use numpy::{ndarray::Array2, IntoPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
@@ -15,8 +15,13 @@ fn integration_error(error: IntegrationError<PyErr>) -> PyErr {
 }
 
 fn output(py: Python<'_>, times: Vec<f64>, states: Vec<Vec<f64>>) -> PyResult<PyObject> {
-    let state_array = py.import("numpy")?.call_method1("asarray", (states,))?;
-    Ok((times.to_pyarray(py), state_array).into_py(py))
+    let width = states.first().map_or(0, Vec::len);
+    let array = Array2::from_shape_vec(
+        (states.len(), width),
+        states.into_iter().flatten().collect(),
+    )
+    .map_err(|error| PyValueError::new_err(error.to_string()))?;
+    Ok((times.into_pyarray(py), array.into_pyarray(py)).into_py(py))
 }
 
 #[pyfunction]

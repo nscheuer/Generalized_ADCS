@@ -135,10 +135,14 @@ impl Runtime {
 }
 
 pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> Result<Vec<f64>, String> {
+    derivative_array(y, jd, p).map(|values| values.to_vec())
+}
+
+fn derivative_array(y: &[f64], jd: f64, p: &Runtime) -> Result<[f64; 13], String> {
     if y.len() != 13 || y.iter().any(|value| !value.is_finite()) {
         return Err("coupled state must contain 13 values".to_owned());
     }
-    let mut q = y[..4].to_vec();
+    let mut q = [y[0], y[1], y[2], y[3]];
     normalize_q(&mut q)?;
     let omega = vec3(&y[4..7]);
     let pos = vec3(&y[7..10]);
@@ -249,7 +253,7 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> Result<Vec<f64>, Strin
     let iw = mv3(p.inertia, omega);
     let omegadot = mv3(p.inverse_inertia, sub3(torque, cross3(omega, iw)));
     accel = add3(accel, scale3(force, 1. / p.mass));
-    let mut dy = vec![0.; 13];
+    let mut dy = [0.; 13];
     dy[0] = 0.5 * (q[1] * omega[0] + q[2] * omega[1] + q[3] * omega[2]);
     dy[1] = -0.5 * (q[0] * omega[0] + omega[1] * q[3] - omega[2] * q[2]);
     dy[2] = -0.5 * (q[0] * omega[1] + omega[2] * q[1] - omega[0] * q[3]);

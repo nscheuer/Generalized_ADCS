@@ -7,10 +7,19 @@ include!("coupled_rk4_propagator.rs");
 include!("coupled_dop853_propagator.rs");
 include!("integrate.rs");
 
+#[path = "../attitude_propagators/mod.rs"]
+mod attitude_propagators;
+#[path = "../orbital_propagators/mod.rs"]
+mod orbital_propagators;
+#[path = "../separate_solver.rs"]
+mod separate_solver;
+
 #[path = "_coupled_dynamics_py.rs"]
 mod dynamics_py;
 #[path = "_coupled_propagators_py.rs"]
 mod propagators_py;
+#[path = "../separate_solver_py.rs"]
+mod separate_solver_py;
 
 #[allow(dead_code)]
 #[path = "../../hardware/ADCS_subsystem/estimator/attitude_estimator/base.rs"]
@@ -31,6 +40,16 @@ fn _coupled(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(propagators_py::dop853_attempt, m)?)?;
     m.add_function(wrap_pyfunction!(propagators_py::integrate_rk4, m)?)?;
     m.add_function(wrap_pyfunction!(propagators_py::integrate_dop853, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        attitude_propagators::rk4_attitude_propagator_py::rk4_attitude_step,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        attitude_propagators::reference_attitude_propagator_py::set_reference_attitude,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(separate_solver_py::integrate_separate, m)?)?;
     m.add_function(wrap_pyfunction!(sensor_sampling::sample_sensors, m)?)?;
+    orbital_propagators::keplerian_orbital_propagator_py::register_keplerian(m)?;
     Ok(())
 }
