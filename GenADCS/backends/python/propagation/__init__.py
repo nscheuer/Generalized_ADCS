@@ -17,3 +17,4 @@ from .orbital_propagators import (
     SGP4OrbitalPropagator as SGP4OrbitalPropagator,
 )
 from .propagator import Propagator as Propagator
+from .attitude_propagators import ReferenceAttitudePropagator as ReferenceAttitudePropagator

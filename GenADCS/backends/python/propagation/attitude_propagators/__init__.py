@@ -2,3 +2,4 @@ from .adaptive_rk45_attitude_propagator import (
     AdaptiveRK45AttitudePropagator as AdaptiveRK45AttitudePropagator,
 )
 from .rk4_attitude_propagator import RK4AttitudePropagator as RK4AttitudePropagator
+from .reference_attitude_propagator import ReferenceAttitudePropagator as ReferenceAttitudePropagator

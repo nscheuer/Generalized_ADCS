@@ -1,4 +1,4 @@
-"""Simulation entry point for the coupled Numba backend."""
+"""Simulation entry point for the Numba backend."""
 
 import math
 from dataclasses import replace
@@ -17,7 +17,15 @@ from .hardware.ADCS_subsystem.sensors.sensor_sampling import (
 )
 from .helpers.input_output.resultsformat import ResultsFormat
 from .helpers.random.philox import validate_seed
+from .propagation.attitude_propagators.rk4_attitude_propagator import (
+    RK4AttitudePropagator,
+)
 from .propagation.coupled_propagators.coupled_rk4_propagator import CoupledRK4Propagator
+from .propagation.orbital_propagators.keplerian_orbital_propagator import (
+    KeplerianOrbitalPropagator,
+)
+from .propagation.separate_rk4 import integrate_separate
+from .propagation.attitude_propagators.reference_attitude_propagator import ReferenceAttitudePropagator
 from .solver import CoupledSolver, Solver
 from .state import State
 
@@ -34,7 +42,7 @@ def simulate(
     resultsformat: ResultsFormat | None = None,
     seed: int | np.integer = 0,
 ) -> SimulationResult:
-    """Integrate the coupled orbit and attitude, sampling sensors in Numba.
+    """Integrate orbit and attitude, sampling sensors in Numba.
 
     ``seed`` is a 64-bit Philox key.  A sensor's draw is identified by its
     subsystem tick and position in ``satellite.adcs.sensors``; adaptive solver
@@ -42,20 +50,33 @@ def simulate(
     """
     if backend != "Python":
         raise NotImplementedError(f"backend {backend!r} is not implemented for GenADCS")
-    if isinstance(solver, Solver):
-        if solver.coupled is None:
-            raise TypeError("solver must be a CoupledSolver or a Solver containing one")
-        solver = solver.coupled
+    separate = isinstance(solver, Solver) and solver.coupled is None
+    if separate:
+        assert isinstance(solver, Solver)
+        if not (
+            solver.orbital is not None
+            and isinstance(solver.orbital.propagator, KeplerianOrbitalPropagator)
+            and solver.attitude is not None
+            and isinstance(solver.attitude.propagator, (RK4AttitudePropagator, ReferenceAttitudePropagator))
+        ):
+            raise TypeError(
+                "separate simulation requires Keplerian and RK4 attitude propagators"
+            )
+        dt = solver.orbital.dt
+        tf = solver.tf
+    else:
+        if isinstance(solver, Solver):
+            assert solver.coupled is not None
+            solver = solver.coupled
+        dt = solver.propagator.dt
+        tf = solver.tf
     if resultsformat is None:
         resultsformat = ResultsFormat()
     if satellite.adcs.estimator is not None and satellite.adcs.estimator.record:
         resultsformat = replace(
             resultsformat, **{name: True for name in satellite.adcs.estimator.record}
         )
-    if (
-        isinstance(satellite.adcs.N, bool)
-        or satellite.adcs.N < 1
-    ):
+    if isinstance(satellite.adcs.N, bool) or satellite.adcs.N < 1:
         raise ValueError("ADCSSubsystem.N must be a positive integer")
     seed = int(validate_seed(seed))
 
@@ -68,7 +89,9 @@ def simulate(
     # states. DOP853 must stop at sensor boundaries, even between result rows.
     record_every = (
         math.gcd(resultsformat.N, sensor_every)
-        if sensor_every and not isinstance(solver.propagator, CoupledRK4Propagator)
+        if sensor_every
+        and not separate
+        and not isinstance(solver.propagator, CoupledRK4Propagator)
         else resultsformat.N
     )
     diagnostic_names = (
@@ -89,21 +112,39 @@ def simulate(
         for i, name in enumerate(diagnostic_names)
         if getattr(resultsformat, name)
     )
-    integration = solver.propagator.integrate(
-        state,
-        satellite,
-        environment,
-        dynamics,
-        solver.tf,
-        progress=solver.progress,
-        progress_chunk_steps=solver.progress_chunk_steps,
-        record_every=record_every,
-        sensor_every=sensor_every,
-        seed=int(seed),
-        estimator_flags=estimator_flags,
-    )
+    if separate:
+        assert tf is not None
+        integration = integrate_separate(
+            state,
+            satellite,
+            environment,
+            dynamics,
+            dt,
+            tf,
+            record_every,
+            sensor_every,
+            int(seed),
+            estimator_flags,
+            progress=solver.progress,
+            progress_chunk_steps=solver.progress_chunk_steps,
+            reference_mode=solver.attitude.propagator.mode if isinstance(solver.attitude.propagator, ReferenceAttitudePropagator) else -1,
+        )
+    else:
+        integration = solver.propagator.integrate(
+            state,
+            satellite,
+            environment,
+            dynamics,
+            tf,
+            progress=solver.progress,
+            progress_chunk_steps=solver.progress_chunk_steps,
+            record_every=record_every,
+            sensor_every=sensor_every,
+            seed=int(seed),
+            estimator_flags=estimator_flags,
+        )
     times_s, state_vectors = integration[:2]
-    interval = solver.propagator.dt * resultsformat.N
+    interval = dt * resultsformat.N
     on_grid = np.abs(times_s / interval - np.round(times_s / interval)) < 1e-9
     times_s = times_s[on_grid]
     state_vectors = state_vectors[on_grid]
@@ -120,11 +161,10 @@ def simulate(
             values = np.full((len(times_s), width), np.nan)
             if source is not None:
                 for row, time in enumerate(times_s):
-                    tick = round(time / (solver.propagator.dt * sensor_every))
+                    tick = round(time / (dt * sensor_every))
                     if (
                         tick < source.shape[0]
-                        and abs(time - tick * solver.propagator.dt * sensor_every)
-                        < 1e-9
+                        and abs(time - tick * dt * sensor_every) < 1e-9
                     ):
                         values[row] = source[tick, starts[kind] : starts[kind] + width]
             sensor_rows[name + suffix] = values
@@ -147,10 +187,10 @@ def simulate(
                 continue
             values = np.full((len(times_s), stop - start), np.nan)
             for row, time in enumerate(times_s):
-                tick = round(time / (solver.propagator.dt * sensor_every))
+                tick = round(time / (dt * sensor_every))
                 if (
                     tick < estimates.shape[0]
-                    and abs(time - tick * solver.propagator.dt * sensor_every) < 1e-9
+                    and abs(time - tick * dt * sensor_every) < 1e-9
                 ):
                     values[row] = estimates[tick, start:stop]
             sensor_rows[name] = values

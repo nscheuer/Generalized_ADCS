@@ -1,11 +1,11 @@
-"""Benchmark 4,000,000 coupled dt intervals with rust RK4.
+"""Benchmark 4,000,000 coupled dt intervals with cpp RK4.
 
-Run from the repository root with ``venv/bin/python GenADCS/examples/benchmarks/rust_rk4.py``.
+Run from the repository root with ``venv/bin/python GenADCS/examples/benchmarks/cpp_rk4.py``.
 DOP853 may take additional adaptive substeps inside each dt interval.
 """
 
 # Select the backend for this example: "rust", "cpp", or "python".
-backed = "rust"
+backed = "python"
 
 if backed not in ("rust", "cpp", "python"):
     raise ValueError("backed must be rust, cpp, or python")
