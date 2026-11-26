@@ -8,7 +8,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[5]))
 
-backend = "python"
+backend = "cpp"
 
 if backend not in ("cpp", "python", "rust"):
     raise ValueError("backend must be 'cpp', 'python', or 'rust'")
@@ -109,7 +109,7 @@ def run_example(*, backend=backend, progress=False):
     solver = Solver(
         orbital=OrbitalSolver(KeplerianOrbitalPropagator(dt=0.25)),
         attitude=AttitudeSolver(RK4AttitudePropagator(dt=0.25)),
-        tf=100_000.0,
+        tf=20_000.0,
         progress=progress,
     )
     results_format = ResultsFormat(
