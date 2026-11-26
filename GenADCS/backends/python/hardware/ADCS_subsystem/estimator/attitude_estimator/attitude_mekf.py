@@ -21,10 +21,11 @@ from GenADCS.backends.python.helpers.math.rotations.sensor_kernels import (
 from GenADCS.backends.python.helpers.math.vector import skew
 
 from .base import AttitudeEstimator
+from .direction_updates import update as update_directions
 
 
 class AttitudeMEKF(AttitudeEstimator):
-    """Constant-rate MEKF with gyro and star-tracker corrections.
+    """Constant-rate MEKF with gyro, magnetic, Sun, Earth and tracker corrections.
 
     ``acceleration_psd`` is continuous white angular-acceleration spectral
     density in rad²/s³. Tracker noise is a rotation-vector covariance in its
@@ -122,13 +123,16 @@ def step(
     dt: float,
     readings: np.ndarray,
     sensor_config: tuple[np.ndarray, ...],
+    references=None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Predict and consume all valid gyro/tracker readings at one sensor tick.
+    """Predict and consume valid attitude sensor readings at one sensor tick.
 
-    Other sensor types remain available to future estimator implementations.
+    References contain inertial magnetic, Sun and Earth vectors (three rows).
+    Accelerometer and GNSS readings are excluded.
     NaN readings, including occulted trackers, are skipped.
     """
     q, w, p = predict(q, w, p, acceleration_psd, dt)
+    q, w, p = update_directions(q, w, p, readings, sensor_config, references, False)
     (
         code,
         orientation,
@@ -183,12 +187,14 @@ def step_with_diagnostics(
     truth_q: np.ndarray,
     truth_w: np.ndarray,
     diagnostics: np.ndarray,
+    references=None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compiled update; diagnostics describe the last valid measurement at a tick.
 
     A tick with no valid measurement leaves measurement fields as NaN.
     """
     q, w, p = predict(q, w, p, acceleration_psd, dt)
+    q, w, p = update_directions(q, w, p, readings, sensor_config, references, False, flags, diagnostics)
     (
         code,
         orientation,

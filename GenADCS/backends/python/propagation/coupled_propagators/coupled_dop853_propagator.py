@@ -15,6 +15,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling imp
     SensorConfig,
     prepare_sensors,
     sample_sensors,
+    attitude_references,
 )
 from GenADCS.backends.python.state import State
 
@@ -217,6 +218,7 @@ def _integrate_adaptive_chunk(
                                 y[:4],
                                 y[4:7],
                                 estimates[sensor_index, 43:],
+                                references=attitude_references(y[7:10], initial_jd + t / SECONDS_PER_DAY, p, sensor_config),
                             )
                             if estimator_flags & 1:
                                 estimates[sensor_index, :4] = estimate_q
@@ -359,6 +361,7 @@ class CoupledDOP853Propagator:
                     y[:4],
                     y[4:7],
                     estimates[0, 43:],
+                    references=attitude_references(y[7:10], state.orbit.julian_date, p, sensor_config),
                 )
                 if estimator_flags & 1:
                     estimates[0, :4] = estimate_q

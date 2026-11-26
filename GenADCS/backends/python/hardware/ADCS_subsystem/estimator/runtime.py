@@ -41,6 +41,7 @@ def update_estimator(
     truth_q: np.ndarray | None = None,
     truth_w: np.ndarray | None = None,
     diagnostics: np.ndarray | None = None,
+    references=None,
 ) -> None:
     if kind == 1:
         if flags & 1020:
@@ -57,11 +58,11 @@ def update_estimator(
                 flags,
                 truth_q,
                 truth_w,
-                diagnostics,
+                diagnostics, references,
             )
         else:
             q_new, w_new, p_new = mekf_step(
-                q, w, covariance, acceleration_psd, dt, readings, sensor_config
+                q, w, covariance, acceleration_psd, dt, readings, sensor_config, references=references
             )
         q[:] = q_new
         w[:] = w_new
@@ -72,11 +73,11 @@ def update_estimator(
                 raise ValueError("diagnostic updates require truth state and storage")
             q_new, w_new, p_new = ekf_step(
                 q, w, covariance, acceleration_psd, dt, readings, sensor_config,
-                flags, truth_q, truth_w, diagnostics,
+                flags, truth_q, truth_w, diagnostics, references,
             )
         else:
             q_new, w_new, p_new = ekf_step(
-                q, w, covariance, acceleration_psd, dt, readings, sensor_config
+                q, w, covariance, acceleration_psd, dt, readings, sensor_config, references=references
             )
         q[:] = q_new
         w[:] = w_new

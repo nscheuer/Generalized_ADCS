@@ -345,3 +345,40 @@ def sample_sensors(
             )
         clean[offset : offset + a.size] = a
         reading[offset : offset + v.size] = v
+
+
+@njit(cache=True)
+def attitude_references(pos, jd, p, config):
+    """Inertial magnetic, Sun and Earth references at a measurement epoch."""
+    code = config[0]
+    sun = np.zeros(3)
+    illumination = 0.0
+    field = np.zeros(3)
+    specific = np.zeros(3)
+    if np.any((code == 2) | (code == 3) | (code == 4)) and p.ephemeris_segments.size:
+        sun_position = 1000.0 * ephemeris_position(
+            BODY_SUN,
+            utc_jd_to_tdb_jd(jd),
+            p.ephemeris_segments,
+            p.ephemeris_times,
+            p.ephemeris_data,
+        )
+        sun = sun_position - pos
+        illumination, _, _ = eclipse_state(pos, sun_position, p.radius, SUN_RADIUS_M)
+    if np.any(code == 1):
+        if p.magnetic_kind == 1:
+            field = igrf14_field_inertial_tesla(
+                pos, jd, p.magnetic_times, p.magnetic_g, p.magnetic_h
+            )
+        else:
+            field = chaos8_field_inertial_tesla(
+                pos,
+                jd,
+                p.magnetic_times,
+                p.magnetic_g,
+                p.magnetic_h,
+                p.magnetic_static_g,
+                p.magnetic_static_h,
+                p.magnetic_include_static,
+            )
+    return np.vstack((field, sun, -pos))

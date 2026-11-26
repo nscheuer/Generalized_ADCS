@@ -13,6 +13,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling imp
     SensorConfig,
     prepare_sensors,
     sample_sensors,
+    attitude_references,
 )
 from GenADCS.backends.python.hardware.satellite import Satellite
 from GenADCS.backends.python.state import State
@@ -114,6 +115,7 @@ def _integrate_chunk(
                     y[:4],
                     y[4:7],
                     estimates[index, 43:],
+                    references=attitude_references(y[7:10], initial_jd + completed * dt / SECONDS_PER_DAY, p, sensor_config),
                 )
                 if estimator_flags & 1:
                     estimates[index, :4] = estimate_q
@@ -237,6 +239,7 @@ class CoupledRK4Propagator:
                     y[:4],
                     y[4:7],
                     estimates[0, 43:],
+                    references=attitude_references(y[7:10], state.orbit.julian_date, runtime, sensor_config),
                 )
                 if estimator_flags & 1:
                     estimates[0, :4] = estimate_q

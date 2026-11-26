@@ -11,6 +11,7 @@ from GenADCS.backends.python.helpers.math.rotations.quaternion.interpolation imp
     quaternion_to_rotation_vector, rotation_vector_to_quaternion,
 )
 from .base import AttitudeEstimator
+from .direction_updates import update as update_directions
 
 
 class AttitudeEKF(AttitudeEstimator):
@@ -112,8 +113,9 @@ def _state_error_jacobian(q):
 
 @njit(cache=True)
 def step(q, w, p, acceleration_psd, dt, readings, sensor_config,
-         flags=0, truth_q=None, truth_w=None, diagnostics=None):
+         flags=0, truth_q=None, truth_w=None, diagnostics=None, references=None):
     q, w, p = predict(q, w, p, acceleration_psd, dt)
+    q, w, p = update_directions(q, w, p, readings, sensor_config, references, True, flags, diagnostics)
     (code, orientation, misalignment, bias, chol, _normal, _fov, _scalars,
      enabled, offsets, _counts, _starts) = sensor_config
     for i in range(code.size):

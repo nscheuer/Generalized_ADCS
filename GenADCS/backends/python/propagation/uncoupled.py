@@ -17,6 +17,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling imp
     SensorConfig,
     prepare_sensors,
     sample_sensors,
+    attitude_references,
 )
 from GenADCS.backends.python.propagation.attitude_propagators.rk4_attitude_propagator import (
     _rk4_attitude_step,
@@ -89,6 +90,7 @@ def _simulate_uncoupled_loop(
                 y[:4],
                 y[4:7],
                 estimates[0, 43:],
+                references=attitude_references(y[7:10], initial_jd, runtime, sensor_config),
             )
             if estimator_flags & 1:
                 estimates[0, :4] = estimate_q
@@ -144,6 +146,7 @@ def _simulate_uncoupled_loop(
                     y[:4],
                     y[4:7],
                     estimates[index, 43:],
+                    references=attitude_references(y[7:10], initial_jd + completed * dt / SECONDS_PER_DAY, runtime, sensor_config),
                 )
                 if estimator_flags & 1:
                     estimates[index, :4] = estimate_q
