@@ -294,10 +294,6 @@ def step(
         observed = readings[offsets[i] : offsets[i] + obs_width]
         if not np.all(np.isfinite(observed)):
             continue
-        if kind in (1, 3, 4, 5) and references is None:
-            raise ValueError(
-                "magnetic and optical corrections require inertial references"
-            )
 
         q_pts, w_pts, w_m, w_c = _sigma_points(q, w, p, alpha, beta, kappa)
         count = q_pts.shape[0]
@@ -351,6 +347,10 @@ def step(
                 )
             q, w, p = q_next, w_next, p_next
         else:
+            if references is None:
+                raise ValueError(
+                    "magnetic and optical corrections require inertial references"
+                )
             z_pts = np.empty((count, meas_width))
             all_finite = True
             for k in range(count):

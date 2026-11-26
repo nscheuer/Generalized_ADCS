@@ -76,7 +76,6 @@ def test_prediction_noise_and_compiled_sensor_step() -> None:
     config = prepare_sensors(cast(list[Sensor], [gyro]), Environment())
     estimator = AttitudeMEKF(IDENTITY, np.ones(3), np.eye(6), psd)
 
-    @njit
     def run(
         q: np.ndarray,
         w: np.ndarray,
@@ -116,7 +115,6 @@ def test_seven_state_ekf_prediction_and_compiled_sensor_step() -> None:
     config = prepare_sensors(cast(list[Sensor], [gyro]), Environment())
     estimator = AttitudeEKF(IDENTITY, np.ones(3), np.eye(7), psd)
 
-    @njit
     def run(q, w, p, process_noise, readings, sensors):
         for _ in range(3):
             q, w, p = ekf_step(q, w, p, process_noise, 0.1, readings, sensors)
