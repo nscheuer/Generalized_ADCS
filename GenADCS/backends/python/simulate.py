@@ -24,7 +24,7 @@ from .propagation.coupled_propagators.coupled_rk4_propagator import CoupledRK4Pr
 from .propagation.orbital_propagators.keplerian_orbital_propagator import (
     KeplerianOrbitalPropagator,
 )
-from .propagation.separate_rk4 import integrate_separate
+from .propagation.uncoupled import simulate_uncoupled
 from .propagation.attitude_propagators.reference_attitude_propagator import ReferenceAttitudePropagator
 from .solver import CoupledSolver, Solver
 from .state import State
@@ -121,7 +121,7 @@ def simulate(
     )
     if separate:
         assert tf is not None
-        integration = integrate_separate(
+        integration = simulate_uncoupled(
             state,
             satellite,
             environment,

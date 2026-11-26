@@ -110,9 +110,9 @@ an error.
 
 ## Keplerian + RK4 simulation loop
 
-`simulate.py` calls the native `simulate_separate_rk4` entry point once.
+`simulate.py` calls the native `simulate_uncoupled` entry point once.
 Its binding converts configuration and releases the GIL; the native loop
-advances attitude and orbit, samples sensors at subsystem ticks, updates the
+selects RK4 or a reference attitude, advances attitude and orbit, samples sensors at subsystem ticks, updates the
 persistent EKF or MEKF state, and records the requested output before advancing
 again. Initial sensor and estimator sampling occurs at time zero. A final
 partial propagation step does not introduce an extra sensor tick.

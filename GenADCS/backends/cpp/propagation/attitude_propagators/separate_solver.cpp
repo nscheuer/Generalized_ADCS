@@ -14,12 +14,19 @@
 #include <iostream>
 #include <cmath>
 #include <stdexcept>
+#include <pybind11/embed.h>
 
 namespace omni::propagation {
-SeparateTrajectory integrate_separate_reference(
+SeparateTrajectory integrate_uncoupled(
     const Eigen::VectorXd &initial, double mu, double initial_julian_date,
     double dt, double tf, int record_every, const std::string &mode,
-    const SeparateProgress &progress) {
+    const SeparateProgress &progress, const Runtime *runtime,
+    SimulationSampler *sampler, int sensor_every) {
+  if (sampler && sensor_every < 1)
+    throw std::invalid_argument("sensor_every must be positive");
+  const bool rk4 = mode == "rk4";
+  if (rk4 && !runtime)
+    throw std::invalid_argument("RK4 requires a prepared runtime");
   if (!std::isfinite(dt) || dt <= 0.0) {
     throw std::invalid_argument("dt must be finite and positive seconds");
   }
@@ -33,11 +40,12 @@ SeparateTrajectory integrate_separate_reference(
     throw std::invalid_argument("packed state must contain at least 13 values");
   }
 
-  const ReferenceAttitudeMode reference_mode =
-      ReferenceAttitudePropagator::parse_mode(mode);
+  const ReferenceAttitudeMode reference_mode = rk4
+      ? ReferenceAttitudeMode::Nadir
+      : ReferenceAttitudePropagator::parse_mode(mode);
   const ReferenceAttitudePropagator reference(dt, reference_mode);
   const std::unique_ptr<omni::environment::DE421> ephemeris =
-      reference_mode == ReferenceAttitudeMode::Sun
+      !rk4 && reference_mode == ReferenceAttitudeMode::Sun
           ? std::make_unique<omni::environment::DE421>()
           : nullptr;
   auto apply_reference = [&](Eigen::VectorXd &state, double elapsed) {
@@ -62,7 +70,9 @@ SeparateTrajectory integrate_separate_reference(
     throw std::invalid_argument("attitude quaternion must have nonzero norm");
   }
   state.head<4>() /= quaternion_norm;
-  apply_reference(state, 0.0);
+  if (rk4 && runtime->wheel_commands.size() != 0)
+    project(state, *runtime);
+  if (!rk4) apply_reference(state, 0.0);
 
   const auto full_steps = static_cast<std::size_t>(std::floor(tf / dt));
   double remainder = tf - static_cast<double>(full_steps) * dt;
@@ -78,29 +88,55 @@ SeparateTrajectory integrate_separate_reference(
   trajectory.second.resize(static_cast<Eigen::Index>(sample_count), state.size());
   trajectory.first.push_back(0.0);
   trajectory.second.row(0) = state.transpose();
+  if (sampler) {
+    sampler->allocate(static_cast<Eigen::Index>(sample_count));
+    sampler->sample(state, 0.0, 0);
+    sampler->record(0);
+  }
 
   for (std::size_t step = 0; step < total_steps; ++step) {
     const double step_dt = step == full_steps ? remainder : dt;
+    if (rk4)
+      state = rk4_attitude_step(state,
+          initial_julian_date + static_cast<double>(step) * dt / 86400.0,
+          step_dt, *runtime);
     Eigen::Vector3d next_velocity;
     const Eigen::Vector3d next_position = keplerian_position_velocity_step(
         state.segment<3>(7), state.segment<3>(10), mu, step_dt, next_velocity);
     state.segment<3>(7) = next_position;
     state.segment<3>(10) = next_velocity;
     const double elapsed = std::min(static_cast<double>(step + 1) * dt, tf);
-    apply_reference(state, elapsed);
+    if (!rk4) apply_reference(state, elapsed);
 
     const std::size_t completed = step + 1;
+    const bool sensor_tick = sampler && completed <= full_steps &&
+        completed % static_cast<std::size_t>(sensor_every) == 0;
+    if (sensor_tick)
+      sampler->sample(state, completed * dt, completed / sensor_every);
     if (completed % stride == 0 || completed == total_steps) {
       const auto row = static_cast<Eigen::Index>(trajectory.first.size());
       trajectory.second.row(row) = state.transpose();
+      if (sensor_tick) sampler->record(row);
       trajectory.first.push_back(completed == total_steps
           ? tf : std::min(static_cast<double>(completed) * dt, tf));
     }
     if (progress) {
       progress(1);
     }
+    if ((step + 1) % 256 == 0) {
+      pybind11::gil_scoped_acquire acquire;
+      if (PyErr_CheckSignals() != 0) throw pybind11::error_already_set();
+    }
   }
   return trajectory;
+}
+
+SeparateTrajectory integrate_separate_reference(
+    const Eigen::VectorXd &initial, double mu, double initial_julian_date,
+    double dt, double tf, int record_every, const std::string &mode,
+    const SeparateProgress &progress) {
+  return integrate_uncoupled(initial, mu, initial_julian_date, dt, tf,
+                             record_every, mode, progress, nullptr);
 }
 
 SeparateTrajectory integrate_separate_rk4(
@@ -180,14 +216,19 @@ SeparateTrajectory integrate_separate_rk4(
     if (progress) {
       progress(1);
     }
+    if ((step + 1) % 256 == 0) {
+      pybind11::gil_scoped_acquire acquire;
+      if (PyErr_CheckSignals() != 0) throw pybind11::error_already_set();
+    }
   }
   return trajectory;
 }
-SeparateSimulation simulate_separate_rk4(
+SeparateSimulation simulate_uncoupled(
     const Eigen::VectorXd &initial, double mu, double epoch, double dt, double tf,
     int record_every, Runtime &runtime, std::vector<omni::hardware::Sensor> sensors,
     const omni::hardware::estimator::AttitudeEstimator *estimator,
     int sensor_every, std::uint64_t seed, std::set<std::string> fields,
+    const std::string &attitude_mode,
     bool progress, std::size_t chunk_steps) {
   if (!std::isfinite(dt) || dt <= 0 || !std::isfinite(tf) || tf < 0 ||
       record_every < 1 || sensor_every < 1 || chunk_steps == 0)
@@ -202,14 +243,15 @@ SeparateSimulation simulate_separate_rk4(
     if (completed % chunk_steps == 0 || completed * dt >= tf) {
       const double seconds = std::chrono::duration<double>(
           std::chrono::steady_clock::now() - started).count();
-      std::cerr << "\rRunning Keplerian + RK4: " << completed
+      std::cerr << "\rRunning Keplerian + "
+                << (attitude_mode == "rk4" ? "RK4" : "reference") << ": " << completed
                 << "/" << static_cast<std::size_t>(std::ceil(tf / dt))
                 << " steps (" << completed / std::max(seconds, 1e-9)
                 << " step/s)" << std::flush;
     }
   };
-  auto trajectory = integrate_separate_rk4(initial, mu, epoch, dt, tf,
-      record_every, runtime, update, &sampler, sensor_every);
+  auto trajectory = integrate_uncoupled(initial, mu, epoch, dt, tf,
+      record_every, attitude_mode, update, &runtime, &sampler, sensor_every);
   if (progress) std::cerr << '\n';
   return {std::move(trajectory.first), std::move(trajectory.second),
           std::move(sampler.output)};
@@ -261,8 +303,17 @@ SeparateSimulation simulate_coupled(
   };
   auto trajectory = adaptive
       ? integrate_dop853(initial, epoch, dt, tf, runtime, rtol, atol,
-                        max_step, min_step, update, stride, observe)
-      : integrate_rk4(initial, epoch, dt, tf, runtime, update, stride, observe);
+                        max_step, min_step, update, stride, observe, [] {
+                          pybind11::gil_scoped_acquire acquire;
+                          if (PyErr_CheckSignals() != 0)
+                            throw pybind11::error_already_set();
+                        })
+      : integrate_rk4(initial, epoch, dt, tf, runtime, update, stride, observe,
+                      [] {
+                        pybind11::gil_scoped_acquire acquire;
+                        if (PyErr_CheckSignals() != 0)
+                          throw pybind11::error_already_set();
+                      });
   if (progress) std::cerr << '\n';
   Eigen::MatrixXd states(trajectory.states.size(), initial.size());
   for (Eigen::Index i = 0; i < states.rows(); ++i)

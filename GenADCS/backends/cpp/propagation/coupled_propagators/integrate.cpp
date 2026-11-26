@@ -7,6 +7,7 @@
 #include <limits>
 #include <stdexcept>
 #include <vector>
+#include <pybind11/embed.h>
 namespace omni::propagation {
 static Trajectory output(const std::vector<double> &times,
                          const std::vector<Vector> &states) {
@@ -14,7 +15,8 @@ static Trajectory output(const std::vector<double> &times,
 }
 Trajectory integrate_rk4(Vector y, double jd, double dt, double tf,
                          const Runtime &p, const Progress &progress,
-                         std::size_t record_every, const Observer &observe) {
+                         std::size_t record_every, const Observer &observe,
+                         const SignalCheck &check_signal) {
   if (!std::isfinite(dt) || dt <= 0) {
     throw std::invalid_argument("dt must be finite and positive");
   }
@@ -45,6 +47,7 @@ Trajectory integrate_rk4(Vector y, double jd, double dt, double tf,
     if (progress) {
       progress(1);
     }
+    if (check_signal && (i + 1) % 256 == 0) check_signal();
   }
   times.back() = tf;
   return output(times, states);
@@ -53,7 +56,8 @@ Trajectory integrate_dop853(Vector y, double jd, double dt, double tf,
                             const Runtime &p, double rtol, Vector atol,
                             double max_step, double min_step,
                             const Progress &progress,
-                            std::size_t record_every, const Observer &observe) {
+                            std::size_t record_every, const Observer &observe,
+                            const SignalCheck &check_signal) {
   if (!std::isfinite(dt) || dt <= 0) {
     throw std::invalid_argument("dt must be finite and positive");
   }
@@ -124,6 +128,7 @@ Trajectory integrate_dop853(Vector y, double jd, double dt, double tf,
           completed_main = main_done;
         }
       }
+      if (check_signal && trials % 256 == 0) check_signal();
       double factor =
           error == 0 ? 10.
                      : std::min(10., std::max(.2, .9 * std::pow(error, -.125)));

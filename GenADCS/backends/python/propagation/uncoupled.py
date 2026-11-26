@@ -1,4 +1,4 @@
-"""Single Numba loop for separate Keplerian orbit and RK4 attitude propagation."""
+"""Numba coordinator for uncoupled Keplerian orbit and attitude propagation."""
 
 import math
 from threading import Event, Thread
@@ -38,7 +38,7 @@ from GenADCS.backends.python.propagation.attitude_propagators.reference_attitude
 
 
 @njit(cache=True, nogil=True)
-def _integrate_separate(
+def _simulate_uncoupled_loop(
     y: np.ndarray,
     initial_jd: float,
     dt: float,
@@ -64,6 +64,42 @@ def _integrate_separate(
     reference_mode: int,
 ) -> None:
     total_steps = full_steps + int(remainder > 0.0)
+    if sensor_every:
+        sample_sensors(
+            y,
+            initial_jd,
+            runtime,
+            sensor_config,
+            clean[0],
+            reading[0],
+            seed,
+            0,
+        )
+        if estimator_kind:
+            update_estimator(
+                estimator_kind,
+                estimate_q,
+                estimate_w,
+                estimate_p,
+                acceleration_psd,
+                0.0,
+                reading[0],
+                sensor_config,
+                estimator_flags,
+                y[:4],
+                y[4:7],
+                estimates[0, 43:],
+            )
+            if estimator_flags & 1:
+                estimates[0, :4] = estimate_q
+            if estimator_flags & 2:
+                estimates[0, 4:7] = estimate_w
+            if estimator_flags & 1024:
+                if estimator_kind == 2:
+                    estimates[0, 7:56] = estimate_p.ravel()
+                else:
+                    estimates[0, 7:43] = estimate_p.ravel()
+
     for row in range(total_steps):
         elapsed = row * dt
         step_dt = remainder if row == full_steps else dt
@@ -128,7 +164,7 @@ def _integrate_separate(
             completed_steps[0] = completed
 
 
-def integrate_separate(
+def simulate_uncoupled(
     state: State,
     satellite: Satellite,
     environment: Environment,
@@ -185,98 +221,58 @@ def integrate_separate(
         prepare_estimator(satellite.adcs.estimator)
     )
     estimates = np.full((sensor_rows, 96), np.nan)
-    if sensor_every:
-        sample_sensors(
-            y,
-            state.orbit.julian_date,
-            runtime,
-            sensor_config,
-            clean[0],
-            reading[0],
-            seed,
-            0,
-        )
-        if estimator_kind:
-            update_estimator(
-                estimator_kind,
-                estimate_q,
-                estimate_w,
-                estimate_p,
-                acceleration_psd,
-                0.0,
-                reading[0],
-                sensor_config,
-                estimator_flags,
-                y[:4],
-                y[4:7],
-                estimates[0, 43:],
-            )
-            if estimator_flags & 1:
-                estimates[0, :4] = estimate_q
-            if estimator_flags & 2:
-                estimates[0, 4:7] = estimate_w
-            if estimator_flags & 1024:
-                if estimator_kind == 2:
-                    estimates[0, 7:56] = estimate_p.ravel()
-                else:
-                    estimates[0, 7:43] = estimate_p.ravel()
-    if total_steps:
-        completed_steps = np.zeros(1, dtype=np.int64)
-        args = (
-            y,
-            state.orbit.julian_date,
-            dt,
-            full_steps,
-            remainder,
-            runtime,
-            output,
-            record_every,
-            sensor_every,
-            sensor_config,
-            clean,
-            reading,
-            seed,
-            estimator_kind,
-            estimate_q,
-            estimate_w,
-            estimate_p,
-            acceleration_psd,
-            estimates,
-            estimator_flags,
-            completed_steps,
-        )
-        if progress:
-            from tqdm import tqdm
+    completed_steps = np.zeros(1, dtype=np.int64)
+    args = (
+        y,
+        state.orbit.julian_date,
+        dt,
+        full_steps,
+        remainder,
+        runtime,
+        output,
+        record_every,
+        sensor_every,
+        sensor_config,
+        clean,
+        reading,
+        seed,
+        estimator_kind,
+        estimate_q,
+        estimate_w,
+        estimate_p,
+        acceleration_psd,
+        estimates,
+        estimator_flags,
+        completed_steps,
+    )
+    if progress:
+        from tqdm import tqdm
 
-            # Compile before starting the monitor so the step bar measures
-            # propagation, just as in the coupled RK4 implementation.
-            with tqdm(total=1, desc="Compiling Numba kernels", unit="stage") as bar:
-                _integrate_separate(*args[:3], 0, 0.0, *args[5:], progress_chunk_steps, reference_mode)
-                bar.update(1)
+        finished = Event()
 
-            finished = Event()
-
-            def monitor() -> None:
-                with tqdm(
-                    total=total_steps, desc="Running Keplerian + RK4", unit="step"
-                ) as bar:
-                    while not finished.wait(0.1):
-                        current = int(completed_steps[0])
-                        if current > bar.n:
-                            bar.update(current - bar.n)
+        def monitor() -> None:
+            with tqdm(
+                total=total_steps,
+                desc="Running Keplerian + " + ("RK4" if reference_mode < 0 else "reference"),
+                unit="step",
+            ) as bar:
+                while not finished.wait(0.1):
                     current = int(completed_steps[0])
                     if current > bar.n:
                         bar.update(current - bar.n)
+                current = int(completed_steps[0])
+                if current > bar.n:
+                    bar.update(current - bar.n)
 
-            thread = Thread(target=monitor, daemon=True)
-            thread.start()
-            try:
-                _integrate_separate(*args, progress_chunk_steps, reference_mode)
-            finally:
-                finished.set()
-                thread.join()
-        else:
-            _integrate_separate(*args, 0, reference_mode)
+        thread = Thread(target=monitor, daemon=True)
+        thread.start()
+        try:
+                _simulate_uncoupled_loop(*args, progress_chunk_steps, reference_mode)
+        finally:
+            finished.set()
+            thread.join()
+    else:
+        _simulate_uncoupled_loop(*args, 0, reference_mode)
     return (
         (elapsed, output, clean, reading, estimates)
         if estimator_kind

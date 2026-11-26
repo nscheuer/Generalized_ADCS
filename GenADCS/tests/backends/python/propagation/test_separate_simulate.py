@@ -13,7 +13,7 @@ from GenADCS.backends.python.propagation import (
     KeplerianOrbitalPropagator,
     RK4AttitudePropagator,
 )
-from GenADCS.backends.python.propagation.separate_rk4 import _integrate_separate
+from GenADCS.backends.python.propagation.uncoupled import _simulate_uncoupled_loop
 from GenADCS.backends.python.solver import AttitudeSolver, OrbitalSolver, Solver
 from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
 
@@ -50,7 +50,7 @@ def test_simulate_uses_one_compiled_loop_for_separate_propagators() -> None:
         atol=1e-8,
     )
     assert samples.fields["satellite_position"][-1, 1] > 0
-    assert _integrate_separate.nopython_signatures
+    assert _simulate_uncoupled_loop.nopython_signatures
 
 
 def test_separate_solver_requires_matching_step_sizes() -> None:

@@ -56,10 +56,11 @@ hardware::Sensor as_sensor(py::handle value) {
 } // namespace
 
 void bind_separate_solver(py::module_ &module) {
-  module.def("simulate_separate_rk4",
+  module.def("simulate_uncoupled",
       [](const Eigen::VectorXd &initial, double mu, double epoch,
          double dt, double tf, int record_every, py::object runtime,
          py::object adcs, std::uint64_t seed, std::set<std::string> fields,
+         const std::string &attitude_mode,
          bool progress, std::size_t chunk_steps) {
         if (chunk_steps == 0)
           throw py::value_error("progress_chunk_steps must be positive");
@@ -72,12 +73,14 @@ void bind_separate_solver(py::module_ &module) {
             estimator_object.cast<const hardware::estimator::AttitudeEstimator *>();
         const int sensor_every = adcs.attr("N").cast<int>();
         py::gil_scoped_release release;
-        return omni::propagation::simulate_separate_rk4(initial, mu, epoch,
+        return omni::propagation::simulate_uncoupled(initial, mu, epoch,
             dt, tf, record_every, native_runtime, std::move(sensors), estimator,
-            sensor_every, seed, std::move(fields), progress, chunk_steps);
+            sensor_every, seed, std::move(fields), attitude_mode,
+            progress, chunk_steps);
       }, py::arg("initial"), py::arg("mu"), py::arg("initial_julian_date"),
       py::arg("dt"), py::arg("tf"), py::arg("record_every"), py::arg("runtime"),
       py::arg("adcs"), py::arg("seed"), py::arg("fields"),
+      py::arg("attitude_mode"),
       py::arg("progress") = false, py::arg("progress_chunk_steps") = 500);
   module.def("simulate_coupled",
       [](const Eigen::VectorXd &initial, double epoch,

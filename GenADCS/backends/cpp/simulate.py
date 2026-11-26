@@ -6,7 +6,6 @@ from dataclasses import replace
 
 from GenADCS.backends.shared.simulationresult import SimulationResult, SatelliteResult
 from GenADCS.backends.shared.simulationresult.record import record_samples
-from GenADCS.backends.shared.simulationresult.simulationresult import SENSOR_FIELDS
 from GenADCS.backends.shared.simulationresult.resultsformat import ResultsFormat
 
 
@@ -41,9 +40,7 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
 
     separate = isinstance(solver, Solver) and solver.coupled is None
     propagator = None
-    native_samples = False
     sensor_rows = None
-    record_every = math.gcd(resultsformat.N, sensor_every) if sensors or estimator is not None else resultsformat.N
     diagnostic_fields = {
         name for name in (
             "estimated_attitude", "estimated_rate", "estimated_covariance",
@@ -94,32 +91,25 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
             raise TypeError("C++ separate simulation requires RK4 or reference attitude propagation")
 
         from .propagation._separate import (
-            integrate_separate_reference,
-            simulate_separate_rk4,
+            simulate_uncoupled,
         )
         from .propagation.coupled_propagators._state_layout import pack_state
         initial = pack_state(state, state.internal.wheel_momentum.size)
         mu = float(environment.planetary_body.gravitational_parameter)
         epoch = state.orbit.julian_date
         if isinstance(attitude, RK4AttitudePropagator):
-            from .propagation.coupled_propagators._coupled_dynamics import _prepare
-            runtime = _prepare(satellite, environment, dynamics)
-            # The native loop propagates, samples, updates the estimator, and
-            # records each step before advancing. Python only assembles results.
-            times, vectors, sensor_rows = simulate_separate_rk4(
-                initial, mu, epoch, dt, tf, resultsformat.N, runtime,
-                satellite.adcs, seed, diagnostic_fields,
-                solver.progress, solver.progress_chunk_steps,
-            )
-            native_samples = True
+            attitude_mode = "rk4"
         else:
             if attitude.mode == 2 and environment.ephemeris is None:
                 raise ValueError("Sun-pointing reference attitude requires an ephemeris")
-            times, vectors = integrate_separate_reference(
-                initial, mu, epoch, dt, tf, record_every,
-                {0: "nadir", 1: "along-track", 2: "sun"}[attitude.mode],
-                solver.progress, solver.progress_chunk_steps,
-            )
+            attitude_mode = {0: "nadir", 1: "along-track", 2: "sun"}[attitude.mode]
+        from .propagation.coupled_propagators._coupled_dynamics import _prepare
+        runtime = _prepare(satellite, environment, dynamics)
+        times, vectors, sensor_rows = simulate_uncoupled(
+            initial, mu, epoch, dt, tf, resultsformat.N, runtime,
+            satellite.adcs, seed, diagnostic_fields, attitude_mode,
+            solver.progress, solver.progress_chunk_steps,
+        )
         dt = orbital.dt
     else:
         solver = solver.coupled if isinstance(solver, Solver) else solver
@@ -146,7 +136,6 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
             propagator.min_step if adaptive else 1e-6,
             solver.progress, solver.progress_chunk_steps,
         )
-        native_samples = True
     times = np.asarray(times, dtype=float)
     vectors = np.asarray(vectors, dtype=float)
     if times.ndim != 1 or times.size < 1:
@@ -154,17 +143,6 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
     if vectors.ndim != 2 or vectors.shape[0] != times.size or vectors.shape[1] < 13:
         raise ValueError("state vectors must have matching rows and at least 13 columns")
 
-    if not native_samples and (sensors or (not separate and any(getattr(resultsformat, name) for name in SENSOR_FIELDS))):
-        from .propagation.coupled_propagators._coupled import sample_sensors
-        from .propagation.coupled_propagators._coupled_dynamics import _prepare
-        sensor_rows = sample_sensors(times, vectors, state.orbit.julian_date,
-            dt * sensor_every, _prepare(satellite, environment, dynamics), satellite.adcs, seed)
-    if estimator is not None and not native_samples:
-        from .hardware.ADCS_subsystem.estimator.runtime import sample_estimator
-        if sensor_rows is None:
-            sensor_rows = {}
-        sample_estimator(times, vectors, sensor_rows, satellite.adcs,
-                         dt * sensor_every, resultsformat)
     interval = dt * resultsformat.N
     on_grid = np.abs(times / interval - np.round(times / interval)) < 1e-9
     if sensor_rows is not None:
