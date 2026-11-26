@@ -1,10 +1,13 @@
 #pragma once
 
-#include <cmath>
 #include <stdexcept>
 #include <utility>
 
 namespace omni::solver {
+
+namespace detail {
+void validate_coupled_solver_options(double final_time, int chunk_steps);
+}
 
 template <typename Propagator> struct CoupledSolver {
   Propagator propagator;
@@ -16,13 +19,7 @@ template <typename Propagator> struct CoupledSolver {
                 bool show_progress = false, int chunk_steps = 500)
       : propagator(std::move(propagator_value)), tf(final_time),
         progress(show_progress), progress_chunk_steps(chunk_steps) {
-    if (!std::isfinite(tf) || tf < 0.0) {
-      throw std::invalid_argument("tf must be finite and nonnegative seconds");
-    }
-    if (progress_chunk_steps <= 0) {
-      throw std::invalid_argument(
-          "progress_chunk_steps must be a positive integer");
-    }
+    detail::validate_coupled_solver_options(tf, progress_chunk_steps);
   }
 
   auto dt() const -> decltype(propagator.dt()) { return propagator.dt(); }

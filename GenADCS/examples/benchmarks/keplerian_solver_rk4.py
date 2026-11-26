@@ -7,8 +7,9 @@ The default run uses the same 4,000,000 intervals and 0.25 s timestep as
 the coupled benchmark's J2 force is therefore absent from this run.
 """
 
-import sys
+from importlib import import_module
 from pathlib import Path
+import sys
 from time import perf_counter
 
 import numpy as np
@@ -25,6 +26,36 @@ from GenADCS.backends.python.propagation import (
 from GenADCS.backends.python.simulate import simulate
 from GenADCS.backends.python.solver import AttitudeSolver, OrbitalSolver, Solver
 from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
+
+# Select the backend for this example: "cpp" or "python".
+backed = "python"
+
+if backed not in ("cpp", "python"):
+    raise ValueError("backed must be cpp or python")
+
+_state = import_module(f"GenADCS.backends.{backed}.state")
+AttitudeState = _state.AttitudeState
+OrbitalState = _state.OrbitalState
+State = _state.State
+_hardware = import_module(f"GenADCS.backends.{backed}.hardware")
+Satellite = _hardware.Satellite
+SatelliteGeometry = _hardware.SatelliteGeometry
+_environment = import_module(f"GenADCS.backends.{backed}.environment")
+DE421 = _environment.DE421
+Earth = _environment.Earth
+Environment = _environment.Environment
+NRLMSISE00 = _environment.NRLMSISE00
+_config = import_module(f"GenADCS.backends.{backed}.config")
+DynamicsConfig = _config.DynamicsConfig
+_propagation = import_module(f"GenADCS.backends.{backed}.propagation")
+KeplerianOrbitalPropagator = _propagation.KeplerianOrbitalPropagator
+RK4AttitudePropagator = _propagation.RK4AttitudePropagator
+_solver = import_module(f"GenADCS.backends.{backed}.solver")
+AttitudeSolver = _solver.AttitudeSolver
+OrbitalSolver = _solver.OrbitalSolver
+Solver = _solver.Solver
+_simulate = import_module(f"GenADCS.backends.{backed}.simulate")
+simulate = _simulate.simulate
 
 
 def main(steps: int = 4_000_000):
@@ -54,9 +85,12 @@ def main(steps: int = 4_000_000):
         progress=True,
     )
     start = perf_counter()
-    result = simulate(satellite, environment, dynamics, state, solver, backend="Python")
+    result = simulate(
+        satellite, environment, dynamics, state, solver,
+        backend={"python": "Python", "cpp": "C"}[backed],
+    )
     elapsed = perf_counter() - start
-    print(f"Backend: python; integrator: Keplerian + RK4; elapsed: {elapsed:.2f} s")
+    print(f"Backend: {backed}; integrator: Keplerian + RK4; elapsed: {elapsed:.2f} s")
     print(
         f"Recorded samples: {len(result.satellites['sat_000'].times_s):,}; "
         f"final time: {steps * dt:,.0f} s"

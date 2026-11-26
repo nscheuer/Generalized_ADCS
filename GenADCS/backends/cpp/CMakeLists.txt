@@ -73,10 +73,24 @@ if(BUILD_TESTING)
 
     add_executable(cpp_test_coupled_solver
         "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/solver/test_coupled_solver.cpp"
+        solver/coupled_solver.cpp
     )
     target_include_directories(cpp_test_coupled_solver PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_compile_features(cpp_test_coupled_solver PRIVATE cxx_std_17)
     add_test(NAME cpp_coupled_solver COMMAND cpp_test_coupled_solver)
+
+    add_executable(cpp_test_keplerian_orbit_propagator
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/test_keplerian_orbit_propagator.cpp"
+        propagation/orbital_propagators/keplerian_orbit_propagator.cpp)
+    target_link_libraries(cpp_test_keplerian_orbit_propagator PRIVATE Eigen3::Eigen)
+    target_include_directories(cpp_test_keplerian_orbit_propagator PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME cpp_keplerian_orbit_propagator COMMAND cpp_test_keplerian_orbit_propagator)
+
+    add_executable(cpp_test_reference_attitude_propagator
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/attitude_propagators/test_reference_attitude_propagator.cpp")
+    target_link_libraries(cpp_test_reference_attitude_propagator PRIVATE Eigen3::Eigen)
+    target_include_directories(cpp_test_reference_attitude_propagator PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME cpp_reference_attitude_propagator COMMAND cpp_test_reference_attitude_propagator)
 
     add_executable(cpp_test_bias
         "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/bias/test_bias.cpp"
@@ -650,10 +664,76 @@ set_target_properties(_coupled PROPERTIES
     VISIBILITY_INLINES_HIDDEN ON
     LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/propagation/coupled_propagators")
 
+add_library(separate_propagation_native STATIC
+    propagation/orbital_propagators/keplerian_orbit_propagator.cpp
+    propagation/attitude_propagators/rk4_attitude_propagator.cpp
+    propagation/attitude_propagators/reference_attitude_propagator.cpp
+    propagation/attitude_propagators/separate_solver.cpp
+    propagation/coupled_propagators/_coupled_dynamics.cpp
+    dynamics/_geometry.cpp
+    dynamics/drag_model/projected_area.cpp
+    dynamics/srp_model/projected_area.cpp
+    dynamics/gravity_gradient_model/static.cpp
+    dynamics/residual_dipole_model/static.cpp
+    dynamics/third_body_model/lunisolar.cpp
+    environment/native_models.cpp
+    environment/atmosphere/NRMLSISE00/nrlmsise00.cpp
+    environment/atmosphere/NRMLSISE00/_nrlmsise00_core.cpp
+    environment/atmosphere/NRMLSISE00/_nrlmsise00_data.cpp
+    environment/atmosphere/NRMLSISE00/nrlmsise00_core.c
+    environment/ephemeris/de421/de421.cpp
+    environment/ephemeris/ephemeris_model.cpp
+    environment/magnetic_field_model/magnetic_field_model.cpp
+    environment/magnetic_field_model/_spherical_harmonics.cpp
+    environment/magnetic_field_model/igrf14/igrf14.cpp
+    environment/magnetic_field_model/chaos8/chaos8.cpp
+    environment/gravity/j_gravity_model.cpp
+    environment/atmosphere/atmospheric_model.cpp
+    helpers/math/frames/frames.cpp
+    helpers/math/frames/conversions.cpp
+    helpers/math/time/conversions.cpp
+    helpers/math/rotations/quaternion/conversions.cpp
+    helpers/math/rotations/quaternion/algebra.cpp)
+target_compile_features(separate_propagation_native PUBLIC cxx_std_17)
+target_link_libraries(separate_propagation_native PUBLIC Eigen3::Eigen)
+target_include_directories(separate_propagation_native PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}" helpers/random helpers/math/rotations
+    environment helpers/math helpers/math/frames helpers/math/time
+    environment/atmosphere/NRMLSISE00)
+set_target_properties(separate_propagation_native PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+if(BUILD_TESTING)
+    target_link_libraries(cpp_test_reference_attitude_propagator PRIVATE separate_propagation_native)
+    add_executable(cpp_test_rk4_attitude_propagator
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/attitude_propagators/test_rk4_attitude_propagator.cpp")
+    target_link_libraries(cpp_test_rk4_attitude_propagator PRIVATE separate_propagation_native)
+    add_test(NAME cpp_rk4_attitude_propagator COMMAND cpp_test_rk4_attitude_propagator)
+    add_executable(cpp_test_separate_solver
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/test_separate_solver.cpp")
+    target_link_libraries(cpp_test_separate_solver PRIVATE separate_propagation_native)
+    add_test(NAME cpp_separate_solver COMMAND cpp_test_separate_solver)
+endif()
+
+pybind11_add_module(_separate ${GENADCS_PYBIND_OPTIONS}
+    propagation/module_py.cpp
+    propagation/orbital_propagators/keplerian_orbit_propagator_py.cpp
+    propagation/attitude_propagators/rk4_attitude_propagator_py.cpp
+    propagation/attitude_propagators/reference_attitude_propagator_py.cpp
+    propagation/attitude_propagators/separate_solver_py.cpp)
+target_link_libraries(_separate PRIVATE separate_propagation_native Eigen3::Eigen)
+set_target_properties(_separate PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+    LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/propagation")
+
 file(GLOB_RECURSE SOLVER_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/solver/*_py.cpp")
 
-pybind11_add_module(_solver ${GENADCS_PYBIND_OPTIONS} ${SOLVER_PYBIND_SOURCES} solver/coupled_solver.cpp)
+pybind11_add_module(_solver ${GENADCS_PYBIND_OPTIONS} ${SOLVER_PYBIND_SOURCES}
+    solver/coupled_solver.cpp solver/attitude_solver.cpp solver/orbital_solver.cpp
+    propagation/orbital_propagators/keplerian_orbit_propagator.cpp)
+target_link_libraries(_solver PRIVATE Eigen3::Eigen separate_propagation_native)
 set_target_properties(_solver PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/solver")
 
 pybind11_add_module(_satellite ${GENADCS_PYBIND_OPTIONS}

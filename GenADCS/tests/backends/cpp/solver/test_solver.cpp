@@ -11,7 +11,7 @@ void check(bool condition) {
 }
 
 int main() {
-  const TestSolver split("dynamics", 1, 2, std::nullopt);
+  const TestSolver split("dynamics", 1, 2, std::nullopt, 10.0);
   check(split.dynamics == "dynamics");
   check(split.orbital == 1);
   check(split.attitude == 2);
@@ -26,7 +26,8 @@ int main() {
                           std::optional<int> attitude,
                           std::optional<int> coupled_value) {
     try {
-      TestSolver("dynamics", orbital, attitude, coupled_value);
+      TestSolver("dynamics", orbital, attitude, coupled_value,
+                 coupled_value ? std::nullopt : std::optional<double>(10.0));
     } catch (const std::invalid_argument &) {
       return true;
     }
@@ -38,4 +39,9 @@ int main() {
   check(rejects(1, 2, 3));
   check(rejects(1, std::nullopt, 3));
   check(rejects(std::nullopt, 2, 3));
+  try {
+    TestSolver("dynamics", 1, 2, std::nullopt, -1.0);
+    check(false);
+  } catch (const std::invalid_argument &) {
+  }
 }

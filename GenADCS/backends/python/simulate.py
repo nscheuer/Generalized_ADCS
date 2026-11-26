@@ -48,6 +48,13 @@ def simulate(
     subsystem tick and position in ``satellite.adcs.sensors``; adaptive solver
     substeps and result recording frequency do not advance its random stream.
     """
+    if backend in ("cpp", "C"):
+        from GenADCS.backends.cpp.simulate import simulate as cpp_simulate
+
+        return cpp_simulate(
+            satellite, environment, dynamics, state, solver,
+            backend=backend, resultsformat=resultsformat, seed=seed,
+        )
     if backend != "Python":
         raise NotImplementedError(f"backend {backend!r} is not implemented for GenADCS")
     separate = isinstance(solver, Solver) and solver.coupled is None
