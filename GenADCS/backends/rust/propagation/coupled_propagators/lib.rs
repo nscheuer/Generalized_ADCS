@@ -63,3 +63,22 @@ fn _coupled(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     orbital_propagators::keplerian_orbital_propagator_py::register_keplerian(m)?;
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/propagation/test_keplerian_orbital_propagator.rs"]
+mod test_keplerian_orbital_propagator;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/propagation/test_rk4_attitude_propagator.rs"]
+mod test_rk4_attitude_propagator;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/propagation/test_reference_attitude_propagator.rs"]
+mod test_reference_attitude_propagator;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/propagation/test_coupled_rk4_propagator.rs"]
+mod test_coupled_rk4_propagator;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/propagation/test_coupled_dop853_propagator.rs"]
+mod test_coupled_dop853_propagator;
+#[cfg(test)]
+#[path = "../../../../tests/backends/rust/propagation/test_uncoupled.rs"]
+mod test_uncoupled;

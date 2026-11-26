@@ -32,6 +32,7 @@ fn ekf_constructor_validates_and_normalizes_state() {
     let mut bad_p = eye7(0.1);
     bad_p[0][0] = -1.0;
     assert!(AttitudeEKF::new([1.0, 0.0, 0.0, 0.0], [0.0; 3], bad_p, psd, vec![]).is_err());
+    assert!(AttitudeEKF::new([0.0; 4], [0.0; 3], eye7(0.1), psd, vec![]).is_err());
     assert!(
         AttitudeEKF::new([1.0, 0.0, 0.0, 0.0], [0.0; 3], eye7(0.1), psd, vec!["bad".into()])
             .is_err()

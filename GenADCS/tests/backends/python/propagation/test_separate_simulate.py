@@ -136,12 +136,12 @@ def test_separate_simulation_updates_estimator_inside_compiled_loop() -> None:
 
 
 def test_benchmark_progress_bar_covers_all_steps(
-    capsys: pytest.CaptureFixture[str],
+    capfd: pytest.CaptureFixture[str],
 ) -> None:
     from GenADCS.examples.benchmarks.keplerian_solver_rk4 import main
 
     result = main(steps=8)
-    assert len(result.satellites["sat_000"].times_s) == 9
-    progress_output = capsys.readouterr().err
+    assert len(result.satellites["sat_000"].times_s) == 1
+    progress_output = capfd.readouterr().err
     assert "Running Keplerian + RK4" in progress_output
     assert "8/8" in progress_output

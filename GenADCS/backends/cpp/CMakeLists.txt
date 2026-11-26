@@ -79,6 +79,22 @@ if(BUILD_TESTING)
     target_compile_features(cpp_test_coupled_solver PRIVATE cxx_std_17)
     add_test(NAME cpp_coupled_solver COMMAND cpp_test_coupled_solver)
 
+    add_executable(cpp_test_attitude_solver
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/solver/test_attitude_solver.cpp"
+        solver/attitude_solver.cpp
+    )
+    target_link_libraries(cpp_test_attitude_solver PRIVATE separate_propagation_native)
+    target_include_directories(cpp_test_attitude_solver PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_features(cpp_test_attitude_solver PRIVATE cxx_std_17)
+    add_test(NAME cpp_attitude_solver COMMAND cpp_test_attitude_solver)
+
+    add_executable(cpp_test_orbital_solver
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/solver/test_orbital_solver.cpp"
+    )
+    target_include_directories(cpp_test_orbital_solver PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_features(cpp_test_orbital_solver PRIVATE cxx_std_17)
+    add_test(NAME cpp_orbital_solver COMMAND cpp_test_orbital_solver)
+
     add_executable(cpp_test_keplerian_orbit_propagator
         "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/test_keplerian_orbit_propagator.cpp"
         propagation/orbital_propagators/keplerian_orbit_propagator.cpp)
@@ -727,6 +743,14 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/test_uncoupled.cpp")
     target_link_libraries(cpp_test_uncoupled PRIVATE separate_propagation_native)
     add_test(NAME cpp_uncoupled COMMAND cpp_test_uncoupled)
+    add_executable(cpp_test_coupled_rk4_propagator
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/coupled_propagators/test_coupled_rk4_propagator.cpp")
+    target_link_libraries(cpp_test_coupled_rk4_propagator PRIVATE separate_propagation_native)
+    add_test(NAME cpp_coupled_rk4_propagator COMMAND cpp_test_coupled_rk4_propagator)
+    add_executable(cpp_test_coupled_dop853_propagator
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/coupled_propagators/test_coupled_dop853_propagator.cpp")
+    target_link_libraries(cpp_test_coupled_dop853_propagator PRIVATE separate_propagation_native)
+    add_test(NAME cpp_coupled_dop853_propagator COMMAND cpp_test_coupled_dop853_propagator)
 endif()
 
 pybind11_add_module(_separate ${GENADCS_PYBIND_OPTIONS}

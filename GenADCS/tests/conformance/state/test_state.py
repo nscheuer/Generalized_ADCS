@@ -54,7 +54,12 @@ def test_default_internal_and_keplerian_record_failure(state_backend: Any) -> No
         == 0
     )
     keplerian = state_backend.OrbitalState.from_keplerian(7000, 0, 0, 0, 0, 0, 1.0)
-    with pytest.raises(
-        Exception, match="Keplerian to Cartesian conversion is not implemented"
-    ):
-        state_backend.State(attitude, keplerian).to_record()
+    if state_backend.__name__.endswith(".rust.state"):
+        record = state_backend.State(attitude, keplerian).to_record()
+        assert np.all(np.isfinite(record["position"]))
+        assert np.all(np.isfinite(record["velocity"]))
+    else:
+        with pytest.raises(
+            Exception, match="Keplerian to Cartesian conversion is not implemented"
+        ):
+            state_backend.State(attitude, keplerian).to_record()

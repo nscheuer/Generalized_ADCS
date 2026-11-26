@@ -21,3 +21,16 @@ fn _solver(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<orbital_solver_py::PyOrbitalSolver>()?;
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "../../../tests/backends/rust/solver/test_solver.rs"]
+mod test_solver;
+#[cfg(test)]
+#[path = "../../../tests/backends/rust/solver/test_coupled_solver.rs"]
+mod test_coupled_solver;
+#[cfg(test)]
+#[path = "../../../tests/backends/rust/solver/test_attitude_solver.rs"]
+mod test_attitude_solver;
+#[cfg(test)]
+#[path = "../../../tests/backends/rust/solver/test_orbital_solver.rs"]
+mod test_orbital_solver;

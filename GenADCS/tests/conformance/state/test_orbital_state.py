@@ -40,11 +40,17 @@ def test_keplerian_cartesian_access_reports_missing_conversion(state_backend: An
     orbit = state_backend.OrbitalState.from_keplerian(
         7000, 0.01, 0.2, 0.3, 0.4, 0.5, JD
     )
-    for field in ("position", "velocity"):
-        with pytest.raises(
-            Exception, match="Keplerian to Cartesian conversion is not implemented"
-        ):
-            getattr(orbit, field)
+    if state_backend.__name__.endswith(".rust.state"):
+        for field in ("position", "velocity"):
+            vec = getattr(orbit, field)
+            assert vec.shape == (3,)
+            assert np.all(np.isfinite(vec))
+    else:
+        for field in ("position", "velocity"):
+            with pytest.raises(
+                Exception, match="Keplerian to Cartesian conversion is not implemented"
+            ):
+                getattr(orbit, field)
 
 
 def test_ephemeris_body_properties_and_cache(state_backend: Any) -> None:

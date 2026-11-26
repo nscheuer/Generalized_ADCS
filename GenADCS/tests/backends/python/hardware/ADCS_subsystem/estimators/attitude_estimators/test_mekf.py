@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -11,6 +11,8 @@ from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
 from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem
 from GenADCS.backends.python.hardware.ADCS_subsystem.estimator import AttitudeEKF, AttitudeMEKF
 from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.attitude_estimator import (
+    correct,
+    correct_gyro,
     correct_star_tracker,
     predict,
     step,
@@ -21,7 +23,10 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.attitude_estimato
 )
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import (
     AutonomousStarTracker,
+    CoarseSunSensor,
+    FineSunSensor,
     Gyroscope,
+    Magnetometer,
     Sensor,
 )
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
@@ -259,3 +264,125 @@ def test_estimator_record_selection_and_unrequested_fields() -> None:
     assert np.isfinite(rows.fields["normalized_innovation_squared"][0, 0])
     assert rows.fields.get("measurement_innovation") is None
     assert rows.fields.get("estimated_attitude") is None
+
+
+def test_mekf_constructor_validation_and_prepare() -> None:
+    est = AttitudeMEKF(
+        np.array([2.0, 0.0, 0.0, 0.0]),
+        np.array([0.1, -0.2, 0.3]),
+        np.eye(6) * 0.25,
+        1e-4,
+        record=("estimated_attitude",),
+    )
+    np.testing.assert_allclose(est.quaternion, IDENTITY, atol=1e-14)
+    np.testing.assert_allclose(est.acceleration_psd, np.eye(3) * 1e-4, atol=1e-14)
+    assert est.record == frozenset({"estimated_attitude"})
+    q, w, p, a = est.prepare()
+    q[0] = 99.0
+    w[0] = 99.0
+    p[0, 0] = 99.0
+    a[0, 0] = 99.0
+    np.testing.assert_allclose(est.quaternion, IDENTITY, atol=1e-14)
+    np.testing.assert_allclose(est.rate, [0.1, -0.2, 0.3], atol=1e-14)
+    np.testing.assert_allclose(est.covariance, np.eye(6) * 0.25, atol=1e-14)
+    np.testing.assert_allclose(est.acceleration_psd, np.eye(3) * 1e-4, atol=1e-14)
+
+    with pytest.raises(ValueError):
+        AttitudeMEKF(np.zeros(4), np.zeros(3), np.eye(6), 1e-4)
+    with pytest.raises(ValueError):
+        AttitudeMEKF(IDENTITY, np.array([np.nan, 0.0, 0.0]), np.eye(6), 1e-4)
+    asym = np.eye(6)
+    asym[0, 1] = 0.5
+    with pytest.raises(ValueError):
+        AttitudeMEKF(IDENTITY, np.zeros(3), asym, 1e-4)
+    with pytest.raises(ValueError):
+        AttitudeMEKF(IDENTITY, np.zeros(3), -np.eye(6), 1e-4)
+    with pytest.raises(ValueError):
+        AttitudeMEKF(IDENTITY, np.zeros(3), np.eye(7), 1e-4)
+    with pytest.raises(ValueError):
+        AttitudeMEKF(IDENTITY, np.zeros(3), np.eye(6), -1e-4)
+    with pytest.raises(ValueError):
+        AttitudeMEKF(IDENTITY, np.zeros(3), np.eye(6), 1e-4, record=("unknown_field",))
+
+
+def test_predict_zero_and_negative_dt() -> None:
+    p0 = np.eye(6) * 0.2
+    w0 = np.array([0.1, -0.2, 0.3])
+    q1, w1, p1 = predict(IDENTITY, w0, p0, np.eye(3) * 1e-3, 0.0)
+    np.testing.assert_allclose(q1, IDENTITY, atol=1e-14)
+    np.testing.assert_allclose(w1, w0, atol=1e-14)
+    np.testing.assert_allclose(p1, p0, atol=1e-14)
+    with pytest.raises(ValueError):
+        predict(IDENTITY, w0, p0, np.eye(3) * 1e-3, -0.1)
+
+
+def test_direct_correct_and_gyro_with_non_identity_mounting() -> None:
+    h = np.zeros((3, 6))
+    h[:, :3] = np.eye(3)
+    q1, w1, p1 = correct(
+        IDENTITY,
+        np.zeros(3),
+        np.eye(6) * 0.1,
+        np.array([0.02, -0.01, 0.03]),
+        h,
+        np.eye(3) * 1e-3,
+    )
+    assert np.linalg.norm(q1[1:]) > 0.0
+    np.testing.assert_allclose(np.linalg.norm(q1), 1.0, atol=1e-14)
+    np.testing.assert_allclose(w1, np.zeros(3), atol=1e-14)
+    np.testing.assert_allclose(p1, p1.T, atol=1e-14)
+    assert np.linalg.eigvalsh(p1).min() >= -1e-12
+
+    mounting = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+    q_g, w_g, p_g = correct_gyro(
+        IDENTITY,
+        np.zeros(3),
+        np.eye(6) * 0.5,
+        np.array([0.0, 0.4, 0.0]),
+        mounting,
+        np.eye(3) * 1e-4,
+    )
+    np.testing.assert_allclose(q_g, IDENTITY, atol=1e-14)
+    np.testing.assert_allclose(w_g, np.array([0.4, 0.0, 0.0]), atol=1e-3)
+    assert np.trace(p_g[3:, 3:]) < np.trace(np.eye(3) * 0.5)
+
+    with pytest.raises(Exception):
+        correct(IDENTITY, np.zeros(3), np.zeros((6, 6)), np.zeros(3), h, np.zeros((3, 3)))
+
+
+def test_step_disabled_sensor_and_direction_updates() -> None:
+    gyro = Gyroscope(
+        np.zeros(3), IDENTITY, IDENTITY, 10.0, np.eye(3) * 1e-6, np.zeros(3)
+    )
+    gyro.enabled = False
+    config = prepare_sensors(cast(list[Sensor], [gyro]), Environment())
+    q, w, _ = step(
+        IDENTITY, np.array([0.2, 0.0, 0.0]), np.eye(6) * 0.1, np.zeros((3, 3)), 0.0, np.zeros(3), config
+    )
+    np.testing.assert_allclose(q, IDENTITY, atol=1e-14)
+    np.testing.assert_allclose(w, [0.2, 0.0, 0.0], atol=1e-14)
+
+    mag = Magnetometer(
+        np.zeros(3), IDENTITY, IDENTITY, 10.0, np.eye(3) * 1e-5, np.zeros(3)
+    )
+    css = CoarseSunSensor(
+        np.zeros(3), IDENTITY, IDENTITY, np.array([0.0, 0.0, 1.0]), 1.0, 10.0, 1e-6, 0.0, 1.5
+    )
+    fss = FineSunSensor(
+        np.zeros(3), IDENTITY, IDENTITY, np.eye(2) * 1e-5, np.zeros(2), np.array([1.0, 1.0])
+    )
+    dir_cfg = prepare_sensors(
+        cast(list[Sensor], [mag, css, fss]),
+        Environment(
+            magnetic_field=cast(Any, object()),
+            ephemeris=cast(EphemerisModel, object()),
+        ),
+    )
+    refs = np.array([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
+    initial_q = rotation_vector_to_quaternion(np.array([0.1, -0.08, 0.05]))
+    readings = np.array([1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
+    q_dir, _, p_dir = step(
+        initial_q, np.zeros(3), np.eye(6) * 0.1, np.zeros((3, 3)), 0.0, readings, dir_cfg, refs
+    )
+    assert np.linalg.norm(q_dir[1:]) < np.linalg.norm(initial_q[1:])
+    np.testing.assert_allclose(p_dir, p_dir.T, atol=1e-14)
