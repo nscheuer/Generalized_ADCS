@@ -40,21 +40,34 @@ pub(super) fn integrate_separate(
             );
         }
     }
-    let (times, states) = py
-        .allow_threads(move || {
-            integrate_separate_native(
-                y,
-                jd,
-                dt,
-                tf,
-                &runtime,
-                reference_mode,
-                progress,
-                progress_chunk_steps,
-                record_every,
-            )
-        })
-        .map_err(PyValueError::new_err)?;
+    let (result, signal_error) = py.allow_threads(move || {
+        let mut signal_error = None;
+        let result = integrate_separate_native(
+            y,
+            jd,
+            dt,
+            tf,
+            &runtime,
+            reference_mode,
+            progress,
+            progress_chunk_steps,
+            record_every,
+            || {
+                Python::with_gil(|py| match py.check_signals() {
+                    Ok(()) => true,
+                    Err(error) => {
+                        signal_error = Some(error);
+                        false
+                    }
+                })
+            },
+        );
+        (result, signal_error)
+    });
+    if let Some(error) = signal_error {
+        return Err(error);
+    }
+    let (times, states) = result.map_err(PyValueError::new_err)?;
     let width = states.first().map_or(0, Vec::len);
     let array = Array2::from_shape_vec(
         (states.len(), width),

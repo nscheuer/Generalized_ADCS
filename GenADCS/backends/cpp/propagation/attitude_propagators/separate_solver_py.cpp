@@ -16,13 +16,15 @@ void bind_separate_solver(py::module_ &module) {
                 py::object progress_callback, std::size_t chunk_steps) {
                omni::propagation::SeparateProgress callback;
                std::size_t pending = 0;
-               if (progress) {
-                 if (chunk_steps == 0) throw py::value_error("progress_chunk_steps must be positive");
-                 callback = [&pending, chunk_steps, progress_callback](std::size_t completed) {
-                   pending += completed;
-                   if (pending >= chunk_steps) { progress_callback(pending); pending = 0; }
-                 };
-               }
+               if (chunk_steps == 0) throw py::value_error("progress_chunk_steps must be positive");
+               callback = [&pending, chunk_steps, progress, progress_callback](std::size_t completed) {
+                 pending += completed;
+                 if (pending >= chunk_steps) {
+                   if (PyErr_CheckSignals() != 0) throw py::error_already_set();
+                   if (progress) progress_callback(pending);
+                   pending = 0;
+                 }
+               };
                auto result = omni::propagation::integrate_separate_reference(
                    initial, mu, epoch, dt, tf, record_every, mode, callback);
                if (progress && pending) progress_callback(pending);
@@ -40,13 +42,15 @@ void bind_separate_solver(py::module_ &module) {
                 py::object progress_callback, std::size_t chunk_steps) {
                omni::propagation::SeparateProgress callback;
                std::size_t pending = 0;
-               if (progress) {
-                 if (chunk_steps == 0) throw py::value_error("progress_chunk_steps must be positive");
-                 callback = [&pending, chunk_steps, progress_callback](std::size_t completed) {
-                   pending += completed;
-                   if (pending >= chunk_steps) { progress_callback(pending); pending = 0; }
-                 };
-               }
+               if (chunk_steps == 0) throw py::value_error("progress_chunk_steps must be positive");
+               callback = [&pending, chunk_steps, progress, progress_callback](std::size_t completed) {
+                 pending += completed;
+                 if (pending >= chunk_steps) {
+                   if (PyErr_CheckSignals() != 0) throw py::error_already_set();
+                   if (progress) progress_callback(pending);
+                   pending = 0;
+                 }
+               };
                auto result = omni::propagation::integrate_separate_rk4(
                    initial, mu, initial_julian_date, dt, tf, record_every,
                    omni::propagation::runtime_from_python(runtime), callback);

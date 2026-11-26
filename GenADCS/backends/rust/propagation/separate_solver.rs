@@ -10,6 +10,7 @@ pub(super) fn integrate_separate_native(
     progress: bool,
     progress_chunk_steps: usize,
     record_every: usize,
+    mut poll: impl FnMut() -> bool,
 ) -> Result<(Vec<f64>, Vec<Vec<f64>>), String> {
     if !dt.is_finite() || dt <= 0.0 {
         return Err("dt must be finite and positive seconds".into());
@@ -55,6 +56,9 @@ pub(super) fn integrate_separate_native(
         None
     };
     for row in 0..total {
+        if row % progress_chunk_steps.max(1) == 0 && !poll() {
+            return Err("simulation interrupted".into());
+        }
         let elapsed = row as f64 * dt;
         let step_dt = if row == full { remainder } else { dt };
         let epoch = jd + elapsed / 86400.0;

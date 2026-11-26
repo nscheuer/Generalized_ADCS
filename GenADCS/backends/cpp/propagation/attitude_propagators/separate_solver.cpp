@@ -3,6 +3,8 @@
 #include "../orbital_propagators/keplerian_orbit_propagator.hpp"
 #include "reference_attitude_propagator.hpp"
 #include "rk4_attitude_propagator.hpp"
+#include "../../environment/native_models.hpp"
+#include "../../helpers/math/time/conversions.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -13,11 +15,86 @@ SeparateTrajectory integrate_separate_reference(
     const Eigen::VectorXd &initial, double mu, double initial_julian_date,
     double dt, double tf, int record_every, const std::string &mode,
     const SeparateProgress &progress) {
-  auto trajectory = KeplerianOrbitPropagator(dt).integrate(
-      initial, mu, tf, record_every, progress);
-  ReferenceAttitudePropagator(dt,
-      ReferenceAttitudePropagator::parse_mode(mode))
-      .apply(trajectory.second, trajectory.first, initial_julian_date, mu);
+  if (!std::isfinite(dt) || dt <= 0.0) {
+    throw std::invalid_argument("dt must be finite and positive seconds");
+  }
+  if (!std::isfinite(tf) || tf < 0.0) {
+    throw std::invalid_argument("tf must be finite and nonnegative seconds");
+  }
+  if (record_every < 1) {
+    throw std::invalid_argument("record_every must be a positive integer");
+  }
+  if (initial.size() < 13) {
+    throw std::invalid_argument("packed state must contain at least 13 values");
+  }
+
+  const ReferenceAttitudeMode reference_mode =
+      ReferenceAttitudePropagator::parse_mode(mode);
+  const ReferenceAttitudePropagator reference(dt, reference_mode);
+  const std::unique_ptr<omni::environment::DE421> ephemeris =
+      reference_mode == ReferenceAttitudeMode::Sun
+          ? std::make_unique<omni::environment::DE421>()
+          : nullptr;
+  auto apply_reference = [&](Eigen::VectorXd &state, double elapsed) {
+    Eigen::Vector3d sun_position = Eigen::Vector3d::Zero();
+    Eigen::Vector3d sun_velocity = Eigen::Vector3d::Zero();
+    if (ephemeris) {
+      const double tdb = omni::time::utc_jd_to_tdb_jd(
+          initial_julian_date + elapsed / 86400.0);
+      sun_position = 1000.0 * ephemeris->position(0, tdb);
+      sun_velocity = 1000.0 * ephemeris->velocity(0, tdb);
+    }
+    const auto attitude = reference.attitude(
+        state.segment<3>(7), state.segment<3>(10), mu, sun_position,
+        sun_velocity);
+    state.head<4>() = attitude.quaternion;
+    state.segment<3>(4) = attitude.angular_velocity;
+  };
+
+  Eigen::VectorXd state = initial;
+  const double quaternion_norm = state.head<4>().norm();
+  if (!std::isfinite(quaternion_norm) || quaternion_norm <= 0.0) {
+    throw std::invalid_argument("attitude quaternion must have nonzero norm");
+  }
+  state.head<4>() /= quaternion_norm;
+  apply_reference(state, 0.0);
+
+  const auto full_steps = static_cast<std::size_t>(std::floor(tf / dt));
+  double remainder = tf - static_cast<double>(full_steps) * dt;
+  if (remainder <= 1e-12 * std::max(1.0, tf)) {
+    remainder = 0.0;
+  }
+  const std::size_t total_steps = full_steps + (remainder > 0.0 ? 1 : 0);
+  const auto stride = static_cast<std::size_t>(record_every);
+  const std::size_t sample_count =
+      1 + total_steps / stride + (total_steps % stride != 0 ? 1 : 0);
+  SeparateTrajectory trajectory;
+  trajectory.first.reserve(sample_count);
+  trajectory.second.resize(static_cast<Eigen::Index>(sample_count), state.size());
+  trajectory.first.push_back(0.0);
+  trajectory.second.row(0) = state.transpose();
+
+  for (std::size_t step = 0; step < total_steps; ++step) {
+    const double step_dt = step == full_steps ? remainder : dt;
+    Eigen::Vector3d next_velocity;
+    const Eigen::Vector3d next_position = keplerian_position_velocity_step(
+        state.segment<3>(7), state.segment<3>(10), mu, step_dt, next_velocity);
+    state.segment<3>(7) = next_position;
+    state.segment<3>(10) = next_velocity;
+    const double elapsed = std::min(static_cast<double>(step + 1) * dt, tf);
+    apply_reference(state, elapsed);
+
+    const std::size_t completed = step + 1;
+    if (completed % stride == 0 || completed == total_steps) {
+      const auto row = static_cast<Eigen::Index>(trajectory.first.size());
+      trajectory.second.row(row) = state.transpose();
+      trajectory.first.push_back(completed == total_steps
+          ? tf : std::min(static_cast<double>(completed) * dt, tf));
+    }
+    if (progress) {
+      progress(1);
+    }
+  }
   return trajectory;
 }
 

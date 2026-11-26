@@ -24,6 +24,7 @@ py::tuple output(const Trajectory &result) {
 }
 struct ProgressBar {
   py::object bar = py::none();
+  std::size_t pending = 0;
   ProgressBar(bool enabled, double total, const char *description) {
     if (enabled) {
       bar = py::module_::import("tqdm").attr("tqdm")(
@@ -32,10 +33,18 @@ struct ProgressBar {
     }
   }
   Progress callback() {
-    if (bar.is_none()) {
-      return {};
-    }
-    return [this](std::size_t n) { bar.attr("update")(n); };
+    return [this](std::size_t n) {
+      pending += n;
+      if (pending >= 500 || n == 0) {
+        if (PyErr_CheckSignals() != 0) {
+          throw py::error_already_set();
+        }
+        if (!bar.is_none()) {
+          bar.attr("update")(pending);
+        }
+        pending = 0;
+      }
+    };
   }
   ~ProgressBar() {
     if (!bar.is_none()) {
