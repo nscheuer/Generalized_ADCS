@@ -1,6 +1,6 @@
 #ifndef GENADCS_HARDWARE_SENSORS_KERNELS_HPP
 #define GENADCS_HARDWARE_SENSORS_KERNELS_HPP
-#include "sensor_kernels.hpp"
+#include "../../../helpers/math/rotations/sensor_kernels.hpp"
 namespace omni::hardware::sensors::kernels {
 V rate_measurement(const V &angular_velocity_body, const Q &orientation,
                    const Q &misalignment, const V &bias,

@@ -9,7 +9,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[5]))
 
 # Select the backend for the estimator and the complete simulation.
-backend = "python"
+backend = "cpp"
 
 if backend not in ("cpp", "python"):
     raise ValueError("backend must be 'cpp' or 'python'")

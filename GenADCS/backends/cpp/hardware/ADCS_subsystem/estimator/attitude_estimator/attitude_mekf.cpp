@@ -1,4 +1,5 @@
 #include "attitude_mekf.hpp"
+#include "direction_correction.hpp"
 #include <Eigen/Geometry>
 #include <cmath>
 #include <limits>
@@ -123,15 +124,25 @@ State AttitudeMEKF::step(const State &state, const Eigen::Matrix3d &a,
                          const std::vector<Sensor> &sensors) {
   State current = predict(state, a, dt);
   for (const Sensor &sensor : sensors) {
-    if (!sensor.enabled || (sensor.code != 0 && sensor.code != 2)) {
+    if (!sensor.enabled || sensor.code < 0 || sensor.code > 5) {
       continue;
     }
-    const Eigen::Index width = sensor.code == 0 ? 3 : 4;
+    const Eigen::Index width = sensor.code == 0 || sensor.code == 1 ? 3
+                               : sensor.code == 2                   ? 4
+                               : sensor.code == 3                   ? 1
+                                                                    : 2;
     if (sensor.offset < 0 || sensor.offset + width > readings.size()) {
       throw std::invalid_argument("sensor reading offset is out of range");
     }
     const Eigen::VectorXd value = readings.segment(sensor.offset, width);
     if (!value.allFinite()) {
+      continue;
+    }
+    if (sensor.code == 1 || sensor.code == 3 || sensor.code == 4 ||
+        sensor.code == 5) {
+      if (!direction_prediction(sensor, current.quaternion).allFinite())
+        continue;
+      current = correct_direction(current, sensor, value).state;
       continue;
     }
     const Q mount =
@@ -185,7 +196,8 @@ AttitudeMEKF::sample(const AttitudeMEKF &estimator,
   return output;
 }
 std::map<std::string, Eigen::MatrixXd>
-AttitudeMEKF::allocate_samples(Eigen::Index rows, const std::set<std::string> &fields) {
+AttitudeMEKF::allocate_samples(Eigen::Index rows,
+                               const std::set<std::string> &fields) {
   const std::map<std::string, int> widths{
       {"estimated_attitude", 4},
       {"estimated_rate", 3},
@@ -204,17 +216,18 @@ AttitudeMEKF::allocate_samples(Eigen::Index rows, const std::set<std::string> &f
       throw std::invalid_argument("unknown estimator diagnostic field: " +
                                   name);
     }
-    output[name] =
-        Eigen::MatrixXd::Constant(rows, widths.at(name),
-                                  std::numeric_limits<double>::quiet_NaN());
+    output[name] = Eigen::MatrixXd::Constant(
+        rows, widths.at(name), std::numeric_limits<double>::quiet_NaN());
   }
   return output;
 }
 void AttitudeMEKF::update_sample(State &current,
-    const Eigen::Matrix3d &acceleration_psd, double dt,
-    const Eigen::VectorXd &truth, const Eigen::VectorXd &readings,
-    const std::vector<Sensor> &sensors,
-    std::map<std::string, Eigen::MatrixXd> &output, Eigen::Index row) {
+                                 const Eigen::Matrix3d &acceleration_psd,
+                                 double dt, const Eigen::VectorXd &truth,
+                                 const Eigen::VectorXd &readings,
+                                 const std::vector<Sensor> &sensors,
+                                 std::map<std::string, Eigen::MatrixXd> &output,
+                                 Eigen::Index row) {
   current = predict(current, acceleration_psd, dt);
   auto store = [&](const std::string &name, const auto &value) {
     auto found = output.find(name);
@@ -235,16 +248,47 @@ void AttitudeMEKF::update_sample(State &current,
     }
   };
   for (const auto &sensor : sensors) {
-    if (!sensor.enabled || (sensor.code != 0 && sensor.code != 2)) {
+    if (!sensor.enabled || sensor.code > 5 || sensor.code < 0) {
       continue;
     }
-    const int width = sensor.code == 0 ? 3 : 4;
+    const int width = sensor.code == 0 || sensor.code == 1 ? 3
+                      : sensor.code == 2                   ? 4
+                      : sensor.code == 3                   ? 1
+                                                           : 2;
     if (sensor.offset < 0 || sensor.offset + width > readings.size()) {
       throw std::invalid_argument("sensor reading offset is out of range");
     }
-    const Eigen::VectorXd value =
-        readings.segment(sensor.offset, width);
+    const Eigen::VectorXd value = readings.segment(sensor.offset, width);
     if (!value.allFinite()) {
+      continue;
+    }
+    if (sensor.code == 1 || sensor.code == 3 || sensor.code == 4 ||
+        sensor.code == 5) {
+      if (!direction_prediction(sensor, current.quaternion).allFinite())
+        continue;
+      const DirectionCorrection correction =
+          correct_direction(current, sensor, value);
+      const auto nan = std::numeric_limits<double>::quiet_NaN();
+      Eigen::Vector3d innovation = Eigen::Vector3d::Constant(nan);
+      Eigen::Vector3d residual = Eigen::Vector3d::Constant(nan);
+      Eigen::Matrix3d covariance = Eigen::Matrix3d::Constant(nan);
+      Eigen::Matrix<double, 6, 3> gain =
+          Eigen::Matrix<double, 6, 3>::Constant(nan);
+      const int m = width;
+      innovation.head(m) = correction.innovation;
+      residual.head(m) = correction.residual;
+      covariance.topLeftCorner(m, m) = correction.innovation_covariance;
+      gain.leftCols(m) = correction.gain;
+      store("measurement_innovation", innovation);
+      store("measurement_innovation_covariance", covariance);
+      store("measurement_residual", residual);
+      store("kalman_gain", gain);
+      if (output.count("normalized_innovation_squared"))
+        scalar("normalized_innovation_squared",
+               correction.innovation.dot(
+                   correction.innovation_covariance.ldlt().solve(
+                       correction.innovation)));
+      current = correction.state;
       continue;
     }
     const Q mount =
@@ -255,8 +299,7 @@ void AttitudeMEKF::update_sample(State &current,
         sensor.code == 0
             ? correct_gyro(current, value.head<3>() - sensor.bias,
                            mount.toRotationMatrix(), noise)
-            : correct_star_tracker(current, value.head<4>(), vec(mount),
-                                   noise);
+            : correct_star_tracker(current, value.head<4>(), vec(mount), noise);
     store("measurement_innovation", correction.innovation);
     store("measurement_innovation_covariance",
           correction.innovation_covariance);
@@ -279,8 +322,8 @@ void AttitudeMEKF::update_sample(State &current,
         current.covariance.bottomRightCorner<3, 3>());
   if (output.count("normalized_estimation_error_squared")) {
     Vector6 error;
-    error.head<3>() = logmap(quat(truth.head<4>()) *
-                             quat(current.quaternion).conjugate());
+    error.head<3>() =
+        logmap(quat(truth.head<4>()) * quat(current.quaternion).conjugate());
     error.tail<3>() = truth.segment<3>(4) - current.rate;
     const auto solver = current.covariance.ldlt();
     if (solver.info() != Eigen::Success ||

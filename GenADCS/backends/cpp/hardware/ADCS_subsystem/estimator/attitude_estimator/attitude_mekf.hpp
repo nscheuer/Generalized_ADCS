@@ -6,13 +6,18 @@
 
 namespace omni::hardware::estimator {
 struct Sensor {
-  int code = -1; // 0 gyro, 2 tracker
+  int code = -1; // 0 gyro, 1 magnetometer, 2 tracker, 3 coarse Sun, 4 fine Sun,
+                 // 5 fine Earth
   Eigen::Vector4d orientation = Eigen::Vector4d(1, 0, 0, 0);
   Eigen::Vector4d misalignment = Eigen::Vector4d(1, 0, 0, 0);
   Eigen::Vector3d bias = Eigen::Vector3d::Zero();
   Eigen::Matrix3d noise_cholesky = Eigen::Matrix3d::Zero();
   bool enabled = true;
   Eigen::Index offset = 0;
+  Eigen::Vector3d reference = Eigen::Vector3d::Zero();
+  Eigen::Vector3d normal = Eigen::Vector3d::UnitZ();
+  Eigen::Vector2d fov = Eigen::Vector2d::Zero();
+  double sensitivity = 0.0, saturation = 0.0, noise_std = 0.0;
 };
 struct Correction {
   State state;
@@ -24,8 +29,7 @@ struct Correction {
 class AttitudeMEKF : public AttitudeEstimator {
 public:
   AttitudeMEKF(Eigen::Vector4d quaternion, Eigen::Vector3d rate,
-               Eigen::MatrixXd covariance,
-               Eigen::Matrix3d acceleration_psd,
+               Eigen::MatrixXd covariance, Eigen::Matrix3d acceleration_psd,
                std::set<std::string> record = {});
   static std::map<std::string, Eigen::MatrixXd>
   sample(const AttitudeMEKF &estimator, const Eigen::VectorXd &times,
@@ -36,10 +40,12 @@ public:
   static std::map<std::string, Eigen::MatrixXd>
   allocate_samples(Eigen::Index rows, const std::set<std::string> &fields);
   static void update_sample(State &current,
-      const Eigen::Matrix3d &acceleration_psd, double dt,
-      const Eigen::VectorXd &truth, const Eigen::VectorXd &readings,
-      const std::vector<Sensor> &sensors,
-      std::map<std::string, Eigen::MatrixXd> &output, Eigen::Index row);
+                            const Eigen::Matrix3d &acceleration_psd, double dt,
+                            const Eigen::VectorXd &truth,
+                            const Eigen::VectorXd &readings,
+                            const std::vector<Sensor> &sensors,
+                            std::map<std::string, Eigen::MatrixXd> &output,
+                            Eigen::Index row);
   static State predict(const State &state,
                        const Eigen::Matrix3d &acceleration_psd, double dt);
   static Correction correct(const State &state, const Eigen::Vector3d &residual,
