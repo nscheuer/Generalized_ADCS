@@ -9,10 +9,10 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[5]))
 
 # Select the backend for the estimator and the complete simulation.
-backend = "cpp"
+backend = "rust"
 
-if backend not in ("cpp", "python"):
-    raise ValueError("backend must be 'cpp' or 'python'")
+if backend not in ("cpp", "python", "rust"):
+    raise ValueError("backend must be 'cpp', 'python', or 'rust'")
 
 from GenADCS.backends.shared.plotting import (
     AbsoluteKnowledgeErrorQuaternionPlot,
@@ -34,8 +34,8 @@ from GenADCS.backends.shared.plotting import (
 def run_example(*, backend=backend, progress=False):
     """Run the seven-state EKF with Keplerian orbit and RK4 attitude propagation."""
 
-    if backend not in ("cpp", "python"):
-        raise ValueError("backend must be 'cpp' or 'python'")
+    if backend not in ("cpp", "python", "rust"):
+        raise ValueError("backend must be 'cpp', 'python', or 'rust'")
     AttitudeEKF = import_module(
         f"GenADCS.backends.{backend}.hardware.ADCS_subsystem.estimator"
     ).AttitudeEKF
@@ -134,7 +134,7 @@ def run_example(*, backend=backend, progress=False):
         DynamicsConfig(forces=[], torques=[]),
         state,
         solver,
-        backend={"python": "Python", "cpp": "C"}[backend],
+        backend={"python": "Python", "cpp": "C", "rust": "Rust"}[backend],
         resultsformat=results_format,
         seed=7,
     )

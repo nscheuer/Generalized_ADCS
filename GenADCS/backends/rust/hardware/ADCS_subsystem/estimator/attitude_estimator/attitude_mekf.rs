@@ -1,6 +1,7 @@
 //! Six-state multiplicative EKF prediction and measurement corrections.
 
 use super::base::{AttitudeEstimator, Mat3, Mat6};
+use super::direction_correction::{correct_direction, inverse_submatrix};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AttitudeMEKF {
@@ -14,8 +15,12 @@ pub struct SensorConfig {
     pub misalignment: Vec<[f64; 4]>,
     pub bias: Vec<[f64; 6]>,
     pub noise_cholesky: Vec<[[f64; 6]; 6]>,
+    pub normal: Vec<[f64; 3]>,
+    pub fov: Vec<[f64; 2]>,
+    pub scalars: Vec<[f64; 3]>,
     pub enabled: Vec<bool>,
     pub offsets: Vec<usize>,
+    pub reference: Vec<[f64; 3]>,
 }
 
 impl AttitudeMEKF {
@@ -145,7 +150,7 @@ pub fn correct_star_tracker(
     correct(q, w, p, residual, h, covariance)
 }
 
-/// Predict and process valid gyro and tracker readings from prepared sensor rows.
+/// Predict and process valid attitude sensor readings from prepared sensor rows.
 pub fn step(
     q: [f64; 4],
     w: [f64; 3],
@@ -158,15 +163,28 @@ pub fn step(
     let (mut q, mut w, mut p) = predict(q, w, p, acceleration_psd, dt)?;
     for i in 0..config.code.len() {
         let kind = config.code[i];
-        if !config.enabled[i] || (kind != 0 && kind != 2) {
+        if !config.enabled[i] || !(0..=5).contains(&kind) {
             continue;
         }
         let offset = config.offsets[i];
-        let width = if kind == 0 { 3 } else { 4 };
+        let width = match kind {
+            0 | 1 => 3,
+            2 => 4,
+            3 => 1,
+            _ => 2,
+        };
         let Some(value) = readings.get(offset..offset + width) else {
             continue;
         };
         if value.iter().any(|x| !x.is_finite()) {
+            continue;
+        }
+        if matches!(kind, 1 | 3 | 4 | 5) {
+            if let Some(corr) = correct_direction::<6>(q, w, p, config, i, value)? {
+                q = corr.quaternion;
+                w = corr.rate;
+                p = corr.covariance;
+            }
             continue;
         }
         let mounting_q = normalize(mul(config.misalignment[i], config.orientation[i]));
@@ -377,15 +395,55 @@ pub fn step_diagnostics(
     let mut out = [f64::NAN; 96];
     for i in 0..config.code.len() {
         let kind = config.code[i];
-        if !config.enabled[i] || (kind != 0 && kind != 2) {
+        if !config.enabled[i] || !(0..=5).contains(&kind) {
             continue;
         }
         let offset = config.offsets[i];
-        let width = if kind == 0 { 3 } else { 4 };
+        let width = match kind {
+            0 | 1 => 3,
+            2 => 4,
+            3 => 1,
+            _ => 2,
+        };
         let value = readings
             .get(offset..offset + width)
             .ok_or("invalid sensor offset")?;
         if value.iter().any(|x| !x.is_finite()) {
+            continue;
+        }
+        if matches!(kind, 1 | 3 | 4 | 5) {
+            let Some(corr) = correct_direction::<6>(q, w, p, config, i, value)? else {
+                continue;
+            };
+            let m = corr.width;
+            for a in 0..3 {
+                out[43 + a] = if a < m { corr.innovation[a] } else { f64::NAN };
+                out[57 + a] = if a < m { corr.residual[a] } else { f64::NAN };
+                for b in 0..3 {
+                    out[46 + a * 3 + b] = if a < m && b < m {
+                        corr.innovation_covariance[a][b]
+                    } else {
+                        f64::NAN
+                    };
+                }
+            }
+            let sinv = inverse_submatrix(corr.innovation_covariance, m)
+                .ok_or("direction innovation covariance is singular")?;
+            let mut nis = 0.0;
+            for a in 0..m {
+                for b in 0..m {
+                    nis += corr.innovation[a] * sinv[a][b] * corr.innovation[b];
+                }
+            }
+            out[55] = nis;
+            for a in 0..6 {
+                for b in 0..3 {
+                    out[60 + a * 3 + b] = if b < m { corr.gain[a][b] } else { f64::NAN };
+                }
+            }
+            q = corr.quaternion;
+            w = corr.rate;
+            p = corr.covariance;
             continue;
         }
         let mount = normalize(mul(config.misalignment[i], config.orientation[i]));

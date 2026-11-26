@@ -55,6 +55,13 @@ def simulate(
             satellite, environment, dynamics, state, solver,
             backend=backend, resultsformat=resultsformat, seed=seed,
         )
+    if backend in ("rust", "Rust"):
+        from GenADCS.backends.rust.simulate import simulate as rust_simulate
+
+        return rust_simulate(
+            satellite, environment, dynamics, state, solver,
+            backend=backend, resultsformat=resultsformat, seed=seed,
+        )
     if backend != "Python":
         raise NotImplementedError(f"backend {backend!r} is not implemented for GenADCS")
     separate = isinstance(solver, Solver) and solver.coupled is None

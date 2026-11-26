@@ -1,4 +1,4 @@
-use super::super::{derivative_vec, normalize_q, Runtime};
+use super::super::{derivative_vec, normalize_q, project_wheel_momentum, Runtime};
 
 fn separate_add_scaled(y: &[f64], k: &[f64], scale: f64) -> Vec<f64> {
     y.iter().zip(k).map(|(a, b)| a + scale * b).collect()
@@ -33,5 +33,8 @@ pub(crate) fn attitude_rk4(
         .map(|i| y[i] + dt * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]) / 6.0)
         .collect();
     normalize_q(&mut result)?;
+    if !runtime.wheel_commands.is_empty() {
+        project_wheel_momentum(&mut result, runtime)?;
+    }
     Ok(result)
 }

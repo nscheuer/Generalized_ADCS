@@ -7,14 +7,14 @@ pub fn dop853_vec(
     rtol: f64,
     atol: &[f64],
 ) -> Result<(Vec<f64>, Vec<f64>, f64), String> {
-    if y.len() != 13 || f.len() != 13 || atol.len() != 13 {
-        return Err("DOP853 vectors must contain 13 values".to_owned());
+    let expected = p.state_len();
+    if y.len() != expected || f.len() != expected || atol.len() != expected {
+        return Err(format!("DOP853 vectors must contain {expected} values"));
     }
-    let mut k = [[0.; 13]; 13];
-    k[0].copy_from_slice(f);
+    let mut k = vec![Vec::new(); 13];
+    k[0] = f.to_vec();
     for stage in 1..12 {
-        let mut trial = [0.; 13];
-        trial.copy_from_slice(y);
+        let mut trial = y.to_vec();
         for prev in 0..stage {
             if A[stage][prev] != 0. {
                 for i in 0..y.len() {
@@ -22,7 +22,7 @@ pub fn dop853_vec(
                 }
             }
         }
-        k[stage] = derivative_array(&trial, jd + C[stage] * h / 86400., p)?;
+        k[stage] = derivative_vec(&trial, jd + C[stage] * h / 86400., p)?;
     }
     let mut next = y.to_vec();
     for stage in 0..12 {
@@ -33,7 +33,10 @@ pub fn dop853_vec(
         }
     }
     normalize_q(&mut next)?;
-    k[12] = derivative_array(&next, jd + h / 86400., p)?;
+    if !p.wheel_commands.is_empty() {
+        project_wheel_momentum(&mut next, p)?;
+    }
+    k[12] = derivative_vec(&next, jd + h / 86400., p)?;
     let (mut n5, mut n3) = (0., 0.);
     for j in 0..y.len() {
         let scale = atol[j] + rtol * y[j].abs().max(next[j].abs());

@@ -1,5 +1,5 @@
 """Rust-backed attitude estimators."""
 
-from .attitude_estimator import AttitudeEstimator, AttitudeMEKF
+from .attitude_estimator import AttitudeEKF, AttitudeEstimator, AttitudeMEKF
 
-__all__ = ["AttitudeEstimator", "AttitudeMEKF"]
+__all__ = ["AttitudeEstimator", "AttitudeEKF", "AttitudeMEKF"]

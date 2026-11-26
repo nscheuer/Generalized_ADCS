@@ -71,6 +71,7 @@ fn step_predicts_then_consumes_gyro_readings_and_skips_nan_values() {
         })],
         enabled: vec![true],
         offsets: vec![0],
+        ..Default::default()
     };
     let (q, rate, p) = step(
         [1.0, 0.0, 0.0, 0.0],

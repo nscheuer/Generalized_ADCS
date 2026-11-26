@@ -104,8 +104,97 @@ pub fn simulate(
     let environment_for_record = environment.clone_ref(py);
     let dynamics_for_record = dynamics.clone_ref(py);
     let satellite_for_record = satellite.clone_ref(py);
-    let propagator = if mode == "coupled" {
-        solver_ref.getattr("propagator")?.into_py(py)
+    let initial_orbit = state.as_ref(py).getattr("orbit")?;
+    let epoch_jd: f64 = initial_orbit.getattr("julian_date")?.extract()?;
+    let progress = solver_ref.getattr("progress")?;
+    let progress_chunk_steps = solver_ref.getattr("progress_chunk_steps")?;
+    let nees = format
+        .as_ref(py)
+        .getattr("normalized_estimation_error_squared")?;
+    let sensor_every = if has_sensor || !estimator.is_none(py) {
+        sensor_n
+    } else {
+        0
+    };
+    let coupled_mod = py.import("GenADCS.backends.rust.propagation.coupled_propagators._coupled")?;
+    let prepared = py
+        .import("GenADCS.backends.rust.propagation.coupled_propagators._coupled_dynamics")?
+        .getattr("_prepare")?
+        .call1((
+            satellite_for_record.as_ref(py),
+            environment_for_record.as_ref(py),
+            dynamics_for_record.as_ref(py),
+        ))?;
+    let wheel_count: usize = prepared.getattr("wheel_commands")?.len()?;
+    let initial = py
+        .import("GenADCS.backends.rust.propagation.coupled_propagators._state_layout")?
+        .getattr("pack_state")?
+        .call1((state.as_ref(py), wheel_count))?;
+
+    let (dt, result): (f64, &PyAny) = if mode == "coupled" {
+        let propagator = solver_ref.getattr("propagator")?;
+        let prop_name = propagator.get_type().name()?;
+        let adaptive = match prop_name {
+            "CoupledDOP853Propagator" => true,
+            "CoupledRK4Propagator" => false,
+            _ => {
+                return Err(PyTypeError::new_err(
+                    "Rust coupled simulation requires CoupledRK4Propagator or CoupledDOP853Propagator",
+                ))
+            }
+        };
+        let dt: f64 = propagator.getattr("dt")?.extract()?;
+        let (rtol, atol, max_step, min_step): (f64, PyObject, f64, f64) = if adaptive {
+            let scalar_atol: bool = propagator.getattr("_scalar_atol")?.extract()?;
+            let prop_atol = propagator.getattr("atol")?;
+            let atol = if scalar_atol {
+                py.import("numpy")?
+                    .getattr("array")?
+                    .call1(([prop_atol.get_item(0)?.extract::<f64>()?],),)?
+                    .into_py(py)
+            } else {
+                prop_atol.into_py(py)
+            };
+            (
+                propagator.getattr("rtol")?.extract()?,
+                atol,
+                propagator.getattr("max_step")?.extract()?,
+                propagator.getattr("min_step")?.extract()?,
+            )
+        } else {
+            (
+                1e-9,
+                py.import("numpy")?.getattr("array")?.call1(([1e-12_f64],))?.into_py(py),
+                dt,
+                1e-6,
+            )
+        };
+        let args = PyTuple::new(
+            py,
+            [
+                initial.into_py(py),
+                epoch_jd.into_py(py),
+                dt.into_py(py),
+                tf.into_py(py),
+                stride.into_py(py),
+                sensor_every.into_py(py),
+                prepared.into_py(py),
+                adcs.getattr("sensors")?.into_py(py),
+                environment_for_record.clone_ref(py),
+                seed.into_py(py),
+                estimator.clone_ref(py),
+                nees.into_py(py),
+                adaptive.into_py(py),
+                rtol.into_py(py),
+                atol,
+                max_step.into_py(py),
+                min_step.into_py(py),
+                progress.into_py(py),
+                progress_chunk_steps.into_py(py),
+            ],
+        );
+        let res = coupled_mod.getattr("simulate_coupled")?.call1(args)?;
+        (dt, res)
     } else {
         let orbital = solver_ref.getattr("orbital")?;
         let attitude = solver_ref.getattr("attitude")?;
@@ -141,27 +230,40 @@ pub fn simulate(
                 "Rust split simulation requires RK4AttitudePropagator or ReferenceAttitudePropagator",
             ));
         };
-        py.import("GenADCS.backends.rust.propagation.separate_solver")?
-            .getattr("SeparateSolver")?
-            .call1((dt, reference_mode))?
-            .into_py(py)
+        let args = PyTuple::new(
+            py,
+            [
+                initial.into_py(py),
+                epoch_jd.into_py(py),
+                dt.into_py(py),
+                tf.into_py(py),
+                stride.into_py(py),
+                sensor_every.into_py(py),
+                prepared.into_py(py),
+                adcs.getattr("sensors")?.into_py(py),
+                environment_for_record.clone_ref(py),
+                seed.into_py(py),
+                estimator.clone_ref(py),
+                nees.into_py(py),
+                reference_mode.into_py(py),
+                progress.into_py(py),
+                progress_chunk_steps.into_py(py),
+            ],
+        );
+        let res = coupled_mod.getattr("simulate_uncoupled")?.call1(args)?;
+        (dt, res)
     };
-    let dt: f64 = propagator.as_ref(py).getattr("dt")?.extract()?;
-    let result = propagator.as_ref(py).call_method(
-        "integrate",
-        (state.clone_ref(py), satellite, environment, dynamics, tf),
-        Some(kwargs),
-    )?;
     let trajectory = result.downcast::<PyTuple>().map_err(|_| {
-        PyValueError::new_err("propagator.integrate must return times and state vectors")
+        PyValueError::new_err("native simulation must return times, states, and samples")
     })?;
-    if trajectory.len() != 2 {
+    if trajectory.len() != 3 {
         return Err(PyValueError::new_err(
-            "propagator.integrate must return times and state vectors",
+            "native simulation must return times, states, and samples",
         ));
     }
     let times = trajectory.get_item(0)?.into_py(py);
     let vectors = trajectory.get_item(1)?;
+    let samples = trajectory.get_item(2)?;
     let time_array: PyReadonlyArray1<'_, f64> = times.as_ref(py).extract()?;
     let state_array: PyReadonlyArray2<'_, f64> = vectors.extract()?;
     let time_values = time_array.as_array();
@@ -175,8 +277,6 @@ pub fn simulate(
             "trajectory arrays must be non-empty, rectangular and aligned",
         ));
     }
-    let initial_orbit = state.as_ref(py).getattr("orbit")?;
-    let epoch_jd: f64 = initial_orbit.getattr("julian_date")?.extract()?;
     let interval: f64 = dt * n as f64;
     let rows: Vec<usize> = time_values
         .iter()
@@ -203,36 +303,6 @@ pub fn simulate(
     };
     let selected = PyDict::new(py);
     if has_sensor || !estimator.is_none(py) {
-        let prepared = py
-            .import("GenADCS.backends.rust.propagation.coupled_propagators._coupled_dynamics")?
-            .getattr("_prepare")?
-            .call1((
-                satellite_for_record.as_ref(py),
-                environment_for_record.as_ref(py),
-                dynamics_for_record.as_ref(py),
-            ))?;
-        let adcs = satellite_for_record.as_ref(py).getattr("adcs")?;
-        let sensor_n: usize = adcs.getattr("N")?.extract()?;
-        if sensor_n == 0 {
-            return Err(PyValueError::new_err("ADCSSubsystem.N must be positive"));
-        }
-        let samples = py
-            .import("GenADCS.backends.rust.propagation.coupled_propagators._coupled")?
-            .getattr("sample_sensors")?
-            .call1((
-                times.as_ref(py),
-                vectors,
-                epoch_jd,
-                dt * sensor_n as f64,
-                prepared,
-                adcs.getattr("sensors")?,
-                environment_for_record.as_ref(py),
-                seed,
-                estimator,
-                format
-                    .as_ref(py)
-                    .getattr("normalized_estimation_error_squared")?,
-            ))?;
         for (key, value) in samples.downcast::<PyDict>()? {
             selected.set_item(
                 key,

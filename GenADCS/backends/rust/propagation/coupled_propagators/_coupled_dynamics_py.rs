@@ -1,4 +1,4 @@
-use super::{derivative_vec, Runtime};
+use super::{derivative_vec, project_wheel_momentum, Runtime};
 use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -112,6 +112,12 @@ impl Runtime {
             None
         };
 
+        let wheel_axes = rows3(py, value.getattr("wheel_axes")?)?;
+        let wheel_inertias = numbers(py, value.getattr("wheel_inertias")?)?;
+        let inverse_bus_inertia = matrix3(py, value.getattr("inverse_bus_inertia")?)?;
+        let wheel_commands = numbers(py, value.getattr("wheel_commands")?)?;
+        let wheel_max_momentum = numbers(py, value.getattr("wheel_max_momentum")?)?;
+
         let runtime = Self {
             mu: value.getattr("mu")?.extract()?,
             radius: value.getattr("radius")?.extract()?,
@@ -133,6 +139,11 @@ impl Runtime {
             third_body,
             ephemeris,
             magnetic,
+            wheel_axes,
+            wheel_inertias,
+            inverse_bus_inertia,
+            wheel_commands,
+            wheel_max_momentum,
         };
         runtime.validate().map_err(PyValueError::new_err)?;
         Ok(runtime)
@@ -153,12 +164,9 @@ pub(super) fn derivative(
 }
 
 #[pyfunction]
-pub(super) fn project(py: Python<'_>, y: &PyAny, _runtime: &PyAny) -> PyResult<PyObject> {
-    let y = numbers(py, y)?;
-    if y.len() != 13 {
-        return Err(PyValueError::new_err(
-            "coupled state must contain 13 values",
-        ));
-    }
+pub(super) fn project(py: Python<'_>, y: &PyAny, runtime: &PyAny) -> PyResult<PyObject> {
+    let mut y = numbers(py, y)?;
+    let runtime = Runtime::from_py(py, runtime)?;
+    project_wheel_momentum(&mut y, &runtime).map_err(PyValueError::new_err)?;
     Ok(py_array(py, &y))
 }

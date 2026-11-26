@@ -117,6 +117,35 @@ impl NativeProgress {
 }
 /// Integrate an already constructed Rust runtime without entering Python.
 pub fn integrate_rk4_native<E, F>(
+    y: Vec<f64>,
+    jd: f64,
+    dt: f64,
+    tf: f64,
+    runtime: &Runtime,
+    progress: bool,
+    progress_chunk_steps: usize,
+    record_every: usize,
+    poll: F,
+) -> Result<(Vec<f64>, Vec<Vec<f64>>), IntegrationError<E>>
+where
+    F: FnMut() -> Result<(), E>,
+{
+    integrate_rk4_observed(
+        y,
+        jd,
+        dt,
+        tf,
+        runtime,
+        progress,
+        progress_chunk_steps,
+        record_every,
+        poll,
+        |_, _, _| Ok(()),
+    )
+}
+
+/// Integrate RK4 in pure Rust with an in-loop per-step observer.
+pub fn integrate_rk4_observed<E, F, O>(
     mut y: Vec<f64>,
     jd: f64,
     dt: f64,
@@ -126,9 +155,11 @@ pub fn integrate_rk4_native<E, F>(
     progress_chunk_steps: usize,
     record_every: usize,
     mut poll: F,
+    mut observe: O,
 ) -> Result<(Vec<f64>, Vec<Vec<f64>>), IntegrationError<E>>
 where
     F: FnMut() -> Result<(), E>,
+    O: FnMut(f64, &[f64], bool) -> Result<(), String>,
 {
     runtime.validate()?;
     if record_every == 0 {
@@ -146,12 +177,17 @@ where
             "dt must be finite and positive seconds".to_owned(),
         ));
     }
-    if y.len() != 13 {
-        return Err(IntegrationError::Native(
-            "coupled state must contain 13 values".to_owned(),
-        ));
+    let expected = runtime.state_len();
+    if y.len() != expected {
+        return Err(IntegrationError::Native(format!(
+            "coupled state must contain {expected} values"
+        )));
     }
     normalize_q(&mut y)?;
+    if !runtime.wheel_commands.is_empty() {
+        project_wheel_momentum(&mut y, runtime)?;
+    }
+    observe(0.0, &y, true).map_err(IntegrationError::Native)?;
     let mut times = vec![0.];
     let mut states = vec![y.clone()];
     let full = (tf / dt).floor() as usize;
@@ -159,10 +195,11 @@ where
     if remainder <= 1e-12_f64 * tf.max(1.) {
         remainder = 0.;
     }
+    let total_steps = full + usize::from(remainder > 0.);
     let mut bar = if progress {
         Some(NativeProgress::new(
             "Running coupled RK4",
-            Some(full + usize::from(remainder > 0.)),
+            Some(total_steps),
             None,
             dt,
             progress_chunk_steps,
@@ -170,15 +207,22 @@ where
     } else {
         None
     };
-    for i in 0..(full + usize::from(remainder > 0.)) {
+    for i in 0..total_steps {
         if i % progress_chunk_steps.max(1) == 0 {
             poll().map_err(IntegrationError::Callback)?;
         }
         let elapsed = i as f64 * dt;
         let h = if i == full { remainder } else { dt };
         y = rk4_vec(&y, jd + elapsed / 86400., h, runtime)?;
-        if (i + 1) % record_every == 0 || i + 1 == full + usize::from(remainder > 0.) {
-            times.push(((i + 1) as f64 * dt).min(tf));
+        let recorded = (i + 1) % record_every == 0 || i + 1 == total_steps;
+        let t_now = if i + 1 == total_steps {
+            tf
+        } else {
+            ((i + 1) as f64 * dt).min(tf)
+        };
+        observe(t_now, &y, recorded).map_err(IntegrationError::Native)?;
+        if recorded {
+            times.push(t_now);
             states.push(y.clone());
         }
         if let Some(bar) = bar.as_mut() {
@@ -194,6 +238,43 @@ where
 
 /// Adaptive DOP853 propagation using only Rust model and solver code.
 pub fn integrate_dop853_native<E, F>(
+    y: Vec<f64>,
+    jd: f64,
+    dt: f64,
+    tf: f64,
+    runtime: &Runtime,
+    rtol: f64,
+    atol: Vec<f64>,
+    max_step: f64,
+    min_step: f64,
+    progress: bool,
+    progress_chunk_steps: usize,
+    record_every: usize,
+    poll: F,
+) -> Result<(Vec<f64>, Vec<Vec<f64>>), IntegrationError<E>>
+where
+    F: FnMut() -> Result<(), E>,
+{
+    integrate_dop853_observed(
+        y,
+        jd,
+        dt,
+        tf,
+        runtime,
+        rtol,
+        atol,
+        max_step,
+        min_step,
+        progress,
+        progress_chunk_steps,
+        record_every,
+        poll,
+        |_, _, _| Ok(()),
+    )
+}
+
+/// Adaptive DOP853 propagation in pure Rust with an in-loop per-step observer.
+pub fn integrate_dop853_observed<E, F, O>(
     mut y: Vec<f64>,
     jd: f64,
     dt: f64,
@@ -207,9 +288,11 @@ pub fn integrate_dop853_native<E, F>(
     progress_chunk_steps: usize,
     record_every: usize,
     mut poll: F,
+    mut observe: O,
 ) -> Result<(Vec<f64>, Vec<Vec<f64>>), IntegrationError<E>>
 where
     F: FnMut() -> Result<(), E>,
+    O: FnMut(f64, &[f64], bool) -> Result<(), String>,
 {
     runtime.validate()?;
     if !tf.is_finite() || tf < 0. {
@@ -237,12 +320,16 @@ where
             "step limits must be positive and ordered; min_step must be finite".to_owned(),
         ));
     }
-    if y.len() != 13 {
-        return Err(IntegrationError::Native(
-            "coupled state must contain 13 values".to_owned(),
-        ));
+    let expected = runtime.state_len();
+    if y.len() != expected {
+        return Err(IntegrationError::Native(format!(
+            "coupled state must contain {expected} values"
+        )));
     }
     normalize_q(&mut y)?;
+    if !runtime.wheel_commands.is_empty() {
+        project_wheel_momentum(&mut y, runtime)?;
+    }
     if atol.len() == 1 {
         atol = vec![atol[0]; y.len()];
     }
@@ -251,6 +338,7 @@ where
             "atol length differs from state size".to_owned(),
         ));
     }
+    observe(0.0, &y, true).map_err(IntegrationError::Native)?;
     let mut times = vec![0.];
     let mut states = vec![y.clone()];
     if tf == 0. {
@@ -315,7 +403,10 @@ where
             t += step;
             y = candidate;
             f = next_f;
-            if sample_interval == 0. || (t - next_sample).abs() <= 1e-10 * next_sample.max(1.) {
+            let recorded =
+                sample_interval == 0. || (t - next_sample).abs() <= 1e-10 * next_sample.max(1.);
+            observe(t, &y, recorded).map_err(IntegrationError::Native)?;
+            if recorded {
                 times.push(t);
                 states.push(y.clone());
                 next_sample += sample_interval;
@@ -342,6 +433,7 @@ where
         bar.finish();
     }
     if sample_interval > 0. && (times.last().unwrap() - tf).abs() > 1e-10 * tf.max(1.) {
+        observe(tf, &y, true).map_err(IntegrationError::Native)?;
         times.push(tf);
         states.push(y);
     }

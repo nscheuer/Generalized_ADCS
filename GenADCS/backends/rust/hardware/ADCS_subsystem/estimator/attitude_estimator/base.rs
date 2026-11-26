@@ -88,20 +88,20 @@ fn norm4(q: [f64; 4]) -> f64 {
 fn symmetric6(a: Mat6) -> bool {
     (0..6).all(|i| (0..6).all(|j| close(a[i][j], a[j][i])))
 }
-fn symmetric3(a: Mat3) -> bool {
+pub(crate) fn symmetric3(a: Mat3) -> bool {
     (0..3).all(|i| (0..3).all(|j| close(a[i][j], a[j][i])))
 }
-fn close(a: f64, b: f64) -> bool {
+pub(crate) fn close(a: f64, b: f64) -> bool {
     (a - b).abs() <= 1e-8 + 1e-5 * b.abs()
 }
 
-fn min_eigenvalue3(a: Mat3) -> f64 {
+pub(crate) fn min_eigenvalue3(a: Mat3) -> f64 {
     min_eigenvalue(a.iter().map(|r| r.to_vec()).collect())
 }
 fn min_eigenvalue6(a: Mat6) -> f64 {
     min_eigenvalue(a.iter().map(|r| r.to_vec()).collect())
 }
-fn min_eigenvalue(mut a: Vec<Vec<f64>>) -> f64 {
+pub(crate) fn min_eigenvalue(mut a: Vec<Vec<f64>>) -> f64 {
     let n = a.len();
     for _ in 0..(64 * n * n) {
         let mut p = 0;

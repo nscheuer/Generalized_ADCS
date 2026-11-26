@@ -1,6 +1,6 @@
 use crate::attitude_state_py::{array, vector3};
 use crate::state_types::{KeplerianElements, Vector3};
-use pyo3::exceptions::{PyKeyError, PyNotImplementedError, PyValueError};
+use pyo3::exceptions::{PyKeyError, PyValueError};
 use pyo3::prelude::*;
 use std::collections::HashMap;
 
@@ -47,7 +47,7 @@ impl OrbitalState {
     }
     #[staticmethod]
     #[pyo3(signature = (semi_major_axis, eccentricity, inclination, ascending_node, argument_of_periapsis, true_anomaly, julian_date, ephemeris=None))]
-    fn from_keplerian(
+    pub fn from_keplerian(
         py: Python<'_>,
         semi_major_axis: f64,
         eccentricity: f64,
@@ -93,22 +93,12 @@ impl OrbitalState {
         Ok(())
     }
     #[getter]
-    fn position(&self, py: Python<'_>) -> PyResult<PyObject> {
-        if self.position.is_none() || self.velocity.is_none() {
-            return Err(PyNotImplementedError::new_err(
-                "Keplerian to Cartesian conversion is not implemented",
-            ));
-        }
-        array(py, self.position.expect("checked above"))
+    pub fn position(&self, py: Python<'_>) -> PyResult<PyObject> {
+        array(py, self.cartesian_vectors()?.0)
     }
     #[getter]
-    fn velocity(&self, py: Python<'_>) -> PyResult<PyObject> {
-        if self.position.is_none() || self.velocity.is_none() {
-            return Err(PyNotImplementedError::new_err(
-                "Keplerian to Cartesian conversion is not implemented",
-            ));
-        }
-        array(py, self.velocity.expect("checked above"))
+    pub fn velocity(&self, py: Python<'_>) -> PyResult<PyObject> {
+        array(py, self.cartesian_vectors()?.1)
     }
     #[getter]
     fn julian_date(&self) -> f64 {
@@ -231,6 +221,16 @@ impl OrbitalState {
 }
 
 impl OrbitalState {
+    fn cartesian_vectors(&self) -> PyResult<(Vector3, Vector3)> {
+        let core = crate::orbital_state::OrbitalState {
+            position: self.position,
+            velocity: self.velocity,
+            julian_date: self.julian_date,
+            keplerian_elements: self.keplerian_elements,
+        };
+        core.cartesian().map_err(PyValueError::new_err)
+    }
+
     fn build(
         py: Python<'_>,
         p: Option<&PyAny>,

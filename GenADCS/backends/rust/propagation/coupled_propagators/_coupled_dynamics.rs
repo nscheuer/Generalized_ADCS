@@ -87,9 +87,18 @@ pub struct Runtime {
     pub third_body: bool,
     pub ephemeris: Option<ephemeris_native::NativeEphemeris>,
     pub magnetic: Option<magnetic_native::NativeMagneticField>,
+    pub wheel_axes: Vec<[f64; 3]>,
+    pub wheel_inertias: Vec<f64>,
+    pub inverse_bus_inertia: [[f64; 3]; 3],
+    pub wheel_commands: Vec<f64>,
+    pub wheel_max_momentum: Vec<f64>,
 }
 
 impl Runtime {
+    pub fn state_len(&self) -> usize {
+        13 + self.wheel_commands.len()
+    }
+
     pub fn validate(&self) -> Result<(), String> {
         if !self.mu.is_finite() || self.mu <= 0.0 || !self.radius.is_finite() || self.radius <= 0.0
         {
@@ -130,17 +139,55 @@ impl Runtime {
         if (self.srp_force || self.srp_torque || self.third_body) && self.ephemeris.is_none() {
             return Err("ephemeris is required for SRP and third-body models".to_owned());
         }
+        if self.wheel_axes.len() != self.wheel_inertias.len()
+            || self.wheel_axes.len() != self.wheel_commands.len()
+            || self.wheel_axes.len() != self.wheel_max_momentum.len()
+        {
+            return Err("reaction wheel arrays must have matching lengths".to_owned());
+        }
+        if self.wheel_axes.iter().flatten().any(|v| !v.is_finite())
+            || self
+                .wheel_inertias
+                .iter()
+                .any(|v| !v.is_finite() || *v <= 0.0)
+            || self
+                .inverse_bus_inertia
+                .iter()
+                .flatten()
+                .any(|v| !v.is_finite())
+            || self.wheel_commands.iter().any(|v| !v.is_finite())
+            || self
+                .wheel_max_momentum
+                .iter()
+                .any(|v| !v.is_finite() || *v <= 0.0)
+        {
+            return Err(
+                "reaction wheel parameters must be finite and inertias/limits positive".to_owned(),
+            );
+        }
         Ok(())
     }
 }
 
-pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> Result<Vec<f64>, String> {
-    derivative_array(y, jd, p).map(|values| values.to_vec())
+pub fn project_wheel_momentum(y: &mut [f64], p: &Runtime) -> Result<(), String> {
+    let expected = p.state_len();
+    if y.len() != expected {
+        return Err(format!("coupled state must contain {expected} values"));
+    }
+    for (wheel, &limit) in p.wheel_max_momentum.iter().enumerate() {
+        if y[13 + wheel] > limit {
+            y[13 + wheel] = limit;
+        } else if y[13 + wheel] < -limit {
+            y[13 + wheel] = -limit;
+        }
+    }
+    Ok(())
 }
 
-fn derivative_array(y: &[f64], jd: f64, p: &Runtime) -> Result<[f64; 13], String> {
-    if y.len() != 13 || y.iter().any(|value| !value.is_finite()) {
-        return Err("coupled state must contain 13 values".to_owned());
+pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> Result<Vec<f64>, String> {
+    let expected = p.state_len();
+    if y.len() != expected || y.iter().any(|value| !value.is_finite()) {
+        return Err(format!("coupled state must contain {expected} values"));
     }
     let mut q = [y[0], y[1], y[2], y[3]];
     normalize_q(&mut q)?;
@@ -250,10 +297,23 @@ fn derivative_array(y: &[f64], jd: f64, p: &Runtime) -> Result<[f64; 13], String
             .map_err(|error| error.to_string())?;
         torque = add3(torque, cross3(p.dipole, mv3(rot, field)));
     }
-    let iw = mv3(p.inertia, omega);
-    let omegadot = mv3(p.inverse_inertia, sub3(torque, cross3(omega, iw)));
+    for (axis, &command) in p.wheel_axes.iter().zip(&p.wheel_commands) {
+        torque = add3(torque, scale3(*axis, command));
+    }
+    let mut angular_momentum = mv3(p.inertia, omega);
+    let omegadot = if p.wheel_axes.is_empty() {
+        mv3(p.inverse_inertia, sub3(torque, cross3(omega, angular_momentum)))
+    } else {
+        for (wheel, axis) in p.wheel_axes.iter().enumerate() {
+            angular_momentum = add3(angular_momentum, scale3(*axis, y[13 + wheel]));
+        }
+        mv3(
+            p.inverse_bus_inertia,
+            sub3(torque, cross3(omega, angular_momentum)),
+        )
+    };
     accel = add3(accel, scale3(force, 1. / p.mass));
-    let mut dy = [0.; 13];
+    let mut dy = vec![0.; expected];
     dy[0] = 0.5 * (q[1] * omega[0] + q[2] * omega[1] + q[3] * omega[2]);
     dy[1] = -0.5 * (q[0] * omega[0] + omega[1] * q[3] - omega[2] * q[2]);
     dy[2] = -0.5 * (q[0] * omega[1] + omega[2] * q[1] - omega[0] * q[3]);
@@ -261,5 +321,104 @@ fn derivative_array(y: &[f64], jd: f64, p: &Runtime) -> Result<[f64; 13], String
     dy[4..7].copy_from_slice(&omegadot);
     dy[7..10].copy_from_slice(&vel);
     dy[10..13].copy_from_slice(&accel);
+    for wheel in 0..p.wheel_commands.len() {
+        let mut momentum_rate =
+            -p.wheel_commands[wheel] - p.wheel_inertias[wheel] * dot3(p.wheel_axes[wheel], omegadot);
+        let momentum = y[13 + wheel];
+        let limit = p.wheel_max_momentum[wheel];
+        if (momentum >= limit && momentum_rate > 0.0)
+            || (momentum <= -limit && momentum_rate < 0.0)
+        {
+            momentum_rate = 0.0;
+        }
+        dy[13 + wheel] = momentum_rate;
+    }
     Ok(dy)
+}
+
+#[cfg(test)]
+mod rw_tests {
+    use super::*;
+
+    fn test_runtime_with_wheel() -> Runtime {
+        Runtime {
+            mu: 3.986004418e14,
+            radius: 6_378_137.0,
+            mass: 10.0,
+            inertia: [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 4.0]],
+            inverse_inertia: [[0.5, 0.0, 0.0], [0.0, 1.0 / 3.0, 0.0], [0.0, 0.0, 0.25]],
+            zonals: vec![0.0; 5],
+            normals: Vec::new(),
+            arms: Vec::new(),
+            areas: Vec::new(),
+            drag_coefficients: Vec::new(),
+            optical_coefficients: Vec::new(),
+            dipole: [0.0; 3],
+            drag_force: false,
+            drag_torque: false,
+            srp_force: false,
+            srp_torque: false,
+            gravity_gradient: false,
+            third_body: false,
+            ephemeris: None,
+            magnetic: None,
+            wheel_axes: vec![[0.0, 0.0, 1.0]],
+            wheel_inertias: vec![0.1],
+            inverse_bus_inertia: [[0.5, 0.0, 0.0], [0.0, 1.0 / 3.0, 0.0], [0.0, 0.0, 1.0 / 3.9]],
+            wheel_commands: vec![0.05],
+            wheel_max_momentum: vec![0.5],
+        }
+    }
+
+    #[test]
+    fn projects_wheel_momentum_within_limits() {
+        let runtime = test_runtime_with_wheel();
+        let mut y = vec![
+            1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 7_000_000.0, 0.0, 0.0, 0.0, 7_500.0, 0.0, 1.2,
+        ];
+        project_wheel_momentum(&mut y, &runtime).unwrap();
+        assert!((y[13] - 0.5).abs() < 1e-12);
+
+        y[13] = -0.8;
+        project_wheel_momentum(&mut y, &runtime).unwrap();
+        assert!((y[13] + 0.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn derivative_and_integrators_support_reaction_wheels() {
+        let runtime = test_runtime_with_wheel();
+        let y = vec![
+            1.0, 0.0, 0.0, 0.0, 0.01, -0.02, 0.03, 7_000_000.0, 0.0, 0.0, 0.0, 7_500.0, 0.0, 0.1,
+        ];
+        let dy = derivative_vec(&y, 2460000.5, &runtime).unwrap();
+        assert_eq!(dy.len(), 14);
+        assert!(dy.iter().all(|v| v.is_finite()));
+
+        let (_, rk4_states) =
+            integrate_rk4_native(y.clone(), 2460000.5, 0.5, 1.0, &runtime, false, 10, 1, || {
+                Ok::<(), ()>(())
+            })
+            .unwrap();
+        assert_eq!(rk4_states.len(), 3);
+        assert_eq!(rk4_states[2].len(), 14);
+
+        let (_, dop_states) = integrate_dop853_native(
+            y,
+            2460000.5,
+            0.5,
+            1.0,
+            &runtime,
+            1e-9,
+            vec![1e-12],
+            10.0,
+            1e-6,
+            false,
+            10,
+            0,
+            || Ok::<(), ()>(()),
+        )
+        .unwrap();
+        assert!(!dop_states.is_empty());
+        assert_eq!(dop_states.last().unwrap().len(), 14);
+    }
 }

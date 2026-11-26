@@ -1,6 +1,33 @@
-use super::{normalize_q, NativeProgress, Runtime};
+use super::{normalize_q, project_wheel_momentum, NativeProgress, Runtime};
 
-pub(super) fn integrate_separate_native(
+pub(super) fn integrate_uncoupled_native(
+    y: Vec<f64>,
+    jd: f64,
+    dt: f64,
+    tf: f64,
+    runtime: &Runtime,
+    reference_mode: i32,
+    progress: bool,
+    progress_chunk_steps: usize,
+    record_every: usize,
+    poll: impl FnMut() -> bool,
+) -> Result<(Vec<f64>, Vec<Vec<f64>>), String> {
+    integrate_uncoupled_observed(
+        y,
+        jd,
+        dt,
+        tf,
+        runtime,
+        reference_mode,
+        progress,
+        progress_chunk_steps,
+        record_every,
+        poll,
+        |_, _, _| Ok(()),
+    )
+}
+
+pub(super) fn integrate_uncoupled_observed(
     mut y: Vec<f64>,
     jd: f64,
     dt: f64,
@@ -11,15 +38,18 @@ pub(super) fn integrate_separate_native(
     progress_chunk_steps: usize,
     record_every: usize,
     mut poll: impl FnMut() -> bool,
+    mut observe: impl FnMut(f64, &[f64], bool) -> Result<(), String>,
 ) -> Result<(Vec<f64>, Vec<Vec<f64>>), String> {
+    runtime.validate()?;
     if !dt.is_finite() || dt <= 0.0 {
         return Err("dt must be finite and positive seconds".into());
     }
     if !tf.is_finite() || tf < 0.0 {
         return Err("tf must be finite and nonnegative seconds".into());
     }
-    if y.len() != 13 || y.iter().any(|v| !v.is_finite()) {
-        return Err("separate state must contain 13 finite values".into());
+    let expected = runtime.state_len();
+    if y.len() != expected || y.iter().any(|v| !v.is_finite()) {
+        return Err(format!("uncoupled state must contain {expected} finite values"));
     }
     if record_every == 0 {
         return Err("record_every must be a positive integer".into());
@@ -28,6 +58,9 @@ pub(super) fn integrate_separate_native(
         return Err("reference_mode must be -1, 0, 1, or 2".into());
     }
     normalize_q(&mut y)?;
+    if !runtime.wheel_commands.is_empty() {
+        project_wheel_momentum(&mut y, runtime)?;
+    }
     if reference_mode >= 0 {
         super::attitude_propagators::reference_attitude_propagator::set_reference(
             &mut y,
@@ -42,6 +75,7 @@ pub(super) fn integrate_separate_native(
         remainder = 0.0;
     }
     let total = full + usize::from(remainder > 0.0);
+    observe(0.0, &y, true)?;
     let mut times = vec![0.0];
     let mut states = vec![y.clone()];
     let mut bar = if progress {
@@ -85,8 +119,15 @@ pub(super) fn integrate_separate_native(
             )?;
         }
         let completed = row + 1;
-        if completed % record_every == 0 || completed == total {
-            times.push((completed as f64 * dt).min(tf));
+        let recorded = completed % record_every == 0 || completed == total;
+        let t_now = if completed == total {
+            tf
+        } else {
+            (completed as f64 * dt).min(tf)
+        };
+        observe(t_now, &y, recorded)?;
+        if recorded {
+            times.push(t_now);
             states.push(y.clone());
         }
         if let Some(bar) = bar.as_mut() {

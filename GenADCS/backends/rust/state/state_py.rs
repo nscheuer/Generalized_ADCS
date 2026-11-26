@@ -69,11 +69,19 @@ impl State {
         let core = crate::state::State::new(
             crate::attitude_state::AttitudeState::new(attitude.orientation, attitude.rates)
                 .map_err(PyValueError::new_err)?,
-            crate::orbital_state::OrbitalState::new_cartesian(
-                orbit.position,
-                orbit.velocity,
-                orbit.julian_date,
-            )
+            match (orbit.position, orbit.velocity, orbit.keplerian_elements) {
+                (Some(_), Some(_), _) | (_, _, None) => {
+                    crate::orbital_state::OrbitalState::new_cartesian(
+                        orbit.position,
+                        orbit.velocity,
+                        orbit.julian_date,
+                    )
+                }
+                (_, _, Some(elements)) => crate::orbital_state::OrbitalState::new_keplerian(
+                    elements,
+                    orbit.julian_date,
+                ),
+            }
             .map_err(PyValueError::new_err)?,
             crate::internal_state::InternalState::new(internal.wheel_momentum.clone())
                 .map_err(PyValueError::new_err)?,
@@ -104,30 +112,9 @@ impl State {
                 .map_err(PyValueError::new_err)?],
         )?;
         record.set_item("rates", vec![attitude.rates])?;
-        record.set_item(
-            "position",
-            vec![
-                core.cartesian_orbit()
-                    .map_err(|_| {
-                        pyo3::exceptions::PyNotImplementedError::new_err(
-                            "Keplerian to Cartesian conversion is not implemented",
-                        )
-                    })?
-                    .0,
-            ],
-        )?;
-        record.set_item(
-            "velocity",
-            vec![
-                core.cartesian_orbit()
-                    .map_err(|_| {
-                        pyo3::exceptions::PyNotImplementedError::new_err(
-                            "Keplerian to Cartesian conversion is not implemented",
-                        )
-                    })?
-                    .1,
-            ],
-        )?;
+        let (position, velocity) = core.cartesian_orbit().map_err(PyValueError::new_err)?;
+        record.set_item("position", vec![position])?;
+        record.set_item("velocity", vec![velocity])?;
         record.set_item("momentum", vec![core.internal.wheel_momentum])?;
         Ok(record.into())
     }

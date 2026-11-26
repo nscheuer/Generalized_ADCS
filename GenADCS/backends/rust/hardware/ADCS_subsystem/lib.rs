@@ -12,6 +12,7 @@ pub mod estimator;
 pub mod sensors;
 pub use adcs_subsystem::ADCSSubsystem as NativeADCSSubsystem;
 use adcs_subsystem_py::ADCSSubsystem;
+pub use estimator::attitude_estimator::NativeAttitudeEKF;
 pub use estimator::attitude_estimator::NativeAttitudeEstimator;
 pub use estimator::attitude_estimator::NativeAttitudeMEKF;
 pub use sensors::Sensor as NativeSensor;

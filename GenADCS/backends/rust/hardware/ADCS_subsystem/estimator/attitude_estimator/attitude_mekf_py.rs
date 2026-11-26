@@ -56,7 +56,11 @@ fn rows(py: Python<'_>, value: &PyAny) -> PyResult<Vec<Vec<f64>>> {
         .call_method0("tolist")?
         .extract()
 }
-fn parse_sensor_config(py: Python<'_>, value: &PyAny) -> PyResult<SensorConfig> {
+pub(crate) fn parse_sensor_config(
+    py: Python<'_>,
+    value: &PyAny,
+    references: Option<&PyAny>,
+) -> PyResult<SensorConfig> {
     let item = |index| value.get_item(index);
     let code: Vec<i64> = item(0)?.call_method0("tolist")?.extract()?;
     let orientation = rows(py, item(1)?)?;
@@ -67,6 +71,9 @@ fn parse_sensor_config(py: Python<'_>, value: &PyAny) -> PyResult<SensorConfig> 
         .call_method1("asarray", (item(4)?, "float64"))?
         .call_method0("tolist")?
         .extract::<Vec<Vec<Vec<f64>>>>()?;
+    let normal_rows = rows(py, item(5)?)?;
+    let fov_rows = rows(py, item(6)?)?;
+    let scalar_rows = rows(py, item(7)?)?;
     let enabled: Vec<bool> = item(8)?.call_method0("tolist")?.extract()?;
     let offsets: Vec<usize> = item(9)?.call_method0("tolist")?.extract()?;
     let count = code.len();
@@ -75,6 +82,9 @@ fn parse_sensor_config(py: Python<'_>, value: &PyAny) -> PyResult<SensorConfig> 
         misalignment.len(),
         bias.len(),
         cholesky.len(),
+        normal_rows.len(),
+        fov_rows.len(),
+        scalar_rows.len(),
         enabled.len(),
         offsets.len(),
     ]
@@ -119,14 +129,55 @@ fn parse_sensor_config(py: Python<'_>, value: &PyAny) -> PyResult<SensorConfig> 
             Ok(std::array::from_fn(|i| std::array::from_fn(|j| m[i][j])))
         })
         .collect::<PyResult<Vec<[[f64; 6]; 6]>>>()?;
+    let normal = normal_rows
+        .into_iter()
+        .map(|r| {
+            r.try_into()
+                .map_err(|_| PyValueError::new_err("sensor normal must have three components"))
+        })
+        .collect::<PyResult<Vec<[f64; 3]>>>()?;
+    let fov = fov_rows
+        .into_iter()
+        .map(|r| {
+            r.try_into()
+                .map_err(|_| PyValueError::new_err("sensor fov must have two components"))
+        })
+        .collect::<PyResult<Vec<[f64; 2]>>>()?;
+    let scalars = scalar_rows
+        .into_iter()
+        .map(|r| {
+            r.try_into()
+                .map_err(|_| PyValueError::new_err("sensor scalars must have three components"))
+        })
+        .collect::<PyResult<Vec<[f64; 3]>>>()?;
+
+    let reference = match references {
+        Some(refs) if !refs.is_none() => {
+            let ref_mat = matrix::<3, 3>(py, refs, "references")?;
+            code.iter()
+                .map(|&k| match k {
+                    1 => ref_mat[0],
+                    3 | 4 => ref_mat[1],
+                    5 => ref_mat[2],
+                    _ => [0.0, 0.0, 0.0],
+                })
+                .collect()
+        }
+        _ => Vec::new(),
+    };
+
     Ok(SensorConfig {
         code,
         orientation,
         misalignment,
         bias,
         noise_cholesky,
+        normal,
+        fov,
+        scalars,
         enabled,
         offsets,
+        reference,
     })
 }
 
@@ -257,6 +308,7 @@ fn correct_star_tracker(
 }
 
 #[pyfunction]
+#[pyo3(signature=(q, w, p, acceleration_psd, dt, readings, sensor_config, references=None))]
 fn step(
     py: Python<'_>,
     q: &PyAny,
@@ -266,6 +318,7 @@ fn step(
     dt: f64,
     readings: &PyAny,
     sensor_config: &PyAny,
+    references: Option<&PyAny>,
 ) -> PyResult<PyObject> {
     let reading: Vec<f64> = py
         .import("numpy")?
@@ -279,7 +332,7 @@ fn step(
         matrix(py, acceleration_psd, "acceleration_psd")?,
         dt,
         &reading,
-        &parse_sensor_config(py, sensor_config)?,
+        &parse_sensor_config(py, sensor_config, references)?,
     )
     .map_err(PyValueError::new_err)?;
     tuple3(py, state.0, state.1, state.2)

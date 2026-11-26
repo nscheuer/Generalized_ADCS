@@ -20,8 +20,30 @@ def _prepare(satellite, environment, dynamics):
         raise ValueError("geometry requires positive finite mass and finite 3x3 inertia")
     if not np.allclose(inertia,inertia.T) or np.linalg.eigvalsh(inertia).min()<=0:
         raise ValueError("geometry.inertia must be symmetric positive definite")
-    if satellite.adcs.reaction_wheels:
-        raise NotImplementedError("Rust coupled propagation with reaction wheels is not implemented")
+    wheels = satellite.adcs.reaction_wheels
+    if any(wheel.biases or wheel.noises for wheel in wheels):
+        raise NotImplementedError("compiled wheel torque bias and noise are not yet supported")
+    wheel_axes=np.ascontiguousarray(np.array([wheel.orientation for wheel in wheels],dtype=np.float64).reshape((-1,3)))
+    wheel_inertias=np.ascontiguousarray(np.array([wheel.rotational_inertia for wheel in wheels],dtype=np.float64))
+    wheel_torque_limits=np.asarray([wheel.max_torque for wheel in wheels],dtype=np.float64)
+    wheel_max_momentum=np.asarray([wheel.max_momentum for wheel in wheels],dtype=np.float64)
+    if (
+        not np.all(np.isfinite(wheel_axes))
+        or not np.all(np.isfinite(wheel_inertias))
+        or np.any(wheel_inertias<=0.0)
+        or not np.all(np.isfinite(wheel_torque_limits))
+        or np.any(wheel_torque_limits<=0.0)
+        or not np.all(np.isfinite(wheel_max_momentum))
+        or np.any(wheel_max_momentum<=0.0)
+    ):
+        raise ValueError("wheel axes, inertias and limits must be finite and valid")
+    commands=np.zeros(len(wheels),dtype=np.float64)
+    bus_inertia=inertia.copy()
+    for wheel in range(len(wheels)):
+        bus_inertia-=wheel_inertias[wheel]*np.outer(wheel_axes[wheel],wheel_axes[wheel])
+    if np.linalg.eigvalsh(bus_inertia).min()<=0:
+        raise ValueError("inertia excluding wheel rotors must be positive definite")
+    inverse_bus_inertia=np.ascontiguousarray(np.linalg.inv(bus_inertia))
     body=environment.planetary_body
     mu,radius=float(body.gravitational_parameter),float(body.reference_radius)
     if not np.isfinite(mu) or not np.isfinite(radius) or mu<=0 or radius<=0:
@@ -63,5 +85,6 @@ def _prepare(satellite, environment, dynamics):
         magnetic_kind=1 if type(magnetic).__name__=="IGRF14" else 2 if type(magnetic).__name__=="CHAOS8" else 0,
         magnetic_include_static=bool(getattr(magnetic,"include_static",True)),
         ephemeris_path=str(Path(__file__).resolve().parents[4] / "kernels/environment/ephemeris/de421/de421.bsp"),
-        wheel_commands=np.empty(0),wheel_max_momentum=np.empty(0),
+        wheel_axes=wheel_axes,wheel_inertias=wheel_inertias,inverse_bus_inertia=inverse_bus_inertia,
+        wheel_commands=commands,wheel_max_momentum=np.ascontiguousarray(wheel_max_momentum),
     )

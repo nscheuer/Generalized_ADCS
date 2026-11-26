@@ -10,8 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[5]))
 
 backend = "python"
 
-if backend not in ("cpp", "python"):
-    raise ValueError("backend must be 'cpp' or 'python'")
+if backend not in ("cpp", "python", "rust"):
+    raise ValueError("backend must be 'cpp', 'python', or 'rust'")
 
 from GenADCS.backends.shared.plotting import (
     AbsoluteKnowledgeErrorQuaternionPlot,
@@ -33,8 +33,8 @@ from GenADCS.backends.shared.plotting import (
 def run_example(*, backend=backend, progress=False):
     """Run the MEKF example with Keplerian orbit and RK4 attitude propagation."""
 
-    if backend not in ("cpp", "python"):
-        raise ValueError("backend must be 'cpp' or 'python'")
+    if backend not in ("cpp", "python", "rust"):
+        raise ValueError("backend must be 'cpp', 'python', or 'rust'")
     AttitudeMEKF = import_module(
         f"GenADCS.backends.{backend}.hardware.ADCS_subsystem.estimator"
     ).AttitudeMEKF
@@ -115,7 +115,7 @@ def run_example(*, backend=backend, progress=False):
         DynamicsConfig(forces=[], torques=[]),
         state,
         solver,
-        backend={"python": "Python", "cpp": "C"}[backend],
+        backend={"python": "Python", "cpp": "C", "rust": "Rust"}[backend],
         resultsformat=results_format,
         seed=7,
     )

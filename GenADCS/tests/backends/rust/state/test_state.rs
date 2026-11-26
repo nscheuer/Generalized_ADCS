@@ -38,3 +38,42 @@ fn record_roundtrip_and_wheel_count() {
         );
     });
 }
+
+#[test]
+fn keplerian_state_to_record_and_roundtrip() {
+    Python::with_gil(|py| {
+        let attitude = Py::new(
+            py,
+            crate::AttitudeState {
+                orientation: [1.0, 0.0, 0.0, 0.0],
+                rates: [0.0, 0.0, 0.0],
+            },
+        )
+        .unwrap();
+        let a = 7_000_000.0;
+        let orbit_val =
+            OrbitalState::from_keplerian(py, a, 0.0, 0.0, 0.0, 0.0, 0.0, 2451545.0, None).unwrap();
+        let expected_pos: Vec<f64> = orbit_val.position(py).unwrap().extract(py).unwrap();
+        let expected_vel: Vec<f64> = orbit_val.velocity(py).unwrap().extract(py).unwrap();
+        let orbit = Py::new(py, orbit_val).unwrap();
+        let state = State::new(py, attitude, orbit, None).unwrap();
+        let record = state.to_record(py, None).unwrap();
+        let rebuilt = State::from_record(py, record.as_ref(py), 2451545.0, None).unwrap();
+        let rebuilt_pos: Vec<f64> = rebuilt
+            .orbit
+            .borrow(py)
+            .position(py)
+            .unwrap()
+            .extract(py)
+            .unwrap();
+        let rebuilt_vel: Vec<f64> = rebuilt
+            .orbit
+            .borrow(py)
+            .velocity(py)
+            .unwrap()
+            .extract(py)
+            .unwrap();
+        assert_eq!(rebuilt_pos, expected_pos);
+        assert_eq!(rebuilt_vel, expected_vel);
+    });
+}
