@@ -1,17 +1,18 @@
-"""Run and plot the Python AttitudeMEKF with Keplerian + RK4 propagation."""
+"""Run and plot the AttitudeMEKF with Keplerian + RK4 propagation."""
 
 from pathlib import Path
 import sys
+from importlib import import_module
 
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[5]))
 
-# Select the backend for this example. The ADCS estimator integration is
-# currently available on Python only.
-backend = "python"
+backend = "cpp"
 
-from GenADCS.backends.python.hardware.ADCS_subsystem.estimator import AttitudeMEKF
+if backend not in ("cpp", "python"):
+    raise ValueError("backend must be 'cpp' or 'python'")
+
 from GenADCS.backends.shared.plotting import (
     AbsoluteKnowledgeErrorQuaternionPlot,
     AbsoluteKnowledgeErrorRatePlot,
@@ -32,21 +33,36 @@ from GenADCS.backends.shared.plotting import (
 def run_example(*, backend=backend, progress=False):
     """Run the MEKF example with Keplerian orbit and RK4 attitude propagation."""
 
-    from GenADCS.backends.python.config import DynamicsConfig
-    from GenADCS.backends.python.environment import DE421, Earth, Environment
-    from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
-    from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem
-    from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import (
-        AutonomousStarTracker,
-        Gyroscope,
+    if backend not in ("cpp", "python"):
+        raise ValueError("backend must be 'cpp' or 'python'")
+    AttitudeMEKF = import_module(
+        f"GenADCS.backends.{backend}.hardware.ADCS_subsystem.estimator"
+    ).AttitudeMEKF
+    config = import_module(f"GenADCS.backends.{backend}.config")
+    environment_backend = import_module(f"GenADCS.backends.{backend}.environment")
+    hardware = import_module(f"GenADCS.backends.{backend}.hardware")
+    adcs_backend = import_module(f"GenADCS.backends.{backend}.hardware.ADCS_subsystem")
+    sensors = import_module(f"GenADCS.backends.{backend}.hardware.ADCS_subsystem.sensors")
+    propagation = import_module(f"GenADCS.backends.{backend}.propagation")
+    simulate_backend = import_module(f"GenADCS.backends.{backend}.simulate")
+    solver_backend = import_module(f"GenADCS.backends.{backend}.solver")
+    state_backend = import_module(f"GenADCS.backends.{backend}.state")
+
+    DynamicsConfig = config.DynamicsConfig
+    DE421, Earth, Environment = environment_backend.DE421, environment_backend.Earth, environment_backend.Environment
+    Satellite, SatelliteGeometry = hardware.Satellite, hardware.SatelliteGeometry
+    ADCSSubsystem = adcs_backend.ADCSSubsystem
+    AutonomousStarTracker, Gyroscope = sensors.AutonomousStarTracker, sensors.Gyroscope
+    KeplerianOrbitalPropagator, RK4AttitudePropagator = (
+        propagation.KeplerianOrbitalPropagator, propagation.RK4AttitudePropagator
     )
-    from GenADCS.backends.python.propagation import (
-        KeplerianOrbitalPropagator,
-        RK4AttitudePropagator,
+    ResultsFormat, simulate = simulate_backend.ResultsFormat, simulate_backend.simulate
+    AttitudeSolver, OrbitalSolver, Solver = (
+        solver_backend.AttitudeSolver, solver_backend.OrbitalSolver, solver_backend.Solver
     )
-    from GenADCS.backends.python.simulate import ResultsFormat, simulate
-    from GenADCS.backends.python.solver import AttitudeSolver, OrbitalSolver, Solver
-    from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
+    AttitudeState, OrbitalState, State = (
+        state_backend.AttitudeState, state_backend.OrbitalState, state_backend.State
+    )
 
     identity = np.array([1.0, 0.0, 0.0, 0.0])
     true_rate = np.array([0.01, -0.015, 0.02])
@@ -99,6 +115,7 @@ def run_example(*, backend=backend, progress=False):
         DynamicsConfig(forces=[], torques=[]),
         state,
         solver,
+        backend={"python": "Python", "cpp": "C"}[backend],
         resultsformat=results_format,
         seed=7,
     )
