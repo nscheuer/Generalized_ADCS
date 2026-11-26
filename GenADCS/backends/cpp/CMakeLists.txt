@@ -747,18 +747,20 @@ set_target_properties(_satellite PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_
 set(ATTITUDE_ESTIMATOR_DIR hardware/ADCS_subsystem/estimator/attitude_estimator)
 add_library(attitude_estimator_native STATIC
     ${ATTITUDE_ESTIMATOR_DIR}/base.cpp
-    ${ATTITUDE_ESTIMATOR_DIR}/attitude_mekf.cpp)
+    ${ATTITUDE_ESTIMATOR_DIR}/attitude_mekf.cpp
+    ${ATTITUDE_ESTIMATOR_DIR}/attitude_ekf.cpp)
 target_link_libraries(attitude_estimator_native PUBLIC Eigen3::Eigen)
 target_include_directories(attitude_estimator_native PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(attitude_estimator_native PROPERTIES POSITION_INDEPENDENT_CODE ON)
 pybind11_add_module(_attitude_estimator ${GENADCS_PYBIND_OPTIONS}
     ${ATTITUDE_ESTIMATOR_DIR}/module_py.cpp
     ${ATTITUDE_ESTIMATOR_DIR}/base_py.cpp
-    ${ATTITUDE_ESTIMATOR_DIR}/attitude_mekf_py.cpp)
+    ${ATTITUDE_ESTIMATOR_DIR}/attitude_mekf_py.cpp
+    ${ATTITUDE_ESTIMATOR_DIR}/attitude_ekf_py.cpp)
 target_link_libraries(_attitude_estimator PRIVATE attitude_estimator_native)
 set_target_properties(_attitude_estimator PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/${ATTITUDE_ESTIMATOR_DIR}")
 if(BUILD_TESTING)
-    foreach(component base attitude_mekf)
+    foreach(component base attitude_mekf attitude_ekf)
         add_executable(cpp_test_estimator_${component}
             "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/estimator/attitude_estimator/test_${component}.cpp")
         target_link_libraries(cpp_test_estimator_${component} PRIVATE attitude_estimator_native)

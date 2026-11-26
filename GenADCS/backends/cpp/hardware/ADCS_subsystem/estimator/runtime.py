@@ -1,10 +1,14 @@
 """Convert sensor configuration once, then execute the native estimator loop."""
 import numpy as np
-from .attitude_estimator import AttitudeMEKF, Sensor, sample
+from .attitude_estimator import AttitudeEKF, AttitudeMEKF, Sensor, sample, sample_ekf
 
 
 def sample_estimator(times, vectors, rows, adcs, interval, format):
-    if not isinstance(adcs.estimator, AttitudeMEKF):
+    if isinstance(adcs.estimator, AttitudeMEKF):
+        sampler = sample
+    elif isinstance(adcs.estimator, AttitudeEKF):
+        sampler = sample_ekf
+    else:
         raise TypeError(f"unsupported estimator: {type(adcs.estimator).__name__}")
     fields = {name for name in (
         'estimated_attitude', 'estimated_rate', 'estimated_covariance',
@@ -34,4 +38,4 @@ def sample_estimator(times, vectors, rows, adcs, interval, format):
         devices.append(native)
         blocks.append(rows[field][:, offset:offset + width])
     readings = np.concatenate(blocks, axis=1) if blocks else np.empty((len(times), 0))
-    rows.update(sample(adcs.estimator, times, vectors, readings, devices, interval, fields))
+    rows.update(sampler(adcs.estimator, times, vectors, readings, devices, interval, fields))

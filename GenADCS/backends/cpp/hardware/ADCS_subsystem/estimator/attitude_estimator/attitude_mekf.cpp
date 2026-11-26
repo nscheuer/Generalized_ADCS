@@ -5,6 +5,16 @@
 #include <stdexcept>
 
 namespace omni::hardware::estimator {
+AttitudeMEKF::AttitudeMEKF(Eigen::Vector4d q, Eigen::Vector3d w,
+                           Eigen::MatrixXd p, Eigen::Matrix3d a,
+                           std::set<std::string> record)
+    : AttitudeEstimator(std::move(q), std::move(w), std::move(p), std::move(a),
+                        std::move(record)) {
+  if (covariance.rows() != 6) {
+    throw std::invalid_argument("MEKF covariance must be 6x6");
+  }
+}
+
 namespace {
 using Q = Eigen::Quaterniond;
 Q quat(const Eigen::Vector4d &v) { return Q(v[0], v[1], v[2], v[3]); }

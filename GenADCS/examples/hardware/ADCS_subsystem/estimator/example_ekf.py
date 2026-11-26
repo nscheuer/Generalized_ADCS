@@ -1,4 +1,4 @@
-"""Run and plot the Python AttitudeMEKF with Keplerian + RK4 propagation."""
+"""Plot the Python seven-state AttitudeEKF with Keplerian + RK4 propagation."""
 
 from pathlib import Path
 import sys
@@ -9,9 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[5]))
 
 # Select the backend for this example. The ADCS estimator integration is
 # currently available on Python only.
-backend = "python"
+backend = "cpp"
 
-from GenADCS.backends.python.hardware.ADCS_subsystem.estimator import AttitudeMEKF
+from GenADCS.backends.python.hardware.ADCS_subsystem.estimator import AttitudeEKF
 from GenADCS.backends.shared.plotting import (
     AbsoluteKnowledgeErrorQuaternionPlot,
     AbsoluteKnowledgeErrorRatePlot,
@@ -30,11 +30,7 @@ from GenADCS.backends.shared.plotting import (
 
 
 def run_example(*, backend=backend, progress=False):
-    """Run the MEKF example with Keplerian orbit and RK4 attitude propagation."""
-    if backend != "python":
-        raise ValueError(
-            "the ADCS subsystem estimators currently support only the Python backend"
-        )
+    """Run the seven-state EKF with Keplerian orbit and RK4 attitude propagation."""
 
     from GenADCS.backends.python.config import DynamicsConfig
     from GenADCS.backends.python.environment import DE421, Earth, Environment
@@ -63,8 +59,8 @@ def run_example(*, backend=backend, progress=False):
         np.zeros(3), identity, identity, 1.0, np.eye(3) * 1e-6,
         np.zeros(3), fov_half_angle=np.deg2rad(5.0),
     )
-    estimator = AttitudeMEKF(
-        initial_attitude, initial_rate, np.eye(6) * 1e-2, 1e-8
+    estimator = AttitudeEKF(
+        initial_attitude, initial_rate, np.eye(7) * 1e-2, 1e-8
     )
     satellite = Satellite(
         SatelliteGeometry(12.0, np.diag([0.13, 0.10, 0.05]), []),
@@ -125,7 +121,7 @@ def main():
         NormalizedEstimationErrorSquaredPlot(),
         KalmanGainPlot(option="trace"),
         layout=(4, 3),
-        title="AttitudeMEKF: Keplerian Orbit and RK4 Attitude Propagation",
+        title="AttitudeEKF: Keplerian Orbit and RK4 Attitude Propagation",
         show=True,
     )
     import matplotlib.pyplot as plt

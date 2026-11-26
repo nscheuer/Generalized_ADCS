@@ -19,6 +19,7 @@ std::set<std::string> validate_record(std::set<std::string> record) {
   static const std::set<std::string> allowed = {
       "estimated_attitude",
       "estimated_rate",
+      "estimated_covariance",
       "estimated_attitude_covariance",
       "estimated_rate_covariance",
       "measurement_innovation",
@@ -47,7 +48,10 @@ Eigen::Vector3d validate_rate(Eigen::Vector3d w) {
   }
   return w;
 }
-Matrix6 validate_covariance(Matrix6 p) {
+Eigen::MatrixXd validate_covariance(Eigen::MatrixXd p) {
+  if (p.rows() != p.cols() || (p.rows() != 6 && p.rows() != 7)) {
+    throw std::invalid_argument("covariance must be 6x6 or 7x7");
+  }
   validate_psd(p, "covariance");
   return p;
 }
@@ -57,7 +61,7 @@ Eigen::Matrix3d validate_acceleration(Eigen::Matrix3d a) {
 }
 } // namespace
 AttitudeEstimator::AttitudeEstimator(Eigen::Vector4d q, Eigen::Vector3d w,
-                                     Matrix6 p, Eigen::Matrix3d a,
+                                     Eigen::MatrixXd p, Eigen::Matrix3d a,
                                      std::set<std::string> r)
     : quaternion(normalize(q)), rate(validate_rate(w)),
       covariance(validate_covariance(p)),

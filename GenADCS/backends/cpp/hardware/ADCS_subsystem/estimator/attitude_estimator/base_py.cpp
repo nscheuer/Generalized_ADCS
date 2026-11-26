@@ -6,12 +6,12 @@ namespace py = pybind11;
 using namespace omni::hardware::estimator;
 void bind_estimator_base(py::module_ &m) {
   py::class_<State>(m, "State")
-      .def(py::init<Eigen::Vector4d, Eigen::Vector3d, Matrix6>())
+      .def(py::init<Eigen::Vector4d, Eigen::Vector3d, Eigen::MatrixXd>())
       .def_readwrite("quaternion", &State::quaternion)
       .def_readwrite("rate", &State::rate)
       .def_readwrite("covariance", &State::covariance);
   py::class_<AttitudeEstimator>(m, "AttitudeEstimator")
-      .def(py::init([](Eigen::Vector4d q, Eigen::Vector3d w, Matrix6 p,
+      .def(py::init([](Eigen::Vector4d q, Eigen::Vector3d w, Eigen::MatrixXd p,
                        py::object a, std::set<std::string> record) {
              Eigen::Matrix3d psd;
              if (py::isinstance<py::float_>(a) || py::isinstance<py::int_>(a)) {

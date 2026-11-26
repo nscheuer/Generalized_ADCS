@@ -23,7 +23,10 @@ struct Correction {
 };
 class AttitudeMEKF : public AttitudeEstimator {
 public:
-  using AttitudeEstimator::AttitudeEstimator;
+  AttitudeMEKF(Eigen::Vector4d quaternion, Eigen::Vector3d rate,
+               Eigen::MatrixXd covariance,
+               Eigen::Matrix3d acceleration_psd,
+               std::set<std::string> record = {});
   static std::map<std::string, Eigen::MatrixXd>
   sample(const AttitudeMEKF &estimator, const Eigen::VectorXd &times,
          const Eigen::MatrixXd &truth, const Eigen::MatrixXd &readings,
