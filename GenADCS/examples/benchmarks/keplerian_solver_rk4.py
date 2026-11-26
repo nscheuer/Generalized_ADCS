@@ -2,7 +2,7 @@
 
 Run from the repository root with
 ``venv/bin/python GenADCS/examples/benchmarks/keplerian_solver_rk4.py``.
-The default run uses the same 4,000,000 intervals and 0.25 s timestep as
+The default run uses 4,000,000 intervals and the same 0.25 s timestep as
 ``coupled_solver_rk4.py``. The Keplerian orbit uses only central gravity;
 the coupled benchmark's J2 force is therefore absent from this run.
 """
@@ -16,46 +16,36 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from GenADCS.backends.python.config import DynamicsConfig
-from GenADCS.backends.python.environment import DE421, NRLMSISE00, Earth, Environment
-from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
-from GenADCS.backends.python.propagation import (
-    KeplerianOrbitalPropagator,
-    RK4AttitudePropagator,
-)
-from GenADCS.backends.python.simulate import simulate
-from GenADCS.backends.python.solver import AttitudeSolver, OrbitalSolver, Solver
-from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
-
 # Select the backend for this example: "rust", "cpp", or "python".
-backed = "rust"
+backend = "cpp"
 
-if backed not in ("rust", "cpp", "python"):
-    raise ValueError("backed must be rust, cpp, or python")
+if backend not in ("rust", "cpp", "python"):
+    raise ValueError("backend must be rust, cpp, or python")
 
-_state = import_module(f"GenADCS.backends.{backed}.state")
+_state = import_module(f"GenADCS.backends.{backend}.state")
 AttitudeState = _state.AttitudeState
 OrbitalState = _state.OrbitalState
 State = _state.State
-_hardware = import_module(f"GenADCS.backends.{backed}.hardware")
+_hardware = import_module(f"GenADCS.backends.{backend}.hardware")
 Satellite = _hardware.Satellite
 SatelliteGeometry = _hardware.SatelliteGeometry
-_environment = import_module(f"GenADCS.backends.{backed}.environment")
+_environment = import_module(f"GenADCS.backends.{backend}.environment")
 DE421 = _environment.DE421
 Earth = _environment.Earth
 Environment = _environment.Environment
 NRLMSISE00 = _environment.NRLMSISE00
-_config = import_module(f"GenADCS.backends.{backed}.config")
+_config = import_module(f"GenADCS.backends.{backend}.config")
 DynamicsConfig = _config.DynamicsConfig
-_propagation = import_module(f"GenADCS.backends.{backed}.propagation")
+_propagation = import_module(f"GenADCS.backends.{backend}.propagation")
 KeplerianOrbitalPropagator = _propagation.KeplerianOrbitalPropagator
 RK4AttitudePropagator = _propagation.RK4AttitudePropagator
-_solver = import_module(f"GenADCS.backends.{backed}.solver")
+_solver = import_module(f"GenADCS.backends.{backend}.solver")
 AttitudeSolver = _solver.AttitudeSolver
 OrbitalSolver = _solver.OrbitalSolver
 Solver = _solver.Solver
-_simulate = import_module(f"GenADCS.backends.{backed}.simulate")
+_simulate = import_module(f"GenADCS.backends.{backend}.simulate")
 simulate = _simulate.simulate
+ResultsFormat = _simulate.ResultsFormat
 
 
 def main(steps: int = 4_000_000):
@@ -87,10 +77,11 @@ def main(steps: int = 4_000_000):
     start = perf_counter()
     result = simulate(
         satellite, environment, dynamics, state, solver,
-        backend={"python": "Python", "cpp": "C", "rust": "rust"}[backed],
+        backend={"python": "Python", "cpp": "C", "rust": "rust"}[backend],
+        resultsformat=ResultsFormat(N=500),
     )
     elapsed = perf_counter() - start
-    print(f"Backend: {backed}; integrator: Keplerian + RK4; elapsed: {elapsed:.2f} s")
+    print(f"Backend: {backend}; integrator: Keplerian + RK4; elapsed: {elapsed:.2f} s")
     print(
         f"Recorded samples: {len(result.satellites['sat_000'].times_s):,}; "
         f"final time: {steps * dt:,.0f} s"

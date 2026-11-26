@@ -7,6 +7,8 @@
 #include "../../environment/native_models.hpp"
 #include "../../helpers/math/time/conversions.hpp"
 
+#include "../coupled_propagators/integrate.hpp"
+#include <numeric>
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -211,5 +213,61 @@ SeparateSimulation simulate_separate_rk4(
   if (progress) std::cerr << '\n';
   return {std::move(trajectory.first), std::move(trajectory.second),
           std::move(sampler.output)};
+}
+SeparateSimulation simulate_coupled(
+    const Eigen::VectorXd &initial, double epoch, double dt, double tf,
+    int record_every, Runtime &runtime, std::vector<omni::hardware::Sensor> sensors,
+    const omni::hardware::estimator::AttitudeEstimator *estimator,
+    int sensor_every, std::uint64_t seed, std::set<std::string> fields,
+    bool adaptive, double rtol, Vector atol, double max_step, double min_step,
+    bool progress, std::size_t chunk_steps) {
+  if (!std::isfinite(dt) || dt <= 0 || !std::isfinite(tf) || tf < 0 ||
+      record_every < 1 || sensor_every < 1 || chunk_steps == 0)
+    throw std::invalid_argument("invalid coupled simulation interval");
+  const int stride = std::gcd(record_every, sensor_every);
+  SimulationSampler sampler(runtime, std::move(sensors), estimator, epoch,
+                            seed, std::move(fields));
+  sampler.allocate(static_cast<Eigen::Index>(std::ceil(tf / (dt * stride))) + 2);
+  Eigen::Index row = 0;
+  long long last_tick = -1;
+  Observer observe = [&](double time, const Vector &state, bool recorded) {
+    const double position = time / (dt * sensor_every);
+    const auto tick = static_cast<long long>(std::llround(position));
+    const bool sensor_tick = std::abs(position - tick) <= 1e-9;
+    if (sensor_tick && tick != last_tick) {
+      sampler.sample(state, time, static_cast<std::uint64_t>(tick));
+      last_tick = tick;
+    }
+    if (recorded) {
+      if (sensor_tick) sampler.record(row);
+      ++row;
+    }
+  };
+  std::size_t completed = 0, reported = 0;
+  const auto started = std::chrono::steady_clock::now();
+  Progress update;
+  if (progress) update = [&](std::size_t count) {
+    completed += count;
+    if (completed - reported >= chunk_steps || completed * dt >= tf) {
+      const double seconds = std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - started).count();
+      std::cerr << "\rRunning coupled " << (adaptive ? "DOP853" : "RK4")
+                << ": " << completed << "/"
+                << static_cast<std::size_t>(std::ceil(tf / dt))
+                << " steps (" << completed / std::max(seconds, 1e-9)
+                << " step/s)" << std::flush;
+      reported = completed;
+    }
+  };
+  auto trajectory = adaptive
+      ? integrate_dop853(initial, epoch, dt, tf, runtime, rtol, atol,
+                        max_step, min_step, update, stride, observe)
+      : integrate_rk4(initial, epoch, dt, tf, runtime, update, stride, observe);
+  if (progress) std::cerr << '\n';
+  Eigen::MatrixXd states(trajectory.states.size(), initial.size());
+  for (Eigen::Index i = 0; i < states.rows(); ++i)
+    states.row(i) = trajectory.states[i].transpose();
+  for (auto &[name, values] : sampler.output) values.conservativeResize(row, Eigen::NoChange);
+  return {std::move(trajectory.times), std::move(states), std::move(sampler.output)};
 }
 } // namespace omni::propagation

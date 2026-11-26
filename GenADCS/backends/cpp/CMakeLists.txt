@@ -665,6 +665,9 @@ set_target_properties(_coupled PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/propagation/coupled_propagators")
 
 add_library(separate_propagation_native STATIC
+    propagation/coupled_propagators/integrate.cpp
+    propagation/coupled_propagators/coupled_rk4_propagator.cpp
+    propagation/coupled_propagators/coupled_dop853_propagator.cpp
     propagation/attitude_propagators/simulation_sampling.cpp
     propagation/coupled_propagators/sensor_sampling.cpp
     hardware/ADCS_subsystem/sensors/gyroscope.cpp

@@ -3,33 +3,11 @@
 import numpy as np
 import math
 from dataclasses import replace
-from contextlib import contextmanager
 
 from GenADCS.backends.shared.simulationresult import SimulationResult, SatelliteResult
 from GenADCS.backends.shared.simulationresult.record import record_samples
 from GenADCS.backends.shared.simulationresult.simulationresult import SENSOR_FIELDS
 from GenADCS.backends.shared.simulationresult.resultsformat import ResultsFormat
-
-
-@contextmanager
-def _separate_progress(solver, tf, dt, description):
-    if not solver.progress:
-        yield None
-        return
-    from tqdm import tqdm
-    total = math.ceil(tf / dt)
-    chunk = solver.progress_chunk_steps
-    pending = 0
-    with tqdm(total=total, desc=description, unit="step") as bar:
-        def update(count):
-            nonlocal pending
-            pending += count
-            if pending >= chunk or bar.n + pending == total:
-                bar.update(pending)
-                pending = 0
-        yield update
-        if pending:
-            bar.update(pending)
 
 
 def simulate(satellite, environment, dynamics, state, solver, backend="C", resultsformat=None, seed=0):
@@ -66,6 +44,15 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
     native_samples = False
     sensor_rows = None
     record_every = math.gcd(resultsformat.N, sensor_every) if sensors or estimator is not None else resultsformat.N
+    diagnostic_fields = {
+        name for name in (
+            "estimated_attitude", "estimated_rate", "estimated_covariance",
+            "estimated_attitude_covariance", "estimated_rate_covariance",
+            "measurement_innovation", "measurement_innovation_covariance",
+            "normalized_innovation_squared", "normalized_estimation_error_squared",
+            "measurement_residual", "kalman_gain",
+        ) if getattr(resultsformat, name)
+    }
     if separate:
         if getattr(solver, "orbital", None) is None or getattr(solver, "attitude", None) is None:
             raise TypeError("separate Solver requires orbital and attitude solvers")
@@ -117,15 +104,6 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
         if isinstance(attitude, RK4AttitudePropagator):
             from .propagation.coupled_propagators._coupled_dynamics import _prepare
             runtime = _prepare(satellite, environment, dynamics)
-            diagnostic_fields = {
-                name for name in (
-                    "estimated_attitude", "estimated_rate", "estimated_covariance",
-                    "estimated_attitude_covariance", "estimated_rate_covariance",
-                    "measurement_innovation", "measurement_innovation_covariance",
-                    "normalized_innovation_squared", "normalized_estimation_error_squared",
-                    "measurement_residual", "kalman_gain",
-                ) if getattr(resultsformat, name)
-            }
             # The native loop propagates, samples, updates the estimator, and
             # records each step before advancing. Python only assembles results.
             times, vectors, sensor_rows = simulate_separate_rk4(
@@ -137,12 +115,11 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
         else:
             if attitude.mode == 2 and environment.ephemeris is None:
                 raise ValueError("Sun-pointing reference attitude requires an ephemeris")
-            with _separate_progress(solver, tf, dt, "Running Keplerian + reference") as update:
-                times, vectors = integrate_separate_reference(
-                    initial, mu, epoch, dt, tf, record_every,
-                    {0: "nadir", 1: "along-track", 2: "sun"}[attitude.mode],
-                    solver.progress, update, solver.progress_chunk_steps,
-                )
+            times, vectors = integrate_separate_reference(
+                initial, mu, epoch, dt, tf, record_every,
+                {0: "nadir", 1: "along-track", 2: "sun"}[attitude.mode],
+                solver.progress, solver.progress_chunk_steps,
+            )
         dt = orbital.dt
     else:
         solver = solver.coupled if isinstance(solver, Solver) else solver
@@ -150,12 +127,26 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
             raise TypeError("solver must be a CoupledSolver or a Solver containing one")
         propagator = solver.propagator
         dt = propagator.dt
-        times, vectors = propagator.integrate(
-            state, satellite, environment, dynamics, solver.tf,
-            progress=solver.progress,
-            progress_chunk_steps=solver.progress_chunk_steps,
-            record_every=record_every,
+        from .propagation._separate import simulate_coupled
+        from .propagation.coupled_propagators._coupled_dynamics import _prepare
+        from .propagation.coupled_propagators._state_layout import pack_state
+        from .propagation.coupled_propagators.coupled_dop853_propagator import CoupledDOP853Propagator
+        from .propagation.coupled_propagators.coupled_rk4_propagator import CoupledRK4Propagator
+        if not isinstance(propagator, (CoupledRK4Propagator, CoupledDOP853Propagator)):
+            raise TypeError("native coupled simulation requires RK4 or DOP853")
+        adaptive = isinstance(propagator, CoupledDOP853Propagator)
+        runtime = _prepare(satellite, environment, dynamics)
+        initial = pack_state(state, runtime.wheel_commands.size)
+        atol = (np.array([propagator.atol[0]]) if propagator._scalar_atol else propagator.atol) if adaptive else np.array([1e-12])
+        times, vectors, sensor_rows = simulate_coupled(
+            initial, state.orbit.julian_date, dt, float(solver.tf), resultsformat.N,
+            runtime, satellite.adcs, seed, diagnostic_fields, adaptive,
+            propagator.rtol if adaptive else 1e-9, atol,
+            propagator.max_step if adaptive else dt,
+            propagator.min_step if adaptive else 1e-6,
+            solver.progress, solver.progress_chunk_steps,
         )
+        native_samples = True
     times = np.asarray(times, dtype=float)
     vectors = np.asarray(vectors, dtype=float)
     if times.ndim != 1 or times.size < 1:

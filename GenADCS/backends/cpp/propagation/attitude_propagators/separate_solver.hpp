@@ -29,4 +29,11 @@ SeparateSimulation simulate_separate_rk4(
     const omni::hardware::estimator::AttitudeEstimator *estimator,
     int sensor_every, std::uint64_t seed, std::set<std::string> fields,
     bool progress = false, std::size_t chunk_steps = 500);
+SeparateSimulation simulate_coupled(
+    const Eigen::VectorXd &initial, double epoch, double dt, double tf,
+    int record_every, Runtime &runtime, std::vector<omni::hardware::Sensor> sensors,
+    const omni::hardware::estimator::AttitudeEstimator *estimator,
+    int sensor_every, std::uint64_t seed, std::set<std::string> fields,
+    bool adaptive, double rtol, Vector atol, double max_step, double min_step,
+    bool progress, std::size_t chunk_steps);
 } // namespace omni::propagation

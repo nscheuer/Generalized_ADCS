@@ -14,7 +14,7 @@ static Trajectory output(const std::vector<double> &times,
 }
 Trajectory integrate_rk4(Vector y, double jd, double dt, double tf,
                          const Runtime &p, const Progress &progress,
-                         std::size_t record_every) {
+                         std::size_t record_every, const Observer &observe) {
   if (!std::isfinite(dt) || dt <= 0) {
     throw std::invalid_argument("dt must be finite and positive");
   }
@@ -27,6 +27,7 @@ Trajectory integrate_rk4(Vector y, double jd, double dt, double tf,
   project(y, p);
   std::vector<double> times{0.};
   std::vector<Vector> states{y};
+  if (observe) observe(0.0, y, true);
   const auto full = static_cast<std::size_t>(std::floor(tf / dt));
   double remainder = tf - full * dt;
   if (remainder <= 1e-12 * std::max(1., tf)) {
@@ -35,6 +36,8 @@ Trajectory integrate_rk4(Vector y, double jd, double dt, double tf,
   for (std::size_t i = 0; i < full + (remainder > 0); ++i) {
     double elapsed = i * dt, h = i == full ? remainder : dt;
     y = rk4_step(y, jd + elapsed / 86400., h, p);
+    const bool recorded = (i + 1) % record_every == 0 || i + 1 == full + (remainder > 0);
+    if (observe) observe(std::min((i + 1) * dt, tf), y, recorded);
     if ((i + 1) % record_every == 0 || i + 1 == full + (remainder > 0)) {
       times.push_back(std::min((i + 1) * dt, tf));
       states.push_back(y);
@@ -50,7 +53,7 @@ Trajectory integrate_dop853(Vector y, double jd, double dt, double tf,
                             const Runtime &p, double rtol, Vector atol,
                             double max_step, double min_step,
                             const Progress &progress,
-                            std::size_t record_every) {
+                            std::size_t record_every, const Observer &observe) {
   if (!std::isfinite(dt) || dt <= 0) {
     throw std::invalid_argument("dt must be finite and positive");
   }
@@ -67,6 +70,7 @@ Trajectory integrate_dop853(Vector y, double jd, double dt, double tf,
   }
   std::vector<double> times{0.};
   std::vector<Vector> states{y};
+  if (observe) observe(0.0, y, true);
   if (tf == 0) {
     return output(times, states);
   }
@@ -103,6 +107,9 @@ Trajectory integrate_dop853(Vector y, double jd, double dt, double tf,
       t += step;
       y = candidate;
       f = next_f;
+      const bool recorded = interval == 0 ||
+          std::abs(t - next_sample) <= 1e-10 * std::max(1., next_sample);
+      if (observe) observe(t, y, recorded);
       if (interval == 0 ||
           std::abs(t - next_sample) <= 1e-10 * std::max(1., next_sample)) {
         times.push_back(t);
@@ -135,6 +142,7 @@ Trajectory integrate_dop853(Vector y, double jd, double dt, double tf,
     }
   }
   if (interval > 0 && std::abs(times.back() - tf) > 1e-10 * std::max(1., tf)) {
+    if (observe) observe(tf, y, true);
     times.push_back(tf);
     states.push_back(y);
   }

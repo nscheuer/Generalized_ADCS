@@ -128,6 +128,15 @@ estimator work. Python assembles the returned result arrays; it does not replay
 sensor or estimator sampling for this path. The native propagation-only entry
 points remain available for callers that do not need simulation sampling.
 
+## Coupled simulation loop
+
+Coupled RK4 and DOP853 simulations also sample sensors and update persistent
+estimator state inside native integration, with the GIL released. DOP853 stops
+at the common recording/sensor grid; rejected trial steps do not sample sensors
+or advance the estimator. Native progress uses the same completed/total and
+step/s display as Keplerian + RK4 and includes sampling and estimation work.
+Python performs result assembly after the native simulation returns.
+
 ## MISRA C++:2023
 
 CMake selects ISO C++17, the language version targeted by MISRA C++:2023. The
