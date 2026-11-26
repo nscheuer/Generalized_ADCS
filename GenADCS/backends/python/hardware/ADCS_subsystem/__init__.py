@@ -6,6 +6,7 @@ from .estimator import (
 from .estimator import (
     AttitudeMEKF as AttitudeMEKF,
 )
+from .estimator import AttitudeSequentialSRUKF as AttitudeSequentialSRUKF
 from .estimator import AttitudeSequentialUKF as AttitudeSequentialUKF
 from .magnetorquer import Magnetorquer as Magnetorquer
 from .reaction_wheel import ReactionWheel as ReactionWheel

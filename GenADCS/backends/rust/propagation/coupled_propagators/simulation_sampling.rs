@@ -47,6 +47,7 @@ pub enum EstimateState {
     Mekf(super::base::AttitudeEstimator),
     Ekf(super::attitude_ekf::AttitudeEKF),
     Ukf(super::attitude_sequential_ukf::AttitudeSequentialUKF),
+    Srukf(super::attitude_sequential_srukf::AttitudeSequentialSRUKF),
 }
 
 pub struct SimulationSampler {
@@ -334,6 +335,18 @@ impl SimulationSampler {
                 EstimateState::Ukf(ukf) => {
                     let values = super::attitude_sequential_ukf::step_diagnostics(
                         ukf,
+                        dt,
+                        &self.scratch_readings_flat,
+                        &self.estimator_config,
+                        y,
+                        self.nees,
+                    )
+                    .map_err(str::to_owned)?;
+                    self.scratch_estimate.copy_from_slice(&values);
+                }
+                EstimateState::Srukf(srukf) => {
+                    let values = super::attitude_sequential_srukf::step_diagnostics(
+                        srukf,
                         dt,
                         &self.scratch_readings_flat,
                         &self.estimator_config,

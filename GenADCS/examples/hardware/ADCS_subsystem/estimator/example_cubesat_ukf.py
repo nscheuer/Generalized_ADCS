@@ -110,7 +110,7 @@ def run_example(*, backend=backend, progress=False):
     solver = Solver(
         orbital=OrbitalSolver(KeplerianOrbitalPropagator(dt=0.25)),
         attitude=AttitudeSolver(RK4AttitudePropagator(dt=0.25)),
-        tf=20_000.0,
+        tf=500_000.0,
         progress=progress,
     )
     results_format = ResultsFormat(

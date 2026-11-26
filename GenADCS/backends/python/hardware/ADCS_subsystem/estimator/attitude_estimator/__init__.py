@@ -7,6 +7,7 @@ from .attitude_mekf import (
     predict,
     step,
 )
+from .attitude_sequential_srukf import AttitudeSequentialSRUKF
 from .attitude_sequential_ukf import AttitudeSequentialUKF
 from .base import AttitudeEstimator
 
@@ -14,6 +15,7 @@ __all__ = [
     "AttitudeEKF",
     "AttitudeEstimator",
     "AttitudeMEKF",
+    "AttitudeSequentialSRUKF",
     "AttitudeSequentialUKF",
     "correct",
     "correct_gyro",

@@ -1,6 +1,6 @@
 """Convert sensor configuration once, then execute the native estimator loop."""
 import numpy as np
-from .attitude_estimator import AttitudeEKF, AttitudeMEKF, AttitudeSequentialUKF, Sensor, sample, sample_ekf, sample_ukf
+from .attitude_estimator import AttitudeEKF, AttitudeMEKF, AttitudeSequentialSRUKF, AttitudeSequentialUKF, Sensor, sample, sample_ekf, sample_srukf, sample_ukf
 
 
 def sample_estimator(times, vectors, rows, adcs, interval, format):
@@ -10,6 +10,8 @@ def sample_estimator(times, vectors, rows, adcs, interval, format):
         sampler = sample_ekf
     elif isinstance(adcs.estimator, AttitudeSequentialUKF):
         sampler = sample_ukf
+    elif isinstance(adcs.estimator, AttitudeSequentialSRUKF):
+        sampler = sample_srukf
     else:
         raise TypeError(f"unsupported estimator: {type(adcs.estimator).__name__}")
     fields = {name for name in (
