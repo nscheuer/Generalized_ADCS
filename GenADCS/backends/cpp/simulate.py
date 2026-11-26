@@ -63,6 +63,8 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
 
     separate = isinstance(solver, Solver) and solver.coupled is None
     propagator = None
+    native_samples = False
+    sensor_rows = None
     record_every = math.gcd(resultsformat.N, sensor_every) if sensors or estimator is not None else resultsformat.N
     if separate:
         if getattr(solver, "orbital", None) is None or getattr(solver, "attitude", None) is None:
@@ -106,7 +108,7 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
 
         from .propagation._separate import (
             integrate_separate_reference,
-            integrate_separate_rk4,
+            simulate_separate_rk4,
         )
         from .propagation.coupled_propagators._state_layout import pack_state
         initial = pack_state(state, state.internal.wheel_momentum.size)
@@ -115,11 +117,23 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
         if isinstance(attitude, RK4AttitudePropagator):
             from .propagation.coupled_propagators._coupled_dynamics import _prepare
             runtime = _prepare(satellite, environment, dynamics)
-            with _separate_progress(solver, tf, dt, "Running Keplerian + RK4") as update:
-                times, vectors = integrate_separate_rk4(
-                    initial, mu, epoch, dt, tf, record_every, runtime,
-                    solver.progress, update, solver.progress_chunk_steps,
-                )
+            diagnostic_fields = {
+                name for name in (
+                    "estimated_attitude", "estimated_rate", "estimated_covariance",
+                    "estimated_attitude_covariance", "estimated_rate_covariance",
+                    "measurement_innovation", "measurement_innovation_covariance",
+                    "normalized_innovation_squared", "normalized_estimation_error_squared",
+                    "measurement_residual", "kalman_gain",
+                ) if getattr(resultsformat, name)
+            }
+            # The native loop propagates, samples, updates the estimator, and
+            # records each step before advancing. Python only assembles results.
+            times, vectors, sensor_rows = simulate_separate_rk4(
+                initial, mu, epoch, dt, tf, resultsformat.N, runtime,
+                satellite.adcs, seed, diagnostic_fields,
+                solver.progress, solver.progress_chunk_steps,
+            )
+            native_samples = True
         else:
             if attitude.mode == 2 and environment.ephemeris is None:
                 raise ValueError("Sun-pointing reference attitude requires an ephemeris")
@@ -149,13 +163,12 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
     if vectors.ndim != 2 or vectors.shape[0] != times.size or vectors.shape[1] < 13:
         raise ValueError("state vectors must have matching rows and at least 13 columns")
 
-    sensor_rows = None
-    if sensors or (not separate and any(getattr(resultsformat, name) for name in SENSOR_FIELDS)):
+    if not native_samples and (sensors or (not separate and any(getattr(resultsformat, name) for name in SENSOR_FIELDS))):
         from .propagation.coupled_propagators._coupled import sample_sensors
         from .propagation.coupled_propagators._coupled_dynamics import _prepare
         sensor_rows = sample_sensors(times, vectors, state.orbit.julian_date,
             dt * sensor_every, _prepare(satellite, environment, dynamics), satellite.adcs, seed)
-    if estimator is not None:
+    if estimator is not None and not native_samples:
         from .hardware.ADCS_subsystem.estimator.runtime import sample_estimator
         if sensor_rows is None:
             sensor_rows = {}

@@ -1,4 +1,5 @@
 #include "separate_solver.hpp"
+#include "simulation_sampling.hpp"
 
 #include "../orbital_propagators/keplerian_orbit_propagator.hpp"
 #include "reference_attitude_propagator.hpp"
@@ -7,6 +8,8 @@
 #include "../../helpers/math/time/conversions.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <iostream>
 #include <cmath>
 #include <stdexcept>
 
@@ -101,7 +104,10 @@ SeparateTrajectory integrate_separate_reference(
 SeparateTrajectory integrate_separate_rk4(
     const Eigen::VectorXd &initial, double mu, double initial_julian_date,
     double dt, double tf, int record_every, const Runtime &runtime,
-    const SeparateProgress &progress) {
+    const SeparateProgress &progress, SimulationSampler *sampler,
+    int sensor_every) {
+  if (sampler && sensor_every < 1)
+    throw std::invalid_argument("sensor_every must be positive");
   if (!std::isfinite(dt) || dt <= 0.0) {
     throw std::invalid_argument("dt must be finite and positive seconds");
   }
@@ -139,6 +145,11 @@ SeparateTrajectory integrate_separate_rk4(
   trajectory.first.push_back(0.0);
   trajectory.second.row(0) = state.transpose();
 
+  if (sampler) {
+    sampler->allocate(static_cast<Eigen::Index>(sample_count));
+    sampler->sample(state, 0.0, 0);
+    sampler->record(0);
+  }
   for (std::size_t step = 0; step < total_steps; ++step) {
     const double step_dt = step == full_steps ? remainder : dt;
     // Match the Python split step: attitude uses this step's starting orbit,
@@ -153,9 +164,14 @@ SeparateTrajectory integrate_separate_rk4(
     state.segment<3>(10) = next_velocity;
 
     const std::size_t completed = step + 1;
+    const bool sensor_tick = sampler && completed <= full_steps &&
+        completed % static_cast<std::size_t>(sensor_every) == 0;
+    if (sensor_tick)
+      sampler->sample(state, completed * dt, completed / sensor_every);
     if (completed % stride == 0 || completed == total_steps) {
       const auto row = static_cast<Eigen::Index>(trajectory.first.size());
       trajectory.second.row(row) = state.transpose();
+      if (sensor_tick) sampler->record(row);
       trajectory.first.push_back(completed == total_steps
           ? tf : std::min(static_cast<double>(completed) * dt, tf));
     }
@@ -164,5 +180,36 @@ SeparateTrajectory integrate_separate_rk4(
     }
   }
   return trajectory;
+}
+SeparateSimulation simulate_separate_rk4(
+    const Eigen::VectorXd &initial, double mu, double epoch, double dt, double tf,
+    int record_every, Runtime &runtime, std::vector<omni::hardware::Sensor> sensors,
+    const omni::hardware::estimator::AttitudeEstimator *estimator,
+    int sensor_every, std::uint64_t seed, std::set<std::string> fields,
+    bool progress, std::size_t chunk_steps) {
+  if (!std::isfinite(dt) || dt <= 0 || !std::isfinite(tf) || tf < 0 ||
+      record_every < 1 || sensor_every < 1 || chunk_steps == 0)
+    throw std::invalid_argument("invalid separate simulation time or sampling interval");
+  SimulationSampler sampler(runtime, std::move(sensors), estimator, epoch,
+                            seed, std::move(fields));
+  std::size_t completed = 0;
+  const auto started = std::chrono::steady_clock::now();
+  SeparateProgress update;
+  if (progress) update = [&](std::size_t count) {
+    completed += count;
+    if (completed % chunk_steps == 0 || completed * dt >= tf) {
+      const double seconds = std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - started).count();
+      std::cerr << "\rRunning Keplerian + RK4: " << completed
+                << "/" << static_cast<std::size_t>(std::ceil(tf / dt))
+                << " steps (" << completed / std::max(seconds, 1e-9)
+                << " step/s)" << std::flush;
+    }
+  };
+  auto trajectory = integrate_separate_rk4(initial, mu, epoch, dt, tf,
+      record_every, runtime, update, &sampler, sensor_every);
+  if (progress) std::cerr << '\n';
+  return {std::move(trajectory.first), std::move(trajectory.second),
+          std::move(sampler.output)};
 }
 } // namespace omni::propagation

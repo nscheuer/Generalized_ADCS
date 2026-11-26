@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../coupled_propagators/_coupled_dynamics.hpp"
+#include "simulation_sampling.hpp"
+#include <tuple>
 #include <Eigen/Dense>
 #include <utility>
 #include <vector>
@@ -18,5 +20,13 @@ SeparateTrajectory integrate_separate_reference(
 SeparateTrajectory integrate_separate_rk4(
     const Eigen::VectorXd &initial, double mu, double initial_julian_date,
     double dt, double tf, int record_every, const Runtime &runtime,
-    const SeparateProgress &progress = {});
+    const SeparateProgress &progress = {}, SimulationSampler *sampler = nullptr,
+    int sensor_every = 1);
+using SeparateSimulation = std::tuple<std::vector<double>, Eigen::MatrixXd, SampleRows>;
+SeparateSimulation simulate_separate_rk4(
+    const Eigen::VectorXd &initial, double mu, double epoch, double dt, double tf,
+    int record_every, Runtime &runtime, std::vector<omni::hardware::Sensor> sensors,
+    const omni::hardware::estimator::AttitudeEstimator *estimator,
+    int sensor_every, std::uint64_t seed, std::set<std::string> fields,
+    bool progress = false, std::size_t chunk_steps = 500);
 } // namespace omni::propagation

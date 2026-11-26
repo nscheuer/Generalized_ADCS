@@ -108,6 +108,26 @@ current Python class. Cartesian conversion of those elements is still
 unimplemented, so accessing `position` or `velocity` for such a state raises
 an error.
 
+## Keplerian + RK4 simulation loop
+
+`simulate.py` calls the native `simulate_separate_rk4` entry point once.
+Its binding converts configuration and releases the GIL; the native loop
+advances attitude and orbit, samples sensors at subsystem ticks, updates the
+persistent EKF or MEKF state, and records the requested output before advancing
+again. Initial sensor and estimator sampling occurs at time zero. A final
+partial propagation step does not introduce an extra sensor tick.
+
+`SimulationSampler` prepares sensor layout, estimator configuration, and reusable
+sample buffers once. Sensor random streams use the subsystem tick and sensor
+index, independently of the result recording stride. Estimation continues at
+every subsystem tick even when that tick is not recorded. Rows outside sensor
+ticks retain NaN sensor and estimator diagnostics.
+
+Progress is written by native C++ after the complete step, including sensor and
+estimator work. Python assembles the returned result arrays; it does not replay
+sensor or estimator sampling for this path. The native propagation-only entry
+points remain available for callers that do not need simulation sampling.
+
 ## MISRA C++:2023
 
 CMake selects ISO C++17, the language version targeted by MISRA C++:2023. The

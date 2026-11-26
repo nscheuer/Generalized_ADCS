@@ -32,6 +32,14 @@ public:
          const Eigen::MatrixXd &truth, const Eigen::MatrixXd &readings,
          const std::vector<Sensor> &sensors, double interval,
          const std::set<std::string> &fields);
+  // Update persistent state and write diagnostics for one sensor tick.
+  static std::map<std::string, Eigen::MatrixXd>
+  allocate_samples(Eigen::Index rows, const std::set<std::string> &fields);
+  static void update_sample(State &current,
+      const Eigen::Matrix3d &acceleration_psd, double dt,
+      const Eigen::VectorXd &truth, const Eigen::VectorXd &readings,
+      const std::vector<Sensor> &sensors,
+      std::map<std::string, Eigen::MatrixXd> &output, Eigen::Index row);
   static State predict(const State &state,
                        const Eigen::Matrix3d &acceleration_psd, double dt);
   static Correction correct(const State &state, const Eigen::Vector3d &residual,

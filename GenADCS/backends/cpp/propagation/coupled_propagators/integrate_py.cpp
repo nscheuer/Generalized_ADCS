@@ -62,7 +62,18 @@ void bind_integrate(py::module_ &m) {
         [](py::array_t<double, py::array::c_style | py::array::forcecast> times,
            const Eigen::MatrixXd &states, double jd, double interval,
            py::object runtime, py::object adcs, std::uint64_t seed) {
-          auto r = runtime_from_python(runtime);
+          constexpr const char *cache_name = "_genadcs_sensor_runtime";
+          Runtime *r;
+          if (py::hasattr(runtime, cache_name)) {
+            r = runtime.attr(cache_name).cast<py::capsule>().get_pointer<Runtime>();
+          } else {
+            auto *created = new Runtime(runtime_from_python(runtime));
+            py::capsule capsule(created, [](void *pointer) {
+              delete static_cast<Runtime *>(pointer);
+            });
+            runtime.attr(cache_name) = capsule;
+            r = created;
+          }
           auto input = times.unchecked<1>();
           Eigen::VectorXd native_times(input.shape(0));
           for (py::ssize_t i = 0; i < input.shape(0); ++i) {
@@ -92,7 +103,7 @@ void bind_integrate(py::module_ &m) {
               throw py::type_error("unsupported C++ sensor");
             }
           }
-          return sample_sensors(native_times, states, jd, interval, r,
+          return sample_sensors(native_times, states, jd, interval, *r,
                                 std::move(sensors), seed);
         });
   m.def(

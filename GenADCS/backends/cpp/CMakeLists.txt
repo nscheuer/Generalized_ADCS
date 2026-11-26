@@ -665,6 +665,18 @@ set_target_properties(_coupled PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/propagation/coupled_propagators")
 
 add_library(separate_propagation_native STATIC
+    propagation/attitude_propagators/simulation_sampling.cpp
+    propagation/coupled_propagators/sensor_sampling.cpp
+    hardware/ADCS_subsystem/sensors/gyroscope.cpp
+    hardware/ADCS_subsystem/sensors/magnetometer.cpp
+    hardware/ADCS_subsystem/sensors/accelerometer.cpp
+    hardware/ADCS_subsystem/sensors/coarse_sun_sensor.cpp
+    hardware/ADCS_subsystem/sensors/fine_sun_sensor.cpp
+    hardware/ADCS_subsystem/sensors/autonomous_star_tracker.cpp
+    hardware/ADCS_subsystem/sensors/gnss.cpp
+    hardware/ADCS_subsystem/sensors/kernels.cpp
+    helpers/math/rotations/sensor_kernels.cpp
+    helpers/random/philox.cpp
     propagation/orbital_propagators/keplerian_orbit_propagator.cpp
     propagation/attitude_propagators/rk4_attitude_propagator.cpp
     propagation/attitude_propagators/reference_attitude_propagator.cpp
@@ -695,7 +707,7 @@ add_library(separate_propagation_native STATIC
     helpers/math/rotations/quaternion/conversions.cpp
     helpers/math/rotations/quaternion/algebra.cpp)
 target_compile_features(separate_propagation_native PUBLIC cxx_std_17)
-target_link_libraries(separate_propagation_native PUBLIC Eigen3::Eigen)
+target_link_libraries(separate_propagation_native PUBLIC Eigen3::Eigen attitude_estimator_native)
 target_include_directories(separate_propagation_native PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}" helpers/random helpers/math/rotations
     environment helpers/math helpers/math/frames helpers/math/time
