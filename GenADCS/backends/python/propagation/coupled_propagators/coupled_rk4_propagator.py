@@ -120,7 +120,10 @@ def _integrate_chunk(
                 if estimator_flags & 2:
                     estimates[index, 4:7] = estimate_w
                 if estimator_flags & 1024:
-                    estimates[index, 7:43] = estimate_p.ravel()
+                    if estimator_kind == 2:
+                        estimates[index, 7:56] = estimate_p.ravel()
+                    else:
+                        estimates[index, 7:43] = estimate_p.ravel()
         if completed % record_every == 0:
             output[completed // record_every, :] = y
         elif completed == full_steps + int(remainder > 0.0):
@@ -240,7 +243,10 @@ class CoupledRK4Propagator:
                 if estimator_flags & 2:
                     estimates[0, 4:7] = estimate_w
                 if estimator_flags & 1024:
-                    estimates[0, 7:43] = estimate_p.ravel()
+                    if estimator_kind == 2:
+                        estimates[0, 7:56] = estimate_p.ravel()
+                    else:
+                        estimates[0, 7:43] = estimate_p.ravel()
 
         if progress and step_count:
             from tqdm import tqdm

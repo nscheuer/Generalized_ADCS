@@ -9,11 +9,15 @@ from GenADCS.backends.python.environment import Earth, Environment
 from GenADCS.backends.python.environment.ephemeris import EphemerisModel
 from GenADCS.backends.python.hardware import Satellite, SatelliteGeometry
 from GenADCS.backends.python.hardware.ADCS_subsystem import ADCSSubsystem
-from GenADCS.backends.python.hardware.ADCS_subsystem.estimator import AttitudeMEKF
+from GenADCS.backends.python.hardware.ADCS_subsystem.estimator import AttitudeEKF, AttitudeMEKF
 from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.attitude_estimator import (
     correct_star_tracker,
     predict,
     step,
+)
+from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.attitude_estimator.attitude_ekf import (
+    predict as ekf_predict,
+    step as ekf_step,
 )
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import (
     AutonomousStarTracker,
@@ -86,6 +90,40 @@ def test_prediction_noise_and_compiled_sensor_step() -> None:
     assert np.linalg.eigvalsh(p).min() >= -1e-12
 
 
+def test_seven_state_ekf_prediction_and_compiled_sensor_step() -> None:
+    psd = np.eye(3) * 2e-5
+    initial_covariance = np.eye(7) * 0.1
+    q, w, p = ekf_predict(
+        IDENTITY, np.array([0.0, 0.0, 0.2]), initial_covariance, psd, 1.0
+    )
+    np.testing.assert_allclose(
+        q, rotation_vector_to_quaternion(np.array([0.0, 0.0, -0.2])), atol=1e-14
+    )
+    np.testing.assert_allclose(w, np.array([0.0, 0.0, 0.2]))
+    np.testing.assert_allclose(np.linalg.norm(q), 1.0, atol=1e-14)
+    np.testing.assert_allclose(p, p.T, atol=1e-14)
+    assert np.linalg.eigvalsh(p).min() >= -1e-12
+    np.testing.assert_allclose(p[:4, :4] @ q, np.zeros(4), atol=1e-12)
+
+    gyro = Gyroscope(
+        np.zeros(3), IDENTITY, IDENTITY, 10.0, np.eye(3) * 1e-6, np.zeros(3)
+    )
+    config = prepare_sensors(cast(list[Sensor], [gyro]), Environment())
+    estimator = AttitudeEKF(IDENTITY, np.ones(3), np.eye(7), psd)
+
+    @njit
+    def run(q, w, p, process_noise, readings, sensors):
+        for _ in range(3):
+            q, w, p = ekf_step(q, w, p, process_noise, 0.1, readings, sensors)
+        return q, w, p
+
+    q, w, p = run(*estimator.prepare(), np.zeros(3), config)
+    assert np.linalg.norm(w) < 0.01
+    np.testing.assert_allclose(np.linalg.norm(q), 1.0, atol=1e-14)
+    np.testing.assert_allclose(p, p.T, atol=1e-14)
+    assert np.linalg.eigvalsh(p).min() >= -1e-12
+
+
 def test_plotting_example_converges() -> None:
     from GenADCS.examples.plotting.estimators._setup import run_example
 
@@ -120,13 +158,21 @@ def test_missing_tracker_and_mixed_sensor_order() -> None:
 
 
 @pytest.mark.parametrize("propagator", [CoupledRK4Propagator, CoupledDOP853Propagator])
+@pytest.mark.parametrize(
+    ("estimator_type", "covariance_size"),
+    [(AttitudeMEKF, 6), (AttitudeEKF, 7)],
+)
 def test_estimator_stays_in_simulation_loop(
     propagator: type[CoupledRK4Propagator] | type[CoupledDOP853Propagator],
+    estimator_type: type[AttitudeMEKF] | type[AttitudeEKF],
+    covariance_size: int,
 ) -> None:
     gyro = Gyroscope(
         np.zeros(3), IDENTITY, IDENTITY, 10.0, np.eye(3) * 1e-8, np.zeros(3)
     )
-    estimator = AttitudeMEKF(IDENTITY, np.array([0.1, 0.1, 0.1]), np.eye(6) * 0.1, 1e-8)
+    estimator = estimator_type(
+        IDENTITY, np.array([0.1, 0.1, 0.1]), np.eye(covariance_size) * 0.1, 1e-8
+    )
     satellite = Satellite(
         SatelliteGeometry(12.0, np.diag([0.13, 0.1, 0.05]), []),
         ADCSSubsystem(sensors=cast(list[Sensor], [gyro]), estimator=estimator),
@@ -159,7 +205,7 @@ def test_estimator_stays_in_simulation_loop(
     )
     rows = result.satellites["sat_000"]
     assert rows.fields["estimated_attitude"].shape == (3, 4)
-    assert rows.fields["estimated_covariance"].shape == (3, 36)
+    assert rows.fields["estimated_covariance"].shape == (3, covariance_size**2)
     for name, width in (
         ("estimated_attitude_covariance", 9),
         ("estimated_rate_covariance", 9),

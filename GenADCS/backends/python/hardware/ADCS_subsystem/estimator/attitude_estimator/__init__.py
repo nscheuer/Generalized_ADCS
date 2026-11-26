@@ -6,11 +6,13 @@ from .attitude_mekf import (
     predict,
     step,
 )
+from .attitude_ekf import AttitudeEKF
 from .base import AttitudeEstimator
 
 __all__ = [
     "AttitudeEstimator",
     "AttitudeMEKF",
+    "AttitudeEKF",
     "correct",
     "correct_gyro",
     "correct_star_tracker",

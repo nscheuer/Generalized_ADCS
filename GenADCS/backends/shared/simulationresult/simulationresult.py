@@ -65,10 +65,11 @@ class SatelliteResult:
                 raise ValueError(f"unknown result field: {name}")
             width = (None if name in SENSOR_FIELDS else 1 if name in ("atmospheric_density", "eclipse_state", "normalized_innovation_squared", "normalized_estimation_error_squared")
                      else None if name == "satellite_wheel_momenta" else 4 if name in ("satellite_attitude", "estimated_attitude")
-                     else 36 if name == "estimated_covariance" else 18 if name == "kalman_gain"
+                     else (36, 49) if name == "estimated_covariance" else 18 if name == "kalman_gain"
                      else 9 if name in ("estimated_attitude_covariance", "estimated_rate_covariance", "measurement_innovation_covariance") else 3)
             array = np.asarray(value, dtype=np.float64)
-            if array.ndim != 2 or array.shape[0] != len(self.times_s) or (width is not None and array.shape[1] != width):
+            valid_width = width is None or (array.shape[1] in width if isinstance(width, tuple) else array.shape[1] == width)
+            if array.ndim != 2 or array.shape[0] != len(self.times_s) or not valid_width:
                 raise ValueError(f"{name} must have one row per sample and {width or 'a fixed number of'} columns")
             self.fields[name] = array
 

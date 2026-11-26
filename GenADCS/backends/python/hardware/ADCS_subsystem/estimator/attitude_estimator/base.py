@@ -8,11 +8,7 @@ import numpy as np
 
 
 class AttitudeEstimator:
-    """Nominal body-from-inertial attitude, body rate, and 6D error covariance.
-
-    Error coordinates are ``[body-frame rotation vector, body-rate error]``.
-    No sensor or actuator bias is part of this state.
-    """
+    """Shared validated inputs for attitude estimators with variable covariance size."""
 
     DIAGNOSTIC_FIELDS = frozenset(
         (
@@ -28,6 +24,7 @@ class AttitudeEstimator:
             "kalman_gain",
         )
     )
+    COVARIANCE_SIZE = 6
 
     def __init__(
         self,
@@ -46,8 +43,9 @@ class AttitudeEstimator:
             raise ValueError("quaternion must be a finite nonzero Hamilton 4-vector")
         if w.shape != (3,) or not np.all(np.isfinite(w)):
             raise ValueError("rate must be a finite 3-vector")
-        if p.shape != (6, 6) or not np.all(np.isfinite(p)) or not np.allclose(p, p.T):
-            raise ValueError("covariance must be a finite symmetric 6x6 matrix")
+        size = self.COVARIANCE_SIZE
+        if p.shape != (size, size) or not np.all(np.isfinite(p)) or not np.allclose(p, p.T):
+            raise ValueError(f"covariance must be a finite symmetric {size}x{size} matrix")
         if np.linalg.eigvalsh(p).min() < -1e-12:
             raise ValueError("covariance must be positive semidefinite")
         if a.ndim == 0:

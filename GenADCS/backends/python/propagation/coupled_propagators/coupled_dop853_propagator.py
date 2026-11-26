@@ -223,7 +223,10 @@ def _integrate_adaptive_chunk(
                             if estimator_flags & 2:
                                 estimates[sensor_index, 4:7] = estimate_w
                             if estimator_flags & 1024:
-                                estimates[sensor_index, 7:43] = estimate_p.ravel()
+                                if estimator_kind == 2:
+                                    estimates[sensor_index, 7:56] = estimate_p.ravel()
+                                else:
+                                    estimates[sensor_index, 7:43] = estimate_p.ravel()
                 times[count] = t
                 states[count, :] = y
                 count += 1
@@ -362,7 +365,10 @@ class CoupledDOP853Propagator:
                 if estimator_flags & 2:
                     estimates[0, 4:7] = estimate_w
                 if estimator_flags & 1024:
-                    estimates[0, 7:43] = estimate_p.ravel()
+                    if estimator_kind == 2:
+                        estimates[0, 7:56] = estimate_p.ravel()
+                    else:
+                        estimates[0, 7:43] = estimate_p.ravel()
         if tf == 0.0:
             result = (np.array([0.0]), y.reshape(1, y.size))
             return (

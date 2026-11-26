@@ -3,9 +3,10 @@
 import numpy as np
 from numba import njit
 
-from .attitude_estimator import AttitudeEstimator, AttitudeMEKF
+from .attitude_estimator import AttitudeEKF, AttitudeEstimator, AttitudeMEKF
 from .attitude_estimator.attitude_mekf import step as mekf_step
 from .attitude_estimator.attitude_mekf import step_with_diagnostics
+from .attitude_estimator.attitude_ekf import step as ekf_step
 
 
 def prepare_estimator(
@@ -21,6 +22,8 @@ def prepare_estimator(
         )
     if isinstance(estimator, AttitudeMEKF):
         return (1, *estimator.prepare())
+    if isinstance(estimator, AttitudeEKF):
+        return (2, *estimator.prepare())
     raise TypeError(f"unsupported estimator: {type(estimator).__name__}")
 
 
@@ -58,6 +61,21 @@ def update_estimator(
             )
         else:
             q_new, w_new, p_new = mekf_step(
+                q, w, covariance, acceleration_psd, dt, readings, sensor_config
+            )
+        q[:] = q_new
+        w[:] = w_new
+        covariance[:, :] = p_new
+    elif kind == 2:
+        if flags & 1020:
+            if truth_q is None or truth_w is None or diagnostics is None:
+                raise ValueError("diagnostic updates require truth state and storage")
+            q_new, w_new, p_new = ekf_step(
+                q, w, covariance, acceleration_psd, dt, readings, sensor_config,
+                flags, truth_q, truth_w, diagnostics,
+            )
+        else:
+            q_new, w_new, p_new = ekf_step(
                 q, w, covariance, acceleration_psd, dt, readings, sensor_config
             )
         q[:] = q_new

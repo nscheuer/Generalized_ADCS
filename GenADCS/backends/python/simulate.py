@@ -177,10 +177,11 @@ def simulate(
             sensor_rows[name + suffix] = values
     if satellite.adcs.estimator is not None:
         estimates = integration[4]
+        covariance_stop = 7 + satellite.adcs.estimator.covariance.size
         for name, start, stop in (
             ("estimated_attitude", 0, 4),
             ("estimated_rate", 4, 7),
-            ("estimated_covariance", 7, 43),
+            ("estimated_covariance", 7, covariance_stop),
             ("estimated_attitude_covariance", 78, 87),
             ("estimated_rate_covariance", 87, 96),
             ("measurement_innovation", 43, 46),

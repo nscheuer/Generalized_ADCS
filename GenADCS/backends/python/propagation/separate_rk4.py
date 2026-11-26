@@ -114,7 +114,10 @@ def _integrate_separate(
                 if estimator_flags & 2:
                     estimates[index, 4:7] = estimate_w
                 if estimator_flags & 1024:
-                    estimates[index, 7:43] = estimate_p.ravel()
+                    if estimator_kind == 2:
+                        estimates[index, 7:56] = estimate_p.ravel()
+                    else:
+                        estimates[index, 7:43] = estimate_p.ravel()
         if completed % record_every == 0:
             output[completed // record_every] = y
         elif completed == total_steps:
@@ -213,7 +216,10 @@ def integrate_separate(
             if estimator_flags & 2:
                 estimates[0, 4:7] = estimate_w
             if estimator_flags & 1024:
-                estimates[0, 7:43] = estimate_p.ravel()
+                if estimator_kind == 2:
+                    estimates[0, 7:56] = estimate_p.ravel()
+                else:
+                    estimates[0, 7:43] = estimate_p.ravel()
     if total_steps:
         completed_steps = np.zeros(1, dtype=np.int64)
         args = (
