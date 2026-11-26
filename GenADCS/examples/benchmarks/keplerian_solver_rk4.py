@@ -28,7 +28,7 @@ from GenADCS.backends.python.solver import AttitudeSolver, OrbitalSolver, Solver
 from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
 
 # Select the backend for this example: "cpp" or "python".
-backed = "python"
+backed = "cpp"
 
 if backed not in ("cpp", "python"):
     raise ValueError("backed must be cpp or python")

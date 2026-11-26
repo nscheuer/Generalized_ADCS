@@ -43,7 +43,7 @@ std::pair<std::vector<double>,Eigen::MatrixXd> KeplerianOrbitPropagator::integra
  const int total=full+(rem>0); std::vector<int> rows{0}; for(int k=record;k<=total;k+=record) rows.push_back(k); if(rows.back()!=total) rows.push_back(total);
  std::vector<double> times; Eigen::MatrixXd output(rows.size(),initial.size()); Eigen::VectorXd y=initial; output.row(0)=y.transpose(); times.push_back(0);
  for(int k=1;k<=total;++k){ Eigen::Vector3d vout; double h=(k==full+1&&rem>0)?rem:dt_; auto r=keplerian_position_velocity_step(y.segment<3>(7),y.segment<3>(10),mu,h,vout); y.segment<3>(7)=r;y.segment<3>(10)=vout;
-  if(std::find(rows.begin()+1,rows.end(),k)!=rows.end()){int row=static_cast<int>(times.size());output.row(row)=y.transpose();times.push_back(k==total?tf:std::min(k*dt_,tf));}
+  if(k % record == 0 || k == total){int row=static_cast<int>(times.size());output.row(row)=y.transpose();times.push_back(k==total?tf:std::min(k*dt_,tf));}
   if(progress) progress(1);
  }
  return {times,output};

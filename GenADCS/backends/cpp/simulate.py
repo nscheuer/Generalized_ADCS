@@ -61,7 +61,7 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
     if any(type(s).__name__ in ("CoarseSunSensor", "FineSunSensor", "AutonomousStarTracker") for s in sensors) and environment.ephemeris is None:
         raise ValueError("Sun and star tracker sensors require an ephemeris")
 
-    separate = getattr(solver, "coupled", None) is None
+    separate = isinstance(solver, Solver) and solver.coupled is None
     propagator = None
     record_every = math.gcd(resultsformat.N, sensor_every) if sensors or estimator is not None else resultsformat.N
     if separate:

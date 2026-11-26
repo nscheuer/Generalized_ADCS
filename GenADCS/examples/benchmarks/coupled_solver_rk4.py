@@ -5,7 +5,7 @@ DOP853 may take additional adaptive substeps inside each dt interval.
 """
 
 # Select the backend for this example: "rust", "cpp", or "python".
-backed = "python"
+backed = "rust"
 
 if backed not in ("rust", "cpp", "python"):
     raise ValueError("backed must be rust, cpp, or python")
