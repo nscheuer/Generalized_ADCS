@@ -8,7 +8,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[5]))
 
-backend = "cpp"
+backend = "python"
 
 if backend not in ("cpp", "python"):
     raise ValueError("backend must be 'cpp' or 'python'")

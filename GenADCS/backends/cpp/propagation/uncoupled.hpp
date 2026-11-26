@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../coupled_propagators/_coupled_dynamics.hpp"
-#include "simulation_sampling.hpp"
+#include "coupled_propagators/_coupled_dynamics.hpp"
+#include "attitude_propagators/simulation_sampling.hpp"
 #include <tuple>
 #include <Eigen/Dense>
 #include <utility>

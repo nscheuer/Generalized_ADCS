@@ -1,20 +1,19 @@
-#include "separate_solver.hpp"
-#include "simulation_sampling.hpp"
+#include "uncoupled.hpp"
+#include "attitude_propagators/simulation_sampling.hpp"
 
-#include "../orbital_propagators/keplerian_orbit_propagator.hpp"
-#include "reference_attitude_propagator.hpp"
-#include "rk4_attitude_propagator.hpp"
-#include "../../environment/native_models.hpp"
-#include "../../helpers/math/time/conversions.hpp"
+#include "orbital_propagators/keplerian_orbit_propagator.hpp"
+#include "attitude_propagators/reference_attitude_propagator.hpp"
+#include "attitude_propagators/rk4_attitude_propagator.hpp"
+#include "../environment/native_models.hpp"
+#include "../helpers/math/time/conversions.hpp"
 
-#include "../coupled_propagators/integrate.hpp"
+#include "coupled_propagators/integrate.hpp"
 #include <numeric>
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <cmath>
 #include <stdexcept>
-#include <pybind11/embed.h>
 
 namespace omni::propagation {
 SeparateTrajectory integrate_uncoupled(
@@ -123,10 +122,6 @@ SeparateTrajectory integrate_uncoupled(
     if (progress) {
       progress(1);
     }
-    if ((step + 1) % 256 == 0) {
-      pybind11::gil_scoped_acquire acquire;
-      if (PyErr_CheckSignals() != 0) throw pybind11::error_already_set();
-    }
   }
   return trajectory;
 }
@@ -216,10 +211,6 @@ SeparateTrajectory integrate_separate_rk4(
     if (progress) {
       progress(1);
     }
-    if ((step + 1) % 256 == 0) {
-      pybind11::gil_scoped_acquire acquire;
-      if (PyErr_CheckSignals() != 0) throw pybind11::error_already_set();
-    }
   }
   return trajectory;
 }
@@ -303,17 +294,8 @@ SeparateSimulation simulate_coupled(
   };
   auto trajectory = adaptive
       ? integrate_dop853(initial, epoch, dt, tf, runtime, rtol, atol,
-                        max_step, min_step, update, stride, observe, [] {
-                          pybind11::gil_scoped_acquire acquire;
-                          if (PyErr_CheckSignals() != 0)
-                            throw pybind11::error_already_set();
-                        })
-      : integrate_rk4(initial, epoch, dt, tf, runtime, update, stride, observe,
-                      [] {
-                        pybind11::gil_scoped_acquire acquire;
-                        if (PyErr_CheckSignals() != 0)
-                          throw pybind11::error_already_set();
-                      });
+                        max_step, min_step, update, stride, observe)
+      : integrate_rk4(initial, epoch, dt, tf, runtime, update, stride, observe);
   if (progress) std::cerr << '\n';
   Eigen::MatrixXd states(trajectory.states.size(), initial.size());
   for (Eigen::Index i = 0; i < states.rows(); ++i)

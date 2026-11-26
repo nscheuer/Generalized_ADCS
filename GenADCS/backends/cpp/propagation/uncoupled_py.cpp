@@ -1,6 +1,6 @@
-#include "separate_solver.hpp"
-#include "simulation_sampling.hpp"
-#include "../coupled_propagators/runtime_python.hpp"
+#include "uncoupled.hpp"
+#include "attitude_propagators/simulation_sampling.hpp"
+#include "coupled_propagators/runtime_python.hpp"
 
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
@@ -55,7 +55,7 @@ hardware::Sensor as_sensor(py::handle value) {
 
 } // namespace
 
-void bind_separate_solver(py::module_ &module) {
+void bind_uncoupled(py::module_ &module) {
   module.def("simulate_uncoupled",
       [](const Eigen::VectorXd &initial, double mu, double epoch,
          double dt, double tf, int record_every, py::object runtime,

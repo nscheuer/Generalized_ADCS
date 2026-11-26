@@ -683,7 +683,7 @@ add_library(separate_propagation_native STATIC
     propagation/orbital_propagators/keplerian_orbit_propagator.cpp
     propagation/attitude_propagators/rk4_attitude_propagator.cpp
     propagation/attitude_propagators/reference_attitude_propagator.cpp
-    propagation/attitude_propagators/separate_solver.cpp
+    propagation/uncoupled.cpp
     propagation/coupled_propagators/_coupled_dynamics.cpp
     dynamics/_geometry.cpp
     dynamics/drag_model/projected_area.cpp
@@ -723,10 +723,10 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/attitude_propagators/test_rk4_attitude_propagator.cpp")
     target_link_libraries(cpp_test_rk4_attitude_propagator PRIVATE separate_propagation_native)
     add_test(NAME cpp_rk4_attitude_propagator COMMAND cpp_test_rk4_attitude_propagator)
-    add_executable(cpp_test_separate_solver
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/test_separate_solver.cpp")
-    target_link_libraries(cpp_test_separate_solver PRIVATE separate_propagation_native)
-    add_test(NAME cpp_separate_solver COMMAND cpp_test_separate_solver)
+    add_executable(cpp_test_uncoupled
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/propagation/test_uncoupled.cpp")
+    target_link_libraries(cpp_test_uncoupled PRIVATE separate_propagation_native)
+    add_test(NAME cpp_uncoupled COMMAND cpp_test_uncoupled)
 endif()
 
 pybind11_add_module(_separate ${GENADCS_PYBIND_OPTIONS}
@@ -734,7 +734,7 @@ pybind11_add_module(_separate ${GENADCS_PYBIND_OPTIONS}
     propagation/orbital_propagators/keplerian_orbit_propagator_py.cpp
     propagation/attitude_propagators/rk4_attitude_propagator_py.cpp
     propagation/attitude_propagators/reference_attitude_propagator_py.cpp
-    propagation/attitude_propagators/separate_solver_py.cpp)
+    propagation/uncoupled_py.cpp)
 target_link_libraries(_separate PRIVATE separate_propagation_native Eigen3::Eigen)
 set_target_properties(_separate PROPERTIES
     C_VISIBILITY_PRESET hidden

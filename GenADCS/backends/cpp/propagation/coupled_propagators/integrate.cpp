@@ -7,7 +7,7 @@
 #include <limits>
 #include <stdexcept>
 #include <vector>
-#include <pybind11/embed.h>
+
 namespace omni::propagation {
 static Trajectory output(const std::vector<double> &times,
                          const std::vector<Vector> &states) {

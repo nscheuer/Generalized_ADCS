@@ -1,4 +1,4 @@
-#include "propagation/attitude_propagators/separate_solver.hpp"
+#include "propagation/uncoupled.hpp"
 
 #include <cmath>
 #include <stdexcept>
