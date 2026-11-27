@@ -13,11 +13,10 @@ interval :math:`\Delta t`, the bias increment has standard deviation
 Pass a ``Bias`` object to a sensor or actuator's ``bias`` argument. Bias
 values use the units of the corresponding sensor output or actuator command.
 
-.. container:: dynamics-visualization-grid
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   .. container:: installation-card
-
-      .. rubric:: Gyroscope
+   .. grid-item-card:: Gyroscope
 
       .. code-block:: python
 
@@ -27,9 +26,7 @@ values use the units of the corresponding sensor output or actuator command.
          )
          gyro = ADCS.Gyro(axis=np.array([1, 0, 0]), bias=gyro_bias)
 
-   .. container:: installation-card
-
-      .. rubric:: Magnetorquer actuator
+   .. grid-item-card:: Magnetorquer actuator
 
       .. code-block:: python
 

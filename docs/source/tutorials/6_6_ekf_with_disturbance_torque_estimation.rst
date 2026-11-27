@@ -14,6 +14,16 @@ body torque. The true values are available only because this is a simulation.
    :alt: Attitude angle error, gyro bias estimates, and body torque estimates.
    :width: 100%
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/estimators/ekf_with_disturbance_torque_estimation.py
+
 .. literalinclude:: ../../../examples/tutorials/estimators/ekf_with_disturbance_torque_estimation.py
    :language: python
-   :caption: ekf_with_disturbance_torque_estimation.py
+   :caption: examples/tutorials/estimators/ekf_with_disturbance_torque_estimation.py

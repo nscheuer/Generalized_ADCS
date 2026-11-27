@@ -15,9 +15,19 @@ simulated attitude is used only to assess the estimator's error.
    :alt: MEKF attitude angle error over time.
    :width: 100%
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/estimators/extended_kalman_filter.py
+
 .. literalinclude:: ../../../examples/tutorials/estimators/extended_kalman_filter.py
    :language: python
-   :caption: extended_kalman_filter.py
+   :caption: examples/tutorials/estimators/extended_kalman_filter.py
 
 For the full derivations and implementation details, see the API pages for
 :doc:`EKF <../ADCS.estimators.attitude_estimators.attitude_EKF>`,

@@ -14,9 +14,21 @@ The green line shows the active target direction; yellow shows MiRaTa's body
 boresight. The label and progress strip in the animation identify the active
 goal. The camera is fixed in an inertial frame.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/controlling_spacecraft/goal_list_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/goal_list_godot.py
    :language: python
-   :caption: goal_list_godot.py
+   :caption: examples/tutorials/controlling_spacecraft/goal_list_godot.py
 
 .. admonition:: How GoalList selects a goal
    :class: tutorial-tip

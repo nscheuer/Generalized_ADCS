@@ -30,67 +30,31 @@ img.adcs-logo {
     margin-top: -0.5rem;
 }
 
-/* Cards used by the tutorial pages (raw HTML grids). */
-.installation-card {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    overflow: hidden;
-    border: 1px solid var(--color-background-border);
-    border-radius: 0.75rem;
-    background: var(--color-background-primary);
+/* "Run it" box on tutorial pages: the command that runs the page's script. */
+.admonition.run-it {
+    border-left: 4px solid var(--color-brand-primary);
 }
 
-.installation-card h2 {
-    margin: 0;
-    padding: 1.1rem 1.15rem 0.9rem;
-    font-size: 1.3rem;
-}
-
-.installation-card pre {
-    flex: 1;
-    margin: 0;
-    padding: 1rem 1.15rem;
-    overflow-x: auto;
-    border-top: 1px solid var(--color-background-border);
-    border-radius: 0;
+.admonition.run-it > .admonition-title {
     background: var(--color-background-secondary);
-    color: var(--color-foreground-primary);
-    font-size: 0.78rem;
-    line-height: 1.7;
 }
 
-.installation-card code {
-    font-family: var(--font-stack--monospace);
+.admonition.run-it .highlight {
+    margin-bottom: 0.5rem;
 }
 
-.dynamics-visualization-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-    margin: 1rem 0;
+/* Tutorial cards: keep figures and code inside sphinx-design cards tidy. */
+.sd-card-body .highlight {
+    margin-bottom: 0.75rem;
 }
 
-.dynamics-visualization-grid h3 {
-    margin: 0;
-    padding: 1rem 1.15rem 0;
+.sd-card-body .code-block-caption {
+    overflow-wrap: anywhere;
 }
 
-.dynamics-visualization-grid p {
-    margin: 0;
-    padding: 0.5rem 1.15rem 1rem;
-}
-
-.dynamics-example-media {
+.sd-card-body img {
     display: block;
-    width: 100%;
     height: auto;
-}
-
-@media (max-width: 700px) {
-    .dynamics-visualization-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 table.sortable-factory th.factory-sortable-header {

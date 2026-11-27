@@ -33,4 +33,4 @@ angular rates, magnetorquer commands, final error, and target tracking.
 
 .. literalinclude:: ../../../examples/tutorials/advanced_topics/remote_execution_godot.py
    :language: python
-   :caption: remote_execution_godot.py
+   :caption: examples/tutorials/advanced_topics/remote_execution_godot.py

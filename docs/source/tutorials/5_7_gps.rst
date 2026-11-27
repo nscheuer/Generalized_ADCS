@@ -24,6 +24,16 @@ noise so the difference is visible.
    :alt: True and GPS-estimated orbit position components over one orbit.
    :width: 100%
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/attitude_sensors/gps.py
+
 .. literalinclude:: ../../../examples/tutorials/attitude_sensors/gps.py
    :language: python
-   :caption: gps.py
+   :caption: examples/tutorials/attitude_sensors/gps.py

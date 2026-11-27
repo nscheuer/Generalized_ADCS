@@ -10,9 +10,19 @@ Each run now starts on a different circular orbit. The spacecraft still
 share one initial attitude and angular velocity. The screenshot above is
 written by this page's script.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/monte_carlo/randomize_orbits.py
+
 .. literalinclude:: ../../../examples/tutorials/monte_carlo/randomize_orbits.py
    :language: python
-   :caption: randomize_orbits.py
+   :caption: examples/tutorials/monte_carlo/randomize_orbits.py
 
 .. admonition:: Sample an orbit
    :class: tutorial-tip

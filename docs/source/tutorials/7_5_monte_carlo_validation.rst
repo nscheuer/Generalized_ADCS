@@ -13,9 +13,19 @@ controlled runs. Initial rates are limited to ±0.5 degrees per second for
 this actuator setup. All eight error curves approach zero within the
 1,200-second simulation.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/monte_carlo/monte_carlo_validation.py
+
 .. literalinclude:: ../../../examples/tutorials/monte_carlo/monte_carlo_validation.py
    :language: python
-   :caption: monte_carlo_validation.py
+   :caption: examples/tutorials/monte_carlo/monte_carlo_validation.py
 
 .. admonition:: Validate across runs
    :class: tutorial-tip

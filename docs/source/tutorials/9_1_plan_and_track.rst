@@ -38,6 +38,18 @@ closed-loop response. It also opens a Godot animation of the spacecraft.
    :width: 90%
    :align: center
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/advanced_topics/plan_and_track_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer. This example needs the :doc:`trajectory planner add-on <../installation/trajectory_planner_addon>`.
+
 .. literalinclude:: ../../../examples/tutorials/advanced_topics/plan_and_track_godot.py
    :language: python
-   :caption: plan_and_track_godot.py
+   :caption: examples/tutorials/advanced_topics/plan_and_track_godot.py

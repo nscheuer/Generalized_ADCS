@@ -14,6 +14,16 @@ available here only because this is a simulation.
    :alt: MEKF attitude angle error and true versus estimated gyro biases.
    :width: 100%
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/estimators/ekf_with_bias_estimates.py
+
 .. literalinclude:: ../../../examples/tutorials/estimators/ekf_with_bias_estimates.py
    :language: python
-   :caption: ekf_with_bias_estimates.py
+   :caption: examples/tutorials/estimators/ekf_with_bias_estimates.py

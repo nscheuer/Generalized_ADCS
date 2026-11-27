@@ -4,34 +4,27 @@ Environment and Geometry
 Environment
 -----------
 
-.. code-block:: python
-   :caption: environment_and_geometry.py
+.. admonition:: Run it
+   :class: run-it
 
-   import ADCS
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
 
-   environment = ADCS.Environment(
-       magnetic_field=ADCS.IGRF14(),
-       atmosphere=ADCS.SMADAtmosphere(),
-       ephemeris=ADCS.DE421(),
-   )
+   .. code-block:: bash
+
+      python examples/tutorials/torques_on_a_spacecraft/environment_and_geometry.py
+
+.. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/environment_and_geometry.py
+   :language: python
+   :caption: examples/tutorials/torques_on_a_spacecraft/environment_and_geometry.py
+   :start-at: import ADCS
+   :end-before: size =
 
 Geometry
 --------
 
-.. code-block:: python
+A 10 × 30 × 10 cm 3U body; body *y* is the long axis.
 
-   import numpy as np
-
-   # A 10 × 30 × 10 cm 3U body; body y is the long axis.
-   size = np.array([0.1, 0.3, 0.1])
-   faces = []
-   for axis in range(3):
-       for sign in (-1.0, 1.0):
-           normal = sign * np.eye(3)[axis]
-           faces.append(ADCS.disturbances.GeometryFace(
-               area=np.prod(np.delete(size, axis)),
-               centroid=0.5 * size[axis] * normal,
-               normal=normal,
-               CD=2.2,
-           ))
-   geometry = ADCS.disturbances.GeometryConfig(faces)
+.. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/environment_and_geometry.py
+   :language: python
+   :start-at: size =

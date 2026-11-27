@@ -22,57 +22,53 @@ terms tilt that axis; a small perturbation grows through the
 The initial rate is nearly along that intermediate axis, with a small
 :math:`z` component.
 
-.. code-block:: python
-   :caption: dzhanibekov_effect.py
+.. admonition:: Run it
+   :class: run-it
 
-   import numpy as np
-   import ADCS
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
 
-   inertia = np.array([
-       [0.0333, 0.0060, 0.0],
-       [0.0060, 0.0333, 0.0],
-       [0.0,    0.0,    0.00667],
-   ])
-   satellite = ADCS.Satellite(mass=4.0, J_0=inertia)
-   initial_state = ADCS.State(
-       w=np.deg2rad([3.5, -3.5, 0.1]),
-       q=np.array([1.0, 0.0, 0.0, 0.0]),
-   )
-   orbit = ADCS.Orbital_State(
-       ephem=ADCS.Ephemeris(),
-       J2000=0.22,
-       R=np.array([7000.0, 0.0, 0.0]),
-       V=np.array([0.0, 7.5, 0.0]),
-   )
-   results = ADCS.simulate(
-       x=initial_state, satellite=satellite, os0=orbit,
-       dt=1.0, tf=180.0,
-   )
+   .. code-block:: bash
+
+      python examples/tutorials/spacecraft_dynamics/dzhanibekov_effect.py
+
+      # the same simulation in the 3-D Godot viewer
+      python examples/tutorials/spacecraft_dynamics/dzhanibekov_effect_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
+.. literalinclude:: ../../../examples/tutorials/spacecraft_dynamics/dzhanibekov_effect.py
+   :language: python
+   :caption: examples/tutorials/spacecraft_dynamics/dzhanibekov_effect.py
+   :start-at: import matplotlib.pyplot as plt
+   :end-before: ADCS.plot(
 
 Choose a visualization:
 
-.. raw:: html
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   <div class="dynamics-visualization-grid">
-     <section class="installation-card">
-       <h3>Attitude plot</h3>
-       <pre><code>import matplotlib.pyplot as plt
+   .. grid-item-card:: Attitude plot
 
-   ADCS.plot(results, ADCS.plots.AttitudePlot(), layout=(1, 1))
-   plt.show()</code></pre>
-     </section>
-     <section class="installation-card">
-       <h3>Godot animation</h3>
-       <pre><code>from ADCS.helpers.animations import animate_orbit_godot
-   from ADCS.helpers.animations.godot.overlays import Triad
+      .. code-block:: python
 
-   animate_orbit_godot(
-       results=results,
-       overlays=[Triad(frame="body", px=110)],
-       graphics_quality="high",
-   )</code></pre>
-     </section>
-   </div>
+         import matplotlib.pyplot as plt
+
+         ADCS.plot(results, ADCS.plots.AttitudePlot(), layout=(1, 1))
+         plt.show()
+
+   .. grid-item-card:: Godot animation
+
+      .. code-block:: python
+
+         from ADCS.helpers.animations import animate_orbit_godot
+         from ADCS.helpers.animations.godot.overlays import Triad
+
+         animate_orbit_godot(
+             results=results,
+             overlays=[Triad(frame="body", px=110)],
+             graphics_quality="high",
+         )
 
 Full and diagonal inertia
 -------------------------
@@ -80,26 +76,34 @@ Full and diagonal inertia
 Run the same initial state with either matrix. The diagonal version removes
 the coupling between the body :math:`x` and :math:`y` axes.
 
-.. raw:: html
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   <div class="dynamics-visualization-grid">
-     <section class="installation-card">
-       <h3>Full inertia</h3>
-       <pre><code>inertia = np.array([
-       [0.0333, 0.0060, 0.0],
-       [0.0060, 0.0333, 0.0],
-       [0.0,    0.0,    0.00667],
-   ])</code></pre>
-       <img class="dynamics-example-media" src="../_static/tutorials/spacecraft_dynamics/dzhanibekov_effect/full_inertia.gif" alt="MiRaTa flips with the full inertia matrix">
-     </section>
-     <section class="installation-card">
-       <h3>Diagonal only</h3>
-       <pre><code>inertia = np.diag([
-       0.0333, 0.0333, 0.00667,
-   ])</code></pre>
-       <img class="dynamics-example-media" src="../_static/tutorials/spacecraft_dynamics/dzhanibekov_effect/diagonal_inertia.gif" alt="MiRaTa rotates without an intermediate-axis flip using diagonal inertia">
-     </section>
-   </div>
+   .. grid-item-card:: Full inertia
+
+      .. code-block:: python
+
+         inertia = np.array([
+             [0.0333, 0.0060, 0.0],
+             [0.0060, 0.0333, 0.0],
+             [0.0,    0.0,    0.00667],
+         ])
+
+      .. image:: ../_static/tutorials/spacecraft_dynamics/dzhanibekov_effect/full_inertia.gif
+         :alt: MiRaTa flips with the full inertia matrix
+         :width: 100%
+
+   .. grid-item-card:: Diagonal only
+
+      .. code-block:: python
+
+         inertia = np.diag([
+             0.0333, 0.0333, 0.00667,
+         ])
+
+      .. image:: ../_static/tutorials/spacecraft_dynamics/dzhanibekov_effect/diagonal_inertia.gif
+         :alt: MiRaTa rotates without an intermediate-axis flip using diagonal inertia
+         :width: 100%
 
 Angular velocity
 ----------------
@@ -113,18 +117,20 @@ Plot all three body-frame angular velocity components for each run:
    ADCS.plot(results, ADCS.plots.AngularVelocityPlotCombined(), layout=(1, 1))
    plt.show()
 
-.. raw:: html
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   <div class="dynamics-visualization-grid">
-     <section class="installation-card">
-       <h3>Full inertia</h3>
-       <img class="dynamics-example-media" src="../_static/tutorials/spacecraft_dynamics/dzhanibekov_effect/full_inertia_rates.png" alt="Body angular velocity components with full inertia showing a flip">
-     </section>
-     <section class="installation-card">
-       <h3>Diagonal only</h3>
-       <img class="dynamics-example-media" src="../_static/tutorials/spacecraft_dynamics/dzhanibekov_effect/diagonal_inertia_rates.png" alt="Body angular velocity components with diagonal inertia remaining nearly constant">
-     </section>
-   </div>
+   .. grid-item-card:: Full inertia
+
+      .. image:: ../_static/tutorials/spacecraft_dynamics/dzhanibekov_effect/full_inertia_rates.png
+         :alt: Body angular velocity components with full inertia showing a flip
+         :width: 100%
+
+   .. grid-item-card:: Diagonal only
+
+      .. image:: ../_static/tutorials/spacecraft_dynamics/dzhanibekov_effect/diagonal_inertia_rates.png
+         :alt: Body angular velocity components with diagonal inertia remaining nearly constant
+         :width: 100%
 
 .. admonition:: Tips and tricks
    :class: tutorial-tip

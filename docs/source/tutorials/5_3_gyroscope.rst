@@ -18,9 +18,19 @@ The example uses a deliberately poor gyro: 0.05°/s white noise per sample
 and fixed axis offsets of 0.1–0.2°/s. The offsets do not random-walk
 (``std_bias=0``).
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/attitude_sensors/gyroscope.py
+
 .. literalinclude:: ../../../examples/tutorials/attitude_sensors/gyroscope.py
    :language: python
-   :caption: gyroscope.py
+   :caption: examples/tutorials/attitude_sensors/gyroscope.py
 
 The animation uses the same torque-free intermediate-axis tumble as the
 :doc:`Dzhanibekov effect tutorial <1_3_dzhanibekov_effect>`.

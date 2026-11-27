@@ -11,8 +11,18 @@ and final rates with your pointing-entry limit.
    :alt: Eight Monte Carlo angular-speed histories during B-dot detumbling.
    :width: 100%
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/first_mission/detumbling_mc.py
+
 .. literalinclude:: ../../../examples/tutorials/first_mission/detumbling_mc.py
    :language: python
-   :caption: detumbling_mc.py
+   :caption: examples/tutorials/first_mission/detumbling_mc.py
 
 Next: :doc:`Pointing <8_3_pointing>`.

@@ -15,6 +15,16 @@ how it moves, using only these measurements.
 Run the short script below to generate the plot. Does every possible
 orientation produce a different set of readings?
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/estimators/filter_justification.py
+
 .. literalinclude:: ../../../examples/tutorials/estimators/filter_justification.py
    :language: python
-   :caption: filter_justification.py
+   :caption: examples/tutorials/estimators/filter_justification.py

@@ -19,9 +19,21 @@ in spacecraft electronics. The satellite starts with zero angular velocity;
 the changing geomagnetic field sets it rotating. In the animation, yellow is
 the magnetic field and the colored arrows are body axes.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/torques_on_a_spacecraft/residual_dipole_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/residual_dipole_godot.py
    :language: python
-   :caption: residual_dipole_godot.py
+   :caption: examples/tutorials/torques_on_a_spacecraft/residual_dipole_godot.py
 
 .. admonition:: Tips and tricks
    :class: tutorial-tip

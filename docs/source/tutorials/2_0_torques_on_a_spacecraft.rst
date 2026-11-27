@@ -3,14 +3,14 @@ Torques on a Spacecraft
 
 Environmental torques disturb a spacecraft’s attitude. Reaction wheels and magnetorquers apply control torques to change it.
 
-* :doc:`Environment and Geometry <2_1_environment_and_geometry>`
-* :doc:`Drag Torque <2_2_drag_torque>`
-* :doc:`SRP Torque <2_3_srp_disturbance>`
-* :doc:`Gravity Gradient Torque <2_4_gravity_gradient>`
-* :doc:`Residual Dipole Torque <2_5_residual_dipole_disturbance>`
-* :doc:`Environmental Torques <2_6_environmental_torques>`
-* :doc:`Reaction Wheel <2_7_reaction_wheel>`
-* :doc:`Magnetorquer <2_8_magnetorquer>`
+* :doc:`2_1_environment_and_geometry`
+* :doc:`2_2_drag_torque`
+* :doc:`2_3_srp_disturbance`
+* :doc:`2_4_gravity_gradient`
+* :doc:`2_5_residual_dipole_disturbance`
+* :doc:`2_6_environmental_torques`
+* :doc:`2_7_reaction_wheel`
+* :doc:`2_8_magnetorquer`
 
 .. toctree::
    :maxdepth: 1

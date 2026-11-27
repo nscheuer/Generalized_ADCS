@@ -18,11 +18,23 @@ twist and reach the specified quaternion. The single-axis goal does not
 command that rotation: it only aligns the yellow boresight with the green
 target direction.
 
-.. container:: dynamics-visualization-grid
+.. admonition:: Run it
+   :class: run-it
 
-   .. container:: installation-card
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
 
-      .. rubric:: Three-axis attitude goal
+   .. code-block:: bash
+
+      python examples/tutorials/controlling_spacecraft/three_axis_goal_godot.py
+      python examples/tutorials/controlling_spacecraft/vector_goal_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
+.. grid:: 1 1 2 2
+   :gutter: 3
+
+   .. grid-item-card:: Three-axis attitude goal
 
       .. image:: ../_static/tutorials/controlling_spacecraft/three_axis_goal.gif
          :alt: MiRaTa rotates its full attitude toward the fixed quaternion target above Earth.
@@ -30,11 +42,9 @@ target direction.
 
       .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/three_axis_goal_godot.py
          :language: python
-         :caption: three_axis_goal_godot.py
+         :caption: examples/tutorials/controlling_spacecraft/three_axis_goal_godot.py
 
-   .. container:: installation-card
-
-      .. rubric:: Single-axis vector goal
+   .. grid-item-card:: Single-axis vector goal
 
       .. image:: ../_static/tutorials/controlling_spacecraft/vector_goal.gif
          :alt: MiRaTa aligns its boresight with an inertial direction while rotation about that direction remains free.
@@ -42,7 +52,7 @@ target direction.
 
       .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/vector_goal_godot.py
          :language: python
-         :caption: vector_goal_godot.py
+         :caption: examples/tutorials/controlling_spacecraft/vector_goal_godot.py
 
 Both runs align the boresight to within about 1° by the end. The three-axis
 run also reaches within about 1° of the complete target attitude; the vector

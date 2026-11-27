@@ -24,6 +24,18 @@ rejects views too close to the Sun.
 
 The script simulates the tracker, opens the plot, and launches the Godot viewer.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/attitude_sensors/star_tracker_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/attitude_sensors/star_tracker_godot.py
    :language: python
-   :caption: star_tracker_godot.py
+   :caption: examples/tutorials/attitude_sensors/star_tracker_godot.py

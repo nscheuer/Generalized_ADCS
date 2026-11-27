@@ -24,6 +24,16 @@ only to check the result.
    :alt: Angle error between the TRIAD attitude and simulated attitude over time.
    :width: 100%
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/estimators/attitude_determination.py
+
 .. literalinclude:: ../../../examples/tutorials/estimators/attitude_determination.py
    :language: python
-   :caption: attitude_determination.py
+   :caption: examples/tutorials/estimators/attitude_determination.py

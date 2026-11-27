@@ -1,18 +1,20 @@
 Gravity Gradient Torque
 =======================
 
-.. raw:: html
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   <div class="dynamics-visualization-grid">
-     <section class="installation-card">
-       <h3>Long axis near nadir</h3>
-       <img class="dynamics-example-media" src="../_static/tutorials/torques_on_a_spacecraft/gravity_gradient_stable.gif" alt="The long axis of the 3U satellite librates near nadir">
-     </section>
-     <section class="installation-card">
-       <h3>Wide axis near nadir</h3>
-       <img class="dynamics-example-media" src="../_static/tutorials/torques_on_a_spacecraft/gravity_gradient_unstable.gif" alt="The wide axis of the 3U satellite turns away from nadir">
-     </section>
-   </div>
+   .. grid-item-card:: Long axis near nadir
+
+      .. image:: ../_static/tutorials/torques_on_a_spacecraft/gravity_gradient_stable.gif
+         :alt: The long axis of the 3U satellite librates near nadir
+         :width: 100%
+
+   .. grid-item-card:: Wide axis near nadir
+
+      .. image:: ../_static/tutorials/torques_on_a_spacecraft/gravity_gradient_unstable.gif
+         :alt: The wide axis of the 3U satellite turns away from nadir
+         :width: 100%
 
 Earth pulls slightly more strongly on the near side of an elongated spacecraft.
 The resulting gravity-gradient torque can passively keep its long axis near
@@ -33,9 +35,21 @@ where :math:`r` is the distance from Earth's centre and
 :math:`\hat{\mathbf n}^{\mathcal B}` points toward Earth. See
 :meth:`ADCS.satellite_hardware.disturbances.gg_disturbance.GG_Disturbance.torque`.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/torques_on_a_spacecraft/gravity_gradient_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/gravity_gradient_godot.py
    :language: python
-   :caption: gravity_gradient_godot.py
+   :caption: examples/tutorials/torques_on_a_spacecraft/gravity_gradient_godot.py
 
 .. admonition:: Night vision
    :class: tutorial-tip night-vision-tip

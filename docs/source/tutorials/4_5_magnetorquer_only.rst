@@ -26,9 +26,21 @@ The GIF compresses the long run. Yellow marks the 1U CubeSat's body boresight an
 green marks the fixed inertial target direction. The camera is fixed in an
 inertial frame.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/controlling_spacecraft/magnetorquer_lovera_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/magnetorquer_lovera_godot.py
    :language: python
-   :caption: magnetorquer_lovera_godot.py
+   :caption: examples/tutorials/controlling_spacecraft/magnetorquer_lovera_godot.py
 
 The three ``MTQ`` actuators are the only actuators on this satellite. The
 controller's gains and dipole limit are chosen for this inertia and orbit;

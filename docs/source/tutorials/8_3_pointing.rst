@@ -23,9 +23,19 @@ final state and orbit into its pointing phase.
    :alt: Monte Carlo pointing-error histories during a ground-target communications pass.
    :width: 100%
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/first_mission/ground_pass_mc.py
+
 .. literalinclude:: ../../../examples/tutorials/first_mission/ground_pass_mc.py
    :language: python
-   :caption: ground_pass_mc.py
+   :caption: examples/tutorials/first_mission/ground_pass_mc.py
 
 The reused Godot animation illustrates the same kind of ground-coordinate
 goal with MiRaTa's earlier four-wheel model. The Monte Carlo plot above comes

@@ -25,27 +25,41 @@ over that orbit. The smaller spacecraft gives different absolute magnitudes
 from the ROMEO comparison. The 500 km animations compare its attitude with
 and without disturbances.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/torques_on_a_spacecraft/environmental_torques_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/environmental_torques_godot.py
    :language: python
-   :caption: environmental_torques_godot.py
+   :caption: examples/tutorials/torques_on_a_spacecraft/environmental_torques_godot.py
 
 .. image:: ../_static/tutorials/torques_on_a_spacecraft/environmental_torques.png
    :alt: Mean drag, SRP, gravity-gradient, and residual-dipole torque magnitudes versus orbital altitude on log-log axes.
    :width: 80%
    :align: center
 
-.. raw:: html
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   <div class="dynamics-visualization-grid">
-     <section class="installation-card">
-       <h3>With disturbances</h3>
-       <img class="dynamics-example-media" src="../_static/tutorials/torques_on_a_spacecraft/environmental_with_disturbances.gif" alt="MiRaTa rotates under four environmental torques in night vision mode">
-     </section>
-     <section class="installation-card">
-       <h3>Without disturbances</h3>
-       <img class="dynamics-example-media" src="../_static/tutorials/torques_on_a_spacecraft/environmental_without_disturbances.gif" alt="The torque-free MiRaTa case in night vision mode">
-     </section>
-   </div>
+   .. grid-item-card:: With disturbances
+
+      .. image:: ../_static/tutorials/torques_on_a_spacecraft/environmental_with_disturbances.gif
+         :alt: MiRaTa rotates under four environmental torques in night vision mode
+         :width: 100%
+
+   .. grid-item-card:: Without disturbances
+
+      .. image:: ../_static/tutorials/torques_on_a_spacecraft/environmental_without_disturbances.gif
+         :alt: The torque-free MiRaTa case in night vision mode
+         :width: 100%
 
 For high-accuracy pointing, a controller can compensate predicted torques with
 feedforward, estimate them with an onboard Kalman filter, or combine both.

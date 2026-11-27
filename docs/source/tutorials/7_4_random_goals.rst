@@ -11,9 +11,19 @@ arrows in the PyVista screenshot show the goals. These spacecraft have no
 controller, so they do not try to track them. The pointing-error histories
 below show the angle between each body's boresight and its goal.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/monte_carlo/random_goals.py
+
 .. literalinclude:: ../../../examples/tutorials/monte_carlo/random_goals.py
    :language: python
-   :caption: random_goals.py
+   :caption: examples/tutorials/monte_carlo/random_goals.py
 
 .. admonition:: Sample a goal
    :class: tutorial-tip

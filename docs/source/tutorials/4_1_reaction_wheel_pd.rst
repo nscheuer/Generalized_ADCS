@@ -35,9 +35,21 @@ The yellow line marks MiRaTa's body boresight; green marks the fixed target
 direction. They start far apart and approach one another as the spacecraft
 turns above Earth.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/controlling_spacecraft/reaction_wheel_pd_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/reaction_wheel_pd_godot.py
    :language: python
-   :caption: reaction_wheel_pd_godot.py
+   :caption: examples/tutorials/controlling_spacecraft/reaction_wheel_pd_godot.py
 
 Angle error
 -----------

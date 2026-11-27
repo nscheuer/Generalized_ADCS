@@ -13,20 +13,17 @@ values of :math:`\sigma` around the same clean signal.
 Configure the noise on a sensor or an actuator by passing a ``Noise`` object
 to its ``noise`` argument:
 
-.. container:: dynamics-visualization-grid
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   .. container:: installation-card
-
-      .. rubric:: Gyroscope
+   .. grid-item-card:: Gyroscope
 
       .. code-block:: python
 
          gyro_noise = ADCS.Noise(std_noise=2e-3)  # rad/s
          gyro = ADCS.Gyro(axis=np.array([1, 0, 0]), noise=gyro_noise)
 
-   .. container:: installation-card
-
-      .. rubric:: Reaction wheel actuator
+   .. grid-item-card:: Reaction wheel actuator
 
       .. code-block:: python
 

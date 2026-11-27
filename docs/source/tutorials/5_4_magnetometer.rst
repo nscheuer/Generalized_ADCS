@@ -20,9 +20,20 @@ Stable attitude
 The field changes as the satellite moves through Earth's magnetic field, even
 while its inertial attitude is fixed.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/attitude_sensors/magnetometer_stable.py
+      python examples/tutorials/attitude_sensors/magnetometer_tumbling.py
+
 .. literalinclude:: ../../../examples/tutorials/attitude_sensors/magnetometer_stable.py
    :language: python
-   :caption: magnetometer_stable.py
+   :caption: examples/tutorials/attitude_sensors/magnetometer_stable.py
 
 Tumbling attitude
 -----------------
@@ -44,4 +55,4 @@ does not recover the full angular rate. The :class:`B-Dot controller
 
 .. literalinclude:: ../../../examples/tutorials/attitude_sensors/magnetometer_tumbling.py
    :language: python
-   :caption: magnetometer_tumbling.py
+   :caption: examples/tutorials/attitude_sensors/magnetometer_tumbling.py

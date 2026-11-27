@@ -13,18 +13,29 @@ This 3+1 architecture is discussed in [1]_.
 Simulation and animation
 ------------------------
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/controlling_spacecraft/underactuated_3plus1_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/underactuated_3plus1_godot.py
    :language: python
-   :caption: underactuated_3plus1_godot.py
+   :caption: examples/tutorials/controlling_spacecraft/underactuated_3plus1_godot.py
 
 Add plots
 ---------
 
-.. container:: dynamics-visualization-grid
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   .. container:: installation-card
-
-      .. rubric:: Pointing error
+   .. grid-item-card:: Pointing error
 
       .. image:: ../_static/tutorials/controlling_spacecraft/underactuated_3plus1_angle_error.png
          :alt: Pointing error falls below 20 degrees early and converges near zero.
@@ -43,9 +54,7 @@ Add plots
          )
          plt.show()
 
-   .. container:: installation-card
-
-      .. rubric:: MTQ and reaction-wheel commands
+   .. grid-item-card:: MTQ and reaction-wheel commands
 
       .. image:: ../_static/tutorials/controlling_spacecraft/underactuated_3plus1_controls.png
          :alt: Magnetorquer and reaction-wheel control torques during the simulation.

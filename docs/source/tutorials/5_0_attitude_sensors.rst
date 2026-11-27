@@ -3,13 +3,13 @@ Attitude Sensors
 
 Sensors measure motion, orientation, and position. Their readings can include noise, bias, and periods when a target is outside the field of view.
 
-* :doc:`Noise <5_1_noise>`
-* :doc:`Bias <5_2_bias>`
-* :doc:`Gyroscope <5_3_gyroscope>`
-* :doc:`Magnetometer <5_4_magnetometer>`
-* :doc:`Coarse Sun Sensor <5_5_coarse_sun_sensor>`
-* :doc:`Star Tracker <5_6_star_tracker>`
-* :doc:`GPS <5_7_gps>`
+* :doc:`5_1_noise`
+* :doc:`5_2_bias`
+* :doc:`5_3_gyroscope`
+* :doc:`5_4_magnetometer`
+* :doc:`5_5_coarse_sun_sensor`
+* :doc:`5_6_star_tracker`
+* :doc:`5_7_gps`
 
 .. toctree::
    :maxdepth: 1

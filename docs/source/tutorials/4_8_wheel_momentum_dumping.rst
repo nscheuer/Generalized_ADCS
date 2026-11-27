@@ -10,45 +10,51 @@ pointing and three magnetorquers for continuous momentum dumping. Drag,
 solar radiation pressure, gravity-gradient torque, and residual magnetic
 torque remain active. The wheels start with stored momentum and target zero.
 
-.. container:: dynamics-visualization-grid
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   .. container:: installation-card
-
-      .. rubric:: Wheel momentum
+   .. grid-item-card:: Wheel momentum
 
       .. image:: ../_static/tutorials/controlling_spacecraft/wheel_momentum_dumping.png
          :alt: Combined wheel momentum falls while the three signed wheel momenta approach zero.
          :width: 100%
 
-   .. container:: installation-card
-
-      .. rubric:: Nadir pointing
+   .. grid-item-card:: Nadir pointing
 
       .. image:: ../_static/tutorials/controlling_spacecraft/wheel_momentum_dumping_pointing.png
          :alt: Nadir pointing error stays below one degree during momentum dumping.
          :width: 100%
 
-.. container:: dynamics-visualization-grid
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   .. container:: installation-card
-
-      .. rubric:: Magnetorquer commands
+   .. grid-item-card:: Magnetorquer commands
 
       .. image:: ../_static/tutorials/controlling_spacecraft/wheel_momentum_dumping_mtq.png
          :alt: Three magnetorquers command magnetic dipole moments to unload the wheels.
          :width: 100%
 
-   .. container:: installation-card
-
-      .. rubric:: Reaction-wheel commands
+   .. grid-item-card:: Reaction-wheel commands
 
       .. image:: ../_static/tutorials/controlling_spacecraft/wheel_momentum_dumping_rw.png
          :alt: Three reaction wheels command torque at the same time as the magnetorquers.
          :width: 100%
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/controlling_spacecraft/wheel_momentum_dumping_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/wheel_momentum_dumping_godot.py
    :language: python
-   :caption: wheel_momentum_dumping_godot.py
+   :caption: examples/tutorials/controlling_spacecraft/wheel_momentum_dumping_godot.py
 
 The control allocation follows Hogan and Schaub [1]_.
 

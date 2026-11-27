@@ -21,6 +21,16 @@ the whole satellite is in eclipse.
    :alt: Attitude angle error, two Sun sensor readings, and Sun illumination through eclipse.
    :width: 100%
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/estimators/sensor_occlusion.py
+
 .. literalinclude:: ../../../examples/tutorials/estimators/sensor_occlusion.py
    :language: python
-   :caption: sensor_occlusion.py
+   :caption: examples/tutorials/estimators/sensor_occlusion.py

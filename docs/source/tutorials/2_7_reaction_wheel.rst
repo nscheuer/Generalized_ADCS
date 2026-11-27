@@ -12,7 +12,7 @@ Accelerating a wheel transfers angular momentum to it and gives the spacecraft
 an equal and opposite change. Braking the wheel transfers momentum back. With
 no external torque, the total angular momentum is conserved.
 
-For the coupled body and wheels, :meth:`ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics`
+For the coupled body and wheels, :meth:`ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_core`
 implements
 
 .. math::
@@ -44,9 +44,21 @@ The controller commands body torque for 30 seconds, then reverses it. The
 wheel speeds up and slows down while the 3U body rotates in response. No
 disturbance torques are configured.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/torques_on_a_spacecraft/reaction_wheel_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/reaction_wheel_godot.py
    :language: python
-   :caption: reaction_wheel_godot.py
+   :caption: examples/tutorials/torques_on_a_spacecraft/reaction_wheel_godot.py
 
 .. admonition:: Building a controller
    :class: tutorial-tip

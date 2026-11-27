@@ -18,9 +18,19 @@ the same initial position, attitude, angular velocity, and fixed goal. With
 ``mc_config=None``, the orbit paths and body axes overlap in the PyVista
 view. Running this script writes the screenshot above.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/monte_carlo/monte_carlo_setup.py
+
 .. literalinclude:: ../../../examples/tutorials/monte_carlo/monte_carlo_setup.py
    :language: python
-   :caption: monte_carlo_setup.py
+   :caption: examples/tutorials/monte_carlo/monte_carlo_setup.py
 
 .. admonition:: Running an ensemble
    :class: tutorial-tip

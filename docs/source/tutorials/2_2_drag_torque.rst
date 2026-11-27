@@ -16,46 +16,26 @@ along the long axis, and drag is its only applied torque. In the animation,
 green is the long body axis and yellow is the flight direction.
 This simple model shows the first turn toward the flow, without rotational damping.
 
-.. code-block:: python
-   :caption: drag_torque.py
+.. admonition:: Run it
+   :class: run-it
 
-   import matplotlib.pyplot as plt
-   import numpy as np
-   import ADCS
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
 
-   environment = ADCS.Environment(atmosphere=ADCS.SMADAtmosphere())
+   .. code-block:: bash
 
-   size = np.array([0.1, 0.3, 0.1])
-   faces = []
-   for axis in range(3):
-       for sign in (-1.0, 1.0):
-           normal = sign * np.eye(3)[axis]
-           faces.append(ADCS.disturbances.GeometryFace(
-               area=np.prod(np.delete(size, axis)),
-               centroid=0.5 * size[axis] * normal,
-               normal=normal, CD=2.2,
-           ))
-   geometry = ADCS.disturbances.GeometryConfig(faces)
-   drag = ADCS.disturbances.Drag_Disturbance(geometry)
-   satellite = ADCS.Satellite(
-       mass=4.0,
-       COM=np.array([0.0, 0.02, 0.0]),
-       J_0=np.diag([0.0333, 0.00667, 0.0333]),
-       disturbances=[drag],
-   )
-   initial_state = ADCS.State(
-       w=np.zeros(3),
-       q=np.array([np.cos(np.pi / 8), 0.0, 0.0, -np.sin(np.pi / 8)]),
-   )
-   orbit = ADCS.Orbital_State(
-       environment=environment, J2000=0.22,
-       R=np.array([6678.1363, 0.0, 0.0]),
-       V=np.array([0.0, np.sqrt(398600.4415 / 6678.1363), 0.0]),
-   )
-   results = ADCS.simulate(
-       x=initial_state, satellite=satellite, os0=orbit,
-       environment=environment, dt=5.0, tf=390.0,
-   )
+      python examples/tutorials/torques_on_a_spacecraft/drag_torque.py
+
+      # the same simulation in the 3-D Godot viewer
+      python examples/tutorials/torques_on_a_spacecraft/drag_torque_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
+.. literalinclude:: ../../../examples/tutorials/torques_on_a_spacecraft/drag_torque.py
+   :language: python
+   :caption: examples/tutorials/torques_on_a_spacecraft/drag_torque.py
+   :start-at: import matplotlib.pyplot as plt
+   :end-before: run = results.first()
 
 .. admonition:: Geometry tip
    :class: tutorial-tip
@@ -111,18 +91,20 @@ The dashed line shows the same initial attitude held fixed without torque.
    plt.legend()
    plt.show()
 
-.. raw:: html
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-   <div class="dynamics-visualization-grid">
-     <section class="installation-card">
-       <h3>Alignment with flight direction</h3>
-       <img class="dynamics-example-media" src="../_static/tutorials/torques_on_a_spacecraft/alignment_plot.png" alt="The long axis approaches the flight direction with drag, compared with a fixed attitude without drag">
-     </section>
-     <section class="installation-card">
-       <h3>Drag torque</h3>
-       <img class="dynamics-example-media" src="../_static/tutorials/torques_on_a_spacecraft/drag_torque_plot.png" alt="Drag torque components during the turn">
-     </section>
-   </div>
+   .. grid-item-card:: Alignment with flight direction
+
+      .. image:: ../_static/tutorials/torques_on_a_spacecraft/alignment_plot.png
+         :alt: The long axis approaches the flight direction with drag, compared with a fixed attitude without drag
+         :width: 100%
+
+   .. grid-item-card:: Drag torque
+
+      .. image:: ../_static/tutorials/torques_on_a_spacecraft/drag_torque_plot.png
+         :alt: Drag torque components during the turn
+         :width: 100%
 
 Godot animation
 ---------------

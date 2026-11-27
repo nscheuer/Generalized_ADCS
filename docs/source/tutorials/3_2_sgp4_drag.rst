@@ -31,9 +31,19 @@ The script starts a 4 kg, 3U spacecraft in an inclined orbit at 300 km. It
 uses the spacecraft geometry to estimate :math:`B^*`, then propagates a second
 orbit with ``bstar=0`` for comparison.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/forces_on_a_spacecraft/sgp4_drag.py
+
 .. literalinclude:: ../../../examples/tutorials/forces_on_a_spacecraft/sgp4_drag.py
    :language: python
-   :caption: sgp4_drag.py
+   :caption: examples/tutorials/forces_on_a_spacecraft/sgp4_drag.py
 
 .. admonition:: How SGP4Orbit calculates B*
    :class: tutorial-tip

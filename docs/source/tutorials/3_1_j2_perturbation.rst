@@ -11,9 +11,19 @@ two days with three gravity models. ``zonal_J=0`` uses two-body gravity,
 Increasing the degree adds *terms* to Earth's gravity model; it does not
 multiply the J2 coefficient.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/forces_on_a_spacecraft/j2_perturbation.py
+
 .. literalinclude:: ../../../examples/tutorials/forces_on_a_spacecraft/j2_perturbation.py
    :language: python
-   :caption: j2_perturbation.py
+   :caption: examples/tutorials/forces_on_a_spacecraft/j2_perturbation.py
 
 .. admonition:: Set the gravity model
    :class: tutorial-tip

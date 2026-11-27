@@ -14,11 +14,23 @@ Both animations use the same MiRaTa satellite, controller, starting state,
 and inertial camera as the previous comparison. Yellow marks the body
 boresight; green marks the current target direction.
 
-.. container:: dynamics-visualization-grid
+.. admonition:: Run it
+   :class: run-it
 
-   .. container:: installation-card
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
 
-      .. rubric:: Ground coordinate
+   .. code-block:: bash
+
+      python examples/tutorials/controlling_spacecraft/coordinate_goal_godot.py
+      python examples/tutorials/controlling_spacecraft/nadir_goal_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
+.. grid:: 1 1 2 2
+   :gutter: 3
+
+   .. grid-item-card:: Ground coordinate
 
       .. image:: ../_static/tutorials/controlling_spacecraft/coordinate_goal.gif
          :alt: MiRaTa tracks a fixed ground location as it flies over Earth.
@@ -26,11 +38,9 @@ boresight; green marks the current target direction.
 
       .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/coordinate_goal_godot.py
          :language: python
-         :caption: coordinate_goal_godot.py
+         :caption: examples/tutorials/controlling_spacecraft/coordinate_goal_godot.py
 
-   .. container:: installation-card
-
-      .. rubric:: Nadir tracking
+   .. grid-item-card:: Nadir tracking
 
       .. image:: ../_static/tutorials/controlling_spacecraft/nadir_goal.gif
          :alt: MiRaTa keeps its boresight aimed toward Earth's center.
@@ -38,7 +48,7 @@ boresight; green marks the current target direction.
 
       .. literalinclude:: ../../../examples/tutorials/controlling_spacecraft/nadir_goal_godot.py
          :language: python
-         :caption: nadir_goal_godot.py
+         :caption: examples/tutorials/controlling_spacecraft/nadir_goal_godot.py
 
 The coordinate goal takes ``lat``, ``lon``, and ``alt``: geodetic latitude and longitude in
 degrees and altitude in kilometers. Its target rotates with Earth, so the

@@ -16,6 +16,18 @@ angle to the Sun. Shaded periods are eclipse, when the reading is invalid.
    :alt: Recorded coarse Sun sensor reading and angle to the Sun over time, with eclipse shaded.
    :width: 100%
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/attitude_sensors/coarse_sun_sensor_godot.py
+
+   Scripts ending in ``_godot.py`` open the 3-D Godot viewer.
+
 .. literalinclude:: ../../../examples/tutorials/attitude_sensors/coarse_sun_sensor_godot.py
    :language: python
-   :caption: coarse_sun_sensor_godot.py
+   :caption: examples/tutorials/attitude_sensors/coarse_sun_sensor_godot.py

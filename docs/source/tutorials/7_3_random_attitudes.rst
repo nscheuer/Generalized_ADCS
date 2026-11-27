@@ -11,9 +11,19 @@ quaternion ``q`` and body angular velocity ``w``. The angular velocity
 plot below overlays the eight uncontrolled runs. Different starting rates
 lead to different torque-free paths.
 
+.. admonition:: Run it
+   :class: run-it
+
+   From the root of a clone of the repository. The ``examples/`` folder
+   is not part of the pip package; see :doc:`../getting_started/examples`.
+
+   .. code-block:: bash
+
+      python examples/tutorials/monte_carlo/random_attitudes.py
+
 .. literalinclude:: ../../../examples/tutorials/monte_carlo/random_attitudes.py
    :language: python
-   :caption: random_attitudes.py
+   :caption: examples/tutorials/monte_carlo/random_attitudes.py
 
 .. admonition:: Sample an initial state
    :class: tutorial-tip
