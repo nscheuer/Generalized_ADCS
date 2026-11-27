@@ -12,7 +12,7 @@ pub struct PyCoupledSolver {
 #[pymethods]
 impl PyCoupledSolver {
     #[new]
-    #[pyo3(signature=(propagator,tf,progress=false,progress_chunk_steps=500))]
+    #[pyo3(signature=(propagator,tf,progress=true,progress_chunk_steps=500))]
     fn new(
         propagator: PyObject,
         tf: f64,

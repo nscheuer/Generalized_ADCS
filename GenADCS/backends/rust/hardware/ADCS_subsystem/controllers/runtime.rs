@@ -110,7 +110,8 @@ impl ControllerTable {
         let (kp_mat, kd_mat) = if let Some(ref att) = attitude {
             att.feedback.to_matrices()
         } else {
-            ([[0.0; 3]; 3], [[0.0; 3]; 3])
+            ctrl.feedback_matrices()
+                .unwrap_or(([[0.0; 3]; 3], [[0.0; 3]; 3]))
         };
 
         let idx = self.kinds.len();

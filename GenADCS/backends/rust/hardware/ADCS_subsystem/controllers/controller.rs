@@ -57,6 +57,9 @@ pub trait Controller: Send + Sync {
     fn kind(&self) -> i32;
     fn validate_sensors(&self, sensor_types: &[&str]) -> Result<(), String>;
     fn to_params(&self) -> Vec<f64>;
+    fn feedback_matrices(&self) -> Option<(super::feedback::Mat3, super::feedback::Mat3)> {
+        None
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

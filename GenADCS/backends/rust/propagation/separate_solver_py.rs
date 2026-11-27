@@ -121,6 +121,12 @@ pub(super) fn simulate_uncoupled(
         reference_mode == 2,
     )?;
     let sensor_interval = dt * sensor_every as f64;
+    let obc_every: usize = obc
+        .filter(|o| !o.is_none())
+        .and_then(|o| o.getattr("N").ok())
+        .and_then(|v| v.extract::<usize>().ok())
+        .unwrap_or(0);
+    let obc_interval = dt * obc_every as f64;
     let mut ctrl_ctx = build_control_loop_context(
         py,
         &sampler,
@@ -129,6 +135,7 @@ pub(super) fn simulate_uncoupled(
         obc,
         jd,
         sensor_interval,
+        obc_interval,
         ctrl_log_flags,
         mu,
     )?;
@@ -136,13 +143,20 @@ pub(super) fn simulate_uncoupled(
         let mut signal_error = None;
         let mut observe =
             |t: f64, state: &[f64], recorded: bool, rt: &mut Runtime| -> Result<(), String> {
+                let on_obc = obc_every > 0
+                    && (t / obc_interval - (t / obc_interval).round()).abs() < 1e-9;
                 let on_sensor = sensor_every > 0
                     && (t / sensor_interval - (t / sensor_interval).round()).abs() < 1e-9;
+                if let Some(ctx) = ctrl_ctx.as_mut() {
+                    if on_obc || on_sensor {
+                        ctx.step_state_machines(t, state, &mut sampler, rt, on_obc, on_sensor);
+                    }
+                }
                 if on_sensor {
                     let tick = (t / sensor_interval).round() as u64;
                     sampler.sample(state, t, tick, rt)?;
                     if let Some(ctx) = ctrl_ctx.as_mut() {
-                        ctx.step(t, state, &mut sampler, rt);
+                        ctx.step_control(t, state, &sampler, rt);
                     }
                 }
                 if recorded {

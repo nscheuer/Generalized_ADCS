@@ -50,7 +50,7 @@ void bind_solver(py::module_ &m) {
            }),
            py::arg("dynamics") = py::none(), py::arg("orbital") = py::none(),
            py::arg("attitude") = py::none(), py::arg("coupled") = py::none(),
-           py::arg("tf") = py::none(), py::arg("progress") = false,
+           py::arg("tf") = py::none(), py::arg("progress") = true,
            py::arg("progress_chunk_steps") = 500)
       .def_readwrite("dynamics", &PythonSolver::dynamics)
       .def_readwrite("progress", &PythonSolver::progress)

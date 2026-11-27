@@ -16,7 +16,7 @@ template <typename Propagator> struct CoupledSolver {
   int progress_chunk_steps;
 
   CoupledSolver(Propagator propagator_value, double final_time,
-                bool show_progress = false, int chunk_steps = 500)
+                bool show_progress = true, int chunk_steps = 500)
       : propagator(std::move(propagator_value)), tf(final_time),
         progress(show_progress), progress_chunk_steps(chunk_steps) {
     detail::validate_coupled_solver_options(tf, progress_chunk_steps);

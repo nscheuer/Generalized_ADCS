@@ -135,6 +135,10 @@ impl Controller for AttitudeController {
         CTRL_ATTITUDE
     }
 
+    fn feedback_matrices(&self) -> Option<(Mat3, Mat3)> {
+        Some(self.feedback.to_matrices())
+    }
+
     fn validate_sensors(&self, _sensor_types: &[&str]) -> Result<(), String> {
         Ok(())
     }

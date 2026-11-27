@@ -315,6 +315,7 @@ def main(show: bool = True) -> None:
         orbital=OrbitalSolver(KeplerianOrbitalPropagator(dt=dt)),
         attitude=AttitudeSolver(RK4AttitudePropagator(dt=dt)),
         tf=tf,
+        progress=True,
     )
 
     start = perf_counter()

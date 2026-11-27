@@ -46,7 +46,7 @@ void bind_coupled_solver(py::module_ &module) {
                                        read_final_time(tf), progress,
                                        read_chunk_steps(progress_chunk_steps));
            }),
-           py::arg("propagator"), py::arg("tf"), py::arg("progress") = false,
+           py::arg("propagator"), py::arg("tf"), py::arg("progress") = true,
            py::arg("progress_chunk_steps") = 500)
       .def_property(
           "propagator",

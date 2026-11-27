@@ -36,7 +36,7 @@ def test_coupled_solver_attributes_and_step() -> None:
 def test_coupled_solver_defaults_and_validation() -> None:
     zero_duration = CoupledSolver(CoupledRK4Propagator(1.0), tf=0.0)
     assert zero_duration.tf == 0.0
-    assert zero_duration.progress is False
+    assert zero_duration.progress is True
     assert zero_duration.progress_chunk_steps == 500
 
     for bad_tf in (-1.0, math.inf, math.nan):

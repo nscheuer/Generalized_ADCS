@@ -43,7 +43,7 @@ int main() {
 
   const Solver zero_duration(TestPropagator{1.0}, 0.0);
   check(zero_duration.tf == 0.0);
-  check(!zero_duration.progress);
+  check(zero_duration.progress);
   check(zero_duration.progress_chunk_steps == 500);
 
   check(throws_invalid_argument([] { Solver(TestPropagator{0.1}, -1.0); }));

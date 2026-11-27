@@ -531,6 +531,10 @@ def simulate_uncoupled(
         reaction_wheels=satellite.adcs.reaction_wheels,
         magnetorquers=satellite.adcs.magnetorquers,
     )
+    g_kinds, g_params, g_names = goal_table.to_arrays()
+    adcs_sm_runtime = adcs_sm_runtime._replace(
+        goal_kinds=g_kinds, goal_params=g_params, goal_names=g_names
+    )
     rw_enabled = np.asarray(
         [w.enabled for w in satellite.adcs.reaction_wheels], dtype=np.bool_
     )

@@ -98,18 +98,28 @@ pub fn simulate(
         py.None().into_ref(py)
     };
     let has_obc = !obc.is_none();
+    let obc_n: usize = if has_obc && obc.hasattr("N")? {
+        obc.getattr("N")?.extract::<usize>()?
+    } else {
+        0
+    };
     let has_control_or_sm = has_ctrl || has_adcs_sm || has_obc;
-    let stride = if has_sensor || !estimator.is_none(py) || has_control_or_sm {
-        let (mut a, mut b) = (n, sensor_n);
+    let gcd = |mut a: usize, mut b: usize| -> usize {
         while b != 0 {
             let r = a % b;
             a = b;
             b = r;
         }
         a
+    };
+    let mut stride = if has_sensor || !estimator.is_none(py) || has_ctrl || has_adcs_sm {
+        gcd(n, sensor_n)
     } else {
         n
     };
+    if obc_n > 0 {
+        stride = gcd(stride, obc_n);
+    }
     kwargs.set_item("record_every", stride)?;
     let environment_for_record = environment.clone_ref(py);
     let dynamics_for_record = dynamics.clone_ref(py);
@@ -249,7 +259,9 @@ pub fn simulate(
             ("feedforward_attitude", 8u32),
             ("feedforward_rate", 16u32),
             ("reference_torque", 32u32),
-            ("mode_transitions", 64u32),
+            ("commanded_wheel_torque", 64u32),
+            ("commanded_magnetic_dipole", 128u32),
+            ("mode_transitions", 256u32),
         ] {
             if fmt_ref.hasattr(attr)? && fmt_ref.getattr(attr)?.extract::<bool>().unwrap_or(false) {
                 ctrl_log_flags |= bit;

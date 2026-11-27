@@ -21,7 +21,7 @@ use adcs_subsystem::state_machine::{
     GOAL_NADIR, GOAL_NONE, GOAL_PARAM_WIDTH, GOAL_QUATERNION, GOAL_SUN, GOAL_VELOCITY, GOAL_ZENITH,
 };
 use numpy::IntoPyArray;
-use obc_subsystem::fdir::{AngularRateMonitor, FDIRMonitor, FDIR};
+use obc_subsystem::fdir::{AngularRateMonitor, FDIR};
 use obc_subsystem::obc_subsystem::OBCSubsystem;
 use obc_subsystem::runtime::{prepare_obc, GoalTable as ObcGoalTable};
 use obc_subsystem::state_machine::{
@@ -530,6 +530,7 @@ pub(super) fn build_control_loop_context(
     obc_opt: Option<&PyAny>,
     epoch_jd: f64,
     dt_ctrl: f64,
+    dt_obc: f64,
     ctrl_log_flags: u32,
     mu: f64,
 ) -> PyResult<Option<ControlLoopContext>> {
@@ -657,9 +658,8 @@ pub(super) fn build_control_loop_context(
 
     let mut ctrl_list: Vec<Option<Arc<dyn Controller>>> = Vec::new();
     if has_adcs_sm {
-        // ControllerTable already populated by prepare_adcs_sm; rebuild list from table.
-        ctrl_list = ctrl_table.objects.iter().cloned().map(Some).collect();
-        if ctrl_list.len() > 1 {
+        // ControllerTable already populated by prepare_adcs_sm.
+        if ctrl_table.objects.len() > 1 {
             has_ctrl = true;
         }
     } else if has_ctrl {
@@ -707,6 +707,7 @@ pub(super) fn build_control_loop_context(
         mu,
         epoch_jd,
         dt_ctrl,
+        dt_obc,
         ctrl_log_flags,
         rw_names.len(),
         mtq_names.len(),
@@ -745,7 +746,7 @@ pub(super) fn attach_control_logs_to_pydict(
                 .into_pyarray(py),
         )?;
     }
-    if ctx.ctrl_log_flags != 0 {
+    if (ctx.ctrl_log_flags & 63) != 0 {
         let log = numpy::ndarray::Array2::from_shape_vec((rows, 20), ctx.ctrl_log.clone())
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         if (ctx.ctrl_log_flags & 1) != 0 {
@@ -796,6 +797,22 @@ pub(super) fn attach_control_logs_to_pydict(
                     .into_pyarray(py),
             )?;
         }
+    }
+    if (ctx.ctrl_log_flags & 64) != 0 {
+        let rw_log = numpy::ndarray::Array2::from_shape_vec(
+            (rows, ctx.n_wheels),
+            ctx.cmd_rw_log.clone(),
+        )
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        dict.set_item("commanded_wheel_torque", rw_log.into_pyarray(py))?;
+    }
+    if (ctx.ctrl_log_flags & 128) != 0 {
+        let mtq_log = numpy::ndarray::Array2::from_shape_vec(
+            (rows, ctx.n_mtqs),
+            ctx.cmd_mtq_log.clone(),
+        )
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        dict.set_item("commanded_magnetic_dipole", mtq_log.into_pyarray(py))?;
     }
     Ok(())
 }

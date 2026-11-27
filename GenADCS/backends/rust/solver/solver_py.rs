@@ -25,7 +25,7 @@ pub struct PySolver {
 #[pymethods]
 impl PySolver {
     #[new]
-    #[pyo3(signature=(dynamics=None,orbital=None,attitude=None,coupled=None,tf=None,progress=false,progress_chunk_steps=500))]
+    #[pyo3(signature=(dynamics=None,orbital=None,attitude=None,coupled=None,tf=None,progress=true,progress_chunk_steps=500))]
     fn new(
         py: Python<'_>,
         dynamics: Option<PyObject>,

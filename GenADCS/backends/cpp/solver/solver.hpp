@@ -22,7 +22,7 @@ struct BasicSolver {
               std::optional<Attitude> attitude_value,
               std::optional<Coupled> coupled_value,
               std::optional<double> final_time = std::nullopt,
-              bool show_progress = false, int chunk_steps = 500)
+              bool show_progress = true, int chunk_steps = 500)
       : dynamics(std::move(dynamics_value)), orbital(std::move(orbital_value)),
         attitude(std::move(attitude_value)), coupled(std::move(coupled_value)),
         tf(final_time), progress(show_progress),

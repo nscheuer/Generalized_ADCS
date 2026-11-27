@@ -15,7 +15,7 @@ from GenADCS.backends.python.state import State
 class CoupledSolver:
     propagator: CoupledRK4Propagator | CoupledDOP853Propagator
     tf: float
-    progress: bool = False
+    progress: bool = True
     progress_chunk_steps: int = 500
 
     def __post_init__(self) -> None:

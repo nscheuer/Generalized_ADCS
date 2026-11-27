@@ -5,10 +5,67 @@ use adcs_subsystem::estimator::attitude_estimator::attitude_mekf::SensorConfig a
 use adcs_subsystem::state_machine::{
     apply_hw_mask, evaluate_goal, init_adcs_work, step_adcs_sm, ADCSSMRuntime,
 };
-use obc_subsystem::runtime::{init_obc_work, step_obc, OBCRuntime};
+use obc_subsystem::runtime::{init_obc_work, step_obc_core, OBCRuntime};
 
 use super::simulation_sampling::SimulationSampler;
 use super::Runtime;
+
+fn apply_obc_state_masks(
+    state_id: i64,
+    obc_rt: &OBCRuntime,
+    sensor_enabled: &mut [bool],
+    rw_enabled: &mut [bool],
+    mtq_enabled: &mut [bool],
+) {
+    if state_id < 0 {
+        return;
+    }
+    let idx = state_id as usize;
+    if idx >= obc_rt.state_sensor_mask.len() {
+        return;
+    }
+    apply_hw_mask(&obc_rt.state_sensor_mask[idx], sensor_enabled);
+    apply_hw_mask(&obc_rt.state_rw_mask[idx], rw_enabled);
+    apply_hw_mask(&obc_rt.state_mtq_mask[idx], mtq_enabled);
+}
+
+fn apply_obc_tc_masks(
+    tc_idx: i64,
+    obc_rt: &OBCRuntime,
+    sensor_enabled: &mut [bool],
+    rw_enabled: &mut [bool],
+    mtq_enabled: &mut [bool],
+) {
+    if tc_idx < 0 {
+        return;
+    }
+    let idx = tc_idx as usize;
+    if idx >= obc_rt.tc_trans_sensor_mask.len() {
+        return;
+    }
+    apply_hw_mask(&obc_rt.tc_trans_sensor_mask[idx], sensor_enabled);
+    apply_hw_mask(&obc_rt.tc_trans_rw_mask[idx], rw_enabled);
+    apply_hw_mask(&obc_rt.tc_trans_mtq_mask[idx], mtq_enabled);
+}
+
+fn apply_adcs_mode_masks(
+    mode_id: i64,
+    adcs_sm_rt: &ADCSSMRuntime,
+    sensor_enabled: &mut [bool],
+    rw_enabled: &mut [bool],
+    mtq_enabled: &mut [bool],
+) {
+    if !adcs_sm_rt.enabled || mode_id < 0 {
+        return;
+    }
+    let idx = mode_id as usize;
+    if idx >= adcs_sm_rt.mode_sensor_mask.len() {
+        return;
+    }
+    apply_hw_mask(&adcs_sm_rt.mode_sensor_mask[idx], sensor_enabled);
+    apply_hw_mask(&adcs_sm_rt.mode_rw_mask[idx], rw_enabled);
+    apply_hw_mask(&adcs_sm_rt.mode_mtq_mask[idx], mtq_enabled);
+}
 
 pub struct ControlLoopContext {
     pub has_obc: bool,
@@ -27,22 +84,35 @@ pub struct ControlLoopContext {
     pub mu: f64,
     pub epoch_jd: f64,
     pub dt_ctrl: f64,
+    pub dt_obc: f64,
     pub last_ctrl_time: f64,
+    pub last_obc_time: f64,
     pub ctrl_log_flags: u32,
+    pub n_wheels: usize,
+    pub n_mtqs: usize,
 
     pub sm_trace: Vec<i64>,
     pub ctrl_log: Vec<f64>,
+    pub cmd_rw_log: Vec<f64>,
+    pub cmd_mtq_log: Vec<f64>,
     pub recorded_rows: usize,
 
     wheel_commands: Vec<f64>,
     dipole_commands: Vec<f64>,
+    sensor_enabled: Vec<bool>,
     rw_enabled: Vec<bool>,
     mtq_enabled: Vec<bool>,
     base_wheel_max: Vec<f64>,
     base_mtq_max: Vec<f64>,
     scratch_sm: [i64; 3],
     scratch_ctrl: [f64; 20],
-    last_applied_mode: i64,
+    active_obc_mode: i64,
+    active_adcs_mode: i64,
+    active_adcs_goal: i64,
+    pending_cmd_mode: i64,
+    pending_cmd_goal: i64,
+    prev_ctrl_idx: i64,
+    initialized: bool,
 }
 
 impl ControlLoopContext {
@@ -58,6 +128,7 @@ impl ControlLoopContext {
         mu: f64,
         epoch_jd: f64,
         dt_ctrl: f64,
+        dt_obc: f64,
         ctrl_log_flags: u32,
         n_wheels: usize,
         n_mtqs: usize,
@@ -75,6 +146,7 @@ impl ControlLoopContext {
         let ctrl_work = init_controller_work();
         let base_wheel_max = ctrl_rt.wheel_max_torque.clone();
         let base_mtq_max = ctrl_rt.mtq_max_dipole.clone();
+        let sensor_enabled = sampler.estimator_config.enabled.clone();
         let rw_enabled = vec![true; n_wheels];
         let mtq_enabled = vec![true; n_mtqs];
         let sensor_config = AdcsSensorConfig {
@@ -104,32 +176,241 @@ impl ControlLoopContext {
             mu,
             epoch_jd,
             dt_ctrl,
+            dt_obc,
             last_ctrl_time: 0.0,
+            last_obc_time: 0.0,
             ctrl_log_flags,
+            n_wheels,
+            n_mtqs,
             sm_trace: Vec::new(),
             ctrl_log: Vec::new(),
+            cmd_rw_log: Vec::new(),
+            cmd_mtq_log: Vec::new(),
             recorded_rows: 0,
             wheel_commands: vec![0.0; n_wheels],
             dipole_commands: vec![0.0; n_mtqs],
+            sensor_enabled,
             rw_enabled,
             mtq_enabled,
             base_wheel_max,
             base_mtq_max,
             scratch_sm: [-1, -1, -1],
             scratch_ctrl: [f64::NAN; 20],
-            last_applied_mode: -1,
+            active_obc_mode: -1,
+            active_adcs_mode: -1,
+            active_adcs_goal: -1,
+            pending_cmd_mode: -1,
+            pending_cmd_goal: -1,
+            prev_ctrl_idx: -1,
+            initialized: false,
         }
     }
 
-    pub fn active(&self) -> bool {
-        self.has_obc || self.has_adcs_sm || self.has_ctrl
+    fn sync_hardware(
+        &mut self,
+        sampler: &mut SimulationSampler,
+        runtime: &mut Runtime,
+    ) {
+        for (idx, &en) in self.sensor_enabled.iter().enumerate() {
+            sampler.set_sensor_enabled(idx, en);
+            if idx < self.sensor_config.enabled.len() {
+                self.sensor_config.enabled[idx] = en;
+            }
+        }
+        if self.has_ctrl {
+            sync_actuator_enable(
+                &self.rw_enabled,
+                &self.mtq_enabled,
+                &self.base_wheel_max,
+                &self.base_mtq_max,
+                &mut self.ctrl_rt,
+                &mut self.wheel_commands,
+                &mut self.dipole_commands,
+            );
+            let n_rw = runtime.wheel_commands.len().min(self.wheel_commands.len());
+            runtime.wheel_commands[..n_rw].copy_from_slice(&self.wheel_commands[..n_rw]);
+            let n_mtq = runtime.dipole_commands.len().min(self.dipole_commands.len());
+            runtime.dipole_commands[..n_mtq].copy_from_slice(&self.dipole_commands[..n_mtq]);
+        }
     }
 
-    pub fn step(
+    pub fn step_state_machines(
         &mut self,
         t: f64,
         y: &[f64],
         sampler: &mut SimulationSampler,
+        runtime: &mut Runtime,
+        on_obc: bool,
+        on_adcs: bool,
+    ) {
+        let jd = self.epoch_jd + t / 86400.0;
+        let mut hw_dirty = false;
+
+        if !self.initialized {
+            self.initialized = true;
+            if self.has_obc {
+                let init_state = self.obc_work[0] as usize;
+                self.pending_cmd_mode = self
+                    .obc_rt
+                    .state_adcs_mode
+                    .get(init_state)
+                    .copied()
+                    .unwrap_or(-1);
+                self.pending_cmd_goal = self
+                    .obc_rt
+                    .state_adcs_goal
+                    .get(init_state)
+                    .copied()
+                    .unwrap_or(-1);
+                apply_obc_state_masks(
+                    init_state as i64,
+                    &self.obc_rt,
+                    &mut self.sensor_enabled,
+                    &mut self.rw_enabled,
+                    &mut self.mtq_enabled,
+                );
+                let (st, cm, cg, entered_state, fired_tc_idx) = step_obc_core(
+                    y,
+                    0.0,
+                    self.epoch_jd,
+                    self.dt_obc,
+                    &self.obc_rt,
+                    &mut self.obc_work,
+                );
+                self.active_obc_mode = st as i64;
+                if entered_state >= 0 {
+                    apply_obc_state_masks(
+                        entered_state,
+                        &self.obc_rt,
+                        &mut self.sensor_enabled,
+                        &mut self.rw_enabled,
+                        &mut self.mtq_enabled,
+                    );
+                }
+                if fired_tc_idx >= 0 {
+                    apply_obc_tc_masks(
+                        fired_tc_idx,
+                        &self.obc_rt,
+                        &mut self.sensor_enabled,
+                        &mut self.rw_enabled,
+                        &mut self.mtq_enabled,
+                    );
+                }
+                if cm >= 0 {
+                    self.pending_cmd_mode = cm;
+                }
+                if cg >= 0 {
+                    self.pending_cmd_goal = cg;
+                }
+                hw_dirty = true;
+            }
+            if self.has_adcs_sm {
+                let (mode, goal) = step_adcs_sm(
+                    0.0,
+                    &self.adcs_sm_rt,
+                    &mut self.adcs_sm_work,
+                    self.pending_cmd_mode,
+                    self.pending_cmd_goal,
+                );
+                self.active_adcs_mode = mode as i64;
+                self.active_adcs_goal = goal as i64;
+                self.pending_cmd_mode = -1;
+                self.pending_cmd_goal = -1;
+                apply_adcs_mode_masks(
+                    self.active_adcs_mode,
+                    &self.adcs_sm_rt,
+                    &mut self.sensor_enabled,
+                    &mut self.rw_enabled,
+                    &mut self.mtq_enabled,
+                );
+                hw_dirty = true;
+            }
+        } else {
+            if self.has_obc && on_obc {
+                let dt_step = if t > self.last_obc_time {
+                    t - self.last_obc_time
+                } else {
+                    self.dt_obc
+                };
+                self.last_obc_time = t;
+                let (st, cm, cg, entered_state, fired_tc_idx) = step_obc_core(
+                    y,
+                    t,
+                    jd,
+                    dt_step,
+                    &self.obc_rt,
+                    &mut self.obc_work,
+                );
+                self.active_obc_mode = st as i64;
+                if entered_state >= 0 {
+                    apply_obc_state_masks(
+                        entered_state,
+                        &self.obc_rt,
+                        &mut self.sensor_enabled,
+                        &mut self.rw_enabled,
+                        &mut self.mtq_enabled,
+                    );
+                    hw_dirty = true;
+                }
+                if fired_tc_idx >= 0 {
+                    apply_obc_tc_masks(
+                        fired_tc_idx,
+                        &self.obc_rt,
+                        &mut self.sensor_enabled,
+                        &mut self.rw_enabled,
+                        &mut self.mtq_enabled,
+                    );
+                    hw_dirty = true;
+                }
+                if cm >= 0 {
+                    self.pending_cmd_mode = cm;
+                }
+                if cg >= 0 {
+                    self.pending_cmd_goal = cg;
+                }
+            }
+            if self.has_adcs_sm && on_adcs {
+                let prev_mode = self.active_adcs_mode;
+                let (mode, goal) = step_adcs_sm(
+                    t,
+                    &self.adcs_sm_rt,
+                    &mut self.adcs_sm_work,
+                    self.pending_cmd_mode,
+                    self.pending_cmd_goal,
+                );
+                self.active_adcs_mode = mode as i64;
+                self.active_adcs_goal = goal as i64;
+                self.pending_cmd_mode = -1;
+                self.pending_cmd_goal = -1;
+                if self.active_adcs_mode != prev_mode {
+                    apply_adcs_mode_masks(
+                        self.active_adcs_mode,
+                        &self.adcs_sm_rt,
+                        &mut self.sensor_enabled,
+                        &mut self.rw_enabled,
+                        &mut self.mtq_enabled,
+                    );
+                    hw_dirty = true;
+                }
+            }
+        }
+
+        if hw_dirty {
+            self.sync_hardware(sampler, runtime);
+        }
+
+        self.scratch_sm = [
+            if self.has_obc { self.active_obc_mode } else { -1 },
+            if self.has_adcs_sm { self.active_adcs_mode } else { -1 },
+            if self.has_adcs_sm { self.active_adcs_goal } else { -1 },
+        ];
+    }
+
+    pub fn step_control(
+        &mut self,
+        t: f64,
+        y: &[f64],
+        sampler: &SimulationSampler,
         runtime: &mut Runtime,
     ) {
         let jd = self.epoch_jd + t / 86400.0;
@@ -140,75 +421,20 @@ impl ControlLoopContext {
         };
         self.last_ctrl_time = t;
 
-        // Sync reference vectors from sampler into our sensor_config.
         self.sensor_config
             .reference
             .copy_from_slice(&sampler.estimator_config.reference);
 
-        let mut obc_mode: i64 = -1;
-        let mut cmd_mode: i64 = -1;
-        let mut cmd_goal: i64 = -1;
-        if self.has_obc {
-            let (st, m, g) = step_obc(y, t, jd, dt_step, &self.obc_rt, &mut self.obc_work);
-            obc_mode = st as i64;
-            cmd_mode = m;
-            cmd_goal = g;
-        }
-
-        let mut adcs_mode: i64 = -1;
-        let mut adcs_goal: i64 = -1;
-        if self.has_adcs_sm {
-            let (mode, goal) = step_adcs_sm(
-                t,
-                &self.adcs_sm_rt,
-                &mut self.adcs_sm_work,
-                cmd_mode,
-                cmd_goal,
-            );
-            adcs_mode = mode as i64;
-            adcs_goal = goal as i64;
-            if adcs_mode != self.last_applied_mode {
-                if let Some(mask) = self.adcs_sm_rt.mode_sensor_mask.get(mode) {
-                    for (idx, &flag) in mask.iter().enumerate() {
-                        if flag == 0 {
-                            sampler.set_sensor_enabled(idx, false);
-                            if idx < self.sensor_config.enabled.len() {
-                                self.sensor_config.enabled[idx] = false;
-                            }
-                        } else if flag == 1 {
-                            sampler.set_sensor_enabled(idx, true);
-                            if idx < self.sensor_config.enabled.len() {
-                                self.sensor_config.enabled[idx] = true;
-                            }
-                        }
-                    }
-                }
-                if self.has_ctrl {
-                    if let Some(rw_mask) = self.adcs_sm_rt.mode_rw_mask.get(mode) {
-                        apply_hw_mask(rw_mask, &mut self.rw_enabled);
-                    }
-                    if let Some(mtq_mask) = self.adcs_sm_rt.mode_mtq_mask.get(mode) {
-                        apply_hw_mask(mtq_mask, &mut self.mtq_enabled);
-                    }
-                    sync_actuator_enable(
-                        &self.rw_enabled,
-                        &self.mtq_enabled,
-                        &self.base_wheel_max,
-                        &self.base_mtq_max,
-                        &mut self.ctrl_rt,
-                        &mut self.wheel_commands,
-                        &mut self.dipole_commands,
-                    );
-                }
-                self.last_applied_mode = adcs_mode;
-            }
-        }
-
-        self.scratch_sm = [obc_mode, adcs_mode, adcs_goal];
         self.scratch_ctrl.fill(f64::NAN);
 
-        let (q_goal, w_goal) = if self.has_adcs_sm && adcs_goal > 0 {
-            evaluate_goal(adcs_goal as usize, &self.adcs_sm_rt, y, jd, self.mu)
+        let (q_goal, w_goal) = if self.has_adcs_sm && self.active_adcs_goal > 0 {
+            evaluate_goal(
+                self.active_adcs_goal as usize,
+                &self.adcs_sm_rt,
+                y,
+                jd,
+                self.mu,
+            )
         } else {
             ([f64::NAN; 4], [f64::NAN; 3])
         };
@@ -220,15 +446,20 @@ impl ControlLoopContext {
         }
 
         if self.has_ctrl {
-            let ctrl_idx = if self.has_adcs_sm && adcs_mode >= 0 {
+            let ctrl_idx = if self.has_adcs_sm && self.active_adcs_mode >= 0 {
                 self.adcs_sm_rt
                     .mode_default_controller
-                    .get(adcs_mode as usize)
+                    .get(self.active_adcs_mode as usize)
                     .copied()
                     .unwrap_or(0)
             } else {
                 0
             };
+
+            if ctrl_idx as i64 != self.prev_ctrl_idx {
+                self.ctrl_work = [0.0; 4];
+                self.prev_ctrl_idx = ctrl_idx as i64;
+            }
 
             let mut q_est = [y[0], y[1], y[2], y[3]];
             let mut w_est = [y[4], y[5], y[6]];
@@ -297,11 +528,27 @@ impl ControlLoopContext {
                 self.sm_trace.extend_from_slice(&[-1, -1, -1]);
             }
         }
-        if self.ctrl_log_flags != 0 {
+        if (self.ctrl_log_flags & 63) != 0 {
             if sampled_this_step {
                 self.ctrl_log.extend_from_slice(&self.scratch_ctrl);
             } else {
                 self.ctrl_log.extend_from_slice(&[f64::NAN; 20]);
+            }
+        }
+        if (self.ctrl_log_flags & 64) != 0 {
+            if sampled_this_step {
+                self.cmd_rw_log.extend_from_slice(&self.wheel_commands);
+            } else {
+                self.cmd_rw_log
+                    .resize(self.cmd_rw_log.len() + self.n_wheels, f64::NAN);
+            }
+        }
+        if (self.ctrl_log_flags & 128) != 0 {
+            if sampled_this_step {
+                self.cmd_mtq_log.extend_from_slice(&self.dipole_commands);
+            } else {
+                self.cmd_mtq_log
+                    .resize(self.cmd_mtq_log.len() + self.n_mtqs, f64::NAN);
             }
         }
     }
