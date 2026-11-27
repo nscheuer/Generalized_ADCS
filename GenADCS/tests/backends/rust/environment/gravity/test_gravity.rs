@@ -63,3 +63,38 @@ fn gravity_rejects_invalid_degrees_short_coefficients_and_centre() {
     assert!(JGravityModel::configured(vec![2], Some(vec![1.0; 4])).is_err());
     assert!(native_acceleration([0.0; 3], EARTH_MU_M3_S2, EARTH_REFERENCE_RADIUS_M, &[]).is_err());
 }
+
+/// Textbook central + J2 acceleration (J2 axis = inertial z).
+fn j2_closed_form(p: [f64; 3], mu: f64, radius: f64, j2: f64) -> [f64; 3] {
+    let [x, y, z] = p;
+    let r2 = x * x + y * y + z * z;
+    let r = r2.sqrt();
+    let k = 1.5 * j2 * mu * radius * radius / r.powi(5);
+    let zz = 5.0 * z * z / r2;
+    let c = -mu / (r2 * r);
+    [c * x + k * x * (zz - 1.0), c * y + k * y * (zz - 1.0), c * z + k * z * (zz - 3.0)]
+}
+
+#[test]
+fn j2_matches_closed_form_off_the_equator() {
+    // Regression test: the latitude term once had the wrong sign, which only
+    // shows away from the equator (z != 0).
+    let j2 = EARTH_ZONAL_COEFFICIENTS[0];
+    for p in [
+        [7_000_000.0, 0.0, 1_000_000.0],
+        [4_000_000.0, 3_000_000.0, 4_500_000.0],
+        [-2_500_000.0, 1_500_000.0, -6_000_000.0],
+    ] {
+        let a = native_acceleration(
+            p,
+            EARTH_MU_M3_S2,
+            EARTH_REFERENCE_RADIUS_M,
+            &[j2, 0.0, 0.0, 0.0, 0.0],
+        )
+        .unwrap();
+        let e = j2_closed_form(p, EARTH_MU_M3_S2, EARTH_REFERENCE_RADIUS_M, j2);
+        for i in 0..3 {
+            assert!((a[i] - e[i]).abs() < 1e-12, "axis {i}: {} vs {}", a[i], e[i]);
+        }
+    }
+}

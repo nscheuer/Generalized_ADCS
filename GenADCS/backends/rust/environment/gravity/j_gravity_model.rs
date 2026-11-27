@@ -75,10 +75,12 @@ pub fn native_acceleration(
     }
     let mu_r3 = mu / (r2 * r);
     let base = -mu_r3 * radial;
+    // The latitude term enters with a negative sign:
+    // -mu/r^3 * sum(Jn (R/r)^n Pn'(s)) * (r z_hat - s r_vec).
     Ok([
-        base * x + mu_r3 * z_gradient * (-s * x),
-        base * y + mu_r3 * z_gradient * (-s * y),
-        base * z + mu_r3 * z_gradient * (r - s * z),
+        base * x - mu_r3 * z_gradient * (-s * x),
+        base * y - mu_r3 * z_gradient * (-s * y),
+        base * z - mu_r3 * z_gradient * (r - s * z),
     ])
 }
 

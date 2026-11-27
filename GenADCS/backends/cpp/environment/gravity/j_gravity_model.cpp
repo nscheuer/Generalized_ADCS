@@ -42,9 +42,11 @@ Eigen::Vector3d gravity_acceleration_inertial_m_s2(
     ratio_n *= ratio;
   }
   const double mu_r3 = mu / (r2 * radius), base = -mu_r3 * radial;
-  return Eigen::Vector3d(base * x + mu_r3 * z_gradient * (-s * x),
-                         base * y + mu_r3 * z_gradient * (-s * y),
-                         base * z + mu_r3 * z_gradient * (radius - s * z));
+  // The latitude term enters with a negative sign:
+  // -mu/r^3 * sum(Jn (R/r)^n Pn'(s)) * (r z_hat - s r_vec).
+  return Eigen::Vector3d(base * x - mu_r3 * z_gradient * (-s * x),
+                         base * y - mu_r3 * z_gradient * (-s * y),
+                         base * z - mu_r3 * z_gradient * (radius - s * z));
 }
 JGravityModel::JGravityModel(std::vector<int> degrees,
                              const Eigen::VectorXd &coefficients)

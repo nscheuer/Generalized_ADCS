@@ -69,10 +69,12 @@ def gravity_acceleration_inertial_m_s2(
 
     mu_over_r3 = gravitational_parameter_m3_s2 / (r2 * r)
     base = -mu_over_r3 * radial_factor
+    # a = -grad of (-U): the latitude term enters with a negative sign,
+    # -mu/r^3 * sum(Jn (R/r)^n Pn'(s)) * (r z_hat - s r_vec).
     result = np.empty(3, dtype=np.float64)
-    result[0] = base * x + mu_over_r3 * z_gradient_factor * (-s * x)
-    result[1] = base * y + mu_over_r3 * z_gradient_factor * (-s * y)
-    result[2] = base * z + mu_over_r3 * z_gradient_factor * (r - s * z)
+    result[0] = base * x - mu_over_r3 * z_gradient_factor * (-s * x)
+    result[1] = base * y - mu_over_r3 * z_gradient_factor * (-s * y)
+    result[2] = base * z - mu_over_r3 * z_gradient_factor * (r - s * z)
     return result
 
 

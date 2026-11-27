@@ -28,10 +28,12 @@ fn zonal_acceleration(position_i: [f64; 3], mu: f64, radius: f64, j: &[f64]) -> 
     }
     let mu_r3 = mu / (r2 * r);
     let base = -mu_r3 * radial;
+    // The latitude term enters with a negative sign:
+    // -mu/r^3 * sum(Jn (R/r)^n Pn'(s)) * (r z_hat - s r_vec).
     [
-        base * x + mu_r3 * zg * (-s * x),
-        base * y + mu_r3 * zg * (-s * y),
-        base * z + mu_r3 * zg * (r - s * z),
+        base * x - mu_r3 * zg * (-s * x),
+        base * y - mu_r3 * zg * (-s * y),
+        base * z - mu_r3 * zg * (r - s * z),
     ]
 }
 
