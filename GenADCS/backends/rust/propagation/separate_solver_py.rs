@@ -2,6 +2,7 @@ use numpy::{ndarray::Array2, IntoPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
+use super::control_loop_py::{attach_control_logs_to_pydict, build_control_loop_context};
 use super::dynamics_py::numbers;
 use super::sensor_sampling::{build_sampler_and_runtime, sampler_to_pydict};
 use super::separate_solver::{integrate_uncoupled_native, integrate_uncoupled_observed};
@@ -48,7 +49,7 @@ pub(super) fn integrate_uncoupled(
             jd,
             dt,
             tf,
-            &runtime,
+            &mut runtime,
             reference_mode,
             progress,
             progress_chunk_steps,
@@ -79,7 +80,7 @@ pub(super) fn integrate_uncoupled(
 }
 
 #[pyfunction]
-#[pyo3(signature=(y,jd,dt,tf,record_every,sensor_every,runtime,sensors,environment,seed=0,estimator=None,nees=false,reference_mode=-1,progress=false,progress_chunk_steps=500))]
+#[pyo3(signature=(y,jd,dt,tf,record_every,sensor_every,runtime,sensors,environment,seed=0,estimator=None,nees=false,reference_mode=-1,progress=false,progress_chunk_steps=500,adcs=None,obc=None,ctrl_log_flags=0,mu=3.986004418e14))]
 pub(super) fn simulate_uncoupled(
     py: Python<'_>,
     y: &PyAny,
@@ -97,6 +98,10 @@ pub(super) fn simulate_uncoupled(
     reference_mode: i32,
     progress: bool,
     progress_chunk_steps: usize,
+    adcs: Option<&PyAny>,
+    obc: Option<&PyAny>,
+    ctrl_log_flags: u32,
+    mu: f64,
 ) -> PyResult<PyObject> {
     if progress_chunk_steps == 0 {
         return Err(PyValueError::new_err(
@@ -104,7 +109,7 @@ pub(super) fn simulate_uncoupled(
         ));
     }
     let y = numbers(py, y)?;
-    let (mut sampler, runtime) = build_sampler_and_runtime(
+    let (mut sampler, mut runtime) = build_sampler_and_runtime(
         py,
         jd,
         runtime,
@@ -116,26 +121,44 @@ pub(super) fn simulate_uncoupled(
         reference_mode == 2,
     )?;
     let sensor_interval = dt * sensor_every as f64;
+    let mut ctrl_ctx = build_control_loop_context(
+        py,
+        &sampler,
+        &runtime,
+        adcs,
+        obc,
+        jd,
+        sensor_interval,
+        ctrl_log_flags,
+        mu,
+    )?;
     let (result, signal_error) = py.allow_threads(move || {
         let mut signal_error = None;
-        let mut observe = |t: f64, state: &[f64], recorded: bool| -> Result<(), String> {
-            let on_sensor = sensor_every > 0
-                && (t / sensor_interval - (t / sensor_interval).round()).abs() < 1e-9;
-            if on_sensor {
-                let tick = (t / sensor_interval).round() as u64;
-                sampler.sample(state, t, tick, &runtime)?;
-            }
-            if recorded {
-                sampler.record(on_sensor);
-            }
-            Ok(())
-        };
+        let mut observe =
+            |t: f64, state: &[f64], recorded: bool, rt: &mut Runtime| -> Result<(), String> {
+                let on_sensor = sensor_every > 0
+                    && (t / sensor_interval - (t / sensor_interval).round()).abs() < 1e-9;
+                if on_sensor {
+                    let tick = (t / sensor_interval).round() as u64;
+                    sampler.sample(state, t, tick, rt)?;
+                    if let Some(ctx) = ctrl_ctx.as_mut() {
+                        ctx.step(t, state, &mut sampler, rt);
+                    }
+                }
+                if recorded {
+                    sampler.record(on_sensor);
+                    if let Some(ctx) = ctrl_ctx.as_mut() {
+                        ctx.record(on_sensor);
+                    }
+                }
+                Ok(())
+            };
         let result = integrate_uncoupled_observed(
             y,
             jd,
             dt,
             tf,
-            &runtime,
+            &mut runtime,
             reference_mode,
             progress,
             progress_chunk_steps,
@@ -151,12 +174,15 @@ pub(super) fn simulate_uncoupled(
             },
             &mut observe,
         );
-        (result.map(|(times, states)| (times, states, sampler)), signal_error)
+        (
+            result.map(|(times, states)| (times, states, sampler, ctrl_ctx)),
+            signal_error,
+        )
     });
     if let Some(error) = signal_error {
         return Err(error);
     }
-    let (times, states, sampler) = result.map_err(PyValueError::new_err)?;
+    let (times, states, sampler, ctrl_ctx) = result.map_err(PyValueError::new_err)?;
     let width = states.first().map_or(0, Vec::len);
     let array = Array2::from_shape_vec(
         (states.len(), width),
@@ -164,6 +190,9 @@ pub(super) fn simulate_uncoupled(
     )
     .map_err(|error| PyValueError::new_err(error.to_string()))?;
     let samples_dict = sampler_to_pydict(py, &sampler)?;
+    if let Some(ctx) = ctrl_ctx.as_ref() {
+        attach_control_logs_to_pydict(py, samples_dict.as_ref(py), ctx)?;
+    }
     Ok((times.into_pyarray(py), array.into_pyarray(py), samples_dict).into_py(py))
 }
 

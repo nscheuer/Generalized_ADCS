@@ -16,6 +16,9 @@ fn torque_free_runtime() -> Runtime {
         drag_coefficients: Vec::new(),
         optical_coefficients: Vec::new(),
         dipole: [0.0; 3],
+        mtq_axes: Vec::new(),
+        mtq_max_dipole: Vec::new(),
+        dipole_commands: Vec::new(),
         drag_force: false,
         drag_torque: false,
         srp_force: false,
@@ -34,7 +37,7 @@ fn torque_free_runtime() -> Runtime {
 
 #[test]
 fn uncoupled_rk4_and_reference_integrate_short_horizon() {
-    let runtime = torque_free_runtime();
+    let mut runtime = torque_free_runtime();
     let initial = vec![
         1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 7.0e6, 0.0, 0.0, 0.0, 7500.0, 0.0,
     ];
@@ -44,7 +47,7 @@ fn uncoupled_rk4_and_reference_integrate_short_horizon() {
         2_451_545.0,
         0.25,
         1.1,
-        &runtime,
+        &mut runtime,
         -1,
         false,
         500,
@@ -63,7 +66,7 @@ fn uncoupled_rk4_and_reference_integrate_short_horizon() {
         2_451_545.0,
         0.25,
         0.5,
-        &runtime,
+        &mut runtime,
         0,
         false,
         500,

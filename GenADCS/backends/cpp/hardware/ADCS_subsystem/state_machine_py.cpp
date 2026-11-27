@@ -76,7 +76,9 @@ void bind_adcs_state_machine(py::module_ &module) {
            py::arg("actuators") = py::none())
       .def_readwrite("name", &hw::ADCSMode::name)
       .def_readwrite("goal", &hw::ADCSMode::goal)
-      .def_readwrite("controller", &hw::ADCSMode::controller);
+      .def_readwrite("controller", &hw::ADCSMode::controller)
+      .def_readonly("sensors", &hw::ADCSMode::sensors)
+      .def_readonly("actuators", &hw::ADCSMode::actuators);
 
   py::class_<hw::ADCSStateMachine, std::shared_ptr<hw::ADCSStateMachine>>(
       module, "ADCSStateMachine")
@@ -89,5 +91,6 @@ void bind_adcs_state_machine(py::module_ &module) {
            py::arg("initial"), py::arg("modes"),
            py::arg("timeline") = py::none())
       .def_readwrite("initial", &hw::ADCSStateMachine::initial)
-      .def_readwrite("modes", &hw::ADCSStateMachine::modes);
+      .def_readwrite("modes", &hw::ADCSStateMachine::modes)
+      .def_readonly("timeline", &hw::ADCSStateMachine::timeline);
 }

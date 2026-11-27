@@ -13,8 +13,7 @@ SimulationSampler::SimulationSampler(
     std::set<std::string> fields)
     : runtime_(runtime), epoch_(epoch), sensors_(runtime, sensors, epoch, seed),
       estimator_(estimator), scratch_(sensors_.allocate(1)) {
-  if (!estimator_)
-    return;
+  if (estimator_) {
   ekf_ = dynamic_cast<const est::AttitudeEKF *>(estimator_) != nullptr;
   ukf_ = dynamic_cast<const est::AttitudeSequentialUKF *>(estimator_);
   batched_ukf_ = dynamic_cast<const est::AttitudeBatchedUKF *>(estimator_);
@@ -33,6 +32,7 @@ SimulationSampler::SimulationSampler(
                                                                         fields)
                        : est::AttitudeMEKF::allocate_samples(1, fields);
   scratch_.insert(diagnostics.begin(), diagnostics.end());
+  }
   std::map<std::string, int> offsets;
   int total = 0;
   for (const auto &sensor : sensors) {
@@ -124,6 +124,15 @@ void SimulationSampler::sample(const Vector &state, double time,
   for (auto &[name, values] : scratch_)
     values.setConstant(std::numeric_limits<double>::quiet_NaN());
   sensors_.sample(state, time, tick, scratch_, 0);
+  Eigen::Index offset = 0;
+  for (const auto &reading : reading_layout_) {
+    readings_.segment(offset, reading.width) =
+        scratch_.at(reading.field)
+            .row(0)
+            .segment(reading.offset, reading.width)
+            .transpose();
+    offset += reading.width;
+  }
   if (!estimator_)
     return;
   const Eigen::Vector3d pos = state.segment<3>(7);
@@ -145,15 +154,6 @@ void SimulationSampler::sample(const Vector &state, double time,
       device.reference = sun;
     else if (device.code == 5)
       device.reference = -pos;
-  }
-  Eigen::Index offset = 0;
-  for (const auto &reading : reading_layout_) {
-    readings_.segment(offset, reading.width) =
-        scratch_.at(reading.field)
-            .row(0)
-            .segment(reading.offset, reading.width)
-            .transpose();
-    offset += reading.width;
   }
   if (ekf_)
     est::AttitudeEKF::update_sample(estimate_, estimator_->acceleration_psd,
@@ -183,5 +183,11 @@ void SimulationSampler::sample(const Vector &state, double time,
 void SimulationSampler::record(Eigen::Index row) {
   for (const auto &[name, values] : scratch_)
     output.at(name).row(row) = values.row(0);
+}
+void SimulationSampler::set_sensor_enabled(const std::vector<bool> &enabled) {
+  sensors_.set_enabled(enabled);
+  for (std::size_t i = 0; i < devices_.size() && i < enabled.size(); ++i) {
+    devices_[i].enabled = enabled[i];
+  }
 }
 } // namespace omni::propagation

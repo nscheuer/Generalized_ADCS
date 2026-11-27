@@ -28,6 +28,9 @@ fn torque_free_runtime() -> Runtime {
         inverse_bus_inertia: eye,
         wheel_commands: Vec::new(),
         wheel_max_momentum: Vec::new(),
+        mtq_axes: Vec::new(),
+        mtq_max_dipole: Vec::new(),
+        dipole_commands: Vec::new(),
     }
 }
 

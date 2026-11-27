@@ -74,13 +74,24 @@ std::vector<int> resolve_sources(
   throw std::invalid_argument("unknown transition source: " + pattern);
 }
 
-std::vector<std::int8_t> compile_mask(const std::optional<HardwareMaskSpec> &spec,
-                                      const std::vector<std::string> &names) {
+std::vector<std::int8_t> compile_mask(
+    const std::optional<HardwareMaskSpec> &spec,
+    const std::vector<std::string> &names,
+    const std::vector<std::string> &aliases = {"*", "all", "sensors"},
+    const std::vector<std::string> &other_names = {},
+    const std::vector<std::string> &other_aliases = {}) {
   std::vector<std::int8_t> mask(names.size(), -1);
   if (!spec.has_value()) {
     return mask;
   }
+  auto in_vec = [](const std::vector<std::string> &v, const std::string &k) {
+    return std::find(v.begin(), v.end(), k) != v.end();
+  };
   for (const auto &[key, val] : *spec) {
+    if (in_vec(aliases, key)) {
+      std::fill(mask.begin(), mask.end(), val ? 1 : 0);
+      continue;
+    }
     bool matched = false;
     for (std::size_t i = 0; i < names.size(); ++i) {
       if (names[i] == key) {
@@ -88,7 +99,7 @@ std::vector<std::int8_t> compile_mask(const std::optional<HardwareMaskSpec> &spe
         matched = true;
       }
     }
-    if (!matched) {
+    if (!matched && !in_vec(other_names, key) && !in_vec(other_aliases, key)) {
       throw std::invalid_argument("unknown hardware reference in state machine: " +
                                   key);
     }
@@ -288,8 +299,14 @@ OBCRuntime prepare_obc(const OBCSubsystem *obc,
       actuator_binding = parent->bindings.actuators;
     }
     if (actuator_binding.has_value()) {
-      rt.state_rw_mask[i] = compile_mask(actuator_binding, rw_names);
-      rt.state_mtq_mask[i] = compile_mask(actuator_binding, mtq_names);
+      rt.state_rw_mask[i] = compile_mask(
+          actuator_binding, rw_names,
+          {"*", "all", "actuators", "reaction_wheels", "ReactionWheel"},
+          mtq_names, {"magnetorquers", "Magnetorquer"});
+      rt.state_mtq_mask[i] = compile_mask(
+          actuator_binding, mtq_names,
+          {"*", "all", "actuators", "magnetorquers", "Magnetorquer"},
+          rw_names, {"reaction_wheels", "ReactionWheel"});
     }
   }
 
@@ -336,8 +353,14 @@ OBCRuntime prepare_obc(const OBCSubsystem *obc,
       const int code = get_cmd_code(tc->command());
       const int g_idx = tc->goal() ? gt.register_goal(tc->goal()) : -1;
       const auto s_m = compile_mask(tc->sensors(), sensor_names);
-      const auto rw_m = compile_mask(tc->actuators(), rw_names);
-      const auto mtq_m = compile_mask(tc->actuators(), mtq_names);
+      const auto rw_m = compile_mask(
+          tc->actuators(), rw_names,
+          {"*", "all", "actuators", "reaction_wheels", "ReactionWheel"},
+          mtq_names, {"magnetorquers", "Magnetorquer"});
+      const auto mtq_m = compile_mask(
+          tc->actuators(), mtq_names,
+          {"*", "all", "actuators", "magnetorquers", "Magnetorquer"},
+          rw_names, {"reaction_wheels", "ReactionWheel"});
       for (int src : sources) {
         per_state_tc[static_cast<std::size_t>(src)].push_back(
             TCEntry{tr.priority, code, target_id, g_idx, s_m, rw_m, mtq_m});

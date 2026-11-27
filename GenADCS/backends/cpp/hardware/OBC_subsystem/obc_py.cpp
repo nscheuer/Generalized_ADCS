@@ -127,7 +127,9 @@ PYBIND11_MODULE(_obc_subsystem, module) {
            py::arg("command"), py::arg("goal") = nullptr,
            py::arg("sensors") = py::none(), py::arg("actuators") = py::none())
       .def_property_readonly("command", &obc::Telecommand::command)
-      .def_property_readonly("goal", &obc::Telecommand::goal);
+      .def_property_readonly("goal", &obc::Telecommand::goal)
+      .def_property_readonly("sensors", &obc::Telecommand::sensors)
+      .def_property_readonly("actuators", &obc::Telecommand::actuators);
 
   py::class_<obc::InFOV, obc::Trigger, std::shared_ptr<obc::InFOV>>(module,
                                                                     "InFOV")
@@ -179,7 +181,20 @@ PYBIND11_MODULE(_obc_subsystem, module) {
       .def_readwrite("submodes", &obc::Mode::submodes)
       .def_readwrite("initial_submode", &obc::Mode::initial_submode)
       .def_readwrite("duration", &obc::Mode::duration)
-      .def_readwrite("auto_target", &obc::Mode::auto_target);
+      .def_readwrite("auto_target", &obc::Mode::auto_target)
+      .def_property_readonly("bindings", [](const obc::Mode &m) {
+        py::dict d;
+        if (m.bindings.adcs.has_value()) {
+          d["adcs"] = py::cast(*m.bindings.adcs);
+        }
+        if (m.bindings.sensors.has_value()) {
+          d["sensors"] = py::cast(*m.bindings.sensors);
+        }
+        if (m.bindings.actuators.has_value()) {
+          d["actuators"] = py::cast(*m.bindings.actuators);
+        }
+        return d;
+      });
 
   py::class_<obc::Transition>(module, "Transition")
       .def(py::init<std::string, std::string, std::shared_ptr<obc::Trigger>,
@@ -205,7 +220,8 @@ PYBIND11_MODULE(_obc_subsystem, module) {
            py::arg("timeline") = py::none())
       .def_readwrite("initial", &obc::StateMachine::initial)
       .def_readwrite("modes", &obc::StateMachine::modes)
-      .def_readwrite("transitions", &obc::StateMachine::transitions);
+      .def_readwrite("transitions", &obc::StateMachine::transitions)
+      .def_readwrite("timeline", &obc::StateMachine::timeline);
 
   py::class_<obc::OBCSubsystem, std::shared_ptr<obc::OBCSubsystem>>(
       module, "OBCSubsystem")
@@ -220,5 +236,6 @@ PYBIND11_MODULE(_obc_subsystem, module) {
            py::arg("N") = 1, py::arg("timeline") = py::none())
       .def_readwrite("state_machine", &obc::OBCSubsystem::state_machine)
       .def_readwrite("fdir", &obc::OBCSubsystem::fdir)
-      .def_readwrite("N", &obc::OBCSubsystem::N);
+      .def_readwrite("N", &obc::OBCSubsystem::N)
+      .def_readwrite("timeline", &obc::OBCSubsystem::timeline);
 }

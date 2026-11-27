@@ -19,7 +19,7 @@ void Runtime::initialize_models() {
   if (srp_force || srp_torque || third_body) {
     ephemeris = std::make_unique<omni::environment::DE421>();
   }
-  if (residual_dipole) {
+  if (residual_dipole || dipole_commands.size() > 0) {
     if (magnetic_kind == 1) {
       igrf = std::make_unique<omni::environment::IGRF14>();
     } else if (magnetic_kind == 2) {
@@ -62,7 +62,7 @@ Vector derivative(const Vector &y, double jd, const Runtime &r) {
           omni::environment::eclipse_state(pos, sun, r.radius, 696340000.));
     }
   }
-  if (r.residual_dipole) {
+  if (r.residual_dipole || r.dipole_commands.size() > 0) {
     field = r.igrf ? r.igrf->field_inertial_tesla(pos, jd)
                    : r.chaos->field_inertial_tesla(pos, jd);
   }
@@ -96,6 +96,13 @@ Vector derivative(const Vector &y, double jd, const Runtime &r) {
   }
   if (r.residual_dipole) {
     torque += omni::dynamics::residual_dipole(r.dipole, field, q);
+  }
+  if (r.dipole_commands.size() > 0) {
+    V mtq_dipole_body = V::Zero();
+    for (Eigen::Index i = 0; i < r.dipole_commands.size(); ++i) {
+      mtq_dipole_body += r.mtq_axes.row(i).transpose() * r.dipole_commands[i];
+    }
+    torque += omni::dynamics::residual_dipole(mtq_dipole_body, field, q);
   }
   for (Eigen::Index i = 0; i < r.wheel_commands.size(); ++i) {
     torque += r.wheel_axes.row(i).transpose() * r.wheel_commands[i];

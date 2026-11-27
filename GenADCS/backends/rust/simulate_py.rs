@@ -89,7 +89,17 @@ pub fn simulate(
         return Err(PyValueError::new_err("ResultsFormat.N must be positive"));
     }
     let has_sensor = !adcs.getattr("sensors")?.is_none() && adcs.getattr("sensors")?.len()? > 0;
-    let stride = if has_sensor || !estimator.is_none(py) {
+    let has_ctrl = adcs.hasattr("controller")? && !adcs.getattr("controller")?.is_none();
+    let has_adcs_sm = adcs.hasattr("state_machine")? && !adcs.getattr("state_machine")?.is_none();
+    let sat_ref = satellite.as_ref(py);
+    let obc = if sat_ref.hasattr("obc")? {
+        sat_ref.getattr("obc")?
+    } else {
+        py.None().into_ref(py)
+    };
+    let has_obc = !obc.is_none();
+    let has_control_or_sm = has_ctrl || has_adcs_sm || has_obc;
+    let stride = if has_sensor || !estimator.is_none(py) || has_control_or_sm {
         let (mut a, mut b) = (n, sensor_n);
         while b != 0 {
             let r = a % b;
@@ -230,6 +240,36 @@ pub fn simulate(
                 "Rust split simulation requires RK4AttitudePropagator or ReferenceAttitudePropagator",
             ));
         };
+        let fmt_ref = format.as_ref(py);
+        let mut ctrl_log_flags: u32 = 0;
+        for (attr, bit) in [
+            ("goal_attitude", 1u32),
+            ("goal_rate", 2u32),
+            ("feedforward_torque", 4u32),
+            ("feedforward_attitude", 8u32),
+            ("feedforward_rate", 16u32),
+            ("reference_torque", 32u32),
+            ("mode_transitions", 64u32),
+        ] {
+            if fmt_ref.hasattr(attr)? && fmt_ref.getattr(attr)?.extract::<bool>().unwrap_or(false) {
+                ctrl_log_flags |= bit;
+            }
+        }
+        let mu: f64 = if environment_for_record.as_ref(py).hasattr("gravity")? {
+            let grav = environment_for_record.as_ref(py).getattr("gravity")?;
+            if !grav.is_none() && grav.hasattr("mu")? {
+                grav.getattr("mu")?.extract::<f64>().unwrap_or(3.986004418e14)
+            } else {
+                3.986004418e14
+            }
+        } else {
+            3.986004418e14
+        };
+        let eff_sensor_every = if has_sensor || !estimator.is_none(py) || has_control_or_sm {
+            sensor_n
+        } else {
+            0
+        };
         let args = PyTuple::new(
             py,
             [
@@ -238,7 +278,7 @@ pub fn simulate(
                 dt.into_py(py),
                 tf.into_py(py),
                 stride.into_py(py),
-                sensor_every.into_py(py),
+                eff_sensor_every.into_py(py),
                 prepared.into_py(py),
                 adcs.getattr("sensors")?.into_py(py),
                 environment_for_record.clone_ref(py),
@@ -248,6 +288,10 @@ pub fn simulate(
                 reference_mode.into_py(py),
                 progress.into_py(py),
                 progress_chunk_steps.into_py(py),
+                adcs.into_py(py),
+                obc.into_py(py),
+                ctrl_log_flags.into_py(py),
+                mu.into_py(py),
             ],
         );
         let res = coupled_mod.getattr("simulate_uncoupled")?.call1(args)?;
@@ -302,7 +346,7 @@ pub fn simulate(
         vectors.get_item(row_indices)?
     };
     let selected = PyDict::new(py);
-    if has_sensor || !estimator.is_none(py) {
+    if has_sensor || !estimator.is_none(py) || has_control_or_sm {
         for (key, value) in samples.downcast::<PyDict>()? {
             selected.set_item(
                 key,

@@ -136,6 +136,12 @@ void SensorSampler::sample(const Vector &y, double time, std::uint64_t tick,
         sensors[i]);
   }
 }
+void SensorSampler::set_enabled(const std::vector<bool> &enabled) {
+  for (std::size_t i = 0; i < sensors.size() && i < enabled.size(); ++i) {
+    std::visit([&](auto &device) { device.enabled = enabled[i]; }, sensors[i]);
+  }
+}
+
 SampleRows sample_sensors(const Vector &times, const Eigen::MatrixXd &states,
     double epoch, double interval, Runtime &r,
     std::vector<omni::hardware::Sensor> sensors, std::uint64_t seed) {

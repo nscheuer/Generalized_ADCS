@@ -19,3 +19,5 @@ magnetic_native = { package = "adcs-omni-rust-magnetic-field", path = "../../env
 gravity_native = { package = "adcs-omni-rust-gravity", path = "../../environment/gravity", default-features = false }
 
 philox_native = { package = "adcs-omni-rust-random", path = "../../helpers/random" }
+adcs_subsystem = { package = "adcs-omni-rust-adcs-subsystem", path = "../../hardware/ADCS_subsystem" }
+obc_subsystem = { package = "adcs-omni-rust-obc-subsystem", path = "../../hardware/OBC_subsystem" }

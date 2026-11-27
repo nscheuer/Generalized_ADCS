@@ -11,8 +11,8 @@ struct Runtime {
                   inverse_inertia = Eigen::Matrix3d::Identity(),
                   inverse_bus_inertia = Eigen::Matrix3d::Identity();
   Eigen::VectorXd zonals, areas, drag_coefficients, wheel_inertias,
-      wheel_commands, wheel_max_momentum;
-  Eigen::MatrixXd normals, arms, optical_coefficients, wheel_axes;
+      wheel_commands, wheel_max_momentum, mtq_max_dipole, dipole_commands;
+  Eigen::MatrixXd normals, arms, optical_coefficients, wheel_axes, mtq_axes;
   Eigen::Vector3d dipole = Eigen::Vector3d::Zero();
   bool drag_force = false, drag_torque = false, srp_force = false,
        srp_torque = false, gravity_gradient = false, residual_dipole = false,

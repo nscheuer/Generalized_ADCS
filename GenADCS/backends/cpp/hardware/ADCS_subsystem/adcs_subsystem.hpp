@@ -1,8 +1,8 @@
 #ifndef ADCS_OMNI_HARDWARE_ADCS_SUBSYSTEM_HPP
 #define ADCS_OMNI_HARDWARE_ADCS_SUBSYSTEM_HPP
 
-#include "magnetorquer.hpp"
-#include "reaction_wheel.hpp"
+#include "actuators/magnetorquer.hpp"
+#include "actuators/reaction_wheel.hpp"
 
 #include "sensors/accelerometer.hpp"
 #include "sensors/autonomous_star_tracker.hpp"

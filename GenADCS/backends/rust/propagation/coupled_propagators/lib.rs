@@ -47,6 +47,8 @@ mod attitude_sequential_srukf;
 mod sensor_kernels;
 mod sensor_sampling;
 mod simulation_sampling;
+mod control_loop;
+mod control_loop_py;
 
 #[pymodule]
 fn _coupled(_py: Python<'_>, m: &PyModule) -> PyResult<()> {

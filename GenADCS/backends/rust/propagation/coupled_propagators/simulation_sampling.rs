@@ -292,20 +292,21 @@ impl SimulationSampler {
             }
         }
 
+        self.scratch_readings_flat.fill(f64::NAN);
+        for (i, s) in self.specs.iter().enumerate() {
+            self.estimator_config.reference[i] = match s.kind {
+                1 => field,
+                3 | 4 => sun,
+                5 => earth,
+                _ => [0.0; 3],
+            };
+            let off = self.estimator_config.offsets[i];
+            let w_len = SENSOR_WIDTH[s.kind];
+            self.scratch_readings_flat[off..off + w_len]
+                .copy_from_slice(&self.scratch_reading[s.kind][s.offset..s.offset + w_len]);
+        }
+
         if let Some(est) = self.estimate.as_mut() {
-            self.scratch_readings_flat.fill(f64::NAN);
-            for (i, s) in self.specs.iter().enumerate() {
-                self.estimator_config.reference[i] = match s.kind {
-                    1 => field,
-                    3 | 4 => sun,
-                    5 => earth,
-                    _ => [0.0; 3],
-                };
-                let off = self.estimator_config.offsets[i];
-                let w_len = SENSOR_WIDTH[s.kind];
-                self.scratch_readings_flat[off..off + w_len]
-                    .copy_from_slice(&self.scratch_reading[s.kind][s.offset..s.offset + w_len]);
-            }
             let dt = time - self.previous_time;
             self.previous_time = time;
             match est {
@@ -372,6 +373,27 @@ impl SimulationSampler {
             }
         }
         Ok(())
+    }
+
+    pub fn set_sensor_enabled(&mut self, index: usize, enabled: bool) {
+        if index < self.specs.len() {
+            self.specs[index].enabled = enabled;
+        }
+        if index < self.estimator_config.enabled.len() {
+            self.estimator_config.enabled[index] = enabled;
+        }
+    }
+
+    pub fn readings_flat(&self) -> &[f64] {
+        &self.scratch_readings_flat
+    }
+
+    pub fn has_estimator(&self) -> bool {
+        self.estimate.is_some()
+    }
+
+    pub fn estimate_slice(&self) -> &[f64] {
+        &self.scratch_estimate
     }
 
     pub fn record(&mut self, sampled_this_step: bool) {

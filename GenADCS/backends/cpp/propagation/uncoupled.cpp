@@ -19,8 +19,9 @@ namespace omni::propagation {
 SeparateTrajectory integrate_uncoupled(
     const Eigen::VectorXd &initial, double mu, double initial_julian_date,
     double dt, double tf, int record_every, const std::string &mode,
-    const SeparateProgress &progress, const Runtime *runtime,
-    SimulationSampler *sampler, int sensor_every) {
+    const SeparateProgress &progress, Runtime *runtime,
+    SimulationSampler *sampler, int sensor_every,
+    ControlLoopContext *ctrl_ctx) {
   if (sampler && sensor_every < 1)
     throw std::invalid_argument("sensor_every must be positive");
   const bool rk4 = mode == "rk4";
@@ -89,7 +90,13 @@ SeparateTrajectory integrate_uncoupled(
   trajectory.second.row(0) = state.transpose();
   if (sampler) {
     sampler->allocate(static_cast<Eigen::Index>(sample_count));
-    sampler->sample(state, 0.0, 0);
+    if (ctrl_ctx && ctrl_ctx->active && rk4) {
+      ctrl_ctx->on_init(state, initial_julian_date, dt, sensor_every, *runtime,
+                        *sampler);
+      ctrl_ctx->record_row(0, state, initial_julian_date, *runtime);
+    } else {
+      sampler->sample(state, 0.0, 0);
+    }
     sampler->record(0);
   }
 
@@ -110,12 +117,23 @@ SeparateTrajectory integrate_uncoupled(
     const std::size_t completed = step + 1;
     const bool sensor_tick = sampler && completed <= full_steps &&
         completed % static_cast<std::size_t>(sensor_every) == 0;
-    if (sensor_tick)
+    if (ctrl_ctx && ctrl_ctx->active && rk4 && sampler) {
+      ctrl_ctx->on_step_pre_record(state, completed, full_steps, dt,
+                                   initial_julian_date, sensor_every,
+                                   sensor_tick, *runtime, *sampler);
+    } else if (sensor_tick) {
       sampler->sample(state, completed * dt, completed / sensor_every);
+    }
     if (completed % stride == 0 || completed == total_steps) {
       const auto row = static_cast<Eigen::Index>(trajectory.first.size());
       trajectory.second.row(row) = state.transpose();
       if (sensor_tick) sampler->record(row);
+      if (ctrl_ctx && ctrl_ctx->active && rk4) {
+        const double t_now = completed == total_steps
+            ? tf : std::min(static_cast<double>(completed) * dt, tf);
+        ctrl_ctx->record_row(row, state, initial_julian_date + t_now / 86400.0,
+                             *runtime);
+      }
       trajectory.first.push_back(completed == total_steps
           ? tf : std::min(static_cast<double>(completed) * dt, tf));
     }
@@ -136,9 +154,9 @@ SeparateTrajectory integrate_separate_reference(
 
 SeparateTrajectory integrate_separate_rk4(
     const Eigen::VectorXd &initial, double mu, double initial_julian_date,
-    double dt, double tf, int record_every, const Runtime &runtime,
+    double dt, double tf, int record_every, Runtime &runtime,
     const SeparateProgress &progress, SimulationSampler *sampler,
-    int sensor_every) {
+    int sensor_every, ControlLoopContext *ctrl_ctx) {
   if (sampler && sensor_every < 1)
     throw std::invalid_argument("sensor_every must be positive");
   if (!std::isfinite(dt) || dt <= 0.0) {
@@ -180,7 +198,13 @@ SeparateTrajectory integrate_separate_rk4(
 
   if (sampler) {
     sampler->allocate(static_cast<Eigen::Index>(sample_count));
-    sampler->sample(state, 0.0, 0);
+    if (ctrl_ctx && ctrl_ctx->active) {
+      ctrl_ctx->on_init(state, initial_julian_date, dt, sensor_every, runtime,
+                        *sampler);
+      ctrl_ctx->record_row(0, state, initial_julian_date, runtime);
+    } else {
+      sampler->sample(state, 0.0, 0);
+    }
     sampler->record(0);
   }
   for (std::size_t step = 0; step < total_steps; ++step) {
@@ -199,12 +223,23 @@ SeparateTrajectory integrate_separate_rk4(
     const std::size_t completed = step + 1;
     const bool sensor_tick = sampler && completed <= full_steps &&
         completed % static_cast<std::size_t>(sensor_every) == 0;
-    if (sensor_tick)
+    if (ctrl_ctx && ctrl_ctx->active && sampler) {
+      ctrl_ctx->on_step_pre_record(state, completed, full_steps, dt,
+                                   initial_julian_date, sensor_every,
+                                   sensor_tick, runtime, *sampler);
+    } else if (sensor_tick) {
       sampler->sample(state, completed * dt, completed / sensor_every);
+    }
     if (completed % stride == 0 || completed == total_steps) {
       const auto row = static_cast<Eigen::Index>(trajectory.first.size());
       trajectory.second.row(row) = state.transpose();
       if (sensor_tick) sampler->record(row);
+      if (ctrl_ctx && ctrl_ctx->active) {
+        const double t_now = completed == total_steps
+            ? tf : std::min(static_cast<double>(completed) * dt, tf);
+        ctrl_ctx->record_row(row, state, initial_julian_date + t_now / 86400.0,
+                             runtime);
+      }
       trajectory.first.push_back(completed == total_steps
           ? tf : std::min(static_cast<double>(completed) * dt, tf));
     }
@@ -220,10 +255,24 @@ SeparateSimulation simulate_uncoupled(
     const omni::hardware::estimator::AttitudeEstimator *estimator,
     int sensor_every, std::uint64_t seed, std::set<std::string> fields,
     const std::string &attitude_mode,
-    bool progress, std::size_t chunk_steps) {
+    bool progress, std::size_t chunk_steps,
+    ControlLoopContext *ctrl_ctx) {
   if (!std::isfinite(dt) || dt <= 0 || !std::isfinite(tf) || tf < 0 ||
       record_every < 1 || sensor_every < 1 || chunk_steps == 0)
     throw std::invalid_argument("invalid separate simulation time or sampling interval");
+  const auto full_steps = static_cast<std::size_t>(std::floor(tf / dt));
+  double remainder = tf - static_cast<double>(full_steps) * dt;
+  if (remainder <= 1e-12 * std::max(1.0, tf))
+    remainder = 0.0;
+  const std::size_t total_steps = full_steps + (remainder > 0.0 ? 1 : 0);
+  const auto stride = static_cast<std::size_t>(record_every);
+  const std::size_t sample_count =
+      1 + total_steps / stride + (total_steps % stride != 0 ? 1 : 0);
+  if (ctrl_ctx && ctrl_ctx->active) {
+    ctrl_ctx->allocate(static_cast<Eigen::Index>(sample_count),
+                       runtime.wheel_commands.size(),
+                       runtime.dipole_commands.size(), fields);
+  }
   SimulationSampler sampler(runtime, std::move(sensors), estimator, epoch,
                             seed, std::move(fields));
   std::size_t completed = 0;
@@ -242,8 +291,14 @@ SeparateSimulation simulate_uncoupled(
     }
   };
   auto trajectory = integrate_uncoupled(initial, mu, epoch, dt, tf,
-      record_every, attitude_mode, update, &runtime, &sampler, sensor_every);
+      record_every, attitude_mode, update, &runtime, &sampler, sensor_every,
+      ctrl_ctx);
   if (progress) std::cerr << '\n';
+  if (ctrl_ctx && ctrl_ctx->active) {
+    for (auto &[k, v] : ctrl_ctx->output) {
+      sampler.output[k] = std::move(v);
+    }
+  }
   return {std::move(trajectory.first), std::move(trajectory.second),
           std::move(sampler.output)};
 }

@@ -48,6 +48,10 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
             "measurement_innovation", "measurement_innovation_covariance",
             "normalized_innovation_squared", "normalized_estimation_error_squared",
             "measurement_residual", "kalman_gain",
+            "obc_mode", "adcs_mode", "adcs_goal",
+            "goal_attitude", "goal_rate",
+            "feedforward_torque", "feedforward_attitude", "feedforward_rate",
+            "reference_torque", "commanded_wheel_torque", "commanded_magnetic_dipole",
         ) if getattr(resultsformat, name)
     }
     if separate:
@@ -109,6 +113,7 @@ def simulate(satellite, environment, dynamics, state, solver, backend="C", resul
             initial, mu, epoch, dt, tf, resultsformat.N, runtime,
             satellite.adcs, seed, diagnostic_fields, attitude_mode,
             solver.progress, solver.progress_chunk_steps,
+            getattr(satellite, "obc", None),
         )
         dt = orbital.dt
     else:

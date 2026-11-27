@@ -802,7 +802,7 @@ pybind11_add_module(_coupled ${GENADCS_PYBIND_OPTIONS}
     helpers/math/frames/conversions.cpp
     helpers/math/time/conversions.cpp)
 target_link_libraries(_coupled PRIVATE Eigen3::Eigen)
-target_include_directories(_coupled PRIVATE helpers/random helpers/math/rotations environment helpers/math helpers/math/frames helpers/math/time environment/atmosphere/NRMLSISE00)
+target_include_directories(_coupled PRIVATE helpers/random helpers/math/rotations environment helpers/math helpers/math/frames helpers/math/time environment/atmosphere/NRMLSISE00 hardware/ADCS_subsystem/actuators)
 set_target_properties(_coupled PROPERTIES
     C_VISIBILITY_PRESET hidden
     CXX_VISIBILITY_PRESET hidden
@@ -810,6 +810,8 @@ set_target_properties(_coupled PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/propagation/coupled_propagators")
 
 add_library(separate_propagation_native STATIC
+    propagation/control_loop.cpp
+    hardware/ADCS_subsystem/state_machine.cpp
     propagation/coupled_propagators/integrate.cpp
     propagation/coupled_propagators/coupled_rk4_propagator.cpp
     propagation/coupled_propagators/coupled_dop853_propagator.cpp
@@ -855,7 +857,7 @@ add_library(separate_propagation_native STATIC
     helpers/math/rotations/quaternion/conversions.cpp
     helpers/math/rotations/quaternion/algebra.cpp)
 target_compile_features(separate_propagation_native PUBLIC cxx_std_17)
-target_link_libraries(separate_propagation_native PUBLIC Eigen3::Eigen attitude_estimator_native)
+target_link_libraries(separate_propagation_native PUBLIC Eigen3::Eigen attitude_estimator_native goals_native_core controllers_native_core obc_subsystem_native_core)
 target_include_directories(separate_propagation_native PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}" helpers/random helpers/math/rotations
     environment helpers/math helpers/math/frames helpers/math/time

@@ -36,6 +36,8 @@ pub struct PyADCSMode {
     pub(crate) inner: NativeADCSMode,
     goal_py: Py<PyAny>,
     controller_py: Py<PyAny>,
+    sensors_py: Py<PyAny>,
+    actuators_py: Py<PyAny>,
 }
 
 #[pymethods]
@@ -47,8 +49,8 @@ impl PyADCSMode {
         name: String,
         goal: Option<Py<PyAny>>,
         controller: Option<Py<PyAny>>,
-        sensors: Option<&PyAny>,
-        actuators: Option<&PyAny>,
+        sensors: Option<Py<PyAny>>,
+        actuators: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
         let goal_py = match goal {
             Some(g) => g,
@@ -74,6 +76,8 @@ impl PyADCSMode {
             }
             None => Py::new(py, PyNoController::new())?.into_py(py),
         };
+        let sensors_ref = sensors.as_ref().map(|o| o.as_ref(py));
+        let actuators_ref = actuators.as_ref().map(|o| o.as_ref(py));
         let g_native: Arc<dyn Goal + Send + Sync> = Arc::new(NoGoal);
         let c_native: Arc<dyn Controller> = Arc::new(NoController);
         let inner = NativeADCSMode::new(
@@ -83,14 +87,16 @@ impl PyADCSMode {
             [0.0; GOAL_PARAM_WIDTH],
             "NoGoal".to_string(),
             Some(c_native),
-            parse_mask(sensors)?,
-            parse_mask(actuators)?,
+            parse_mask(sensors_ref)?,
+            parse_mask(actuators_ref)?,
         )
         .map_err(PyValueError::new_err)?;
         Ok(Self {
             inner,
             goal_py,
             controller_py: ctrl_py,
+            sensors_py: sensors.unwrap_or_else(|| py.None()),
+            actuators_py: actuators.unwrap_or_else(|| py.None()),
         })
     }
 
@@ -108,12 +114,23 @@ impl PyADCSMode {
     fn controller(&self, py: Python<'_>) -> Py<PyAny> {
         self.controller_py.clone_ref(py)
     }
+
+    #[getter]
+    fn sensors(&self, py: Python<'_>) -> Py<PyAny> {
+        self.sensors_py.clone_ref(py)
+    }
+
+    #[getter]
+    fn actuators(&self, py: Python<'_>) -> Py<PyAny> {
+        self.actuators_py.clone_ref(py)
+    }
 }
 
 #[pyclass(name = "ADCSStateMachine")]
 pub struct PyADCSStateMachine {
     pub(crate) inner: NativeADCSStateMachine,
     modes_py: Vec<PyADCSMode>,
+    timeline_py: Py<PyAny>,
 }
 
 #[pymethods]
@@ -121,12 +138,14 @@ impl PyADCSStateMachine {
     #[new]
     #[pyo3(signature = (initial, modes, timeline=None))]
     fn new(
+        py: Python<'_>,
         initial: String,
         modes: Vec<PyADCSMode>,
-        timeline: Option<&PyAny>,
+        timeline: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
         let mut native_tl = Vec::new();
-        if let Some(tl) = timeline {
+        if let Some(ref tl_obj) = timeline {
+            let tl = tl_obj.as_ref(py);
             if !tl.is_none() {
                 for item in tl.iter()? {
                     let tup = item?.downcast::<PyTuple>()?;
@@ -158,6 +177,7 @@ impl PyADCSStateMachine {
         Ok(Self {
             inner,
             modes_py: modes,
+            timeline_py: timeline.unwrap_or_else(|| py.None()),
         })
     }
 
@@ -169,6 +189,11 @@ impl PyADCSStateMachine {
     #[getter]
     fn modes(&self) -> Vec<PyADCSMode> {
         self.modes_py.clone()
+    }
+
+    #[getter]
+    fn timeline(&self, py: Python<'_>) -> Py<PyAny> {
+        self.timeline_py.clone_ref(py)
     }
 }
 

@@ -6,7 +6,7 @@ from GenADCS.backends.python.hardware.state_machine import StateMachine
 class Satellite(_Satellite):
     """Python-compatible satellite wrapper around the native C++ value type."""
 
-    def __init__(self, geometry, adcs=None, state_machine=None):
+    def __init__(self, geometry, adcs=None, state_machine=None, obc=None):
         if adcs is None:
             adcs = ADCSSubsystem()
         if state_machine is None:
@@ -14,6 +14,7 @@ class Satellite(_Satellite):
         super().__init__(geometry, state_machine.mode)
         self._geometry = geometry
         self.adcs = adcs
+        self.obc = obc
         self.state_machine = state_machine
 
     @property

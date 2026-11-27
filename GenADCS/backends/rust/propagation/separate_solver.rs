@@ -5,7 +5,7 @@ pub(super) fn integrate_uncoupled_native(
     jd: f64,
     dt: f64,
     tf: f64,
-    runtime: &Runtime,
+    runtime: &mut Runtime,
     reference_mode: i32,
     progress: bool,
     progress_chunk_steps: usize,
@@ -23,7 +23,7 @@ pub(super) fn integrate_uncoupled_native(
         progress_chunk_steps,
         record_every,
         poll,
-        |_, _, _| Ok(()),
+        |_, _, _, _| Ok(()),
     )
 }
 
@@ -32,13 +32,13 @@ pub(super) fn integrate_uncoupled_observed(
     jd: f64,
     dt: f64,
     tf: f64,
-    runtime: &Runtime,
+    runtime: &mut Runtime,
     reference_mode: i32,
     progress: bool,
     progress_chunk_steps: usize,
     record_every: usize,
     mut poll: impl FnMut() -> bool,
-    mut observe: impl FnMut(f64, &[f64], bool) -> Result<(), String>,
+    mut observe: impl FnMut(f64, &[f64], bool, &mut Runtime) -> Result<(), String>,
 ) -> Result<(Vec<f64>, Vec<Vec<f64>>), String> {
     runtime.validate()?;
     if !dt.is_finite() || dt <= 0.0 {
@@ -75,7 +75,7 @@ pub(super) fn integrate_uncoupled_observed(
         remainder = 0.0;
     }
     let total = full + usize::from(remainder > 0.0);
-    observe(0.0, &y, true)?;
+    observe(0.0, &y, true, runtime)?;
     let mut times = vec![0.0];
     let mut states = vec![y.clone()];
     let mut bar = if progress {
@@ -125,7 +125,7 @@ pub(super) fn integrate_uncoupled_observed(
         } else {
             (completed as f64 * dt).min(tf)
         };
-        observe(t_now, &y, recorded)?;
+        observe(t_now, &y, recorded, runtime)?;
         if recorded {
             times.push(t_now);
             states.push(y.clone());

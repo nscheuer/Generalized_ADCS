@@ -1,8 +1,10 @@
 #include "magnetorquer.hpp"
 
 #include <cmath>
+#include <optional>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 namespace py = pybind11;
 namespace hardware = omni::hardware;
@@ -10,9 +12,11 @@ namespace hardware = omni::hardware;
 namespace {
 struct BoundMagnetorquer {
   hardware::Magnetorquer native;
+  std::optional<std::string> name;
 
-  explicit BoundMagnetorquer(hardware::Magnetorquer value)
-      : native(std::move(value)) {}
+  explicit BoundMagnetorquer(hardware::Magnetorquer value,
+                             std::optional<std::string> n = std::nullopt)
+      : native(std::move(value)), name(std::move(n)) {}
 };
 
 template <std::size_t N>
@@ -37,18 +41,22 @@ void bind_magnetorquer(py::module_ &module) {
   py::class_<BoundMagnetorquer>(module, "Magnetorquer")
       .def(py::init([](py::object position, py::object orientation,
                        double max_dipole, py::object misalignment,
-                       double noise, double bias) {
+                       double noise, double bias,
+                       std::optional<std::string> name) {
              if (misalignment.is_none()) {
                misalignment = py::make_tuple(0.0, 0.0, 0.0);
              }
-             return BoundMagnetorquer(hardware::Magnetorquer(
-                 read_fixed<3>(position, "position"),
-                 read_fixed<3>(orientation, "orientation"), max_dipole,
-                 read_fixed<3>(misalignment, "misalignment"), noise, bias));
+             return BoundMagnetorquer(
+                 hardware::Magnetorquer(
+                     read_fixed<3>(position, "position"),
+                     read_fixed<3>(orientation, "orientation"), max_dipole,
+                     read_fixed<3>(misalignment, "misalignment"), noise, bias),
+                 std::move(name));
            }),
            py::arg("position"), py::arg("orientation"), py::arg("max_dipole"),
            py::arg("misalignment") = py::none(), py::arg("noise") = 0.0,
-           py::arg("bias") = 0.0)
+           py::arg("bias") = 0.0, py::arg("name") = std::nullopt)
+      .def_readwrite("name", &BoundMagnetorquer::name)
       .def_property(
           "position",
           [](const BoundMagnetorquer &self) {

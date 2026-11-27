@@ -22,8 +22,28 @@ def _prepare(satellite, environment, dynamics):
     if not np.allclose(inertia, inertia.T) or np.linalg.eigvalsh(inertia).min() <= 0:
         raise ValueError("geometry.inertia must be symmetric positive definite")
     wheels = satellite.adcs.reaction_wheels
-    if wheels:
-        raise NotImplementedError("C coupled propagation with reaction wheels is not implemented")
+    wheel_axes = np.ascontiguousarray(
+        np.array([w.orientation for w in wheels], dtype=np.float64).reshape((-1, 3))
+    )
+    wheel_inertias = np.ascontiguousarray(
+        np.array([w.rotational_inertia for w in wheels], dtype=np.float64)
+    )
+    wheel_max_momentum = np.ascontiguousarray(
+        np.array([w.max_momentum for w in wheels], dtype=np.float64)
+    )
+    wheel_commands = np.zeros(len(wheels), dtype=np.float64)
+    bus_inertia = inertia.copy()
+    for i in range(len(wheels)):
+        bus_inertia -= wheel_inertias[i] * np.outer(wheel_axes[i], wheel_axes[i])
+    inverse_bus_inertia = np.ascontiguousarray(np.linalg.inv(bus_inertia))
+    mtqs = satellite.adcs.magnetorquers
+    mtq_axes = np.ascontiguousarray(
+        np.array([m.orientation for m in mtqs], dtype=np.float64).reshape((-1, 3))
+    )
+    mtq_max_dipole = np.ascontiguousarray(
+        np.array([m.max_dipole for m in mtqs], dtype=np.float64)
+    )
+    dipole_commands = np.zeros(len(mtqs), dtype=np.float64)
     body = environment.planetary_body
     mu, radius = float(body.gravitational_parameter), float(body.reference_radius)
     if not np.isfinite(mu) or not np.isfinite(radius) or mu <= 0 or radius <= 0:
@@ -56,7 +76,7 @@ def _prepare(satellite, environment, dynamics):
         raise ValueError("gravity gradient inertia differs from satellite.geometry")
     return SimpleNamespace(
         mu=mu, radius=radius, mass=mass, inertia=inertia,
-        inverse_inertia=np.linalg.inv(inertia), inverse_bus_inertia=np.linalg.inv(inertia),
+        inverse_inertia=np.linalg.inv(inertia), inverse_bus_inertia=inverse_bus_inertia,
         zonals=np.ascontiguousarray(zm.zonal_coefficients if zm else np.zeros(5)),
         drag_force=bool(df), drag_torque=bool(dt), srp_force=bool(sf), srp_torque=bool(st),
         gravity_gradient=bool(gg), residual_dipole=bool(rd), third_body=bool(tb),
@@ -66,6 +86,7 @@ def _prepare(satellite, environment, dynamics):
         dipole=np.ascontiguousarray(rd.dipole_b if rd else np.zeros(3)),
         magnetic_kind=(2 if type(environment.magnetic_field).__name__ == "CHAOS8" else 1) if environment.magnetic_field is not None else 0,
         magnetic_include_static=bool(getattr(environment.magnetic_field, "include_static", True)),
-        wheel_axes=np.empty((0, 3)), wheel_inertias=np.empty(0),
-        wheel_commands=np.empty(0), wheel_max_momentum=np.empty(0),
+        wheel_axes=wheel_axes, wheel_inertias=wheel_inertias,
+        wheel_commands=wheel_commands, wheel_max_momentum=wheel_max_momentum,
+        mtq_axes=mtq_axes, mtq_max_dipole=mtq_max_dipole, dipole_commands=dipole_commands,
     )

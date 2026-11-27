@@ -92,6 +92,9 @@ pub struct Runtime {
     pub inverse_bus_inertia: [[f64; 3]; 3],
     pub wheel_commands: Vec<f64>,
     pub wheel_max_momentum: Vec<f64>,
+    pub mtq_axes: Vec<[f64; 3]>,
+    pub mtq_max_dipole: Vec<f64>,
+    pub dipole_commands: Vec<f64>,
 }
 
 impl Runtime {
@@ -295,7 +298,15 @@ pub fn derivative_vec(y: &[f64], jd: f64, p: &Runtime) -> Result<Vec<f64>, Strin
         let field = magnetic
             .field_inertial_tesla(pos, jd)
             .map_err(|error| error.to_string())?;
-        torque = add3(torque, cross3(p.dipole, mv3(rot, field)));
+        let b_body = mv3(rot, field);
+        torque = add3(torque, cross3(p.dipole, b_body));
+        if !p.dipole_commands.is_empty() {
+            let mut mtq_dipole = [0.0; 3];
+            for (axis, &cmd) in p.mtq_axes.iter().zip(&p.dipole_commands) {
+                mtq_dipole = add3(mtq_dipole, scale3(*axis, cmd));
+            }
+            torque = add3(torque, cross3(mtq_dipole, b_body));
+        }
     }
     for (axis, &command) in p.wheel_axes.iter().zip(&p.wheel_commands) {
         torque = add3(torque, scale3(*axis, command));
@@ -367,6 +378,9 @@ mod rw_tests {
             inverse_bus_inertia: [[0.5, 0.0, 0.0], [0.0, 1.0 / 3.0, 0.0], [0.0, 0.0, 1.0 / 3.9]],
             wheel_commands: vec![0.05],
             wheel_max_momentum: vec![0.5],
+            mtq_axes: Vec::new(),
+            mtq_max_dipole: Vec::new(),
+            dipole_commands: Vec::new(),
         }
     }
 

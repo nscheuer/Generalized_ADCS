@@ -14,6 +14,7 @@ public:
   SampleRows allocate(Eigen::Index rows) const;
   void sample(const Vector &state, double time, std::uint64_t tick,
               SampleRows &output, Eigen::Index row);
+  void set_enabled(const std::vector<bool> &enabled);
 private:
   Runtime &r;
   std::vector<omni::hardware::Sensor> sensors;

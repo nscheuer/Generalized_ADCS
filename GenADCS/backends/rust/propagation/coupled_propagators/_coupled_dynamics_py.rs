@@ -96,7 +96,10 @@ impl Runtime {
             None
         };
 
-        let magnetic = if residual_dipole {
+        let mtq_axes = rows3(py, value.getattr("mtq_axes")?)?;
+        let mtq_max_dipole = numbers(py, value.getattr("mtq_max_dipole")?)?;
+        let dipole_commands = numbers(py, value.getattr("dipole_commands")?)?;
+        let magnetic = if residual_dipole || !dipole_commands.is_empty() {
             let kind: i32 = value.getattr("magnetic_kind")?.extract()?;
             Some(match kind {
                 1 => {
@@ -144,6 +147,9 @@ impl Runtime {
             inverse_bus_inertia,
             wheel_commands,
             wheel_max_momentum,
+            mtq_axes,
+            mtq_max_dipole,
+            dipole_commands,
         };
         runtime.validate().map_err(PyValueError::new_err)?;
         Ok(runtime)

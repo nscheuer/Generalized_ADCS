@@ -3,17 +3,19 @@ use super::*;
 #[pyclass(name = "Satellite")]
 pub(super) struct PySatellite {
     inner: NativeSatellite<PyObject, PyObject, PyObject>,
+    obc: PyObject,
 }
 
 #[pymethods]
 impl PySatellite {
     #[new]
-    #[pyo3(signature = (geometry, adcs=None, state_machine=None))]
+    #[pyo3(signature = (geometry, adcs=None, state_machine=None, obc=None))]
     fn new(
         py: Python<'_>,
         geometry: PyObject,
         adcs: Option<PyObject>,
         state_machine: Option<PyObject>,
+        obc: Option<PyObject>,
     ) -> PyResult<Self> {
         let adcs = match adcs {
             Some(value) if !value.is_none(py) => value,
@@ -24,8 +26,10 @@ impl PySatellite {
                 .into_py(py),
         };
         let state_machine = state_machine.unwrap_or_else(|| py.None());
+        let obc = obc.unwrap_or_else(|| py.None());
         Ok(Self {
             inner: NativeSatellite::new(geometry, adcs, state_machine),
+            obc,
         })
     }
 
@@ -57,5 +61,15 @@ impl PySatellite {
     #[setter]
     fn set_state_machine(&mut self, state_machine: PyObject) {
         self.inner.state_machine = state_machine;
+    }
+
+    #[getter]
+    fn obc(&self, py: Python<'_>) -> PyObject {
+        self.obc.clone_ref(py)
+    }
+
+    #[setter]
+    fn set_obc(&mut self, obc: PyObject) {
+        self.obc = obc;
     }
 }

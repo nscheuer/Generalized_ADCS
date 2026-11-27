@@ -15,6 +15,7 @@ fn constructor_fields_defaults_and_noise_bias_validation() {
             None,
             0.0,
             0.0,
+            None,
         )
         .unwrap();
         assert!(wheel.orientation.as_ref(py).is(orientation));

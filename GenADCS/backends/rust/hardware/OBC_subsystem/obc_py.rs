@@ -151,6 +151,8 @@ pub struct PyTrigger;
 pub struct PyTelecommand {
     pub(crate) inner: NativeTelecommand,
     goal_py: Option<Py<PyAny>>,
+    sensors_py: Option<Py<PyAny>>,
+    actuators_py: Option<Py<PyAny>>,
 }
 
 #[pymethods]
@@ -161,11 +163,11 @@ impl PyTelecommand {
         py: Python<'_>,
         command: String,
         goal: Option<Py<PyAny>>,
-        sensors: Option<&PyAny>,
-        actuators: Option<&PyAny>,
+        sensors: Option<Py<PyAny>>,
+        actuators: Option<Py<PyAny>>,
     ) -> PyResult<(Self, PyTrigger)> {
-        let s_mask = parse_mask(sensors)?;
-        let a_mask = parse_mask(actuators)?;
+        let s_mask = parse_mask(sensors.as_ref().map(|o| o.as_ref(py)))?;
+        let a_mask = parse_mask(actuators.as_ref().map(|o| o.as_ref(py)))?;
         let g_native = parse_goal_placeholder(goal.as_ref().map(|g| g.clone_ref(py)));
         let inner = NativeTelecommand::new(command, g_native, s_mask, a_mask)
             .map_err(PyValueError::new_err)?;
@@ -173,6 +175,8 @@ impl PyTelecommand {
             Self {
                 inner,
                 goal_py: goal,
+                sensors_py: sensors,
+                actuators_py: actuators,
             },
             PyTrigger,
         ))
@@ -187,6 +191,22 @@ impl PyTelecommand {
     fn goal(&self, py: Python<'_>) -> Py<PyAny> {
         match &self.goal_py {
             Some(g) => g.clone_ref(py),
+            None => py.None(),
+        }
+    }
+
+    #[getter]
+    fn sensors(&self, py: Python<'_>) -> Py<PyAny> {
+        match &self.sensors_py {
+            Some(s) => s.clone_ref(py),
+            None => py.None(),
+        }
+    }
+
+    #[getter]
+    fn actuators(&self, py: Python<'_>) -> Py<PyAny> {
+        match &self.actuators_py {
+            Some(a) => a.clone_ref(py),
             None => py.None(),
         }
     }
@@ -331,6 +351,7 @@ impl PyFDIRTriggered {
 #[derive(Clone)]
 pub struct PyMode {
     pub(crate) inner: NativeMode,
+    submodes_py: Vec<PyMode>,
     bindings_py: Option<Py<PyAny>>,
 }
 
@@ -378,7 +399,7 @@ impl PyMode {
                 }
             }
         }
-        let native_subs: Vec<NativeMode> = submodes.into_iter().map(|m| m.inner).collect();
+        let native_subs: Vec<NativeMode> = submodes.iter().map(|m| m.inner.clone()).collect();
         let inner = NativeMode::new(
             name,
             native_subs,
@@ -390,8 +411,14 @@ impl PyMode {
         .map_err(PyValueError::new_err)?;
         Ok(Self {
             inner,
+            submodes_py: submodes,
             bindings_py: bindings,
         })
+    }
+
+    #[getter]
+    fn submodes(&self) -> Vec<PyMode> {
+        self.submodes_py.clone()
     }
 
     #[getter]
@@ -487,6 +514,9 @@ impl PyTransition {
 #[derive(Clone)]
 pub struct PyStateMachine {
     pub(crate) inner: NativeStateMachine,
+    modes_py: Vec<PyMode>,
+    transitions_py: Vec<Py<PyAny>>,
+    timeline_py: Py<PyAny>,
 }
 
 #[pymethods]
@@ -497,21 +527,45 @@ impl PyStateMachine {
         py: Python<'_>,
         initial: String,
         modes: Vec<PyMode>,
-        transitions: Vec<PyRef<PyTransition>>,
-        timeline: Option<&PyAny>,
+        transitions: Vec<Py<PyAny>>,
+        timeline: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
-        let native_modes: Vec<NativeMode> = modes.into_iter().map(|m| m.inner).collect();
-        let native_trans: Vec<NativeTransition> =
-            transitions.into_iter().map(|t| t.inner.clone()).collect();
-        let native_tl = parse_timeline(py, timeline)?;
+        let native_modes: Vec<NativeMode> = modes.iter().map(|m| m.inner.clone()).collect();
+        let mut native_trans = Vec::with_capacity(transitions.len());
+        for t in &transitions {
+            let tr = t.as_ref(py).extract::<PyRef<PyTransition>>()?;
+            native_trans.push(tr.inner.clone());
+        }
+        let tl_ref = timeline.as_ref().map(|o| o.as_ref(py));
+        let native_tl = parse_timeline(py, tl_ref)?;
         let inner = NativeStateMachine::new(initial, native_modes, native_trans, native_tl)
             .map_err(PyValueError::new_err)?;
-        Ok(Self { inner })
+        Ok(Self {
+            inner,
+            modes_py: modes,
+            transitions_py: transitions,
+            timeline_py: timeline.unwrap_or_else(|| py.None()),
+        })
     }
 
     #[getter]
     fn initial(&self) -> String {
         self.inner.initial.clone()
+    }
+
+    #[getter]
+    fn modes(&self) -> Vec<PyMode> {
+        self.modes_py.clone()
+    }
+
+    #[getter]
+    fn transitions(&self, py: Python<'_>) -> Vec<Py<PyAny>> {
+        self.transitions_py.iter().map(|t| t.clone_ref(py)).collect()
+    }
+
+    #[getter]
+    fn timeline(&self, py: Python<'_>) -> Py<PyAny> {
+        self.timeline_py.clone_ref(py)
     }
 }
 
@@ -520,6 +574,7 @@ pub struct PyOBCSubsystem {
     pub(crate) inner: NativeOBCSubsystem,
     sm_py: Option<Py<PyAny>>,
     fdir_py: Option<Py<PyAny>>,
+    timeline_py: Py<PyAny>,
 }
 
 #[pymethods]
@@ -532,7 +587,7 @@ impl PyOBCSubsystem {
         state_machine: Option<Py<PyAny>>,
         fdir: Option<Py<PyAny>>,
         N: Option<&PyAny>,
-        timeline: Option<&PyAny>,
+        timeline: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
         let n_val: usize = match N {
             None => 1,
@@ -557,13 +612,15 @@ impl PyOBCSubsystem {
             }
             _ => None,
         };
-        let native_tl = parse_timeline(py, timeline)?;
+        let tl_ref = timeline.as_ref().map(|o| o.as_ref(py));
+        let native_tl = parse_timeline(py, tl_ref)?;
         let inner = NativeOBCSubsystem::new(native_sm, native_fdir, n_val, native_tl)
             .map_err(PyValueError::new_err)?;
         Ok(Self {
             inner,
             sm_py: state_machine,
             fdir_py: fdir,
+            timeline_py: timeline.unwrap_or_else(|| py.None()),
         })
     }
 
@@ -587,6 +644,11 @@ impl PyOBCSubsystem {
     #[allow(non_snake_case)]
     fn N(&self) -> usize {
         self.inner.N
+    }
+
+    #[getter]
+    fn timeline(&self, py: Python<'_>) -> Py<PyAny> {
+        self.timeline_py.clone_ref(py)
     }
 }
 

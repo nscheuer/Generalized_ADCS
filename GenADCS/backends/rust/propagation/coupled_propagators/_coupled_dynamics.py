@@ -21,7 +21,7 @@ def _prepare(satellite, environment, dynamics):
     if not np.allclose(inertia,inertia.T) or np.linalg.eigvalsh(inertia).min()<=0:
         raise ValueError("geometry.inertia must be symmetric positive definite")
     wheels = satellite.adcs.reaction_wheels
-    if any(wheel.biases or wheel.noises for wheel in wheels):
+    if any(wheel.bias or wheel.noise for wheel in wheels):
         raise NotImplementedError("compiled wheel torque bias and noise are not yet supported")
     wheel_axes=np.ascontiguousarray(np.array([wheel.orientation for wheel in wheels],dtype=np.float64).reshape((-1,3)))
     wheel_inertias=np.ascontiguousarray(np.array([wheel.rotational_inertia for wheel in wheels],dtype=np.float64))
@@ -69,6 +69,10 @@ def _prepare(satellite, environment, dynamics):
     rd=pick(torques,StaticResidualDipoleModel)
     normals,arms,areas,coefficients=prepare_panels(geometry)
     magnetic=environment.magnetic_field
+    mtqs = satellite.adcs.magnetorquers
+    mtq_axes = np.ascontiguousarray(np.array([m.orientation for m in mtqs], dtype=np.float64).reshape((-1, 3)))
+    mtq_max_dipole = np.ascontiguousarray(np.array([m.max_dipole for m in mtqs], dtype=np.float64))
+    dipole_commands = np.zeros(len(mtqs), dtype=np.float64)
     return SimpleNamespace(
         mass=mass,mu=mu,radius=radius,inertia=inertia,inverse_inertia=np.linalg.inv(inertia),
         zonals=np.ascontiguousarray(zm.zonal_coefficients if zm else np.zeros(5)),
@@ -87,4 +91,5 @@ def _prepare(satellite, environment, dynamics):
         ephemeris_path=str(Path(__file__).resolve().parents[4] / "kernels/environment/ephemeris/de421/de421.bsp"),
         wheel_axes=wheel_axes,wheel_inertias=wheel_inertias,inverse_bus_inertia=inverse_bus_inertia,
         wheel_commands=commands,wheel_max_momentum=np.ascontiguousarray(wheel_max_momentum),
+        mtq_axes=mtq_axes,mtq_max_dipole=mtq_max_dipole,dipole_commands=dipole_commands,
     )

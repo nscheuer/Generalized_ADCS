@@ -8,13 +8,15 @@ pub struct ReactionWheel {
     misalignment: PyObject,
     noise: f64,
     bias: f64,
+    #[pyo3(get, set)]
+    name: Option<String>,
     native: ReactionWheelData,
 }
 
 #[pymethods]
 impl ReactionWheel {
     #[new]
-    #[pyo3(signature = (position, orientation, rotational_inertia, max_torque, max_momentum, misalignment=None, noise=0.0, bias=0.0))]
+    #[pyo3(signature = (position, orientation, rotational_inertia, max_torque, max_momentum, misalignment=None, noise=0.0, bias=0.0, name=None))]
     fn new(
         py: Python<'_>,
         position: PyObject,
@@ -25,6 +27,7 @@ impl ReactionWheel {
         misalignment: Option<PyObject>,
         noise: f64,
         bias: f64,
+        name: Option<String>,
     ) -> PyResult<Self> {
         let misalignment = misalignment.unwrap_or_else(|| (0.0, 0.0, 0.0).into_py(py));
         let native = ReactionWheelData::new(
@@ -47,6 +50,7 @@ impl ReactionWheel {
             misalignment,
             noise,
             bias,
+            name,
             native,
         })
     }

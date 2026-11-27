@@ -10,12 +10,14 @@ pub struct Magnetorquer {
     misalignment: PyObject,
     noise: f64,
     bias: f64,
+    #[pyo3(get, set)]
+    name: Option<String>,
 }
 
 #[pymethods]
 impl Magnetorquer {
     #[new]
-    #[pyo3(signature = (position, orientation, max_dipole, misalignment=None, noise=0.0, bias=0.0))]
+    #[pyo3(signature = (position, orientation, max_dipole, misalignment=None, noise=0.0, bias=0.0, name=None))]
     fn new(
         py: Python<'_>,
         position: PyObject,
@@ -24,6 +26,7 @@ impl Magnetorquer {
         misalignment: Option<PyObject>,
         noise: f64,
         bias: f64,
+        name: Option<String>,
     ) -> PyResult<Self> {
         if !noise.is_finite() || noise < 0.0 {
             return Err(PyValueError::new_err("noise must be finite and nonnegative"));
@@ -38,6 +41,7 @@ impl Magnetorquer {
             misalignment: misalignment.unwrap_or_else(|| (0.0, 0.0, 0.0).into_py(py)),
             noise,
             bias,
+            name,
         })
     }
 

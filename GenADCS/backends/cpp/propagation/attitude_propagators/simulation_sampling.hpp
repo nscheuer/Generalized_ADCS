@@ -16,6 +16,10 @@ public:
   void allocate(Eigen::Index rows);
   void sample(const Vector &state, double time, std::uint64_t tick);
   void record(Eigen::Index row);
+  void set_sensor_enabled(const std::vector<bool> &enabled);
+  const Eigen::VectorXd &readings() const { return readings_; }
+  bool has_estimator() const { return estimator_ != nullptr; }
+  const omni::hardware::estimator::State &estimate() const { return estimate_; }
   SampleRows output;
 
 private:

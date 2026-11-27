@@ -2,6 +2,7 @@
 
 #include "coupled_propagators/_coupled_dynamics.hpp"
 #include "attitude_propagators/simulation_sampling.hpp"
+#include "control_loop.hpp"
 #include <tuple>
 #include <Eigen/Dense>
 #include <utility>
@@ -20,14 +21,15 @@ SeparateTrajectory integrate_separate_reference(
 SeparateTrajectory integrate_uncoupled(
     const Eigen::VectorXd &initial, double mu, double initial_julian_date,
     double dt, double tf, int record_every, const std::string &mode,
-    const SeparateProgress &progress, const Runtime *runtime,
-    SimulationSampler *sampler = nullptr, int sensor_every = 1);
+    const SeparateProgress &progress, Runtime *runtime,
+    SimulationSampler *sampler = nullptr, int sensor_every = 1,
+    ControlLoopContext *ctrl_ctx = nullptr);
 
 SeparateTrajectory integrate_separate_rk4(
     const Eigen::VectorXd &initial, double mu, double initial_julian_date,
-    double dt, double tf, int record_every, const Runtime &runtime,
+    double dt, double tf, int record_every, Runtime &runtime,
     const SeparateProgress &progress = {}, SimulationSampler *sampler = nullptr,
-    int sensor_every = 1);
+    int sensor_every = 1, ControlLoopContext *ctrl_ctx = nullptr);
 using SeparateSimulation = std::tuple<std::vector<double>, Eigen::MatrixXd, SampleRows>;
 SeparateSimulation simulate_uncoupled(
     const Eigen::VectorXd &initial, double mu, double epoch, double dt, double tf,
@@ -35,7 +37,8 @@ SeparateSimulation simulate_uncoupled(
     const omni::hardware::estimator::AttitudeEstimator *estimator,
     int sensor_every, std::uint64_t seed, std::set<std::string> fields,
     const std::string &attitude_mode,
-    bool progress = false, std::size_t chunk_steps = 500);
+    bool progress = false, std::size_t chunk_steps = 500,
+    ControlLoopContext *ctrl_ctx = nullptr);
 SeparateSimulation simulate_coupled(
     const Eigen::VectorXd &initial, double epoch, double dt, double tf,
     int record_every, Runtime &runtime, std::vector<omni::hardware::Sensor> sensors,

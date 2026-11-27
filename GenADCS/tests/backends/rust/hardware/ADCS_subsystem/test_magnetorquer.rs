@@ -13,6 +13,7 @@ fn defaults_mutability_and_noise_bias_validation() {
             None,
             0.0,
             0.0,
+            None,
         )
         .unwrap();
         assert!(torquer.position.as_ref(py).is(position));

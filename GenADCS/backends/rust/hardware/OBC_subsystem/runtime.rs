@@ -189,12 +189,19 @@ fn resolve_sources(
 fn compile_mask(
     spec: Option<&HardwareMaskSpec>,
     names: &[&str],
+    aliases: &[&str],
+    other_names: &[&str],
+    other_aliases: &[&str],
 ) -> Result<Vec<i8>, String> {
     let mut mask = vec![-1_i8; names.len()];
     let Some(map) = spec else {
         return Ok(mask);
     };
     for (key, &val) in map {
+        if aliases.contains(&key.as_str()) {
+            mask.fill(i8::from(val));
+            continue;
+        }
         let mut matched = false;
         for (i, &dev) in names.iter().enumerate() {
             if dev == key {
@@ -202,7 +209,10 @@ fn compile_mask(
                 matched = true;
             }
         }
-        if !matched {
+        if !matched
+            && !other_names.contains(&key.as_str())
+            && !other_aliases.contains(&key.as_str())
+        {
             return Err(format!("unknown hardware reference in state machine: {key:?}"));
         }
     }
@@ -332,7 +342,13 @@ pub fn prepare_obc(
             .as_ref()
             .or_else(|| parent.and_then(|p| p.bindings.sensors.as_ref()));
         if sensor_binding.is_some() {
-            state_sensor_mask[idx] = compile_mask(sensor_binding, sensor_names)?;
+            state_sensor_mask[idx] = compile_mask(
+                sensor_binding,
+                sensor_names,
+                &["*", "all", "sensors"],
+                &[],
+                &[],
+            )?;
         }
 
         let actuator_binding = leaf
@@ -341,8 +357,20 @@ pub fn prepare_obc(
             .as_ref()
             .or_else(|| parent.and_then(|p| p.bindings.actuators.as_ref()));
         if actuator_binding.is_some() {
-            state_rw_mask[idx] = compile_mask(actuator_binding, rw_names)?;
-            state_mtq_mask[idx] = compile_mask(actuator_binding, mtq_names)?;
+            state_rw_mask[idx] = compile_mask(
+                actuator_binding,
+                rw_names,
+                &["*", "all", "actuators", "reaction_wheels", "ReactionWheel"],
+                mtq_names,
+                &["magnetorquers", "Magnetorquer"],
+            )?;
+            state_mtq_mask[idx] = compile_mask(
+                actuator_binding,
+                mtq_names,
+                &["*", "all", "actuators", "magnetorquers", "Magnetorquer"],
+                rw_names,
+                &["reaction_wheels", "ReactionWheel"],
+            )?;
         }
     }
 
@@ -391,9 +419,27 @@ pub fn prepare_obc(
                 } else {
                     -1
                 };
-                let s_m = compile_mask(tc.sensors.as_ref(), sensor_names)?;
-                let rw_m = compile_mask(tc.actuators.as_ref(), rw_names)?;
-                let mtq_m = compile_mask(tc.actuators.as_ref(), mtq_names)?;
+                let s_m = compile_mask(
+                    tc.sensors.as_ref(),
+                    sensor_names,
+                    &["*", "all", "sensors"],
+                    &[],
+                    &[],
+                )?;
+                let rw_m = compile_mask(
+                    tc.actuators.as_ref(),
+                    rw_names,
+                    &["*", "all", "actuators", "reaction_wheels", "ReactionWheel"],
+                    mtq_names,
+                    &["magnetorquers", "Magnetorquer"],
+                )?;
+                let mtq_m = compile_mask(
+                    tc.actuators.as_ref(),
+                    mtq_names,
+                    &["*", "all", "actuators", "magnetorquers", "Magnetorquer"],
+                    rw_names,
+                    &["reaction_wheels", "ReactionWheel"],
+                )?;
                 for src in sources {
                     per_state_tc[src].push(TcRec {
                         priority: tr.priority,

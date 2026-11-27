@@ -17,6 +17,9 @@ inline Runtime runtime_from_python(const pybind11::object &p) {
   r.wheel_inertias = p.attr("wheel_inertias").cast<Vector>();
   r.wheel_commands = p.attr("wheel_commands").cast<Vector>();
   r.wheel_max_momentum = p.attr("wheel_max_momentum").cast<Vector>();
+  r.mtq_axes = p.attr("mtq_axes").cast<Eigen::MatrixXd>();
+  r.mtq_max_dipole = p.attr("mtq_max_dipole").cast<Vector>();
+  r.dipole_commands = p.attr("dipole_commands").cast<Vector>();
   r.normals = p.attr("normals").cast<Eigen::MatrixXd>();
   r.arms = p.attr("arms").cast<Eigen::MatrixXd>();
   r.optical_coefficients =

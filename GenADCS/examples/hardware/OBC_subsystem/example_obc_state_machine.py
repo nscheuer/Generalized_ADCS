@@ -4,6 +4,7 @@ Run from the repository root with:
 ``venv/bin/python GenADCS/examples/hardware/OBC_subsystem/example_obc_state_machine.py``
 """
 
+from importlib import import_module
 from pathlib import Path
 import sys
 from time import perf_counter
@@ -12,61 +13,66 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
-from GenADCS.backends.python.config import DynamicsConfig
-from GenADCS.backends.python.dynamics import StaticGravityGradientModel
-from GenADCS.backends.python.environment import DE421, Earth, Environment, IGRF14
-from GenADCS.backends.python.hardware import (
-    ADCSMode,
-    ADCSStateMachine,
-    ADCSSubsystem,
-    AngularRateMonitor,
-    AttitudeController,
-    BDot,
-    Completion,
-    FDIR,
-    InFOV,
-    L2Allocator,
-    MRPFeedbackLinearized,
-    Magnetorquer,
-    Mode,
-    NoController,
-    OBCStateMachine,
-    OBCSubsystem,
-    Passthrough,
-    ReactionWheel,
-    Satellite,
-    SatelliteGeometry,
-    Telecommand,
-    Transition,
-)
-from GenADCS.backends.python.hardware.ADCS_subsystem.goals import (
-    CoordinateFMCGoal,
-    CoordinateGoal,
-    NoGoal,
-    SunGoal,
-)
-from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import (
-    AutonomousStarTracker,
-    Gyroscope,
-    Magnetometer,
-)
-from GenADCS.backends.python.hardware.ADCS_subsystem.state_machine import (
-    GoalTable,
-    prepare_adcs_sm,
-)
-from GenADCS.backends.python.hardware.OBC_subsystem.runtime import prepare_obc
-from GenADCS.backends.python.propagation import (
-    KeplerianOrbitalPropagator,
-    RK4AttitudePropagator,
-)
-from GenADCS.backends.python.simulate import ResultsFormat, simulate
-from GenADCS.backends.python.solver import AttitudeSolver, OrbitalSolver, Solver
-from GenADCS.backends.python.state import (
-    AttitudeState,
-    OrbitalState,
-    State,
-    WheelMomentumState,
-)
+BACKEND = "Python"  # "Python", "C", or "Rust"
+_BACKEND_PKG = {"Python": "python", "C": "cpp", "Rust": "rust"}[BACKEND]
+
+_config = import_module(f"GenADCS.backends.{_BACKEND_PKG}.config")
+_dynamics = import_module(f"GenADCS.backends.{_BACKEND_PKG}.dynamics")
+_environment = import_module(f"GenADCS.backends.{_BACKEND_PKG}.environment")
+_hardware = import_module(f"GenADCS.backends.{_BACKEND_PKG}.hardware")
+_goals = import_module(f"GenADCS.backends.{_BACKEND_PKG}.hardware.ADCS_subsystem.goals")
+_sensors = import_module(f"GenADCS.backends.{_BACKEND_PKG}.hardware.ADCS_subsystem.sensors")
+_propagation = import_module(f"GenADCS.backends.{_BACKEND_PKG}.propagation")
+_simulate = import_module(f"GenADCS.backends.{_BACKEND_PKG}.simulate")
+_solver = import_module(f"GenADCS.backends.{_BACKEND_PKG}.solver")
+_state = import_module(f"GenADCS.backends.{_BACKEND_PKG}.state")
+
+DynamicsConfig = _config.DynamicsConfig
+StaticGravityGradientModel = _dynamics.StaticGravityGradientModel
+DE421 = _environment.DE421
+Earth = _environment.Earth
+Environment = _environment.Environment
+IGRF14 = _environment.IGRF14
+ADCSMode = _hardware.ADCSMode
+ADCSStateMachine = _hardware.ADCSStateMachine
+ADCSSubsystem = _hardware.ADCSSubsystem
+AngularRateMonitor = _hardware.AngularRateMonitor
+AttitudeController = _hardware.AttitudeController
+BDot = _hardware.BDot
+Completion = _hardware.Completion
+FDIR = _hardware.FDIR
+InFOV = _hardware.InFOV
+L2Allocator = _hardware.L2Allocator
+MRPFeedbackLinearized = _hardware.MRPFeedbackLinearized
+Magnetorquer = _hardware.Magnetorquer
+Mode = _hardware.Mode
+NoController = _hardware.NoController
+OBCStateMachine = _hardware.OBCStateMachine
+OBCSubsystem = _hardware.OBCSubsystem
+Passthrough = _hardware.Passthrough
+ReactionWheel = _hardware.ReactionWheel
+Satellite = _hardware.Satellite
+SatelliteGeometry = _hardware.SatelliteGeometry
+Telecommand = _hardware.Telecommand
+Transition = _hardware.Transition
+CoordinateFMCGoal = _goals.CoordinateFMCGoal
+CoordinateGoal = _goals.CoordinateGoal
+NoGoal = _goals.NoGoal
+SunGoal = _goals.SunGoal
+AutonomousStarTracker = _sensors.AutonomousStarTracker
+Gyroscope = _sensors.Gyroscope
+Magnetometer = _sensors.Magnetometer
+KeplerianOrbitalPropagator = _propagation.KeplerianOrbitalPropagator
+RK4AttitudePropagator = _propagation.RK4AttitudePropagator
+ResultsFormat = _simulate.ResultsFormat
+simulate = _simulate.simulate
+AttitudeSolver = _solver.AttitudeSolver
+OrbitalSolver = _solver.OrbitalSolver
+Solver = _solver.Solver
+AttitudeState = _state.AttitudeState
+OrbitalState = _state.OrbitalState
+State = _state.State
+WheelMomentumState = _state.WheelMomentumState
 from GenADCS.backends.shared.plotting import (
     ADCSModePlot,
     AbsolutePointingErrorPlot,
@@ -318,7 +324,7 @@ def main(show: bool = True) -> None:
         dynamics,
         state,
         solver,
-        backend="Python",
+        backend=BACKEND,
         resultsformat=ResultsFormat(
             N=15,
             satellite_attitude=True,
@@ -333,25 +339,66 @@ def main(show: bool = True) -> None:
     elapsed = perf_counter() - start
 
     sat_res = result.satellites["sat_000"]
-    goal_table = GoalTable()
-    adcs_rt = prepare_adcs_sm(adcs.state_machine, goal_table)
-    obc_rt = prepare_obc(obc, adcs_rt, goal_table)
-    _, _, goal_names = goal_table.to_arrays()
+    adcs_mode_names = [m.name for m in adcs.state_machine.modes]
+    obc_mode_names: list[str] = []
+
+    def _collect_obc_modes(modes) -> None:
+        for m in modes:
+            obc_mode_names.append(m.name)
+            if getattr(m, "submodes", None):
+                _collect_obc_modes(m.submodes)
+
+    _collect_obc_modes(obc.state_machine.modes)
+
+    goal_names = ["NoGoal"]
+
+    def _reg_goal(g) -> None:
+        if g is not None and type(g).__name__ != "NoGoal":
+            goal_names.append(type(g).__name__)
+
+    for m in adcs.state_machine.modes:
+        _reg_goal(m.goal)
+    if getattr(adcs.state_machine, "timeline", None):
+        for _, target in adcs.state_machine.timeline:
+            if not isinstance(target, str):
+                _reg_goal(target)
+
+    def _collect_obc_goals(modes) -> None:
+        for m in modes:
+            b = getattr(m, "bindings", None) or {}
+            adcs_b = b.get("adcs")
+            if isinstance(adcs_b, tuple) and len(adcs_b) == 2:
+                _reg_goal(adcs_b[1])
+            elif adcs_b is not None and not isinstance(adcs_b, str):
+                _reg_goal(adcs_b)
+            if getattr(m, "submodes", None):
+                _collect_obc_goals(m.submodes)
+
+    _collect_obc_goals(obc.state_machine.modes)
+    for tr in obc.state_machine.transitions:
+        _reg_goal(getattr(tr.trigger, "goal", None))
+    for tl in (getattr(obc.state_machine, "timeline", None) or (), getattr(obc, "timeline", None) or ()):
+        for entry in tl:
+            if len(entry) >= 3:
+                _reg_goal(entry[2])
 
     times = sat_res.times_s
     obc_ids = sat_res.obc_mode[:, 0].astype(int)
     adcs_ids = sat_res.adcs_mode[:, 0].astype(int)
     goal_ids = sat_res.adcs_goal[:, 0].astype(int)
 
-    print(f"2-day mission | Elapsed: {elapsed:.3f} s | samples: {len(times)}")
+    print(f"2-day mission ({BACKEND}) | Elapsed: {elapsed:.3f} s | samples: {len(times)}")
     print("State transitions (OBC | ADCS | Goal):")
     prev = (-1, -1, -1)
     for t, oid, aid, gid in zip(times, obc_ids, adcs_ids, goal_ids):
         cur = (oid, aid, gid)
         if cur != prev:
+            oname = obc_mode_names[oid] if 0 <= oid < len(obc_mode_names) else str(oid)
+            aname = adcs_mode_names[aid] if 0 <= aid < len(adcs_mode_names) else str(aid)
+            gname = goal_names[gid] if 0 <= gid < len(goal_names) else str(gid)
             print(
-                f"  t = {t:8.1f} s | OBC: {obc_rt.mode_names[oid]:20s} "
-                f"| ADCS: {adcs_rt.mode_names[aid]:10s} | Goal: {goal_names[gid]}"
+                f"  t = {t:8.1f} s | OBC: {oname:20s} "
+                f"| ADCS: {aname:10s} | Goal: {gname}"
             )
             prev = cur
 
