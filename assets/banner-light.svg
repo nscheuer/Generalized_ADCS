@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="380" viewBox="0 0 1280 380" role="img" aria-label="Generalized ADCS: spacecraft attitude determination and control in Python">
+  <defs>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#dfe5ee"/>
+    </pattern>
+    <linearGradient id="fade" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#fbfcfe" stop-opacity="1"/>
+      <stop offset="0.5" stop-color="#fbfcfe" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#fbfcfe" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="frame"><rect width="1280" height="380" rx="18"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="1280" height="380" fill="#fbfcfe"/>
+    <rect width="1280" height="380" fill="url(#dots)"/>
+    <rect width="1280" height="380" fill="url(#fade)"/>
+    
+  <ellipse cx="116" cy="292" rx="250" ry="70" transform="rotate(-14 116 292)" fill="none" stroke="#b9cde6" stroke-width="1.6" stroke-dasharray="5 6"/>
+  <circle cx="116" cy="292" r="46" fill="#e8f1fc" stroke="#0066cc" stroke-width="1.4"/>
+  <path d="M70 292 Q 116 276 162 292" fill="none" stroke="#0066cc" stroke-opacity="0.45"/>
+  <path d="M76 314 Q 116 300 156 314" fill="none" stroke="#0066cc" stroke-opacity="0.35"/>
+  <g transform="translate(340 236) rotate(-24)">
+    <rect x="-9" y="-9" width="18" height="18" rx="2" fill="#0066cc"/>
+    <rect x="-34" y="-5" width="20" height="10" rx="1.5" fill="none" stroke="#0066cc" stroke-width="1.4"/>
+    <rect x="14" y="-5" width="20" height="10" rx="1.5" fill="none" stroke="#0066cc" stroke-width="1.4"/>
+  </g>
+  <path d="M332 252 L 214 286" stroke="#0066cc" stroke-width="1.6" stroke-dasharray="3 4"/>
+  </g>
+  <rect x="0.5" y="0.5" width="1279" height="379" rx="18" fill="none" stroke="#dfe5ee"/>
+
+  <text x="64" y="116" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="58" font-weight="700" letter-spacing="-2" fill="#14202e">Generalized ADCS</text>
+  <text x="67" y="164" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="25" font-weight="600" letter-spacing="-0.3" fill="#14202e">Spacecraft attitude determination</text>
+  <text x="67" y="196" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="25" font-weight="600" letter-spacing="-0.3" fill="#14202e">and control in <tspan fill="#0066cc">Python</tspan></text>
+
+  <rect x="690" y="46" width="556" height="288" rx="12" fill="#f4f7fb" stroke="#dfe5ee"/>
+  <path d="M690 88h556" stroke="#dfe5ee"/>
+  <circle cx="712" cy="67" r="5.5" fill="#dfe5ee"/>
+  <circle cx="730" cy="67" r="5.5" fill="#dfe5ee"/>
+  <circle cx="748" cy="67" r="5.5" fill="#dfe5ee"/>
+  <text x="1224" y="72" text-anchor="end" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" fill="#8a96a6">quickstart.py</text>
+  <text x="714" y="124" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15.5" xml:space="preserve"><tspan fill="#8129a8">import</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">ADCS</tspan></text>
+  <text x="714" y="148" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15.5" xml:space="preserve"></text>
+  <text x="714" y="172" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15.5" xml:space="preserve"><tspan fill="#14202e">sat</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">ADCS</tspan><tspan fill="#8a96a6">.</tspan><tspan fill="#0052a3">Satellite</tspan><tspan fill="#8a96a6">(</tspan><tspan fill="#14202e">J_0</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#14202e">J</tspan><tspan fill="#8a96a6">,</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">actuators</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#14202e">acts</tspan><tspan fill="#8a96a6">,</tspan></text>
+  <text x="714" y="196" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15.5" xml:space="preserve"><tspan fill="#8a96a6">                     </tspan><tspan fill="#14202e">sensors</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#14202e">sens</tspan><tspan fill="#8a96a6">)</tspan></text>
+  <text x="714" y="220" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15.5" xml:space="preserve"><tspan fill="#14202e">ctrl</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">ADCS</tspan><tspan fill="#8a96a6">.</tspan><tspan fill="#14202e">controller</tspan><tspan fill="#8a96a6">.</tspan><tspan fill="#0052a3">MTQ_w_RW_LP</tspan><tspan fill="#8a96a6">(</tspan><tspan fill="#14202e">est_sat</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#14202e">sat</tspan><tspan fill="#8a96a6">,</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#8a96a6">.</tspan><tspan fill="#8a96a6">.</tspan><tspan fill="#8a96a6">.</tspan><tspan fill="#8a96a6">)</tspan></text>
+  <text x="714" y="244" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15.5" xml:space="preserve"><tspan fill="#14202e">goal</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">ADCS</tspan><tspan fill="#8a96a6">.</tspan><tspan fill="#14202e">goals</tspan><tspan fill="#8a96a6">.</tspan><tspan fill="#0052a3">Coordinate_Goal</tspan><tspan fill="#8a96a6">(</tspan><tspan fill="#14202e">lat</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#9a5300">42.36</tspan><tspan fill="#8a96a6">,</tspan></text>
+  <text x="714" y="268" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15.5" xml:space="preserve"><tspan fill="#8a96a6">                                  </tspan><tspan fill="#14202e">lon</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#8a96a6">-</tspan><tspan fill="#9a5300">71.06</tspan><tspan fill="#8a96a6">,</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">alt</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#9a5300">0</tspan><tspan fill="#8a96a6">)</tspan></text>
+  <text x="714" y="292" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15.5" xml:space="preserve"><tspan fill="#14202e">results</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">ADCS</tspan><tspan fill="#8a96a6">.</tspan><tspan fill="#0052a3">simulate</tspan><tspan fill="#8a96a6">(</tspan><tspan fill="#14202e">x</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#14202e">x_0</tspan><tspan fill="#8a96a6">,</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">satellite</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#14202e">sat</tspan><tspan fill="#8a96a6">,</tspan></text>
+  <text x="714" y="316" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15.5" xml:space="preserve"><tspan fill="#8a96a6">    </tspan><tspan fill="#14202e">controller</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#14202e">ctrl</tspan><tspan fill="#8a96a6">,</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">goal</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#14202e">goal</tspan><tspan fill="#8a96a6">,</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">os0</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#14202e">os0</tspan><tspan fill="#8a96a6">,</tspan><tspan fill="#8a96a6"> </tspan><tspan fill="#14202e">tf</tspan><tspan fill="#8a96a6">=</tspan><tspan fill="#9a5300">500.0</tspan><tspan fill="#8a96a6">)</tspan></text>
+</svg>
