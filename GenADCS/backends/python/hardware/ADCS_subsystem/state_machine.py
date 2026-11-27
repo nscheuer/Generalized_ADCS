@@ -9,6 +9,8 @@ from typing import NamedTuple, cast
 import numpy as np
 from numba import njit
 
+from .controllers import Controller, NoController
+from .controllers.runtime import ControllerTable
 from .goals import (
     AlongTrackGoal,
     AngularRateGoal,
@@ -109,7 +111,7 @@ class ADCSMode:
 
     name: str
     goal: Goal = field(default_factory=NoGoal)
-    controller: str = "none"
+    controller: Controller | str = field(default_factory=NoController)
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -147,6 +149,7 @@ class ADCSSMRuntime(NamedTuple):
     enabled: bool
     initial_mode: int
     mode_default_goal: np.ndarray
+    mode_default_controller: np.ndarray
     # Standalone timeline (terminated by inf / -1):
     tl_times: np.ndarray
     tl_modes: np.ndarray
@@ -162,16 +165,20 @@ class ADCSSMRuntime(NamedTuple):
 def prepare_adcs_sm(
     adcs_sm: ADCSStateMachine | None,
     goal_table: GoalTable | None = None,
+    controller_table: ControllerTable | None = None,
 ) -> ADCSSMRuntime:
     """Flatten ``ADCSStateMachine`` into Numba arrays."""
     if goal_table is None:
         goal_table = GoalTable()
+    if controller_table is None:
+        controller_table = ControllerTable()
     if adcs_sm is None:
         g_kinds, g_params, g_names = goal_table.to_arrays()
         return ADCSSMRuntime(
             enabled=False,
             initial_mode=0,
             mode_default_goal=np.zeros(1, dtype=np.int64),
+            mode_default_controller=np.zeros(1, dtype=np.int64),
             tl_times=np.array([np.inf], dtype=np.float64),
             tl_modes=np.array([-1], dtype=np.int64),
             tl_goals=np.array([-1], dtype=np.int64),
@@ -184,8 +191,11 @@ def prepare_adcs_sm(
     mode_to_id = {m.name: idx for idx, m in enumerate(adcs_sm.modes)}
     mode_names = tuple(m.name for m in adcs_sm.modes)
     mode_default_goal = np.empty(len(adcs_sm.modes), dtype=np.int64)
+    mode_default_controller = np.zeros(len(adcs_sm.modes), dtype=np.int64)
     for idx, m in enumerate(adcs_sm.modes):
         mode_default_goal[idx] = goal_table.register(m.goal)
+        if isinstance(m.controller, Controller):
+            mode_default_controller[idx] = controller_table.register(m.controller)
 
     sorted_tl = sorted(adcs_sm.timeline, key=lambda item: item[0])
     tl_times = np.empty(len(sorted_tl) + 1, dtype=np.float64)
@@ -208,6 +218,7 @@ def prepare_adcs_sm(
         enabled=True,
         initial_mode=mode_to_id[adcs_sm.initial],
         mode_default_goal=mode_default_goal,
+        mode_default_controller=mode_default_controller,
         tl_times=tl_times,
         tl_modes=tl_modes,
         tl_goals=tl_goals,

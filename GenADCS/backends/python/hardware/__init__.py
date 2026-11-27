@@ -2,6 +2,10 @@ from .ADCS_subsystem import (
     ADCSMode as ADCSMode,
     ADCSStateMachine as ADCSStateMachine,
     ADCSSubsystem as ADCSSubsystem,
+    BCross as BCross,
+    BDot as BDot,
+    Controller as Controller,
+    NoController as NoController,
 )
 from .ADCS_subsystem import (
     Magnetorquer as Magnetorquer,

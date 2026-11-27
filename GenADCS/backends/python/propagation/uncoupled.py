@@ -13,6 +13,13 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import (
     prepare_estimator,
     update_estimator,
 )
+from GenADCS.backends.python.hardware.ADCS_subsystem.controllers.runtime import (
+    ControllerRuntime,
+    ControllerTable,
+    init_controller_work,
+    prepare_controllers,
+    step_controller,
+)
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
     SensorConfig,
     prepare_sensors,
@@ -83,11 +90,15 @@ def _simulate_uncoupled_loop(
     adcs_sm_runtime: ADCSSMRuntime,
     adcs_work: np.ndarray,
     sm_trace: np.ndarray,
+    ctrl_rt: ControllerRuntime,
+    ctrl_work: np.ndarray,
+    default_ctrl_idx: int,
 ) -> None:
     total_steps = full_steps + int(remainder > 0.0)
     active_obc_mode = int(obc_work[0])
     active_adcs_mode = int(adcs_work[0])
     active_adcs_goal = int(adcs_work[1])
+    prev_ctrl_idx = -1
     pending_cmd_mode = -1
     pending_cmd_goal = -1
     if obc_every > 0:
@@ -223,6 +234,24 @@ def _simulate_uncoupled_loop(
                         estimates[index, 7:56] = estimate_p.ravel()
                     else:
                         estimates[index, 7:43] = estimate_p.ravel()
+            if ctrl_rt.enabled:
+                ctrl_idx = (
+                    adcs_sm_runtime.mode_default_controller[active_adcs_mode]
+                    if adcs_sm_runtime.enabled
+                    else default_ctrl_idx
+                )
+                if ctrl_idx != prev_ctrl_idx:
+                    ctrl_work[:] = 0.0
+                    prev_ctrl_idx = ctrl_idx
+                step_controller(
+                    ctrl_idx,
+                    dt * sensor_every,
+                    reading[index],
+                    sensor_config,
+                    ctrl_rt,
+                    ctrl_work,
+                    runtime.dipole_commands,
+                )
         if completed % record_every == 0:
             rec_idx = completed // record_every
             output[rec_idx] = y
@@ -303,7 +332,19 @@ def simulate_uncoupled(
     estimates = np.full((sensor_rows, 96), np.nan)
     completed_steps = np.zeros(1, dtype=np.int64)
     goal_table = GoalTable()
-    adcs_sm_runtime = prepare_adcs_sm(satellite.adcs.state_machine, goal_table)
+    ctrl_table = ControllerTable()
+    default_ctrl_idx = ctrl_table.register(satellite.adcs.controller)
+    adcs_sm_runtime = prepare_adcs_sm(
+        satellite.adcs.state_machine, goal_table, ctrl_table
+    )
+    ctrl_rt = prepare_controllers(
+        (),
+        satellite.adcs.sensors,
+        runtime.mtq_axes,
+        runtime.mtq_max_dipole,
+        ctrl_table,
+    )
+    ctrl_work = init_controller_work()
     obc_runtime = prepare_obc(satellite.obc, adcs_sm_runtime, goal_table)
     obc_every = satellite.obc.N if obc_runtime.enabled and satellite.obc is not None else 0
     adcs_sm_every = satellite.adcs.N if (adcs_sm_runtime.enabled or obc_every > 0) else 0
@@ -360,6 +401,7 @@ def simulate_uncoupled(
                 *args, progress_chunk_steps, reference_mode,
                 obc_every, obc_runtime, obc_work,
                 adcs_sm_every, adcs_sm_runtime, adcs_work, sm_trace,
+                ctrl_rt, ctrl_work, default_ctrl_idx,
             )
         finally:
             finished.set()
@@ -369,6 +411,7 @@ def simulate_uncoupled(
             *args, 0, reference_mode,
             obc_every, obc_runtime, obc_work,
             adcs_sm_every, adcs_sm_runtime, adcs_work, sm_trace,
+            ctrl_rt, ctrl_work, default_ctrl_idx,
         )
     if has_sm:
         return (

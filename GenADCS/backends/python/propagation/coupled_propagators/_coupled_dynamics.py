@@ -100,6 +100,9 @@ class _Runtime(NamedTuple):
     inverse_bus_inertia: np.ndarray
     wheel_commands: np.ndarray
     wheel_max_momentum: np.ndarray
+    mtq_axes: np.ndarray
+    mtq_max_dipole: np.ndarray
+    dipole_commands: np.ndarray
 
 
 @njit(cache=True, inline="always")
@@ -139,7 +142,7 @@ def _environment_conditions(
             )
         if p.srp_force or p.srp_torque:
             illumination, _, _ = eclipse_state(position, sun, p.radius, SUN_RADIUS_M)
-    if p.residual_dipole:
+    if p.residual_dipole or p.dipole_commands.size > 0:
         if p.magnetic_kind == 1:
             field = igrf14_field_inertial_tesla(
                 position, epoch_jd, p.magnetic_times, p.magnetic_g, p.magnetic_h
@@ -220,8 +223,14 @@ def _body_torque(
         )
     if p.gravity_gradient:
         torque += static_gravity_gradient_torque(position, q, p.inertia, p.mu)
-    if p.residual_dipole:
-        torque += static_residual_dipole_torque(p.dipole, field, q)
+    if p.residual_dipole or p.dipole_commands.size > 0:
+        if p.residual_dipole:
+            torque += static_residual_dipole_torque(p.dipole, field, q)
+        if p.dipole_commands.size > 0:
+            mtq_dipole_body = np.zeros(3)
+            for mtq in range(p.dipole_commands.size):
+                mtq_dipole_body += p.mtq_axes[mtq] * p.dipole_commands[mtq]
+            torque += static_residual_dipole_torque(mtq_dipole_body, field, q)
     for wheel in range(p.wheel_commands.size):
         torque += p.wheel_axes[wheel] * p.wheel_commands[wheel]
     return torque
@@ -386,7 +395,7 @@ def _prepare(  # pyright: ignore[reportUnusedFunction] -- imported by the couple
         for wheel in cast(list[object], wheels)
     ):
         raise TypeError("reaction wheels must be ReactionWheel instances")
-    if any(wheel.biases or wheel.noises for wheel in wheels):
+    if any(wheel.bias != 0.0 or wheel.noise != 0.0 for wheel in wheels):
         raise NotImplementedError(
             "compiled wheel torque bias and noise are not yet supported"
         )
@@ -552,6 +561,14 @@ def _prepare(  # pyright: ignore[reportUnusedFunction] -- imported by the couple
         magnetic_static_g = _prepared_array(magnetic, "_static_g")
         magnetic_static_h = _prepared_array(magnetic, "_static_h")
         magnetic_include_static = magnetic.include_static
+    mtqs = satellite.adcs.magnetorquers
+    mtq_axes = np.ascontiguousarray(
+        np.array([m.orientation for m in mtqs], dtype=np.float64).reshape((-1, 3))
+    )
+    mtq_max_dipole = np.ascontiguousarray(
+        np.array([m.max_dipole for m in mtqs], dtype=np.float64)
+    )
+    dipole_commands = np.zeros(len(mtqs), dtype=np.float64)
     return _Runtime(
         mu,
         radius,
@@ -587,6 +604,9 @@ def _prepare(  # pyright: ignore[reportUnusedFunction] -- imported by the couple
         np.ascontiguousarray(np.linalg.inv(bus_inertia)),
         commands,
         np.ascontiguousarray(wheel_max_momentum),
+        mtq_axes,
+        mtq_max_dipole,
+        dipole_commands,
     )
 
 

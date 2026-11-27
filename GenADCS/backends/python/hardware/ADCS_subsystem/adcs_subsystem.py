@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from typing import cast
 
-from .estimator.attitude_estimator.base import AttitudeEstimator
 from .actuators import Magnetorquer, ReactionWheel
+from .controllers import Controller
+from .estimator.attitude_estimator.base import AttitudeEstimator
 from .sensors.sensor import Sensor
 from .state_machine import ADCSStateMachine
 
@@ -19,6 +20,7 @@ class ADCSSubsystem:
     N: int = 1
     estimator: AttitudeEstimator | None = None
     state_machine: ADCSStateMachine | None = None
+    controller: Controller | None = None
 
     def __post_init__(self) -> None:
         if isinstance(self.N, bool) or self.N < 1:

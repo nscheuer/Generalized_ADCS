@@ -11,4 +11,10 @@ from .estimator import AttitudeSequentialSRUKF as AttitudeSequentialSRUKF
 from .estimator import AttitudeSequentialUKF as AttitudeSequentialUKF
 from .actuators import Magnetorquer as Magnetorquer
 from .actuators import ReactionWheel as ReactionWheel
+from .controllers import (
+    BCross as BCross,
+    BDot as BDot,
+    Controller as Controller,
+    NoController as NoController,
+)
 from .state_machine import ADCSMode as ADCSMode, ADCSStateMachine as ADCSStateMachine
