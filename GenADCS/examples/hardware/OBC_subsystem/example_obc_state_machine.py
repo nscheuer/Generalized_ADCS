@@ -13,7 +13,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
-BACKEND = "Python"  # "Python", "C", or "Rust"
+BACKEND = "Rust"  # "Python", "C", or "Rust"
 _BACKEND_PKG = {"Python": "python", "C": "cpp", "Rust": "rust"}[BACKEND]
 
 _config = import_module(f"GenADCS.backends.{_BACKEND_PKG}.config")
