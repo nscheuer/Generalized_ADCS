@@ -8,10 +8,16 @@ The 0.3.0 release begins the GenADCS package. Documentation for earlier ADCS
 releases remains available through the version selector.
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Performance
+
+   benchmarks/index
+
+.. toctree::
    :maxdepth: 2
    :caption: API reference
 
-   modules
+   api/modules
 
 Indices
 -------

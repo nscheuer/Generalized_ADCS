@@ -82,6 +82,42 @@ control and estimation workflows.
   - Explore available models in <code>ADCS/satellite_hardware</code>.
 </details>
 
+## ⚡ Performance
+
+Generalized ADCS 3.0 ships three interchangeable backends (Python with Numba, C++ and Rust) behind one API. The charts compare them with Generalized ADCS 2.x, [Basilisk](https://github.com/AVSLab/basilisk) and [Orekit](https://www.orekit.org/) on the same scenario: a torque-free 12 kg spacecraft on a 500 km, 51.6° circular orbit with J2 gravity, fixed-step RK4 at dt = 0.25 s, with the state recorded every step.
+
+<!-- benchmarks:start -->
+<!-- Filled in by benchmarks/make_charts.py from benchmarks/results/results.json. -->
+<!-- benchmarks:end -->
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="benchmarks/results/speed-dark.svg">
+    <img src="benchmarks/results/speed-light.svg" width="900" alt="Simulation steps per second for each tool in the attitude-plus-orbit and orbit-only scenarios, and final position error after one orbit.">
+  </picture>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="benchmarks/results/speedup-dark.svg">
+    <img src="benchmarks/results/speedup-light.svg" width="900" alt="Speed-up of each tool over Generalized ADCS 2.x, with the three Generalized ADCS 3.0 backends grouped in a dashed box.">
+  </picture>
+</p>
+
+<details>
+<summary><b>Run time vs. simulated duration, and method</b></summary>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="benchmarks/results/scaling-dark.svg">
+    <img src="benchmarks/results/scaling-light.svg" width="820" alt="Wall-clock time against simulated duration on log-log axes for each tool.">
+  </picture>
+</p>
+
+Speed is the wall-clock time of the propagation call, including each tool's per-step state recording, after an untimed setup and warm-up (median of at least three runs). Accuracy is measured against a reference that integrates the same equations with SciPy's DOP853 at a relative tolerance of 1e-13. Generalized ADCS 3.0 and Basilisk always integrate attitude with the orbit; Orekit has no rigid-body attitude dynamics, so it runs the orbit-only scenario; 2.x integrates attitude with SciPy's adaptive RK45. Reproduce everything with the scripts in [`benchmarks/`](benchmarks).
+
+</details>
+
 ## 📦 Installation
 
 ```bash

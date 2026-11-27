@@ -284,3 +284,9 @@ GenADCS/tests/backends/cpp/environment/**/__pycache__/
 !GenADCS/kernels/
 !GenADCS/kernels/environment/
 !GenADCS/kernels/environment/**
+
+# Benchmark tool environments (benchmarks/setup.sh)
+.bench/
+
+# Generated API reference pages (sphinx.ext.apidoc)
+docs/source/api/

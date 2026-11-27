@@ -20,7 +20,11 @@ extensions = [
     'sphinx.ext.apidoc',
 ]
 
-apidoc_modules = [{'path': '../../GenADCS', 'destination': '.', 'maxdepth': 1}]
+# Generated API pages go to their own folder: sphinx.ext.apidoc always deletes
+# every .rst under 'destination' (recursively) that it did not write in this run,
+# and that cannot be switched off. With destination '.', it deleted the whole
+# hand-written docs tree, index.rst included.
+apidoc_modules = [{'path': '../../GenADCS', 'destination': 'api', 'max_depth': 1}]
 # Historical releases are built separately after sphinx-apidoc runs in each tag.
 smv_tag_whitelist = None
 smv_branch_whitelist = r'^main$'
