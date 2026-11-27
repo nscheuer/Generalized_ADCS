@@ -22,6 +22,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.controllers.runtime import 
     init_controller_work,
     prepare_controllers,
     step_controller,
+    sync_actuator_enable,
 )
 from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
     SensorConfig,
@@ -32,6 +33,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling imp
 from GenADCS.backends.python.hardware.ADCS_subsystem.state_machine import (
     ADCSSMRuntime,
     GoalTable,
+    apply_hw_mask,
     evaluate_goal,
     init_adcs_work,
     prepare_adcs_sm,
@@ -39,9 +41,9 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.state_machine import (
 )
 from GenADCS.backends.python.hardware.OBC_subsystem.runtime import (
     OBCRuntime,
+    _step_obc_core,
     init_obc_work,
     prepare_obc,
-    step_obc,
 )
 from GenADCS.backends.python.propagation.attitude_propagators.rk4_attitude_propagator import (
     _rk4_attitude_step,
@@ -101,6 +103,8 @@ def _simulate_uncoupled_loop(
     ctrl_log: np.ndarray,
     cmd_wheel_log: np.ndarray,
     cmd_dipole_log: np.ndarray,
+    rw_enabled: np.ndarray,
+    mtq_enabled: np.ndarray,
 ) -> None:
     total_steps = full_steps + int(remainder > 0.0)
     active_obc_mode = int(obc_work[0])
@@ -109,13 +113,19 @@ def _simulate_uncoupled_loop(
     prev_ctrl_idx = -1
     pending_cmd_mode = -1
     pending_cmd_goal = -1
+    base_wheel_max = ctrl_rt.wheel_max_torque.copy()
+    base_mtq_max = ctrl_rt.mtq_max_dipole.copy()
+    entered_obc_0 = -1
+    fired_tc_0 = -1
     if obc_every > 0:
         init_state = int(obc_work[0])
         pending_cmd_mode = obc_runtime.state_adcs_mode[init_state]
         pending_cmd_goal = obc_runtime.state_adcs_goal[init_state]
-        active_obc_mode, cm, cg = step_obc(
+        active_obc_mode, cm, cg, entered_obc_0, fired_tc_0 = _step_obc_core(
             y, 0.0, initial_jd, dt * obc_every, obc_runtime, obc_work
         )
+        if entered_obc_0 < 0:
+            entered_obc_0 = init_state
         if cm >= 0:
             pending_cmd_mode = cm
         if cg >= 0:
@@ -129,6 +139,28 @@ def _simulate_uncoupled_loop(
         pending_cmd_goal = -1
         sm_trace[0, 1] = active_adcs_mode
         sm_trace[0, 2] = active_adcs_goal
+        if adcs_sm_runtime.enabled:
+            apply_hw_mask(adcs_sm_runtime.mode_sensor_mask[active_adcs_mode], sensor_config[8])
+            apply_hw_mask(adcs_sm_runtime.mode_rw_mask[active_adcs_mode], rw_enabled)
+            apply_hw_mask(adcs_sm_runtime.mode_mtq_mask[active_adcs_mode], mtq_enabled)
+    if obc_every > 0:
+        if entered_obc_0 >= 0:
+            apply_hw_mask(obc_runtime.state_sensor_mask[entered_obc_0], sensor_config[8])
+            apply_hw_mask(obc_runtime.state_rw_mask[entered_obc_0], rw_enabled)
+            apply_hw_mask(obc_runtime.state_mtq_mask[entered_obc_0], mtq_enabled)
+        if fired_tc_0 >= 0:
+            apply_hw_mask(obc_runtime.tc_trans_sensor_mask[fired_tc_0], sensor_config[8])
+            apply_hw_mask(obc_runtime.tc_trans_rw_mask[fired_tc_0], rw_enabled)
+            apply_hw_mask(obc_runtime.tc_trans_mtq_mask[fired_tc_0], mtq_enabled)
+    sync_actuator_enable(
+        rw_enabled,
+        mtq_enabled,
+        base_wheel_max,
+        base_mtq_max,
+        ctrl_rt,
+        runtime.wheel_commands,
+        runtime.dipole_commands,
+    )
     if ctrl_log_flags:
         if ctrl_log_flags & 1:
             gq, gw = evaluate_goal(
@@ -201,9 +233,12 @@ def _simulate_uncoupled_loop(
         if reference_mode >= 0:
             set_reference_attitude(y, epoch_jd + step_dt / SECONDS_PER_DAY, reference_mode, runtime)
         completed = row + 1
+        entered_obc = -1
+        fired_tc = -1
+        hw_changed = False
         if obc_every > 0 and completed <= full_steps and completed % obc_every == 0:
             elapsed_now = completed * dt
-            active_obc_mode, cm, cg = step_obc(
+            active_obc_mode, cm, cg, entered_obc, fired_tc = _step_obc_core(
                 y,
                 elapsed_now,
                 initial_jd + elapsed_now / SECONDS_PER_DAY,
@@ -216,6 +251,7 @@ def _simulate_uncoupled_loop(
             if cg >= 0:
                 pending_cmd_goal = cg
         if adcs_sm_every > 0 and completed <= full_steps and completed % adcs_sm_every == 0:
+            prev_adcs_mode = active_adcs_mode
             active_adcs_mode, active_adcs_goal = step_adcs_sm(
                 completed * dt,
                 adcs_sm_runtime,
@@ -225,6 +261,31 @@ def _simulate_uncoupled_loop(
             )
             pending_cmd_mode = -1
             pending_cmd_goal = -1
+            if adcs_sm_runtime.enabled and active_adcs_mode != prev_adcs_mode:
+                apply_hw_mask(adcs_sm_runtime.mode_sensor_mask[active_adcs_mode], sensor_config[8])
+                apply_hw_mask(adcs_sm_runtime.mode_rw_mask[active_adcs_mode], rw_enabled)
+                apply_hw_mask(adcs_sm_runtime.mode_mtq_mask[active_adcs_mode], mtq_enabled)
+                hw_changed = True
+        if entered_obc >= 0:
+            apply_hw_mask(obc_runtime.state_sensor_mask[entered_obc], sensor_config[8])
+            apply_hw_mask(obc_runtime.state_rw_mask[entered_obc], rw_enabled)
+            apply_hw_mask(obc_runtime.state_mtq_mask[entered_obc], mtq_enabled)
+            hw_changed = True
+        if fired_tc >= 0:
+            apply_hw_mask(obc_runtime.tc_trans_sensor_mask[fired_tc], sensor_config[8])
+            apply_hw_mask(obc_runtime.tc_trans_rw_mask[fired_tc], rw_enabled)
+            apply_hw_mask(obc_runtime.tc_trans_mtq_mask[fired_tc], mtq_enabled)
+            hw_changed = True
+        if hw_changed:
+            sync_actuator_enable(
+                rw_enabled,
+                mtq_enabled,
+                base_wheel_max,
+                base_mtq_max,
+                ctrl_rt,
+                runtime.wheel_commands,
+                runtime.dipole_commands,
+            )
         if (
             sensor_every > 0
             and completed <= full_steps
@@ -439,7 +500,12 @@ def simulate_uncoupled(
     ctrl_table = ControllerTable()
     default_ctrl_idx = ctrl_table.register(satellite.adcs.controller)
     adcs_sm_runtime = prepare_adcs_sm(
-        satellite.adcs.state_machine, goal_table, ctrl_table
+        satellite.adcs.state_machine,
+        goal_table,
+        ctrl_table,
+        sensors=satellite.adcs.sensors,
+        reaction_wheels=satellite.adcs.reaction_wheels,
+        magnetorquers=satellite.adcs.magnetorquers,
     )
     wheel_torque_limits = np.asarray(
         [w.max_torque for w in satellite.adcs.reaction_wheels], dtype=np.float64
@@ -457,7 +523,20 @@ def simulate_uncoupled(
         bus_inertia=bus_inertia,
     )
     ctrl_work = init_controller_work()
-    obc_runtime = prepare_obc(satellite.obc, adcs_sm_runtime, goal_table)
+    obc_runtime = prepare_obc(
+        satellite.obc,
+        adcs_sm_runtime,
+        goal_table,
+        sensors=satellite.adcs.sensors,
+        reaction_wheels=satellite.adcs.reaction_wheels,
+        magnetorquers=satellite.adcs.magnetorquers,
+    )
+    rw_enabled = np.asarray(
+        [w.enabled for w in satellite.adcs.reaction_wheels], dtype=np.bool_
+    )
+    mtq_enabled = np.asarray(
+        [m.enabled for m in satellite.adcs.magnetorquers], dtype=np.bool_
+    )
     obc_every = satellite.obc.N if obc_runtime.enabled and satellite.obc is not None else 0
     adcs_sm_every = satellite.adcs.N if (adcs_sm_runtime.enabled or obc_every > 0) else 0
     obc_work = init_obc_work(obc_runtime)
@@ -530,6 +609,7 @@ def simulate_uncoupled(
                 adcs_sm_every, adcs_sm_runtime, adcs_work, sm_trace,
                 ctrl_rt, ctrl_work, default_ctrl_idx,
                 ctrl_log_flags, ctrl_log, cmd_wheel_log, cmd_dipole_log,
+                rw_enabled, mtq_enabled,
             )
         finally:
             finished.set()
@@ -541,6 +621,7 @@ def simulate_uncoupled(
             adcs_sm_every, adcs_sm_runtime, adcs_work, sm_trace,
             ctrl_rt, ctrl_work, default_ctrl_idx,
             ctrl_log_flags, ctrl_log, cmd_wheel_log, cmd_dipole_log,
+            rw_enabled, mtq_enabled,
         )
     if ctrl_log_flags > 0:
         return (

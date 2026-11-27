@@ -529,6 +529,54 @@ if(BUILD_TESTING)
     add_test(NAME cpp_goals COMMAND cpp_test_goals)
 endif()
 
+add_library(controllers_native_core STATIC
+    hardware/ADCS_subsystem/controllers/controller.cpp
+    hardware/ADCS_subsystem/controllers/bdot.cpp
+    hardware/ADCS_subsystem/controllers/bcross.cpp
+    hardware/ADCS_subsystem/controllers/attitude_controller.cpp
+    hardware/ADCS_subsystem/controllers/runtime.cpp
+    hardware/ADCS_subsystem/controllers/feedforward/passthrough.cpp
+    hardware/ADCS_subsystem/controllers/feedback/feedback.cpp
+    hardware/ADCS_subsystem/controllers/feedback/mrpfeedbacklinearization.cpp
+    hardware/ADCS_subsystem/controllers/desaturation/hoganschaubdesaturation.cpp
+    hardware/ADCS_subsystem/controllers/allocator/allocator.cpp
+    hardware/ADCS_subsystem/controllers/allocator/l2allocator.cpp
+    hardware/ADCS_subsystem/controllers/allocator/linftyallocator.cpp
+    helpers/math/rotations/quaternion/conversions.cpp
+    helpers/math/rotations/quaternion/algebra.cpp
+    helpers/math/vector.cpp
+)
+target_compile_features(controllers_native_core PUBLIC cxx_std_17)
+target_include_directories(controllers_native_core PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    helpers/math
+)
+target_link_libraries(controllers_native_core PUBLIC Eigen3::Eigen)
+set_target_properties(controllers_native_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+if(BUILD_TESTING)
+    foreach(ctrl_test
+        test_bdot
+        test_bcross
+        test_attitudecontroller
+        feedforward/test_passthrough
+        feedback/test_mrpfeedbacklinearization
+        desaturation/test_hoganschaubdesaturation
+        allocators/test_l2allocator
+        allocators/test_linftyallocator
+    )
+        string(REPLACE "/" "_" ctrl_test_name "${ctrl_test}")
+        add_executable(cpp_controllers_${ctrl_test_name}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/controllers/${ctrl_test}.cpp"
+        )
+        target_include_directories(cpp_controllers_${ctrl_test_name} PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem"
+        )
+        target_link_libraries(cpp_controllers_${ctrl_test_name} PRIVATE controllers_native_core)
+        add_test(NAME cpp_controllers_${ctrl_test_name} COMMAND cpp_controllers_${ctrl_test_name})
+    endforeach()
+endif()
+
 file(GLOB_RECURSE ADCS_SUBSYSTEM_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/hardware/ADCS_subsystem/*_py.cpp")
 
@@ -552,7 +600,7 @@ pybind11_add_module(_adcs_subsystem ${GENADCS_PYBIND_OPTIONS}
 )
 target_compile_features(_adcs_subsystem PRIVATE cxx_std_17)
 target_link_libraries(_adcs_subsystem PRIVATE Eigen3::Eigen)
-target_link_libraries(_adcs_subsystem PRIVATE attitude_estimator_native goals_native_core)
+target_link_libraries(_adcs_subsystem PRIVATE attitude_estimator_native goals_native_core controllers_native_core)
 target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem hardware/ADCS_subsystem/actuators hardware/ADCS_subsystem/sensors helpers/random helpers/math/rotations)
 set_target_properties(_adcs_subsystem PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/hardware/ADCS_subsystem")

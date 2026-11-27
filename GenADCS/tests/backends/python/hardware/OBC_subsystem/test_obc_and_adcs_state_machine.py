@@ -6,26 +6,34 @@ import numpy as np
 import pytest
 
 from GenADCS.backends.python.config import DynamicsConfig
-from GenADCS.backends.python.environment import Earth, Environment
+from GenADCS.backends.python.environment import Earth, Environment, IGRF14
 from GenADCS.backends.python.hardware import (
     ADCSMode,
     ADCSStateMachine,
     ADCSSubsystem,
     After,
     AngularRateMonitor,
+    AttitudeController,
+    BDot,
     Completion,
     FDIR,
     FDIRTriggered,
     InFOV,
+    L2Allocator,
+    MRPFeedbackLinearized,
+    Magnetorquer,
     Mode,
     NoController,
     OBCStateMachine,
     OBCSubsystem,
+    Passthrough,
+    ReactionWheel,
     Satellite,
     SatelliteGeometry,
     Telecommand,
     Transition,
 )
+from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import Gyroscope, Magnetometer
 from GenADCS.backends.python.hardware.ADCS_subsystem.goals import (
     CoordinateGoal,
     NadirGoal,
@@ -50,7 +58,7 @@ from GenADCS.backends.python.propagation import (
 )
 from GenADCS.backends.python.simulate import ResultsFormat, simulate
 from GenADCS.backends.python.solver import AttitudeSolver, OrbitalSolver, Solver
-from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
+from GenADCS.backends.python.state import AttitudeState, OrbitalState, State, WheelMomentumState
 
 
 def _make_state_vec(
@@ -311,3 +319,172 @@ def test_simulate_applies_initial_obc_binding_at_t0() -> None:
     assert int(sat_res.obc_mode[2, 0]) == 1
     assert int(sat_res.adcs_mode[2, 0]) == 0
     assert int(sat_res.adcs_goal[2, 0]) == 0
+
+
+def test_state_machine_toggles_sensors_and_actuators_and_telecommands() -> None:
+    wheels = [
+        ReactionWheel((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), 1e-3, 0.2, 1.0, name="rw_x"),
+        ReactionWheel((0.0, 0.0, 0.0), (0.0, 1.0, 0.0), 1e-3, 0.2, 1.0, name="rw_y"),
+        ReactionWheel((0.0, 0.0, 0.0), (0.0, 0.0, 1.0), 1e-3, 0.2, 1.0, name="rw_z"),
+    ]
+    mtqs = [
+        Magnetorquer((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), 0.5),
+        Magnetorquer((0.0, 0.0, 0.0), (0.0, 1.0, 0.0), 0.5),
+        Magnetorquer((0.0, 0.0, 0.0), (0.0, 0.0, 1.0), 0.5),
+    ]
+    gyro = Gyroscope(
+        position=np.zeros(3),
+        orientation=np.array([1.0, 0.0, 0.0, 0.0]),
+        misalignment=np.array([1.0, 0.0, 0.0, 0.0]),
+        saturation_value=10.0,
+        noise=1e-12 * np.eye(3),
+        bias=np.zeros(3),
+    )
+    mag = Magnetometer(
+        position=np.zeros(3),
+        orientation=np.array([1.0, 0.0, 0.0, 0.0]),
+        misalignment=np.array([1.0, 0.0, 0.0, 0.0]),
+        saturation_value=1.0,
+        noise=1e-16 * np.eye(3),
+        bias=np.zeros(3),
+    )
+    att_ctrl = AttitudeController(
+        feedback=MRPFeedbackLinearized(kp=0.05, kd=0.1),
+        feedforward=Passthrough(),
+        allocator=L2Allocator(),
+    )
+    adcs = ADCSSubsystem(
+        reaction_wheels=wheels,
+        magnetorquers=mtqs,
+        sensors=[gyro, mag],
+        N=1,
+        state_machine=ADCSStateMachine(
+            initial="off",
+            modes=[
+                ADCSMode(
+                    "off",
+                    goal=NoGoal(),
+                    controller=NoController(),
+                    sensors={"*": False},
+                    actuators={"*": False},
+                ),
+                ADCSMode(
+                    "nominal",
+                    goal=NadirGoal(),
+                    controller=att_ctrl,
+                    sensors={"*": True},
+                    actuators={"ReactionWheel": True, "Magnetorquer": True},
+                ),
+                ADCSMode(
+                    "safe",
+                    goal=NoGoal(),
+                    controller=BDot(gain=5e4),
+                    sensors={"Gyroscope": False, "Magnetometer": True},
+                    actuators={"ReactionWheel": False, "Magnetorquer": True},
+                ),
+            ],
+        ),
+    )
+    obc = OBCSubsystem(
+        N=1,
+        state_machine=OBCStateMachine(
+            initial="checkout",
+            modes=[
+                Mode(
+                    "checkout",
+                    initial_submode="power_on",
+                    submodes=[
+                        Mode(
+                            "power_on",
+                            duration=1.0,
+                            bindings={"adcs": "off", "sensors": {"*": False}, "actuators": {"*": False}},
+                        ),
+                        Mode(
+                            "sensors_on",
+                            duration=1.0,
+                            bindings={"adcs": "off", "sensors": {"Gyroscope": True}},
+                        ),
+                    ],
+                ),
+                Mode("nominal", bindings={"adcs": "nominal"}),
+                Mode("safe_mode", bindings={"adcs": "safe"}),
+            ],
+            transitions=[
+                Transition("checkout.power_on", "checkout.sensors_on", Completion()),
+                Transition("checkout.sensors_on", "nominal", Completion()),
+                Transition(
+                    "nominal",
+                    "nominal",
+                    Telecommand("DISABLE_GYRO_AND_RWX", sensors={"Gyroscope": False}, actuators={"rw_x": False}),
+                ),
+                Transition("nominal", "safe_mode", Telecommand("ENTER_SAFE")),
+            ],
+            timeline=[
+                (3.0, "DISABLE_GYRO_AND_RWX"),
+                (4.0, "ENTER_SAFE"),
+            ],
+        ),
+    )
+    sat = Satellite(
+        geometry=SatelliteGeometry(mass=5.0, inertia=np.eye(3), panels=[]),
+        adcs=adcs,
+        obc=obc,
+    )
+    state = State(
+        attitude=AttitudeState(orientation=(0.9, 0.1, 0.2, 0.1), rates=(0.05, -0.04, 0.03)),
+        orbit=OrbitalState.from_cartesian(
+            position=(6_878_137.0, 0.0, 0.0),
+            velocity=(0.0, 7_612.6, 0.0),
+            julian_date=2_461_000.5,
+        ),
+        internal=WheelMomentumState(wheel_momentum=np.zeros(3)),
+    )
+    solver = Solver(
+        orbital=OrbitalSolver(KeplerianOrbitalPropagator(dt=0.5)),
+        attitude=AttitudeSolver(RK4AttitudePropagator(dt=0.5)),
+        tf=5.0,
+    )
+    res = simulate(
+        sat,
+        Environment(planetary_body=Earth(), magnetic_field=IGRF14()),
+        DynamicsConfig(forces=[], torques=[]),
+        state,
+        solver,
+        backend="Python",
+        resultsformat=ResultsFormat(
+            obc_mode=True,
+            adcs_mode=True,
+            gyroscope_reading=True,
+            magnetometer_reading=True,
+            commanded_wheel_torque=True,
+            commanded_magnetic_dipole=True,
+        ),
+    )
+    sat_res = res.satellites["sat_000"]
+    # dt=0.5 -> index k corresponds to t = 0.5*k.
+    # t=0.5 (idx 1): checkout.power_on -> all sensors off (NaN), all actuators 0.0
+    assert np.all(np.isnan(sat_res.gyroscope_reading[1]))
+    assert np.all(np.isnan(sat_res.magnetometer_reading[1]))
+    assert np.all(sat_res.commanded_wheel_torque[1] == 0.0)
+    assert np.all(sat_res.commanded_magnetic_dipole[1] == 0.0)
+
+    # t=1.5 (idx 3): checkout.sensors_on -> gyro on (finite), mag still off (NaN)
+    assert np.all(np.isfinite(sat_res.gyroscope_reading[3]))
+    assert np.all(np.isnan(sat_res.magnetometer_reading[3]))
+
+    # t=2.5 (idx 5): nominal -> all sensors finite, all 3 RWs active
+    assert np.all(np.isfinite(sat_res.gyroscope_reading[5]))
+    assert np.all(np.isfinite(sat_res.magnetometer_reading[5]))
+    assert np.any(sat_res.commanded_wheel_torque[5] != 0.0)
+
+    # t=3.5 (idx 7): after DISABLE_GYRO_AND_RWX -> gyro NaN, mag finite, rw_x == 0.0
+    assert np.all(np.isnan(sat_res.gyroscope_reading[7]))
+    assert np.all(np.isfinite(sat_res.magnetometer_reading[7]))
+    assert sat_res.commanded_wheel_torque[7, 0] == 0.0
+    assert np.any(sat_res.commanded_wheel_torque[7, 1:3] != 0.0)
+
+    # t=4.5 (idx 9): safe_mode -> gyro NaN, mag finite, all RWs 0.0, MTQs active
+    assert np.all(np.isnan(sat_res.gyroscope_reading[9]))
+    assert np.all(np.isfinite(sat_res.magnetometer_reading[9]))
+    assert np.all(sat_res.commanded_wheel_torque[9] == 0.0)
+    assert np.any(sat_res.commanded_magnetic_dipole[9] != 0.0)

@@ -13,10 +13,12 @@ class Trigger:
 
 @dataclass(frozen=True, slots=True)
 class Telecommand(Trigger):
-    """Transition when the named telecommand arrives, optionally overriding ADCS goal."""
+    """Transition when the named telecommand arrives, optionally overriding ADCS goal or hardware."""
 
     command: str
     goal: Any = None
+    sensors: Any = None
+    actuators: Any = None
 
     def __post_init__(self) -> None:
         if not self.command:

@@ -89,7 +89,11 @@ def step(
     else:
         tau_c = ff_torque.copy()
 
-    if wheel_commands.size == 0:
+    if wheel_commands.size == 0 or not np.any(wheel_max_torque > 0.0):
+        for i in range(wheel_commands.size):
+            wheel_commands[i] = 0.0
+        for i in range(dipole_commands.size):
+            dipole_commands[i] = 0.0
         return ff_torque, q_d, w_d, tau_c
 
     # 3. Desaturation nullspace vector u_0 + optional magnetorquer momentum dump

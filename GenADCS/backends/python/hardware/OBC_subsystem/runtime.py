@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 import math
-from typing import NamedTuple
+from typing import NamedTuple, cast
 
 import numpy as np
 from numba import njit
@@ -12,6 +13,9 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.goals import CoordinateGoal
 from GenADCS.backends.python.hardware.ADCS_subsystem.state_machine import (
     ADCSSMRuntime,
     GoalTable,
+    apply_hw_mask,
+    compile_actuator_masks,
+    compile_sensor_mask,
 )
 from GenADCS.backends.python.helpers.math.frames.conversions import ecef_to_gcrf_matrix
 
@@ -52,6 +56,13 @@ class OBCRuntime(NamedTuple):
     # ADCS bindings per OBC state (-1 means no override):
     state_adcs_mode: np.ndarray
     state_adcs_goal: np.ndarray
+    # Hardware enable/disable masks per OBC state (-1 unchanged, 0 off, 1 on):
+    state_sensor_mask: np.ndarray
+    state_rw_mask: np.ndarray
+    state_mtq_mask: np.ndarray
+    tc_trans_sensor_mask: np.ndarray
+    tc_trans_rw_mask: np.ndarray
+    tc_trans_mtq_mask: np.ndarray
     # Sorted telecommand timeline (terminated by inf / -1):
     tc_times: np.ndarray
     tc_codes: np.ndarray
@@ -106,6 +117,7 @@ def _resolve_sources(
 def _disabled_runtime() -> OBCRuntime:
     empty_i = np.zeros(0, dtype=np.int64)
     empty_f = np.zeros(0, dtype=np.float64)
+    empty_m = np.zeros((0, 0), dtype=np.int8)
     return OBCRuntime(
         enabled=False,
         initial_state=0,
@@ -126,6 +138,12 @@ def _disabled_runtime() -> OBCRuntime:
         state_auto_target=empty_i,
         state_adcs_mode=empty_i,
         state_adcs_goal=empty_i,
+        state_sensor_mask=empty_m,
+        state_rw_mask=empty_m,
+        state_mtq_mask=empty_m,
+        tc_trans_sensor_mask=empty_m,
+        tc_trans_rw_mask=empty_m,
+        tc_trans_mtq_mask=empty_m,
         tc_times=np.array([np.inf], dtype=np.float64),
         tc_codes=np.array([-1], dtype=np.int64),
         tc_goals=np.array([-1], dtype=np.int64),
@@ -146,6 +164,9 @@ def prepare_obc(
     obc: OBCSubsystem | None,
     adcs_sm_runtime: ADCSSMRuntime | None = None,
     goal_table: GoalTable | None = None,
+    sensors: Sequence[object] = (),
+    reaction_wheels: Sequence[object] = (),
+    magnetorquers: Sequence[object] = (),
 ) -> OBCRuntime:
     """Flatten OBC state machine, FDIR monitors, swath triggers, and timeline."""
     if obc is None or obc.state_machine is None:
@@ -153,6 +174,9 @@ def prepare_obc(
 
     if goal_table is None:
         goal_table = GoalTable()
+    n_sensors = len(sensors)
+    n_rw = len(reaction_wheels)
+    n_mtq = len(magnetorquers)
     adcs_mode_to_id = (
         {name: idx for idx, name in enumerate(adcs_sm_runtime.mode_names)}
         if adcs_sm_runtime is not None and adcs_sm_runtime.enabled
@@ -192,6 +216,9 @@ def prepare_obc(
     state_auto_target = np.full(n_states, -1, dtype=np.int64)
     state_adcs_mode = np.full(n_states, -1, dtype=np.int64)
     state_adcs_goal = np.full(n_states, -1, dtype=np.int64)
+    state_sensor_mask = np.full((n_states, n_sensors), -1, dtype=np.int8)
+    state_rw_mask = np.full((n_states, n_rw), -1, dtype=np.int8)
+    state_mtq_mask = np.full((n_states, n_mtq), -1, dtype=np.int8)
 
     for idx, (leaf, parent) in enumerate(zip(leaf_modes, leaf_parents)):
         if leaf.duration is not None:
@@ -218,6 +245,24 @@ def prepare_obc(
             state_adcs_mode[idx] = adcs_mode_to_id[m_name]
             state_adcs_goal[idx] = goal_table.register(g_obj)
 
+        sensor_binding = leaf.bindings.get("sensors")
+        if sensor_binding is None and parent is not None:
+            sensor_binding = parent.bindings.get("sensors")
+        if sensor_binding is not None:
+            state_sensor_mask[idx] = compile_sensor_mask(
+                cast(Mapping[object, bool], sensor_binding), sensors
+            )
+
+        actuator_binding = leaf.bindings.get("actuators")
+        if actuator_binding is None and parent is not None:
+            actuator_binding = parent.bindings.get("actuators")
+        if actuator_binding is not None:
+            rw_m, mtq_m = compile_actuator_masks(
+                cast(Mapping[object, bool], actuator_binding), reaction_wheels, magnetorquers
+            )
+            state_rw_mask[idx] = rw_m
+            state_mtq_mask[idx] = mtq_m
+
     # Collect per-state telecommand, InFOV, and FDIRTriggered transitions.
     fdir = obc.fdir
     monitor_to_id = (
@@ -225,7 +270,9 @@ def prepare_obc(
         if fdir is not None and fdir.monitors
         else {}
     )
-    per_state_tc: list[list[tuple[int, int, int, int]]] = [[] for _ in range(n_states)]
+    per_state_tc: list[
+        list[tuple[int, int, int, int, np.ndarray, np.ndarray, np.ndarray]]
+    ] = [[] for _ in range(n_states)]
     per_state_fov: list[list[tuple[int, np.ndarray, float, bool, int, int]]] = [[] for _ in range(n_states)]
     per_state_fdir: list[list[tuple[int, int, int]]] = [[] for _ in range(n_states)]
 
@@ -235,8 +282,14 @@ def prepare_obc(
         if isinstance(tr.trigger, Telecommand):
             code = get_cmd_code(tr.trigger.command)
             g_idx = goal_table.register(tr.trigger.goal) if tr.trigger.goal is not None else -1
+            tc_s_mask = compile_sensor_mask(tr.trigger.sensors, sensors)
+            tc_rw_mask, tc_mtq_mask = compile_actuator_masks(
+                tr.trigger.actuators, reaction_wheels, magnetorquers
+            )
             for src in sources:
-                per_state_tc[src].append((tr.priority, code, target_id, g_idx))
+                per_state_tc[src].append(
+                    (tr.priority, code, target_id, g_idx, tc_s_mask, tc_rw_mask, tc_mtq_mask)
+                )
         elif isinstance(tr.trigger, InFOV):
             coord = CoordinateGoal(tr.trigger.lat, tr.trigger.lon, tr.trigger.alt)
             cos_limit = math.cos(math.radians(tr.trigger.max_off_nadir_deg))
@@ -277,15 +330,33 @@ def prepare_obc(
     flat_codes: list[int] = []
     flat_targets: list[int] = []
     flat_tc_goals: list[int] = []
+    flat_tc_s: list[np.ndarray] = []
+    flat_tc_rw: list[np.ndarray] = []
+    flat_tc_mtq: list[np.ndarray] = []
     cursor = 0
     for s in range(n_states):
         tc_trans_start[s] = cursor
-        for _, code, target_id, g_idx in sorted(per_state_tc[s], key=lambda item: -item[0]):
+        for _, code, target_id, g_idx, tc_s_m, tc_rw_m, tc_mtq_m in sorted(
+            per_state_tc[s], key=lambda item: -item[0]
+        ):
             flat_codes.append(code)
             flat_targets.append(target_id)
             flat_tc_goals.append(g_idx)
+            flat_tc_s.append(tc_s_m)
+            flat_tc_rw.append(tc_rw_m)
+            flat_tc_mtq.append(tc_mtq_m)
             cursor += 1
         tc_trans_end[s] = cursor
+
+    tc_trans_sensor_mask = (
+        np.vstack(flat_tc_s) if flat_tc_s else np.zeros((0, n_sensors), dtype=np.int8)
+    )
+    tc_trans_rw_mask = (
+        np.vstack(flat_tc_rw) if flat_tc_rw else np.zeros((0, n_rw), dtype=np.int8)
+    )
+    tc_trans_mtq_mask = (
+        np.vstack(flat_tc_mtq) if flat_tc_mtq else np.zeros((0, n_mtq), dtype=np.int8)
+    )
 
     fov_trans_start = np.empty(n_states, dtype=np.int64)
     fov_trans_end = np.empty(n_states, dtype=np.int64)
@@ -379,6 +450,12 @@ def prepare_obc(
         state_auto_target=state_auto_target,
         state_adcs_mode=state_adcs_mode,
         state_adcs_goal=state_adcs_goal,
+        state_sensor_mask=state_sensor_mask,
+        state_rw_mask=state_rw_mask,
+        state_mtq_mask=state_mtq_mask,
+        tc_trans_sensor_mask=tc_trans_sensor_mask,
+        tc_trans_rw_mask=tc_trans_rw_mask,
+        tc_trans_mtq_mask=tc_trans_mtq_mask,
         tc_times=tc_times,
         tc_codes=tc_codes,
         tc_goals=tc_goals,
@@ -427,18 +504,20 @@ def _enter_state(
 
 
 @njit(cache=True)
-def step_obc(
+def _step_obc_core(
     y: np.ndarray,
     elapsed_s: float,
     epoch_jd: float,
     dt_obc: float,
     obc: OBCRuntime,
     work: np.ndarray,
-) -> tuple[int, int, int]:
+) -> tuple[int, int, int, int, int]:
     """Advance OBC FDIR, telecommands, auto-completion, and orbital swath triggers."""
     state = int(work[0])
     cmd_mode = -1
     cmd_goal = -1
+    entered_state = -1
+    fired_tc_idx = -1
 
     # 1. Fast FDIR check.
     if obc.fdir_enabled and work[3] == 0.0:
@@ -456,7 +535,8 @@ def step_obc(
                         if mon_filter < 0 or mon_filter == i:
                             fdir_target = obc.fdir_trans_target[k]
                             break
-                    return _enter_state(fdir_target, elapsed_s, obc, work, -1)
+                    st, cm, cg = _enter_state(fdir_target, elapsed_s, obc, work, -1)
+                    return st, cm, cg, st, -1
 
     # 2. Telecommand & auto-completion wake-up check.
     tc_idx = int(work[1])
@@ -478,6 +558,8 @@ def step_obc(
                     tr_goal = obc.tc_trans_goal[k]
                     override = tl_goal if tl_goal >= 0 else tr_goal
                     state, cm, cg = _enter_state(target, elapsed_s, obc, work, override)
+                    entered_state = state
+                    fired_tc_idx = k
                     if cm >= 0:
                         cmd_mode = cm
                     if cg >= 0:
@@ -490,6 +572,7 @@ def step_obc(
                 if auto_target != state:
                     work[3] = 0.0
                 state, cm, cg = _enter_state(auto_target, elapsed_s, obc, work, -1)
+                entered_state = state
                 if cm >= 0:
                     cmd_mode = cm
                 if cg >= 0:
@@ -536,15 +619,32 @@ def step_obc(
                 state, cm, cg = _enter_state(
                     fov_target, elapsed_s, obc, work, obc.fov_goal[k]
                 )
+                entered_state = state
                 if cm >= 0:
                     cmd_mode = cm
                 if cg >= 0:
                     cmd_goal = cg
-                return state, cmd_mode, cmd_goal
+                return state, cmd_mode, cmd_goal, entered_state, fired_tc_idx
 
         if min_skip > dt_obc and not np.isinf(min_skip):
             work[4] = elapsed_s + min_skip
         else:
             work[4] = elapsed_s + dt_obc
 
+    return state, cmd_mode, cmd_goal, entered_state, fired_tc_idx
+
+
+@njit(cache=True)
+def step_obc(
+    y: np.ndarray,
+    elapsed_s: float,
+    epoch_jd: float,
+    dt_obc: float,
+    obc: OBCRuntime,
+    work: np.ndarray,
+) -> tuple[int, int, int]:
+    """Advance OBC FDIR, telecommands, auto-completion, and orbital swath triggers."""
+    state, cmd_mode, cmd_goal, _, _ = _step_obc_core(
+        y, elapsed_s, epoch_jd, dt_obc, obc, work
+    )
     return state, cmd_mode, cmd_goal

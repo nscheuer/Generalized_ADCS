@@ -1,6 +1,46 @@
 """C++ hardware implementations exposed to Python."""
 from .satellite import Satellite
 from .satellite_geometry import SatelliteGeometry, SatellitePanel
-from .ADCS_subsystem import ADCSSubsystem, Magnetorquer, ReactionWheel
-__all__ = ["Satellite", "SatelliteGeometry", "SatellitePanel",
-           "ADCSSubsystem", "Magnetorquer", "ReactionWheel"]
+from .ADCS_subsystem import (
+    ADCSSubsystem,
+    Allocator,
+    AttitudeController,
+    BCross,
+    BDot,
+    Controller,
+    Desaturation,
+    Feedback,
+    Feedforward,
+    HoganSchaubManagement,
+    L2Allocator,
+    LInfinityAllocator,
+    Magnetorquer,
+    MRPFeedbackLinearized,
+    NoController,
+    NoDesaturation,
+    Passthrough,
+    ReactionWheel,
+)
+__all__ = [
+    "Satellite",
+    "SatelliteGeometry",
+    "SatellitePanel",
+    "ADCSSubsystem",
+    "Magnetorquer",
+    "ReactionWheel",
+    "Controller",
+    "NoController",
+    "BDot",
+    "BCross",
+    "AttitudeController",
+    "Feedforward",
+    "Passthrough",
+    "Feedback",
+    "MRPFeedbackLinearized",
+    "Allocator",
+    "L2Allocator",
+    "LInfinityAllocator",
+    "Desaturation",
+    "NoDesaturation",
+    "HoganSchaubManagement",
+]

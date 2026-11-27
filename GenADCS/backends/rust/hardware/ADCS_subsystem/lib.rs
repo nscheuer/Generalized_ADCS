@@ -4,6 +4,7 @@ use pyo3::prelude::*;
 
 mod adcs_subsystem;
 mod adcs_subsystem_py;
+pub mod controllers;
 pub mod estimator;
 pub mod goals;
 pub mod sensors;
@@ -39,6 +40,7 @@ mod test_sensor;
 fn _subsystem(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     sensors::register(m)?;
     goals::goals_py::register(m)?;
+    controllers::controllers_py::register(m)?;
     estimator::attitude_estimator::register(m)?;
     m.add_class::<Magnetorquer>()?;
     m.add_class::<ReactionWheel>()?;

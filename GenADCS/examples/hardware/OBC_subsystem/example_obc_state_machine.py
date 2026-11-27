@@ -22,12 +22,14 @@ from GenADCS.backends.python.hardware import (
     AngularRateMonitor,
     AttitudeController,
     BDot,
+    Completion,
     FDIR,
     InFOV,
     L2Allocator,
     MRPFeedbackLinearized,
     Magnetorquer,
     Mode,
+    NoController,
     OBCStateMachine,
     OBCSubsystem,
     Passthrough,
@@ -43,7 +45,11 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.goals import (
     NoGoal,
     SunGoal,
 )
-from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import Magnetometer
+from GenADCS.backends.python.hardware.ADCS_subsystem.sensors import (
+    AutonomousStarTracker,
+    Gyroscope,
+    Magnetometer,
+)
 from GenADCS.backends.python.hardware.ADCS_subsystem.state_machine import (
     GoalTable,
     prepare_adcs_sm,
@@ -74,9 +80,9 @@ from GenADCS.backends.shared.plotting import (
 def build_adcs(img_goal: CoordinateFMCGoal, gs_goal: CoordinateGoal) -> ADCSSubsystem:
     """Configure the ADCS subsystem with its own mode state machine."""
     wheels = [
-        ReactionWheel((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), 1e-3, 0.2, 1.0),
-        ReactionWheel((0.0, 0.0, 0.0), (0.0, 1.0, 0.0), 1e-3, 0.2, 1.0),
-        ReactionWheel((0.0, 0.0, 0.0), (0.0, 0.0, 1.0), 1e-3, 0.2, 1.0),
+        ReactionWheel((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), 1e-3, 0.2, 1.0, name="rw_x"),
+        ReactionWheel((0.0, 0.0, 0.0), (0.0, 1.0, 0.0), 1e-3, 0.2, 1.0, name="rw_y"),
+        ReactionWheel((0.0, 0.0, 0.0), (0.0, 0.0, 1.0), 1e-3, 0.2, 1.0, name="rw_z"),
     ]
     mtqs = [
         Magnetorquer((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), 0.5),
@@ -91,25 +97,66 @@ def build_adcs(img_goal: CoordinateFMCGoal, gs_goal: CoordinateGoal) -> ADCSSubs
         noise=1e-16 * np.eye(3),
         bias=np.zeros(3),
     )
+    gyro = Gyroscope(
+        position=np.zeros(3),
+        orientation=np.array([1.0, 0.0, 0.0, 0.0]),
+        misalignment=np.array([1.0, 0.0, 0.0, 0.0]),
+        saturation_value=10.0,
+        noise=1e-12 * np.eye(3),
+        bias=np.zeros(3),
+    )
+    ast = AutonomousStarTracker(
+        position=np.zeros(3),
+        orientation=np.array([1.0, 0.0, 0.0, 0.0]),
+        misalignment=np.array([1.0, 0.0, 0.0, 0.0]),
+        saturation_value=1.0,
+        noise=1e-10 * np.eye(3),
+        bias=np.zeros(3),
+    )
     att_ctrl = AttitudeController(
         feedback=MRPFeedbackLinearized(kp=0.01, kd=0.05),
         feedforward=Passthrough(),
         allocator=L2Allocator(),
     )
     adcs_sm = ADCSStateMachine(
-        initial="detumble",
+        initial="off",
         modes=[
-            ADCSMode("detumble", goal=NoGoal(), controller=BDot(gain=5e4)),
-            ADCSMode("sun_point", goal=SunGoal(), controller=att_ctrl),
+            ADCSMode(
+                "off",
+                goal=NoGoal(),
+                controller=NoController(),
+                sensors={"*": False},
+                actuators={"*": False},
+            ),
+            ADCSMode(
+                "detumble",
+                goal=NoGoal(),
+                controller=BDot(gain=5e4),
+                sensors={"Magnetometer": True, "Gyroscope": True, "AutonomousStarTracker": False},
+                actuators={"Magnetorquer": True, "ReactionWheel": False},
+            ),
+            ADCSMode(
+                "sun_point",
+                goal=SunGoal(),
+                controller=att_ctrl,
+                sensors={"*": True},
+                actuators={"ReactionWheel": True, "Magnetorquer": True},
+            ),
             ADCSMode("imaging", goal=img_goal, controller=att_ctrl),
             ADCSMode("downlink", goal=gs_goal, controller=att_ctrl),
-            ADCSMode("safe", goal=SunGoal(), controller=att_ctrl),
+            ADCSMode(
+                "safe",
+                goal=NoGoal(),
+                controller=BDot(gain=5e4),
+                sensors={"Magnetometer": True, "Gyroscope": False, "AutonomousStarTracker": False},
+                actuators={"ReactionWheel": False, "Magnetorquer": True},
+            ),
         ],
     )
     return ADCSSubsystem(
         reaction_wheels=wheels,
         magnetorquers=mtqs,
-        sensors=[mag],
+        sensors=[mag, gyro, ast],
         N=1,
         state_machine=adcs_sm,
     )
@@ -126,7 +173,34 @@ def build_obc(
     state_machine = OBCStateMachine(
         initial="checkout",
         modes=[
-            Mode("checkout", duration=600.0, auto_target="detumble", bindings={"adcs": "detumble"}),
+            Mode(
+                "checkout",
+                initial_submode="power_on",
+                submodes=[
+                    Mode(
+                        "power_on",
+                        duration=200.0,
+                        bindings={"adcs": "off", "sensors": {"*": False}, "actuators": {"*": False}},
+                    ),
+                    Mode(
+                        "sensors_on",
+                        duration=200.0,
+                        bindings={
+                            "adcs": "off",
+                            "sensors": {"Magnetometer": True, "Gyroscope": True},
+                        },
+                    ),
+                    Mode(
+                        "actuators_on",
+                        duration=200.0,
+                        bindings={
+                            "adcs": "off",
+                            "sensors": {"AutonomousStarTracker": True},
+                            "actuators": {"Magnetorquer": True},
+                        },
+                    ),
+                ],
+            ),
             Mode("detumble", bindings={"adcs": "detumble"}),
             Mode(
                 "nominal",
@@ -138,18 +212,56 @@ def build_obc(
                     Mode("downlink", bindings={"adcs": ("downlink", gs_goal)}),
                 ],
             ),
-            Mode("safe_mode", bindings={"adcs": "safe"}),
+            Mode(
+                "safe_mode",
+                bindings={
+                    "adcs": "safe",
+                    "sensors": {"Gyroscope": False, "AutonomousStarTracker": False},
+                    "actuators": {"ReactionWheel": False, "Magnetorquer": True},
+                },
+            ),
         ],
         transitions=[
+            Transition("checkout.power_on", "checkout.sensors_on", Completion()),
+            Transition("checkout.sensors_on", "checkout.actuators_on", Completion()),
+            Transition("checkout.actuators_on", "detumble", Completion()),
             Transition("detumble", "nominal", Telecommand("ENTER_NOMINAL")),
             Transition("nominal.sun_point", "nominal.imaging", img_swath),
             Transition("nominal.imaging", "nominal.sun_point", ~img_swath),
             Transition("nominal.sun_point", "nominal.downlink", gs_swath),
             Transition("nominal.downlink", "nominal.sun_point", ~gs_swath),
+            Transition(
+                "nominal.sun_point",
+                "nominal.sun_point",
+                Telecommand("DISABLE_STAR_TRACKER", sensors={"AutonomousStarTracker": False}),
+            ),
+            Transition(
+                "nominal.sun_point",
+                "nominal.sun_point",
+                Telecommand("ENABLE_STAR_TRACKER", sensors={"AutonomousStarTracker": True}),
+            ),
+            Transition(
+                "nominal.sun_point",
+                "nominal.sun_point",
+                Telecommand("DISABLE_RW_X", actuators={"rw_x": False}),
+            ),
+            Transition(
+                "nominal.sun_point",
+                "nominal.sun_point",
+                Telecommand("ENABLE_RW_X", actuators={"rw_x": True}),
+            ),
+            Transition("nominal.*", "safe_mode", Telecommand("ENTER_SAFE")),
             Transition("safe_mode", "checkout", Telecommand("RECOVER_CHECKOUT")),
         ],
         timeline=[
             (3_600.0, "ENTER_NOMINAL"),
+            (12_000.0, "DISABLE_STAR_TRACKER"),
+            (18_000.0, "ENABLE_STAR_TRACKER"),
+            (24_000.0, "DISABLE_RW_X"),
+            (30_000.0, "ENABLE_RW_X"),
+            (80_000.0, "ENTER_SAFE"),
+            (86_400.0, "RECOVER_CHECKOUT"),
+            (90_000.0, "ENTER_NOMINAL"),
         ],
     )
 

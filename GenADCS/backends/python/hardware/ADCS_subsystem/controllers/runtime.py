@@ -158,6 +158,66 @@ def init_controller_work() -> np.ndarray:
 
 
 @njit(cache=True)
+def sync_actuator_enable(
+    rw_enabled: np.ndarray,
+    mtq_enabled: np.ndarray,
+    base_wheel_max: np.ndarray,
+    base_mtq_max: np.ndarray,
+    ctrl_rt: ControllerRuntime,
+    wheel_commands: np.ndarray,
+    dipole_commands: np.ndarray,
+) -> None:
+    """Update effective actuator limits, wheel allocation matrices, and zero disabled commands."""
+    for i in range(mtq_enabled.size):
+        if mtq_enabled[i]:
+            ctrl_rt.mtq_max_dipole[i] = base_mtq_max[i]
+        else:
+            ctrl_rt.mtq_max_dipole[i] = 0.0
+            dipole_commands[i] = 0.0
+
+    n_w = rw_enabled.size
+    if n_w == 0:
+        return
+    active_wheels = 0
+    for i in range(n_w):
+        if rw_enabled[i]:
+            ctrl_rt.wheel_max_torque[i] = base_wheel_max[i]
+            active_wheels += 1
+        else:
+            ctrl_rt.wheel_max_torque[i] = 0.0
+            wheel_commands[i] = 0.0
+
+    if active_wheels == 0:
+        ctrl_rt.a_pinv[:] = 0.0
+        ctrl_rt.null_proj[:] = 0.0
+        if ctrl_rt.null_basis.size > 0:
+            ctrl_rt.null_basis[:] = 0.0
+        return
+
+    a_mat = np.zeros((3, n_w), dtype=np.float64)
+    for i in range(n_w):
+        if rw_enabled[i]:
+            a_mat[:, i] = ctrl_rt.wheel_axes[i]
+    a_pinv = np.linalg.pinv(a_mat)
+    ctrl_rt.a_pinv[:] = a_pinv
+    ctrl_rt.null_proj[:] = np.eye(n_w) - a_pinv @ a_mat
+    if ctrl_rt.null_basis.shape[1] > 0:
+        ctrl_rt.null_basis[:] = 0.0
+        _, s, vh = np.linalg.svd(a_mat, full_matrices=True)
+        rank = 0
+        for i in range(s.size):
+            if s[i] > 1e-12:
+                rank += 1
+        cols = ctrl_rt.null_basis.shape[1]
+        avail = n_w - rank
+        take = cols if avail > cols else avail
+        for c in range(take):
+            for r in range(n_w):
+                if rw_enabled[r]:
+                    ctrl_rt.null_basis[r, c] = vh[rank + c, r]
+
+
+@njit(cache=True)
 def step_controller(
     ctrl_idx: int,
     dt_ctrl: float,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 import math
 from typing import NamedTuple, cast
@@ -107,6 +108,90 @@ class GoalTable:
         )
 
 
+def _matches_device(key: object, idx: int, device: object, group_aliases: tuple[str, ...]) -> bool:
+    if key is device:
+        return True
+    if isinstance(key, type) and isinstance(device, key):
+        return True
+    if isinstance(key, int) and not isinstance(key, bool):
+        return key == idx
+    if isinstance(key, str):
+        if key in group_aliases or key == type(device).__name__:
+            return True
+        dev_name = getattr(device, "name", None)
+        return dev_name is not None and key == dev_name
+    return False
+
+
+def compile_sensor_mask(
+    spec: Mapping[object, bool] | None,
+    sensors: Sequence[object],
+) -> np.ndarray:
+    """Compile a sensor enable/disable dict into an ``int8`` mask (``-1`` = unchanged)."""
+    mask = np.full(len(sensors), -1, dtype=np.int8)
+    if not spec or not sensors:
+        return mask
+    for key, val in spec.items():
+        matched = False
+        code = np.int8(1 if val else 0)
+        for i, sensor in enumerate(sensors):
+            if _matches_device(key, i, sensor, ("*", "all", "sensors")):
+                mask[i] = code
+                matched = True
+        if not matched:
+            raise ValueError(f"unknown sensor reference in state machine: {key!r}")
+    return mask
+
+
+def compile_actuator_masks(
+    spec: Mapping[object, bool] | None,
+    reaction_wheels: Sequence[object],
+    magnetorquers: Sequence[object],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compile an actuator enable/disable dict into ``(rw_mask, mtq_mask)``."""
+    rw_mask = np.full(len(reaction_wheels), -1, dtype=np.int8)
+    mtq_mask = np.full(len(magnetorquers), -1, dtype=np.int8)
+    if not spec or (not reaction_wheels and not magnetorquers):
+        return rw_mask, mtq_mask
+    for key, val in spec.items():
+        matched = False
+        code = np.int8(1 if val else 0)
+        for i, rw in enumerate(reaction_wheels):
+            is_indexed = isinstance(key, tuple) and key == ("reaction_wheel", i)
+            if is_indexed or (
+                not isinstance(key, int)
+                and _matches_device(
+                    key, i, rw, ("*", "all", "actuators", "reaction_wheels", "ReactionWheel")
+                )
+            ):
+                rw_mask[i] = code
+                matched = True
+        for i, mtq in enumerate(magnetorquers):
+            is_indexed = isinstance(key, tuple) and key == ("magnetorquer", i)
+            if is_indexed or (
+                not isinstance(key, int)
+                and _matches_device(
+                    key, i, mtq, ("*", "all", "actuators", "magnetorquers", "Magnetorquer")
+                )
+            ):
+                mtq_mask[i] = code
+                matched = True
+        if not matched:
+            raise ValueError(f"unknown actuator reference in state machine: {key!r}")
+    return rw_mask, mtq_mask
+
+
+@njit(cache=True, inline="always")
+def apply_hw_mask(mask: np.ndarray, enabled: np.ndarray) -> None:
+    """Apply an ``int8`` tri-state mask (``-1`` unchanged, ``0`` off, ``1`` on) in-place."""
+    for i in range(enabled.size):
+        m = mask[i]
+        if m == 0:
+            enabled[i] = False
+        elif m == 1:
+            enabled[i] = True
+
+
 @dataclass(slots=True)
 class ADCSMode:
     """One ADCS operating mode (e.g. ``detumble``, ``nominal``, ``safe``)."""
@@ -114,6 +199,8 @@ class ADCSMode:
     name: str
     goal: Goal = field(default_factory=NoGoal)
     controller: Controller | str = field(default_factory=NoController)
+    sensors: dict[object, bool] = field(default_factory=dict)
+    actuators: dict[object, bool] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -152,6 +239,9 @@ class ADCSSMRuntime(NamedTuple):
     initial_mode: int
     mode_default_goal: np.ndarray
     mode_default_controller: np.ndarray
+    mode_sensor_mask: np.ndarray
+    mode_rw_mask: np.ndarray
+    mode_mtq_mask: np.ndarray
     # Standalone timeline (terminated by inf / -1):
     tl_times: np.ndarray
     tl_modes: np.ndarray
@@ -168,12 +258,18 @@ def prepare_adcs_sm(
     adcs_sm: ADCSStateMachine | None,
     goal_table: GoalTable | None = None,
     controller_table: ControllerTable | None = None,
+    sensors: Sequence[object] = (),
+    reaction_wheels: Sequence[object] = (),
+    magnetorquers: Sequence[object] = (),
 ) -> ADCSSMRuntime:
     """Flatten ``ADCSStateMachine`` into Numba arrays."""
     if goal_table is None:
         goal_table = GoalTable()
     if controller_table is None:
         controller_table = ControllerTable()
+    n_sensors = len(sensors)
+    n_rw = len(reaction_wheels)
+    n_mtq = len(magnetorquers)
     if adcs_sm is None:
         g_kinds, g_params, g_names = goal_table.to_arrays()
         return ADCSSMRuntime(
@@ -181,6 +277,9 @@ def prepare_adcs_sm(
             initial_mode=0,
             mode_default_goal=np.zeros(1, dtype=np.int64),
             mode_default_controller=np.zeros(1, dtype=np.int64),
+            mode_sensor_mask=np.full((1, n_sensors), -1, dtype=np.int8),
+            mode_rw_mask=np.full((1, n_rw), -1, dtype=np.int8),
+            mode_mtq_mask=np.full((1, n_mtq), -1, dtype=np.int8),
             tl_times=np.array([np.inf], dtype=np.float64),
             tl_modes=np.array([-1], dtype=np.int64),
             tl_goals=np.array([-1], dtype=np.int64),
@@ -192,8 +291,12 @@ def prepare_adcs_sm(
 
     mode_to_id = {m.name: idx for idx, m in enumerate(adcs_sm.modes)}
     mode_names = tuple(m.name for m in adcs_sm.modes)
-    mode_default_goal = np.empty(len(adcs_sm.modes), dtype=np.int64)
-    mode_default_controller = np.zeros(len(adcs_sm.modes), dtype=np.int64)
+    n_modes = len(adcs_sm.modes)
+    mode_default_goal = np.empty(n_modes, dtype=np.int64)
+    mode_default_controller = np.zeros(n_modes, dtype=np.int64)
+    mode_sensor_mask = np.full((n_modes, n_sensors), -1, dtype=np.int8)
+    mode_rw_mask = np.full((n_modes, n_rw), -1, dtype=np.int8)
+    mode_mtq_mask = np.full((n_modes, n_mtq), -1, dtype=np.int8)
     for idx, m in enumerate(adcs_sm.modes):
         mode_default_goal[idx] = goal_table.register(m.goal)
         if isinstance(m.controller, Controller):
@@ -203,6 +306,12 @@ def prepare_adcs_sm(
                 f"ADCSMode {m.name!r} controller must be a Controller instance, "
                 f"got {type(m.controller).__name__}"
             )
+        if m.sensors:
+            mode_sensor_mask[idx] = compile_sensor_mask(m.sensors, sensors)
+        if m.actuators:
+            rw_m, mtq_m = compile_actuator_masks(m.actuators, reaction_wheels, magnetorquers)
+            mode_rw_mask[idx] = rw_m
+            mode_mtq_mask[idx] = mtq_m
 
     sorted_tl = sorted(adcs_sm.timeline, key=lambda item: item[0])
     tl_times = np.empty(len(sorted_tl) + 1, dtype=np.float64)
@@ -226,6 +335,9 @@ def prepare_adcs_sm(
         initial_mode=mode_to_id[adcs_sm.initial],
         mode_default_goal=mode_default_goal,
         mode_default_controller=mode_default_controller,
+        mode_sensor_mask=mode_sensor_mask,
+        mode_rw_mask=mode_rw_mask,
+        mode_mtq_mask=mode_mtq_mask,
         tl_times=tl_times,
         tl_modes=tl_modes,
         tl_goals=tl_goals,
