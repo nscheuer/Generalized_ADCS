@@ -23,9 +23,25 @@ if errorlevel 9009 (
 	exit /b 1
 )
 
+if "%SPHINXAPIDOC%" == "" (
+	set SPHINXAPIDOC=sphinx-apidoc
+)
+
 if "%1" == "" goto help
+if "%1" == "help" goto help
+
+REM Generate the API reference pages with the same command as the GitHub
+REM Actions docs build. The generated files are git-ignored.
+if "%1" == "apidoc" goto apidoc
+if not "%1" == "clean" (
+	%SPHINXAPIDOC% -f -e --maxdepth 1 -o %SOURCEDIR% ..\ADCS
+)
 
 %SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+goto end
+
+:apidoc
+%SPHINXAPIDOC% -f -e --maxdepth 1 -o %SOURCEDIR% ..\ADCS
 goto end
 
 :help

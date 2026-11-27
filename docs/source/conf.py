@@ -16,7 +16,14 @@ extensions = [
     'sphinx.ext.mathjax',
     'myst_parser',
     'sphinx_sitemap',
+    'sphinx_design',
+    'sphinx_copybutton',
 ]
+
+# Copy buttons on code blocks. Strip shell and Python REPL prompts so a copied
+# block can be pasted straight into a terminal or interpreter.
+copybutton_prompt_text = r">>> |\.\.\. |\$ |PS> "
+copybutton_prompt_is_regexp = True
 
 autodoc_mock_imports = ["saltro_py", "matplotlib", "mpl_toolkits", "pyvista", "vtk", "rich", "trajectory_planner.build"]
 
@@ -56,6 +63,57 @@ html_theme_options = {
     "dark_logo": "starlab_logo.svg",
     "top_of_page_button": "edit",
     "navigation_with_keys": True,
+    # Brand colours and the palette used by custom.css. Furo applies these for
+    # its light, dark and auto modes, so components follow the theme toggle in
+    # the page header as well as the operating-system preference.
+    "light_css_variables": {
+        "color-brand-primary": "#0066cc",
+        "color-brand-content": "#0066cc",
+        "color-brand-visited": "#0052a3",
+        "adcs-accent": "#0066cc",
+        "adcs-accent-strong": "#003d99",
+        "adcs-accent-hover": "#0052a3",
+        "adcs-card-border": "#0066cc",
+        "adcs-card-bg-top": "rgba(0, 102, 204, 0.08)",
+        "adcs-card-bg-bottom": "rgba(0, 102, 204, 0.02)",
+        "adcs-card-shadow": "rgba(0, 102, 204, 0.15)",
+        "adcs-card-shadow-hover": "rgba(0, 102, 204, 0.2)",
+        "adcs-card-divider": "rgba(0, 102, 204, 0.15)",
+        "adcs-tip-border": "#79aee8",
+        "adcs-tip-border-strong": "#3277c8",
+        "adcs-tip-bg": "#edf5ff",
+        "adcs-tip-title": "#174b86",
+        "adcs-tip-title-bg": "#d9eaff",
+        "adcs-mission-border": "#e8a04f",
+        "adcs-mission-border-strong": "#dc791c",
+        "adcs-mission-bg": "#fff3e4",
+        "adcs-mission-title": "#82400e",
+        "adcs-mission-title-bg": "#ffe3bf",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#4d9eff",
+        "color-brand-content": "#80c0ff",
+        "color-brand-visited": "#a9d3ff",
+        "adcs-accent": "#80c0ff",
+        "adcs-accent-strong": "#c6e2ff",
+        "adcs-accent-hover": "#80c0ff",
+        "adcs-card-border": "#4d9eff",
+        "adcs-card-bg-top": "rgba(77, 158, 255, 0.16)",
+        "adcs-card-bg-bottom": "rgba(77, 158, 255, 0.05)",
+        "adcs-card-shadow": "rgba(77, 158, 255, 0.2)",
+        "adcs-card-shadow-hover": "rgba(77, 158, 255, 0.32)",
+        "adcs-card-divider": "rgba(77, 158, 255, 0.2)",
+        "adcs-tip-border": "#37679c",
+        "adcs-tip-border-strong": "#37679c",
+        "adcs-tip-bg": "#142841",
+        "adcs-tip-title": "#c6e0ff",
+        "adcs-tip-title-bg": "#1d3b5e",
+        "adcs-mission-border": "#a76525",
+        "adcs-mission-border-strong": "#a76525",
+        "adcs-mission-bg": "#352313",
+        "adcs-mission-title": "#ffd29a",
+        "adcs-mission-title-bg": "#563316",
+    },
 }
 
 html_sidebars = {

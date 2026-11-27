@@ -123,6 +123,7 @@ docs = [
     "sphinx>=7.2",
     "sphinx-autodoc-typehints",
     "sphinx-copybutton",
+    "sphinx-design",
     "myst-parser",
     "furo",
     "sphinx-sitemap",

@@ -1,201 +1,67 @@
-/* Featured release box styling - Light mode */
-@media (prefers-color-scheme: light) {
-    .release-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 20px;
-        margin: 24px 0 32px;
-    }
-
-    .release-card {
-        display: flex;
-        flex-direction: column;
-        border: 2px solid #0066cc;
-        border-radius: 12px;
-        overflow: hidden;
-        text-decoration: none;
-        color: inherit;
-        background: linear-gradient(180deg, rgba(0, 102, 204, 0.08), rgba(0, 102, 204, 0.02));
-        box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .release-card-featured {
-        grid-column: 1 / -1;
-    }
-
-    .release-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(0, 102, 204, 0.2);
-    }
-
-    .release-card img {
-        width: 100%;
-        max-height: 280px;
-        object-fit: cover;
-        border-bottom: 1px solid rgba(0, 102, 204, 0.15);
-    }
-
-    .release-card-copy {
-        padding: 18px 20px 20px;
-    }
-
-    .release-card-kicker {
-        color: #0066cc;
-        font-size: 0.85rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 8px;
-    }
-
-    .release-card h3 {
-        margin: 0 0 10px;
-        color: #003d99;
-    }
-
-    .release-card p {
-        margin: 0 0 14px;
-    }
-
-    .release-card span {
-        font-weight: 600;
-        color: #0052a3;
-    }
-
-    .featured-release-box {
-        border: 2px solid #0066cc;
-        border-radius: 8px;
-        padding: 24px;
-        margin: 24px 0;
-        background-color: transparent;
-        max-width: 900px;
-        box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
-    }
-
-    .featured-release-box p,
-    .featured-release-box strong {
-        margin-left: 20px;
-    }
-
-    .featured-release-box:hover {
-        box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25);
-        transition: box-shadow 0.3s ease;
-    }
-
-    .featured-release-box strong {
-        color: #003d99;
-    }
-
-    .featured-release-box a {
-        font-weight: 600;
-        color: #0066cc;
-    }
-
-    .featured-release-box a:hover {
-        color: #0052a3;
-        text-decoration: underline;
-    }
+/* Release-note cards on the landing page.
+   Colours come from the light/dark palette in conf.py (html_theme_options),
+   so the cards follow Furo's theme toggle and the OS preference. */
+.release-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin: 24px 0 32px;
 }
 
-/* Featured release box styling - Dark mode */
-@media (prefers-color-scheme: dark) {
-    .release-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 20px;
-        margin: 24px 0 32px;
-    }
+.release-card {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid var(--adcs-card-border);
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    background: linear-gradient(180deg, var(--adcs-card-bg-top), var(--adcs-card-bg-bottom));
+    box-shadow: 0 2px 8px var(--adcs-card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
 
-    .release-card {
-        display: flex;
-        flex-direction: column;
-        border: 2px solid #4d9eff;
-        border-radius: 12px;
-        overflow: hidden;
-        text-decoration: none;
-        color: inherit;
-        background: linear-gradient(180deg, rgba(77, 158, 255, 0.16), rgba(77, 158, 255, 0.05));
-        box-shadow: 0 2px 8px rgba(77, 158, 255, 0.2);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
+.release-card-featured {
+    grid-column: 1 / -1;
+}
 
-    .release-card-featured {
-        grid-column: 1 / -1;
-    }
+.release-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px var(--adcs-card-shadow-hover);
+}
 
-    .release-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(77, 158, 255, 0.32);
-    }
+.release-card img {
+    width: 100%;
+    max-height: 280px;
+    object-fit: cover;
+    border-bottom: 1px solid var(--adcs-card-divider);
+}
 
-    .release-card img {
-        width: 100%;
-        max-height: 280px;
-        object-fit: cover;
-        border-bottom: 1px solid rgba(77, 158, 255, 0.2);
-    }
+.release-card-copy {
+    padding: 18px 20px 20px;
+}
 
-    .release-card-copy {
-        padding: 18px 20px 20px;
-    }
+.release-card-kicker {
+    color: var(--adcs-accent);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+}
 
-    .release-card-kicker {
-        color: #80c0ff;
-        font-size: 0.85rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 8px;
-    }
+.release-card h3 {
+    margin: 0 0 10px;
+    color: var(--adcs-accent-strong);
+}
 
-    .release-card h3 {
-        margin: 0 0 10px;
-        color: #c6e2ff;
-    }
+.release-card p {
+    margin: 0 0 14px;
+}
 
-    .release-card p {
-        margin: 0 0 14px;
-    }
-
-    .release-card span {
-        font-weight: 600;
-        color: #80c0ff;
-    }
-
-    .featured-release-box {
-        border: 2px solid #4d9eff;
-        border-radius: 8px;
-        padding: 24px;
-        margin: 24px 0;
-        background-color: transparent;
-        max-width: 900px;
-        box-shadow: 0 2px 8px rgba(77, 158, 255, 0.2);
-    }
-
-    .featured-release-box p,
-    .featured-release-box strong {
-        margin-left: 20px;
-    }
-
-    .featured-release-box:hover {
-        box-shadow: 0 4px 12px rgba(77, 158, 255, 0.35);
-        transition: box-shadow 0.3s ease;
-    }
-
-    .featured-release-box strong {
-        color: #80c0ff;
-    }
-
-    .featured-release-box a {
-        font-weight: 600;
-        color: #4d9eff;
-    }
-
-    .featured-release-box a:hover {
-        color: #80c0ff;
-        text-decoration: underline;
-    }
+.release-card span {
+    font-weight: 600;
+    color: var(--adcs-accent-hover);
 }
 
 @media (max-width: 800px) {
@@ -554,14 +420,14 @@ table.sortable-factory th.factory-sort-active.factory-sort-desc::after {
 
 /* Compact API notes at the end of code-based tutorials. */
 .admonition.tutorial-tip {
-    border: 1px solid #79aee8;
-    border-left: 4px solid #3277c8;
-    background: #edf5ff;
+    border: 1px solid var(--adcs-tip-border);
+    border-left: 4px solid var(--adcs-tip-border-strong);
+    background: var(--adcs-tip-bg);
 }
 
 .admonition.tutorial-tip > .admonition-title {
-    color: #174b86;
-    background: #d9eaff;
+    color: var(--adcs-tip-title);
+    background: var(--adcs-tip-title-bg);
 }
 
 .admonition.tutorial-tip .highlight {
@@ -578,14 +444,14 @@ table.sortable-factory th.factory-sort-active.factory-sort-desc::after {
 .admonition.mission-recommendations {
     margin-top: 2rem;
     padding: 1.2rem 1.5rem;
-    border: 1px solid #e8a04f;
-    border-left: 5px solid #dc791c;
-    background: #fff3e4;
+    border: 1px solid var(--adcs-mission-border);
+    border-left: 5px solid var(--adcs-mission-border-strong);
+    background: var(--adcs-mission-bg);
 }
 
 .admonition.mission-recommendations > .admonition-title {
-    color: #82400e;
-    background: #ffe3bf;
+    color: var(--adcs-mission-title);
+    background: var(--adcs-mission-title-bg);
     font-size: 1.15rem;
 }
 
@@ -595,26 +461,4 @@ table.sortable-factory th.factory-sort-active.factory-sort-desc::after {
 
 .admonition.mission-recommendations li:last-child {
     margin-bottom: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-    .admonition.tutorial-tip {
-        border-color: #37679c;
-        background: #142841;
-    }
-
-    .admonition.tutorial-tip > .admonition-title {
-        color: #c6e0ff;
-        background: #1d3b5e;
-    }
-
-    .admonition.mission-recommendations {
-        border-color: #a76525;
-        background: #352313;
-    }
-
-    .admonition.mission-recommendations > .admonition-title {
-        color: #ffd29a;
-        background: #563316;
-    }
 }

@@ -26,6 +26,11 @@ documentation from the ``docs`` directory:
 The ``-W`` flag treats all warnings as errors. **The build must complete
 without reStructuredText errors.**
 
+Alternatively, ``make html SPHINXOPTS="-W --keep-going"`` (``make.bat html`` on
+Windows) runs the ``sphinx-apidoc`` step from `Registering New Modules`_ before
+building, matching the GitHub Actions docs build, so links to the API reference
+resolve locally.
+
 Viewing the Documentation
 -------------------------
 

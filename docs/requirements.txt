@@ -1,4 +1,10 @@
-sphinx
-furo
+# Documentation build dependencies.
+# Keep in sync with the `docs` extra in pyproject.toml, which is what CI
+# installs (`pip install -e ".[docs]"`).
+sphinx>=7.2
+sphinx-autodoc-typehints
+sphinx-copybutton
+sphinx-design
 myst-parser
+furo
 sphinx-sitemap
