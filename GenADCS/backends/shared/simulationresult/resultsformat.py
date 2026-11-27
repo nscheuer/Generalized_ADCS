@@ -59,6 +59,9 @@ class ResultsFormat:
     normalized_estimation_error_squared: bool = False
     measurement_residual: bool = False
     kalman_gain: bool = False
+    obc_mode: bool = False
+    adcs_mode: bool = False
+    adcs_goal: bool = False
 
     def __post_init__(self) -> None:
         if isinstance(self.N, bool) or not isinstance(self.N, int) or self.N < 1:

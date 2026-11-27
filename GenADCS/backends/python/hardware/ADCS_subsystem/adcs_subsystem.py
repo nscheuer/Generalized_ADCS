@@ -5,6 +5,7 @@ from .estimator.attitude_estimator.base import AttitudeEstimator
 from .magnetorquer import Magnetorquer
 from .reaction_wheel import ReactionWheel
 from .sensors.sensor import Sensor
+from .state_machine import ADCSStateMachine
 
 
 @dataclass(slots=True)
@@ -18,6 +19,7 @@ class ADCSSubsystem:
     sensors: list[Sensor] = field(default_factory=lambda: cast(list[Sensor], []))
     N: int = 1
     estimator: AttitudeEstimator | None = None
+    state_machine: ADCSStateMachine | None = None
 
     def __post_init__(self) -> None:
         if isinstance(self.N, bool) or self.N < 1:

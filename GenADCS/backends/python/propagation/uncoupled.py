@@ -19,6 +19,19 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling imp
     sample_sensors,
     attitude_references,
 )
+from GenADCS.backends.python.hardware.ADCS_subsystem.state_machine import (
+    ADCSSMRuntime,
+    GoalTable,
+    init_adcs_work,
+    prepare_adcs_sm,
+    step_adcs_sm,
+)
+from GenADCS.backends.python.hardware.OBC_subsystem.runtime import (
+    OBCRuntime,
+    init_obc_work,
+    prepare_obc,
+    step_obc,
+)
 from GenADCS.backends.python.propagation.attitude_propagators.rk4_attitude_propagator import (
     _rk4_attitude_step,
 )
@@ -63,8 +76,37 @@ def _simulate_uncoupled_loop(
     completed_steps: np.ndarray,
     progress_every: int,
     reference_mode: int,
+    obc_every: int,
+    obc_runtime: OBCRuntime,
+    obc_work: np.ndarray,
+    adcs_sm_every: int,
+    adcs_sm_runtime: ADCSSMRuntime,
+    adcs_work: np.ndarray,
+    sm_trace: np.ndarray,
 ) -> None:
     total_steps = full_steps + int(remainder > 0.0)
+    active_obc_mode = int(obc_work[0])
+    active_adcs_mode = int(adcs_work[0])
+    active_adcs_goal = int(adcs_work[1])
+    pending_cmd_mode = -1
+    pending_cmd_goal = -1
+    if obc_every > 0:
+        active_obc_mode, cm, cg = step_obc(
+            y, 0.0, initial_jd, dt * obc_every, obc_runtime, obc_work
+        )
+        if cm >= 0:
+            pending_cmd_mode = cm
+        if cg >= 0:
+            pending_cmd_goal = cg
+        sm_trace[0, 0] = active_obc_mode
+    if adcs_sm_every > 0:
+        active_adcs_mode, active_adcs_goal = step_adcs_sm(
+            0.0, adcs_sm_runtime, adcs_work, pending_cmd_mode, pending_cmd_goal
+        )
+        pending_cmd_mode = -1
+        pending_cmd_goal = -1
+        sm_trace[0, 1] = active_adcs_mode
+        sm_trace[0, 2] = active_adcs_goal
     if sensor_every:
         sample_sensors(
             y,
@@ -116,6 +158,30 @@ def _simulate_uncoupled_loop(
         if reference_mode >= 0:
             set_reference_attitude(y, epoch_jd + step_dt / SECONDS_PER_DAY, reference_mode, runtime)
         completed = row + 1
+        if obc_every > 0 and completed <= full_steps and completed % obc_every == 0:
+            elapsed_now = completed * dt
+            active_obc_mode, cm, cg = step_obc(
+                y,
+                elapsed_now,
+                initial_jd + elapsed_now / SECONDS_PER_DAY,
+                dt * obc_every,
+                obc_runtime,
+                obc_work,
+            )
+            if cm >= 0:
+                pending_cmd_mode = cm
+            if cg >= 0:
+                pending_cmd_goal = cg
+        if adcs_sm_every > 0 and completed <= full_steps and completed % adcs_sm_every == 0:
+            active_adcs_mode, active_adcs_goal = step_adcs_sm(
+                completed * dt,
+                adcs_sm_runtime,
+                adcs_work,
+                pending_cmd_mode,
+                pending_cmd_goal,
+            )
+            pending_cmd_mode = -1
+            pending_cmd_goal = -1
         if (
             sensor_every > 0
             and completed <= full_steps
@@ -158,9 +224,20 @@ def _simulate_uncoupled_loop(
                     else:
                         estimates[index, 7:43] = estimate_p.ravel()
         if completed % record_every == 0:
-            output[completed // record_every] = y
+            rec_idx = completed // record_every
+            output[rec_idx] = y
+            if obc_every > 0:
+                sm_trace[rec_idx, 0] = active_obc_mode
+            if adcs_sm_every > 0:
+                sm_trace[rec_idx, 1] = active_adcs_mode
+                sm_trace[rec_idx, 2] = active_adcs_goal
         elif completed == total_steps:
             output[-1] = y
+            if obc_every > 0:
+                sm_trace[-1, 0] = active_obc_mode
+            if adcs_sm_every > 0:
+                sm_trace[-1, 1] = active_adcs_mode
+                sm_trace[-1, 2] = active_adcs_goal
         if progress_every > 0 and (
             completed % progress_every == 0 or completed == total_steps
         ):
@@ -225,6 +302,15 @@ def simulate_uncoupled(
     )
     estimates = np.full((sensor_rows, 96), np.nan)
     completed_steps = np.zeros(1, dtype=np.int64)
+    goal_table = GoalTable()
+    adcs_sm_runtime = prepare_adcs_sm(satellite.adcs.state_machine, goal_table)
+    obc_runtime = prepare_obc(satellite.obc, adcs_sm_runtime, goal_table)
+    obc_every = satellite.obc.N if obc_runtime.enabled and satellite.obc is not None else 0
+    adcs_sm_every = satellite.adcs.N if (adcs_sm_runtime.enabled or obc_every > 0) else 0
+    obc_work = init_obc_work(obc_runtime)
+    adcs_work = init_adcs_work(adcs_sm_runtime)
+    sm_trace = np.full((elapsed.size, 3), -1, dtype=np.int64)
+    has_sm = obc_every > 0 or adcs_sm_every > 0
     args = (
         y,
         state.orbit.julian_date,
@@ -270,12 +356,26 @@ def simulate_uncoupled(
         thread = Thread(target=monitor, daemon=True)
         thread.start()
         try:
-                _simulate_uncoupled_loop(*args, progress_chunk_steps, reference_mode)
+            _simulate_uncoupled_loop(
+                *args, progress_chunk_steps, reference_mode,
+                obc_every, obc_runtime, obc_work,
+                adcs_sm_every, adcs_sm_runtime, adcs_work, sm_trace,
+            )
         finally:
             finished.set()
             thread.join()
     else:
-        _simulate_uncoupled_loop(*args, 0, reference_mode)
+        _simulate_uncoupled_loop(
+            *args, 0, reference_mode,
+            obc_every, obc_runtime, obc_work,
+            adcs_sm_every, adcs_sm_runtime, adcs_work, sm_trace,
+        )
+    if has_sm:
+        return (
+            (elapsed, output, clean, reading, estimates, sm_trace)
+            if estimator_kind
+            else (elapsed, output, clean, reading, sm_trace) if sensor_every else (elapsed, output, sm_trace)
+        )
     return (
         (elapsed, output, clean, reading, estimates)
         if estimator_kind

@@ -209,6 +209,18 @@ def simulate(
                 ):
                     values[row] = estimates[tick, start:stop]
             sensor_rows[name] = values
+    if getattr(resultsformat, "obc_mode", False):
+        if not separate or satellite.obc is None or satellite.obc.state_machine is None:
+            raise ValueError("obc_mode requires an OBCSubsystem with a state_machine in uncoupled mode")
+        sensor_rows["obc_mode"] = integration[-1][on_grid, 0:1].astype(np.float64)
+    if getattr(resultsformat, "adcs_mode", False):
+        if not separate or (satellite.adcs.state_machine is None and (satellite.obc is None or satellite.obc.state_machine is None)):
+            raise ValueError("adcs_mode requires an ADCS or OBC state_machine in uncoupled mode")
+        sensor_rows["adcs_mode"] = integration[-1][on_grid, 1:2].astype(np.float64)
+    if getattr(resultsformat, "adcs_goal", False):
+        if not separate or (satellite.adcs.state_machine is None and (satellite.obc is None or satellite.obc.state_machine is None)):
+            raise ValueError("adcs_goal requires an ADCS or OBC state_machine in uncoupled mode")
+        sensor_rows["adcs_goal"] = integration[-1][on_grid, 2:3].astype(np.float64)
     return record_samples(
         times_s,
         state_vectors,
