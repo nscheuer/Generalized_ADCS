@@ -488,6 +488,47 @@ target_include_directories(_helpers PRIVATE helpers/math)
 set_target_properties(_helpers PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/helpers/math")
 
+add_library(goals_native_core STATIC
+    hardware/ADCS_subsystem/goals/goal.cpp
+    hardware/ADCS_subsystem/goals/_orbit_goal.cpp
+    hardware/ADCS_subsystem/goals/no_goal.cpp
+    hardware/ADCS_subsystem/goals/quaternion_goal.cpp
+    hardware/ADCS_subsystem/goals/angular_rate_goal.cpp
+    hardware/ADCS_subsystem/goals/vector_goal.cpp
+    hardware/ADCS_subsystem/goals/two_vector_goal.cpp
+    hardware/ADCS_subsystem/goals/coordinate_goal.cpp
+    hardware/ADCS_subsystem/goals/coordinate_fmc_goal.cpp
+    helpers/math/rotations/quaternion/conversions.cpp
+    helpers/math/rotations/quaternion/algebra.cpp
+    helpers/math/vector.cpp
+    helpers/math/frames/conversions.cpp
+    helpers/math/frames/frames.cpp
+    helpers/math/time/conversions.cpp
+    environment/ephemeris/de421/de421.cpp
+    environment/native_models.cpp
+    environment/magnetic_field_model/_spherical_harmonics.cpp
+)
+target_compile_features(goals_native_core PUBLIC cxx_std_17)
+target_include_directories(goals_native_core PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    environment
+    helpers/math
+    helpers/math/frames
+)
+target_link_libraries(goals_native_core PUBLIC Eigen3::Eigen)
+set_target_properties(goals_native_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+if(BUILD_TESTING)
+    add_executable(cpp_test_goals
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/goals/test_goals.cpp"
+    )
+    target_include_directories(cpp_test_goals PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem"
+    )
+    target_link_libraries(cpp_test_goals PRIVATE goals_native_core)
+    add_test(NAME cpp_goals COMMAND cpp_test_goals)
+endif()
+
 file(GLOB_RECURSE ADCS_SUBSYSTEM_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/hardware/ADCS_subsystem/*_py.cpp")
 
@@ -511,7 +552,7 @@ pybind11_add_module(_adcs_subsystem ${GENADCS_PYBIND_OPTIONS}
 )
 target_compile_features(_adcs_subsystem PRIVATE cxx_std_17)
 target_link_libraries(_adcs_subsystem PRIVATE Eigen3::Eigen)
-target_link_libraries(_adcs_subsystem PRIVATE attitude_estimator_native)
+target_link_libraries(_adcs_subsystem PRIVATE attitude_estimator_native goals_native_core)
 target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem hardware/ADCS_subsystem/actuators hardware/ADCS_subsystem/sensors helpers/random helpers/math/rotations)
 set_target_properties(_adcs_subsystem PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/hardware/ADCS_subsystem")
