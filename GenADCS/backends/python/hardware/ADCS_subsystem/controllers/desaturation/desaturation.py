@@ -29,4 +29,4 @@ class NoDesaturation(Desaturation):
     kind: ClassVar[int] = DESAT_NONE
 
     def to_params(self) -> np.ndarray:
-        return np.zeros(2, dtype=np.float64)
+        return np.zeros(3, dtype=np.float64)

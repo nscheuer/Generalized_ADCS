@@ -416,6 +416,41 @@ class KalmanGainPlot(Subplot):
         return times, values
 
 
+def _quaternion_rotation_error_deg(
+    first: np.ndarray, second: np.ndarray, option: str
+) -> np.ndarray:
+    """Compute rotation-vector error in degrees between two quaternion trajectories."""
+    valid = np.all(np.isfinite(first), axis=1) & np.all(np.isfinite(second), axis=1)
+    width = 1 if option == "magnitude" else 3
+    out = np.full((first.shape[0], width), np.nan, dtype=np.float64)
+    if not np.any(valid):
+        return out
+    q1 = first[valid]
+    q2 = second[valid]
+    q1 = q1 / np.linalg.norm(q1, axis=1, keepdims=True)
+    q2 = q2 / np.linalg.norm(q2, axis=1, keepdims=True)
+    relative = np.empty_like(q1)
+    relative[:, 0] = q1[:, 0] * q2[:, 0] + np.sum(q1[:, 1:] * q2[:, 1:], axis=1)
+    relative[:, 1:] = (
+        q1[:, 0, None] * q2[:, 1:]
+        - q2[:, 0, None] * q1[:, 1:]
+        - np.cross(q1[:, 1:], q2[:, 1:])
+    )
+    relative = np.where(relative[:, :1] < 0.0, -relative, relative)
+    vector_norm = np.linalg.norm(relative[:, 1:], axis=1, keepdims=True)
+    angle = 2.0 * np.arctan2(vector_norm, np.clip(relative[:, :1], 0.0, None))
+    rotation = np.divide(
+        relative[:, 1:] * angle,
+        vector_norm,
+        out=np.zeros_like(relative[:, 1:]),
+        where=vector_norm > 1e-15,
+    )
+    if option == "magnitude":
+        rotation = np.linalg.norm(rotation, axis=1, keepdims=True)
+    out[valid] = np.rad2deg(rotation)
+    return out
+
+
 class AbsoluteKnowledgeErrorQuaternionPlot(Subplot):
     """Attitude estimation error as a rotation vector or its magnitude."""
 
@@ -434,21 +469,51 @@ class AbsoluteKnowledgeErrorQuaternionPlot(Subplot):
         truth = satellite.satellite_attitude
         if estimated is None or truth is None:
             raise ValueError("satellite_attitude and estimated_attitude must be recorded")
-        times = satellite.times_s
-        estimated = estimated / np.linalg.norm(estimated, axis=1, keepdims=True)
-        truth = truth / np.linalg.norm(truth, axis=1, keepdims=True)
-        relative = np.empty_like(estimated)
-        relative[:, 0] = truth[:, 0] * estimated[:, 0] + np.sum(truth[:, 1:] * estimated[:, 1:], axis=1)
-        relative[:, 1:] = (truth[:, 0, None] * estimated[:, 1:] - estimated[:, 0, None] * truth[:, 1:]
-                           - np.cross(truth[:, 1:], estimated[:, 1:]))
-        relative = np.where(relative[:, :1] < 0., -relative, relative)
-        vector_norm = np.linalg.norm(relative[:, 1:], axis=1, keepdims=True)
-        angle = 2. * np.arctan2(vector_norm, np.clip(relative[:, :1], 0., None))
-        rotation = np.divide(relative[:, 1:] * angle, vector_norm,
-                             out=np.zeros_like(relative[:, 1:]), where=vector_norm > 1e-15)
-        if self.option == "magnitude":
-            rotation = np.linalg.norm(rotation, axis=1, keepdims=True)
-        return times, np.rad2deg(rotation)
+        return satellite.times_s, _quaternion_rotation_error_deg(truth, estimated, self.option)
+
+
+class AbsolutePointingErrorPlot(Subplot):
+    """Absolute Pointing Error (APE): truth attitude vs. goal attitude."""
+
+    def __init__(self, option="individual", **kwargs):
+        if option not in ("individual", "magnitude"):
+            raise ValueError("option must be 'individual' or 'magnitude'")
+        self.option = option
+        kwargs.setdefault("title", "Absolute Pointing Error (APE)")
+        kwargs.setdefault("ylabel", "Error [deg]" if option == "individual" else "Magnitude [deg]")
+        kwargs.setdefault("labels", ("x", "y", "z") if option == "individual" else ("magnitude",))
+        super().__init__("goal_attitude", **kwargs)
+
+    def _series(self, run):
+        satellite = run.satellites[self.satellite]
+        truth = satellite.satellite_attitude
+        goal = satellite.goal_attitude
+        if truth is None or goal is None:
+            raise ValueError("satellite_attitude and goal_attitude must be recorded for APE")
+        return satellite.times_s, _quaternion_rotation_error_deg(truth, goal, self.option)
+
+
+class AttitudeControlErrorPlot(Subplot):
+    """Attitude Control Error (ACE): estimated attitude vs. goal attitude (requires estimator)."""
+
+    def __init__(self, option="individual", **kwargs):
+        if option not in ("individual", "magnitude"):
+            raise ValueError("option must be 'individual' or 'magnitude'")
+        self.option = option
+        kwargs.setdefault("title", "Attitude Control Error (ACE)")
+        kwargs.setdefault("ylabel", "Error [deg]" if option == "individual" else "Magnitude [deg]")
+        kwargs.setdefault("labels", ("x", "y", "z") if option == "individual" else ("magnitude",))
+        super().__init__("goal_attitude", **kwargs)
+
+    def _series(self, run):
+        satellite = run.satellites[self.satellite]
+        estimated = satellite.estimated_attitude
+        goal = satellite.goal_attitude
+        if estimated is None or goal is None:
+            raise ValueError(
+                "estimated_attitude and goal_attitude must be recorded (ACE requires an estimator)"
+            )
+        return satellite.times_s, _quaternion_rotation_error_deg(estimated, goal, self.option)
 
 
 class AbsoluteKnowledgeErrorRatePlot(Subplot):

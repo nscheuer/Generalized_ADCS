@@ -15,10 +15,16 @@ from .desaturation import (
     DESAT_HOGAN_SCHAUB,
     Desaturation,
     NoDesaturation,
+    hogan_schaub_mtq_dump,
     hogan_schaub_u0,
 )
 from .feedback import FB_MRP_FEEDBACK_LINEARIZED, Feedback, mrp_feedback_linearized_step
 from .feedforward import FF_PASSTHROUGH, Feedforward, Passthrough, passthrough_step
+
+if False:
+    from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling import (
+        SensorConfig,
+    )
 
 
 @njit(cache=True)
@@ -43,7 +49,13 @@ def step(
     kd: np.ndarray,
     desat_gain: float,
     desat_target: float,
+    desat_mtq_gain: float,
+    readings: np.ndarray,
+    sensor_config: SensorConfig,
+    mtq_axes: np.ndarray,
+    mtq_max_dipole: np.ndarray,
     wheel_commands: np.ndarray,
+    dipole_commands: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Execute the 4-stage AttitudeController in nopython mode.
 
@@ -80,11 +92,24 @@ def step(
     if wheel_commands.size == 0:
         return ff_torque, q_d, w_d, tau_c
 
-    # 3. Desaturation nullspace vector u_0
+    # 3. Desaturation nullspace vector u_0 + optional magnetorquer momentum dump
     if desat_kind == DESAT_HOGAN_SCHAUB:
         u_0 = hogan_schaub_u0(wheel_momenta, desat_gain, desat_target)
+        hogan_schaub_mtq_dump(
+            wheel_momenta,
+            wheel_axes,
+            desat_mtq_gain,
+            desat_target,
+            readings,
+            sensor_config,
+            mtq_axes,
+            mtq_max_dipole,
+            dipole_commands,
+        )
     else:
         u_0 = np.zeros(wheel_commands.size, dtype=np.float64)
+        for i in range(dipole_commands.size):
+            dipole_commands[i] = 0.0
 
     # 4. Allocator
     if alloc_kind == ALLOC_L2:
@@ -137,6 +162,7 @@ class AttitudeController(Controller):
                 float(self.desaturation.kind),
                 desat_p[0],
                 desat_p[1],
+                desat_p[2],
             ],
             dtype=np.float64,
         )

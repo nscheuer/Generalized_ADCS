@@ -26,7 +26,7 @@ if TYPE_CHECKING:
         SensorConfig,
     )
 
-_CTRL_PARAM_WIDTH = 6
+_CTRL_PARAM_WIDTH = 7
 
 
 class ControllerTable:
@@ -216,8 +216,6 @@ def step_controller(
         return nan_3, nan_q, nan_3, nan_3
 
     if kind == CTRL_ATTITUDE:
-        for i in range(dipole_commands.size):
-            dipole_commands[i] = 0.0
         return attitude_step(
             q,
             omega,
@@ -239,7 +237,13 @@ def step_controller(
             ctrl_rt.kd[ctrl_idx],
             ctrl_rt.params[ctrl_idx, 4],
             ctrl_rt.params[ctrl_idx, 5],
+            ctrl_rt.params[ctrl_idx, 6],
+            readings,
+            sensor_config,
+            ctrl_rt.mtq_axes,
+            ctrl_rt.mtq_max_dipole,
             wheel_commands,
+            dipole_commands,
         )
 
     return nan_3, nan_q, nan_3, nan_3

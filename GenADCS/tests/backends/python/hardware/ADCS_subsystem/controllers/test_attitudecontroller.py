@@ -161,6 +161,8 @@ def test_control_and_goal_resultsformat_and_plots() -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from GenADCS.backends.shared.plotting import (
+        AbsolutePointingErrorPlot,
+        AttitudeControlErrorPlot,
         CommandedMagneticDipolePlot,
         CommandedWheelTorquePlot,
         FeedforwardAttitudePlot,
@@ -223,6 +225,7 @@ def test_control_and_goal_resultsformat_and_plots() -> None:
     )
     rf = ResultsFormat(
         N=2,
+        satellite_attitude=True,
         goal_attitude=True,
         goal_rate=True,
         feedforward_torque=True,
@@ -251,6 +254,15 @@ def test_control_and_goal_resultsformat_and_plots() -> None:
         ReferenceTorquePlot(),
         CommandedWheelTorquePlot(),
         CommandedMagneticDipolePlot(),
-        layout=(4, 2),
+        AbsolutePointingErrorPlot(option="magnitude"),
+        layout=(5, 2),
     )
     plt.close(fig)
+
+    # ACE requires estimated_attitude (an estimator); APE works without one.
+    ape_t, ape_deg = AbsolutePointingErrorPlot(option="magnitude")._series(res)
+    assert ape_t.shape == (len(sat_res.times_s),)
+    assert np.all(np.isfinite(ape_deg))
+    import pytest
+    with pytest.raises(ValueError, match="estimator"):
+        AttitudeControlErrorPlot()._series(res)

@@ -16,6 +16,7 @@ from .plot import AccelerometerPlot
 from .plot import (EstimatedAttitudePlot, EstimatedRatePlot,
                    EstimatedAttitudeCovariancePlot, EstimatedRateCovariancePlot)
 from .plot import AbsoluteKnowledgeErrorQuaternionPlot, AbsoluteKnowledgeErrorRatePlot
+from .plot import AbsolutePointingErrorPlot, AttitudeControlErrorPlot
 from .plot import MeasurementInnovationPlot, MeasurementInnovationCovariancePlot
 from .plot import NormalizedInnovationSquaredPlot, NormalizedEstimationErrorSquaredPlot
 from .plot import MeasurementResidualPlot, KalmanGainPlot
@@ -52,6 +53,7 @@ __all__ += ["ForcePlot", "TorquePlot"]
 __all__ += ["EstimatedAttitudePlot", "EstimatedRatePlot",
             "EstimatedAttitudeCovariancePlot", "EstimatedRateCovariancePlot"]
 __all__ += ["AbsoluteKnowledgeErrorQuaternionPlot", "AbsoluteKnowledgeErrorRatePlot"]
+__all__ += ["AbsolutePointingErrorPlot", "AttitudeControlErrorPlot"]
 __all__ += ["MeasurementInnovationPlot", "MeasurementInnovationCovariancePlot"]
 __all__ += ["NormalizedInnovationSquaredPlot", "NormalizedEstimationErrorSquaredPlot"]
 __all__ += ["MeasurementResidualPlot", "KalmanGainPlot"]
