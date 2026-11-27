@@ -6,6 +6,7 @@ from .magnetorquer import Magnetorquer
 from .reaction_wheel import ReactionWheel
 from .sensors import Sensor
 from .estimator.attitude_estimator import (
+    AttitudeBatchedUKF,
     AttitudeEKF,
     AttitudeEstimator,
     AttitudeMEKF,
@@ -20,6 +21,7 @@ __all__ = [
     "Sensor",
     "apply_effects",
     "AttitudeEstimator",
+    "AttitudeBatchedUKF",
     "AttitudeEKF",
     "AttitudeMEKF",
     "AttitudeSequentialSRUKF",

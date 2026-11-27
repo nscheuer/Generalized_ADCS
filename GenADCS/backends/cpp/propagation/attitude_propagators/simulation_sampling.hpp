@@ -1,4 +1,5 @@
 #pragma once
+#include "../../hardware/ADCS_subsystem/estimator/attitude_estimator/attitude_batched_ukf.hpp"
 #include "../../hardware/ADCS_subsystem/estimator/attitude_estimator/attitude_ekf.hpp"
 #include "../../hardware/ADCS_subsystem/estimator/attitude_estimator/attitude_sequential_srukf.hpp"
 #include "../../hardware/ADCS_subsystem/estimator/attitude_estimator/attitude_sequential_ukf.hpp"
@@ -24,6 +25,7 @@ private:
   const omni::hardware::estimator::AttitudeEstimator *estimator_;
   bool ekf_ = false;
   const omni::hardware::estimator::AttitudeSequentialUKF *ukf_ = nullptr;
+  const omni::hardware::estimator::AttitudeBatchedUKF *batched_ukf_ = nullptr;
   const omni::hardware::estimator::AttitudeSequentialSRUKF *srukf_ = nullptr;
   omni::hardware::estimator::State estimate_;
   double previous_time_ = 0.0;

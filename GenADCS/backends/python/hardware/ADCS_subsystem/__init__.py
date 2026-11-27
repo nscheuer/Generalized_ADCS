@@ -1,4 +1,5 @@
 from .adcs_subsystem import ADCSSubsystem as ADCSSubsystem
+from .estimator import AttitudeBatchedUKF as AttitudeBatchedUKF
 from .estimator import AttitudeEKF as AttitudeEKF
 from .estimator import (
     AttitudeEstimator as AttitudeEstimator,

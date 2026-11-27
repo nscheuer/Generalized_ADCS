@@ -1,3 +1,4 @@
+from .attitude_batched_ukf import AttitudeBatchedUKF
 from .attitude_ekf import AttitudeEKF
 from .attitude_mekf import (
     AttitudeMEKF,
@@ -12,6 +13,7 @@ from .attitude_sequential_ukf import AttitudeSequentialUKF
 from .base import AttitudeEstimator
 
 __all__ = [
+    "AttitudeBatchedUKF",
     "AttitudeEKF",
     "AttitudeEstimator",
     "AttitudeMEKF",

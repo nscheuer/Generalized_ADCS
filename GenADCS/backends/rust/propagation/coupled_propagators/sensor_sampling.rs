@@ -138,6 +138,27 @@ pub(super) fn build_sampler_and_runtime(
                     .map_err(PyValueError::new_err)?,
                 ))
             }
+            "AttitudeBatchedUKF" => {
+                let p = array::<36>(py, e, "covariance")?;
+                let a = array::<9>(py, e, "acceleration_psd")?;
+                let base = super::base::AttitudeEstimator::new(
+                    array(py, e, "quaternion")?,
+                    array(py, e, "rate")?,
+                    std::array::from_fn(|i| std::array::from_fn(|j| p[6 * i + j])),
+                    std::array::from_fn(|i| std::array::from_fn(|j| a[3 * i + j])),
+                    Vec::new(),
+                )
+                .map_err(PyValueError::new_err)?;
+                Some(EstimateState::BatchedUkf(
+                    super::attitude_batched_ukf::AttitudeBatchedUKF::new(
+                        base,
+                        e.getattr("alpha")?.extract()?,
+                        e.getattr("beta")?.extract()?,
+                        e.getattr("kappa")?.extract()?,
+                    )
+                    .map_err(PyValueError::new_err)?,
+                ))
+            }
             "AttitudeSequentialSRUKF" => {
                 let p = array::<36>(py, e, "covariance")?;
                 let a = array::<9>(py, e, "acceleration_psd")?;
@@ -410,6 +431,7 @@ pub fn sample_sensors(
         Mekf(super::base::AttitudeEstimator),
         Ekf(super::attitude_ekf::AttitudeEKF),
         Ukf(super::attitude_sequential_ukf::AttitudeSequentialUKF),
+        BatchedUkf(super::attitude_batched_ukf::AttitudeBatchedUKF),
         Srukf(super::attitude_sequential_srukf::AttitudeSequentialSRUKF),
     }
     let mut estimate = match estimator.filter(|e| !e.is_none()) {
@@ -456,6 +478,27 @@ pub fn sample_sensors(
                 .map_err(PyValueError::new_err)?;
                 Some(EstimateState::Ukf(
                     super::attitude_sequential_ukf::AttitudeSequentialUKF::new(
+                        base,
+                        e.getattr("alpha")?.extract()?,
+                        e.getattr("beta")?.extract()?,
+                        e.getattr("kappa")?.extract()?,
+                    )
+                    .map_err(PyValueError::new_err)?,
+                ))
+            }
+            "AttitudeBatchedUKF" => {
+                let p = array::<36>(py, e, "covariance")?;
+                let a = array::<9>(py, e, "acceleration_psd")?;
+                let base = super::base::AttitudeEstimator::new(
+                    array(py, e, "quaternion")?,
+                    array(py, e, "rate")?,
+                    std::array::from_fn(|i| std::array::from_fn(|j| p[6 * i + j])),
+                    std::array::from_fn(|i| std::array::from_fn(|j| a[3 * i + j])),
+                    Vec::new(),
+                )
+                .map_err(PyValueError::new_err)?;
+                Some(EstimateState::BatchedUkf(
+                    super::attitude_batched_ukf::AttitudeBatchedUKF::new(
                         base,
                         e.getattr("alpha")?.extract()?,
                         e.getattr("beta")?.extract()?,
@@ -758,6 +801,20 @@ pub fn sample_sensors(
                         EstimateState::Ukf(ukf) => {
                             let values = super::attitude_sequential_ukf::step_diagnostics(
                                 ukf,
+                                dt,
+                                &readings,
+                                &estimator_config,
+                                y,
+                                nees,
+                            )
+                            .map_err(str::to_owned)?;
+                            for (j, v) in values.into_iter().enumerate() {
+                                estimates.as_mut().unwrap()[[row, j]] = v;
+                            }
+                        }
+                        EstimateState::BatchedUkf(batched_ukf) => {
+                            let values = super::attitude_batched_ukf::step_diagnostics(
+                                batched_ukf,
                                 dt,
                                 &readings,
                                 &estimator_config,

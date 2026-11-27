@@ -1,11 +1,14 @@
 """Rust-backed attitude estimator types, EKF, MEKF, and UKF kernels."""
 
 from ..._subsystem import (
+    AttitudeBatchedUKF,
     AttitudeEKF,
     AttitudeEstimator,
     AttitudeMEKF,
     AttitudeSequentialSRUKF,
     AttitudeSequentialUKF,
+    batched_ukf_predict,
+    batched_ukf_step,
     correct,
     correct_gyro,
     correct_star_tracker,
@@ -24,10 +27,13 @@ from ..._subsystem import (
 
 __all__ = [
     "AttitudeEstimator",
+    "AttitudeBatchedUKF",
     "AttitudeEKF",
     "AttitudeMEKF",
     "AttitudeSequentialSRUKF",
     "AttitudeSequentialUKF",
+    "batched_ukf_predict",
+    "batched_ukf_step",
     "predict",
     "correct",
     "correct_gyro",

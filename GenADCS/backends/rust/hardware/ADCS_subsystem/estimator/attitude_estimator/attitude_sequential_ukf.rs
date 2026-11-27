@@ -7,7 +7,7 @@ use super::base::{AttitudeEstimator, Mat3, Mat6};
 use super::direction_correction::{direction_prediction, inverse_submatrix};
 
 pub const COVARIANCE_SIZE: usize = 6;
-const SIGMA_COUNT: usize = 2 * COVARIANCE_SIZE + 1;
+pub(crate) const SIGMA_COUNT: usize = 2 * COVARIANCE_SIZE + 1;
 
 #[inline]
 fn chart_limit_angle() -> f64 {
@@ -45,7 +45,7 @@ impl AttitudeSequentialUKF {
     }
 }
 
-fn validate_ukf_params(alpha: f64, beta: f64, kappa: f64) -> Result<f64, &'static str> {
+pub(crate) fn validate_ukf_params(alpha: f64, beta: f64, kappa: f64) -> Result<f64, &'static str> {
     if !alpha.is_finite() || alpha <= 0.0 {
         return Err("alpha must be finite and positive");
     }
@@ -129,7 +129,7 @@ fn jacobi_eigh6(mut a: Mat6) -> ([f64; 6], Mat6) {
     (vals, v)
 }
 
-fn cholesky6(a: Mat6) -> Result<Mat6, &'static str> {
+pub(crate) fn cholesky6(a: Mat6) -> Result<Mat6, &'static str> {
     let mut l = [[0.0; 6]; 6];
     for i in 0..6 {
         for j in 0..=i {
@@ -237,7 +237,7 @@ pub fn quaternion_mean(quaternions: &[[f64; 4]; SIGMA_COUNT], weights: &[f64; SI
 }
 
 #[allow(clippy::type_complexity)]
-fn sigma_points(
+pub(crate) fn sigma_points(
     q: [f64; 4],
     w: [f64; 3],
     p: Mat6,
@@ -277,7 +277,7 @@ fn sigma_points(
     Ok((q_pts, w_pts, w_m, w_c))
 }
 
-fn state_deviations(
+pub(crate) fn state_deviations(
     q_pts: &[[f64; 4]; SIGMA_COUNT],
     w_pts: &[[f64; 3]; SIGMA_COUNT],
     q_ref: [f64; 4],
@@ -460,7 +460,7 @@ fn correct_unscented(
     })
 }
 
-fn sensor_noise_matrix(kind: i64, width: usize, chol_i: &[[f64; 6]; 6], scalars_i: [f64; 3]) -> Mat3 {
+pub(crate) fn sensor_noise_matrix(kind: i64, width: usize, chol_i: &[[f64; 6]; 6], scalars_i: [f64; 3]) -> Mat3 {
     let mut r = [[0.0; 3]; 3];
     if kind == 3 {
         r[0][0] = scalars_i[2] * scalars_i[2];
@@ -479,7 +479,7 @@ fn sensor_noise_matrix(kind: i64, width: usize, chol_i: &[[f64; 6]; 6], scalars_
 }
 
 #[inline]
-fn wrap_angle(v: f64) -> f64 {
+pub(crate) fn wrap_angle(v: f64) -> f64 {
     (v + PI).rem_euclid(2.0 * PI) - PI
 }
 
@@ -798,7 +798,7 @@ pub fn step_diagnostics(
     Ok(out)
 }
 
-fn rotation_to_q(v: [f64; 3]) -> [f64; 4] {
+pub(crate) fn rotation_to_q(v: [f64; 3]) -> [f64; 4] {
     let angle = dot3(v, v).sqrt();
     if angle < 1e-12 {
         return normalize([1.0 - angle * angle / 8.0, v[0] * 0.5, v[1] * 0.5, v[2] * 0.5]);
@@ -812,7 +812,7 @@ fn rotation_to_q(v: [f64; 3]) -> [f64; 4] {
     ]
 }
 
-fn quaternion_to_rotation_vector(q: [f64; 4]) -> [f64; 3] {
+pub(crate) fn quaternion_to_rotation_vector(q: [f64; 4]) -> [f64; 3] {
     let mut q = normalize(q);
     if q[0] < 0.0 {
         q = q.map(|x| -x);
@@ -825,12 +825,12 @@ fn quaternion_to_rotation_vector(q: [f64; 4]) -> [f64; 3] {
     [q[1] * k, q[2] * k, q[3] * k]
 }
 
-fn normalize(q: [f64; 4]) -> [f64; 4] {
+pub(crate) fn normalize(q: [f64; 4]) -> [f64; 4] {
     let n = q.iter().map(|x| x * x).sum::<f64>().sqrt();
     q.map(|x| x / n)
 }
 
-fn mul(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
+pub(crate) fn mul(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
     [
         a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
         a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
@@ -839,11 +839,11 @@ fn mul(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
     ]
 }
 
-fn conjugate(q: [f64; 4]) -> [f64; 4] {
+pub(crate) fn conjugate(q: [f64; 4]) -> [f64; 4] {
     [q[0], -q[1], -q[2], -q[3]]
 }
 
-fn dcm(q: [f64; 4]) -> Mat3 {
+pub(crate) fn dcm(q: [f64; 4]) -> Mat3 {
     let q = normalize(q);
     let (w, x, y, z) = (q[0], q[1], q[2], q[3]);
     [
@@ -869,19 +869,19 @@ fn dot3(a: [f64; 3], b: [f64; 3]) -> f64 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 }
 
-fn skew(v: [f64; 3]) -> Mat3 {
+pub(crate) fn skew(v: [f64; 3]) -> Mat3 {
     [[0.0, -v[2], v[1]], [v[2], 0.0, -v[0]], [-v[1], v[0], 0.0]]
 }
 
-fn mul3v(a: Mat3, v: [f64; 3]) -> [f64; 3] {
+pub(crate) fn mul3v(a: Mat3, v: [f64; 3]) -> [f64; 3] {
     std::array::from_fn(|i| a[i][0] * v[0] + a[i][1] * v[1] + a[i][2] * v[2])
 }
 
-fn identity6() -> Mat6 {
+pub(crate) fn identity6() -> Mat6 {
     std::array::from_fn(|i| std::array::from_fn(|j| if i == j { 1.0 } else { 0.0 }))
 }
 
-fn matmul6(a: Mat6, b: Mat6) -> Mat6 {
+pub(crate) fn matmul6(a: Mat6, b: Mat6) -> Mat6 {
     std::array::from_fn(|i| {
         std::array::from_fn(|j| {
             let mut s = 0.0;
@@ -893,10 +893,10 @@ fn matmul6(a: Mat6, b: Mat6) -> Mat6 {
     })
 }
 
-fn transpose6(a: Mat6) -> Mat6 {
+pub(crate) fn transpose6(a: Mat6) -> Mat6 {
     std::array::from_fn(|i| std::array::from_fn(|j| a[j][i]))
 }
 
-fn sym6(a: Mat6) -> Mat6 {
+pub(crate) fn sym6(a: Mat6) -> Mat6 {
     std::array::from_fn(|i| std::array::from_fn(|j| 0.5 * (a[i][j] + a[j][i])))
 }

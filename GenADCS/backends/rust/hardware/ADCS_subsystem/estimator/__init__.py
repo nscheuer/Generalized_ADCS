@@ -1,6 +1,7 @@
 """Rust-backed attitude estimators."""
 
 from .attitude_estimator import (
+    AttitudeBatchedUKF,
     AttitudeEKF,
     AttitudeEstimator,
     AttitudeMEKF,
@@ -10,6 +11,7 @@ from .attitude_estimator import (
 
 __all__ = [
     "AttitudeEstimator",
+    "AttitudeBatchedUKF",
     "AttitudeEKF",
     "AttitudeMEKF",
     "AttitudeSequentialSRUKF",

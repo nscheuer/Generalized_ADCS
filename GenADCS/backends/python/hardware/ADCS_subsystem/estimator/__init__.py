@@ -1,4 +1,5 @@
 from .attitude_estimator import (
+    AttitudeBatchedUKF,
     AttitudeEKF,
     AttitudeEstimator,
     AttitudeMEKF,
@@ -7,6 +8,7 @@ from .attitude_estimator import (
 )
 
 __all__ = [
+    "AttitudeBatchedUKF",
     "AttitudeEKF",
     "AttitudeEstimator",
     "AttitudeMEKF",
