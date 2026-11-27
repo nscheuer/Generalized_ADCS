@@ -6,7 +6,9 @@ SALTRO Linux / WSL
 The commands below are adapted from `SALTRO <https://nscheuer.github.io/SALTRO>`_'s
 in-repository installation guide:
 
-- `SALTRO/docs/INSTALL.md <../../../SALTRO/docs/INSTALL.md>`_
+- `SALTRO/docs/INSTALL.md <https://github.com/nscheuer/SALTRO/blob/main/docs/INSTALL.md>`__
+
+Complete :doc:`addon_prerequisites` first; on Windows, see :doc:`wsl`.
 
 Initialise the submodule first if needed:
 
@@ -62,3 +64,7 @@ Test
    ctest --output-on-failure
    cd ../tests
    pytest -q
+
+Generalized ADCS imports ``saltro_py`` from ``SALTRO/build/``, the directory
+the commands above build into. Build it for the same Python version as the
+environment you run Generalized ADCS in.

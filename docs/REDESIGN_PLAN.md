@@ -181,6 +181,8 @@ Build fixes: add an `apidoc` step to `docs/Makefile` (same command as CI) so loc
 Fix without asking (verifiable from the repo): 2_7 method ref; testing path; Windows venv-name mismatch; broken `../../Install_*.md` links; reST nested-markup rendering; `release_notes/index.rst` caption; 0.1.2 "three"→"four" helpers; "MTG"→"MTQ" typo; hub-link text; README add-on pointer.
 
 **Needs a maintainer decision** (will not guess):
+
+> Answered 2026-11-27 (applied in phase 5): (1) Release by default, Debug shown separately for GDB; (2) Windows add-on builds need Python 3.13+; (3) co-import clash reported fixed, so the caveat was not ported. Note that `ADCS/controller/helpers/optional_dependencies.py` on `main` still handles and describes the clash; (4) macOS add-on builds are community-supported.
 1. Linux trajectory-planner build type: Release or Debug?
 2. Required Python for Windows/SALTRO: 3.13 (pages) vs ≥3.10 (pyproject)?
 3. Is the SALTRO/OldPlanner co-import clash fixed (0.1.5) or still present (macOS doc, code)?

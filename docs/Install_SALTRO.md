@@ -1,21 +1,13 @@
 # Install SALTRO
 
-SALTRO is an optional add-on module.
+> [!NOTE]
+> Build instructions for the optional SALTRO add-on now live on the documentation site.
+> This file is kept so existing links keep working.
 
-The C++ source lives in the separate repository
-[`nscheuer/SALTRO`](https://github.com/nscheuer/SALTRO), which
-Generalized_ADCS pulls in as a git submodule at `./SALTRO/`.
+- [Before building an add-on (submodules, Python environment)](https://nscheuer.github.io/Generalized_ADCS/installation/addon_prerequisites.html)
+- [SALTRO add-on overview](https://nscheuer.github.io/Generalized_ADCS/installation/saltro_addon.html)
+- [Linux / WSL](https://nscheuer.github.io/Generalized_ADCS/installation/saltro_linux.html)
+- [Windows](https://nscheuer.github.io/Generalized_ADCS/installation/saltro_windows.html)
+- [macOS (community-supported)](https://nscheuer.github.io/Generalized_ADCS/installation/saltro_macos.html)
 
-## Initialise the submodule
-
-If you cloned Generalized_ADCS without `--recurse-submodules`:
-
-```bash
-git submodule update --init --recursive SALTRO
-```
-
-(Re-run this after pulling new commits if the submodule pointer changed.)
-
-For installation instructions, use the official SALTRO installation page:
-
-- https://nscheuer.github.io/SALTRO/datasheets/Installation.html
+The source for these pages is in [`docs/source/`](source/).

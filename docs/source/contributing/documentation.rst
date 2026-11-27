@@ -48,6 +48,17 @@ When adding new Python modules, regenerate the API documentation:
    cd docs/
    sphinx-apidoc -f -e --maxdepth 1 -o source/ ../ADCS/
 
+If modules were renamed or removed, delete the previously generated API pages
+first so stale ones do not linger. Every top-level ``.rst`` file in
+``docs/source/`` except ``index.rst`` is generated (and git-ignored), so this is
+safe:
+
+.. code-block:: bash
+
+   cd docs/
+   find source -maxdepth 1 -type f -name "*.rst" ! -name "index.rst" -delete
+   sphinx-apidoc -f -e --maxdepth 1 -o source/ ../ADCS/
+
 All new public functions and classes **must** be included in the module-level
 ``__all__`` declaration:
 

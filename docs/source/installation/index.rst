@@ -33,6 +33,9 @@ then choose between installing from PyPI and cloning the repository.
    .. tab-item:: Linux / WSL
       :sync: linux
 
+      To use these instructions on Windows through WSL, set up WSL first: see
+      :doc:`wsl`.
+
       .. grid:: 1
          :gutter: 3
 
@@ -179,13 +182,21 @@ Optional C++ add-ons
 Optional C++ add-ons can be installed after the core framework. Their source
 code lives in the ``OldPlanner`` and ``SALTRO`` Git submodules, so they need a
 clone of the repository. Neither is needed for the pure-Python framework.
+Start with :doc:`addon_prerequisites`.
 
 .. toctree::
    :maxdepth: 2
    :caption: Add-Ons
 
+   addon_prerequisites
    trajectory_planner_addon
    saltro_addon
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Platform notes
+
+   wsl
 
 See :doc:`release note 0.1.0 <../release_notes/0_1_0_saltro>` for an overview of
 trajectory optimization add-ons and where to start.

@@ -1,18 +1,14 @@
 Trajectory Planner Linux / WSL
 ==============================
 
-``trajectory_planner`` is an optional add-on for Generalized_ADCS.
+``trajectory_planner`` is an optional add-on for Generalized ADCS.
 
 The module is a C++ library built with Pybind and imported into the Python
-codebase. It must be compiled from source on Linux and WSL.
+codebase. It must be compiled from source on Linux and WSL. Complete
+:doc:`addon_prerequisites` first; on Windows, see :doc:`wsl`.
 
-Canonical instructions (including both Windows and Linux) are maintained in:
-
-- `docs/Install_Trajectory_Planner.md <../../Install_Trajectory_Planner.md>`_
-
-For algorithm background, see:
-
-- `SALTRO documentation website <https://nscheuer.github.io/SALTRO>`_
+For algorithm background, see the
+`SALTRO documentation website <https://nscheuer.github.io/SALTRO>`__.
 
 Prerequisites
 -------------
@@ -30,14 +26,14 @@ Ensure the following system packages are installed:
 Build Instructions
 ------------------
 The trajectory_planner C++ source lives in the
-`OldPlanner <https://github.com/patrickmckeen/OldPlanner>`_ submodule.
+`OldPlanner <https://github.com/patrickmckeen/OldPlanner>`__ submodule.
 Initialise it first if needed:
 
 .. code-block:: bash
 
    git submodule update --init --recursive OldPlanner
 
-Then from the repository root:
+Then, with your virtual environment active, from the repository root:
 
 .. code-block:: bash
 
@@ -45,7 +41,35 @@ Then from the repository root:
    mkdir -p build
    cd build
 
-Configure the build:
+Configure a **Release** build:
+
+.. code-block:: bash
+
+   cmake .. \
+     -DCMAKE_BUILD_TYPE=Release \
+     -DPython3_EXECUTABLE=$(which python3) \
+     -DPYTHON_EXECUTABLE=$(which python3) \
+     -DPYTHON_INCLUDE_DIR=$(python3 -c "from sysconfig import get_paths; print(get_paths()['include'])") \
+     -DPYTHON_INCLUDE_DIRS=$(python3 -c "from sysconfig import get_paths; print(get_paths()['include'])") \
+     -DPYTHON_LIBRARY=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")/libpython3.12.so \
+     -DPYTHON_LIBRARIES=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")/libpython3.12.so
+
+The last two flags name ``libpython3.12.so``; change ``3.12`` to match the
+Python version of your virtual environment.
+
+Compile:
+
+.. code-block:: bash
+
+   make -j$(nproc)
+
+The compiled modules end up in ``OldPlanner/build/``, where Generalized ADCS
+loads them from.
+
+Debugging
+---------
+To debug the C++ extension, configure a **Debug** build instead, with the same
+flags and ``-DCMAKE_BUILD_TYPE=Debug``:
 
 .. code-block:: bash
 
@@ -57,16 +81,9 @@ Configure the build:
      -DPYTHON_INCLUDE_DIRS=$(python3 -c "from sysconfig import get_paths; print(get_paths()['include'])") \
      -DPYTHON_LIBRARY=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")/libpython3.12.so \
      -DPYTHON_LIBRARIES=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")/libpython3.12.so
-
-Compile:
-
-.. code-block:: bash
-
    make -j$(nproc)
 
-Debugging
----------
-To debug the C++ extension, install GDB:
+and install GDB:
 
 .. code-block:: bash
 

@@ -7,21 +7,28 @@ in the ``testing/`` directory.
 Running Tests
 -------------
 
-To run the full test suite (as executed by GitHub Actions):
+To run the full test suite, run ``pytest`` from the repository root with the
+development tools installed (``pip install -e ".[dev]"`` or
+``pip install -r requirements.txt``). GitHub Actions runs the suite this way
+on every push and pull request:
 
 .. code-block:: bash
 
-   cd testing/
-   pytest -v
+   pytest testing/ -m "not local"
 
-Note that running all tests may take several minutes.
+Add ``-v`` to list each test as it runs. Note that running all tests may take
+several minutes (about 3 minutes in the earlier testing notes).
+
+The pytest settings in ``pyproject.toml`` already set ``testing/`` as the test
+path and exclude ``local`` tests, so a plain ``pytest`` from the repository
+root runs the same selection.
 
 Local-only Tests
 ----------------
 
 The Godot viewer test is marked ``local`` because it requires a local Godot
-binary and viewer source tree. To run the regular Python suite without
-local-only tests:
+binary and viewer source tree. Local tests are excluded by default (see
+above); to run the regular Python suite explicitly without them:
 
 .. code-block:: bash
 
@@ -36,9 +43,8 @@ To run only the Godot test:
 Testing Individual Files
 ------------------------
 
-To run a specific test file:
+To run a specific test file, pass its path:
 
 .. code-block:: bash
 
-   cd testing/
-   pytest ./test_controllers/test_controller_mtq_w_rw.py
+   pytest testing/test_controllers/mtq_w_rw/test_controller_mtq_w_rw.py
