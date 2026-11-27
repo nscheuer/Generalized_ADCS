@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="500" viewBox="0 0 1280 500" role="img" aria-label="A GenADCS 3.0 simulation: a Satellite with its ADCS subsystem, an Environment, a DynamicsConfig, and an initial State with a Solver go into simulate(), which runs on the Python, C++ or Rust backend and returns a SimulationResult that the shared plotting module draws.">
+  <rect width="1280" height="500" rx="18" fill="#0f1620"/>
+  <rect x="0.5" y="0.5" width="1279" height="499" rx="18" fill="none" stroke="#253244"/>
+  
+  <rect x="32" y="40" width="400" height="106" rx="12" fill="#162130" stroke="#253244"/>
+  <text x="50" y="72" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#e5ecf4">Satellite</text>
+  <text x="50" y="98" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2"><tspan font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" fill="#80c0ff">SatelliteGeometry</tspan> mass, inertia, panels</text>
+<text x="50" y="119" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2"><tspan font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" fill="#80c0ff">ADCSSubsystem</tspan> wheels, magnetorquers,</text>
+<text x="50" y="140" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">sensors, estimator, controller, modes</text>
+  <rect x="32" y="160" width="400" height="86" rx="12" fill="#162130" stroke="#253244"/>
+  <text x="50" y="192" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#e5ecf4">Environment</text>
+  <text x="50" y="218" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">Earth, J2–J6, IGRF-14 / WMM / CHAOS-8,</text>
+<text x="50" y="239" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">NRLMSISE-00, DE421 ephemeris</text>
+  <rect x="32" y="260" width="400" height="86" rx="12" fill="#162130" stroke="#253244"/>
+  <text x="50" y="292" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#e5ecf4">DynamicsConfig</text>
+  <text x="50" y="318" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">forces and torques: zonal gravity, drag,</text>
+<text x="50" y="339" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">SRP, lunisolar, gravity gradient, dipole</text>
+  <rect x="32" y="360" width="400" height="106" rx="12" fill="#162130" stroke="#253244"/>
+  <text x="50" y="392" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#e5ecf4">State + Solver</text>
+  <text x="50" y="418" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">attitude, orbit, wheel momentum;</text>
+<text x="50" y="439" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">coupled RK4 / DOP853, or Keplerian / SGP4</text>
+<text x="50" y="460" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">orbit with RK4 / RK45 attitude</text>
+  
+  <rect x="500" y="150" width="330" height="300" rx="16" fill="#15263b" stroke="#80c0ff" stroke-width="1.6"/>
+  <text x="665.0" y="194" text-anchor="middle" font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="20" font-weight="700" fill="#80c0ff">simulate(…, backend=)</text>
+  <text x="665.0" y="224" text-anchor="middle" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">same model, same API, three engines</text>
+  <rect x="530" y="250" width="270" height="48" rx="24" fill="#0f1620" stroke="#4d9eff"/>
+  <text x="558" y="280" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#e5ecf4">Python</text>
+  <text x="772" y="280" text-anchor="end" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="13.5" fill="#a3b1c2">Numba-compiled</text>
+  <rect x="530" y="312" width="270" height="48" rx="24" fill="#0f1620" stroke="#4d9eff"/>
+  <text x="558" y="342" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#e5ecf4">C++</text>
+  <text x="772" y="342" text-anchor="end" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="13.5" fill="#a3b1c2">pybind11</text>
+  <rect x="530" y="374" width="270" height="48" rx="24" fill="#0f1620" stroke="#4d9eff"/>
+  <text x="558" y="404" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#e5ecf4">Rust</text>
+  <text x="772" y="404" text-anchor="end" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="13.5" fill="#a3b1c2">PyO3</text>
+  <path d="M432 93.0 L496 190" stroke="#6f7e91" stroke-width="1.8" fill="none"/><path d="M496 190 L494.8,181.1 L488.3,185.4 Z" fill="#6f7e91"/>
+  <path d="M432 203.0 L496 260" stroke="#6f7e91" stroke-width="1.8" fill="none"/><path d="M496 260 L492.6,251.7 L487.3,257.5 Z" fill="#6f7e91"/>
+  <path d="M432 303.0 L496 330" stroke="#6f7e91" stroke-width="1.8" fill="none"/><path d="M496 330 L490.1,323.2 L487.0,330.5 Z" fill="#6f7e91"/>
+  <path d="M432 413.0 L496 400" stroke="#6f7e91" stroke-width="1.8" fill="none"/><path d="M496 400 L487.3,397.8 L488.8,405.4 Z" fill="#6f7e91"/>
+  <path d="M830 270 L866 215" stroke="#80c0ff" stroke-width="1.8" fill="none"/><path d="M866 215 L858.3,219.6 L864.8,223.9 Z" fill="#80c0ff"/>
+  <path d="M1059.0 280 L1059.0 316" stroke="#6f7e91" stroke-width="1.8" fill="none"/><path d="M1059.0 316 L1062.9,307.9 L1055.1,307.9 Z" fill="#6f7e91"/>
+  
+  <rect x="870" y="150" width="378" height="130" rx="12" fill="#162130" stroke="#253244"/>
+  <text x="888" y="182" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#e5ecf4">SimulationResult</text>
+  <text x="888" y="208" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2"><tspan font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" fill="#80c0ff">ResultsFormat</tspan> picks what is recorded:</text>
+<text x="888" y="229" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">states, goals, sensor readings,</text>
+<text x="888" y="250" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">estimates, forces, torques, commands</text>
+  <rect x="870" y="320" width="378" height="130" rx="12" fill="#162130" stroke="#253244"/>
+  <text x="888" y="352" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#e5ecf4">Plotting</text>
+  <text x="888" y="378" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2"><tspan font-family="ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13" fill="#80c0ff">GenADCS.backends.shared.plotting</tspan></text>
+<text x="888" y="399" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">attitude, pointing error, sensors,</text>
+<text x="888" y="420" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">estimator diagnostics and more</text>
+</svg>

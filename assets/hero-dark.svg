@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="580" viewBox="0 0 1280 580" role="img" aria-label="Generalized ADCS 3.0: 1,555× faster than 2.x, 0.019 s per simulated orbit, 0.2 µm position error after one orbit.">
+  <defs><pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.1" fill="#253244"/></pattern></defs>
+  <rect width="1280" height="580" rx="18" fill="#0f1620"/>
+  <rect width="1280" height="580" rx="18" fill="url(#dots)" opacity="0.6"/>
+  <rect x="0.5" y="0.5" width="1279" height="579" rx="18" fill="none" stroke="#253244"/>
+  <text x="56" y="84" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="2" fill="#80c0ff">GENERALIZED ADCS 3.0</text>
+  <text x="56" y="140" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="-1.5" fill="#e5ecf4">One spacecraft model. Three engines.</text>
+  <text x="56" y="184" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="20" fill="#a3b1c2">The same simulation runs on Python (Numba), C++ and Rust backends; pick one with an import path.</text>
+  
+  <rect x="56" y="236" width="360" height="150" rx="14" fill="#162130" stroke="#253244"/>
+  <text x="80" y="302" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="50" font-weight="800" letter-spacing="-1.5" fill="#80c0ff">1,555×</text>
+  <text x="80" y="336" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#e5ecf4">faster than ADCS 2.x</text>
+  <text x="80" y="362" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">Rust backend vs. Generalized ADCS 2.x</text>
+
+  <rect x="440" y="236" width="360" height="150" rx="14" fill="#162130" stroke="#253244"/>
+  <text x="464" y="302" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="50" font-weight="800" letter-spacing="-1.5" fill="#80c0ff">0.019 s</text>
+  <text x="464" y="336" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#e5ecf4">to simulate one full orbit</text>
+  <text x="464" y="362" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">22,708 RK4 steps · Rust backend</text>
+
+  <rect x="824" y="236" width="360" height="150" rx="14" fill="#162130" stroke="#253244"/>
+  <text x="848" y="302" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="50" font-weight="800" letter-spacing="-1.5" fill="#80c0ff">0.2 µm</text>
+  <text x="848" y="336" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#e5ecf4">position error after one orbit</text>
+  <text x="848" y="362" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#a3b1c2">all three backends vs. DOP853 reference</text>
+  <text x="56" y="408" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1" fill="#6f7e91">SIMULATION STEPS PER SECOND · ATTITUDE + ORBIT · LOG SCALE</text>
+  
+  <text x="56" y="431" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#e5ecf4">3.0 · Rust</text>
+  <rect x="166" y="420" width="794.8" height="14" rx="3" fill="#80c0ff"/>
+  <text x="968.8" y="432" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#a3b1c2">1,195,970 steps/s</text>
+  <text x="56" y="453" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#e5ecf4">3.0 · C++</text>
+  <rect x="166" y="442" width="732.7" height="14" rx="3" fill="#4d9eff"/>
+  <text x="906.7" y="454" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#a3b1c2">638,387 steps/s</text>
+  <text x="56" y="475" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#e5ecf4">3.0 · Python</text>
+  <rect x="166" y="464" width="480.8" height="14" rx="3" fill="#2f7bd6"/>
+  <text x="654.8" y="476" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#a3b1c2">49,882 steps/s</text>
+  <text x="56" y="497" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#a3b1c2">Basilisk</text>
+  <rect x="166" y="486" width="512.2" height="14" rx="3" fill="#5d6876"/>
+  <text x="686.2" y="498" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3b1c2">68,546 steps/s</text>
+  <text x="56" y="519" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#a3b1c2">2.x</text>
+  <rect x="166" y="508" width="68.5" height="14" rx="3" fill="#3a5578"/>
+  <text x="242.5" y="520" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3b1c2">769 steps/s</text>
+  <text x="56" y="562" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#6f7e91">Torque-free 12 kg spacecraft, 500 km 51.6° orbit with J2, fixed-step RK4 at dt = 0.25 s · Intel(R) Core(TM) Ultra 9 288V · 2026-11-27 · commit f1e4c2e0</text>
+</svg>
