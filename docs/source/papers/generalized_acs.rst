@@ -12,8 +12,7 @@ Conference, Salt Lake City, Utah, August 24, 2026.
 Read it
 -------
 
-- **Paper page** — https://digitalcommons.usu.edu/smallsat/2026/all2026/253/
-- **Proceedings page** — https://digitalcommons.usu.edu/smallsat/2026/all2026/253/
+- **Paper and proceedings page** — https://digitalcommons.usu.edu/smallsat/2026/all2026/253/
 - **Contact the authors** — mailto:pmckeen@mit.edu
 
 SSC26 resources

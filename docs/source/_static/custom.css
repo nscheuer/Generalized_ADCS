@@ -272,3 +272,17 @@ table.sortable-factory th.factory-sort-active.factory-sort-desc::after {
 .admonition.mission-recommendations li:last-child {
     margin-bottom: 0;
 }
+
+/* Animations re-encoded from GIF to MP4 (release notes). */
+video.adcs-video {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 1rem auto;
+    border-radius: 6px;
+}
+
+/* Project logo in the sidebar: keep it compact above the title. */
+.sidebar-logo {
+    max-width: 96px;
+}

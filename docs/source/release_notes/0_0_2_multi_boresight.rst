@@ -121,7 +121,7 @@ Backward Compatibility
 ----------------------
 The multi-boresight feature is fully backward compatible:
 
-**Single boresight as ``np.ndarray``:**
+**Single boresight as** ``np.ndarray``:
 
 .. code-block:: python
 

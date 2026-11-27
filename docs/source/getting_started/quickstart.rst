@@ -205,7 +205,7 @@ Next steps
       results fit together.
 
    .. grid-item-card:: :octicon:`code;1.2em` API reference
-      :link: ../ADCS
+      :link: ../reference/api
       :link-type: doc
 
       Every module, class and function, generated from the docstrings.

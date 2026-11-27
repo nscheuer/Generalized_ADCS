@@ -102,7 +102,7 @@ Consider a predefined orbit and goal sequence, with randomized initial states fo
 
 Example: Vector Goal Monte Carlo Simulation
 -------------------------------------------
-Consider random circular orbits, initial attitudes, and vector goals for a 3 MTG + 1 RW satellite.
+Consider random circular orbits, initial attitudes, and vector goals for a 3 MTQ + 1 RW satellite.
 
 .. code-block:: python
     

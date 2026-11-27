@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Generalized ADCS logo">
+  <ellipse cx="80" cy="84" rx="70" ry="26" transform="rotate(-24 80 84)" fill="none" stroke="#b9cde6" stroke-width="3" stroke-dasharray="7 7"/>
+  <circle cx="80" cy="84" r="34" fill="#e8f1fc" stroke="#0066cc" stroke-width="3"/>
+  <path d="M46 84 Q 80 70 114 84" fill="none" stroke="#0066cc" stroke-opacity="0.5" stroke-width="2.5"/>
+  <path d="M51 100 Q 80 89 109 100" fill="none" stroke="#0066cc" stroke-opacity="0.4" stroke-width="2.5"/>
+  <path d="M113 52 L 100 68" stroke="#0066cc" stroke-width="2.5" stroke-dasharray="3 4"/>
+  <g transform="translate(128 39) rotate(-36)">
+    <rect x="-7" y="-7" width="14" height="14" rx="2" fill="#0066cc"/>
+    <rect x="-24" y="-4" width="13" height="8" rx="1.5" fill="none" stroke="#0066cc" stroke-width="2.5"/>
+    <rect x="11" y="-4" width="13" height="8" rx="1.5" fill="none" stroke="#0066cc" stroke-width="2.5"/>
+  </g>
+</svg>

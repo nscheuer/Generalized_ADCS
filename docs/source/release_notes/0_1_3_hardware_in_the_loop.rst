@@ -7,7 +7,7 @@ Raspberry Pi. The primary use case is running selected ADCS components remotely
 while preserving environment and dynamics propagation on the main computer.
 
 .. image:: ../_static/tutorials/tutorial_08_raspberry_pi.jpeg
-   :alt: Raspberry Pi placeholder image for remote execution workflow.
+   :alt: Two Raspberry Pi boards with PoE HATs and cooling fans, connected by Ethernet cables.
    :width: 700px
    :align: center
 
@@ -33,7 +33,7 @@ Raspberry Pi running the remote server, and one terminal on the main PC running
 ``simulate_remote``.
 
 .. image:: ../_static/tutorials/tutorial_08_dual_terminal.png
-   :alt: Dual terminal placeholder image for main PC and Raspberry Pi execution.
+   :alt: Two terminals side by side. Left, on the Raspberry Pi, the remote runner listens on port 5000 serving the controller, attitude estimator and orbit estimator. Right, on the main PC, a simulation runs with a progress bar.
    :width: 900px
    :align: center
 

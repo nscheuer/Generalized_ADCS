@@ -71,7 +71,7 @@ Start here
       From coordinate frames to Monte Carlo campaigns and full missions.
 
    .. grid-item-card:: :octicon:`code;1.3em` API reference
-      :link: ADCS
+      :link: reference/api
       :link-type: doc
 
       Every module, class and function, generated from the docstrings.
@@ -207,7 +207,7 @@ GitHub repository: `nscheuer/Generalized_ADCS <https://github.com/nscheuer/Gener
    :maxdepth: 1
    :caption: Reference
 
-   ADCS
+   reference/api
    satellite_factory/index
    contributing/citations
 

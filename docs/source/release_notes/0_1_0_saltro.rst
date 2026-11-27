@@ -16,10 +16,11 @@ Live Trajectory Optimization Preview
 ------------------------------------
 The animation below shows a live trajectory-optimization maneuver.
 
-.. image:: ../_static/release_notes/0_1_0_saltro_live.gif
-   :alt: Live trajectory optimization animation.
-   :width: 700px
-   :align: center
+.. raw:: html
+
+   <video class="adcs-video" src="../_static/release_notes/0_1_0_saltro_live.mp4" width="700" autoplay muted loop playsinline controls aria-label="Live trajectory optimization animation.">
+     <a href="../_static/release_notes/0_1_0_saltro_live.mp4">Live trajectory optimization animation.</a>
+   </video>
 
 Quick Tradeoffs
 ---------------

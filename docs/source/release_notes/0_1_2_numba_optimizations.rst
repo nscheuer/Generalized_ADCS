@@ -31,7 +31,7 @@ worth calling out specifically: the old path computed ``atan(||mrp||)`` and
 then normalized, which is numerically equivalent but more expensive than the
 direct closed-form ``(1 − s^2)/(1 + s^2)`` identity used now.
 
-**Dynamics kernels** — Three new private ``@njit`` helpers handle the
+**Dynamics kernels** — Four new private ``@njit`` helpers handle the
 satellite dynamics inner loop:
 
 - ``_quat_qdot(w, q)`` — quaternion kinematics (replaces ``0.5 * w @ Wmat(q).T``)
@@ -53,7 +53,7 @@ quaternion case. The public ``quat_mult`` wrapper stays pure Python so it
 can still accept variable-length argument lists, but the inner multiply is
 now compiled.
 
-**``rot_mat``**: Not JIT-compiled, but its formatting was cleaned up.
+``rot_mat``: Not JIT-compiled, but its formatting was cleaned up.
 
 **Reaction wheel actuator**: Bias and noise states are now *updated* before their values are *read*, so
 the actuator output always reflects the current step rather than the previous

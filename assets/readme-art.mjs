@@ -154,8 +154,27 @@ function diagram(t) {
 `;
 }
 
+// Square project mark for the docs sidebar and favicon: Earth, an inclined
+// orbit, and a spacecraft with its boresight, as in the banner.
+function logo(t) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Generalized ADCS logo">
+  <ellipse cx="80" cy="84" rx="70" ry="26" transform="rotate(-24 80 84)" fill="none" stroke="${t.orbit}" stroke-width="3" stroke-dasharray="7 7"/>
+  <circle cx="80" cy="84" r="34" fill="${t.accentSoft}" stroke="${t.accent}" stroke-width="3"/>
+  <path d="M46 84 Q 80 70 114 84" fill="none" stroke="${t.accent}" stroke-opacity="0.5" stroke-width="2.5"/>
+  <path d="M51 100 Q 80 89 109 100" fill="none" stroke="${t.accent}" stroke-opacity="0.4" stroke-width="2.5"/>
+  <path d="M113 52 L 100 68" stroke="${t.accent}" stroke-width="2.5" stroke-dasharray="3 4"/>
+  <g transform="translate(128 39) rotate(-36)">
+    <rect x="-7" y="-7" width="14" height="14" rx="2" fill="${t.accent}"/>
+    <rect x="-24" y="-4" width="13" height="8" rx="1.5" fill="none" stroke="${t.accent}" stroke-width="2.5"/>
+    <rect x="11" y="-4" width="13" height="8" rx="1.5" fill="none" stroke="${t.accent}" stroke-width="2.5"/>
+  </g>
+</svg>
+`;
+}
+
 for (const [name, t] of Object.entries(THEMES)) {
   fs.writeFileSync(path.join(OUT, `banner-${name}.svg`), banner(t));
   fs.writeFileSync(path.join(OUT, `architecture-${name}.svg`), diagram(t));
+  fs.writeFileSync(path.join(OUT, `logo-${name}.svg`), logo(t));
 }
 console.log('wrote', fs.readdirSync(OUT).filter((f) => f.endsWith('.svg')).join(', '));

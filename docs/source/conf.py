@@ -48,6 +48,7 @@ exclude_patterns = []
 
 html_theme = 'furo'
 html_title = 'Generalized ADCS'
+html_favicon = '_static/logo-light.svg'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
 html_js_files = ['factory-tables.js']
@@ -60,8 +61,8 @@ sitemap_url_scheme = "{link}"
 
 html_theme_options = {
     "sidebar_hide_name": False,
-    "light_logo": "starlab_logo.svg",
-    "dark_logo": "starlab_logo.svg",
+    "light_logo": "logo-light.svg",
+    "dark_logo": "logo-dark.svg",
     "top_of_page_button": "edit",
     "navigation_with_keys": True,
     # Brand colours and the palette used by custom.css. Furo applies these for

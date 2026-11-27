@@ -12,10 +12,11 @@ along-track pointing as it passes over Earth at sunset. It was recorded at
 animations is forthcoming. See the `graphics pull request
 <https://github.com/nscheuer/Generalized_ADCS/pull/250>`__ for the viewer work.
 
-.. image:: ../_static/release_notes/0_2_2_animation.gif
-   :alt: ICESat-2 performing nadir, coordinate, and along-track pointing maneuvers over Earth at sunset.
-   :width: 800px
-   :align: center
+.. raw:: html
+
+   <video class="adcs-video" src="../_static/release_notes/0_2_2_animation.mp4" poster="../_static/release_notes/0_2_2_animation_preview.png" width="800" autoplay muted loop playsinline controls aria-label="ICESat-2 performing nadir, coordinate, and along-track pointing maneuvers over Earth at sunset.">
+     <a href="../_static/release_notes/0_2_2_animation.mp4">ICESat-2 performing nadir, coordinate, and along-track pointing maneuvers over Earth at sunset.</a>
+   </video>
 
 Tutorials
 ---------
@@ -52,7 +53,7 @@ The work is tracked in pull requests
 
 .. warning:: Breaking changes and deprecations
 
-   * **Environment configuration moved to ``Environment``.** Pass atmospheric
+   * **Environment configuration moved to** ``Environment``. Pass atmospheric
      density models as ``Environment(atmosphere=...)`` to ``Orbital_State`` or
      ``simulate()``. The ``density_model`` constructor argument and
      ``Orbital_State.density_model`` attribute are deprecated; use
