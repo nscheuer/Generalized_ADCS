@@ -1,8 +1,5 @@
 #include "../../../helpers/math/rotations/sensor_kernels_py.hpp"
 #include "../adcs_subsystem.hpp"
-#include "../effects_py.hpp"
-#include "../magnetorquer.hpp"
-#include "../reaction_wheel.hpp"
 #include "accelerometer.hpp"
 #include "coarse_sun_sensor.hpp"
 #include "fine_earth_sensor.hpp"

@@ -1,6 +1,5 @@
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
-void bind_effects(py::module_ &module);
 void bind_reaction_wheel(py::module_ &module);
 void bind_magnetorquer(py::module_ &module);
 void bind_adcs_subsystem(py::module_ &module);
@@ -15,7 +14,6 @@ void bind_sensors_gnss(py::module_ &module);
 void bind_philox(py::module_ &module);
 
 PYBIND11_MODULE(_adcs_subsystem, module) {
-  bind_effects(module);
   bind_reaction_wheel(module);
   bind_magnetorquer(module);
   bind_adcs_subsystem(module);

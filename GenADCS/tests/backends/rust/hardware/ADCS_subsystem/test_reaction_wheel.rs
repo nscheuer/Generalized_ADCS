@@ -2,7 +2,7 @@ use super::*;
 use pyo3::types::PyList;
 
 #[test]
-fn constructor_fields_defaults_and_effect_replacement() {
+fn constructor_fields_defaults_and_noise_bias_validation() {
     Python::with_gil(|py| {
         let orientation = PyList::new(py, [0, 0, 1]);
         let mut wheel = ReactionWheel::new(
@@ -13,7 +13,8 @@ fn constructor_fields_defaults_and_effect_replacement() {
             0.1,
             2.0,
             None,
-            None,
+            0.0,
+            0.0,
         )
         .unwrap();
         assert!(wheel.orientation.as_ref(py).is(orientation));
@@ -21,9 +22,11 @@ fn constructor_fields_defaults_and_effect_replacement() {
             (
                 wheel.rotational_inertia,
                 wheel.max_torque,
-                wheel.max_momentum
+                wheel.max_momentum,
+                wheel.noise(),
+                wheel.bias(),
             ),
-            (0.02, 0.1, 2.0)
+            (0.02, 0.1, 2.0, 0.0, 0.0)
         );
         assert_eq!(
             wheel
@@ -33,62 +36,12 @@ fn constructor_fields_defaults_and_effect_replacement() {
                 .unwrap(),
             (0.0, 0.0, 0.0)
         );
-        assert!(wheel
-            .effects(py)
-            .as_ref(py)
-            .downcast::<PyList>()
-            .unwrap()
-            .is_empty());
-        wheel.set_effects(vec![orientation.into_py(py)]);
-        assert!(wheel
-            .effects(py)
-            .as_ref(py)
-            .downcast::<PyList>()
-            .unwrap()
-            .get_item(0)
-            .unwrap()
-            .is(orientation));
+        wheel.set_noise(0.05).unwrap();
+        wheel.set_bias(-0.01).unwrap();
+        assert_eq!(wheel.noise(), 0.05);
+        assert_eq!(wheel.bias(), -0.01);
+        assert!(wheel.set_noise(-0.1).is_err());
         wheel.max_torque = 0.3;
         assert_eq!(wheel.max_torque, 0.3);
-    });
-}
-
-#[test]
-fn apply_errors_passes_through_ordered_effects() {
-    Python::with_gil(|py| {
-        let first = py
-            .eval(
-                "type('Add', (), {'apply': lambda self, value, dt, rng: value + dt})()",
-                None,
-                None,
-            )
-            .unwrap();
-        let second = py
-            .eval(
-                "type('Double', (), {'apply': lambda self, value, dt, rng: value * 2})()",
-                None,
-                None,
-            )
-            .unwrap();
-        let wheel = ReactionWheel::new(
-            py,
-            py.None(),
-            py.None(),
-            0.02,
-            0.1,
-            2.0,
-            None,
-            Some(vec![first.into_py(py), second.into_py(py)]),
-        )
-        .unwrap();
-        assert_eq!(
-            wheel
-                .apply_errors(py, 1.0.into_py(py), 0.5, None)
-                .unwrap()
-                .as_ref(py)
-                .extract::<f64>()
-                .unwrap(),
-            3.0
-        );
     });
 }

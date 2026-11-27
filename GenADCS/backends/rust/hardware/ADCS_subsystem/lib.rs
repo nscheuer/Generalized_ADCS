@@ -2,10 +2,6 @@
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-mod effects;
-mod effects_py;
-pub use effects::{apply_sequence, Effect};
-use effects_py::apply_effects;
 mod adcs_subsystem;
 mod adcs_subsystem_py;
 pub mod estimator;
@@ -20,17 +16,14 @@ pub use estimator::attitude_estimator::NativeAttitudeSequentialSRUKF;
 pub use estimator::attitude_estimator::NativeAttitudeSequentialUKF;
 pub use sensors::Sensor as NativeSensor;
 
-include!("magnetorquer.rs");
-include!("magnetorquer_py.rs");
-include!("reaction_wheel.rs");
-include!("reaction_wheel_py.rs");
+include!("actuators/magnetorquer.rs");
+include!("actuators/magnetorquer_py.rs");
+include!("actuators/reaction_wheel.rs");
+include!("actuators/reaction_wheel_py.rs");
 
 #[cfg(test)]
 #[path = "../../../../tests/backends/rust/hardware/ADCS_subsystem/test_adcs_subsystem.rs"]
 mod test_adcs_subsystem;
-#[cfg(test)]
-#[path = "../../../../tests/backends/rust/hardware/ADCS_subsystem/test_effects.rs"]
-mod test_effects;
 #[cfg(test)]
 #[path = "../../../../tests/backends/rust/hardware/ADCS_subsystem/test_magnetorquer.rs"]
 mod test_magnetorquer;
@@ -43,7 +36,6 @@ mod test_sensor;
 
 #[pymodule]
 fn _subsystem(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(apply_effects, m)?)?;
     sensors::register(m)?;
     estimator::attitude_estimator::register(m)?;
     m.add_class::<Magnetorquer>()?;

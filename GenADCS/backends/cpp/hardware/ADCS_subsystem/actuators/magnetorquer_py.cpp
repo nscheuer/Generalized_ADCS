@@ -1,45 +1,19 @@
-#include "../../helpers/math/rotations/sensor_kernels_py.hpp"
-#include "adcs_subsystem.hpp"
-#include "effects_py.hpp"
 #include "magnetorquer.hpp"
-#include "reaction_wheel.hpp"
-#include "sensors/accelerometer.hpp"
-#include "sensors/coarse_sun_sensor.hpp"
-#include "sensors/fine_earth_sensor.hpp"
-#include "sensors/fine_sun_sensor.hpp"
-#include "sensors/gyroscope.hpp"
-#include "sensors/magnetometer.hpp"
 
+#include <cmath>
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
 namespace hardware = omni::hardware;
-namespace native_sensors = omni::hardware::sensors;
 
 namespace {
 struct BoundMagnetorquer {
   hardware::Magnetorquer native;
-  py::list effects;
 
-  BoundMagnetorquer(hardware::Magnetorquer value, py::list effect_values)
-      : native(std::move(value)), effects(std::move(effect_values)) {}
+  explicit BoundMagnetorquer(hardware::Magnetorquer value)
+      : native(std::move(value)) {}
 };
-
-py::list fresh_list(const py::object &value) {
-  if (value.is_none()) {
-    return py::list();
-  }
-  if (PyList_Check(value.ptr()) != 0) {
-    return py::reinterpret_borrow<py::list>(value);
-  }
-  return py::list(value);
-}
-
-bool same(const py::object &left, const py::object &right) {
-  return py::module_::import("numpy")
-      .attr("array_equal")(left, right)
-      .cast<bool>();
-}
 
 template <std::size_t N>
 std::array<double, N> read_fixed(py::handle value, const char *name) {
@@ -63,20 +37,18 @@ void bind_magnetorquer(py::module_ &module) {
   py::class_<BoundMagnetorquer>(module, "Magnetorquer")
       .def(py::init([](py::object position, py::object orientation,
                        double max_dipole, py::object misalignment,
-                       py::object effects) {
+                       double noise, double bias) {
              if (misalignment.is_none()) {
                misalignment = py::make_tuple(0.0, 0.0, 0.0);
              }
-             return BoundMagnetorquer(
-                 hardware::Magnetorquer(
-                     read_fixed<3>(position, "position"),
-                     read_fixed<3>(orientation, "orientation"), max_dipole,
-                     read_fixed<3>(misalignment, "misalignment")),
-                 fresh_list(effects));
+             return BoundMagnetorquer(hardware::Magnetorquer(
+                 read_fixed<3>(position, "position"),
+                 read_fixed<3>(orientation, "orientation"), max_dipole,
+                 read_fixed<3>(misalignment, "misalignment"), noise, bias));
            }),
            py::arg("position"), py::arg("orientation"), py::arg("max_dipole"),
-           py::arg("misalignment") = py::none(),
-           py::arg("effects") = py::none())
+           py::arg("misalignment") = py::none(), py::arg("noise") = 0.0,
+           py::arg("bias") = 0.0)
       .def_property(
           "position",
           [](const BoundMagnetorquer &self) {
@@ -113,33 +85,31 @@ void bind_magnetorquer(py::module_ &module) {
           [](BoundMagnetorquer &self, py::handle value) {
             self.native.misalignment = read_fixed<3>(value, "misalignment");
           })
-      .def_readwrite("effects", &BoundMagnetorquer::effects)
-      .def_property_readonly("noises",
-                             [](const BoundMagnetorquer &self) {
-                               return hardware::filter_effects(
-                                   self.effects,
-                                   "GenADCS.backends.python.noise", "Noise");
-                             })
-      .def_property_readonly("biases",
-                             [](const BoundMagnetorquer &self) {
-                               return hardware::filter_effects(
-                                   self.effects, "GenADCS.backends.python.bias",
-                                   "Bias");
-                             })
-      .def(
-          "apply_errors",
-          [](const BoundMagnetorquer &self, py::object value, double dt,
-             py::object rng) {
-            return hardware::apply_effects(std::move(value), self.effects, dt,
-                                           std::move(rng));
-          },
-          py::arg("value"), py::arg("dt"), py::arg("rng") = py::none())
+      .def_property(
+          "noise",
+          [](const BoundMagnetorquer &self) { return self.native.noise; },
+          [](BoundMagnetorquer &self, double value) {
+            if (!std::isfinite(value) || value < 0.0) {
+              throw py::value_error("noise must be finite and nonnegative");
+            }
+            self.native.noise = value;
+          })
+      .def_property(
+          "bias",
+          [](const BoundMagnetorquer &self) { return self.native.bias; },
+          [](BoundMagnetorquer &self, double value) {
+            if (!std::isfinite(value)) {
+              throw py::value_error("bias must be finite");
+            }
+            self.native.bias = value;
+          })
       .def("__eq__",
            [](const BoundMagnetorquer &left, const BoundMagnetorquer &right) {
              return left.native.position == right.native.position &&
                     left.native.orientation == right.native.orientation &&
                     (left.native.max_dipole == right.native.max_dipole) &&
                     left.native.misalignment == right.native.misalignment &&
-                    same(left.effects, right.effects);
+                    (left.native.noise == right.native.noise) &&
+                    (left.native.bias == right.native.bias);
            });
 }

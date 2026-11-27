@@ -1,12 +1,14 @@
 // Rust-native magnetorquer configuration and validation.
 
-/// Native magnetorquer geometry and dipole limit.
+/// Native magnetorquer geometry, dipole limit, noise, and bias.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MagnetorquerConfig {
     pub position: [f64; 3],
     pub orientation: [f64; 3],
     pub max_dipole: f64,
     pub misalignment: [f64; 3],
+    pub noise: f64,
+    pub bias: f64,
 }
 
 impl MagnetorquerConfig {
@@ -16,6 +18,8 @@ impl MagnetorquerConfig {
         orientation: [f64; 3],
         max_dipole: f64,
         misalignment: [f64; 3],
+        noise: f64,
+        bias: f64,
     ) -> Result<Self, &'static str> {
         if !position
             .iter()
@@ -23,11 +27,16 @@ impl MagnetorquerConfig {
             .chain(misalignment.iter())
             .all(|v| v.is_finite())
             || !max_dipole.is_finite()
+            || !noise.is_finite()
+            || !bias.is_finite()
         {
             return Err("magnetorquer values must be finite");
         }
         if max_dipole < 0. {
             return Err("max_dipole must be non-negative");
+        }
+        if noise < 0. {
+            return Err("noise must be non-negative");
         }
         if orientation.iter().all(|v| *v == 0.) {
             return Err("orientation must be non-zero");
@@ -37,6 +46,8 @@ impl MagnetorquerConfig {
             orientation,
             max_dipole,
             misalignment,
+            noise,
+            bias,
         })
     }
 }

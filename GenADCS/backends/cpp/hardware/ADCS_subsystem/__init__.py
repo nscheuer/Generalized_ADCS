@@ -1,5 +1,6 @@
 """C++ translation of ADCS_Python.hardware.ADCS_subsystem."""
-from ._adcs_subsystem import ADCSSubsystem, Magnetorquer, ReactionWheel
+from ._adcs_subsystem import ADCSSubsystem
+from .actuators import Magnetorquer, ReactionWheel
 from .sensors.gyroscope import Gyroscope
 from .sensors.magnetometer import Magnetometer
 from .sensors.accelerometer import Accelerometer

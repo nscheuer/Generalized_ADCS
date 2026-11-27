@@ -10,7 +10,8 @@ struct ReactionWheel {
   ReactionWheel(Vector3 position_value, Vector3 orientation_value,
                 double rotational_inertia_value, double max_torque_value,
                 double max_momentum_value,
-                Vector3 misalignment_value = {{0.0, 0.0, 0.0}});
+                Vector3 misalignment_value = {{0.0, 0.0, 0.0}},
+                double noise_value = 0.0, double bias_value = 0.0);
 
   Vector3 position;
   Vector3 orientation;
@@ -18,6 +19,8 @@ struct ReactionWheel {
   double max_torque;
   double max_momentum;
   Vector3 misalignment;
+  double noise;
+  double bias;
 };
 } // namespace omni::hardware
 

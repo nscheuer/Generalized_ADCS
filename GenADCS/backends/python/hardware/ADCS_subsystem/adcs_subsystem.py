@@ -2,8 +2,7 @@ from dataclasses import dataclass, field
 from typing import cast
 
 from .estimator.attitude_estimator.base import AttitudeEstimator
-from .magnetorquer import Magnetorquer
-from .reaction_wheel import ReactionWheel
+from .actuators import Magnetorquer, ReactionWheel
 from .sensors.sensor import Sensor
 from .state_machine import ADCSStateMachine
 

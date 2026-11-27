@@ -1,9 +1,7 @@
 """ADCS hardware models backed by Rust."""
 
 from .adcs_subsystem import ADCSSubsystem
-from .effects import apply_effects
-from .magnetorquer import Magnetorquer
-from .reaction_wheel import ReactionWheel
+from .actuators import Magnetorquer, ReactionWheel
 from .sensors import Sensor
 from .estimator.attitude_estimator import (
     AttitudeBatchedUKF,
@@ -19,7 +17,6 @@ __all__ = [
     "Magnetorquer",
     "ReactionWheel",
     "Sensor",
-    "apply_effects",
     "AttitudeEstimator",
     "AttitudeBatchedUKF",
     "AttitudeEKF",

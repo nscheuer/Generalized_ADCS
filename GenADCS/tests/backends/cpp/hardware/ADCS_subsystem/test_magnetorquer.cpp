@@ -22,11 +22,17 @@ int main() {
   CHECK(torquer.orientation == orientation);
   CHECK(torquer.max_dipole == 0.25);
   CHECK((torquer.misalignment == Magnetorquer::V{{0.0, 0.0, 0.0}}));
+  CHECK(torquer.noise == 0.0);
+  CHECK(torquer.bias == 0.0);
 
   torquer.position = {{4.0, 5.0, 6.0}};
   torquer.max_dipole = 0.5;
   torquer.misalignment = {{0.1, 0.0, -0.1}};
+  torquer.noise = 0.01;
+  torquer.bias = 0.02;
   CHECK((torquer.position == Magnetorquer::V{{4.0, 5.0, 6.0}}));
   CHECK(torquer.max_dipole == 0.5);
   CHECK((torquer.misalignment == Magnetorquer::V{{0.1, 0.0, -0.1}}));
+  CHECK(torquer.noise == 0.01);
+  CHECK(torquer.bias == 0.02);
 }

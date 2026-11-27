@@ -60,13 +60,12 @@ def from_satellite(satellite, backend=None):
             ({"legacy_rw": _packed(wheel), "rotational_inertia": float(wheel.J)}
              if hasattr(wheel, "J") else
              {**{name: _values(getattr(wheel, name)) for name in ("position", "orientation", "misalignment")},
-              **{name: float(getattr(wheel, name)) for name in ("rotational_inertia", "max_torque", "max_momentum")},
-              "effects": _packed(wheel.effects)})
+              **{name: float(getattr(wheel, name)) for name in ("rotational_inertia", "max_torque", "max_momentum", "noise", "bias")}})
             for wheel in adcs.reaction_wheels
         ],
         "magnetorquers": [
             {**{name: _values(getattr(device, name)) for name in ("position", "orientation", "misalignment")},
-             "max_dipole": float(device.max_dipole), "effects": _packed(device.effects)}
+             **{name: float(getattr(device, name)) for name in ("max_dipole", "noise", "bias")}}
             for device in adcs.magnetorquers
         ],
         "adcs_N": int(getattr(adcs, "N", 1)),
@@ -94,10 +93,10 @@ def to_satellite(config, backend):
               hardware.ReactionWheel(
                   wheel["position"], wheel["orientation"], wheel["rotational_inertia"],
                   wheel["max_torque"], wheel["max_momentum"], wheel["misalignment"],
-                  _unpacked(wheel["effects"]))) for wheel in config["reaction_wheels"]]
+                  wheel.get("noise", 0.0), wheel.get("bias", 0.0))) for wheel in config["reaction_wheels"]]
     magnetorquers = [hardware.Magnetorquer(
         device["position"], device["orientation"], device["max_dipole"],
-        device["misalignment"], _unpacked(device["effects"]))
+        device["misalignment"], device.get("noise", 0.0), device.get("bias", 0.0))
         for device in config["magnetorquers"]]
     adcs = hardware.ADCSSubsystem(wheels, magnetorquers)
     if backend in ("C", "Rust"):

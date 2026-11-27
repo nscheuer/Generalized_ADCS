@@ -52,22 +52,12 @@ def test_device_and_subsystem_keep_references_and_release_on_replacement(
     del position
     gc.collect()
     assert wheel.position is wheel.orientation is position_ref()
-
-    old_effect = Retained()
-    old_ref = weakref.ref(old_effect)
-    wheel.effects = [old_effect]
-    wheel.effects = []
-    del old_effect
-    gc.collect()
-    assert old_ref() is None
-
-    retained_effect = Retained()
-    retained_effect_ref = weakref.ref(retained_effect)
-    wheel.effects = [retained_effect]
+    wheel.noise = 0.02
+    wheel.bias = -0.01
     system = subsystem_backend.ADCSSubsystem([wheel], [])
-    del wheel, retained_effect
+    del wheel
     gc.collect()
-    assert system.reaction_wheels[0].effects[0] is retained_effect_ref()
+    assert (system.reaction_wheels[0].noise, system.reaction_wheels[0].bias) == (0.02, -0.01)
     del system
     gc.collect()
-    assert retained_effect_ref() is None
+    assert position_ref() is None

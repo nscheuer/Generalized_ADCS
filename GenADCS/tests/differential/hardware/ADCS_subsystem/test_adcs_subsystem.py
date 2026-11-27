@@ -25,15 +25,13 @@ def test_device_scalar_fields_match(adcs_backends: Any) -> None:
         )
 
 
-def test_device_effect_application_matches(adcs_backends: Any) -> None:
-    class Effect:
-        def apply(self, value: Any, dt: Any, rng: Any) -> Any:
-            return value + dt
-
+def test_device_noise_and_bias_match(adcs_backends: Any) -> None:
     for name, api in adcs_backends.items():
         wheel = api.ReactionWheel(
-            (0, 0, 0), (0, 0, 1), 0.1, 0.2, 1.0, effects=[Effect()]
+            (0, 0, 0), (0, 0, 1), 0.1, 0.2, 1.0, noise=0.02, bias=-0.01
         )
-        torquer = api.Magnetorquer((0, 0, 0), (0, 0, 1), 0.2, effects=[Effect()])
-        assert wheel.apply_errors(1.0, 0.5) == 1.5, name
-        assert torquer.apply_errors(1.0, 0.5) == 1.5, name
+        torquer = api.Magnetorquer(
+            (0, 0, 0), (0, 0, 1), 0.2, noise=0.03, bias=0.01
+        )
+        assert (wheel.noise, wheel.bias) == (0.02, -0.01), name
+        assert (torquer.noise, torquer.bias) == (0.03, 0.01), name

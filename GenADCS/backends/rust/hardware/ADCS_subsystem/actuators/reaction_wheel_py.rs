@@ -6,14 +6,15 @@ pub struct ReactionWheel {
     max_torque: f64,
     max_momentum: f64,
     misalignment: PyObject,
-    effects: Vec<PyObject>,
+    noise: f64,
+    bias: f64,
     native: ReactionWheelData,
 }
 
 #[pymethods]
 impl ReactionWheel {
     #[new]
-    #[pyo3(signature = (position, orientation, rotational_inertia, max_torque, max_momentum, misalignment=None, effects=None))]
+    #[pyo3(signature = (position, orientation, rotational_inertia, max_torque, max_momentum, misalignment=None, noise=0.0, bias=0.0))]
     fn new(
         py: Python<'_>,
         position: PyObject,
@@ -22,7 +23,8 @@ impl ReactionWheel {
         max_torque: f64,
         max_momentum: f64,
         misalignment: Option<PyObject>,
-        effects: Option<Vec<PyObject>>,
+        noise: f64,
+        bias: f64,
     ) -> PyResult<Self> {
         let misalignment = misalignment.unwrap_or_else(|| (0.0, 0.0, 0.0).into_py(py));
         let native = ReactionWheelData::new(
@@ -32,6 +34,8 @@ impl ReactionWheel {
             max_torque,
             max_momentum,
             python_vector(py, &misalignment).unwrap_or_else(|_| vec![0.0; 3]),
+            noise,
+            bias,
         )
         .map_err(PyValueError::new_err)?;
         Ok(Self {
@@ -41,7 +45,8 @@ impl ReactionWheel {
             max_torque,
             max_momentum,
             misalignment,
-            effects: effects.unwrap_or_default(),
+            noise,
+            bias,
             native,
         })
     }
@@ -122,34 +127,31 @@ impl ReactionWheel {
     }
 
     #[getter]
-    fn effects(&self, py: Python<'_>) -> PyObject {
-        self.effects.clone().into_py(py)
+    fn noise(&self) -> f64 {
+        self.noise
     }
 
     #[setter]
-    fn set_effects(&mut self, effects: Vec<PyObject>) {
-        self.effects = effects;
+    fn set_noise(&mut self, value: f64) -> PyResult<()> {
+        if !value.is_finite() || value < 0.0 {
+            return Err(PyValueError::new_err("noise must be finite and nonnegative"));
+        }
+        self.noise = value;
+        self.native.noise = value;
+        Ok(())
     }
 
     #[getter]
-    fn noises(&self, py: Python<'_>) -> PyResult<PyObject> {
-        effects_of_type(py, &self.effects, "GenADCS.backends.python.noise", "Noise")
+    fn bias(&self) -> f64 {
+        self.bias
     }
 
-    #[getter]
-    fn biases(&self, py: Python<'_>) -> PyResult<PyObject> {
-        effects_of_type(py, &self.effects, "GenADCS.backends.python.bias", "Bias")
-    }
-
-    #[pyo3(signature = (value, dt, rng=None))]
-    fn apply_errors(
-        &self,
-        py: Python<'_>,
-        value: PyObject,
-        dt: f64,
-        rng: Option<PyObject>,
-    ) -> PyResult<PyObject> {
-        apply_effects(py, value, self.effects.clone(), dt, rng)
+    #[setter]
+    fn set_bias(&mut self, value: f64) -> PyResult<()> {
+        validate_wheel_scalar(value)?;
+        self.bias = value;
+        self.native.bias = value;
+        Ok(())
     }
 }
 

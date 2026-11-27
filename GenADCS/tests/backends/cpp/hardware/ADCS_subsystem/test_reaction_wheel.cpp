@@ -22,9 +22,13 @@ int main() {
   CHECK(wheel.max_torque == 0.2);
   CHECK(wheel.max_momentum == 5.0);
   CHECK((wheel.misalignment == ReactionWheel::Vector3{{0.0, 0.0, 0.0}}));
+  CHECK(wheel.noise == 0.0);
+  CHECK(wheel.bias == 0.0);
 
   const ReactionWheel misaligned({{0.0, 0.0, 0.0}}, {{1.0, 0.0, 0.0}}, 0.03,
-                                 0.1, 2.0, {{0.01, 0.0, -0.01}});
+                                 0.1, 2.0, {{0.01, 0.0, -0.01}}, 0.02, -0.01);
   CHECK(
       (misaligned.misalignment == ReactionWheel::Vector3{{0.01, 0.0, -0.01}}));
+  CHECK(misaligned.noise == 0.02);
+  CHECK(misaligned.bias == -0.01);
 }

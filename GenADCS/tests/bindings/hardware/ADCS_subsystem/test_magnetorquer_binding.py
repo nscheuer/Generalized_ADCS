@@ -2,35 +2,27 @@
 
 from typing import Any
 
-from GenADCS.backends.python.bias import Bias
-from GenADCS.backends.python.noise import Noise
+import pytest
 
 
-def test_magnetorquer_effects_are_handled_at_the_binding_boundary(subsystem_backend: Any) -> None:
-    class AddEffect:
-        def __init__(self, amount: float, calls: list[tuple[Any, float, Any]]) -> None:
-            self.amount = amount
-            self.calls = calls
-
-        def apply(self, value: float, dt: float, rng: Any = None) -> float:
-            self.calls.append((value, dt, rng))
-            return value + self.amount
-
-    noise, bias = Noise(), Bias()
+def test_magnetorquer_noise_and_bias_at_the_binding_boundary(subsystem_backend: Any) -> None:
     torquer = subsystem_backend.Magnetorquer(
         (1, 2, 3),
         (0, 0, 1),
         0.25,
-        effects=[noise, bias],
+        noise=0.02,
+        bias=-0.01,
     )
 
     assert torquer.position == (1.0, 2.0, 3.0)
     assert torquer.orientation == (0.0, 0.0, 1.0)
-    assert torquer.noises == [noise]
-    assert torquer.biases == [bias]
+    assert torquer.noise == 0.02
+    assert torquer.bias == -0.01
 
-    calls: list[tuple[Any, float, Any]] = []
-    rng = object()
-    torquer.effects = [AddEffect(2.0, calls), AddEffect(-0.5, calls)]
-    assert torquer.apply_errors(1.0, 0.125, rng) == 2.5
-    assert calls == [(1.0, 0.125, rng), (3.0, 0.125, rng)]
+    torquer.noise = 0.05
+    torquer.bias = 0.03
+    assert torquer.noise == 0.05
+    assert torquer.bias == 0.03
+
+    with pytest.raises(ValueError):
+        torquer.noise = -0.1

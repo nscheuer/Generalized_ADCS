@@ -220,7 +220,7 @@ if(BUILD_TESTING)
     )
     target_include_directories(cpp_test_satellite PRIVATE hardware)
     add_test(NAME cpp_satellite COMMAND cpp_test_satellite)
-    foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor autonomous_star_tracker fine_sun_sensor fine_earth_sensor gnss)
+    foreach(component adcs_subsystem magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor autonomous_star_tracker fine_sun_sensor fine_earth_sensor gnss)
         if(component STREQUAL "gyroscope" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "coarse_sun_sensor" OR component STREQUAL "autonomous_star_tracker" OR component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor" OR component STREQUAL "gnss")
             set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/sensors/test_${component}.cpp")
         else()
@@ -232,21 +232,18 @@ if(BUILD_TESTING)
         if(component STREQUAL "adcs_subsystem")
             target_sources(cpp_test_${component} PRIVATE
                 hardware/ADCS_subsystem/adcs_subsystem.cpp
-                hardware/ADCS_subsystem/reaction_wheel.cpp
-                hardware/ADCS_subsystem/magnetorquer.cpp
+                hardware/ADCS_subsystem/actuators/reaction_wheel.cpp
+                hardware/ADCS_subsystem/actuators/magnetorquer.cpp
             )
-            target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem)
-        endif()
-        if(component STREQUAL "effects")
-            target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem)
+            target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem hardware/ADCS_subsystem/actuators)
         endif()
         if(component STREQUAL "magnetorquer")
-            target_sources(cpp_test_${component} PRIVATE hardware/ADCS_subsystem/magnetorquer.cpp)
-            target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem)
+            target_sources(cpp_test_${component} PRIVATE hardware/ADCS_subsystem/actuators/magnetorquer.cpp)
+            target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem/actuators)
         endif()
         if(component STREQUAL "reaction_wheel")
-            target_sources(cpp_test_${component} PRIVATE hardware/ADCS_subsystem/reaction_wheel.cpp)
-            target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem)
+            target_sources(cpp_test_${component} PRIVATE hardware/ADCS_subsystem/actuators/reaction_wheel.cpp)
+            target_include_directories(cpp_test_${component} PRIVATE hardware/ADCS_subsystem/actuators)
         endif()
         if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "autonomous_star_tracker" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "fine_sun_sensor" OR component STREQUAL "fine_earth_sensor" OR component STREQUAL "gyroscope" OR component STREQUAL "gnss")
             target_sources(cpp_test_${component} PRIVATE
@@ -497,9 +494,8 @@ file(GLOB_RECURSE ADCS_SUBSYSTEM_PYBIND_SOURCES CONFIGURE_DEPENDS
 pybind11_add_module(_adcs_subsystem ${GENADCS_PYBIND_OPTIONS}
     ${ADCS_SUBSYSTEM_PYBIND_SOURCES}
     hardware/ADCS_subsystem/adcs_subsystem.cpp
-    hardware/ADCS_subsystem/effects.cpp
-    hardware/ADCS_subsystem/magnetorquer.cpp
-    hardware/ADCS_subsystem/reaction_wheel.cpp
+    hardware/ADCS_subsystem/actuators/magnetorquer.cpp
+    hardware/ADCS_subsystem/actuators/reaction_wheel.cpp
     hardware/ADCS_subsystem/sensors/gyroscope.cpp
     hardware/ADCS_subsystem/sensors/magnetometer.cpp
     hardware/ADCS_subsystem/sensors/kernels.cpp
@@ -516,7 +512,7 @@ pybind11_add_module(_adcs_subsystem ${GENADCS_PYBIND_OPTIONS}
 target_compile_features(_adcs_subsystem PRIVATE cxx_std_17)
 target_link_libraries(_adcs_subsystem PRIVATE Eigen3::Eigen)
 target_link_libraries(_adcs_subsystem PRIVATE attitude_estimator_native)
-target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem hardware/ADCS_subsystem/sensors helpers/random helpers/math/rotations)
+target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem hardware/ADCS_subsystem/actuators hardware/ADCS_subsystem/sensors helpers/random helpers/math/rotations)
 set_target_properties(_adcs_subsystem PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/hardware/ADCS_subsystem")
 
@@ -533,7 +529,7 @@ target_include_directories(_satellite_geometry PRIVATE hardware/satellite_geomet
 set_target_properties(_satellite_geometry PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/hardware/satellite_geometry")
 if(BUILD_TESTING)
-    foreach(component adcs_subsystem effects magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor autonomous_star_tracker fine_sun_sensor fine_earth_sensor gnss)
+    foreach(component adcs_subsystem magnetorquer reaction_wheel gyroscope magnetometer accelerometer coarse_sun_sensor autonomous_star_tracker fine_sun_sensor fine_earth_sensor gnss)
         if(component STREQUAL "coarse_sun_sensor" OR component STREQUAL "autonomous_star_tracker" OR component STREQUAL "magnetometer" OR component STREQUAL "accelerometer" OR component STREQUAL "gyroscope" OR component STREQUAL "magnetorquer" OR component STREQUAL "gnss")
             add_test(NAME cpp_${component} COMMAND cpp_test_${component})
         elseif(component STREQUAL "reaction_wheel")

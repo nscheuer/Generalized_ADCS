@@ -9,6 +9,6 @@ from .estimator import (
 )
 from .estimator import AttitudeSequentialSRUKF as AttitudeSequentialSRUKF
 from .estimator import AttitudeSequentialUKF as AttitudeSequentialUKF
-from .magnetorquer import Magnetorquer as Magnetorquer
-from .reaction_wheel import ReactionWheel as ReactionWheel
+from .actuators import Magnetorquer as Magnetorquer
+from .actuators import ReactionWheel as ReactionWheel
 from .state_machine import ADCSMode as ADCSMode, ADCSStateMachine as ADCSStateMachine
