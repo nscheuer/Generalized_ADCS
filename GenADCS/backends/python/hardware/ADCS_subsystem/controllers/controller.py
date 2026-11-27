@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 CTRL_NONE = 0
 CTRL_BDOT = 1
 CTRL_BCROSS = 2
+CTRL_ATTITUDE = 3
 
 
 @njit(cache=True, inline="always")

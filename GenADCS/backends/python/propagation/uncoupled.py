@@ -13,6 +13,9 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.estimator.runtime import (
     prepare_estimator,
     update_estimator,
 )
+from GenADCS.backends.python.hardware.ADCS_subsystem.controllers.controller import (
+    CTRL_ATTITUDE,
+)
 from GenADCS.backends.python.hardware.ADCS_subsystem.controllers.runtime import (
     ControllerRuntime,
     ControllerTable,
@@ -139,6 +142,11 @@ def _simulate_uncoupled_loop(
             cmd_wheel_log[0, :] = runtime.wheel_commands
         if (ctrl_log_flags & 64) and runtime.dipole_commands.size > 0:
             cmd_dipole_log[0, :] = runtime.dipole_commands
+
+    last_ff_torque = np.full(3, np.nan, dtype=np.float64)
+    last_ff_q = np.full(4, np.nan, dtype=np.float64)
+    last_ff_w = np.full(3, np.nan, dtype=np.float64)
+    last_ref_torque = np.full(3, np.nan, dtype=np.float64)
     if sensor_every:
         sample_sensors(
             y,
@@ -264,13 +272,34 @@ def _simulate_uncoupled_loop(
                 if ctrl_idx != prev_ctrl_idx:
                     ctrl_work[:] = 0.0
                     prev_ctrl_idx = ctrl_idx
-                step_controller(
+                cur_jd_ctrl = initial_jd + completed * dt / SECONDS_PER_DAY
+                if ctrl_rt.kinds[ctrl_idx] == CTRL_ATTITUDE:
+                    q_g, w_g = evaluate_goal(
+                        active_adcs_goal,
+                        adcs_sm_runtime.goal_kinds,
+                        adcs_sm_runtime.goal_params,
+                        y,
+                        cur_jd_ctrl,
+                        runtime,
+                    )
+                else:
+                    q_g = np.full(4, np.nan, dtype=np.float64)
+                    w_g = np.full(3, np.nan, dtype=np.float64)
+                ctrl_q = estimate_q if estimator_kind else y[0:4]
+                ctrl_w = estimate_w if estimator_kind else y[4:7]
+                last_ff_torque, last_ff_q, last_ff_w, last_ref_torque = step_controller(
                     ctrl_idx,
                     dt * sensor_every,
+                    ctrl_q,
+                    ctrl_w,
+                    q_g,
+                    w_g,
+                    y[13:],
                     reading[index],
                     sensor_config,
                     ctrl_rt,
                     ctrl_work,
+                    runtime.wheel_commands,
                     runtime.dipole_commands,
                 )
         if completed % record_every == 0:
@@ -294,6 +323,14 @@ def _simulate_uncoupled_loop(
                     )
                     ctrl_log[rec_idx, 0:4] = gq
                     ctrl_log[rec_idx, 4:7] = gw
+                if ctrl_log_flags & 2:
+                    ctrl_log[rec_idx, 7:10] = last_ff_torque
+                if ctrl_log_flags & 4:
+                    ctrl_log[rec_idx, 10:14] = last_ff_q
+                if ctrl_log_flags & 8:
+                    ctrl_log[rec_idx, 14:17] = last_ff_w
+                if ctrl_log_flags & 16:
+                    ctrl_log[rec_idx, 17:20] = last_ref_torque
                 if (ctrl_log_flags & 32) and runtime.wheel_commands.size > 0:
                     cmd_wheel_log[rec_idx, :] = runtime.wheel_commands
                 if (ctrl_log_flags & 64) and runtime.dipole_commands.size > 0:
@@ -318,6 +355,14 @@ def _simulate_uncoupled_loop(
                     )
                     ctrl_log[-1, 0:4] = gq
                     ctrl_log[-1, 4:7] = gw
+                if ctrl_log_flags & 2:
+                    ctrl_log[-1, 7:10] = last_ff_torque
+                if ctrl_log_flags & 4:
+                    ctrl_log[-1, 10:14] = last_ff_q
+                if ctrl_log_flags & 8:
+                    ctrl_log[-1, 14:17] = last_ff_w
+                if ctrl_log_flags & 16:
+                    ctrl_log[-1, 17:20] = last_ref_torque
                 if (ctrl_log_flags & 32) and runtime.wheel_commands.size > 0:
                     cmd_wheel_log[-1, :] = runtime.wheel_commands
                 if (ctrl_log_flags & 64) and runtime.dipole_commands.size > 0:
@@ -393,12 +438,20 @@ def simulate_uncoupled(
     adcs_sm_runtime = prepare_adcs_sm(
         satellite.adcs.state_machine, goal_table, ctrl_table
     )
+    wheel_torque_limits = np.asarray(
+        [w.max_torque for w in satellite.adcs.reaction_wheels], dtype=np.float64
+    )
+    bus_inertia = np.linalg.inv(runtime.inverse_bus_inertia) if runtime.wheel_axes.shape[0] > 0 else runtime.inertia
     ctrl_rt = prepare_controllers(
         (),
         satellite.adcs.sensors,
         runtime.mtq_axes,
         runtime.mtq_max_dipole,
         ctrl_table,
+        wheel_axes=runtime.wheel_axes,
+        wheel_max_torque=wheel_torque_limits,
+        total_inertia=runtime.inertia,
+        bus_inertia=bus_inertia,
     )
     ctrl_work = init_controller_work()
     obc_runtime = prepare_obc(satellite.obc, adcs_sm_runtime, goal_table)

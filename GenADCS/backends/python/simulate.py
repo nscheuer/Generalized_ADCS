@@ -96,7 +96,10 @@ def simulate(
 
     sensor_every = (
         satellite.adcs.N
-        if satellite.adcs.sensors or satellite.adcs.estimator is not None
+        if satellite.adcs.sensors
+        or satellite.adcs.estimator is not None
+        or satellite.adcs.controller is not None
+        or satellite.adcs.state_machine is not None
         else 0
     )
     # RK4 samples sensors directly at completed steps, without storing those
