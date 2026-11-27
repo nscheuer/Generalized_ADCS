@@ -1,147 +1,184 @@
 Installation
 ============
 
-Please ensure Python>=3.10 is installed on your system.
+Generalized ADCS needs **Python 3.10 or newer**. Pick your operating system,
+then choose between installing from PyPI and cloning the repository.
 
-.. raw:: html
+.. list-table::
+   :header-rows: 1
+   :widths: 50 25 25
 
-   <div class="installation-picker" role="radiogroup" aria-label="Operating system">
-     <input type="radio" name="installation-os" id="installation-linux" checked>
-     <input type="radio" name="installation-os" id="installation-windows">
-     <input type="radio" name="installation-os" id="installation-macos">
-     <div class="installation-tabs" aria-label="Select your operating system">
-       <label for="installation-linux">Linux / WSL</label>
-       <label for="installation-windows">Windows</label>
-       <label for="installation-macos">macOS</label>
-     </div>
+   * -
+     - pip install
+     - GitHub clone
+   * - Core ADCS functionality and plotting
+     - ✅
+     - ✅
+   * - Bundled examples (``python -m ADCS.examples...``)
+     - ✅
+     - ✅
+   * - Full examples, debug scripts, and tutorials
+     -
+     - ✅
+   * - Offline documentation
+     -
+     - ✅
+   * - Optional C++ add-ons (built separately)
+     -
+     - ✅
 
-     <div class="installation-panels">
-       <div class="installation-grid installation-linux">
-         <section class="installation-card">
-           <h2>GitHub Clone</h2>
-           <div class="installation-code-box">
-             <button class="installation-copy" type="button" aria-label="Copy installation commands">Copy</button>
-             <pre><code>git clone https://github.com/nscheuer/Generalized_ADCS.git
-   cd Generalized_ADCS
-   python3 -m venv .venv
-   .venv/bin/python -m pip install -e .
-   .venv/bin/python -m ADCS.examples.basic_simulation</code></pre>
-           </div>
-           <ul class="installation-features">
-             <li>✅ Full examples, debug scripts, and tutorials</li>
-             <li>✅ Offline documentation</li>
-             <li>Optional C++ add-ons can be built separately</li>
-           </ul>
-         </section>
-         <section class="installation-card">
-           <h2>pip install</h2>
-           <div class="installation-code-box">
-             <button class="installation-copy" type="button" aria-label="Copy installation commands">Copy</button>
-             <pre><code>python3 -m venv adcs-venv
-   source adcs-venv/bin/activate
-   pip install generalized-adcs
-   python -m ADCS.examples.basic_simulation</code></pre>
-           </div>
-           <ul class="installation-features">
-             <li>✅ Lightweight setup</li>
-             <li>✅ Core ADCS functionality and plotting</li>
-           </ul>
-         </section>
-       </div>
+.. tab-set::
+   :sync-group: os
 
-       <div class="installation-grid installation-windows">
-         <section class="installation-card">
-           <h2>GitHub Clone</h2>
-           <div class="installation-code-box">
-             <button class="installation-copy" type="button" aria-label="Copy installation commands">Copy</button>
-             <pre><code>git clone https://github.com/nscheuer/Generalized_ADCS.git
-   cd Generalized_ADCS
-   python -m venv .venv
-   .\.venv\Scripts\python.exe -m pip install -e .
-   .\.venv\Scripts\python.exe -m ADCS.examples.basic_simulation</code></pre>
-           </div>
-           <ul class="installation-features">
-             <li>✅ Full examples, debug scripts, and tutorials</li>
-             <li>✅ Offline documentation</li>
-             <li>Optional C++ add-ons can be built separately</li>
-           </ul>
-         </section>
-         <section class="installation-card">
-           <h2>pip install</h2>
-           <div class="installation-code-box">
-             <button class="installation-copy" type="button" aria-label="Copy installation commands">Copy</button>
-             <pre><code>python -m venv adcs-venv
-   .\adcs-venv\Scripts\activate
-   pip install generalized-adcs
-   python -m ADCS.examples.basic_simulation</code></pre>
-           </div>
-           <ul class="installation-features">
-             <li>✅ Lightweight setup</li>
-             <li>✅ Core ADCS functionality and plotting</li>
-           </ul>
-         </section>
-       </div>
+   .. tab-item:: Linux / WSL
+      :sync: linux
 
-       <div class="installation-grid installation-macos">
-         <section class="installation-card">
-           <h2>GitHub Clone</h2>
-           <div class="installation-code-box">
-             <button class="installation-copy" type="button" aria-label="Copy installation commands">Copy</button>
-             <pre><code>git clone https://github.com/nscheuer/Generalized_ADCS.git
-   cd Generalized_ADCS
-   python3 -m venv .venv
-   .venv/bin/python -m pip install -e .
-   .venv/bin/python -m ADCS.examples.basic_simulation</code></pre>
-           </div>
-           <ul class="installation-features">
-             <li>✅ Full examples, debug scripts, and tutorials</li>
-             <li>✅ Offline documentation</li>
-             <li>Optional C++ add-ons can be built separately</li>
-           </ul>
-         </section>
-         <section class="installation-card">
-           <h2>pip install</h2>
-           <div class="installation-code-box">
-             <button class="installation-copy" type="button" aria-label="Copy installation commands">Copy</button>
-             <pre><code>python3 -m venv adcs-venv
-   source adcs-venv/bin/activate
-   pip install generalized-adcs
-   python -m ADCS.examples.basic_simulation</code></pre>
-           </div>
-           <ul class="installation-features">
-             <li>✅ Lightweight setup</li>
-             <li>✅ Core ADCS functionality and plotting</li>
-           </ul>
-         </section>
-       </div>
-     </div>
-   </div>
-   <script>
-   document.querySelectorAll(".installation-copy").forEach((button) => {
-     button.addEventListener("click", async () => {
-       const code = button.closest(".installation-code-box").querySelector("code").innerText;
-       try {
-         await navigator.clipboard.writeText(code);
-       } catch {
-         const temporary = document.createElement("textarea");
-         temporary.value = code;
-         temporary.style.position = "fixed";
-         temporary.style.opacity = "0";
-         document.body.appendChild(temporary);
-         temporary.select();
-         document.execCommand("copy");
-         temporary.remove();
-       }
-       button.textContent = "Copied!";
-       window.setTimeout(() => { button.textContent = "Copy"; }, 1600);
-     });
-   });
-   </script>
+      .. grid:: 1
+         :gutter: 3
 
-The source checkout needs Git. The PyPI path runs the same included example without downloading any additional files.
+         .. grid-item-card:: pip install
+
+            Lightweight setup.
+
+            .. code-block:: bash
+
+               python3 -m venv adcs-venv
+               source adcs-venv/bin/activate
+               pip install generalized-adcs
+               python -m ADCS.examples.basic_simulation
+
+         .. grid-item-card:: GitHub Clone
+
+            Full examples, debug scripts, tutorials and offline documentation.
+
+            .. code-block:: bash
+
+               git clone https://github.com/nscheuer/Generalized_ADCS.git
+               cd Generalized_ADCS
+               python3 -m venv .venv
+               .venv/bin/python -m pip install -e .
+               .venv/bin/python -m ADCS.examples.basic_simulation
+
+   .. tab-item:: Windows
+      :sync: windows
+
+      .. grid:: 1
+         :gutter: 3
+
+         .. grid-item-card:: pip install
+
+            Lightweight setup.
+
+            .. code-block:: powershell
+
+               python -m venv adcs-venv
+               .\adcs-venv\Scripts\activate
+               pip install generalized-adcs
+               python -m ADCS.examples.basic_simulation
+
+         .. grid-item-card:: GitHub Clone
+
+            Full examples, debug scripts, tutorials and offline documentation.
+
+            .. code-block:: powershell
+
+               git clone https://github.com/nscheuer/Generalized_ADCS.git
+               cd Generalized_ADCS
+               python -m venv .venv
+               .\.venv\Scripts\python.exe -m pip install -e .
+               .\.venv\Scripts\python.exe -m ADCS.examples.basic_simulation
+
+   .. tab-item:: macOS
+      :sync: macos
+
+      .. grid:: 1
+         :gutter: 3
+
+         .. grid-item-card:: pip install
+
+            Lightweight setup.
+
+            .. code-block:: bash
+
+               python3 -m venv adcs-venv
+               source adcs-venv/bin/activate
+               pip install generalized-adcs
+               python -m ADCS.examples.basic_simulation
+
+         .. grid-item-card:: GitHub Clone
+
+            Full examples, debug scripts, tutorials and offline documentation.
+
+            .. code-block:: bash
+
+               git clone https://github.com/nscheuer/Generalized_ADCS.git
+               cd Generalized_ADCS
+               python3 -m venv .venv
+               .venv/bin/python -m pip install -e .
+               .venv/bin/python -m ADCS.examples.basic_simulation
+
+The source checkout needs Git. The PyPI path runs the same included example
+without downloading any additional files.
+
+Check that it worked
+--------------------
+
+The last command of either path runs a 30-second free-rotation simulation.
+After the progress bars, it prints:
+
+.. code-block:: text
+
+   Final angular velocity [rad/s]: [0.         0.         0.01745329]
+   Final attitude quaternion [scalar, x, y, z]: [0.96814764 0.         0.         0.25038   ]
+
+Next, follow the :doc:`../getting_started/quickstart`, or see
+:doc:`../getting_started/examples` to get the full example collection.
+
+Optional extras
+---------------
+
+Extras add optional dependencies. Install one with
+``pip install "generalized-adcs[<extra>]"``, or ``pip install -e ".[<extra>]"``
+from a clone.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - Extra
+     - What it adds
+   * - ``viz``
+     - 3-D orbit animation: PyVista orbit plots (``ADCS.plots.AnimationPlot``),
+       Godot asset texture processing, and Pillow-based rendering and export
+   * - ``viz-video``
+     - MP4 export from the Godot viewer when no ``ffmpeg`` is on ``PATH``
+   * - ``viz-mesh``
+     - Spacecraft model import (glTF/STL) with level-of-detail decimation
+   * - ``viz-assets``
+     - Rebuilding the viewer's texture assets
+   * - ``nrlmsise``
+     - The NRLMSISE-00 atmosphere model (via ``pymsis``)
+   * - ``ppigrf``
+     - The legacy geomagnetic field model, selectable with
+       ``magnetic_model="igrf_ppigrf"`` to reproduce results from 0.1.8 and
+       earlier
+   * - ``dev``
+     - Test and lint tooling
+   * - ``docs``
+     - Documentation build
+   * - ``cpp``
+     - Build toolchain for the optional C++ add-ons (source checkout only; see
+       below)
+
+For bit-reproducible paper campaigns, install the exact pins from a clone
+instead: ``pip install -r requirements-repro.txt``.
+
+Optional C++ add-ons
+--------------------
 
 Optional C++ add-ons can be installed after the core framework. Their source
-code lives in the ``OldPlanner`` and ``SALTRO`` Git submodules.
+code lives in the ``OldPlanner`` and ``SALTRO`` Git submodules, so they need a
+clone of the repository. Neither is needed for the pure-Python framework.
 
 .. toctree::
    :maxdepth: 2

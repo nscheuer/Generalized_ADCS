@@ -1,137 +1,236 @@
 .. Generalized_ADCS documentation master file
 
-Generalized Attitude Determination and Control System
-=====================================================
+Generalized ADCS
+================
 
-GitHub repository: `nscheuer/Generalized_ADCS <https://github.com/nscheuer/Generalized_ADCS>`_
+.. rst-class:: adcs-tagline
 
 A Python-first framework for simulating spacecraft attitude dynamics,
 estimation, and control in orbit.
 
 **Generalized ADCS** is designed for aerospace students, researchers,
 and engineers who want a flexible, transparent ADCS simulation
-environment without black-box solvers.
+environment without black-box solvers. Spacecraft, actuators, sensors,
+estimators, controllers and goals are interchangeable pieces that you combine
+in a few lines of Python.
 
-Latest Release Notes
-====================
+.. container:: adcs-buttons
 
-.. raw:: html
+   .. button-ref:: getting_started/quickstart
+      :ref-type: doc
+      :color: primary
+      :class: sd-mr-2
 
-   <div class="release-grid">
-     <a class="release-card release-card-featured" href="release_notes/0_2_2_visualization_and_environment.html">
-       <img src="_static/release_notes/0_2_2_animation.gif" alt="ICESat-2 maneuvering above Earth at sunset">
-       <div class="release-card-copy">
-         <div class="release-card-kicker">Release 0.2.2</div>
-         <h3>Visualization and Environment</h3>
-         <p>Godot animations, additional environmental models, and a new disturbance force stack.</p>
-         <span>Explore release note 0.2.2</span>
-       </div>
-     </a>
-     <a class="release-card" href="release_notes/0_2_1_attitude_determination_and_speed.html">
-       <img src="_static/release_notes/0_2_1_filter_tradeoff.png" alt="EKF, MEKF, UKF, and SRUKF simulation time per step versus attitude error at 100 seconds">
-       <div class="release-card-copy">
-         <div class="release-card-kicker">Release 0.2.1</div>
-         <h3>Attitude Determination and Performance</h3>
-         <p>MEKF warm starts for large attitude errors, a 100x+ faster default geomagnetic field model, and robust estimator and simulation updates.</p>
-         <span>Explore release note 0.2.1</span>
-       </div>
-     </a>
-     <a class="release-card" href="release_notes/0_2_0_estimation_framework.html">
-       <img src="_static/release_notes/0_2_0_advanced_MEKF.png" alt="Advanced MEKF estimation results">
-       <div class="release-card-copy">
-         <div class="release-card-kicker">Release 0.2.0</div>
-         <h3>New Estimation Framework</h3>
-         <p>Named state and covariance classes, a canonical measurement stack, shared process models and noise, a new attitude-estimator base, and eight new attitude estimators.</p>
-         <span>Explore release note 0.2.0</span>
-       </div>
-     </a>
-   </div>
+      Get started
+
+   .. button-ref:: tutorials/index
+      :ref-type: doc
+      :color: primary
+      :outline:
+      :class: sd-mr-2
+
+      Tutorials
+
+   .. button-link:: https://github.com/nscheuer/Generalized_ADCS
+      :color: secondary
+      :outline:
+
+      :octicon:`mark-github` GitHub
+
+.. code-block:: bash
+
+   pip install generalized-adcs
+
+.. image:: _static/release_notes/0_2_2_animation_preview.png
+   :alt: The Godot viewer showing the ICESat-2 spacecraft performing attitude maneuvers over Earth at sunset.
+   :width: 100%
+   :align: center
+
+Start here
+----------
+
+.. grid:: 1 2 2 4
+   :gutter: 3
+
+   .. grid-item-card:: :octicon:`download;1.3em` Installation
+      :link: installation/index
+      :link-type: doc
+
+      pip or a source checkout, on Linux, WSL, Windows and macOS.
+
+   .. grid-item-card:: :octicon:`rocket;1.3em` Quickstart
+      :link: getting_started/quickstart
+      :link-type: doc
+
+      Run a first simulation, then close the loop with a controller and a goal.
+
+   .. grid-item-card:: :octicon:`mortar-board;1.3em` Tutorials
+      :link: tutorials/index
+      :link-type: doc
+
+      From coordinate frames to Monte Carlo campaigns and full missions.
+
+   .. grid-item-card:: :octicon:`code;1.3em` API reference
+      :link: ADCS
+      :link-type: doc
+
+      Every module, class and function, generated from the docstrings.
 
 What you can do with Generalized ADCS
 -------------------------------------
-- Simulate rigid-body spacecraft attitude dynamics
-- Combine reaction wheels, magnetorquers, and sensors
-- Implement and test custom controllers and estimators
-- Run closed-loop simulations using orbital states
-- Visualize pointing performance and control effort
 
-Spacecraft states use :class:`ADCS.State`, with named ``w``, ``q``, and ``h``
-arrays. Estimator inputs and outputs use :class:`ADCS.EstimatorState`, which
-adds named bias and disturbance parameters plus covariance matrices. Use
-``from_array`` and ``as_array`` only at numerical-library boundaries; state
-objects intentionally do not support NumPy indexing or implicit conversion.
+.. grid:: 1 2 2 3
+   :gutter: 3
 
-.. code-block:: python
+   .. grid-item-card:: Simulate attitude dynamics
 
-   import ADCS as ADCS
-   import numpy as np
-   import matplotlib.pyplot as plt
+      Rigid-body 6-DOF attitude propagation with configurable inertia,
+      geometry and external disturbances, for underactuated and overactuated
+      spacecraft.
 
-   acts = [ADCS.RW(axis=np.array([1, 0, 0]), max_torque=0.0023, J=5.7e-6, h=0.0, h_max=0.0036)]
-   acts += [ADCS.MTQ(axis, max_torque=0.2) for axis in np.eye(3)]
-   sens = [ADCS.MTM(axis) for axis in np.eye(3)]
+   .. grid-item-card:: Combine hardware
 
-   satellite = ADCS.Satellite(mass=10, J_0=np.diag([0.03, 0.03, 0.01]), actuators=acts, sensors=sens, boresight=np.array([0, 0, 1]))
-   x_0 = ADCS.State.from_array(np.array([0.01, -0.02, 0.01] + [1, 0, 0, 0] + [0.0]))  # w, q, h
+      Combine reaction wheels, magnetorquers, and sensors (gyroscopes,
+      magnetometers, sun sensors, star trackers, Earth horizon sensors and
+      GPS) with configurable noise and bias, or start from the
+      :doc:`satellite_factory/index`.
 
-   controller = ADCS.controller.MTQ_w_RW_LP(est_sat=satellite, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0, 0, 0]))
+   .. grid-item-card:: Run closed-loop simulations in orbit
 
-   goal = ADCS.goals.Coordinate_Goal(lat=42.36, lon=-71.06, alt=0)
-   os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, 7.5, 0]))
+      Closed-loop simulations using orbital states initialized from position
+      vectors, orbital elements or TLEs, with Keplerian, SGP4 and RK4
+      propagation and drag, SRP and J2 perturbations.
 
-   results = ADCS.simulate(
-      x=x_0,
-      satellite=satellite,
-      controller=controller,
-      goal=goal,
-      os0=os0,
-      dt=1.0,
-      tf=500.0
-   )
+   .. grid-item-card:: Implement and test controllers
 
-   ADCS.plot(
-      results,
-      ADCS.plots.AnimationPlot(goal=goal),
-      layout=(1,1),
-      title="Underactuated Control Animation",
-   )
+      PD, LQR, projection-based and magnetorquer-only controllers, LP and QP
+      allocation for underactuated systems, ALTRO-based trajectory
+      optimization, or your own control law.
 
-   plt.show()
-   
+   .. grid-item-card:: Implement and test estimators
 
-.. image:: _static/boston_tracking.png
-   :alt: Simulation of a satellite in orbit with a ground pointing target.
-   :width: 400px
-   :align: center
+      Plug-and-play EKF, MEKF, UKF and SRUKF frameworks with sensor bias and
+      disturbance estimation, or your own estimator.
+
+   .. grid-item-card:: Visualize and scale up
+
+      Visualize pointing performance and control effort with plots and the
+      3-D Godot viewer, and run Monte Carlo campaigns for robustness testing.
+
+See :doc:`getting_started/concepts` for how the pieces fit together.
+
+Latest release notes
+--------------------
+
+.. grid:: 1 1 3 3
+   :gutter: 3
+
+   .. grid-item-card:: 0.2.2 · Visualization and Environment
+      :img-top: _static/release_notes/0_2_2_animation_preview.png
+      :img-alt: ICESat-2 maneuvering above Earth at sunset
+      :link: release_notes/0_2_2_visualization_and_environment
+      :link-type: doc
+
+      Godot animations, additional environmental models, and a new disturbance
+      force stack.
+
+   .. grid-item-card:: 0.2.1 · Attitude Determination and Performance
+      :img-top: _static/release_notes/0_2_1_filter_tradeoff.png
+      :img-alt: EKF, MEKF, UKF, and SRUKF simulation time per step versus attitude error at 100 seconds
+      :link: release_notes/0_2_1_attitude_determination_and_speed
+      :link-type: doc
+
+      MEKF warm starts for large attitude errors, a 100x+ faster default
+      geomagnetic field model, and robust estimator and simulation updates.
+
+   .. grid-item-card:: 0.2.0 · New Estimation Framework
+      :img-top: _static/release_notes/0_2_0_advanced_MEKF.png
+      :img-alt: Advanced MEKF estimation results
+      :link: release_notes/0_2_0_estimation_framework
+      :link-type: doc
+
+      Named state and covariance classes, a canonical measurement stack, shared
+      process models and noise, a new attitude-estimator base, and eight new
+      attitude estimators.
+
+:doc:`All release notes → <release_notes/index>`
+
+Research
+--------
+
+Generalized ADCS is based on the PhD research of Patrick McKeen and is
+described in papers at SmallSat Europe 2026 and the 40th Annual Small Satellite
+Conference. See :doc:`papers/index` for the papers, posters and BibTeX, and
+:doc:`contributing/citations` for the sources behind the package's algorithms
+and models.
+
+.. grid:: 2
+   :gutter: 3
+
+   .. grid-item::
+
+      .. image:: _static/starlab_logo.svg
+         :alt: MIT STARLab logo
+         :height: 80px
+         :class: adcs-logo
+         :target: https://aeroastro.mit.edu/starlab/
+
+   .. grid-item::
+
+      .. image:: _static/ssc_logo.png
+         :alt: MIT Small Satellite Collaborative logo
+         :height: 80px
+         :class: adcs-logo
+         :target: https://aeroastro.mit.edu/small-satellite-collaborative/
+
+GitHub repository: `nscheuer/Generalized_ADCS <https://github.com/nscheuer/Generalized_ADCS>`_
 
 .. toctree::
+   :hidden:
    :maxdepth: 1
    :caption: Getting Started
 
    installation/index
-   tutorials/index
-   release_notes/index
-   papers/index
+   getting_started/quickstart
+   getting_started/examples
+   getting_started/concepts
 
 .. toctree::
+   :hidden:
    :maxdepth: 1
-   :caption: Function Documentation
+   :caption: Learn
+
+   tutorials/index
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+   :caption: Reference
 
    ADCS
    satellite_factory/index
+   contributing/citations
 
 .. toctree::
+   :hidden:
    :maxdepth: 1
-   :caption: Contributing
+   :caption: Research
 
+   papers/index
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+   :caption: Project
+
+   release_notes/index
    contributing/index
    contributing/testing
    contributing/documentation
-   contributing/citations
    contributing/about
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`

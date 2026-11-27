@@ -47,6 +47,7 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 html_theme = 'furo'
+html_title = 'Generalized ADCS'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
 html_js_files = ['factory-tables.js']
@@ -70,15 +71,6 @@ html_theme_options = {
         "color-brand-primary": "#0066cc",
         "color-brand-content": "#0066cc",
         "color-brand-visited": "#0052a3",
-        "adcs-accent": "#0066cc",
-        "adcs-accent-strong": "#003d99",
-        "adcs-accent-hover": "#0052a3",
-        "adcs-card-border": "#0066cc",
-        "adcs-card-bg-top": "rgba(0, 102, 204, 0.08)",
-        "adcs-card-bg-bottom": "rgba(0, 102, 204, 0.02)",
-        "adcs-card-shadow": "rgba(0, 102, 204, 0.15)",
-        "adcs-card-shadow-hover": "rgba(0, 102, 204, 0.2)",
-        "adcs-card-divider": "rgba(0, 102, 204, 0.15)",
         "adcs-tip-border": "#79aee8",
         "adcs-tip-border-strong": "#3277c8",
         "adcs-tip-bg": "#edf5ff",
@@ -94,15 +86,6 @@ html_theme_options = {
         "color-brand-primary": "#4d9eff",
         "color-brand-content": "#80c0ff",
         "color-brand-visited": "#a9d3ff",
-        "adcs-accent": "#80c0ff",
-        "adcs-accent-strong": "#c6e2ff",
-        "adcs-accent-hover": "#80c0ff",
-        "adcs-card-border": "#4d9eff",
-        "adcs-card-bg-top": "rgba(77, 158, 255, 0.16)",
-        "adcs-card-bg-bottom": "rgba(77, 158, 255, 0.05)",
-        "adcs-card-shadow": "rgba(77, 158, 255, 0.2)",
-        "adcs-card-shadow-hover": "rgba(77, 158, 255, 0.32)",
-        "adcs-card-divider": "rgba(77, 158, 255, 0.2)",
         "adcs-tip-border": "#37679c",
         "adcs-tip-border-strong": "#37679c",
         "adcs-tip-bg": "#142841",

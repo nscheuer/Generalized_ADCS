@@ -3,7 +3,7 @@ Release Notes
 
 .. toctree::
   :maxdepth: 1
-  :caption: Getting Started
+  :caption: Release Notes
 
   0_2_2_visualization_and_environment
   0_2_1_attitude_determination_and_speed
