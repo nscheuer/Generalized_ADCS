@@ -583,6 +583,7 @@ file(GLOB_RECURSE ADCS_SUBSYSTEM_PYBIND_SOURCES CONFIGURE_DEPENDS
 pybind11_add_module(_adcs_subsystem ${GENADCS_PYBIND_OPTIONS}
     ${ADCS_SUBSYSTEM_PYBIND_SOURCES}
     hardware/ADCS_subsystem/adcs_subsystem.cpp
+    hardware/ADCS_subsystem/state_machine.cpp
     hardware/ADCS_subsystem/actuators/magnetorquer.cpp
     hardware/ADCS_subsystem/actuators/reaction_wheel.cpp
     hardware/ADCS_subsystem/sensors/gyroscope.cpp
@@ -637,6 +638,15 @@ if(BUILD_TESTING)
     )
     target_link_libraries(cpp_test_obc_and_adcs_state_machine PRIVATE obc_subsystem_native_core)
     add_test(NAME cpp_obc_and_adcs_state_machine COMMAND cpp_test_obc_and_adcs_state_machine)
+    add_executable(cpp_test_adcs_state_machine
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem/test_adcs_state_machine.cpp"
+        hardware/ADCS_subsystem/state_machine.cpp
+    )
+    target_include_directories(cpp_test_adcs_state_machine PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem"
+    )
+    target_link_libraries(cpp_test_adcs_state_machine PRIVATE goals_native_core controllers_native_core)
+    add_test(NAME cpp_adcs_state_machine COMMAND cpp_test_adcs_state_machine)
 endif()
 
 file(GLOB_RECURSE SATELLITE_GEOMETRY_PYBIND_SOURCES CONFIGURE_DEPENDS

@@ -8,9 +8,13 @@ ADCSSubsystem::ADCSSubsystem(
     std::vector<ReactionWheel> reaction_wheels_value,
     std::vector<Magnetorquer> magnetorquers_value,
     std::vector<Sensor> sensors_value, int N_value,
-    std::shared_ptr<estimator::AttitudeEstimator> estimator_value)
+    std::shared_ptr<estimator::AttitudeEstimator> estimator_value,
+    std::shared_ptr<ADCSStateMachine> state_machine_value,
+    std::shared_ptr<controllers::Controller> controller_value)
     : sensors(std::move(sensors_value)), N(N_value),
       estimator(std::move(estimator_value)),
+      state_machine(std::move(state_machine_value)),
+      controller(std::move(controller_value)),
       reaction_wheels(std::move(reaction_wheels_value)),
       magnetorquers(std::move(magnetorquers_value)) {
   if (N < 1) {

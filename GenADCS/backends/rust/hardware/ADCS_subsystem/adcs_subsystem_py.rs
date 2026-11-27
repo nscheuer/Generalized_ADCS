@@ -35,17 +35,19 @@ fn items(py: Python<'_>, value: &PyObject) -> PyResult<Vec<PyObject>> {
 
 #[pyclass(name = "ADCSSubsystem")]
 pub struct ADCSSubsystem {
-    inner: NativeADCSSubsystem<PyObject, PyObject, PyObject, PyObject>,
+    inner: NativeADCSSubsystem<PyObject, PyObject, PyObject, PyObject, PyObject, PyObject>,
     reaction_wheels: PyObject,
     magnetorquers: PyObject,
     sensors: PyObject,
     estimator_object: Option<PyObject>,
+    state_machine_object: Option<PyObject>,
+    controller_object: Option<PyObject>,
 }
 
 #[pymethods]
 impl ADCSSubsystem {
     #[new]
-    #[pyo3(signature = (reaction_wheels=None, magnetorquers=None, sensors=None, N=1, estimator=None))]
+    #[pyo3(signature = (reaction_wheels=None, magnetorquers=None, sensors=None, N=1, estimator=None, state_machine=None, controller=None))]
     #[allow(non_snake_case)]
     fn new(
         py: Python<'_>,
@@ -54,6 +56,8 @@ impl ADCSSubsystem {
         sensors: Option<PyObject>,
         #[pyo3(from_py_with = "positive_integer")] N: usize,
         estimator: Option<PyObject>,
+        state_machine: Option<PyObject>,
+        controller: Option<PyObject>,
     ) -> PyResult<Self> {
         let n = N;
         if let Some(ref object) = estimator {
@@ -72,12 +76,14 @@ impl ADCSSubsystem {
         let wheel_items = items(py, &reaction_wheels)?;
         let torquer_items = items(py, &magnetorquers)?;
         let sensor_items = items(py, &sensors)?;
-        let inner = NativeADCSSubsystem::with_components(
+        let inner = NativeADCSSubsystem::with_full_components(
             wheel_items,
             torquer_items,
             sensor_items,
             n,
             estimator.as_ref().map(|value| value.clone_ref(py)),
+            state_machine.as_ref().map(|value| value.clone_ref(py)),
+            controller.as_ref().map(|value| value.clone_ref(py)),
         )
         .map_err(PyValueError::new_err)?;
         Ok(Self {
@@ -86,6 +92,8 @@ impl ADCSSubsystem {
             magnetorquers,
             sensors,
             estimator_object: estimator,
+            state_machine_object: state_machine,
+            controller_object: controller,
         })
     }
 
@@ -150,6 +158,46 @@ impl ADCSSubsystem {
         };
         self.inner.estimator = self
             .estimator_object
+            .as_ref()
+            .map(|object| object.clone_ref(py));
+    }
+
+    #[getter]
+    fn state_machine(&self, py: Python<'_>) -> PyObject {
+        self.state_machine_object
+            .as_ref()
+            .map(|value| value.clone_ref(py))
+            .unwrap_or_else(|| py.None())
+    }
+    #[setter]
+    fn set_state_machine(&mut self, py: Python<'_>, value: &PyAny) {
+        self.state_machine_object = if value.is_none() {
+            None
+        } else {
+            Some(value.into_py(py))
+        };
+        self.inner.state_machine = self
+            .state_machine_object
+            .as_ref()
+            .map(|object| object.clone_ref(py));
+    }
+
+    #[getter]
+    fn controller(&self, py: Python<'_>) -> PyObject {
+        self.controller_object
+            .as_ref()
+            .map(|value| value.clone_ref(py))
+            .unwrap_or_else(|| py.None())
+    }
+    #[setter]
+    fn set_controller(&mut self, py: Python<'_>, value: &PyAny) {
+        self.controller_object = if value.is_none() {
+            None
+        } else {
+            Some(value.into_py(py))
+        };
+        self.inner.controller = self
+            .controller_object
             .as_ref()
             .map(|object| object.clone_ref(py));
     }

@@ -314,7 +314,7 @@ pub struct PyNoController;
 #[pymethods]
 impl PyNoController {
     #[new]
-    fn new() -> (Self, PyController) {
+    pub(crate) fn new() -> (Self, PyController) {
         (Self, PyController)
     }
 

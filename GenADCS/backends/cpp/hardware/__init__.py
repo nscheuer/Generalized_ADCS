@@ -2,6 +2,8 @@
 from .satellite import Satellite
 from .satellite_geometry import SatelliteGeometry, SatellitePanel
 from .ADCS_subsystem import (
+    ADCSMode,
+    ADCSStateMachine,
     ADCSSubsystem,
     Allocator,
     AttitudeController,
@@ -40,6 +42,8 @@ __all__ = [
     "Satellite",
     "SatelliteGeometry",
     "SatellitePanel",
+    "ADCSMode",
+    "ADCSStateMachine",
     "ADCSSubsystem",
     "Magnetorquer",
     "ReactionWheel",

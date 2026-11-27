@@ -14,6 +14,7 @@ void bind_sensors_gnss(py::module_ &module);
 void bind_philox(py::module_ &module);
 void bind_goals(py::module_ &module);
 void bind_controllers(py::module_ &module);
+void bind_adcs_state_machine(py::module_ &module);
 
 PYBIND11_MODULE(_adcs_subsystem, module) {
   bind_reaction_wheel(module);
@@ -30,4 +31,5 @@ PYBIND11_MODULE(_adcs_subsystem, module) {
   bind_philox(module);
   bind_goals(module);
   bind_controllers(module);
+  bind_adcs_state_machine(module);
 }

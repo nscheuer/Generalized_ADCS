@@ -1,6 +1,7 @@
 """ADCS hardware models backed by Rust."""
 
 from .adcs_subsystem import ADCSSubsystem
+from ._subsystem import ADCSMode, ADCSStateMachine
 from .actuators import Magnetorquer, ReactionWheel
 from .controllers import (
     Allocator,
@@ -30,6 +31,8 @@ from .estimator.attitude_estimator import (
 )
 
 __all__ = [
+    "ADCSMode",
+    "ADCSStateMachine",
     "ADCSSubsystem",
     "Magnetorquer",
     "ReactionWheel",

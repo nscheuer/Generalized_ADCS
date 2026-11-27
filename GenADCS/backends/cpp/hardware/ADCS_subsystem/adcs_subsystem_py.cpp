@@ -17,6 +17,8 @@ struct BoundADCSSubsystem {
   py::list magnetorquers;
   py::list sensors;
   py::object estimator = py::none();
+  py::object state_machine = py::none();
+  py::object controller = py::none();
 
   BoundADCSSubsystem(py::list wheels, py::list torquers)
       : native(), reaction_wheels(std::move(wheels)),
@@ -100,7 +102,8 @@ bool same(const py::object &left, const py::object &right) {
 void bind_adcs_subsystem(py::module_ &module) {
   py::class_<BoundADCSSubsystem>(module, "ADCSSubsystem")
       .def(py::init([](py::object wheels, py::object torquers,
-                       py::object sensors, py::object N, py::object estimator) {
+                       py::object sensors, py::object N, py::object estimator,
+                       py::object state_machine, py::object controller) {
              if (py::isinstance<py::bool_>(N) || !py::isinstance<py::int_>(N) ||
                  N.cast<int>() < 1) {
                throw py::value_error("N must be a positive integer");
@@ -120,12 +123,16 @@ void bind_adcs_subsystem(py::module_ &module) {
                }
              }
              result.estimator = estimator;
+             result.state_machine = state_machine;
+             result.controller = controller;
              return result;
            }),
            py::arg("reaction_wheels") = py::none(),
            py::arg("magnetorquers") = py::none(),
            py::arg("sensors") = py::none(), py::arg("N") = 1,
-           py::arg("estimator") = py::none())
+           py::arg("estimator") = py::none(),
+           py::arg("state_machine") = py::none(),
+           py::arg("controller") = py::none())
       .def_property(
           "sensors", [](BoundADCSSubsystem &self) { return self.sensors; },
           [](BoundADCSSubsystem &self, py::object value) {
@@ -135,6 +142,8 @@ void bind_adcs_subsystem(py::module_ &module) {
             self.sensors = std::move(devices);
           })
       .def_readwrite("estimator", &BoundADCSSubsystem::estimator)
+      .def_readwrite("state_machine", &BoundADCSSubsystem::state_machine)
+      .def_readwrite("controller", &BoundADCSSubsystem::controller)
       .def_property(
           "N", [](const BoundADCSSubsystem &self) { return self.native.N; },
           [](BoundADCSSubsystem &self, py::object n) {

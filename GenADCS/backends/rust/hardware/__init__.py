@@ -38,6 +38,8 @@ __all__ = [
     "Satellite",
     "SatelliteGeometry",
     "SatellitePanel",
+    "ADCSMode",
+    "ADCSStateMachine",
     "ADCSSubsystem",
     "Magnetorquer",
     "ReactionWheel",
@@ -53,7 +55,7 @@ def __getattr__(name):
     if name in ("SatelliteGeometry", "SatellitePanel"):
         from . import satellite_geometry
         return getattr(satellite_geometry, name)
-    if name in ("ADCSSubsystem", "Magnetorquer", "ReactionWheel") or name in _CONTROLLER_NAMES:
+    if name in ("ADCSMode", "ADCSStateMachine", "ADCSSubsystem", "Magnetorquer", "ReactionWheel") or name in _CONTROLLER_NAMES:
         from . import ADCS_subsystem
         return getattr(ADCS_subsystem, name)
     if name in _OBC_NAMES:

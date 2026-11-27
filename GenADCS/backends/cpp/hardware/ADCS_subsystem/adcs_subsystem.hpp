@@ -21,6 +21,10 @@ namespace omni::hardware {
 namespace estimator {
 class AttitudeEstimator;
 }
+namespace controllers {
+class Controller;
+}
+struct ADCSStateMachine;
 using Sensor = std::variant<sensors::Gyroscope, sensors::Magnetometer,
                             sensors::Accelerometer, sensors::CoarseSunSensor,
                             sensors::FineSunSensor, sensors::FineEarthSensor,
@@ -31,12 +35,16 @@ struct ADCSSubsystem {
       std::vector<ReactionWheel> reaction_wheels_value,
       std::vector<Magnetorquer> magnetorquers_value,
       std::vector<Sensor> sensors_value = {}, int N_value = 1,
-      std::shared_ptr<estimator::AttitudeEstimator> estimator_value = nullptr);
+      std::shared_ptr<estimator::AttitudeEstimator> estimator_value = nullptr,
+      std::shared_ptr<ADCSStateMachine> state_machine_value = nullptr,
+      std::shared_ptr<controllers::Controller> controller_value = nullptr);
 
   bool every_step(std::uint64_t tick) const;
   std::vector<Sensor> sensors;
   int N = 1;
   std::shared_ptr<estimator::AttitudeEstimator> estimator;
+  std::shared_ptr<ADCSStateMachine> state_machine;
+  std::shared_ptr<controllers::Controller> controller;
   std::vector<ReactionWheel> reaction_wheels;
   std::vector<Magnetorquer> magnetorquers;
 };
