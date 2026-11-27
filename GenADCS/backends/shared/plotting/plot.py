@@ -1152,6 +1152,317 @@ class CommandedMagneticDipolePlot(Subplot):
         super().__init__("commanded_magnetic_dipole", satellite=satellite, title=title, **kwargs)
 
 
+def _extract_sm_metadata(sat_res):
+    """Recover OBC/ADCS mode names, goal names, and OBC config from ``SatelliteResult``."""
+    cfg = sat_res.satellite_config or {}
+    obc = None
+    adcs_sm = None
+    try:
+        from GenADCS.backends.shared.simulationresult.satellite_configuration import _unpacked
+        if cfg.get("adcs_state_machine") is not None:
+            adcs_sm = _unpacked(cfg["adcs_state_machine"])
+        if cfg.get("obc") is not None:
+            obc = _unpacked(cfg["obc"])
+    except Exception:
+        pass
+
+    obc_names = ()
+    adcs_names = ()
+    goal_names = ()
+    try:
+        from GenADCS.backends.python.hardware.ADCS_subsystem.state_machine import (
+            GoalTable,
+            prepare_adcs_sm,
+        )
+        from GenADCS.backends.python.hardware.OBC_subsystem.runtime import prepare_obc
+
+        gt = GoalTable()
+        adcs_rt = prepare_adcs_sm(adcs_sm, gt)
+        if adcs_rt.enabled:
+            adcs_names = adcs_rt.mode_names
+        if obc is not None and obc.state_machine is not None:
+            obc_rt = prepare_obc(obc, adcs_rt if adcs_rt.enabled else None, gt)
+            obc_names = obc_rt.mode_names
+        _, _, goal_names = gt.to_arrays()
+    except Exception:
+        pass
+    return obc, adcs_sm, obc_names, adcs_names, goal_names
+
+
+def _matches_source(pattern: str, mode_name: str) -> bool:
+    if pattern == "*" or pattern == mode_name:
+        return True
+    if pattern.endswith(".*"):
+        return mode_name.startswith(pattern[:-1])
+    return mode_name.startswith(f"{pattern}.")
+
+
+def _matches_target(target: str, mode_name: str, obc) -> bool:
+    if target == mode_name:
+        return True
+    if obc is not None and obc.state_machine is not None:
+        for m in obc.state_machine.modes:
+            if m.name == target and m.submodes and m.initial_submode is not None:
+                return mode_name == f"{m.name}.{m.initial_submode}"
+    return False
+
+
+def _obc_transition_reason(obc, prev_name: str, next_name: str, t_s: float) -> str:
+    """Determine a concise justification label for an OBC mode switch."""
+    if obc is None or obc.state_machine is None:
+        return "Switch"
+    sm = obc.state_machine
+    from GenADCS.backends.python.hardware.OBC_subsystem.state_machine import (
+        After,
+        Completion,
+        FDIRTriggered,
+        InFOV,
+        Telecommand,
+    )
+
+    candidates = [
+        tr for tr in sm.transitions
+        if _matches_source(tr.source, prev_name) and _matches_target(tr.target, next_name, obc)
+    ]
+    candidates.sort(key=lambda tr: -tr.priority)
+    for tr in candidates:
+        trig = tr.trigger
+        if isinstance(trig, Telecommand):
+            # Prefer Telecommand if a matching timeline event is near t_s, or if it's the only candidate.
+            timeline = list(sm.timeline) + list(obc.timeline)
+            if any(entry[1] == trig.command and abs(float(entry[0]) - t_s) <= max(1.0, 0.05 * max(1.0, t_s)) for entry in timeline) or len(candidates) == 1:
+                return f"TC: {trig.command}"
+        elif isinstance(trig, After):
+            return f"Auto: After({trig.duration:g}s)"
+        elif isinstance(trig, Completion):
+            return "Auto: Completion"
+        elif isinstance(trig, InFOV):
+            return "Swath: ~InFOV" if trig.negate else "Swath: InFOV"
+        elif isinstance(trig, FDIRTriggered):
+            return f"FDIR: {trig.monitor}" if trig.monitor else "FDIR"
+
+    if candidates and isinstance(candidates[0].trigger, Telecommand):
+        return f"TC: {candidates[0].trigger.command}"
+
+    # Check Mode.auto_target.
+    for m in sm.modes:
+        if m.name == prev_name and m.auto_target and _matches_target(m.auto_target, next_name, obc):
+            return "Auto: Completion"
+        for sub in m.submodes:
+            if f"{m.name}.{sub.name}" == prev_name and sub.auto_target:
+                resolved = f"{m.name}.{sub.auto_target}" if "." not in sub.auto_target else sub.auto_target
+                if _matches_target(resolved, next_name, obc):
+                    return "Auto: Completion"
+
+    # Check FDIR default/monitor target.
+    if obc.fdir is not None and obc.fdir.monitors:
+        if _matches_target(obc.fdir.safe_mode, next_name, obc):
+            return "FDIR"
+        for mon in obc.fdir.monitors:
+            if mon.target_mode and _matches_target(mon.target_mode, next_name, obc):
+                return f"FDIR: {mon.name}"
+    return "Switch"
+
+
+class OBCModePlot(Subplot):
+    """Plot OBC modes and submodes as colored horizontal segments with transition justifications."""
+
+    def __init__(self, *, satellite="sat_000", title="OBC Mode & Submode Timeline",
+                 max_annotations: int = 20, **kwargs):
+        kwargs.setdefault("ylabel", "OBC Mode")
+        super().__init__("obc_mode", satellite=satellite, title=title, **kwargs)
+        self.max_annotations = max_annotations
+
+    def draw(self, ax, runs, mode):
+        import matplotlib.pyplot as plt
+
+        sat_res = runs[0].satellites[self.satellite]
+        raw = getattr(sat_res, "obc_mode", None)
+        if raw is None:
+            raise ValueError(f"obc_mode was not recorded for {self.satellite}")
+        times = np.asarray(sat_res.times_s, dtype=float)
+        ids = np.asarray(raw[:, 0], dtype=int)
+
+        obc, _, obc_names, _, _ = _extract_sm_metadata(sat_res)
+        if not obc_names:
+            max_id = int(np.max(ids)) if ids.size else 0
+            obc_names = tuple(f"Mode {i}" for i in range(max_id + 1))
+
+        n_modes = len(obc_names)
+        main_modes: list[str] = []
+        for name in obc_names:
+            main = name.split(".", 1)[0]
+            if main not in main_modes:
+                main_modes.append(main)
+
+        cmap = plt.get_cmap("tab10")
+        main_colors = {main: cmap(i % 10) for i, main in enumerate(main_modes)}
+        sub_styles = ("-", "--", "-.", ":")
+
+        # Shade main-mode bands and track submode line styles.
+        main_y_indices: dict[str, list[int]] = {m: [] for m in main_modes}
+        sub_style_for: dict[int, str] = {}
+        for idx, name in enumerate(obc_names):
+            main = name.split(".", 1)[0]
+            sub_idx = len(main_y_indices[main])
+            main_y_indices[main].append(idx)
+            sub_style_for[idx] = sub_styles[sub_idx % len(sub_styles)]
+
+        for main, y_list in main_y_indices.items():
+            ax.axhspan(min(y_list) - 0.4, max(y_list) + 0.4,
+                       color=main_colors[main], alpha=0.08, zorder=0)
+
+        # Build contiguous intervals and draw horizontal segments + vertical transitions.
+        change_indices = np.where(np.diff(ids) != 0)[0] + 1
+        starts = np.concatenate(([0], change_indices))
+        ends = np.concatenate((change_indices, [len(ids) - 1]))
+
+        seen_labels: set[str] = set()
+        transitions: list[tuple[float, int, int, str]] = []
+        for seg_idx, (s, e) in enumerate(zip(starts, ends)):
+            m_id = int(ids[s])
+            m_name = obc_names[m_id] if 0 <= m_id < n_modes else f"Mode {m_id}"
+            main = m_name.split(".", 1)[0]
+            color = main_colors.get(main, "C0")
+            t0 = float(times[s])
+            t1 = float(times[e])
+            lbl = m_name if m_name not in seen_labels else None
+            seen_labels.add(m_name)
+            ax.hlines(m_id, t0, t1, colors=[color], linestyles=sub_style_for.get(m_id, "-"),
+                      linewidth=3.0, label=lbl, zorder=3)
+            if seg_idx > 0:
+                prev_id = int(ids[starts[seg_idx - 1]])
+                prev_name = obc_names[prev_id] if 0 <= prev_id < n_modes else f"Mode {prev_id}"
+                reason = _obc_transition_reason(obc, prev_name, m_name, t0)
+                ax.plot([t0, t0], [prev_id, m_id], color="0.35", linestyle=":",
+                        linewidth=1.1, zorder=2)
+                transitions.append((t0, prev_id, m_id, reason))
+
+        # Annotate transitions without excessive clutter.
+        if len(transitions) <= self.max_annotations:
+            to_annotate = transitions
+        else:
+            seen_reasons: set[str] = set()
+            to_annotate = []
+            for tr_item in transitions:
+                key = f"{tr_item[1]}->{tr_item[2]}:{tr_item[3]}"
+                if key not in seen_reasons:
+                    seen_reasons.add(key)
+                    to_annotate.append(tr_item)
+                if len(to_annotate) >= self.max_annotations:
+                    break
+
+        for idx, (t_tr, y_prev, y_next, reason) in enumerate(to_annotate):
+            y_mid = 0.5 * (y_prev + y_next)
+            y_off = 10 if (idx % 2 == 0) else -14
+            ax.annotate(
+                reason,
+                xy=(t_tr, y_mid),
+                xytext=(4, y_off),
+                textcoords="offset points",
+                fontsize=7.5,
+                color="0.15",
+                bbox=dict(boxstyle="round,pad=0.18", fc="white", ec="0.75", alpha=0.88),
+                arrowprops=dict(arrowstyle="-", color="0.5", lw=0.7),
+                zorder=5,
+            )
+
+        ax.set_yticks(range(n_modes))
+        ax.set_yticklabels(obc_names)
+        ax.set_ylim(-0.6, max(0.6, n_modes - 0.4))
+        ax.set(title=self.title or "OBC Mode & Submode Timeline",
+               xlabel="Time [s]", ylabel=self.ylabel)
+        ax.set(**self.axes_kwargs)
+        ax.grid(True, axis="x", alpha=0.3)
+        ax.legend(loc="upper right", fontsize=8, ncol=max(1, min(3, n_modes // 3)))
+
+
+class ADCSModePlot(Subplot):
+    """Plot ADCS modes as horizontal lines with vertical markers for active Goal changes."""
+
+    def __init__(self, *, satellite="sat_000", title="ADCS Mode & Goal Transitions",
+                 max_goal_annotations: int = 20, **kwargs):
+        kwargs.setdefault("ylabel", "ADCS Mode")
+        super().__init__("adcs_mode", satellite=satellite, title=title, **kwargs)
+        self.max_goal_annotations = max_goal_annotations
+
+    def draw(self, ax, runs, mode):
+        import matplotlib.pyplot as plt
+
+        sat_res = runs[0].satellites[self.satellite]
+        raw_mode = getattr(sat_res, "adcs_mode", None)
+        if raw_mode is None:
+            raise ValueError(f"adcs_mode was not recorded for {self.satellite}")
+        times = np.asarray(sat_res.times_s, dtype=float)
+        mode_ids = np.asarray(raw_mode[:, 0], dtype=int)
+        raw_goal = getattr(sat_res, "adcs_goal", None)
+        goal_ids = np.asarray(raw_goal[:, 0], dtype=int) if raw_goal is not None else None
+
+        _, _, _, adcs_names, goal_names = _extract_sm_metadata(sat_res)
+        if not adcs_names:
+            max_id = int(np.max(mode_ids)) if mode_ids.size else 0
+            adcs_names = tuple(f"ADCS {i}" for i in range(max_id + 1))
+
+        n_modes = len(adcs_names)
+        cmap = plt.get_cmap("tab10")
+        mode_colors = {i: cmap(i % 10) for i in range(n_modes)}
+
+        change_idx = np.where(np.diff(mode_ids) != 0)[0] + 1
+        starts = np.concatenate(([0], change_idx))
+        ends = np.concatenate((change_idx, [len(mode_ids) - 1]))
+
+        seen_modes: set[int] = set()
+        for seg_idx, (s, e) in enumerate(zip(starts, ends)):
+            m_id = int(mode_ids[s])
+            m_name = adcs_names[m_id] if 0 <= m_id < n_modes else f"ADCS {m_id}"
+            lbl = f"Mode: {m_name}" if m_id not in seen_modes else None
+            seen_modes.add(m_id)
+            ax.hlines(m_id, float(times[s]), float(times[e]),
+                      colors=[mode_colors.get(m_id, "C0")], linewidth=3.2,
+                      label=lbl, zorder=3)
+            if seg_idx > 0:
+                prev_id = int(mode_ids[starts[seg_idx - 1]])
+                t_tr = float(times[s])
+                ax.plot([t_tr, t_tr], [prev_id, m_id], color="0.35",
+                        linestyle=":", linewidth=1.1, zorder=2)
+
+        # Vertical lines for Goal changes.
+        if goal_ids is not None and goal_ids.size:
+            goal_changes = np.concatenate(([0], np.where(np.diff(goal_ids) != 0)[0] + 1))
+            goal_cmap = plt.get_cmap("Set2")
+            seen_goals: set[int] = set()
+            for idx, gc in enumerate(goal_changes):
+                g_id = int(goal_ids[gc])
+                g_name = goal_names[g_id] if 0 <= g_id < len(goal_names) else f"Goal {g_id}"
+                g_color = goal_cmap(g_id % 8)
+                t_g = float(times[gc])
+                g_lbl = f"Goal: {g_name}" if g_id not in seen_goals else None
+                seen_goals.add(g_id)
+                ax.axvline(t_g, color=g_color, linestyle="--", linewidth=1.4,
+                           alpha=0.85, label=g_lbl, zorder=1)
+                if len(goal_changes) <= self.max_goal_annotations:
+                    y_pos = n_modes - 0.35 if (idx % 2 == 0) else -0.35
+                    ax.annotate(
+                        g_name,
+                        xy=(t_g, y_pos),
+                        xytext=(3, 0),
+                        textcoords="offset points",
+                        fontsize=7.0,
+                        color="0.2",
+                        bbox=dict(boxstyle="round,pad=0.15", fc="white", ec=g_color, alpha=0.85),
+                        zorder=4,
+                    )
+
+        ax.set_yticks(range(n_modes))
+        ax.set_yticklabels(adcs_names)
+        ax.set_ylim(-0.6, max(0.6, n_modes - 0.4))
+        ax.set(title=self.title or "ADCS Mode & Goal Transitions",
+               xlabel="Time [s]", ylabel=self.ylabel)
+        ax.set(**self.axes_kwargs)
+        ax.grid(True, axis="x", alpha=0.3)
+        ax.legend(loc="upper right", fontsize=7.5, ncol=2)
+
+
 def plot(sim, *subplots: Subplot, mode="single", layout=None, title=None,
          sharex=True, figure_kwargs=None, subplot_kwargs=None, show=False):
     """Arrange panels in one figure and return ``(figure, axes)``.

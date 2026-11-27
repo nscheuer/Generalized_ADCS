@@ -77,6 +77,16 @@ def from_satellite(satellite, backend=None):
                        "record": list(adcs.estimator.record)} if backend == "Rust"
                        else _packed(adcs.estimator)) if getattr(adcs, "estimator", None) is not None else None,
         "state_machine": _packed(satellite.state_machine) if satellite.state_machine is not None else None,
+        "adcs_state_machine": (
+            _packed(adcs.state_machine)
+            if getattr(adcs, "state_machine", None) is not None
+            else None
+        ),
+        "obc": (
+            _packed(satellite.obc)
+            if getattr(satellite, "obc", None) is not None
+            else None
+        ),
     }
 
 

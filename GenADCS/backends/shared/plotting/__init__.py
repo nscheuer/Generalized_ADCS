@@ -23,7 +23,7 @@ from .plot import MeasurementResidualPlot, KalmanGainPlot
 from .plot import (GoalAttitudePlot, GoalRatePlot, FeedforwardTorquePlot,
                    FeedforwardAttitudePlot, FeedforwardRatePlot,
                    ReferenceTorquePlot, CommandedWheelTorquePlot,
-                   CommandedMagneticDipolePlot)
+                   CommandedMagneticDipolePlot, OBCModePlot, ADCSModePlot)
 
 __all__ = ["plot", "Subplot", "AttitudePlot", "RatePlot", "PositionPlot",
            "VelocityPlot", "WheelMomentumPlot", "WheelSpeedPlot",
@@ -60,4 +60,4 @@ __all__ += ["MeasurementResidualPlot", "KalmanGainPlot"]
 __all__ += ["GoalAttitudePlot", "GoalRatePlot", "FeedforwardTorquePlot",
             "FeedforwardAttitudePlot", "FeedforwardRatePlot",
             "ReferenceTorquePlot", "CommandedWheelTorquePlot",
-            "CommandedMagneticDipolePlot"]
+            "CommandedMagneticDipolePlot", "OBCModePlot", "ADCSModePlot"]

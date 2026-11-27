@@ -110,6 +110,9 @@ def _simulate_uncoupled_loop(
     pending_cmd_mode = -1
     pending_cmd_goal = -1
     if obc_every > 0:
+        init_state = int(obc_work[0])
+        pending_cmd_mode = obc_runtime.state_adcs_mode[init_state]
+        pending_cmd_goal = obc_runtime.state_adcs_goal[init_state]
         active_obc_mode, cm, cg = step_obc(
             y, 0.0, initial_jd, dt * obc_every, obc_runtime, obc_work
         )

@@ -198,6 +198,11 @@ def prepare_adcs_sm(
         mode_default_goal[idx] = goal_table.register(m.goal)
         if isinstance(m.controller, Controller):
             mode_default_controller[idx] = controller_table.register(m.controller)
+        elif m.controller is not None:
+            raise TypeError(
+                f"ADCSMode {m.name!r} controller must be a Controller instance, "
+                f"got {type(m.controller).__name__}"
+            )
 
     sorted_tl = sorted(adcs_sm.timeline, key=lambda item: item[0])
     tl_times = np.empty(len(sorted_tl) + 1, dtype=np.float64)

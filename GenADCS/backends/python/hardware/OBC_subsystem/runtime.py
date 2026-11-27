@@ -62,6 +62,11 @@ class OBCRuntime(NamedTuple):
     fdir_monitor_kinds: np.ndarray
     fdir_monitor_thresholds: np.ndarray
     fdir_monitor_targets: np.ndarray
+    # CSR-indexed FDIRTriggered transitions per state:
+    fdir_trans_start: np.ndarray
+    fdir_trans_end: np.ndarray
+    fdir_trans_monitor: np.ndarray
+    fdir_trans_target: np.ndarray
     # Human-readable state names (Python-side metadata):
     mode_names: tuple[str, ...]
 
@@ -129,6 +134,10 @@ def _disabled_runtime() -> OBCRuntime:
         fdir_monitor_kinds=empty_i,
         fdir_monitor_thresholds=empty_f,
         fdir_monitor_targets=empty_i,
+        fdir_trans_start=empty_i,
+        fdir_trans_end=empty_i,
+        fdir_trans_monitor=empty_i,
+        fdir_trans_target=empty_i,
         mode_names=(),
     )
 
@@ -185,12 +194,13 @@ def prepare_obc(
     state_adcs_goal = np.full(n_states, -1, dtype=np.int64)
 
     for idx, (leaf, parent) in enumerate(zip(leaf_modes, leaf_parents)):
-        if leaf.duration is not None and leaf.auto_target is not None:
-            target_name = leaf.auto_target
-            if parent is not None and "." not in target_name and f"{parent.name}.{target_name}" in leaf_ids:
-                target_name = f"{parent.name}.{target_name}"
+        if leaf.duration is not None:
             state_duration[idx] = float(leaf.duration)
-            state_auto_target[idx] = _resolve_target(target_name, modes_by_name, leaf_ids)
+            if leaf.auto_target is not None:
+                target_name = leaf.auto_target
+                if parent is not None and "." not in target_name and f"{parent.name}.{target_name}" in leaf_ids:
+                    target_name = f"{parent.name}.{target_name}"
+                state_auto_target[idx] = _resolve_target(target_name, modes_by_name, leaf_ids)
 
         binding = leaf.bindings.get("adcs")
         if binding is None and parent is not None:
@@ -208,9 +218,16 @@ def prepare_obc(
             state_adcs_mode[idx] = adcs_mode_to_id[m_name]
             state_adcs_goal[idx] = goal_table.register(g_obj)
 
-    # Collect per-state telecommand and InFOV transitions.
+    # Collect per-state telecommand, InFOV, and FDIRTriggered transitions.
+    fdir = obc.fdir
+    monitor_to_id = (
+        {mon.name: idx for idx, mon in enumerate(fdir.monitors)}
+        if fdir is not None and fdir.monitors
+        else {}
+    )
     per_state_tc: list[list[tuple[int, int, int, int]]] = [[] for _ in range(n_states)]
     per_state_fov: list[list[tuple[int, np.ndarray, float, bool, int, int]]] = [[] for _ in range(n_states)]
+    per_state_fdir: list[list[tuple[int, int, int]]] = [[] for _ in range(n_states)]
 
     for tr in sm.transitions:
         sources = _resolve_sources(tr.source, modes_by_name, leaf_names, leaf_ids)
@@ -244,7 +261,16 @@ def prepare_obc(
                     )
                 state_auto_target[src] = target_id
         elif isinstance(tr.trigger, FDIRTriggered):
-            pass
+            if tr.trigger.monitor is None:
+                mon_idx = -1
+            elif tr.trigger.monitor in monitor_to_id:
+                mon_idx = monitor_to_id[tr.trigger.monitor]
+            else:
+                raise ValueError(
+                    f"FDIRTriggered references unknown monitor {tr.trigger.monitor!r}"
+                )
+            for src in sources:
+                per_state_fdir[src].append((tr.priority, mon_idx, target_id))
 
     tc_trans_start = np.empty(n_states, dtype=np.int64)
     tc_trans_end = np.empty(n_states, dtype=np.int64)
@@ -282,6 +308,19 @@ def prepare_obc(
 
     fov_ecef_arr = np.vstack(flat_ecef) if flat_ecef else np.zeros((0, 3), dtype=np.float64)
 
+    fdir_trans_start = np.empty(n_states, dtype=np.int64)
+    fdir_trans_end = np.empty(n_states, dtype=np.int64)
+    flat_fdir_mon: list[int] = []
+    flat_fdir_targets: list[int] = []
+    cursor = 0
+    for s in range(n_states):
+        fdir_trans_start[s] = cursor
+        for _, mon_idx, target_id in sorted(per_state_fdir[s], key=lambda item: -item[0]):
+            flat_fdir_mon.append(mon_idx)
+            flat_fdir_targets.append(target_id)
+            cursor += 1
+        fdir_trans_end[s] = cursor
+
     # Merge timelines from OBCSubsystem and StateMachine, sorted by time.
     combined_timeline = list(sm.timeline) + list(obc.timeline)
     combined_timeline.sort(key=lambda item: item[0])
@@ -296,7 +335,6 @@ def prepare_obc(
     tc_codes[-1] = -1
     tc_goals[-1] = -1
 
-    fdir = obc.fdir
     if fdir is not None and fdir.monitors:
         fdir_enabled = True
         fdir_safe_state = _resolve_target(fdir.safe_mode, modes_by_name, leaf_ids)
@@ -349,6 +387,10 @@ def prepare_obc(
         fdir_monitor_kinds=kinds,
         fdir_monitor_thresholds=thresholds,
         fdir_monitor_targets=targets,
+        fdir_trans_start=fdir_trans_start,
+        fdir_trans_end=fdir_trans_end,
+        fdir_trans_monitor=np.asarray(flat_fdir_mon, dtype=np.int64),
+        fdir_trans_target=np.asarray(flat_fdir_targets, dtype=np.int64),
         mode_names=tuple(leaf_names),
     )
 
@@ -406,7 +448,15 @@ def step_obc(
                 limit = obc.fdir_monitor_thresholds[i]
                 if wx * wx + wy * wy + wz * wz > limit * limit:
                     work[3] = 1.0
-                    return _enter_state(obc.fdir_monitor_targets[i], elapsed_s, obc, work, -1)
+                    fdir_target = obc.fdir_monitor_targets[i]
+                    f_start = obc.fdir_trans_start[state]
+                    f_end = obc.fdir_trans_end[state]
+                    for k in range(f_start, f_end):
+                        mon_filter = obc.fdir_trans_monitor[k]
+                        if mon_filter < 0 or mon_filter == i:
+                            fdir_target = obc.fdir_trans_target[k]
+                            break
+                    return _enter_state(fdir_target, elapsed_s, obc, work, -1)
 
     # 2. Telecommand & auto-completion wake-up check.
     tc_idx = int(work[1])
@@ -423,16 +473,22 @@ def step_obc(
             for k in range(start, end):
                 if obc.tc_trans_code[k] == cmd:
                     target = obc.tc_trans_target[k]
-                    if state == obc.fdir_safe_state and target != obc.fdir_safe_state:
+                    if target != state:
                         work[3] = 0.0
                     tr_goal = obc.tc_trans_goal[k]
                     override = tl_goal if tl_goal >= 0 else tr_goal
-                    state, cmd_mode, cmd_goal = _enter_state(target, elapsed_s, obc, work, override)
+                    state, cm, cg = _enter_state(target, elapsed_s, obc, work, override)
+                    if cm >= 0:
+                        cmd_mode = cm
+                    if cg >= 0:
+                        cmd_goal = cg
                     break
 
         if elapsed_s >= work[2]:
             auto_target = obc.state_auto_target[state]
             if auto_target >= 0:
+                if auto_target != state:
+                    work[3] = 0.0
                 state, cm, cg = _enter_state(auto_target, elapsed_s, obc, work, -1)
                 if cm >= 0:
                     cmd_mode = cm
@@ -474,8 +530,11 @@ def step_obc(
 
             triggered = (not in_cone) if obc.fov_negate[k] else in_cone
             if triggered:
+                fov_target = obc.fov_target[k]
+                if fov_target != state:
+                    work[3] = 0.0
                 state, cm, cg = _enter_state(
-                    obc.fov_target[k], elapsed_s, obc, work, obc.fov_goal[k]
+                    fov_target, elapsed_s, obc, work, obc.fov_goal[k]
                 )
                 if cm >= 0:
                     cmd_mode = cm
