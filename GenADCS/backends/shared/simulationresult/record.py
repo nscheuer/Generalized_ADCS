@@ -39,10 +39,15 @@ def record_samples(
             raise ValueError(f"{name} requires an estimator")
         fields[name] = np.asarray(sensor_samples[name], dtype=np.float64)
     requested -= estimate_fields
-    for name in ("obc_mode", "adcs_mode", "adcs_goal"):
+    for name in (
+        "obc_mode", "adcs_mode", "adcs_goal",
+        "goal_attitude", "goal_rate",
+        "feedforward_torque", "feedforward_attitude", "feedforward_rate",
+        "reference_torque", "commanded_wheel_torque", "commanded_magnetic_dipole",
+    ):
         if name in requested:
             if sensor_samples is None or name not in sensor_samples:
-                raise ValueError(f"{name} requires an active OBC/ADCS state machine")
+                raise ValueError(f"{name} was requested but not recorded by the backend")
             fields[name] = np.asarray(sensor_samples[name], dtype=np.float64)
             requested.remove(name)
     slices = {"satellite_attitude": (0, 4), "satellite_rate": (4, 7),

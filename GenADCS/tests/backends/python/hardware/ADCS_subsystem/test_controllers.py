@@ -25,7 +25,12 @@ from GenADCS.backends.python.propagation import (
 )
 from GenADCS.backends.python.simulate import ResultsFormat, simulate
 from GenADCS.backends.python.solver import AttitudeSolver, OrbitalSolver, Solver
-from GenADCS.backends.python.state import AttitudeState, OrbitalState, State
+from GenADCS.backends.python.state import (
+    AttitudeState,
+    OrbitalState,
+    State,
+    WheelMomentumState,
+)
 
 
 def _make_mag() -> Magnetometer:
@@ -147,3 +152,88 @@ def test_bdot_and_bcross_damp_angular_rate_in_numba_loop(ctrl: Controller) -> No
     initial_norm = np.linalg.norm(rates[0])
     final_norm = np.linalg.norm(rates[-1])
     assert final_norm < initial_norm
+
+
+def test_control_and_goal_resultsformat_and_plots() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from GenADCS.backends.python.hardware import (
+        ADCSMode,
+        ADCSStateMachine,
+        ReactionWheel,
+    )
+    from GenADCS.backends.python.hardware.ADCS_subsystem.goals import NadirGoal
+    from GenADCS.backends.shared.plotting import (
+        CommandedMagneticDipolePlot,
+        CommandedWheelTorquePlot,
+        FeedforwardAttitudePlot,
+        FeedforwardRatePlot,
+        FeedforwardTorquePlot,
+        GoalAttitudePlot,
+        GoalRatePlot,
+        ReferenceTorquePlot,
+        plot,
+    )
+
+    geometry = SatelliteGeometry(mass=10.0, inertia=np.diag((0.1, 0.1, 0.1)), panels=[])
+    wheels = [ReactionWheel((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), 1e-3, 0.1, 1.0)]
+    sat = Satellite(
+        geometry=geometry,
+        adcs=ADCSSubsystem(
+            reaction_wheels=wheels,
+            magnetorquers=_make_mtqs(),
+            sensors=[_make_mag(), _make_gyro()],
+            N=1,
+            state_machine=ADCSStateMachine(
+                initial="nadir",
+                modes=[ADCSMode("nadir", goal=NadirGoal(), controller=BDot(1e4))],
+            ),
+        ),
+    )
+    env = Environment(planetary_body=Earth(), magnetic_field=IGRF14())
+    state = State(
+        attitude=AttitudeState((1.0, 0.0, 0.0, 0.0), (0.02, -0.01, 0.01)),
+        orbit=OrbitalState.from_cartesian(
+            (6_878_137.0, 0.0, 0.0), (0.0, 5_382.9, 5_382.9), 2_461_000.5
+        ),
+        internal=WheelMomentumState(wheel_momentum=np.zeros(1)),
+    )
+    solver = Solver(
+        orbital=OrbitalSolver(KeplerianOrbitalPropagator(0.5)),
+        attitude=AttitudeSolver(RK4AttitudePropagator(0.5)),
+        tf=5.0,
+    )
+    rf = ResultsFormat(
+        N=2,
+        goal_attitude=True,
+        goal_rate=True,
+        feedforward_torque=True,
+        feedforward_attitude=True,
+        feedforward_rate=True,
+        reference_torque=True,
+        commanded_wheel_torque=True,
+        commanded_magnetic_dipole=True,
+    )
+    res = simulate(sat, env, DynamicsConfig([], []), state, solver, resultsformat=rf)
+    sat_res = res.satellites["sat_000"]
+    assert sat_res.goal_attitude.shape == (len(sat_res.times_s), 4)
+    assert np.all(np.isfinite(sat_res.goal_attitude))
+    assert sat_res.goal_rate.shape == (len(sat_res.times_s), 3)
+    assert sat_res.commanded_wheel_torque.shape == (len(sat_res.times_s), 1)
+    assert sat_res.commanded_magnetic_dipole.shape == (len(sat_res.times_s), 3)
+    assert np.any(sat_res.commanded_magnetic_dipole != 0.0)
+
+    fig, _ = plot(
+        res,
+        GoalAttitudePlot(),
+        GoalRatePlot(),
+        FeedforwardTorquePlot(),
+        FeedforwardAttitudePlot(),
+        FeedforwardRatePlot(),
+        ReferenceTorquePlot(),
+        CommandedWheelTorquePlot(),
+        CommandedMagneticDipolePlot(),
+        layout=(4, 2),
+    )
+    plt.close(fig)

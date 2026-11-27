@@ -15,7 +15,7 @@ class Solver:
     attitude: AttitudeSolver | None = None
     coupled: CoupledSolver | None = None
     tf: float | None = None
-    progress: bool = False
+    progress: bool = True
     progress_chunk_steps: int = 500
 
     def __post_init__(self) -> None:

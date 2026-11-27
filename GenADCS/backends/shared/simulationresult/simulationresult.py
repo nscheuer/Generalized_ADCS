@@ -32,6 +32,9 @@ RESULT_FIELDS = (
     "fine_earth_sensor_clean", "fine_earth_sensor_reading",
     "gnss_clean", "gnss_reading", "accelerometer_clean", "accelerometer_reading",
     "obc_mode", "adcs_mode", "adcs_goal",
+    "goal_attitude", "goal_rate",
+    "feedforward_torque", "feedforward_attitude", "feedforward_rate",
+    "reference_torque", "commanded_wheel_torque", "commanded_magnetic_dipole",
 )
 
 SENSOR_FIELDS = frozenset(name for name in RESULT_FIELDS if name.endswith(("_clean", "_reading")))
@@ -65,7 +68,8 @@ class SatelliteResult:
             if name not in RESULT_FIELDS:
                 raise ValueError(f"unknown result field: {name}")
             width = (None if name in SENSOR_FIELDS else 1 if name in ("atmospheric_density", "eclipse_state", "normalized_innovation_squared", "normalized_estimation_error_squared", "obc_mode", "adcs_mode", "adcs_goal")
-                     else None if name == "satellite_wheel_momenta" else 4 if name in ("satellite_attitude", "estimated_attitude")
+                     else None if name in ("satellite_wheel_momenta", "commanded_wheel_torque", "commanded_magnetic_dipole")
+                     else 4 if name in ("satellite_attitude", "estimated_attitude", "goal_attitude", "feedforward_attitude")
                      else (36, 49) if name == "estimated_covariance" else 18 if name == "kalman_gain"
                      else 9 if name in ("estimated_attitude_covariance", "estimated_rate_covariance", "measurement_innovation_covariance") else 3)
             array = np.asarray(value, dtype=np.float64)

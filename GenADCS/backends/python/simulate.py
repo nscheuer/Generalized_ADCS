@@ -126,6 +126,15 @@ def simulate(
         for i, name in enumerate(diagnostic_names)
         if getattr(resultsformat, name)
     )
+    ctrl_log_flags = (
+        (1 if (resultsformat.goal_attitude or resultsformat.goal_rate) else 0)
+        | (2 if resultsformat.feedforward_torque else 0)
+        | (4 if resultsformat.feedforward_attitude else 0)
+        | (8 if resultsformat.feedforward_rate else 0)
+        | (16 if resultsformat.reference_torque else 0)
+        | (32 if resultsformat.commanded_wheel_torque else 0)
+        | (64 if resultsformat.commanded_magnetic_dipole else 0)
+    )
     if separate:
         assert tf is not None
         integration = simulate_uncoupled(
@@ -142,6 +151,7 @@ def simulate(
             progress=solver.progress,
             progress_chunk_steps=solver.progress_chunk_steps,
             reference_mode=solver.attitude.propagator.mode if isinstance(solver.attitude.propagator, ReferenceAttitudePropagator) else -1,
+            ctrl_log_flags=ctrl_log_flags,
         )
     else:
         integration = solver.propagator.integrate(
@@ -209,18 +219,37 @@ def simulate(
                 ):
                     values[row] = estimates[tick, start:stop]
             sensor_rows[name] = values
+    sm_idx = -4 if ctrl_log_flags else -1
     if getattr(resultsformat, "obc_mode", False):
         if not separate or satellite.obc is None or satellite.obc.state_machine is None:
             raise ValueError("obc_mode requires an OBCSubsystem with a state_machine in uncoupled mode")
-        sensor_rows["obc_mode"] = integration[-1][on_grid, 0:1].astype(np.float64)
+        sensor_rows["obc_mode"] = integration[sm_idx][on_grid, 0:1].astype(np.float64)
     if getattr(resultsformat, "adcs_mode", False):
         if not separate or (satellite.adcs.state_machine is None and (satellite.obc is None or satellite.obc.state_machine is None)):
             raise ValueError("adcs_mode requires an ADCS or OBC state_machine in uncoupled mode")
-        sensor_rows["adcs_mode"] = integration[-1][on_grid, 1:2].astype(np.float64)
+        sensor_rows["adcs_mode"] = integration[sm_idx][on_grid, 1:2].astype(np.float64)
     if getattr(resultsformat, "adcs_goal", False):
         if not separate or (satellite.adcs.state_machine is None and (satellite.obc is None or satellite.obc.state_machine is None)):
             raise ValueError("adcs_goal requires an ADCS or OBC state_machine in uncoupled mode")
-        sensor_rows["adcs_goal"] = integration[-1][on_grid, 2:3].astype(np.float64)
+        sensor_rows["adcs_goal"] = integration[sm_idx][on_grid, 2:3].astype(np.float64)
+    if ctrl_log_flags:
+        if not separate:
+            raise ValueError("control/goal recording is currently supported in uncoupled mode")
+        ctrl_log, cmd_wheel_log, cmd_dipole_log = integration[-3:]
+        for name, start, stop in (
+            ("goal_attitude", 0, 4),
+            ("goal_rate", 4, 7),
+            ("feedforward_torque", 7, 10),
+            ("feedforward_attitude", 10, 14),
+            ("feedforward_rate", 14, 17),
+            ("reference_torque", 17, 20),
+        ):
+            if getattr(resultsformat, name):
+                sensor_rows[name] = ctrl_log[on_grid, start:stop]
+        if resultsformat.commanded_wheel_torque:
+            sensor_rows["commanded_wheel_torque"] = cmd_wheel_log[on_grid]
+        if resultsformat.commanded_magnetic_dipole:
+            sensor_rows["commanded_magnetic_dipole"] = cmd_dipole_log[on_grid]
     return record_samples(
         times_s,
         state_vectors,

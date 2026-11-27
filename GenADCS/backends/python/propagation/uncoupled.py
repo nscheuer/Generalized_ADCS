@@ -29,6 +29,7 @@ from GenADCS.backends.python.hardware.ADCS_subsystem.sensors.sensor_sampling imp
 from GenADCS.backends.python.hardware.ADCS_subsystem.state_machine import (
     ADCSSMRuntime,
     GoalTable,
+    evaluate_goal,
     init_adcs_work,
     prepare_adcs_sm,
     step_adcs_sm,
@@ -93,6 +94,10 @@ def _simulate_uncoupled_loop(
     ctrl_rt: ControllerRuntime,
     ctrl_work: np.ndarray,
     default_ctrl_idx: int,
+    ctrl_log_flags: int,
+    ctrl_log: np.ndarray,
+    cmd_wheel_log: np.ndarray,
+    cmd_dipole_log: np.ndarray,
 ) -> None:
     total_steps = full_steps + int(remainder > 0.0)
     active_obc_mode = int(obc_work[0])
@@ -118,6 +123,22 @@ def _simulate_uncoupled_loop(
         pending_cmd_goal = -1
         sm_trace[0, 1] = active_adcs_mode
         sm_trace[0, 2] = active_adcs_goal
+    if ctrl_log_flags:
+        if ctrl_log_flags & 1:
+            gq, gw = evaluate_goal(
+                active_adcs_goal,
+                adcs_sm_runtime.goal_kinds,
+                adcs_sm_runtime.goal_params,
+                y,
+                initial_jd,
+                runtime,
+            )
+            ctrl_log[0, 0:4] = gq
+            ctrl_log[0, 4:7] = gw
+        if (ctrl_log_flags & 32) and runtime.wheel_commands.size > 0:
+            cmd_wheel_log[0, :] = runtime.wheel_commands
+        if (ctrl_log_flags & 64) and runtime.dipole_commands.size > 0:
+            cmd_dipole_log[0, :] = runtime.dipole_commands
     if sensor_every:
         sample_sensors(
             y,
@@ -260,6 +281,23 @@ def _simulate_uncoupled_loop(
             if adcs_sm_every > 0:
                 sm_trace[rec_idx, 1] = active_adcs_mode
                 sm_trace[rec_idx, 2] = active_adcs_goal
+            if ctrl_log_flags:
+                if ctrl_log_flags & 1:
+                    cur_jd = initial_jd + min(completed * dt, full_steps * dt + remainder) / SECONDS_PER_DAY
+                    gq, gw = evaluate_goal(
+                        active_adcs_goal,
+                        adcs_sm_runtime.goal_kinds,
+                        adcs_sm_runtime.goal_params,
+                        y,
+                        cur_jd,
+                        runtime,
+                    )
+                    ctrl_log[rec_idx, 0:4] = gq
+                    ctrl_log[rec_idx, 4:7] = gw
+                if (ctrl_log_flags & 32) and runtime.wheel_commands.size > 0:
+                    cmd_wheel_log[rec_idx, :] = runtime.wheel_commands
+                if (ctrl_log_flags & 64) and runtime.dipole_commands.size > 0:
+                    cmd_dipole_log[rec_idx, :] = runtime.dipole_commands
         elif completed == total_steps:
             output[-1] = y
             if obc_every > 0:
@@ -267,6 +305,23 @@ def _simulate_uncoupled_loop(
             if adcs_sm_every > 0:
                 sm_trace[-1, 1] = active_adcs_mode
                 sm_trace[-1, 2] = active_adcs_goal
+            if ctrl_log_flags:
+                if ctrl_log_flags & 1:
+                    cur_jd = initial_jd + (full_steps * dt + remainder) / SECONDS_PER_DAY
+                    gq, gw = evaluate_goal(
+                        active_adcs_goal,
+                        adcs_sm_runtime.goal_kinds,
+                        adcs_sm_runtime.goal_params,
+                        y,
+                        cur_jd,
+                        runtime,
+                    )
+                    ctrl_log[-1, 0:4] = gq
+                    ctrl_log[-1, 4:7] = gw
+                if (ctrl_log_flags & 32) and runtime.wheel_commands.size > 0:
+                    cmd_wheel_log[-1, :] = runtime.wheel_commands
+                if (ctrl_log_flags & 64) and runtime.dipole_commands.size > 0:
+                    cmd_dipole_log[-1, :] = runtime.dipole_commands
         if progress_every > 0 and (
             completed % progress_every == 0 or completed == total_steps
         ):
@@ -287,6 +342,7 @@ def simulate_uncoupled(
     progress: bool = False,
     progress_chunk_steps: int = 500,
     reference_mode: int = -1,
+    ctrl_log_flags: int = 0,
 ) -> tuple[np.ndarray, ...]:
     """Prepare once, execute every step in one JIT call, return numeric samples."""
     tf = float(tf)
@@ -351,6 +407,21 @@ def simulate_uncoupled(
     obc_work = init_obc_work(obc_runtime)
     adcs_work = init_adcs_work(adcs_sm_runtime)
     sm_trace = np.full((elapsed.size, 3), -1, dtype=np.int64)
+    ctrl_log = (
+        np.full((elapsed.size, 20), np.nan, dtype=np.float64)
+        if (ctrl_log_flags & 31)
+        else np.empty((0, 0), dtype=np.float64)
+    )
+    cmd_wheel_log = (
+        np.full((elapsed.size, runtime.wheel_commands.size), np.nan, dtype=np.float64)
+        if (ctrl_log_flags & 32)
+        else np.empty((0, 0), dtype=np.float64)
+    )
+    cmd_dipole_log = (
+        np.full((elapsed.size, runtime.dipole_commands.size), np.nan, dtype=np.float64)
+        if (ctrl_log_flags & 64)
+        else np.empty((0, 0), dtype=np.float64)
+    )
     has_sm = obc_every > 0 or adcs_sm_every > 0
     args = (
         y,
@@ -402,6 +473,7 @@ def simulate_uncoupled(
                 obc_every, obc_runtime, obc_work,
                 adcs_sm_every, adcs_sm_runtime, adcs_work, sm_trace,
                 ctrl_rt, ctrl_work, default_ctrl_idx,
+                ctrl_log_flags, ctrl_log, cmd_wheel_log, cmd_dipole_log,
             )
         finally:
             finished.set()
@@ -412,6 +484,14 @@ def simulate_uncoupled(
             obc_every, obc_runtime, obc_work,
             adcs_sm_every, adcs_sm_runtime, adcs_work, sm_trace,
             ctrl_rt, ctrl_work, default_ctrl_idx,
+            ctrl_log_flags, ctrl_log, cmd_wheel_log, cmd_dipole_log,
+        )
+    if ctrl_log_flags > 0:
+        return (
+            (elapsed, output, clean, reading, estimates, sm_trace, ctrl_log, cmd_wheel_log, cmd_dipole_log)
+            if estimator_kind
+            else (elapsed, output, clean, reading, sm_trace, ctrl_log, cmd_wheel_log, cmd_dipole_log) if sensor_every
+            else (elapsed, output, sm_trace, ctrl_log, cmd_wheel_log, cmd_dipole_log)
         )
     if has_sm:
         return (

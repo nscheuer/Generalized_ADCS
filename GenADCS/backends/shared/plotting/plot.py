@@ -1017,6 +1017,76 @@ class WheelSpeedPlot(WheelMomentumPlot):
         super().__init__(**kwargs)
 
 
+class GoalAttitudePlot(Subplot):
+    """Plot goal attitude quaternion components (scalar-first)."""
+
+    def __init__(self, *, satellite="sat_000", title="Goal Attitude", **kwargs):
+        kwargs.setdefault("ylabel", "Quaternion")
+        kwargs.setdefault("labels", ("qW", "qX", "qY", "qZ"))
+        super().__init__("goal_attitude", satellite=satellite, title=title, **kwargs)
+
+
+class GoalRatePlot(Subplot):
+    """Plot goal body angular rate components."""
+
+    def __init__(self, *, satellite="sat_000", title="Goal Angular Rate", **kwargs):
+        kwargs.setdefault("ylabel", "Angular Rate [rad/s]")
+        kwargs.setdefault("labels", ("wx", "wy", "wz"))
+        super().__init__("goal_rate", satellite=satellite, title=title, **kwargs)
+
+
+class FeedforwardTorquePlot(Subplot):
+    """Plot feedforward torque in body coordinates."""
+
+    def __init__(self, *, satellite="sat_000", title="Feedforward Torque", **kwargs):
+        kwargs.setdefault("ylabel", "Torque [N m]")
+        kwargs.setdefault("labels", ("x", "y", "z"))
+        super().__init__("feedforward_torque", satellite=satellite, title=title, **kwargs)
+
+
+class FeedforwardAttitudePlot(Subplot):
+    """Plot feedforward attitude quaternion components (scalar-first)."""
+
+    def __init__(self, *, satellite="sat_000", title="Feedforward Attitude", **kwargs):
+        kwargs.setdefault("ylabel", "Quaternion")
+        kwargs.setdefault("labels", ("qW", "qX", "qY", "qZ"))
+        super().__init__("feedforward_attitude", satellite=satellite, title=title, **kwargs)
+
+
+class FeedforwardRatePlot(Subplot):
+    """Plot feedforward body angular rate components."""
+
+    def __init__(self, *, satellite="sat_000", title="Feedforward Angular Rate", **kwargs):
+        kwargs.setdefault("ylabel", "Angular Rate [rad/s]")
+        kwargs.setdefault("labels", ("wx", "wy", "wz"))
+        super().__init__("feedforward_rate", satellite=satellite, title=title, **kwargs)
+
+
+class ReferenceTorquePlot(Subplot):
+    """Plot controller reference torque in body coordinates."""
+
+    def __init__(self, *, satellite="sat_000", title="Reference Torque", **kwargs):
+        kwargs.setdefault("ylabel", "Torque [N m]")
+        kwargs.setdefault("labels", ("x", "y", "z"))
+        super().__init__("reference_torque", satellite=satellite, title=title, **kwargs)
+
+
+class CommandedWheelTorquePlot(Subplot):
+    """Plot commanded torque per reaction wheel."""
+
+    def __init__(self, *, satellite="sat_000", title="Commanded Reaction Wheel Torque", **kwargs):
+        kwargs.setdefault("ylabel", "Torque [N m]")
+        super().__init__("commanded_wheel_torque", satellite=satellite, title=title, **kwargs)
+
+
+class CommandedMagneticDipolePlot(Subplot):
+    """Plot commanded magnetic dipole per magnetorquer."""
+
+    def __init__(self, *, satellite="sat_000", title="Commanded Magnetic Dipole", **kwargs):
+        kwargs.setdefault("ylabel", "Dipole [A m^2]")
+        super().__init__("commanded_magnetic_dipole", satellite=satellite, title=title, **kwargs)
+
+
 def plot(sim, *subplots: Subplot, mode="single", layout=None, title=None,
          sharex=True, figure_kwargs=None, subplot_kwargs=None, show=False):
     """Arrange panels in one figure and return ``(figure, axes)``.

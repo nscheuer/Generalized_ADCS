@@ -62,6 +62,14 @@ class ResultsFormat:
     obc_mode: bool = False
     adcs_mode: bool = False
     adcs_goal: bool = False
+    goal_attitude: bool = False
+    goal_rate: bool = False
+    feedforward_torque: bool = False
+    feedforward_attitude: bool = False
+    feedforward_rate: bool = False
+    reference_torque: bool = False
+    commanded_wheel_torque: bool = False
+    commanded_magnetic_dipole: bool = False
 
     def __post_init__(self) -> None:
         if isinstance(self.N, bool) or not isinstance(self.N, int) or self.N < 1:

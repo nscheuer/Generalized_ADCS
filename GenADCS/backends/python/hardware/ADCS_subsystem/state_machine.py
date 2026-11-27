@@ -11,6 +11,8 @@ from numba import njit
 
 from .controllers import Controller, NoController
 from .controllers.runtime import ControllerTable
+from .goals._orbital_kernels import _reference as _orbital_goal_ref
+from .goals.coordinate_goal import _coordinate_fmc_rate, _coordinate_reference
 from .goals import (
     AlongTrackGoal,
     AngularRateGoal,
@@ -271,3 +273,41 @@ def step_adcs_sm(
     work[0] = mode
     work[1] = goal
     return mode, goal
+
+
+@njit(cache=True)
+def evaluate_goal(
+    goal_idx: int,
+    goal_kinds: np.ndarray,
+    goal_params: np.ndarray,
+    state: np.ndarray,
+    epoch_jd: float,
+    runtime,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Evaluate active goal index into ``(q_goal(4), w_goal(3))`` (NaN when unset)."""
+    nan_q = np.full(4, np.nan, dtype=np.float64)
+    nan_w = np.full(3, np.nan, dtype=np.float64)
+    if goal_idx < 0 or goal_idx >= goal_kinds.size:
+        return nan_q, nan_w
+    kind = goal_kinds[goal_idx]
+    if kind == GOAL_NONE:
+        return nan_q, nan_w
+    if kind >= GOAL_NADIR and kind <= GOAL_SUN:
+        return _orbital_goal_ref(state, epoch_jd, runtime, kind - 1)
+    if kind == GOAL_COORDINATE:
+        return _coordinate_reference(
+            state, epoch_jd, goal_params[goal_idx, :3], runtime.mu
+        )
+    if kind == GOAL_COORDINATE_FMC:
+        return _coordinate_fmc_rate(
+            state,
+            epoch_jd,
+            goal_params[goal_idx, :3],
+            runtime.mu,
+            int(goal_params[goal_idx, 3]),
+        )
+    if kind == GOAL_QUATERNION:
+        return goal_params[goal_idx, :4].copy(), nan_w
+    if kind == GOAL_ANGULAR_RATE:
+        return nan_q, goal_params[goal_idx, :3].copy()
+    return nan_q, nan_w
