@@ -21,6 +21,7 @@ packages=(
     "helpers/math/frames:_frames"
     "hardware/satellite_geometry:_geometry"
     "hardware/ADCS_subsystem:_subsystem"
+    "hardware/OBC_subsystem:_obc_subsystem"
     "hardware/satellite:_satellite"
     "environment/atmosphere:_atmosphere"
     "environment/ephemeris:_ephemeris"
@@ -44,7 +45,7 @@ for entry in "${packages[@]}"; do
         options+=(--package adcs-omni-rust-simulate)
     fi
     case "$directory" in
-        bias|state|helpers/math|helpers/math/frames|helpers/random|hardware/satellite_geometry|hardware/ADCS_subsystem|hardware/satellite|environment/atmosphere|environment/ephemeris|environment/gravity|environment/magnetic_field_model|environment/planetary_body|dynamics|config|solver|propagation/coupled_propagators|.)
+        bias|state|helpers/math|helpers/math/frames|helpers/random|hardware/satellite_geometry|hardware/ADCS_subsystem|hardware/OBC_subsystem|hardware/satellite|environment/atmosphere|environment/ephemeris|environment/gravity|environment/magnetic_field_model|environment/planetary_body|dynamics|config|solver|propagation/coupled_propagators|.)
             options+=(--features python-extension)
             ;;
     esac

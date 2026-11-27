@@ -112,6 +112,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "adcs-omni-rust-obc-subsystem"
+version = "0.1.0"
+dependencies = [
+ "adcs-omni-rust-adcs-subsystem",
+ "adcs-omni-rust-frames",
+ "nalgebra",
+ "pyo3",
+]
+
+[[package]]
 name = "adcs-omni-rust-planetary-body"
 version = "0.1.0"
 dependencies = [

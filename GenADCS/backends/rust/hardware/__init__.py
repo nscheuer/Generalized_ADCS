@@ -18,6 +18,22 @@ _CONTROLLER_NAMES = {
     "HoganSchaubManagement",
 }
 
+_OBC_NAMES = {
+    "OBCSubsystem",
+    "OBCStateMachine",
+    "Mode",
+    "Transition",
+    "Trigger",
+    "Telecommand",
+    "InFOV",
+    "Completion",
+    "After",
+    "FDIRTriggered",
+    "FDIR",
+    "FDIRMonitor",
+    "AngularRateMonitor",
+}
+
 __all__ = [
     "Satellite",
     "SatelliteGeometry",
@@ -26,6 +42,7 @@ __all__ = [
     "Magnetorquer",
     "ReactionWheel",
     *_CONTROLLER_NAMES,
+    *_OBC_NAMES,
 ]
 
 
@@ -39,4 +56,9 @@ def __getattr__(name):
     if name in ("ADCSSubsystem", "Magnetorquer", "ReactionWheel") or name in _CONTROLLER_NAMES:
         from . import ADCS_subsystem
         return getattr(ADCS_subsystem, name)
+    if name in _OBC_NAMES:
+        from . import OBC_subsystem
+        if name == "OBCStateMachine":
+            return getattr(OBC_subsystem, "StateMachine")
+        return getattr(OBC_subsystem, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

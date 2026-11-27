@@ -605,6 +605,40 @@ target_include_directories(_adcs_subsystem PRIVATE hardware/ADCS_subsystem hardw
 set_target_properties(_adcs_subsystem PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/hardware/ADCS_subsystem")
 
+add_library(obc_subsystem_native_core STATIC
+    hardware/OBC_subsystem/fdir.cpp
+    hardware/OBC_subsystem/state_machine.cpp
+    hardware/OBC_subsystem/obc_subsystem.cpp
+    hardware/OBC_subsystem/runtime.cpp
+)
+target_compile_features(obc_subsystem_native_core PUBLIC cxx_std_17)
+target_include_directories(obc_subsystem_native_core PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    helpers/math
+    helpers/math/frames
+)
+target_link_libraries(obc_subsystem_native_core PUBLIC Eigen3::Eigen goals_native_core)
+set_target_properties(obc_subsystem_native_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+pybind11_add_module(_obc_subsystem ${GENADCS_PYBIND_OPTIONS}
+    hardware/OBC_subsystem/obc_py.cpp
+)
+target_compile_features(_obc_subsystem PRIVATE cxx_std_17)
+target_link_libraries(_obc_subsystem PRIVATE obc_subsystem_native_core)
+set_target_properties(_obc_subsystem PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${GENADCS_EXTENSION_OUTPUT_ROOT}/hardware/OBC_subsystem")
+
+if(BUILD_TESTING)
+    add_executable(cpp_test_obc_and_adcs_state_machine
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/OBC_subsystem/test_obc_and_adcs_state_machine.cpp"
+    )
+    target_include_directories(cpp_test_obc_and_adcs_state_machine PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/backends/cpp/hardware/ADCS_subsystem"
+    )
+    target_link_libraries(cpp_test_obc_and_adcs_state_machine PRIVATE obc_subsystem_native_core)
+    add_test(NAME cpp_obc_and_adcs_state_machine COMMAND cpp_test_obc_and_adcs_state_machine)
+endif()
+
 file(GLOB_RECURSE SATELLITE_GEOMETRY_PYBIND_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/hardware/satellite_geometry/*_py.cpp")
 
